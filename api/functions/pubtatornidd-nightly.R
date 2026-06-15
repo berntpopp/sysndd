@@ -310,10 +310,12 @@ pubtatornidd_nightly_job_run <- function(job, payload, progress_reporter_fn) {
 #'   `db_execute_query`.
 #' @param submit_fn Job-submit function (injectable for tests). Default
 #'   `async_job_service_submit`.
+#' @param now Clock injection point (default `Sys.time()`); the stagger base.
 #' @return Invisibly TRUE when a job was enqueued, FALSE otherwise.
 #' @export
 pubtatornidd_bootstrap_enrichment <- function(query_fn = db_execute_query,
-                                              submit_fn = async_job_service_submit) {
+                                              submit_fn = async_job_service_submit,
+                                              now = Sys.time()) {
   rows <- tryCatch(
     query_fn("SELECT COUNT(*) AS n FROM pubtator_corpus_stats WHERE is_current = 1"),
     error = function(e) NULL
@@ -324,10 +326,21 @@ pubtatornidd_bootstrap_enrichment <- function(query_fn = db_execute_query,
     return(invisible(FALSE))
   }
 
+  # Decouple the nightly from the snapshot bootstrap so they are not
+  # claim-eligible at the same instant on a fresh start (#447). Default 240s;
+  # `0` disables. Parsed inline to avoid a hard dependency on the snapshot
+  # service file being sourced first.
+  stagger_raw <- trimws(Sys.getenv("PUBTATORNIDD_BOOTSTRAP_STAGGER_SECONDS", ""))
+  stagger_seconds <- suppressWarnings(as.integer(stagger_raw))
+  if (!nzchar(stagger_raw) || is.na(stagger_seconds) || stagger_seconds < 0L) {
+    stagger_seconds <- 240L
+  }
+
   submitted <- tryCatch(
     submit_fn(
       job_type = "pubtatornidd_nightly",
-      request_payload = list(trigger = "startup_bootstrap")
+      request_payload = list(trigger = "startup_bootstrap"),
+      scheduled_at = now + stagger_seconds
     ),
     error = function(e) {
       message(sprintf("[pubtatornidd-bootstrap] enqueue failed: %s",

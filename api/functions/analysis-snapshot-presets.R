@@ -13,29 +13,61 @@ analysis_snapshot_supported_presets <- function() {
     list(
       analysis_type = "functional_clusters",
       data_class = "curated_derived_analysis",
-      params = list(algorithm = "leiden")
+      params = list(algorithm = "leiden"),
+      # "heavy": recursive STRING enrichment; staggered behind the cheap presets
+      # at first-start to avoid worker-lease contention (#447, #440).
+      weight = "heavy"
     ),
     list(
       analysis_type = "phenotype_clusters",
       data_class = "curated_derived_analysis",
-      params = list()
+      params = list(),
+      weight = "light"
     ),
     list(
       analysis_type = "phenotype_correlations",
       data_class = "curated_derived_analysis",
-      params = list(filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)")
+      params = list(filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)"),
+      weight = "light"
     ),
     list(
       analysis_type = "phenotype_functional_correlations",
       data_class = "curated_derived_analysis",
-      params = list(algorithm = "leiden")
+      params = list(algorithm = "leiden"),
+      weight = "light"
     ),
     list(
       analysis_type = "gene_network_edges",
       data_class = "curated_derived_analysis",
-      params = list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L)
+      params = list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L),
+      weight = "light"
     )
   )
+}
+
+#' Bootstrap weight for a supported preset.
+#'
+#' "heavy" presets (currently only `functional_clusters`, with its recursive
+#' STRING enrichment build) are staggered behind the cheap "light" presets at
+#' first-start so a single small-host worker does not contend for the shared DB
+#' pool / CPU and push the heavy build over its lease (#447). Unknown types fail
+#' open to "light" so an unrecognized preset is never delayed.
+#'
+#' @param analysis_type Character analysis type.
+#' @return "heavy" or "light".
+#' @export
+analysis_snapshot_preset_weight <- function(analysis_type) {
+  at <- as.character(analysis_type[[1]])
+  for (p in analysis_snapshot_supported_presets()) {
+    if (identical(p$analysis_type, at)) {
+      w <- p$weight
+      if (is.null(w) || !nzchar(as.character(w[[1]]))) {
+        return("light")
+      }
+      return(as.character(w[[1]]))
+    }
+  }
+  "light"
 }
 
 analysis_snapshot_canonical_json <- function(value) {
