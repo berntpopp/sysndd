@@ -167,6 +167,16 @@ get_or_generate_summary <- function(
       }
       summary_with_confidence$derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
 
+      # Persist the LLM judge's verdict + reasoning on the rejected row so the
+      # rejection is debuggable (#443). Rejected summaries are never served by
+      # the public endpoint (get_cached_summary requires validation_status =
+      # 'validated'), so this is internal QA metadata embedded in summary_json
+      # rather than a schema change.
+      summary_with_confidence$validation <- list(
+        verdict = result$last_validation$verdict %||% NA_character_,
+        reasoning = result$last_validation$reasoning %||% NA_character_
+      )
+
       cache_id <- save_summary_to_cache(
         cluster_type = cluster_type,
         cluster_number = as.integer(cluster_number),
@@ -178,7 +188,7 @@ get_or_generate_summary <- function(
         validation_status = "rejected"
       )
 
-      log_warn("Saved rejected summary to cache (cache_id={cache_id})")
+      log_warn("Saved rejected summary to cache (cache_id={cache_id}, judge verdict={summary_with_confidence$validation$verdict})")
 
       return(list(
         success = FALSE,
