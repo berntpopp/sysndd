@@ -10,6 +10,15 @@
 # manifest probes from functions/analysis-snapshot-repository.R; all are loaded
 # into the global environment so they resolve at call time.
 
+#' Max attempts for a submitted `analysis_snapshot_refresh` job (#440).
+#'
+#' Heavy snapshot builds (especially `functional_clusters`' recursive STRING
+#' enrichment) can outrun their worker lease under startup contention. The
+#' stale-lease reaper (`async_job_repository_recover_stale`) requeues an expired
+#' lease while `attempt_count < max_attempts`, so > 1 makes the bootstrap
+#' self-healing instead of leaving a permanently-failed `LEASE_EXPIRED` snapshot.
+ANALYSIS_SNAPSHOT_REFRESH_MAX_ATTEMPTS <- 3L
+
 #' Whether the startup snapshot bootstrap is enabled.
 #'
 #' Config gate (issue #420), implemented as an env var to match the repo's
@@ -90,6 +99,7 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
         request_payload = list(analysis_type = at, params = normalized$params),
         queue_name = "default",
         priority = 50L,
+        max_attempts = ANALYSIS_SNAPSHOT_REFRESH_MAX_ATTEMPTS,
         conn = conn
       ),
       error = function(e) list(.error = conditionMessage(e))

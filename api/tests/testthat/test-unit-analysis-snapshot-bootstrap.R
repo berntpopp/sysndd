@@ -53,6 +53,29 @@ test_that("force = TRUE submits every preset regardless of existence", {
   expect_equal(n, 5L)
 })
 
+test_that("submitted snapshot jobs are retryable so an expired lease self-heals (#440)", {
+  captured <- list()
+  fake_submit <- function(job_type, request_payload, ..., max_attempts = 1L) {
+    captured[[length(captured) + 1L]] <<- as.integer(max_attempts)
+    fake_job(paste0("job-", length(captured)))
+  }
+  fake_exists <- function(...) FALSE
+
+  service_analysis_snapshot_submit_refresh(
+    force = TRUE, submit_fn = fake_submit, exists_fn = fake_exists
+  )
+
+  # Every preset must be submitted with > 1 attempt; otherwise a lease that
+  # expires under contention is reaped to a permanent LEASE_EXPIRED failure.
+  expect_gt(ANALYSIS_SNAPSHOT_REFRESH_MAX_ATTEMPTS, 1L)
+  expect_true(length(captured) >= 1L)
+  expect_true(all(vapply(
+    captured,
+    function(x) identical(x, ANALYSIS_SNAPSHOT_REFRESH_MAX_ATTEMPTS),
+    logical(1)
+  )))
+})
+
 test_that("a single analysis_type targets just that preset", {
   fake_submit <- function(job_type, request_payload, ...) fake_job("job-1")
   fake_exists <- function(...) FALSE

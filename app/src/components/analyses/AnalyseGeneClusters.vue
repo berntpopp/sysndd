@@ -155,6 +155,20 @@
                 :rows="6"
               />
 
+              <!-- Snapshot still building (503 snapshot_missing) — show a friendly
+                   "being prepared" state instead of a raw error toast (#440). -->
+              <div v-else-if="isPreparing" class="error-state text-center p-4">
+                <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
+                <p class="text-muted mb-3">
+                  This analysis is being prepared and will appear here shortly. This can take a
+                  couple of minutes after a deploy or data update.
+                </p>
+                <BButton variant="primary" @click="retryLoad">
+                  <i class="bi bi-arrow-clockwise me-1" />
+                  Check again
+                </BButton>
+              </div>
+
               <!-- GenericTable for main table content -->
               <GenericTable
                 v-else
@@ -379,7 +393,11 @@ import 'splitpanes/dist/splitpanes.css';
 import { getClusterColor } from '@/utils/clusterColors';
 
 // Typed API clients (W5)
-import { getFunctionalClustering, getFunctionalClusterSummary } from '@/api/analysis';
+import {
+  getFunctionalClustering,
+  getFunctionalClusterSummary,
+  isSnapshotPreparingError,
+} from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import { filterFunctionalClusterRows, sortFunctionalClusterRows } from './functionalClusterTable';
 import {
@@ -505,6 +523,9 @@ export default {
       activeSubCluster: 1,
 
       loading: true,
+      // Snapshot still building (503 snapshot_missing) — render a friendly
+      // "being prepared" panel rather than a raw error toast (#440).
+      isPreparing: false,
       loadingStage: 'initializing', // 'initializing' | 'submitting' | 'processing' | 'loading_data'
       loadingProgress: 0,
       estimatedSeconds: 15,
@@ -732,6 +753,7 @@ export default {
     async loadClusterDataSync() {
       this.loadingStage = 'loading_data';
       this.loadingProgress = 50;
+      this.isPreparing = false;
 
       try {
         const data = await getFunctionalClustering({
@@ -749,10 +771,28 @@ export default {
           this.setActiveCluster();
         }
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        // A snapshot "being prepared" 503 is a transient, expected state — show a
+        // friendly panel instead of a hard error toast (#440), mirroring the
+        // network graph (useNetworkData) and phenotype clusters views.
+        if (isSnapshotPreparingError(e)) {
+          this.isPreparing = true;
+        } else {
+          this.makeToast(e, 'Error', 'danger');
+        }
       } finally {
         this.loading = false;
       }
+    },
+
+    /**
+     * Retry loading the functional clustering snapshot after a "being prepared"
+     * 503. Re-arms the one-shot load guard so the user's "Check again" works.
+     */
+    retryLoad() {
+      this.isPreparing = false;
+      this.loading = true;
+      this.clusterTableLoadStarted = true;
+      this.loadClusterData();
     },
 
     /**
