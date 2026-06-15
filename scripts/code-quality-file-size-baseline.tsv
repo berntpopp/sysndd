@@ -14,7 +14,7 @@ api/functions/endpoint-functions.R	860
 api/functions/llm-batch-generator.R	604
 api/functions/llm-cache-repository.R	787
 api/functions/llm-judge.R	920
-api/functions/llm-service.R	610
+api/functions/llm-service.R	620
 api/functions/migration-runner.R	718
 api/functions/nddscore-import.R	854
 api/functions/omim-functions.R	971
