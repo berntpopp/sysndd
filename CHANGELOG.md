@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.25.1] — 2026-06-15
+
+Patch release: reliability and UX fixes for the analysis-snapshot subsystem (GeneNetworks / phenotype clusters) and the LLM cluster summaries.
+
+### Fixed
+
+- **GeneNetworks cluster selection** (#441): selecting a functional cluster showed neither its AI summary nor its enrichment table. The snapshot endpoint serialises `cluster` as a string (`"1"`) while the network graph emits numeric ids (`[1]`), so the strict-equality lookups never matched and the summary fetch never fired. Cluster-id comparisons now coerce both sides; the same hardening is applied to the phenotype clusters view.
+- **Analysis snapshots could fail permanently after a deploy** (#440): heavy snapshot builds (e.g. `functional_clusters`' recursive STRING enrichment) could outrun the worker lease under startup contention and were reaped to `LEASE_EXPIRED` with no retry, so the page 503'd indefinitely. Snapshot refresh jobs are now retryable (`max_attempts = 3`) and the stale-lease reaper requeues them — the startup bootstrap self-heals.
+- **"Analysis being prepared" state for GeneNetworks** (#440): a `snapshot_missing` 503 now renders a friendly "being prepared / Check again" panel instead of a raw error toast, matching the network graph and phenotype views. Also fixed `isSnapshotPreparingError`, which only matched a bare-string problem `code` and never the real `["snapshot_missing"]` array shape — so the preparing state previously never triggered against the live API.
+- **Rejected LLM cluster summaries are now debuggable** (#443): the LLM-as-judge's verdict and reasoning are persisted on the rejected cache row (internal QA metadata embedded in `summary_json`) instead of being discarded, so a persistently-rejected cluster can be diagnosed.
+
 ## [0.25.0] — 2026-06-14
 
 Minor release: surface the read-only SysNDD MCP service in the UI — a footer icon beside the API/Swagger link and an expanded `/mcp` information page with client setup instructions.
