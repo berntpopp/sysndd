@@ -63,4 +63,62 @@ describe('LlmCacheManager — F2a Bearer-via-interceptor', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(sawRequest).toBe(true);
   });
+
+  it('renders the judge verdict badge from a rejected summary_json (#448)', async () => {
+    primeAuth();
+    server.use(
+      http.get('*/api/llm/cache/summaries', () =>
+        HttpResponse.json({
+          data: [
+            {
+              cache_id: 7,
+              cluster_type: 'phenotype',
+              cluster_number: 3,
+              model_name: 'gemini-3.5-flash',
+              validation_status: 'rejected',
+              is_current: true,
+              created_at: '2026-06-15 07:53:24',
+              summary_json: {
+                validation: { verdict: 'reject', reasoning: 'Molecular hallucination.' },
+              },
+            },
+          ],
+          total: 1,
+          page: 1,
+          per_page: 20,
+        })
+      )
+    );
+
+    const wrapper = mount(LlmCacheManager, {
+      props: { stats: null },
+      global: {
+        stubs: {
+          BRow: { template: '<div><slot /></div>' },
+          BCol: { template: '<div><slot /></div>' },
+          BCard: { template: '<div><slot name="header" /><slot /><slot name="footer" /></div>' },
+          BButton: { template: '<button><slot /></button>' },
+          BButtonGroup: { template: '<div><slot /></div>' },
+          BBadge: { template: '<span class="badge"><slot /></span>' },
+          // Render the judge_verdict cell scoped slot for each item so the
+          // verdict-badge wiring (summary_json → extractJudgeVerdict → badge) runs.
+          BTable: {
+            props: ['items'],
+            template:
+              '<table><tbody><tr v-for="(it, i) in items" :key="i">' +
+              '<td><slot name="cell(judge_verdict)" :item="it" :value="it.validation_status" /></td>' +
+              '</tr></tbody></table>',
+          },
+          BPagination: { template: '<nav />' },
+          BFormSelect: { template: '<select />' },
+          BModal: { template: '<div />' },
+          'router-link': true,
+        },
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('reject');
+  });
 });

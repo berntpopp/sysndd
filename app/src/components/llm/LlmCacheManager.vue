@@ -112,6 +112,16 @@
             {{ data.value }}
           </BBadge>
         </template>
+        <template #cell(judge_verdict)="data">
+          <BBadge
+            v-if="extractJudgeVerdict(data.item.summary_json).verdict"
+            :variant="verdictVariant(extractJudgeVerdict(data.item.summary_json).verdict)"
+            :title="extractJudgeVerdict(data.item.summary_json).reasoning || ''"
+          >
+            {{ extractJudgeVerdict(data.item.summary_json).verdict }}
+          </BBadge>
+          <span v-else class="text-muted">—</span>
+        </template>
         <template #cell(is_current)="data">
           <BBadge v-if="data.value" variant="success">Current</BBadge>
           <BBadge v-else variant="secondary">Stale</BBadge>
@@ -202,6 +212,27 @@
           </BBadge>
         </div>
 
+        <!-- LLM-as-judge verdict + reasoning (#448) -->
+        <BAlert
+          v-if="selectedVerdict.verdict"
+          :model-value="true"
+          :variant="verdictVariant(selectedVerdict.verdict)"
+          class="mb-3"
+        >
+          <div class="fw-bold mb-1">
+            Judge verdict: {{ selectedVerdict.verdict }}
+          </div>
+          <div v-if="selectedVerdict.reasoning" class="small">
+            {{ selectedVerdict.reasoning }}
+          </div>
+          <div v-if="selectedVerdict.correctionsMade.length" class="mt-2">
+            <small class="fw-bold d-block">Corrections applied:</small>
+            <ul class="small mb-0">
+              <li v-for="(c, i) in selectedVerdict.correctionsMade" :key="i">{{ c }}</li>
+            </ul>
+          </div>
+        </BAlert>
+
         <!-- Summary JSON -->
         <BCard bg-variant="light">
           <template #header>
@@ -217,9 +248,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import type { CacheStats, CachedSummary, ClusterType, ValidationStatus } from '@/types/llm';
+import { extractJudgeVerdict, verdictVariant } from '@/utils/llm-verdict';
 
 defineProps<{
   stats: CacheStats | null;
@@ -268,10 +300,15 @@ const fields = [
   { key: 'cluster_number', label: 'Cluster #', sortable: true },
   { key: 'model_name', label: 'Model', sortable: true },
   { key: 'validation_status', label: 'Status', sortable: true },
+  { key: 'judge_verdict', label: 'Judge', sortable: false },
   { key: 'is_current', label: 'Current', sortable: true },
   { key: 'created_at', label: 'Created', sortable: true },
   { key: 'actions', label: 'Actions' },
 ];
+
+// Judge verdict + reasoning for the currently-open detail modal (#448). Reads
+// from either summary_json shape (top-level or nested `validation`).
+const selectedVerdict = computed(() => extractJudgeVerdict(selectedSummary.value?.summary_json));
 
 function statusVariant(status: string) {
   switch (status) {
