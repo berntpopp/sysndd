@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.25.2] — 2026-06-16
+
+Patch release: LLM cluster-summary judge robustness and startup job scheduling.
+
+### Fixed
+
+- **Phenotype judge permanently rejecting legitimate clusters** (#448): a sparse, depletion-defined cluster (e.g. the "mild, predominantly non-syndromic" phenotype cluster) had no correction path — the judge prompt treated any grounded clinical synthesis beyond the verbatim enriched terms as fabrication, and the verdict could never correct the main summary text, so the row was rejected forever. The verdict type now carries an optional `corrected_summary`, applied via `apply_judge_corrections()`, so isolated molecular phrasing or a single over-reaching label is salvaged via `accept_with_corrections` instead of `reject`. The phenotype judge prompt now explicitly allows grounded clinical synthesis of the listed phenotypes while preserving the hard-reject rules (fundamentally molecular summaries, direction inversion, fabricated specific phenotypes, and < 50% grounding) — no grounding threshold is loosened. The admin LLM cache view now surfaces the judge verdict, reasoning, and applied corrections (badge column + detail panel), reading both the top-level (accepted) and nested `validation` (rejected) persisted shapes. `llm-judge.R` was brought back under the file-size ceiling by extracting the prompt builders to `functions/llm-judge-prompts.R`.
+
+### Performance
+
+- **Staggered startup analysis-snapshot bootstrap** (#447): on a fresh start the bootstrap enqueued all snapshot presets plus the PubtatorNDD nightly as claim-eligible at the same instant, so the heavy `functional_clusters` build (recursive STRING enrichment) contended for the shared DB pool / CPU and could outrun its worker lease. The startup bootstrap now staggers heavy builds using the existing `async_jobs.scheduled_at` claim gate: heavy presets get a `scheduled_at` offset (`ANALYSIS_SNAPSHOT_BOOTSTRAP_STAGGER_SECONDS`, default 120s; `0` disables) while light presets stay immediately eligible, and the PubtatorNDD nightly bootstrap is offset separately (`PUBTATORNIDD_BOOTSTRAP_STAGGER_SECONDS`, default 240s). Only the automatic startup path staggers — the admin `force` refresh and the operator script submit immediately. No schema change and no extra worker.
+
 ## [0.25.1] — 2026-06-15
 
 Patch release: reliability and UX fixes for the analysis-snapshot subsystem (GeneNetworks / phenotype clusters) and the LLM cluster summaries.
