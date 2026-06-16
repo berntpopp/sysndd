@@ -33,6 +33,37 @@ analysis_snapshot_bootstrap_enabled <- function() {
   tolower(raw) %in% c("true", "1", "yes", "on")
 }
 
+#' Parse a non-negative-integer env var, falling back to a default.
+#'
+#' Blank, non-numeric, or negative values yield the default. `0` is a valid
+#' value (used to disable staggering).
+#'
+#' @param name Env var name.
+#' @param default Integer default.
+#' @return Non-negative integer.
+#' @keywords internal
+.analysis_snapshot_int_env <- function(name, default) {
+  raw <- trimws(Sys.getenv(name, ""))
+  if (!nzchar(raw)) {
+    return(as.integer(default))
+  }
+  val <- suppressWarnings(as.integer(raw))
+  if (is.na(val) || val < 0L) {
+    return(as.integer(default))
+  }
+  val
+}
+
+#' Seconds to delay HEAVY presets' first claim-eligibility during the startup
+#' bootstrap (#447).
+#'
+#' Light presets are never delayed. `0` disables staggering (current behavior).
+#' Default 120s. Read at call time so a restart picks up an env change.
+#' @export
+analysis_snapshot_bootstrap_stagger_seconds <- function() {
+  .analysis_snapshot_int_env("ANALYSIS_SNAPSHOT_BOOTSTRAP_STAGGER_SECONDS", 120L)
+}
+
 #' Submit analysis_snapshot_refresh jobs for supported presets.
 #'
 #' For each target preset: normalize params (canonical parameter_hash), and
@@ -46,6 +77,13 @@ analysis_snapshot_bootstrap_enabled <- function() {
 #' @param submit_fn Injectable job-submit fn (default `async_job_service_submit`).
 #' @param exists_fn Injectable existence probe (default `analysis_snapshot_public_exists`).
 #' @param conn Optional DB connection/pool.
+#' @param stagger When TRUE, offset HEAVY presets' `scheduled_at` so they are not
+#'   claim-eligible at the same instant as the light presets (startup bootstrap
+#'   only). The operator/admin `force` refresh path leaves this FALSE so a manual
+#'   rebuild is never delayed.
+#' @param now Clock injection point (default `Sys.time()`); the stagger base.
+#' @param stagger_seconds Heavy-preset offset in seconds; NULL resolves the env
+#'   default via `analysis_snapshot_bootstrap_stagger_seconds()`.
 #' @return Structured summary list.
 #' @export
 service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
@@ -53,7 +91,15 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
                                                      presets = NULL,
                                                      submit_fn = async_job_service_submit,
                                                      exists_fn = analysis_snapshot_public_exists,
-                                                     conn = NULL) {
+                                                     conn = NULL,
+                                                     stagger = FALSE,
+                                                     now = Sys.time(),
+                                                     stagger_seconds = NULL) {
+  stagger <- isTRUE(stagger)
+  if (is.null(stagger_seconds)) {
+    stagger_seconds <- analysis_snapshot_bootstrap_stagger_seconds()
+  }
+  stagger_seconds <- as.integer(stagger_seconds)
   if (is.null(presets)) {
     presets <- analysis_snapshot_supported_presets()
   }
@@ -93,6 +139,14 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
       }
     }
 
+    # Stagger heavy presets behind the cheap ones at first-start (#447). Light
+    # presets stay eligible immediately; the operator force path never staggers.
+    sched <- now
+    if (stagger && stagger_seconds > 0L &&
+        identical(analysis_snapshot_preset_weight(at), "heavy")) {
+      sched <- now + stagger_seconds
+    }
+
     outcome <- tryCatch(
       submit_fn(
         job_type = "analysis_snapshot_refresh",
@@ -100,6 +154,7 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
         queue_name = "default",
         priority = 50L,
         max_attempts = ANALYSIS_SNAPSHOT_REFRESH_MAX_ATTEMPTS,
+        scheduled_at = sched,
         conn = conn
       ),
       error = function(e) list(.error = conditionMessage(e))
@@ -245,7 +300,7 @@ analysis_snapshot_bootstrap_on_startup <- function(
   }
 
   summary <- tryCatch(
-    submit_refresh_fn(force = FALSE),
+    submit_refresh_fn(force = FALSE, stagger = TRUE),
     error = function(e) {
       message(sprintf("[snapshot-bootstrap] skipped: %s", conditionMessage(e)))
       NULL
