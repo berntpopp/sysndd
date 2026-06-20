@@ -31,7 +31,7 @@
             class="mobile-record-row__details-button"
             :aria-expanded="isExpanded(rowKey(item, index)) ? 'true' : 'false'"
             :aria-controls="`entities-mobile-row-details-${index}`"
-            @click="toggleDetails(rowKey(item, index))"
+            @click="toggleDetails(rowKey(item, index), item)"
           >
             {{ isExpanded(rowKey(item, index)) ? 'Hide' : 'Details' }}
           </button>
@@ -101,6 +101,22 @@
             <dt>Synopsis</dt>
             <dd>{{ displayValue(item.synopsis) }}</dd>
           </div>
+          <div
+            v-if="
+              getEntityMappingState(item.entity_id).loading ||
+              getEntityMappingState(item.entity_id).data
+            "
+            class="mobile-record-row__detail mobile-record-row__detail--ontologies"
+          >
+            <dt>Ontologies</dt>
+            <dd>
+              <LinkedOntologies
+                layout="strip"
+                :data="getEntityMappingState(item.entity_id).data"
+                :loading="getEntityMappingState(item.entity_id).loading"
+              />
+            </dd>
+          </div>
         </dl>
       </article>
     </template>
@@ -108,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, reactive } from 'vue';
 import MobileTableList from '@/components/table/MobileTableList.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
@@ -117,12 +133,39 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
 import { withReturnTo } from '@/utils/returnNavigation';
+import { getEntityMappings } from '@/api/disease-mappings';
+import type { DiseaseMappingResponse } from '@/api/disease-mappings';
+import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
 
 type Item = Record<string, unknown>;
+type MappingState = { data: DiseaseMappingResponse | null; loading: boolean; error: Error | null };
 
 const props = defineProps<{
   items: Item[];
 }>();
+
+const entityMappingsMap = reactive<Record<string, MappingState>>({});
+
+async function fetchEntityMappings(entityId: string | number): Promise<void> {
+  const key = String(entityId);
+  if (!entityMappingsMap[key]) {
+    entityMappingsMap[key] = { data: null, loading: false, error: null };
+  }
+  if (entityMappingsMap[key].data !== null || entityMappingsMap[key].loading) return;
+  entityMappingsMap[key].loading = true;
+  try {
+    entityMappingsMap[key].data = await getEntityMappings(key);
+  } catch (e) {
+    entityMappingsMap[key].error = e instanceof Error ? e : new Error(String(e));
+  } finally {
+    entityMappingsMap[key].loading = false;
+  }
+}
+
+function getEntityMappingState(entityId: unknown): MappingState {
+  const key = String(entityId);
+  return entityMappingsMap[key] ?? { data: null, loading: false, error: null };
+}
 
 const categories = new Set([
   'Definitive',
@@ -140,6 +183,17 @@ watch(
   (items) => {
     const currentKeys = new Set(items.map((item, index) => rowKey(item, index)));
     expandedRows.value = new Set([...expandedRows.value].filter((key) => currentKeys.has(key)));
+
+    // Prune entityMappingsMap entries for entity ids no longer in the current items
+    // so the map doesn't grow unboundedly as the user pages through results.
+    const currentEntityKeys = new Set(
+      items.map((item) => String(item.entity_id ?? '')).filter(Boolean)
+    );
+    for (const key of Object.keys(entityMappingsMap)) {
+      if (!currentEntityKeys.has(key)) {
+        delete entityMappingsMap[key];
+      }
+    }
   },
   { deep: false }
 );
@@ -202,13 +256,17 @@ function isExpanded(key: string): boolean {
   return expandedRows.value.has(key);
 }
 
-function toggleDetails(key: string): void {
+function toggleDetails(key: string, item?: Item): void {
   const nextExpandedRows = new Set(expandedRows.value);
 
   if (nextExpandedRows.has(key)) {
     nextExpandedRows.delete(key);
   } else {
     nextExpandedRows.add(key);
+    // Lazy-fetch ontology mappings when a row is first expanded
+    if (item?.entity_id !== undefined) {
+      void fetchEntityMappings(item.entity_id as string | number);
+    }
   }
 
   expandedRows.value = nextExpandedRows;

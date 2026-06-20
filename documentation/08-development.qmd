@@ -193,6 +193,52 @@ async_job_service_submit(job_type = "pubtator_enrichment_refresh", request_paylo
 
 The default gene-table sort is `-enrichment_ratio,-npmi,publication_count`; the raw NDD publication count remains sortable. Restart the worker container after changing `api/functions/pubtator-enrichment-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
 
+### Disease Cross-Ontology Mappings
+
+Disease cross-ontology mappings are derived from MONDO (`mondo.obo` + `mondo.sssom.tsv`) and stored in the `mondo_term`, `mondo_xref`, `disease_ontology_mapping`, and `disease_ontology_mapping_meta` tables (migration `036`). Denormalized projection columns (`UMLS`, `MedGen`, `NCIT`, `GARD`, `ontology_mapping_release`) on `disease_ontology_set` hold the best CURIE per prefix.
+
+**To trigger a refresh locally (dev stack running):**
+
+```bash
+# Via admin HTTP endpoint (Administrator token required):
+curl -sS -X POST 'http://localhost/api/admin/ontology/mappings/refresh' \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"force": true}'
+
+# Check status:
+curl -sS 'http://localhost/api/admin/ontology/mappings/status' \
+  -H "Authorization: Bearer <admin-token>" | jq
+
+# Or via the enqueue script inside the api container:
+docker exec sysndd-api-1 Rscript /app/scripts/ontology_mapping_refresh_enqueue.R
+```
+
+The worker picks up the job and runs the orchestrator (`api/functions/disease-ontology-mapping-refresh.R`). It downloads `mondo.obo` (~50 MB) and `mondo.sssom.tsv` (~80 MB) via budgeted conditional GET requests. On repeated runs with no changes (HTTP 304 from the upstream), the job records `status = "skipped"` in `disease_ontology_mapping_meta` — no rebuild occurs.
+
+**Fixtures for tests** live in `api/tests/testthat/fixtures/`:
+- `mondo-mini.obo` — minimal OBO with a handful of MONDO terms.
+- `mondo-mini.sssom.tsv` — matching SSSOM rows for the mini term set.
+
+Unit tests consume these fixtures directly (no network). Integration tests stub the download functions with fixture paths so no real MONDO download occurs.
+
+**Running the mapping tests:**
+
+Host-side R (no RMariaDB required for unit tests):
+```bash
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-disease-ontology-mapping-builder.R')"
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-ontology-mapping-refresh.R')"
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-ontology-mapping-service.R')"
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-admin-ontology-mapping-endpoints.R')"
+```
+
+Integration tests require a DB (note: `api/tests/` is NOT bind-mounted into the API container; see container mount notes):
+```bash
+# In-container against the dev DB (substitute dev DB creds):
+docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-integration-ontology-mapping-refresh.R')"
+# Or with provisioned test DB in CI: make test-api
+```
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.

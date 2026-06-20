@@ -555,6 +555,95 @@ services:
         - action: rebuild
           path: ./api/renv.lock
 
+  ontology-mapping-cron:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    container_name: sysndd_ontology_mapping_cron
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Only runs the bash scheduler loop below; disable the image's Plumber
+    # healthcheck. If the loop (PID 1) dies the container exits and restarts.
+    healthcheck:
+      disable: true
+    # Weekly scheduler loop (no root / system cron). Sleeps until the next
+    # ONTOLOGY_MAPPING_REFRESH_DOW (0=Sun..6=Sat) at ONTOLOGY_MAPPING_REFRESH_AT
+    # (HH:MM, container/UTC time), then enqueues one job; on enqueue failure it
+    # logs and continues to the next cycle. The worker (egress-capable) runs the
+    # job; this sidecar only enqueues over the DB-only backend network.
+    command:
+      - bash
+      - -lc
+      - >
+          set -u;
+          at="$${ONTOLOGY_MAPPING_REFRESH_AT:-04:30}";
+          dow="$${ONTOLOGY_MAPPING_REFRESH_DOW:-0}";
+          echo "[ontology-mapping-cron] scheduler started; weekly enqueue on dow=$$dow at $$at (container time)";
+          while true; do
+            now=$$(date +%s);
+            target=0;
+            for i in 0 1 2 3 4 5 6 7; do
+              cand=$$(date -d "$$at +$$i day" +%s 2>/dev/null || echo 0);
+              cand_dow=$$(date -d "@$$cand" +%w 2>/dev/null || echo -1);
+              if [ "$$cand" -gt "$$now" ] && [ "$$cand_dow" = "$$dow" ]; then target=$$cand; break; fi;
+            done;
+            if [ "$$target" -le "$$now" ]; then target=$$(( now + 86400 )); fi;
+            sleep_for=$$(( target - now ));
+            echo "[ontology-mapping-cron] sleeping $$sleep_for s until next run";
+            sleep "$$sleep_for";
+            echo "[ontology-mapping-cron] enqueuing scripts/ontology_mapping_refresh_enqueue.R";
+            Rscript scripts/ontology_mapping_refresh_enqueue.R || echo "[ontology-mapping-cron] enqueue failed (exit $$?); will retry next cycle";
+          done
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/services:/app/services:ro
+      - ./api/core:/app/core:ro
+      - ./api/bootstrap:/app/bootstrap:ro
+      - ./api/config:/app/config:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./api/config.yml:/app/config.yml:ro
+    environment:
+      ENVIRONMENT: production
+      # One connection is plenty for a once-a-week enqueue.
+      DB_POOL_SIZE: ${ONTOLOGY_MAPPING_CRON_DB_POOL_SIZE:-1}
+      # Weekly enqueue time, HH:MM in container (UTC) time.
+      ONTOLOGY_MAPPING_REFRESH_AT: ${ONTOLOGY_MAPPING_REFRESH_AT:-04:30}
+      # Day of week to enqueue: 0=Sun .. 6=Sat.
+      ONTOLOGY_MAPPING_REFRESH_DOW: ${ONTOLOGY_MAPPING_REFRESH_DOW:-0}
+    networks:
+      # DB access only; the worker (not this sidecar) makes the external calls.
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/services
+          target: /app/services
+        - action: sync
+          path: ./api/scripts
+          target: /app/scripts
+        - action: rebuild
+          path: ./api/renv.lock
+
   app:
     build:
       context: ./app/

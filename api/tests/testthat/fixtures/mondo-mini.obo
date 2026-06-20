@@ -1,0 +1,22 @@
+format-version: 1.2
+data-version: releases/2026-05-05
+ontology: mondo
+
+[Term]
+id: MONDO:0032745
+name: CTNNB1 syndrome
+def: "A neurodevelopmental syndrome caused by heterozygous loss-of-function variants in CTNNB1." [PMID:21932746]
+xref: OMIM:618524 {source="MONDO:equivalentTo"}
+xref: Orphanet:530983
+
+[Term]
+id: MONDO:0008426
+name: some other disease
+def: "Another disease." []
+xref: DOID:0081234
+
+[Term]
+id: MONDO:0000003
+name: obsolete entity
+is_obsolete: true
+replaced_by: MONDO:0032745

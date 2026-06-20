@@ -28,3 +28,15 @@ test_that(".async_job_run_omim_update forces a fresh combined ontology build", {
   expect_match(body_txt, "process_combine_ontology")
   expect_match(body_txt, "max_file_age\\s*=\\s*0")
 })
+
+test_that("disease_ontology_mapping_refresh handler is registered and callable", {
+  entry <- async_job_get_handler("disease_ontology_mapping_refresh")
+
+  expect_type(entry, "list")
+  expect_true(is.function(entry$run))
+  expect_identical(entry$cancel_mode, "non_interruptible")
+  expect_true(is.function(entry$after_success))
+
+  body_txt <- handler_body(.async_job_run_disease_ontology_mapping_refresh)
+  expect_match(body_txt, "disease_ontology_mapping_refresh_run")
+})

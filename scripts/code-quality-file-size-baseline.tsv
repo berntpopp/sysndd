@@ -7,7 +7,7 @@ api/endpoints/publication_endpoints.R	1141
 api/endpoints/re_review_endpoints.R	856
 api/endpoints/statistics_endpoints.R	782
 api/endpoints/user_endpoints.R	1117
-api/functions/async-job-handlers.R	921
+api/functions/async-job-handlers.R	973
 api/functions/async-job-repository.R	638
 api/functions/comparisons-functions.R	967
 api/functions/endpoint-functions.R	860
@@ -32,8 +32,8 @@ app/src/components/forms/BatchCriteriaForm.vue	747
 app/src/components/gene/GeneStructurePlotWithVariants.vue	685
 app/src/components/gene/ProteinDomainLollipopPlot.vue	605
 app/src/components/nddscore/NddScoreGeneTable.vue	822
-app/src/components/small/GenericTable.vue	926
-app/src/components/tables/TablesEntities.vue	861
+app/src/components/small/GenericTable.vue	929
+app/src/components/tables/TablesEntities.vue	936
 app/src/components/tables/TablesGenes.vue	782
 app/src/components/tables/TablesPhenotypes.vue	889
 app/src/views/admin/ManageAnnotations.vue	613
@@ -43,5 +43,5 @@ app/src/views/admin/ManageUser.vue	614
 app/src/views/curate/ApproveReview.vue	841
 app/src/views/curate/ApproveUser.vue	842
 app/src/views/curate/ManageReReview.vue	1514
-app/src/views/pages/EntityView.vue	811
+app/src/views/pages/EntityView.vue	834
 db/C_Rcommands_set-table-connections.R	791

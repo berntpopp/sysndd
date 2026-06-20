@@ -41,6 +41,11 @@ export interface OntologyTerm {
   MONDO: string[];
   Orphanet: string[];
   EFO: string[];
+  UMLS?: string[];
+  MedGen?: string[];
+  NCIT?: string[];
+  GARD?: string[];
+  ontology_mapping_release?: string[];
   hpo_mode_of_inheritance_term_name?: string[];
   inheritance_filter?: string[];
 }

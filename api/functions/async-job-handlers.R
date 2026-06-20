@@ -117,6 +117,40 @@
   invisible(result)
 }
 
+#' Re-trigger a forced disease-ontology mapping refresh after a successful
+#' ontology-set refresh (correction #2).
+#'
+#' `refresh_disease_ontology_set()` rewrites `disease_ontology_set` (DELETE +
+#' re-append) and does not rebuild the cross-ontology projection columns or the
+#' normalized `disease_ontology_mapping` rows, so a successful ontology refresh
+#' leaves the new mapping columns blank and the normalized rows pointing at base
+#' ids that may have changed. Enqueueing a forced mapping refresh heals it.
+#'
+#' Best-effort: a submission hiccup must NOT fail the ontology refresh, so this
+#' is wrapped in tryCatch and only logs on error.
+#' @keywords internal
+.async_job_chain_ontology_mapping_refresh <- function() {
+  if (!exists("service_disease_ontology_mapping_submit_refresh", mode = "function")) {
+    return(invisible(NULL))
+  }
+  tryCatch(
+    {
+      outcome <- service_disease_ontology_mapping_submit_refresh(force = TRUE)
+      message(sprintf(
+        "[ontology-mapping-chain] forced mapping refresh after ontology-set refresh (job_id=%s)",
+        tryCatch(outcome$job_id, error = function(e) NA_character_)
+      ))
+    },
+    error = function(e) {
+      message(sprintf(
+        "[ontology-mapping-chain] could not enqueue mapping refresh (non-fatal): %s",
+        conditionMessage(e)
+      ))
+    }
+  )
+  invisible(NULL)
+}
+
 .async_job_phenotype_matrix <- function(payload) {
   sysndd_db_phenotypes <- payload$ndd_entity_view_tbl |>
     dplyr::left_join(payload$ndd_review_phenotype_connect_tbl, by = "entity_id") |>
@@ -416,6 +450,11 @@
   pubtatornidd_nightly_job_run(job, payload, .async_job_progress_reporter)
 }
 
+.async_job_run_disease_ontology_mapping_refresh <- function(job, payload, state, worker_config) {
+  progress <- .async_job_progress_reporter(job$job_id[[1]])
+  disease_ontology_mapping_refresh_run(job, payload, progress)
+}
+
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
@@ -513,6 +552,10 @@
     disease_ontology_set_update = disease_ontology_set_update,
     auto_fixes = safeguard$auto_fixes
   )
+
+  # Correction #2: the disease set changed, so rebuild the cross-ontology
+  # mappings (best-effort; never fails the ontology refresh).
+  .async_job_chain_ontology_mapping_refresh()
 
   refresh_result$auto_fixes_applied
 }
@@ -686,6 +729,10 @@
       auto_fixes_applied <- refresh_result$auto_fixes_applied
       compat_count <- refresh_result$compatibility_rows
 
+      # Correction #2: the disease set changed, so rebuild the cross-ontology
+      # mappings (best-effort; never fails the force-apply).
+      .async_job_chain_ontology_mapping_refresh()
+
       re_review_batch_id <- NULL
       if (length(critical_entity_ids) > 0 && exists("batch_create", mode = "function")) {
         tryCatch(
@@ -847,6 +894,11 @@ async_job_handler_registry <- list(
   pubtatornidd_nightly = list(
     cancel_mode = "non_interruptible",
     run = .async_job_run_pubtatornidd_nightly,
+    after_success = .async_job_after_success_noop
+  ),
+  disease_ontology_mapping_refresh = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_disease_ontology_mapping_refresh,
     after_success = .async_job_after_success_noop
   ),
   nddscore_import = list(

@@ -5,6 +5,7 @@
 // OBO PURL IRI the EBI OLS4 term browser understands.
 
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { ontologyOutlink } from '@/assets/js/constants/ontology_links';
 
 const OLS4_BASE = 'https://www.ebi.ac.uk/ols4/ontologies/vario/classes?iri=';
 const VARIO_0001_IRI = encodeURIComponent('http://purl.obolibrary.org/obo/VariO_0001');
@@ -53,5 +54,72 @@ describe('ontology_links — varioTermUrl', () => {
 
     expect(VARIO_BASE_URL).toBe('https://example.org/vario/term?iri=');
     expect(varioTermUrl('VariO:0001')).toBe(`https://example.org/vario/term?iri=${VARIO_0001_IRI}`);
+  });
+});
+
+describe('ontologyOutlink', () => {
+  it('builds OMIM/MONDO/Orphanet/DOID urls', () => {
+    expect(ontologyOutlink('OMIM', 'OMIM:618524').url).toBe('https://www.omim.org/entry/618524');
+    expect(ontologyOutlink('MONDO', 'MONDO:0032745').url).toBe(
+      'http://purl.obolibrary.org/obo/MONDO_0032745'
+    );
+    expect(ontologyOutlink('Orphanet', 'Orphanet:530983').url).toContain('orpha.net');
+    expect(ontologyOutlink('DOID', 'DOID:0081234').url).toBe(
+      'https://disease-ontology.org/term/DOID:0081234'
+    );
+  });
+
+  it('returns null url for UMLS (no clean deep-link) and keeps the full CURIE label', () => {
+    const out = ontologyOutlink('UMLS', 'UMLS:C1234567');
+    expect(out.url).toBeNull();
+    expect(out.label).toBe('UMLS:C1234567');
+  });
+
+  // M-3: cover all 9 prefixes
+  it('builds MedGen url pointing to ncbi.nlm.nih.gov/medgen', () => {
+    const out = ontologyOutlink('MedGen', 'MedGen:C1234567');
+    expect(out.url).not.toBeNull();
+    expect(out.url).toContain('ncbi.nlm.nih.gov/medgen');
+    expect(out.url).toContain('C1234567');
+  });
+
+  it('builds NCIT url pointing to ncit.nci.nih.gov', () => {
+    const out = ontologyOutlink('NCIT', 'NCIT:C26767');
+    expect(out.url).not.toBeNull();
+    expect(out.url).toContain('ncit.nci.nih.gov');
+    expect(out.url).toContain('C26767');
+  });
+
+  it('builds GARD url pointing to rarediseases.info.nih.gov', () => {
+    const out = ontologyOutlink('GARD', 'GARD:0012345');
+    expect(out.url).not.toBeNull();
+    expect(out.url).toContain('rarediseases.info.nih.gov');
+    expect(out.url).toContain('0012345');
+  });
+
+  it('builds EFO url pointing to ebi.ac.uk/ols4 with obo_id param', () => {
+    const out = ontologyOutlink('EFO', 'EFO:0004339');
+    expect(out.url).not.toBeNull();
+    expect(out.url).toContain('ebi.ac.uk/ols4');
+    expect(out.url).toContain('EFO:0004339');
+  });
+
+  it('returns exact hrefs matching the URL templates for each prefix', () => {
+    expect(ontologyOutlink('OMIM', 'OMIM:618524').url).toBe('https://www.omim.org/entry/618524');
+    expect(ontologyOutlink('MONDO', 'MONDO:0032745').url).toBe(
+      'http://purl.obolibrary.org/obo/MONDO_0032745'
+    );
+    expect(ontologyOutlink('DOID', 'DOID:0081234').url).toBe(
+      'https://disease-ontology.org/term/DOID:0081234'
+    );
+    expect(ontologyOutlink('MedGen', 'MedGen:C1234567').url).toBe(
+      'https://www.ncbi.nlm.nih.gov/medgen/C1234567'
+    );
+    expect(ontologyOutlink('GARD', 'GARD:0012345').url).toBe(
+      'https://rarediseases.info.nih.gov/diseases/0012345/detail'
+    );
+    expect(ontologyOutlink('EFO', 'EFO:0004339').url).toBe(
+      'https://www.ebi.ac.uk/ols4/ontologies/efo/terms?obo_id=EFO:0004339'
+    );
   });
 });

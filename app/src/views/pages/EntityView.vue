@@ -74,9 +74,6 @@
                     {{ diseaseSourceId }}
                   </a>
                 </span>
-                <span v-if="mondoEquivalent" class="entity-meta-pill">
-                  MONDO {{ mondoEquivalent }}
-                </span>
                 <span class="entity-meta-pill entity-meta-icon">
                   <NddIcon :status="nddStatus" :show-title="false" size="sm" />
                   <span>NDD {{ nddStatus || 'unknown' }}</span>
@@ -90,6 +87,8 @@
           </SectionCard>
         </BCol>
       </BRow>
+
+      <EntityOntologiesCard :entity-id="entityIdStr" />
 
       <BRow class="entity-clinical-grid">
         <BCol cols="12" class="mb-2">
@@ -283,6 +282,7 @@ import { useEntityPublications } from '@/composables/useEntityPublications';
 import { useEntityPhenotypes } from '@/composables/useEntityPhenotypes';
 import { useEntityVariation } from '@/composables/useEntityVariation';
 import { useGeneRecord } from '@/composables/useGeneRecord';
+import EntityOntologiesCard from '@/components/disease/EntityOntologiesCard.vue';
 import { returnToFromRoute } from '@/utils/returnNavigation';
 import { varioTermUrl } from '@/assets/js/constants/ontology_links';
 
@@ -298,7 +298,7 @@ let copyResetTimer: number | NodeJS.Timeout | null = null;
 
 const entityIdStr = computed(() => String(route.params.entity_id ?? ''));
 
-// All six entity-side hooks fire on tick 0 — no sequential awaits.
+// All entity-side hooks fire on tick 0 — no sequential awaits.
 const entity = useEntityRecord(entityIdStr);
 const status = useEntityStatus(entityIdStr);
 const review = useEntityReview(entityIdStr);
@@ -369,7 +369,6 @@ const diseaseSourceUrl = computed(() => {
   }
   return diseaseLink.value;
 });
-const mondoEquivalent = computed(() => asString(entityRow.value?.MONDO));
 const inheritanceName = computed(() =>
   asString(entityRow.value?.hpo_mode_of_inheritance_term_name)
 );

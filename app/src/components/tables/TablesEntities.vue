@@ -220,6 +220,20 @@
                   </span>
                 </template>
                 <!-- Custom slot for the 'category' column -->
+
+                <!-- Row expansion extra: appended after GenericTable's default detail card.
+                     The default card (with copy button and long-text class) is preserved;
+                     we only inject the fetch trigger + LinkedOntologies strip here. -->
+                <template #row-expansion-extra="{ row }">
+                  <div @vue:mounted="fetchEntityMappings(row.entity_id)">
+                    <LinkedOntologies
+                      layout="strip"
+                      :data="getEntityMappingState(row.entity_id).data"
+                      :loading="getEntityMappingState(row.entity_id).loading"
+                    />
+                  </div>
+                </template>
+                <!-- Row expansion extra -->
               </GenericTable>
             </div>
             <div class="d-md-none">
@@ -257,7 +271,7 @@
  */
 
 // Import Vue utilities
-import { ref, inject } from 'vue';
+import { ref, inject, reactive, watch } from 'vue';
 
 // Import composables
 import {
@@ -293,7 +307,11 @@ import { useUiStore } from '@/stores/ui';
 
 // Typed API client
 import { listEntities } from '@/api/entity';
+import { getEntityMappings } from '@/api/disease-mappings';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+
+// Disease ontology outlinks
+import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
@@ -316,6 +334,7 @@ export default {
     GeneBadge,
     DiseaseBadge,
     InheritanceBadge,
+    LinkedOntologies,
   },
   props: {
     apiEndpoint: {
@@ -394,6 +413,59 @@ export default {
       ...restTableMethods
     } = tableMethods;
 
+    // Per-row disease-mapping lazy fetch state
+    const entityMappingsMap = reactive({});
+
+    /**
+     * Lazily fetches ontology mappings for an entity and stores the result in entityMappingsMap.
+     * @param {number|string} entityId
+     * @returns {Promise<void>}
+     */
+    async function fetchEntityMappings(entityId) {
+      const key = String(entityId);
+      if (!entityMappingsMap[key]) {
+        entityMappingsMap[key] = { data: null, loading: false, error: null };
+      }
+      if (entityMappingsMap[key].data !== null || entityMappingsMap[key].loading) {
+        return; // already fetched or in flight
+      }
+      entityMappingsMap[key].loading = true;
+      try {
+        entityMappingsMap[key].data = await getEntityMappings(key);
+      } catch (e) {
+        entityMappingsMap[key].error = e instanceof Error ? e : new Error(String(e));
+      } finally {
+        entityMappingsMap[key].loading = false;
+      }
+    }
+
+    /**
+     * Returns the current mapping state for an entity id, or a safe default.
+     * @param {number|string} entityId
+     * @returns {{ data: unknown, loading: boolean, error: Error|null }}
+     */
+    function getEntityMappingState(entityId) {
+      const key = String(entityId);
+      return entityMappingsMap[key] ?? { data: null, loading: false, error: null };
+    }
+
+    // Prune entityMappingsMap when the page changes so map entries don't grow unboundedly.
+    // Mirror the expandedRows pruning in EntitiesMobileRows.vue.
+    watch(
+      () => tableData.items.value,
+      (items) => {
+        const currentKeys = new Set(
+          items.map((item) => String(item.entity_id ?? '')).filter(Boolean)
+        );
+        for (const key of Object.keys(entityMappingsMap)) {
+          if (!currentKeys.has(key)) {
+            delete entityMappingsMap[key];
+          }
+        }
+      },
+      { deep: false }
+    );
+
     // Return all needed properties
     return {
       makeToast,
@@ -407,6 +479,9 @@ export default {
       filter,
       axios,
       getTooltipText,
+      entityMappingsMap,
+      fetchEntityMappings,
+      getEntityMappingState,
     };
   },
   data() {

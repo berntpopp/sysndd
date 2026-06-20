@@ -15,6 +15,10 @@ data/*.txt
 data/*.csv
 data/*.obo
 
+# Ignore runtime-downloaded MONDO OBO/SSSOM caches (disease ontology mapping refresh)
+data/mondo_mappings/*.obo
+data/mondo_mappings/*.tsv
+
 # Ignore the log files in logs directory in api folder
 logs/*.log
 

@@ -522,6 +522,9 @@
               </dd>
             </div>
           </dl>
+          <!-- Optional append slot: consumers can inject extra content after the detail list
+               without replacing the full card (copy button and long-text class are preserved). -->
+          <slot name="row-expansion-extra" :row="row.item" />
         </BCard>
       </slot>
     </template>

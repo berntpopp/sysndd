@@ -50,6 +50,8 @@ default:
     omim_token: "ci_dummy_omim_token"
     nddscore_zenodo_record_id: "20258027"
     nddscore_zenodo_api_base_url: "https://zenodo.org/api/records"
+    mondo_obo_url: "http://purl.obolibrary.org/obo/mondo.obo"
+    mondo_sssom_url: "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"
 
   sysndd_db_local:
     workdir: "/app"
@@ -77,6 +79,8 @@ default:
     omim_token: "ci_dummy_omim_token"
     nddscore_zenodo_record_id: "20258027"
     nddscore_zenodo_api_base_url: "https://zenodo.org/api/records"
+    mondo_obo_url: "http://purl.obolibrary.org/obo/mondo.obo"
+    mondo_sssom_url: "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"
 
   sysndd_db_test:
     workdir: "/app"
@@ -104,6 +108,8 @@ default:
     omim_token: "ci_dummy_omim_token"
     nddscore_zenodo_record_id: "20258027"
     nddscore_zenodo_api_base_url: "https://zenodo.org/api/records"
+    mondo_obo_url: "http://purl.obolibrary.org/obo/mondo.obo"
+    mondo_sssom_url: "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"
 
   sysndd_db_dev:
     workdir: "/app"
@@ -131,3 +137,5 @@ default:
     omim_token: "ci_dummy_omim_token"
     nddscore_zenodo_record_id: "20258027"
     nddscore_zenodo_api_base_url: "https://zenodo.org/api/records"
+    mondo_obo_url: "http://purl.obolibrary.org/obo/mondo.obo"
+    mondo_sssom_url: "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"

@@ -107,7 +107,12 @@ decline a complex / out-of-scope item for specialist attention (issue #54), and
 `033_add_metadata_lookup_admin_columns.sql` which adds `is_active`/`sort`
 lifecycle columns to the SysNDD-managed curation lookups (`modifier_list`,
 `ndd_entity_status_categories_list`) so the admin `/ManageMetadata` surface can
-order and soft-delete entries.
+order and soft-delete entries, and `036_add_disease_ontology_mappings.sql` which
+adds the disease cross-ontology mapping foundation tables (`mondo_term`,
+`mondo_xref`, `disease_ontology_mapping`, `disease_ontology_mapping_meta`) plus
+five new columns on `disease_ontology_set` (`UMLS`, `MedGen`, `NCIT`, `GARD`,
+`ontology_mapping_release`) as the schema contract for the cross-ontology mapping
+feature (see `.superpowers/sdd/briefs/wp-a-brief.md`).
 
 ## 4. Adding a new migration
 
@@ -115,9 +120,12 @@ order and soft-delete entries.
    one.
 2. Drop a new `NNN_short_name.sql` file in this directory. The migration
    should be idempotent where practical (`CREATE TABLE IF NOT EXISTS`,
-   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, guarded `INSERT IGNORE`,
-   etc.) — it makes local recovery easier even though the runner itself
-   uses `schema_version` for at-most-once semantics.
+   guarded `INSERT IGNORE`, etc.) — it makes local recovery easier even
+   though the runner itself uses `schema_version` for at-most-once
+   semantics. Note: on MySQL 8 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+   is a syntax error (that syntax is MariaDB-only); use plain
+   `ALTER TABLE ... ADD COLUMN` and rely on the runner's once-only ledger
+   to prevent re-application.
 3. Restart the API (`docker compose restart api`, or redeploy). The new
    file is picked up automatically on the next start and applied under
    the advisory lock.

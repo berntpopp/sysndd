@@ -140,6 +140,40 @@ Snapshot status meanings:
 
 Available snapshot responses carry a `meta.snapshot` provenance block sourced from the public-ready manifest row: `snapshot_id`, `analysis_type`, `parameter_hash`, `schema_version`, `data_class`, `generated_at`, `stale_after`, `source_data_version`, `input_hash`, `payload_hash`, and `record_counts`. `input_hash` binds the snapshot to its supported parameter set plus the public source-data version; `payload_hash` binds it to the materialized result; `record_counts` reports the stored payload row counts (it excludes generated network metadata). These fields let operators and downstream clients audit lineage and completeness without a second query.
 
+### Disease cross-ontology mapping refresh (`ontology-mapping-cron`)
+
+The `ontology-mapping-cron` Compose sidecar keeps the disease cross-ontology mapping index current. Like `pubtatornidd-cron`, it is a *dumb scheduler*: once per week it enqueues a single durable `disease_ontology_mapping_refresh` async job (via `api/scripts/ontology_mapping_refresh_enqueue.R`) and exits. The `worker` service — which must have outbound egress for the MONDO downloads — claims and runs the orchestrator (`api/functions/disease-ontology-mapping-refresh.R`). The sidecar itself connects over the internal `backend` network only (enqueue only; no egress needed).
+
+The orchestrator: single-flights via a non-blocking MySQL advisory lock (`GET_LOCK('disease_ontology_mapping_refresh', 0)`); conditionally downloads `mondo.obo` (~50 MB) and `mondo.sssom.tsv` (~80 MB) using `If-None-Match`/`If-Modified-Since` headers so unchanged releases skip the full rebuild; rebuilds `mondo_term`, `mondo_xref`, and `disease_ontology_mapping` inside a single DB transaction; updates projection columns on `disease_ontology_set`; writes a `disease_ontology_mapping_meta` provenance row; and returns a structured run summary in the job `result_json`.
+
+**Configuration (environment variables, with defaults):**
+
+- `ONTOLOGY_MAPPING_REFRESH_AT=03:00` — weekly enqueue time, `HH:MM` in container (UTC) time.
+- `ONTOLOGY_MAPPING_REFRESH_DOW=sunday` — weekday for the enqueue (full name, lowercase).
+- `DISEASE_ONTOLOGY_MONDO_OBO_URL` — optional OBO URL override (defaults to `http://purl.obolibrary.org/obo/mondo.obo`).
+- `DISEASE_ONTOLOGY_MONDO_SSSOM_URL` — optional SSSOM URL override.
+- `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_ON_STARTUP=true` — set to `false` to disable auto-enqueue on API startup.
+- `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_STAGGER_SECONDS=360` — startup-bootstrap delay in seconds (set `0` to disable). Prevents co-launch with the analysis-snapshot and PubtatorNDD bootstraps.
+- `EXTERNAL_PROXY_MONDO_DEFAULT_TIMEOUT=120`, `EXTERNAL_PROXY_MONDO_DEFAULT_MAX=300`, `EXTERNAL_PROXY_MONDO_DEFAULT_TRIES=3` — budget tuning for the large MONDO artifact downloads.
+
+**Worker egress requirement:** the `worker` service must be attached to both the internal `backend` network (DB access) and the egress-capable `proxy` network. Attaching it only to `backend` breaks MONDO downloads because `backend` is `internal: true`.
+
+**Worker restart:** after deploying new or changed files in `api/functions/`, `api/services/`, or `api/endpoints/`, restart the worker container (`docker compose restart worker`) before expecting the new handlers to be live — worker-executed code is sourced once at startup.
+
+**Admin HTTP triggers** (no SSH needed, Administrator token required):
+```bash
+# Trigger a forced rebuild:
+curl -sS -X POST https://<host>/api/admin/ontology/mappings/refresh \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" -d '{"force": true}'
+
+# Check status (per-meta-row diagnostics):
+curl -sS https://<host>/api/admin/ontology/mappings/status \
+  -H "Authorization: Bearer <admin-token>" | jq
+```
+
+**Important:** when an operator ontology refresh runs (`force_apply_ontology` job), it rebuilds `disease_ontology_set` from scratch, erasing the denormalized projection columns (`UMLS`, `MedGen`, `NCIT`, `GARD`, `ontology_mapping_release`). The chaining handler in `api/functions/admin-ontology-refresh.R` automatically enqueues a `disease_ontology_mapping_refresh(force=TRUE)` afterward to re-derive them. Never run `refresh_disease_ontology_set()` in isolation without also triggering the mapping refresh.
+
 ### Gemini model configuration
 
 The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.
