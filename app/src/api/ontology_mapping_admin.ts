@@ -38,10 +38,7 @@ export interface OntologyMappingRefreshResult {
 export async function fetchOntologyMappingStatus(
   config?: Parameters<typeof apiClient.get>[1]
 ): Promise<OntologyMappingStatus> {
-  return apiClient.get<OntologyMappingStatus>(
-    '/api/admin/ontology/mappings/status',
-    config
-  );
+  return apiClient.get<OntologyMappingStatus>('/api/admin/ontology/mappings/status', config);
 }
 
 /**

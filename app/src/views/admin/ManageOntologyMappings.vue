@@ -103,9 +103,7 @@
           </section>
         </div>
 
-        <BAlert v-else variant="secondary" show class="mb-0">
-          No build records found.
-        </BAlert>
+        <BAlert v-else variant="secondary" show class="mb-0"> No build records found. </BAlert>
       </AdminOperationPanel>
 
       <!-- ─── Control panel ─────────────────────────────────────────────── -->
