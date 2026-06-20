@@ -22,10 +22,10 @@
         class="linked-ontologies__group"
         :class="`linked-ontologies__group--${layout}`"
       >
-        <!-- Card layout: show labelled row header -->
-        <span v-if="layout === 'card'" class="linked-ontologies__prefix-label">{{ group.prefix }}</span>
-
-        <!-- ResourceLink badge for each entry in the group -->
+        <!-- ResourceLink badge for each entry in the group.
+             No prefix label: each chip already shows the full CURIE (e.g.
+             "MONDO:0032745"), so a separate label would be redundant and
+             forces a row per prefix. Chips flow inline and wrap instead. -->
         <ResourceLink
           v-for="item in group.items"
           :key="item.entry.id"
@@ -111,20 +111,18 @@ const resolvedGroups = computed(() => {
   display: contents; /* badges flow directly into the parent flex container */
 }
 
-/* Card layout: labelled rows */
-.linked-ontologies--card .linked-ontologies__group {
-  display: flex;
-  align-items: center;
+/* Card layout: same inline-wrapping chip cloud as strip, with a slightly
+   roomier gap to suit the detail-page card. Chips flow and wrap rather than
+   stacking one prefix per row. */
+.linked-ontologies--card {
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.linked-ontologies__prefix-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6c757d;
-  min-width: 5rem;
-  flex-shrink: 0;
+.linked-ontologies--card .linked-ontologies__group {
+  display: contents; /* badges flow directly into the parent flex container */
 }
 
 /* Loading / missing states */
