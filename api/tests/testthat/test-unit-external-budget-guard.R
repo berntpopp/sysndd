@@ -12,7 +12,11 @@
 external_fetcher_files <- function() {
   fdir <- file.path(get_api_dir(), "functions")
   files <- list.files(fdir, pattern = "^external-proxy-.*\\.R$", full.names = TRUE)
-  files <- c(files, file.path(fdir, "genereviews-lookup.R"))
+  files <- c(files,
+    file.path(fdir, "genereviews-lookup.R"),
+    file.path(fdir, "disease-ontology-mapping-refresh.R"),
+    file.path(fdir, "mondo-functions.R")
+  )
   files <- files[file.exists(files)]
   # external-proxy-functions.R legitimately DEFINES the numeric budget defaults.
   files[!grepl("external-proxy-functions\\.R$", files)]

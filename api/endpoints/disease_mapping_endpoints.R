@@ -26,7 +26,9 @@ function(req, res, entity_id = NULL, disease_ontology_id = NULL) {
   disease_ontology_id <- if (is.null(disease_ontology_id)) NULL else disease_ontology_id[[1]]
 
   has_entity <- !is.null(entity_id) && !is.na(entity_id) && nchar(as.character(entity_id)) > 0
-  has_disease <- !is.null(disease_ontology_id) && !is.na(disease_ontology_id) && nchar(as.character(disease_ontology_id)) > 0
+  has_disease <- !is.null(disease_ontology_id) &&
+    !is.na(disease_ontology_id) &&
+    nchar(as.character(disease_ontology_id)) > 0
 
   if (has_entity == has_disease) {
     stop_for_bad_request("Exactly one of entity_id or disease_ontology_id is required.")
