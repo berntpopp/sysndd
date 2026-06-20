@@ -33,3 +33,29 @@ test_that("cheap-route handlers never reference an external provider fetcher", {
     )
   )
 })
+
+test_that("disease endpoint never references an external provider fetcher", {
+  path <- file.path(get_api_dir(), "endpoints", "disease_mapping_endpoints.R")
+  if (!file.exists(path)) skip("disease_mapping_endpoints.R not found")
+  src <- readLines(path, warn = FALSE)
+  src <- src[!grepl("^\\s*#", src)]
+  pattern <- "external_proxy_|fetch_(gnomad|uniprot|ensembl|alphafold|mgi|rgd|genereviews)"
+  hits <- grep(pattern, src, value = TRUE)
+  expect_identical(
+    hits, character(),
+    info = paste("disease endpoint calls an external fetcher:", paste(hits, collapse = " | "))
+  )
+})
+
+test_that("disease mapping repository never references an external provider fetcher", {
+  path <- file.path(get_api_dir(), "functions", "disease-ontology-mapping-repository.R")
+  if (!file.exists(path)) skip("disease-ontology-mapping-repository.R not found")
+  src <- readLines(path, warn = FALSE)
+  src <- src[!grepl("^\\s*#", src)]
+  pattern <- "external_proxy_|fetch_(gnomad|uniprot|ensembl|alphafold|mgi|rgd|genereviews)"
+  hits <- grep(pattern, src, value = TRUE)
+  expect_identical(
+    hits, character(),
+    info = paste("disease mapping repository calls an external fetcher:", paste(hits, collapse = " | "))
+  )
+})
