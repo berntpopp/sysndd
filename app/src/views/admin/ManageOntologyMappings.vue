@@ -267,7 +267,7 @@ async function triggerRefresh(): Promise<void> {
       refreshJob.startJob(result.job_id);
     }
     if (result.duplicate) {
-      actionMessage.value = 'A mapping refresh is already running.';
+      actionMessage.value = result.message || 'A mapping refresh is already running.';
     } else if (result.submitted) {
       actionMessage.value = result.message || 'Mapping refresh job submitted.';
     }

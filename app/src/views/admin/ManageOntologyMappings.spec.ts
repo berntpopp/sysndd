@@ -105,9 +105,28 @@ describe('ManageOntologyMappings.vue', () => {
     await flushPromises();
     await wrapper.find('[data-testid="ontology-mapping-refresh-btn"]').trigger('click');
     await flushPromises();
-    expect(wrapper.text()).toContain('A mapping refresh is already running.');
+    expect(wrapper.text()).toContain('Duplicate job.');
     expect(wrapper.find('[data-testid="ont-active-job"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="ont-active-job"]').text()).toContain('job-ont-existing');
+  });
+
+  it('shows skipped message and does not start job polling on skipped result', async () => {
+    const { submitOntologyMappingRefresh } = await import('@/api/ontology_mapping_admin');
+    (submitOntologyMappingRefresh as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      submitted: false,
+      duplicate: false,
+      skipped: true,
+      job_id: null,
+      message: 'A successful build already exists.',
+    });
+    const wrapper = mount(ManageOntologyMappings, {
+      global: { stubs: { AdminOperationPanel: false } },
+    });
+    await flushPromises();
+    await wrapper.find('[data-testid="ontology-mapping-refresh-btn"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('A successful build already exists.');
+    expect(wrapper.find('[data-testid="ont-active-job"]').exists()).toBe(false);
   });
 
   it('surfaces the extracted API error message on submit failure', async () => {
