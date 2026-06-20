@@ -6,11 +6,7 @@
     </div>
 
     <!-- Missing status note -->
-    <p
-      v-else-if="data?.status === 'missing'"
-      class="linked-ontologies__missing"
-      role="status"
-    >
+    <p v-else-if="data?.status === 'missing'" class="linked-ontologies__missing" role="status">
       Mappings are being prepared.
     </p>
 
@@ -65,7 +61,17 @@ const props = withDefaults(defineProps<Props>(), {
 // Constants
 // ---------------------------------------------------------------------------
 
-const ALLOWLIST_ORDER = ['MONDO', 'Orphanet', 'OMIM', 'DOID', 'UMLS', 'MedGen', 'NCIT', 'GARD', 'EFO'] as const;
+const ALLOWLIST_ORDER = [
+  'MONDO',
+  'Orphanet',
+  'OMIM',
+  'DOID',
+  'UMLS',
+  'MedGen',
+  'NCIT',
+  'GARD',
+  'EFO',
+] as const;
 
 // ---------------------------------------------------------------------------
 // Computed
@@ -77,18 +83,15 @@ const ALLOWLIST_ORDER = ['MONDO', 'Orphanet', 'OMIM', 'DOID', 'UMLS', 'MedGen', 
  */
 const resolvedGroups = computed(() => {
   if (!props.data?.mappings) return [];
-  return ALLOWLIST_ORDER
-    .filter(
-      (prefix) =>
-        props.data!.mappings[prefix] && props.data!.mappings[prefix].length > 0
-    )
-    .map((prefix) => ({
-      prefix,
-      items: props.data!.mappings[prefix].map((entry) => {
-        const resolved = ontologyOutlink(prefix, entry.id);
-        return { entry, url: resolved.url };
-      }),
-    }));
+  return ALLOWLIST_ORDER.filter(
+    (prefix) => props.data!.mappings[prefix] && props.data!.mappings[prefix].length > 0
+  ).map((prefix) => ({
+    prefix,
+    items: props.data!.mappings[prefix].map((entry) => {
+      const resolved = ontologyOutlink(prefix, entry.id);
+      return { entry, url: resolved.url };
+    }),
+  }));
 });
 </script>
 

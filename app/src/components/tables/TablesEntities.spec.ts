@@ -118,7 +118,14 @@ const mockMappingResponse = {
   release_version: '2024-01-01',
   status: 'current' as const,
   mappings: {
-    MONDO: [{ id: 'MONDO:0032745', label: 'Coffin-Siris syndrome 1', predicate: 'exactMatch', source: 'mondo_sssom' }],
+    MONDO: [
+      {
+        id: 'MONDO:0032745',
+        label: 'Coffin-Siris syndrome 1',
+        predicate: 'exactMatch',
+        source: 'mondo_sssom',
+      },
+    ],
   },
 };
 
@@ -128,49 +135,50 @@ async function mountTable() {
   await router.push('/');
   await router.isReady();
 
-  const wrapper = mount(
-    (await import('./TablesEntities.vue')).default,
-    {
-      global: {
-        plugins: [router],
-        provide: { axios },
-        directives: { 'b-tooltip': {}, 'b-toggle': {} },
-        stubs: {
-          // Layout shells
-          BContainer: { template: '<div><slot /></div>' },
-          BRow: { template: '<div><slot /></div>' },
-          BCol: { template: '<div><slot /></div>' },
-          // Table shells
-          TableShell: { template: '<div><slot name="actions" /><slot name="toolbar" /><slot name="loading" /><slot /></div>' },
-          TableLoadingState: { template: '<div data-testid="entities-skeleton" />' },
-          TableSearchInput: { template: '<input />' },
-          TablePaginationControls: { template: '<div />' },
-          TableDownloadLinkCopyButtons: { template: '<div />' },
-          // Badge / icon stubs
-          EntityBadge: { template: '<span class="entity-badge"><slot /></span>' },
-          GeneBadge: { template: '<span class="gene-badge"><slot /></span>' },
-          DiseaseBadge: { template: '<span class="disease-badge"><slot /></span>' },
-          InheritanceBadge: { template: '<span class="inheritance-badge"><slot /></span>' },
-          CategoryIcon: { template: '<span class="category-icon" />' },
-          NddIcon: { template: '<span class="ndd-icon" />' },
-          // Bootstrap-Vue-Next
-          BCard: { template: '<div class="b-card"><slot /></div>' },
-          BButton: { template: '<button><slot /></button>' },
-          BBadge: { template: '<span><slot /></span>' },
-          BFormInput: { template: '<input />' },
-          BFormSelect: { template: '<select><slot /></select>' },
-          BFormSelectOption: { template: '<option><slot /></option>' },
-          BSpinner: { template: '<div />' },
-          // LinkedOntologies — keep as the REAL component so we can assert it renders
-          // EntitiesMobileRows — stub for isolation
-          EntitiesMobileRows: { template: '<div />' },
-          // GenericTable renders the #row-expansion-extra slot; we stub it with a slot-aware stub.
-          // The stub also exposes a details-toggle button so tests can assert the details
-          // column mechanism is wired up.
-          GenericTable: {
-            props: ['items', 'fields', 'fieldDetails', 'sortBy', 'stackedMode'],
-            emits: ['update-sort'],
-            template: `
+  const wrapper = mount((await import('./TablesEntities.vue')).default, {
+    global: {
+      plugins: [router],
+      provide: { axios },
+      directives: { 'b-tooltip': {}, 'b-toggle': {} },
+      stubs: {
+        // Layout shells
+        BContainer: { template: '<div><slot /></div>' },
+        BRow: { template: '<div><slot /></div>' },
+        BCol: { template: '<div><slot /></div>' },
+        // Table shells
+        TableShell: {
+          template:
+            '<div><slot name="actions" /><slot name="toolbar" /><slot name="loading" /><slot /></div>',
+        },
+        TableLoadingState: { template: '<div data-testid="entities-skeleton" />' },
+        TableSearchInput: { template: '<input />' },
+        TablePaginationControls: { template: '<div />' },
+        TableDownloadLinkCopyButtons: { template: '<div />' },
+        // Badge / icon stubs
+        EntityBadge: { template: '<span class="entity-badge"><slot /></span>' },
+        GeneBadge: { template: '<span class="gene-badge"><slot /></span>' },
+        DiseaseBadge: { template: '<span class="disease-badge"><slot /></span>' },
+        InheritanceBadge: { template: '<span class="inheritance-badge"><slot /></span>' },
+        CategoryIcon: { template: '<span class="category-icon" />' },
+        NddIcon: { template: '<span class="ndd-icon" />' },
+        // Bootstrap-Vue-Next
+        BCard: { template: '<div class="b-card"><slot /></div>' },
+        BButton: { template: '<button><slot /></button>' },
+        BBadge: { template: '<span><slot /></span>' },
+        BFormInput: { template: '<input />' },
+        BFormSelect: { template: '<select><slot /></select>' },
+        BFormSelectOption: { template: '<option><slot /></option>' },
+        BSpinner: { template: '<div />' },
+        // LinkedOntologies — keep as the REAL component so we can assert it renders
+        // EntitiesMobileRows — stub for isolation
+        EntitiesMobileRows: { template: '<div />' },
+        // GenericTable renders the #row-expansion-extra slot; we stub it with a slot-aware stub.
+        // The stub also exposes a details-toggle button so tests can assert the details
+        // column mechanism is wired up.
+        GenericTable: {
+          props: ['items', 'fields', 'fieldDetails', 'sortBy', 'stackedMode'],
+          emits: ['update-sort'],
+          template: `
               <div class="generic-table-stub">
                 <button
                   v-for="item in items"
@@ -186,16 +194,15 @@ async function mountTable() {
                 />
               </div>
             `,
-          },
-          // ResourceLink used inside LinkedOntologies
-          ResourceLink: {
-            props: ['name', 'url', 'available', 'icon', 'compact'],
-            template: '<a class="resource-link" :href="url">{{ name }}</a>',
-          },
+        },
+        // ResourceLink used inside LinkedOntologies
+        ResourceLink: {
+          props: ['name', 'url', 'available', 'icon', 'compact'],
+          template: '<a class="resource-link" :href="url">{{ name }}</a>',
         },
       },
-    }
-  );
+    },
+  });
 
   await flushPromises();
   return wrapper;
@@ -254,7 +261,10 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
   it('calls getEntityMappings with the entity_id when the row expansion slot renders', async () => {
     const wrapper = await mountTable();
 
-    const vm = wrapper.vm as { items: unknown[]; fetchEntityMappings: (id: unknown) => Promise<void> };
+    const vm = wrapper.vm as {
+      items: unknown[];
+      fetchEntityMappings: (id: unknown) => Promise<void>;
+    };
     vm.items = [
       {
         entity_id: 57,
@@ -279,7 +289,9 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
 
   it('getEntityMappingState returns a safe default for unknown entity ids', async () => {
     const wrapper = await mountTable();
-    const vm = wrapper.vm as { getEntityMappingState: (id: unknown) => { data: unknown; loading: boolean; error: unknown } };
+    const vm = wrapper.vm as {
+      getEntityMappingState: (id: unknown) => { data: unknown; loading: boolean; error: unknown };
+    };
 
     const state = vm.getEntityMappingState(9999);
     expect(state.data).toBeNull();

@@ -102,7 +102,10 @@
             <dd>{{ displayValue(item.synopsis) }}</dd>
           </div>
           <div
-            v-if="getEntityMappingState(item.entity_id).loading || getEntityMappingState(item.entity_id).data"
+            v-if="
+              getEntityMappingState(item.entity_id).loading ||
+              getEntityMappingState(item.entity_id).data
+            "
             class="mobile-record-row__detail mobile-record-row__detail--ontologies"
           >
             <dt>Ontologies</dt>

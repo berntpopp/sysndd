@@ -92,7 +92,9 @@
         <BCol cols="12" class="mb-2">
           <SectionCard
             :loading="mappings.loading.value"
-            :empty="!mappings.loading.value && !mappings.error.value && mappings.data.value === null"
+            :empty="
+              !mappings.loading.value && !mappings.error.value && mappings.data.value === null
+            "
             :error="mappings.error.value ? mappings.error.value.message : null"
             title="Linked disease ontologies"
             min-height="4rem"

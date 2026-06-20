@@ -89,9 +89,7 @@ describe('EntityView (v11.3 W3)', () => {
     setActivePinia(createPinia());
     // Register a default mappings handler so existing tests don't get
     // unhandled-request 500s now that useEntityMappings is always mounted.
-    server.use(
-      http.get('*/api/disease/mappings', () => HttpResponse.json(emptyMappingsResponse))
-    );
+    server.use(http.get('*/api/disease/mappings', () => HttpResponse.json(emptyMappingsResponse)));
   });
   afterEach(() => server.resetHandlers());
 
@@ -680,8 +678,17 @@ describe('EntityView (v11.3 W3)', () => {
       release_version: '2024-01-01',
       status: 'current',
       mappings: {
-        MONDO: [{ id: 'MONDO:0032745', label: 'Coffin-Siris syndrome 1', predicate: 'exactMatch', source: 'mondo_sssom' }],
-        Orphanet: [{ id: 'Orphanet:1465', label: null, predicate: 'exactMatch', source: 'mondo_sssom' }],
+        MONDO: [
+          {
+            id: 'MONDO:0032745',
+            label: 'Coffin-Siris syndrome 1',
+            predicate: 'exactMatch',
+            source: 'mondo_sssom',
+          },
+        ],
+        Orphanet: [
+          { id: 'Orphanet:1465', label: null, predicate: 'exactMatch', source: 'mondo_sssom' },
+        ],
       },
     };
 

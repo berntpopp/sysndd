@@ -25,9 +25,18 @@ const WIRE_POPULATED = {
   release_version: ['2026-06-02'],
   status: ['current'],
   mappings: {
-    MONDO: [{ id: ['MONDO:0032797'], label: [null], predicate: ['exactMatch'], source: ['mondo_sssom'] }],
-    OMIM:  [{ id: ['OMIM:618524'],  label: [null], predicate: [null],         source: ['sysndd_native'] }],
-    DOID:  [{ id: ['DOID:0081348'], label: ['congenital myopathy 16'], predicate: ['exactMatch'], source: ['mondo_sssom'] }],
+    MONDO: [
+      { id: ['MONDO:0032797'], label: [null], predicate: ['exactMatch'], source: ['mondo_sssom'] },
+    ],
+    OMIM: [{ id: ['OMIM:618524'], label: [null], predicate: [null], source: ['sysndd_native'] }],
+    DOID: [
+      {
+        id: ['DOID:0081348'],
+        label: ['congenital myopathy 16'],
+        predicate: ['exactMatch'],
+        source: ['mondo_sssom'],
+      },
+    ],
   },
 };
 

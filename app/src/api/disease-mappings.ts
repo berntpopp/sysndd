@@ -113,8 +113,7 @@ export function normalizeDiseaseMappingResponse(raw: unknown): DiseaseMappingRes
 
   // Unwrap top-level scalars.
   const status = unwrapField(r['status']);
-  const cleanStatus: 'current' | 'missing' =
-    status === 'current' ? 'current' : 'missing';
+  const cleanStatus: 'current' | 'missing' = status === 'current' ? 'current' : 'missing';
 
   // Normalise mappings.
   // The "missing" path sends `"mappings":[]` (an array); the populated path
@@ -122,19 +121,16 @@ export function normalizeDiseaseMappingResponse(raw: unknown): DiseaseMappingRes
   const cleanMappings: Record<string, DiseaseMappingEntry[]> = {};
 
   const rawMappings = r['mappings'];
-  if (
-    rawMappings != null &&
-    typeof rawMappings === 'object' &&
-    !Array.isArray(rawMappings)
-  ) {
+  if (rawMappings != null && typeof rawMappings === 'object' && !Array.isArray(rawMappings)) {
     const mObj = rawMappings as Record<string, unknown>;
     for (const prefix of Object.keys(mObj)) {
       const entries = mObj[prefix];
       if (!Array.isArray(entries)) continue;
       cleanMappings[prefix] = entries.map((entry: unknown): DiseaseMappingEntry => {
-        const e = (entry != null && typeof entry === 'object'
-          ? entry
-          : {}) as Record<string, unknown>;
+        const e = (entry != null && typeof entry === 'object' ? entry : {}) as Record<
+          string,
+          unknown
+        >;
         return {
           id: unwrapField(e['id']) ?? '',
           label: unwrapField(e['label']),
