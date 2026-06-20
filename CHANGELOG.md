@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-06-20
+
+Minor release: disease cross-ontology mappings (MONDO / Orphanet / OMIM / DOID / UMLS / MedGen / NCIT / GARD / EFO) across database, API, and frontend, in lockstep across app, API, and DB schema versions.
+
+### Added
+
+- **Disease cross-ontology mappings** (#454): every SysNDD disease now carries provenance-tracked cross-references to external disease ontologies, anchored on MONDO as the hub (a disease's OMIM id resolves to MONDO via SSSOM, and MONDO's xrefs supply Orphanet/DOID/UMLS/etc.).
+  - **Database** (migration `036`): a normalized `disease_ontology_mapping` store (source of truth, with `predicate`/`source`/`release_version`), a local `mondo_term`/`mondo_xref` index, a build-provenance table, and refreshed projection columns (`UMLS`/`MedGen`/`NCIT`/`GARD`/`ontology_mapping_release`) on `disease_ontology_set`. The cross-charset join key is utf8mb3-pinned; `ndd_entity_view` is intentionally untouched.
+  - **Ingestion & refresh**: a durable `disease_ontology_mapping_refresh` async job (single-flight `GET_LOCK`, transactional rebuild, conditional-GET no-op, provenance meta rows); Administrator endpoints `POST/GET /api/admin/ontology/mappings/*`; a weekly `ontology-mapping-cron` sidecar; a staggered startup bootstrap; and a re-trigger after operator ontology refreshes so the projection columns can't drift. Validated end-to-end on real MONDO data (release 2026-06-02, ~40,645 mappings across ~6,766 diseases).
+  - **Read API**: a cheap, public, DB-only `GET /api/disease/mappings?entity_id=|disease_ontology_id=` that resolves entities through `ndd_entity_view` (public surface only). `/api/ontology` also now returns the new columns.
+  - **Frontend**: the Entities list row expansion gains an inline ontology outlink strip, and the Entity detail page gains a "Linked disease ontologies" card (`EntityOntologiesCard`), both rendering external outlinks via a central URL-template module (`ontology_links.ts`) and a typed client that normalizes the API's array-wrapped scalars.
+
+### Operational
+
+- New env vars: `DISEASE_ONTOLOGY_MONDO_OBO_URL` / `_SSSOM_URL`, `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_ON_STARTUP` (default true), `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_STAGGER_SECONDS` (default 360), `ONTOLOGY_MAPPING_REFRESH_AT` / `_DOW`, and `EXTERNAL_PROXY_MONDO_*` budget tuning for the ~50–80 MB MONDO artifacts. The worker must be restarted on deploy to source the new job handler; the cron sidecar is DB-only while the worker (which runs the job) needs egress.
+- **Database schema version → 0.26.0** (ships migration `036`): set `DB_VERSION=0.26.0` on deploy (`./db/scripts/update-db-version.sh 0.26.0 >> .env`) so the App and `/api/version` report the deployed schema version.
+
 ## [0.25.2] — 2026-06-16
 
 Patch release: LLM cluster-summary judge robustness and startup job scheduling.
