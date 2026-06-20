@@ -1,7 +1,7 @@
 // app/src/views/pages/__tests__/EntityView.spec.ts
 //
 // v11.3 W3.4 — pin EntityView parallel hook fan-out:
-//   1. All 5 sub-resource endpoints fire on tick 0 (parallel, not sequential).
+//   1. All 7 sub-resource endpoints fire on tick 0 (parallel, not sequential).
 //   2. Publications result splits into additional_references + gene_review
 //      adjacent cards from a single fetch (one /publications request).
 //   3. Linked-gene block hydrates from the entity record's hgnc_id.
@@ -36,6 +36,7 @@ import { server } from '@/test-utils/mocks/server';
 import { bootstrapStubs } from '@/test-utils';
 import { useCacheStore } from '@/stores/cacheStore';
 import EntityView from '../EntityView.vue';
+import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
 
 function makeRouter(path: string) {
   const router = createRouter({
@@ -94,7 +95,7 @@ describe('EntityView (v11.3 W3)', () => {
   });
   afterEach(() => server.resetHandlers());
 
-  it('fires all 5 sub-resource calls in parallel on mount (no sequential await)', async () => {
+  it('fires all 7 sub-resource calls in parallel on mount (no sequential await)', async () => {
     const calls: string[] = [];
     const start = Date.now();
     const tag = (name: string) => calls.push(`${Date.now() - start}:${name}`);
@@ -127,6 +128,17 @@ describe('EntityView (v11.3 W3)', () => {
         tag('var');
         return HttpResponse.json([]);
       }),
+      http.get('*/api/disease/mappings', () => {
+        tag('mappings');
+        return HttpResponse.json({
+          disease_ontology_id: 'OMIM:300005',
+          disease_ontology_name: 'Rett syndrome',
+          mondo_id: null,
+          release_version: null,
+          status: 'missing',
+          mappings: {},
+        });
+      }),
       http.get('*/api/gene/HGNC%3A6990', () => HttpResponse.json([{ symbol: ['MECP2'] }]))
     );
 
@@ -137,13 +149,14 @@ describe('EntityView (v11.3 W3)', () => {
     });
     await flushPromises();
 
-    // Each tag appeared at least once — the page hit all 5 sub-resource
+    // Each tag appeared at least once — the page hit all 7 sub-resource
     // endpoints, not just the first in a sequential chain.
     expect(calls.some((c) => c.endsWith('status'))).toBe(true);
     expect(calls.some((c) => c.endsWith('review'))).toBe(true);
     expect(calls.some((c) => c.endsWith('pubs'))).toBe(true);
     expect(calls.some((c) => c.endsWith('pheno'))).toBe(true);
     expect(calls.some((c) => c.endsWith('var'))).toBe(true);
+    expect(calls.some((c) => c.endsWith('mappings'))).toBe(true);
 
     // No tag should be more than 100 ms later than the earliest — they all
     // started within the same tick. Sequential awaits would space the calls
@@ -711,6 +724,10 @@ describe('EntityView (v11.3 W3)', () => {
     // The "Linked disease ontologies" card title should be present.
     expect(w.text()).toContain('Linked disease ontologies');
 
+    // LinkedOntologies must receive layout="card" — locking the contract so a
+    // change to "strip" would fail.
+    expect(w.findComponent(LinkedOntologies).props('layout')).toBe('card');
+
     // LinkedOntologies should render mapping badges with MONDO and Orphanet IDs.
     expect(w.text()).toContain('MONDO:0032745');
     expect(w.text()).toContain('Orphanet:1465');
@@ -759,11 +776,13 @@ describe('EntityView (v11.3 W3)', () => {
     // old plain-text pill format). The full card "MONDO:0032745" in the ontology
     // section is fine, but the pill in the hero row is gone.
     const heroRow = w.find('.entity-metadata-row');
-    if (heroRow.exists()) {
-      // The old pill rendered as literal text "MONDO <id>" in the entity-meta-pill.
-      // It must no longer appear in the hero metadata row.
-      expect(heroRow.text()).not.toMatch(/\bMONDO MONDO:/);
-    }
+    // Assert the row is present so a missing row doesn't silently pass the check.
+    expect(heroRow.exists()).toBe(true);
+    // The old pill rendered as literal text "MONDO <id>" in the entity-meta-pill.
+    // It must no longer appear in the hero metadata row.
+    expect(heroRow.text()).not.toMatch(/\bMONDO MONDO:/);
+    // Also assert no element carrying the old pill pattern exists anywhere.
+    expect(w.find('.entity-meta-pill').text()).not.toMatch(/\bMONDO MONDO:/);
 
     w.unmount();
   });
