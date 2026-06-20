@@ -416,6 +416,11 @@
   pubtatornidd_nightly_job_run(job, payload, .async_job_progress_reporter)
 }
 
+.async_job_run_disease_ontology_mapping_refresh <- function(job, payload, state, worker_config) {
+  progress <- .async_job_progress_reporter(job$job_id[[1]])
+  disease_ontology_mapping_refresh_run(job, payload, progress)
+}
+
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
@@ -847,6 +852,11 @@ async_job_handler_registry <- list(
   pubtatornidd_nightly = list(
     cancel_mode = "non_interruptible",
     run = .async_job_run_pubtatornidd_nightly,
+    after_success = .async_job_after_success_noop
+  ),
+  disease_ontology_mapping_refresh = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_disease_ontology_mapping_refresh,
     after_success = .async_job_after_success_noop
   ),
   nddscore_import = list(
