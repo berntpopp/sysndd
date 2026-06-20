@@ -37,8 +37,9 @@ export interface DiseaseMappingEntry {
  * - `status`: "current" when mappings are populated; "missing" when unavailable.
  * - `mappings`: prefix-keyed groups of mapping entries (MONDO, Orphanet, OMIM, etc.).
  *
- * R/Plumber may array-wrap scalar fields. Call-sites that need bare scalars
- * should use `unwrapScalar` from `@/api/client`.
+ * R/Plumber serialises bare scalars as 1-element arrays and empty objects `{}`
+ * for NULL non-array fields. `normalizeDiseaseMappingResponse` normalises the
+ * raw API response into this clean shape before it reaches consumers.
  */
 export interface DiseaseMappingResponse {
   disease_ontology_id: string;
@@ -47,6 +48,111 @@ export interface DiseaseMappingResponse {
   release_version: string | null;
   status: 'current' | 'missing';
   mappings: Record<string, DiseaseMappingEntry[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Response normalisation
+// ---------------------------------------------------------------------------
+
+/**
+ * Unwrap a Plumber scalar field.
+ *
+ * Plumber serialises bare JSON scalars as 1-element arrays (`["x"]` → `"x"`).
+ * For NULL scalar columns on the "missing" path it emits an empty object `{}`
+ * instead of `null`. This helper collapses all three forms to the clean value:
+ *
+ *   - `["x"]`  → `"x"`
+ *   - `[null]` → `null`
+ *   - `{}`     → `null`   (empty-object sentinel)
+ *   - `null`   → `null`
+ *   - `"x"`    → `"x"`   (already unboxed — pass-through)
+ */
+function unwrapField(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return first == null ? null : String(first);
+  }
+  if (value == null) {
+    return null;
+  }
+  if (typeof value === 'object') {
+    // Empty object `{}` is emitted by Plumber for NULL scalar columns on the
+    // missing-entity path. Treat any non-array object as null.
+    return null;
+  }
+  return String(value);
+}
+
+/**
+ * Normalise the raw R/Plumber response from `GET /api/disease/mappings` into
+ * the clean `DiseaseMappingResponse` shape that consumers and the type contract
+ * expect.
+ *
+ * The live endpoint array-wraps every scalar field and uses `{}` for NULL
+ * scalars (Plumber behaviour). This function is the single point where the
+ * wire quirks are absorbed so no consumer ever sees `["current"]` instead of
+ * `"current"`.
+ *
+ * Exported for unit testing.
+ */
+export function normalizeDiseaseMappingResponse(raw: unknown): DiseaseMappingResponse {
+  const MISSING: DiseaseMappingResponse = {
+    disease_ontology_id: '',
+    disease_ontology_name: '',
+    mondo_id: null,
+    release_version: null,
+    status: 'missing',
+    mappings: {},
+  };
+
+  if (raw == null || typeof raw !== 'object') {
+    return MISSING;
+  }
+
+  const r = raw as Record<string, unknown>;
+
+  // Unwrap top-level scalars.
+  const status = unwrapField(r['status']);
+  const cleanStatus: 'current' | 'missing' =
+    status === 'current' ? 'current' : 'missing';
+
+  // Normalise mappings.
+  // The "missing" path sends `"mappings":[]` (an array); the populated path
+  // sends `"mappings":{...}` (a plain object keyed by prefix).
+  const cleanMappings: Record<string, DiseaseMappingEntry[]> = {};
+
+  const rawMappings = r['mappings'];
+  if (
+    rawMappings != null &&
+    typeof rawMappings === 'object' &&
+    !Array.isArray(rawMappings)
+  ) {
+    const mObj = rawMappings as Record<string, unknown>;
+    for (const prefix of Object.keys(mObj)) {
+      const entries = mObj[prefix];
+      if (!Array.isArray(entries)) continue;
+      cleanMappings[prefix] = entries.map((entry: unknown): DiseaseMappingEntry => {
+        const e = (entry != null && typeof entry === 'object'
+          ? entry
+          : {}) as Record<string, unknown>;
+        return {
+          id: unwrapField(e['id']) ?? '',
+          label: unwrapField(e['label']),
+          predicate: unwrapField(e['predicate']),
+          source: unwrapField(e['source']) ?? '',
+        };
+      });
+    }
+  }
+
+  return {
+    disease_ontology_id: unwrapField(r['disease_ontology_id']) ?? '',
+    disease_ontology_name: unwrapField(r['disease_ontology_name']) ?? '',
+    mondo_id: unwrapField(r['mondo_id']),
+    release_version: unwrapField(r['release_version']),
+    status: cleanStatus,
+    mappings: cleanMappings,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -62,13 +168,14 @@ export async function getEntityMappings(
   entityId: number | string,
   config?: AxiosRequestConfig
 ): Promise<DiseaseMappingResponse> {
-  return apiClient.get<DiseaseMappingResponse>('/api/disease/mappings', {
+  const raw = await apiClient.get<unknown>('/api/disease/mappings', {
     ...config,
     params: {
       ...(config?.params as object | undefined),
       entity_id: entityId,
     },
   });
+  return normalizeDiseaseMappingResponse(raw);
 }
 
 /**
@@ -80,11 +187,12 @@ export async function getDiseaseMappings(
   diseaseId: string,
   config?: AxiosRequestConfig
 ): Promise<DiseaseMappingResponse> {
-  return apiClient.get<DiseaseMappingResponse>('/api/disease/mappings', {
+  const raw = await apiClient.get<unknown>('/api/disease/mappings', {
     ...config,
     params: {
       ...(config?.params as object | undefined),
       disease_ontology_id: diseaseId,
     },
   });
+  return normalizeDiseaseMappingResponse(raw);
 }
