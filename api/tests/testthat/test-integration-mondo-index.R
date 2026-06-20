@@ -210,6 +210,32 @@ test_that("disease_mapping_derive + write populates disease_ontology_mapping", {
          AND source = 'sysndd_native' LIMIT 1"
     )
     expect_equal(nrow(native_row), 1L)
+
+    # I4: Assert projection columns in disease_ontology_set are populated (C1/C2 guard)
+    # MONDO column must contain the resolved MONDO hub id
+    dos_cols <- names(DBI::dbGetQuery(conn, "SELECT * FROM disease_ontology_set LIMIT 0"))
+
+    if ("MONDO" %in% dos_cols) {
+      mondo_proj <- DBI::dbGetQuery(
+        conn,
+        "SELECT MONDO FROM disease_ontology_set WHERE disease_ontology_id = 'OMIM:618524' LIMIT 1"
+      )
+      expect_false(is.na(mondo_proj$MONDO[[1]]),
+        label = "MONDO projection column must be non-NULL after write")
+      expect_true(grepl("MONDO:", mondo_proj$MONDO[[1]]),
+        label = "MONDO projection must contain a MONDO: CURIE")
+    }
+
+    if ("Orphanet" %in% dos_cols) {
+      orphanet_proj <- DBI::dbGetQuery(
+        conn,
+        "SELECT Orphanet FROM disease_ontology_set WHERE disease_ontology_id = 'OMIM:618524' LIMIT 1"
+      )
+      expect_false(is.na(orphanet_proj$Orphanet[[1]]),
+        label = "Orphanet projection column must be non-NULL after write")
+      expect_true(grepl("Orphanet:", orphanet_proj$Orphanet[[1]]),
+        label = "Orphanet projection must contain an Orphanet: CURIE")
+    }
   })
 })
 

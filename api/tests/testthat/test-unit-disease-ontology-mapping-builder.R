@@ -13,25 +13,45 @@ source_api_file("functions/disease-ontology-mapping-builder.R", local = FALSE)
 # B7: download_mondo_sssom_full URL resolution
 # ---------------------------------------------------------------------------
 
-test_that("download_mondo_sssom_full resolves URL from env over default", {
+# M1: Test the extracted .resolve_sssom_url() helper to exercise real URL resolution
+# without making any network call (tests the precedence: arg > env > default).
+test_that(".resolve_sssom_url returns explicit arg when provided", {
   source_api_file("functions/mondo-functions.R", local = FALSE)
 
-  custom_url <- "https://example.com/mondo.sssom.tsv"
-
-  result <- withr::with_envvar(
-    list(DISEASE_ONTOLOGY_MONDO_SSSOM_URL = custom_url),
-    {
-      env_val <- Sys.getenv("DISEASE_ONTOLOGY_MONDO_SSSOM_URL", "")
-      env_val
-    }
-  )
-  expect_equal(result, custom_url)
+  custom_url <- "https://example.com/custom.sssom.tsv"
+  resolved   <- .resolve_sssom_url(sssom_url = custom_url)
+  expect_equal(resolved, custom_url)
 })
 
-test_that("download_mondo_sssom_full function body references DISEASE_ONTOLOGY_MONDO_SSSOM_URL", {
+test_that(".resolve_sssom_url reads DISEASE_ONTOLOGY_MONDO_SSSOM_URL env over default", {
   source_api_file("functions/mondo-functions.R", local = FALSE)
 
-  fn_body <- deparse(body(download_mondo_sssom_full))
+  env_url  <- "https://example.com/env.sssom.tsv"
+  resolved <- withr::with_envvar(
+    list(DISEASE_ONTOLOGY_MONDO_SSSOM_URL = env_url),
+    .resolve_sssom_url(sssom_url = NULL)
+  )
+  expect_equal(resolved, env_url)
+})
+
+test_that(".resolve_sssom_url falls back to built-in default when env is unset", {
+  source_api_file("functions/mondo-functions.R", local = FALSE)
+
+  resolved <- withr::with_envvar(
+    list(DISEASE_ONTOLOGY_MONDO_SSSOM_URL = ""),
+    .resolve_sssom_url(sssom_url = NULL)
+  )
+  expect_true(grepl("mondo\\.sssom\\.tsv", resolved),
+    info = paste("expected mondo.sssom.tsv in default URL, got:", resolved))
+  expect_true(grepl("^https://", resolved),
+    info = "default URL must be https")
+})
+
+test_that(".resolve_sssom_url body references DISEASE_ONTOLOGY_MONDO_SSSOM_URL", {
+  source_api_file("functions/mondo-functions.R", local = FALSE)
+
+  # URL env-var lookup is now in .resolve_sssom_url(), not download_mondo_sssom_full
+  fn_body <- deparse(body(.resolve_sssom_url))
   expect_true(any(grepl("DISEASE_ONTOLOGY_MONDO_SSSOM_URL", fn_body)))
 })
 

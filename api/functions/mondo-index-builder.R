@@ -117,11 +117,15 @@ mondo_sssom_parse <- function(text) {
   }
 
   # Map predicate_id to short name
+  # I1: also map equivalentClass / owl:equivalentClass / equivalentTo to "equivalentTo"
   .map_predicate <- function(pred) {
-    # Strip namespace prefix (e.g. "skos:", "semapv:")
+    # Strip namespace prefix (e.g. "skos:", "semapv:", "owl:")
     short <- sub("^[a-zA-Z]+:", "", pred)
     if (short %in% c("exactMatch", "closeMatch", "narrowMatch", "broadMatch")) {
       return(short)
+    }
+    if (short %in% c("equivalentClass", "equivalentTo")) {
+      return("equivalentTo")
     }
     "xref"
   }

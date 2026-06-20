@@ -10,14 +10,17 @@ require(DBI)
 
 # ---------------------------------------------------------------------------
 # Column map: which disease_ontology_set column each allowlist prefix writes to
-# (only prefixes that have a corresponding DB column are listed here)
+# (OMIM is the disease_ontology_id anchor itself — no separate column needed)
 # ---------------------------------------------------------------------------
 .MAPPING_PREFIX_COLUMN <- c(
-  UMLS   = "UMLS",
-  MedGen = "MedGen",
-  NCIT   = "NCIT",
-  GARD   = "GARD"
-  # MONDO is in disease_ontology_set already; OMIM/DOID/EFO/Orphanet have no column
+  DOID     = "DOID",
+  MONDO    = "MONDO",
+  Orphanet = "Orphanet",
+  EFO      = "EFO",
+  UMLS     = "UMLS",
+  MedGen   = "MedGen",
+  NCIT     = "NCIT",
+  GARD     = "GARD"
 )
 
 # ---------------------------------------------------------------------------
@@ -241,16 +244,9 @@ disease_mapping_derive <- function(conn, target_allowlist = MONDO_TARGET_ALLOWLI
   )
 }
 
-# Internal alias map for derive (reuses .MONDO_PREFIX_ALIASES without sourcing twice)
-.MONDO_PREFIX_ALIASES_FOR_DERIVE <- function() {
-  c(
-    ORPHANET = "Orphanet", ORPHA = "Orphanet",
-    MIM = "OMIM", OMIM = "OMIM",
-    MEDGEN = "MedGen", NCIT = "NCIT", NCI = "NCIT",
-    GARD = "GARD", EFO = "EFO", DOID = "DOID",
-    UMLS = "UMLS", UMLS_CUI = "UMLS", MONDO = "MONDO"
-  )
-}
+# I2: Use the canonical .MONDO_PREFIX_ALIASES from mondo-index-builder.R directly.
+# Both files are sourced together at runtime; no duplication needed.
+.MONDO_PREFIX_ALIASES_FOR_DERIVE <- function() .MONDO_PREFIX_ALIASES
 
 # ---------------------------------------------------------------------------
 # B6: Write mappings to DB + refresh projection columns
@@ -295,43 +291,67 @@ disease_mapping_write <- function(conn, mapping_tbl, release_version) {
     error = function(e) character(0L)
   )
 
+  # C2: Reset all 8 projection columns to NULL first so stale values don't persist
+  # for diseases that lost a prefix's mappings in this refresh.
+  reset_parts <- vapply(names(.MAPPING_PREFIX_COLUMN), function(prefix) {
+    col <- .MAPPING_PREFIX_COLUMN[[prefix]]
+    if (col %in% dos_cols) paste0("`", col, "` = NULL") else ""
+  }, character(1L))
+  reset_parts <- reset_parts[nzchar(reset_parts)]
+  if (length(reset_parts) > 0L) {
+    tryCatch(
+      DBI::dbExecute(
+        conn,
+        paste0("UPDATE disease_ontology_set SET ", paste(reset_parts, collapse = ", "))
+      ),
+      error = function(e) {
+        warning("disease_mapping_write: could not reset projection columns: ", e$message)
+      }
+    )
+  }
+
+  # C2: Populate each column using GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ';')
+  # so values are semicolon-joined and deterministic, matching the varchar(200) convention.
   for (prefix in names(.MAPPING_PREFIX_COLUMN)) {
     col <- .MAPPING_PREFIX_COLUMN[[prefix]]
     if (!(col %in% dos_cols)) next
 
-    # Update disease_ontology_set column with best mapping value for this prefix
-    # Pick first non-null target_id per disease_ontology_id ordered by predicate rank
+    # I3: Use parameterized query for the prefix value to avoid SQL injection.
+    # The column name is from our own trusted constant map so backtick-quoting is safe.
     sql <- paste0(
       "UPDATE disease_ontology_set dos ",
       "JOIN (",
-      "  SELECT d.disease_ontology_id, d.target_id ",
+      "  SELECT d.disease_ontology_id, ",
+      "    GROUP_CONCAT(DISTINCT d.target_id ORDER BY d.target_id SEPARATOR ';') AS joined_ids ",
       "  FROM disease_ontology_mapping d ",
-      "  WHERE d.target_prefix = '", prefix, "' ",
+      "  WHERE d.target_prefix = ? ",
       "    AND d.source != 'sysndd_native' ",
+      "    AND d.is_active = 1 ",
       "    AND d.target_id IS NOT NULL ",
       "  GROUP BY d.disease_ontology_id ",
       ") best ON dos.disease_ontology_id = best.disease_ontology_id ",
-      "SET dos.`", col, "` = best.target_id"
+      "SET dos.`", col, "` = best.joined_ids"
     )
     tryCatch(
-      DBI::dbExecute(conn, sql),
+      DBI::dbExecute(conn, sql, params = unname(list(prefix))),
       error = function(e) {
         warning("disease_mapping_write: could not update column '", col, "': ", e$message)
       }
     )
   }
 
-  # Update ontology_mapping_release if column exists
+  # I3: Update ontology_mapping_release using a parameterized query.
   if ("ontology_mapping_release" %in% dos_cols && !is.na(release_version)) {
     DBI::dbExecute(
       conn,
       paste0(
         "UPDATE disease_ontology_set ",
-        "SET ontology_mapping_release = '", release_version, "' ",
+        "SET ontology_mapping_release = ? ",
         "WHERE disease_ontology_id IN (",
         "  SELECT DISTINCT disease_ontology_id FROM disease_ontology_mapping",
         ")"
-      )
+      ),
+      params = unname(list(release_version))
     )
   }
 

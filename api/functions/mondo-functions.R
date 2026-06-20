@@ -281,30 +281,18 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
 }
 
 
-#' Download the full MONDO SSSOM mapping file
+#' Resolve the MONDO full SSSOM URL
 #'
-#' Downloads the full mondo.sssom.tsv (all cross-ontology mappings) from the
-#' Monarch Initiative GitHub repository. Unlike download_mondo_sssom() which
-#' fetches only the OMIM exactMatch subset, this function fetches the complete
-#' SSSOM file used for the disease_ontology_mapping refresh job.
-#'
-#' URL resolution order: DISEASE_ONTOLOGY_MONDO_SSSOM_URL env ->
+#' URL resolution order: explicit arg -> DISEASE_ONTOLOGY_MONDO_SSSOM_URL env ->
 #'   config$mondo_sssom_url -> built-in default.
 #'
-#' Uses external_proxy_budget("mondo", ...) for timeout/retry — never hardcodes
-#' a numeric literal (enforced by test-unit-external-budget-guard.R).
+#' Extracted as a small helper so tests can exercise URL resolution without
+#' triggering a real network call (M1 fix).
 #'
-#' @param output_path Character. Directory path where the file will be saved.
-#' @param force Logical. If TRUE, forces download even if a recent file exists.
-#' @param sssom_url Character or NULL. Override URL (used in tests; NULL = resolve
-#'   from env/config).
-#'
-#' @return Character string with the path to the downloaded/cached SSSOM file.
+#' @param sssom_url Character or NULL. Explicit override (NULL = auto-resolve).
+#' @return Resolved URL string.
 #' @export
-download_mondo_sssom_full <- function(output_path = "data/mondo_mappings/",
-                                      force = FALSE,
-                                      sssom_url = NULL) {
-  # URL resolution: arg -> env -> config -> built-in default
+.resolve_sssom_url <- function(sssom_url = NULL) {
   # nolint start: line_length_linter
   default_url <- "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"
   # nolint end
@@ -325,6 +313,34 @@ download_mondo_sssom_full <- function(output_path = "data/mondo_mappings/",
       error = function(e) default_url
     )
   }
+  sssom_url
+}
+
+
+#' Download the full MONDO SSSOM mapping file
+#'
+#' Downloads the full mondo.sssom.tsv (all cross-ontology mappings) from the
+#' Monarch Initiative GitHub repository. Unlike download_mondo_sssom() which
+#' fetches only the OMIM exactMatch subset, this function fetches the complete
+#' SSSOM file used for the disease_ontology_mapping refresh job.
+#'
+#' URL resolution order: DISEASE_ONTOLOGY_MONDO_SSSOM_URL env ->
+#'   config$mondo_sssom_url -> built-in default (delegated to .resolve_sssom_url()).
+#'
+#' Uses external_proxy_budget("mondo", ...) for timeout/retry — never hardcodes
+#' a numeric literal (enforced by test-unit-external-budget-guard.R).
+#'
+#' @param output_path Character. Directory path where the file will be saved.
+#' @param force Logical. If TRUE, forces download even if a recent file exists.
+#' @param sssom_url Character or NULL. Override URL (used in tests; NULL = resolve
+#'   from env/config).
+#'
+#' @return Character string with the path to the downloaded/cached SSSOM file.
+#' @export
+download_mondo_sssom_full <- function(output_path = "data/mondo_mappings/",
+                                      force = FALSE,
+                                      sssom_url = NULL) {
+  sssom_url <- .resolve_sssom_url(sssom_url)
 
   if (!dir.exists(output_path)) {
     fs::dir_create(output_path, recurse = TRUE)

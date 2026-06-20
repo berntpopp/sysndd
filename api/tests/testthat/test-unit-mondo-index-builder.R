@@ -66,6 +66,21 @@ test_that("mondo_sssom_parse maps unknown predicates to xref", {
   expect_equal(unname(out$predicate), "xref")
 })
 
+# I1: owl:equivalentClass (and bare equivalentTo) must map to "equivalentTo"
+test_that("mondo_sssom_parse maps owl:equivalentClass to equivalentTo", {
+  txt <- paste(
+    "subject_id\tpredicate_id\tobject_id\tobject_label\tmapping_justification",
+    "MONDO:0032745\towl:equivalentClass\tOMIM:618524\tCTNNB1\tsemapv:Manual",
+    "MONDO:0032745\tskos:equivalentTo\tOMIM:618525\tCTNNB2\tsemapv:Manual",
+    "MONDO:0032745\towl:equivalentTo\tOMIM:618526\tCTNNB3\tsemapv:Manual",
+    sep = "\n"
+  )
+  out <- mondo_sssom_parse(txt)
+  expect_equal(nrow(out), 3L)
+  expect_true(all(out$predicate == "equivalentTo"),
+    info = paste("predicates were:", paste(out$predicate, collapse = ", ")))
+})
+
 # ---------------------------------------------------------------------------
 # B3: OBO parser
 # ---------------------------------------------------------------------------
