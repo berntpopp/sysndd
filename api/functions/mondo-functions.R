@@ -363,7 +363,17 @@ download_mondo_sssom_full <- function(output_path = "data/mondo_mappings/",
     paste0(file_basename, ".", current_date, ".sssom.tsv")
   )
 
-  budget <- external_proxy_budget("mondo")
+  # The full MONDO SSSOM is a large (~80MB) release artifact, so the per-request
+  # public defaults (6s/10s) are too small for this batch download. Derive from
+  # external_proxy_budget("mondo", ...) with generous batch defaults (still
+  # operator-tunable via EXTERNAL_PROXY_MONDO_* and never a hardcoded
+  # req_timeout/max_seconds literal — enforced by test-unit-external-budget-guard.R).
+  budget <- external_proxy_budget(
+    "mondo",
+    default_timeout = 180,
+    default_max = 360,
+    default_tries = 3L
+  )
 
   tryCatch(
     {

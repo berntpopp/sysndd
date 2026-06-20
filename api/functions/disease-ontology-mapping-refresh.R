@@ -132,7 +132,17 @@ disease_ontology_mapping_download_obo <- function(output_path = "data/mondo_mapp
     external_proxy_request_reset()
   }
 
-  budget <- external_proxy_budget("mondo")
+  # The MONDO OBO is a large (~50MB) release artifact, so the per-request public
+  # defaults (6s/10s) are too small for this batch download. Derive from
+  # external_proxy_budget("mondo", ...) with generous batch defaults (still
+  # operator-tunable via EXTERNAL_PROXY_MONDO_* and never a hardcoded
+  # req_timeout/max_seconds literal — enforced by test-unit-external-budget-guard.R).
+  budget <- external_proxy_budget(
+    "mondo",
+    default_timeout = 120,
+    default_max = 300,
+    default_tries = 3L
+  )
 
   req <- httr2::request(obo_url) |>
     httr2::req_retry(
@@ -373,13 +383,19 @@ disease_ontology_mapping_refresh_run <- function(job, payload = list(), progress
       release_version <- parsed_obo$version %||% NA_character_
 
       # Step 4: transactional rebuild — index write + derive + mapping write.
+      # `dbWithTransaction` evaluates the block in this function's frame, so a
+      # `<<-` would skip the function-local binding and assign to the enclosing
+      # env (the derived table would not reach the block's own
+      # disease_mapping_write read). Use a plain `<-` inside the block (read by
+      # the next line in the same frame) and capture the table as the
+      # transaction's return value so it survives for the provenance counts.
       report("rebuild", "Rebuilding index + derived mappings (transaction)...",
              current = 4, total = 6)
-      mapping_tbl <- NULL
-      DBI::dbWithTransaction(conn, {
+      mapping_tbl <- DBI::dbWithTransaction(conn, {
         mondo_index_write(conn, parsed_obo, sssom_tbl, release_version)
-        mapping_tbl <<- disease_mapping_derive(conn, MONDO_TARGET_ALLOWLIST)
-        disease_mapping_write(conn, mapping_tbl, release_version)
+        derived <- disease_mapping_derive(conn, MONDO_TARGET_ALLOWLIST)
+        disease_mapping_write(conn, derived, release_version)
+        derived
       })
 
       # Step 5: collect counts for provenance.

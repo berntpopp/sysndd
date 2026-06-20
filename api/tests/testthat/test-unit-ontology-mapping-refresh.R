@@ -65,6 +65,25 @@ test_that("a failed refresh step writes a status=failed meta row and re-raises",
   expect_identical(meta_status, "failed")
 })
 
+test_that("the transactional rebuild does not use <<- (frame-scoping regression)", {
+  # `dbWithTransaction` evaluates its block in the caller's frame, so a `<<-`
+  # would skip the function-local binding and the derived table would not reach
+  # the block's own disease_mapping_write read (R error: argument is of length
+  # zero). The rebuild must capture the table via the transaction return value.
+  src <- readLines(
+    file.path(get_api_dir(), "functions", "disease-ontology-mapping-refresh.R"),
+    warn = FALSE
+  )
+  joined <- paste(src, collapse = "\n")
+  txn_block <- regmatches(
+    joined,
+    regexpr("dbWithTransaction\\(conn, \\{.*?\\}\\)", joined)
+  )
+  expect_true(nzchar(txn_block))
+  expect_false(grepl("<<-", txn_block))
+  expect_true(grepl("mapping_tbl <- DBI::dbWithTransaction", joined, fixed = TRUE))
+})
+
 test_that("OBO URL resolution honors arg > env > default precedence", {
   expect_equal(
     disease_ontology_mapping_resolve_obo_url("https://example.org/custom.obo"),
