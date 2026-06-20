@@ -117,6 +117,40 @@
   invisible(result)
 }
 
+#' Re-trigger a forced disease-ontology mapping refresh after a successful
+#' ontology-set refresh (correction #2).
+#'
+#' `refresh_disease_ontology_set()` rewrites `disease_ontology_set` (DELETE +
+#' re-append) and does not rebuild the cross-ontology projection columns or the
+#' normalized `disease_ontology_mapping` rows, so a successful ontology refresh
+#' leaves the new mapping columns blank and the normalized rows pointing at base
+#' ids that may have changed. Enqueueing a forced mapping refresh heals it.
+#'
+#' Best-effort: a submission hiccup must NOT fail the ontology refresh, so this
+#' is wrapped in tryCatch and only logs on error.
+#' @keywords internal
+.async_job_chain_ontology_mapping_refresh <- function() {
+  if (!exists("service_disease_ontology_mapping_submit_refresh", mode = "function")) {
+    return(invisible(NULL))
+  }
+  tryCatch(
+    {
+      outcome <- service_disease_ontology_mapping_submit_refresh(force = TRUE)
+      message(sprintf(
+        "[ontology-mapping-chain] forced mapping refresh after ontology-set refresh (job_id=%s)",
+        tryCatch(outcome$job_id, error = function(e) NA_character_)
+      ))
+    },
+    error = function(e) {
+      message(sprintf(
+        "[ontology-mapping-chain] could not enqueue mapping refresh (non-fatal): %s",
+        conditionMessage(e)
+      ))
+    }
+  )
+  invisible(NULL)
+}
+
 .async_job_phenotype_matrix <- function(payload) {
   sysndd_db_phenotypes <- payload$ndd_entity_view_tbl |>
     dplyr::left_join(payload$ndd_review_phenotype_connect_tbl, by = "entity_id") |>
@@ -519,6 +553,10 @@
     auto_fixes = safeguard$auto_fixes
   )
 
+  # Correction #2: the disease set changed, so rebuild the cross-ontology
+  # mappings (best-effort; never fails the ontology refresh).
+  .async_job_chain_ontology_mapping_refresh()
+
   refresh_result$auto_fixes_applied
 }
 
@@ -690,6 +728,10 @@
 
       auto_fixes_applied <- refresh_result$auto_fixes_applied
       compat_count <- refresh_result$compatibility_rows
+
+      # Correction #2: the disease set changed, so rebuild the cross-ontology
+      # mappings (best-effort; never fails the force-apply).
+      .async_job_chain_ontology_mapping_refresh()
 
       re_review_batch_id <- NULL
       if (length(critical_entity_ids) > 0 && exists("batch_create", mode = "function")) {
