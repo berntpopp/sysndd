@@ -107,7 +107,12 @@ decline a complex / out-of-scope item for specialist attention (issue #54), and
 `033_add_metadata_lookup_admin_columns.sql` which adds `is_active`/`sort`
 lifecycle columns to the SysNDD-managed curation lookups (`modifier_list`,
 `ndd_entity_status_categories_list`) so the admin `/ManageMetadata` surface can
-order and soft-delete entries.
+order and soft-delete entries, and `036_add_disease_ontology_mappings.sql` which
+adds the disease cross-ontology mapping foundation tables (`mondo_term`,
+`mondo_xref`, `disease_ontology_mapping`, `disease_ontology_mapping_meta`) plus
+five new columns on `disease_ontology_set` (`UMLS`, `MedGen`, `NCIT`, `GARD`,
+`ontology_mapping_release`) as the schema contract for the cross-ontology mapping
+feature (see `.superpowers/sdd/briefs/wp-a-brief.md`).
 
 ## 4. Adding a new migration
 
