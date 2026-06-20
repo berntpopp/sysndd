@@ -75,4 +75,105 @@ export function varioTermUrl(varioId: unknown): string {
   return `${VARIO_BASE_URL}${iri}`;
 }
 
+// ---------------------------------------------------------------------------
+// Cross-ontology outlink builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowlisted ontology prefixes used by the cross-ontology mapping layer.
+ * The order here is intentionally the display order used by LinkedOntologies.
+ */
+export type OntologyPrefix =
+  | 'MONDO'
+  | 'Orphanet'
+  | 'OMIM'
+  | 'DOID'
+  | 'UMLS'
+  | 'MedGen'
+  | 'NCIT'
+  | 'GARD'
+  | 'EFO';
+
+/**
+ * Result of {@link ontologyOutlink}.
+ */
+export interface OntologyOutlink {
+  /** External URL, or null when no reliable public deep-link exists (e.g. UMLS). */
+  url: string | null;
+  /** Always the full CURIE/id passed in — callers control display formatting. */
+  label: string;
+}
+
+/**
+ * Build an external term-browser URL for a cross-ontology disease mapping entry.
+ *
+ * Dispatches on the allowlisted `prefix` string and applies the id-to-URL
+ * transformation documented in OntologyView.vue. The `label` is always the
+ * full `id` passed in — stripping for display is the caller's responsibility.
+ *
+ * Returns `{ url: null, label: id }` for UMLS (no reliable public deep-link).
+ * Returns `{ url: null, label: id }` for unrecognised prefixes so callers can
+ * safely degrade to plain text.
+ *
+ * @param prefix - One of the allowlisted ontology prefix strings.
+ * @param id     - The full CURIE string, e.g. `"OMIM:618524"`, `"MONDO:0032745"`.
+ */
+export function ontologyOutlink(prefix: string, id: string): OntologyOutlink {
+  const label = id;
+
+  switch (prefix) {
+    case 'OMIM': {
+      // Strip "OMIM:" prefix and any "_.*" suffix (e.g. "OMIM:618524_1" → "618524")
+      const digits = id.replace(/^OMIM:/, '').replace(/_.*$/, '');
+      return { url: `https://www.omim.org/entry/${digits}`, label };
+    }
+    case 'MONDO': {
+      // Replace ":" with "_" and strip the "MONDO:" prefix for the OBO PURL
+      // e.g. "MONDO:0032745" → "MONDO_0032745"
+      const local = id.replace(':', '_');
+      return { url: `http://purl.obolibrary.org/obo/${local}`, label };
+    }
+    case 'Orphanet': {
+      // Strip "Orphanet:" prefix
+      const digits = id.replace(/^Orphanet:/, '');
+      return {
+        url: `https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert=${digits}&lng=EN`,
+        label,
+      };
+    }
+    case 'DOID': {
+      // Use the full DOID:... id in the URL path
+      return { url: `https://disease-ontology.org/term/${id}`, label };
+    }
+    case 'UMLS': {
+      // No reliable public deep-link
+      return { url: null, label };
+    }
+    case 'MedGen': {
+      // Strip "MedGen:" prefix
+      const medgenId = id.replace(/^MedGen:/, '');
+      return { url: `https://www.ncbi.nlm.nih.gov/medgen/${medgenId}`, label };
+    }
+    case 'NCIT': {
+      // Strip "NCIT:" prefix
+      const code = id.replace(/^NCIT:/, '');
+      return {
+        url: `https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=${code}`,
+        label,
+      };
+    }
+    case 'GARD': {
+      // Strip "GARD:" prefix
+      const gardId = id.replace(/^GARD:/, '');
+      return { url: `https://rarediseases.info.nih.gov/diseases/${gardId}/detail`, label };
+    }
+    case 'EFO': {
+      // Use the full "EFO:..." id as the obo_id query param
+      return { url: `https://www.ebi.ac.uk/ols4/ontologies/efo/terms?obo_id=${id}`, label };
+    }
+    default:
+      return { url: null, label };
+  }
+}
+
 export default ONTOLOGY_LINK_BASES;

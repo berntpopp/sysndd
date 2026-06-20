@@ -55,3 +55,18 @@ describe('ontology_links — varioTermUrl', () => {
     expect(varioTermUrl('VariO:0001')).toBe(`https://example.org/vario/term?iri=${VARIO_0001_IRI}`);
   });
 });
+
+import { ontologyOutlink } from '@/assets/js/constants/ontology_links';
+describe('ontologyOutlink', () => {
+  it('builds OMIM/MONDO/Orphanet/DOID urls', () => {
+    expect(ontologyOutlink('OMIM','OMIM:618524').url).toBe('https://www.omim.org/entry/618524');
+    expect(ontologyOutlink('MONDO','MONDO:0032745').url).toBe('http://purl.obolibrary.org/obo/MONDO_0032745');
+    expect(ontologyOutlink('Orphanet','Orphanet:530983').url).toContain('orpha.net');
+    expect(ontologyOutlink('DOID','DOID:0081234').url).toBe('https://disease-ontology.org/term/DOID:0081234');
+  });
+  it('returns null url for UMLS (no clean deep-link) and keeps the full CURIE label', () => {
+    const out = ontologyOutlink('UMLS','UMLS:C1234567');
+    expect(out.url).toBeNull();
+    expect(out.label).toBe('UMLS:C1234567');
+  });
+});
