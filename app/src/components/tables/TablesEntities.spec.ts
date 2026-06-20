@@ -164,7 +164,9 @@ async function mountTable() {
           // LinkedOntologies — keep as the REAL component so we can assert it renders
           // EntitiesMobileRows — stub for isolation
           EntitiesMobileRows: { template: '<div />' },
-          // GenericTable renders the #row-expansion slot; we stub it with a slot-aware stub
+          // GenericTable renders the #row-expansion-extra slot; we stub it with a slot-aware stub.
+          // The stub also exposes a details-toggle button so tests can assert the details
+          // column mechanism is wired up.
           GenericTable: {
             props: ['items', 'fields', 'fieldDetails', 'sortBy', 'stackedMode'],
             emits: ['update-sort'],
@@ -179,7 +181,7 @@ async function mountTable() {
                 <slot
                   v-for="item in items"
                   :key="'exp-' + item.entity_id"
-                  name="row-expansion"
+                  name="row-expansion-extra"
                   :row="item"
                 />
               </div>
@@ -294,6 +296,42 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
     await flushPromises();
 
     expect(getEntityMappingsSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // #3: assert the existing details toggle column is still present
+  it('includes the "details" field in the columns definition', async () => {
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as { fields: Array<{ key: string }> };
+    const hasDetailsField = vm.fields.some((f) => f.key === 'details');
+    expect(hasDetailsField).toBe(true);
+  });
+
+  // #4: verify that the fetch fires when the row-expansion-extra slot renders
+  // The GenericTable stub always renders the slot for all items, so setting an item
+  // causes the @vue:mounted trigger inside the slot to fire fetchEntityMappings.
+  it('calls getEntityMappings via @vue:mounted when the row-expansion-extra slot is rendered', async () => {
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as { items: unknown[] };
+
+    // Inject an item — the stub renders the slot immediately for each item
+    vm.items = [
+      {
+        entity_id: 99,
+        symbol: 'TEST',
+        hgnc_id: 'HGNC:99999',
+        disease_ontology_name: 'Test Disease',
+        disease_ontology_id_version: 'OMIM:999999_2024-01-01',
+        hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+        hpo_mode_of_inheritance_term: 'HP:0000006',
+        category: 'Definitive',
+        ndd_phenotype_word: 'Yes',
+      },
+    ];
+    await flushPromises();
+
+    // The @vue:mounted div inside #row-expansion-extra mounts when the slot renders,
+    // calling fetchEntityMappings(99) which invokes getEntityMappings('99').
+    expect(getEntityMappingsSpy).toHaveBeenCalledWith('99');
   });
 });
 

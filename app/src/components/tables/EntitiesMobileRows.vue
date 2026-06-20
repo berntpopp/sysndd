@@ -101,7 +101,10 @@
             <dt>Synopsis</dt>
             <dd>{{ displayValue(item.synopsis) }}</dd>
           </div>
-          <div class="mobile-record-row__detail mobile-record-row__detail--ontologies">
+          <div
+            v-if="getEntityMappingState(item.entity_id).loading || getEntityMappingState(item.entity_id).data"
+            class="mobile-record-row__detail mobile-record-row__detail--ontologies"
+          >
             <dt>Ontologies</dt>
             <dd>
               <LinkedOntologies
@@ -177,6 +180,17 @@ watch(
   (items) => {
     const currentKeys = new Set(items.map((item, index) => rowKey(item, index)));
     expandedRows.value = new Set([...expandedRows.value].filter((key) => currentKeys.has(key)));
+
+    // Prune entityMappingsMap entries for entity ids no longer in the current items
+    // so the map doesn't grow unboundedly as the user pages through results.
+    const currentEntityKeys = new Set(
+      items.map((item) => String(item.entity_id ?? '')).filter(Boolean)
+    );
+    for (const key of Object.keys(entityMappingsMap)) {
+      if (!currentEntityKeys.has(key)) {
+        delete entityMappingsMap[key];
+      }
+    }
   },
   { deep: false }
 );

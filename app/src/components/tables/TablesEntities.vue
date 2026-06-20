@@ -221,29 +221,11 @@
                 </template>
                 <!-- Custom slot for the 'category' column -->
 
-                <!-- Row expansion: detail card + disease ontology outlinks -->
-                <template #row-expansion="{ row }">
+                <!-- Row expansion extra: appended after GenericTable's default detail card.
+                     The default card (with copy button and long-text class) is preserved;
+                     we only inject the fetch trigger + LinkedOntologies strip here. -->
+                <template #row-expansion-extra="{ row }">
                   <div @vue:mounted="fetchEntityMappings(row.entity_id)">
-                    <BCard class="generic-table-detail-card">
-                      <dl class="generic-table-detail">
-                        <div
-                          v-for="field in fields_details"
-                          :key="field.key"
-                          class="generic-table-detail__row"
-                        >
-                          <dt class="generic-table-detail__label">{{ field.label || field.key }}</dt>
-                          <dd class="generic-table-detail__value">
-                            <span>{{
-                              row[field.key] !== null &&
-                              row[field.key] !== undefined &&
-                              row[field.key] !== ''
-                                ? row[field.key]
-                                : '—'
-                            }}</span>
-                          </dd>
-                        </div>
-                      </dl>
-                    </BCard>
                     <LinkedOntologies
                       layout="strip"
                       :data="getEntityMappingState(row.entity_id).data"
@@ -251,7 +233,7 @@
                     />
                   </div>
                 </template>
-                <!-- Row expansion -->
+                <!-- Row expansion extra -->
               </GenericTable>
             </div>
             <div class="d-md-none">
@@ -289,7 +271,7 @@
  */
 
 // Import Vue utilities
-import { ref, inject, reactive } from 'vue';
+import { ref, inject, reactive, watch } from 'vue';
 
 // Import composables
 import {
@@ -434,6 +416,11 @@ export default {
     // Per-row disease-mapping lazy fetch state
     const entityMappingsMap = reactive({});
 
+    /**
+     * Lazily fetches ontology mappings for an entity and stores the result in entityMappingsMap.
+     * @param {number|string} entityId
+     * @returns {Promise<void>}
+     */
     async function fetchEntityMappings(entityId) {
       const key = String(entityId);
       if (!entityMappingsMap[key]) {
@@ -452,10 +439,32 @@ export default {
       }
     }
 
+    /**
+     * Returns the current mapping state for an entity id, or a safe default.
+     * @param {number|string} entityId
+     * @returns {{ data: unknown, loading: boolean, error: Error|null }}
+     */
     function getEntityMappingState(entityId) {
       const key = String(entityId);
       return entityMappingsMap[key] ?? { data: null, loading: false, error: null };
     }
+
+    // Prune entityMappingsMap when the page changes so map entries don't grow unboundedly.
+    // Mirror the expandedRows pruning in EntitiesMobileRows.vue.
+    watch(
+      () => tableData.items.value,
+      (items) => {
+        const currentKeys = new Set(
+          items.map((item) => String(item.entity_id ?? '')).filter(Boolean)
+        );
+        for (const key of Object.keys(entityMappingsMap)) {
+          if (!currentKeys.has(key)) {
+            delete entityMappingsMap[key];
+          }
+        }
+      },
+      { deep: false }
+    );
 
     // Return all needed properties
     return {
