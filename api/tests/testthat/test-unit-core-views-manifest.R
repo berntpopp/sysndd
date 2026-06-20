@@ -43,6 +43,9 @@ test_that("migration 036 file exists and contains disease_ontology_mapping table
   # Must add new columns to disease_ontology_set.
   expect_match(sql, "ALTER TABLE `disease_ontology_set`", fixed = TRUE)
   expect_match(sql, "`UMLS`", fixed = TRUE)
+  expect_match(sql, "`MedGen`", fixed = TRUE)
+  expect_match(sql, "`NCIT`", fixed = TRUE)
+  expect_match(sql, "`GARD`", fixed = TRUE)
   expect_match(sql, "`ontology_mapping_release`", fixed = TRUE)
 })
 

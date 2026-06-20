@@ -120,9 +120,12 @@ feature (see `.superpowers/sdd/briefs/wp-a-brief.md`).
    one.
 2. Drop a new `NNN_short_name.sql` file in this directory. The migration
    should be idempotent where practical (`CREATE TABLE IF NOT EXISTS`,
-   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, guarded `INSERT IGNORE`,
-   etc.) — it makes local recovery easier even though the runner itself
-   uses `schema_version` for at-most-once semantics.
+   guarded `INSERT IGNORE`, etc.) — it makes local recovery easier even
+   though the runner itself uses `schema_version` for at-most-once
+   semantics. Note: on MySQL 8 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+   is a syntax error (that syntax is MariaDB-only); use plain
+   `ALTER TABLE ... ADD COLUMN` and rely on the runner's once-only ledger
+   to prevent re-application.
 3. Restart the API (`docker compose restart api`, or redeploy). The new
    file is picked up automatically on the next start and applied under
    the advisory lock.
