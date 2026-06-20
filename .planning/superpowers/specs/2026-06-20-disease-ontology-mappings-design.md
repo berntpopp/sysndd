@@ -199,7 +199,7 @@ New file `api/endpoints/disease_mapping_endpoints.R` mounted at `/api/disease` v
     "Orphanet": [{"id":"Orphanet:530983","label":"…","predicate":"exactMatch","source":"mondo_obo_xref"}],
     "DOID":     [{"id":"DOID:0081234","label":"…","predicate":"exactMatch","source":"mondo_obo_xref"}],
     "OMIM":     [{"id":"OMIM:618524","label":null,"predicate":null,"source":"sysndd_native"}],
-    "UMLS":     [{"id":"C1234567","label":null,"predicate":"closeMatch","source":"mondo_obo_xref"}]
+    "UMLS":     [{"id":"UMLS:C1234567","label":null,"predicate":"closeMatch","source":"mondo_obo_xref"}]
   }
 }
 ```
@@ -272,6 +272,17 @@ Designed to minimize shared-file conflicts. A short **schema-contract doc** (com
 ## 13. Documentation contract
 
 Update in the same change set: `AGENTS.md` (new "Disease cross-ontology mappings" architecture-invariant section — sources, MONDO-as-hub, refresh/cron/bootstrap, read-endpoint, frontend), `documentation/08-development.qmd` (dev workflow, how to trigger a refresh), `documentation/09-deployment.qmd` (cron sidecar, env vars, worker egress, bootstrap gating), and `db/migrations/README.md` if it tracks per-migration notes.
+
+## 13a. Review corrections (Codex expert review, 2026-06-20 — binding, verified against live code)
+
+1. **Public surface only.** The read endpoint resolves an entity through **`ndd_entity_view`** (the public list source, `entity_endpoints.R:92`), never raw `ndd_entity`; a non-public/inactive entity returns `status:"missing"`.
+2. **Operator ontology refresh chains a mapping refresh.** `refresh_disease_ontology_set()` deletes+re-appends `disease_ontology_set` (`metadata-refresh.R:99`), wiping projection columns; a successful `ontology_update`/`force_apply_ontology` enqueues `disease_ontology_mapping_refresh(force=TRUE)`.
+3. **`/api/ontology` + `OntologyTerm` carry the new columns.** Both currently expose only `DOID/MONDO/Orphanet/EFO`; add `UMLS/MedGen/NCIT/GARD/ontology_mapping_release`.
+4. **Source new files via `bootstrap_load_modules()`** (`load_modules.R`), not `start_sysndd_api.R`. One list covers the API and the durable worker (`start_async_worker.R`). Only the bootstrap hook lives in `start_sysndd_api.R`. No `setup_workers.R` (mirai) change.
+5. **Reuse the existing table expansion.** `GenericTable` already has the `details` toggle + `#row-expansion` slot and `TablesEntities` already ships `fields_details`; the list UX **extends** that, not a second system.
+6. **`target_id` is always a full CURIE**, incl. `UMLS:C1234567` (the UI may shorten the display label only).
+7. **Never canonicalize `OMIMPS`→OMIM** (would mislink to an OMIM entry page); drop OMIMPS in v1.
+8. **Pin the cross-charset join key** `disease_ontology_mapping.disease_ontology_id` to `utf8mb3 / utf8mb3_general_ci` to match `disease_ontology_set` (avoids "Illegal mix of collations").
 
 ## 14. Open questions still overridable by the user
 

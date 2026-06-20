@@ -30,7 +30,11 @@
 
 **Mapping store key:** anchor on **base** `disease_ontology_id` (non-versioned, e.g. `OMIM:618524`).
 
-**Target prefix allowlist (canonical casing):** `MONDO, Orphanet, OMIM, DOID, UMLS, MedGen, NCIT, GARD, EFO`. CURIE alias normalization: `ORPHANET|ORPHA→Orphanet`, `MIM→OMIM`, `OMIMPS→OMIM` (drop phenotypic-series unless needed), `SCTID|SNOMEDCT→SCTID` (not in allowlist; dropped), `NCIT|NCI→NCIT`, `MESH→MeSH` (dropped from v1 UI), `MEDGEN→MedGen`, `GARD→GARD`, `EFO→EFO`, `DOID→DOID`, `UMLS|UMLS_CUI→UMLS`.
+**Target prefix allowlist (canonical casing):** `MONDO, Orphanet, OMIM, DOID, UMLS, MedGen, NCIT, GARD, EFO`. CURIE alias normalization: `ORPHANET|ORPHA→Orphanet`, `MIM→OMIM`, `NCIT|NCI→NCIT`, `MEDGEN→MedGen`, `GARD→GARD`, `EFO→EFO`, `DOID→DOID`, `UMLS|UMLS_CUI→UMLS`. **`OMIMPS` is NOT canonicalized to OMIM and is dropped in v1** (phenotypic-series ids would mislink to an OMIM entry page — never map them). `SCTID|SNOMEDCT` and `MESH` are not in the allowlist and are dropped.
+
+**`target_id` is always a full CURIE**, including UMLS → `UMLS:C1234567` (never bare `C1234567`). The frontend may shorten the *displayed label* but the stored/returned id keeps the prefix.
+
+**Collation:** `disease_ontology_set` is `utf8mb3` (default collation `utf8mb3_general_ci`). The new utf8mb4 tables keep utf8mb4 for label/definition columns, but **`disease_ontology_mapping.disease_ontology_id` (the cross-charset join key to `disease_ontology_set`) is pinned to `CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci`** so the projection `UPDATE … JOIN` and read joins never raise "Illegal mix of collations". WP-A confirms the exact collation via `SHOW FULL COLUMNS FROM disease_ontology_set` and matches it.
 
 **Predicate rank (strongest→weakest):** `exactMatch(0) < equivalentTo(1) < closeMatch(2) < narrowMatch(3) < broadMatch(4) < xref(5)`.
 
@@ -53,6 +57,17 @@ Response carries **ids/predicates only, never URLs**. `status:"missing"` (HTTP 2
 
 Branch naming: `feat/ontology-mappings-<wp>` (e.g. `feat/ontology-mappings-schema`). Each WP is one PR onto `master`.
 
+## Review Corrections (binding — applied into the tasks below; verified against live code 2026-06-20)
+
+1. **Public surface only.** `disease_mapping_for_entity()` resolves the entity through **`ndd_entity_view`** (the public list source, `entity_endpoints.R:92`), NOT raw `ndd_entity`. An entity absent from `ndd_entity_view` (inactive/non-public) returns `status:"missing"` — never leaks mappings. Test required. (WP-D T-D1)
+2. **Operator ontology refresh wipes projection columns.** `refresh_disease_ontology_set()` does `DELETE FROM disease_ontology_set` + re-append (`metadata-refresh.R:99`) and the combine logic doesn't build the new columns. So a successful `ontology_update`/`force_apply_ontology` MUST enqueue a `disease_ontology_mapping_refresh` afterward, or projection columns + normalized mappings drift. (WP-C T-C7)
+3. **`/api/ontology` + frontend type must carry the new columns.** Endpoint selects only `DOID,MONDO,Orphanet,EFO` (`ontology_endpoints.R:66`); `app/src/api/ontology.ts:40` mirrors only those. Add `UMLS,MedGen,NCIT,GARD,ontology_mapping_release` to both. (WP-D T-D3, WP-E T-E5)
+4. **Source files via `bootstrap_load_modules()`**, not `start_sysndd_api.R`. New function files → `api/bootstrap/load_modules.R` `function_files`; the service → its `service_files` list. The durable async worker (`start_async_worker.R:6`) calls `bootstrap_load_modules()`, so this one list covers both API and worker. Only the **bootstrap hook call** goes in `start_sysndd_api.R`. No `setup_workers.R` (mirai) change needed — the refresh is not a daemon job. Restart the worker container after changes. (WP-C T-C5)
+5. **Reuse the existing table expansion.** `GenericTable` already has a `details` toggle column + `#row-expansion` slot (`GenericTable.vue:489,496`) and `TablesEntities` already ships `details` + `fields_details` (`TablesEntities.vue:459,464`). WP-F **extends** that expansion (override the `#row-expansion` slot / append to the detail card) — it does NOT add a second desktop expansion system. (WP-F T-F1)
+6. **UMLS id is a full CURIE** `UMLS:C1234567` everywhere (schema, derive, endpoint, tests). (Frozen Contract; WP-E T-E1)
+7. **Never canonicalize `OMIMPS`→OMIM**; drop OMIMPS in v1. (Frozen Contract; WP-B T-B1)
+8. **Pin the cross-charset join key collation** in WP-A (`disease_ontology_mapping.disease_ontology_id` → utf8mb3). (Frozen Contract; WP-A T-A1)
+
 ---
 
 # WP-A — Schema & migration (Wave 1)
@@ -68,7 +83,7 @@ Branch naming: `feat/ontology-mappings-<wp>` (e.g. `feat/ontology-mappings-schem
 
 ### Task A1: Write the migration
 
-- [ ] **Step 1 — Create `db/migrations/036_add_disease_ontology_mappings.sql`** with exactly the DDL from spec §4.1–4.5 (the four `CREATE TABLE IF NOT EXISTS` and the `ALTER TABLE disease_ontology_set ADD COLUMN …`). Prefix every statement file-scoped; no `USE`. End each `CREATE` with `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`.
+- [ ] **Step 1 — Create `db/migrations/036_add_disease_ontology_mappings.sql`** with the DDL from spec §4.1–4.5 (the four `CREATE TABLE IF NOT EXISTS` and the `ALTER TABLE disease_ontology_set ADD COLUMN …`). Prefix every statement file-scoped; no `USE`. End each `CREATE` with `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`. **Collation pin (binding correction #8):** declare `disease_ontology_mapping.disease_ontology_id varchar(15) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL` so it joins to `disease_ontology_set.disease_ontology_id` without an "Illegal mix of collations" error. Leave `mondo_id`/`target_id`/`target_id_upper` as utf8mb4 (they only join within the new tables).
 
 - [ ] **Step 2 — Guard the `ALTER` for idempotency.** MySQL lacks `ADD COLUMN IF NOT EXISTS` portably across the deployed version; the runner applies each file once via the migrations ledger, so a plain `ALTER TABLE disease_ontology_set ADD COLUMN …` is correct (the file runs exactly once). Do **not** add `IF NOT EXISTS` to columns. Verify the runner records `036` in its ledger table (read `api/bootstrap/run_migrations.R` to confirm ledger semantics).
 
@@ -80,7 +95,7 @@ Branch naming: `feat/ontology-mappings-<wp>` (e.g. `feat/ontology-mappings-schem
 
 - [ ] **Step 6 — Run the test.** `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-migration-manifest.R')"`. Expected: PASS.
 
-- [ ] **Step 7 — Apply locally against the dev DB** (optional but recommended): bring up `make docker-dev-db`, restart the API, confirm boot succeeds and the four tables + columns exist (`SHOW COLUMNS FROM disease_ontology_set;`). Watch for **collation-mismatch** errors when the new utf8mb4 tables are later joined to utf8mb3 `disease_ontology_set` — if any appear, set the join columns of the new tables to `COLLATE utf8mb4_unicode_ci` and document; ASCII CURIEs should be safe.
+- [ ] **Step 7 — Confirm collation + apply locally.** First run `SHOW FULL COLUMNS FROM disease_ontology_set LIKE 'disease_ontology_id';` and confirm the join key really is `utf8mb3_general_ci`; if the deployed DB shows a different utf8mb3 collation, match it exactly in the migration. Then bring up `make docker-dev-db`, restart the API, confirm boot succeeds and the four tables + columns exist (`SHOW COLUMNS FROM disease_ontology_set;`). A trial `SELECT … FROM disease_ontology_mapping m JOIN disease_ontology_set s ON m.disease_ontology_id = s.disease_ontology_id LIMIT 1;` must not raise collation errors.
 
 - [ ] **Step 8 — Commit.**
 ```bash
@@ -128,8 +143,11 @@ test_that("mondo_normalize_curie maps aliases to canonical casing", {
   expect_equal(mondo_normalize_curie("ORPHANET:530983"), "Orphanet:530983")
   expect_equal(mondo_normalize_curie("ORPHA:530983"),    "Orphanet:530983")
   expect_equal(mondo_normalize_curie("MIM:618524"),      "OMIM:618524")
-  expect_equal(mondo_normalize_curie("UMLS:C1234567"),   "UMLS:C1234567")
+  expect_equal(mondo_normalize_curie("UMLS:C1234567"),   "UMLS:C1234567")  # full CURIE, not bare
   expect_equal(mondo_curie_prefix("DOID:0081234"),       "DOID")
+  # correction #7: OMIMPS must NOT become OMIM (stays OMIMPS, dropped by allowlist later)
+  expect_equal(mondo_normalize_curie("OMIMPS:618524"),   "OMIMPS:618524")
+  expect_false("OMIMPS" %in% MONDO_TARGET_ALLOWLIST)
   expect_true(is.na(mondo_normalize_curie("not-a-curie")))
 })
 ```
@@ -139,8 +157,11 @@ test_that("mondo_normalize_curie maps aliases to canonical casing", {
 MONDO_TARGET_ALLOWLIST <- c("MONDO","Orphanet","OMIM","DOID","UMLS","MedGen","NCIT","GARD","EFO")
 MONDO_PREDICATE_RANK <- c(exactMatch = 0L, equivalentTo = 1L, closeMatch = 2L,
                           narrowMatch = 3L, broadMatch = 4L, xref = 5L)
+# NOTE (correction #7): OMIMPS is deliberately absent — phenotypic-series ids
+# must NOT canonicalize to OMIM (they would mislink to an OMIM entry page).
+# An unmapped prefix stays as-is and is dropped downstream (not in allowlist).
 .MONDO_PREFIX_ALIASES <- c(ORPHANET = "Orphanet", ORPHA = "Orphanet", MIM = "OMIM",
-                           OMIM = "OMIM", OMIMPS = "OMIM", MEDGEN = "MedGen",
+                           OMIM = "OMIM", MEDGEN = "MedGen",
                            NCIT = "NCIT", NCI = "NCIT", GARD = "GARD", EFO = "EFO",
                            DOID = "DOID", UMLS = "UMLS", UMLS_CUI = "UMLS", MONDO = "MONDO")
 
@@ -249,10 +270,12 @@ Mirror `pubtatornidd_nightly` (orchestrator+lock+cron+bootstrap) and `analysis_s
 - Create: `api/endpoints/admin_ontology_mapping_endpoints.R`
 - Create: `api/scripts/ontology_mapping_refresh_enqueue.R`
 - Modify: `api/functions/async-job-handlers.R` (registry + handler)
+- Modify: `api/bootstrap/load_modules.R` (add new function/service files to the source lists — covers API + durable worker)
 - Modify: `api/bootstrap/mount_endpoints.R` (mount `/api/admin/ontology` before `/api/admin`)
-- Modify: `api/start_sysndd_api.R` (bootstrap hook + source new files in correct order)
+- Modify: `api/start_sysndd_api.R` (bootstrap hook **only** — not the source list)
+- Modify: `api/functions/async-job-handlers.R` + the `force_apply_ontology` endpoint (T-C7 re-trigger)
 - Modify: `api/config.yml` (mondo urls), `docker-compose.yml` (+ `*.prod.yml`) (cron sidecar; worker egress already present)
-- Test: `api/tests/testthat/test-unit-ontology-mapping-service.R`, `test-unit-ontology-mapping-refresh.R`, `test-unit-admin-ontology-mapping-endpoints.R`
+- Test: `api/tests/testthat/test-unit-ontology-mapping-service.R`, `test-unit-ontology-mapping-refresh.R`, `test-unit-admin-ontology-mapping-endpoints.R`, `test-unit-ontology-refresh-chains-mapping.R`
 
 **Interfaces:**
 - Consumes from B: `mondo_obo_parse`, `mondo_sssom_parse`, `mondo_merge_xrefs`, `mondo_index_write`, `disease_mapping_derive`, `disease_mapping_write`, `download_mondo_sssom_full`, `MONDO_TARGET_ALLOWLIST`.
@@ -303,7 +326,8 @@ Mirror `pubtatornidd_nightly` (orchestrator+lock+cron+bootstrap) and `analysis_s
 
 ### Task C5: Bootstrap hook + source order + config
 
-- [ ] **Step 1 — In `api/start_sysndd_api.R`** source the new files in the correct band (functions before services before endpoints): add `mondo-index-builder.R`, `disease-ontology-mapping-builder.R`, `disease-ontology-mapping-refresh.R` with the other `functions/*`; the service with `services/*`. After migrations and after the existing snapshot/pubtatornidd bootstraps, add:
+- [ ] **Step 1 — Source the new files via `api/bootstrap/load_modules.R`** (correction #4 — NOT `start_sysndd_api.R`). In `bootstrap_load_modules()` add `functions/mondo-index-builder.R`, `functions/disease-ontology-mapping-builder.R`, `functions/disease-ontology-mapping-repository.R`, `functions/disease-ontology-mapping-refresh.R` to the `function_files` vector (before `services`), and `services/disease-ontology-mapping-service.R` to the `service_files` vector. This one list is loaded by the API (`start_sysndd_api.R:76`) **and** the durable async worker (`start_async_worker.R:6`), so the worker that runs the job gets the code. No `setup_workers.R` (mirai) change — this isn't a daemon job. Restart the worker container after deploy.
+- [ ] **Step 1b — Add only the bootstrap hook to `api/start_sysndd_api.R`** after migrations and after the existing snapshot/pubtatornidd bootstraps:
 ```r
 tryCatch(
   disease_ontology_mapping_bootstrap_on_startup(),
@@ -320,6 +344,17 @@ tryCatch(
 - [ ] **Step 3 — Add `ontology-mapping-cron` service** to `docker-compose.yml` (and prod compose) modeled on `pubtatornidd-cron`: same image, `backend` network only (no egress), a weekly scheduler loop (`ONTOLOGY_MAPPING_REFRESH_AT` weekday/time env) running the enqueue script. Confirm the **worker** is on the `proxy` network (egress) — it already must be for Gemini/PubMed; no change expected, but verify.
 - [ ] **Step 4 — Commit.** `git commit -m "feat(ops): weekly cron sidecar for ontology mapping refresh"`.
 - [ ] **Step 5 — Gate:** `make test-api-fast` and `make lint-api`.
+
+### Task C7: Re-trigger mapping refresh after an operator ontology refresh (correction #2)
+
+**Why:** `refresh_disease_ontology_set()` does `DELETE FROM disease_ontology_set` + re-append (`metadata-refresh.R:99`), and the combine logic doesn't rebuild the projection columns — so any operator ontology refresh leaves the new columns blank and the normalized `disease_ontology_mapping` rows pointing at base ids that may have changed. A successful ontology refresh must enqueue a `disease_ontology_mapping_refresh`.
+
+**Files:** Modify the two ontology-refresh completion sites — the async ontology refresh handler (grep `async-job-handlers.R` for the ontology/`process_combine_ontology` job) and the force-apply path (`PUT /api/admin/force_apply_ontology`, grep `force_apply` across `api/endpoints/`).
+
+- [ ] **Step 1 — Locate** both sites where `refresh_disease_ontology_set()` completes successfully (the normal ontology async job `after_success`/run tail, and the `force_apply_ontology` handler tail).
+- [ ] **Step 2 — After each successful `refresh_disease_ontology_set()`**, call `service_disease_ontology_mapping_submit_refresh(force = TRUE)` (force because the disease set changed; dedup-safe). Wrap in `tryCatch` so a submission hiccup does not fail the ontology refresh itself — log and continue.
+- [ ] **Step 3 — Test:** unit-test the chaining with an injected `submit_fn` spy — assert that a simulated successful ontology refresh calls the mapping-refresh submit exactly once with `force = TRUE`. Run, verify PASS.
+- [ ] **Step 4 — Commit.** `git commit -m "feat(api): refresh ontology mappings after an ontology-set refresh"`.
 
 ---
 
@@ -341,18 +376,29 @@ tryCatch(
 - [ ] **Step 3 — Implement** `disease-ontology-mapping-repository.R`:
   - `disease_mapping_group_rows(rows)` — pure: split by `target_prefix`, order groups by allowlist, build the per-row lists; derive `mondo_id` from the `MONDO` group’s first id.
   - `disease_mapping_for_disease(disease_ontology_id, conn = NULL)` — `SELECT … FROM disease_ontology_mapping WHERE disease_ontology_id = ? AND is_active = 1`; join `disease_ontology_set` for `disease_ontology_name` + `ontology_mapping_release`; `status = if (nrow==0) "missing" else "current"`; return the grouped object.
-  - `disease_mapping_for_entity(entity_id, conn = NULL)` — resolve `entity_id → disease_ontology_id_version → base disease_ontology_id` (strip `_version` suffix or read `disease_ontology_set.disease_ontology_id`), then delegate. Use `DBI::dbBind` with `unname(params)`.
+  - `disease_mapping_for_entity(entity_id, conn = NULL)` — **resolve through `ndd_entity_view`, NOT raw `ndd_entity`** (binding correction #1): `SELECT disease_ontology_id_version FROM ndd_entity_view WHERE entity_id = ?`. This matches the public entity-list surface (`entity_endpoints.R:92`); an entity absent from the view (inactive / not public) yields **zero rows → return `status:"missing"`** and never leaks mappings. Then map `disease_ontology_id_version → base disease_ontology_id` (join `disease_ontology_set` for the base `disease_ontology_id`) and delegate to `disease_mapping_for_disease`. Use `DBI::dbBind` with `unname(params)`.
 - [ ] **Step 4 — Run, verify PASS. Commit.** `git commit -m "feat(api): disease mapping read repository"`.
 
 ### Task D2: Endpoint + mount + cheap-route isolation
 
-- [ ] **Step 1 — Write endpoint test** asserting: `?entity_id=` and `?disease_ontology_id=` both resolve; missing/both-absent → `stop_for_bad_request` (problem+json 400); unknown disease → `status:"missing"` 200. (Mock the repository.)
+- [ ] **Step 1 — Write endpoint test** asserting: `?entity_id=` and `?disease_ontology_id=` both resolve; missing/both-absent → `stop_for_bad_request` (problem+json 400); unknown disease → `status:"missing"` 200; **an `entity_id` that exists but is absent from `ndd_entity_view` (inactive/non-public) → `status:"missing"` 200, no mapping rows leaked** (correction #1; DB-or-mocked integration check). (Mock the repository for the shape cases.)
 - [ ] **Step 2 — Run, verify FAIL.**
 - [ ] **Step 3 — Implement** `disease_mapping_endpoints.R`: a single `GET /mappings` handler. Validate exactly one of `entity_id`/`disease_ontology_id` is present (unwrap Plumber array-scalars). Call the repository. Return the grouped JSON. No external calls.
 - [ ] **Step 4 — Mount** at `/api/disease` via `mount_endpoint()` in `mount_endpoints.R`.
 - [ ] **Step 5 — Extend `test-unit-cheap-route-isolation.R`** to assert `/api/disease` does not reference any external fetcher (it’s DB-only). Run, verify PASS.
 - [ ] **Step 6 — Commit.** `git commit -m "feat(api): public GET /api/disease/mappings endpoint"`.
 - [ ] **Step 7 — Gate:** `make test-api-fast`, `make lint-api`.
+
+### Task D3: Surface the new projection columns on `/api/ontology` (correction #3)
+
+**Files:** Modify `api/endpoints/ontology_endpoints.R:58-69` (the `select(...)` list in the `@get <ontology_input>` handler).
+
+- [ ] **Step 1 — Read** `ontology_endpoints.R:32-80`. The `select()` currently lists `DOID, MONDO, Orphanet, EFO`.
+- [ ] **Step 2 — Add** `UMLS, MedGen, NCIT, GARD, ontology_mapping_release` to that `select()` so the existing ontology lookup returns the full projection set (the columns added in migration 036). Keep the existing `group_by(disease_ontology_id) %>% summarize_all(paste(unique(.), collapse=";"))` aggregation — the new columns flow through unchanged.
+- [ ] **Step 3 — Test:** extend the ontology endpoint's test (or add one) asserting the response includes the five new keys for a disease that has them. If no test file exists for this endpoint, add a minimal one. Run, verify PASS.
+- [ ] **Step 4 — Commit.** `git commit -m "feat(api): expose UMLS/MedGen/NCIT/GARD on /api/ontology"`.
+
+> **Coordination:** the frontend `OntologyTerm` type (`app/src/api/ontology.ts:40`) must mirror these new keys — done in WP-E Task E5.
 
 ---
 
@@ -381,8 +427,10 @@ describe('ontologyOutlink', () => {
     expect(ontologyOutlink('Orphanet','Orphanet:530983').url).toContain('orpha.net');
     expect(ontologyOutlink('DOID','DOID:0081234').url).toBe('https://disease-ontology.org/term/DOID:0081234');
   });
-  it('returns null url for UMLS (no clean deep-link)', () => {
-    expect(ontologyOutlink('UMLS','C1234567').url).toBeNull();
+  it('returns null url for UMLS (no clean deep-link) and keeps the full CURIE label', () => {
+    const out = ontologyOutlink('UMLS','UMLS:C1234567'); // full CURIE per correction #6
+    expect(out.url).toBeNull();
+    expect(out.label).toBe('UMLS:C1234567');
   });
 });
 ```
@@ -408,23 +456,32 @@ describe('ontologyOutlink', () => {
 - [ ] **Step 4 — Run, verify PASS. Commit.** `git commit -m "feat(app): LinkedOntologies outlink component"`.
 - [ ] **Step 5 — Gate:** `cd app && npm run lint && npm run type-check && npx vitest run src/components/disease src/assets/js/constants`.
 
+### Task E5: Mirror the new projection keys in the `OntologyTerm` type (correction #3)
+
+**Files:** Modify `app/src/api/ontology.ts:32-46` (the `OntologyTerm` interface).
+
+- [ ] **Step 1 — Add** `UMLS: string[]`, `MedGen: string[]`, `NCIT: string[]`, `GARD: string[]`, `ontology_mapping_release: string[]` to `OntologyTerm`, matching the new keys WP-D Task D3 returns from `/api/ontology` (Plumber array-wraps; keep `string[]` like the existing `DOID/MONDO/Orphanet/EFO`).
+- [ ] **Step 2 — Type-check:** `cd app && npm run type-check`. Expected PASS.
+- [ ] **Step 3 — Commit.** `git commit -m "feat(app): extend OntologyTerm with new cross-ontology keys"`.
+
 ---
 
 # WP-F — Entities list: expandable row (Wave 3; depends on E)
 
+**Correction #5:** `GenericTable` already has the `details` toggle column (`GenericTable.vue:489`) and a `#row-expansion` slot (`GenericTable.vue:496`); `TablesEntities` already renders `details` + `fields_details` (`TablesEntities.vue:459,464`). **Extend that existing expansion — do NOT add a second expansion system, prop, or toggle.**
+
 **Files:**
-- Modify: `app/src/components/tables/TablesEntities.vue` (add expand toggle + detail slot)
-- Modify: the desktop `GenericTable` to support a per-row expand slot (read it first; if it lacks the capability, add a minimal `expandable` prop + `#row-details` slot)
-- Modify: `app/src/components/tables/EntitiesMobileRows.vue` (add mappings to the existing Details panel)
+- Modify: `app/src/components/tables/TablesEntities.vue` (override the `#row-expansion` slot to append a mappings strip; add the lazy hook)
+- Modify: `app/src/components/tables/EntitiesMobileRows.vue` (add the mappings strip inside the existing Details collapse)
 - Test: `app/src/components/tables/TablesEntities.spec.ts` (extend)
 
-### Task F1: Expand capability + lazy mappings
+### Task F1: Append ontology outlinks to the existing row expansion
 
-- [ ] **Step 1 — Read** `GenericTable` and `EntitiesMobileRows.vue` to reuse the existing expand pattern.
-- [ ] **Step 2 — Add** a per-row expand toggle to the desktop table (aria-expanded). On expand, set the `useEntityMappings` key to that `entity_id` (lazy) and render `<LinkedOntologies layout="strip" :data :loading />` in the detail row.
-- [ ] **Step 3 — Mirror** in `EntitiesMobileRows.vue`: add the mappings strip inside the existing Details collapse.
-- [ ] **Step 4 — Test:** extend `TablesEntities.spec.ts` to assert the expand toggle exists and that expanding triggers the mappings fetch (mock the composable/client). Run, verify PASS.
-- [ ] **Step 5 — Commit.** `git commit -m "feat(app): expandable ontology outlinks in the Entities table"`.
+- [ ] **Step 1 — Read** `GenericTable.vue:488-520` (the `#row-expansion` slot + `fieldDetails`) and `TablesEntities.vue:440-480` (the existing `details` column + `fields_details`) and `EntitiesMobileRows.vue` to see exactly how the current detail card renders.
+- [ ] **Step 2 — In `TablesEntities.vue`, override the `<template #row-expansion="{ row, toggle }">` slot** so the existing detail card still renders AND, below it, a "Linked ontologies" strip. On first expansion of a row, set the `useEntityMappings` key to `row.entity_id` (lazy — keyed reactive so the fetch only fires for expanded rows) and render `<LinkedOntologies layout="strip" :data="mappings.data.value" :loading="mappings.loading.value" />`. Do not introduce a new toggle — reuse `GenericTable`'s `toggleExpansion`/`details` column. (If a single shared `useEntityMappings` key can't serve multiple simultaneously-expanded rows, key a small per-row map of resources, or fetch on expand into a `Map<entityId, resource>`.)
+- [ ] **Step 3 — Mirror** in `EntitiesMobileRows.vue`: add the same `LinkedOntologies` strip inside the existing Details collapse block (the mobile rows already have the Details button pattern).
+- [ ] **Step 4 — Test:** extend `TablesEntities.spec.ts` to assert that expanding a row (via the existing `details` toggle) renders `LinkedOntologies` and triggers the mappings fetch (mock the composable/client). Run, verify PASS.
+- [ ] **Step 5 — Commit.** `git commit -m "feat(app): ontology outlinks in the existing Entities row expansion"`.
 - [ ] **Step 6 — Gate:** `npm run lint && npm run type-check && npx vitest run src/components/tables`.
 
 ---
@@ -455,7 +512,7 @@ describe('ontologyOutlink', () => {
 
 ### Task H1: Architecture invariant in AGENTS.md
 
-- [ ] **Step 1 — Add** a "Disease cross-ontology mappings" subsection under Architecture Invariants: sources (`mondo.obo`+`mondo.sssom.tsv`), MONDO-as-hub, the four tables + projection columns, `ndd_entity_view` intentionally untouched, the `disease_ontology_mapping_refresh` job + advisory lock + cron sidecar + staggered bootstrap, the public `/api/disease/mappings` read endpoint (cheap/DB-only), the admin `/api/admin/ontology/mappings/*` endpoints (mount-before-`/api/admin`), and the frontend lazy-fetch + central `ontology_links.ts`.
+- [ ] **Step 1 — Add** a "Disease cross-ontology mappings" subsection under Architecture Invariants: sources (`mondo.obo`+`mondo.sssom.tsv`), MONDO-as-hub, the four tables + projection columns, `ndd_entity_view` intentionally untouched (frontend reads `/api/disease/mappings`), the `disease_ontology_mapping_refresh` job + advisory lock + cron sidecar + staggered bootstrap, the public `/api/disease/mappings` read endpoint (cheap/DB-only) **resolving entities through `ndd_entity_view` (public surface only)**, the admin `/api/admin/ontology/mappings/*` endpoints (mount-before-`/api/admin`), and the frontend lazy-fetch + central `ontology_links.ts`. Record the binding rules: **an operator ontology refresh (`refresh_disease_ontology_set`) MUST chain `disease_ontology_mapping_refresh(force=TRUE)`** (else projection columns drift); **`OMIMPS` is never canonicalized to OMIM**; **`target_id` is a full CURIE (incl. `UMLS:`)**; new files are sourced via `bootstrap_load_modules()` (covers API + durable worker); and the `disease_ontology_id` join key is pinned to utf8mb3 collation.
 - [ ] **Step 2 — Commit.** `git commit -m "docs: AGENTS.md invariant for disease ontology mappings"`.
 
 ### Task H2: Dev + deployment docs
@@ -480,3 +537,5 @@ describe('ontologyOutlink', () => {
 **Placeholder scan:** No "TBD/handle edge cases/write tests for the above". Mirror-tasks (C1–C6) name the exact template file + the concrete deltas, which is the real implementation instruction, not a placeholder.
 
 **Type/name consistency:** `disease_ontology_mapping_refresh` (job type = lock name) used consistently; `disease_mapping_for_entity/_for_disease`, `disease_mapping_derive/_write`, `mondo_index_write`, `service_disease_ontology_mapping_submit_refresh`, `useEntityMappings`, `ontologyOutlink`, `LinkedOntologies` referenced identically across producing and consuming tasks. Endpoint `/api/disease/mappings` and admin `/api/admin/ontology/mappings/*` consistent between WP-C/D and WP-H. Migration `036`/`34L` consistent between Global Constraints and WP-A.
+
+**Review corrections (Codex, 2026-06-20):** all 8 findings folded in and verified against live code — #1 `ndd_entity_view` resolution (T-D1), #2 ontology-refresh chaining (T-C7), #3 `/api/ontology` + `OntologyTerm` columns (T-D3/T-E5), #4 `load_modules.R` sourcing (T-C5), #5 reuse existing `#row-expansion` (T-F1), #6 full-CURIE UMLS (Frozen Contract/T-E1), #7 no OMIMPS→OMIM (T-B1), #8 utf8mb3 join-key collation (T-A1). See "Review Corrections (binding)" near the top.
