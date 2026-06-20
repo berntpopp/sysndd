@@ -100,7 +100,13 @@ service_disease_ontology_mapping_submit_refresh <- function(
   }
   stagger_seconds <- as.integer(stagger_seconds)
 
-  if (!force) {
+  # Existence-skip is the STARTUP-BOOTSTRAP idempotency guard only (stagger=TRUE):
+  # a fresh deploy enqueues exactly one build and a restart with a build present
+  # enqueues nothing. The weekly cron and the admin endpoint (stagger=FALSE) must
+  # enqueue even when a build exists — the worker then conditional-GETs and
+  # no-ops cheaply if the MONDO release is unchanged, and request_hash dedup
+  # prevents overlap while one is still queued/running.
+  if (!force && stagger) {
     already <- tryCatch(exists_fn(), error = function(e) FALSE)
     if (isTRUE(already)) {
       return(list(

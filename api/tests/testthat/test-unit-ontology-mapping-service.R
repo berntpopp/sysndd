@@ -18,16 +18,35 @@ source_api_file("services/disease-ontology-mapping-service.R", local = FALSE)
   }
 }
 
-test_that("force=FALSE and an existing build skips submission", {
+test_that("bootstrap (stagger) with an existing build skips submission", {
   store <- new.env(); store$calls <- list()
   out <- service_disease_ontology_mapping_submit_refresh(
     force = FALSE,
+    stagger = TRUE,
     submit_fn = .spy_submit(store),
     exists_fn = function() TRUE
   )
   expect_true(isTRUE(out$skipped))
   expect_false(isTRUE(out$submitted))
   expect_length(store$calls, 0L)
+})
+
+test_that("cron (force=FALSE, no stagger) submits even when a build exists", {
+  store <- new.env(); store$calls <- list()
+  exists_called <- FALSE
+  out <- service_disease_ontology_mapping_submit_refresh(
+    force = FALSE,
+    stagger = FALSE,
+    submit_fn = .spy_submit(store),
+    exists_fn = function() {
+      exists_called <<- TRUE
+      TRUE
+    }
+  )
+  expect_true(isTRUE(out$submitted))
+  expect_length(store$calls, 1L)
+  # The existence probe is bootstrap-only; the cron must not consult it.
+  expect_false(exists_called)
 })
 
 test_that("force=TRUE submits at now (no stagger) even when a build exists", {
