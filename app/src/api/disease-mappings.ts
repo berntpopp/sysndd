@@ -2,7 +2,7 @@
 //
 // Typed API client for disease cross-ontology mappings.
 //
-// Mirrors api/endpoints/disease_endpoints.R (mounted at /api/disease).
+// Mirrors api/endpoints/disease_mapping_endpoints.R (mounted at /api/disease).
 // The `/api/disease/mappings` endpoint returns a cross-ontology mapping
 // response for a given entity or disease ontology ID.
 

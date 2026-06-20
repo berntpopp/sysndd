@@ -322,7 +322,7 @@ disease_mapping_write <- function(conn, mapping_tbl, release_version) {
       "UPDATE disease_ontology_set dos ",
       "JOIN (",
       "  SELECT d.disease_ontology_id, ",
-      "    GROUP_CONCAT(DISTINCT d.target_id ORDER BY d.target_id SEPARATOR ';') AS joined_ids ",
+      "    LEFT(GROUP_CONCAT(DISTINCT d.target_id ORDER BY d.target_id SEPARATOR ';'), 200) AS joined_ids ",
       "  FROM disease_ontology_mapping d ",
       "  WHERE d.target_prefix = ? ",
       "    AND d.source != 'sysndd_native' ",
