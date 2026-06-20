@@ -142,6 +142,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     plumber::pr_mount("/api/about", mount_endpoint("endpoints/about_endpoints.R")) %>%
     plumber::pr_mount("/api/seo", mount_endpoint("endpoints/seo_endpoints.R")) %>%
     plumber::pr_mount("/api/admin/analysis", mount_endpoint("endpoints/admin_analysis_snapshot_endpoints.R")) %>%
+    plumber::pr_mount("/api/admin/ontology", mount_endpoint("endpoints/admin_ontology_mapping_endpoints.R")) %>%
     plumber::pr_mount("/api/admin", mount_endpoint("endpoints/admin_endpoints.R")) %>%
     plumber::pr_mount("/api/llm", mount_endpoint("endpoints/llm_admin_endpoints.R")) %>%
     plumber::pr_mount("/api/backup", mount_endpoint("endpoints/backup_endpoints.R")) %>%
