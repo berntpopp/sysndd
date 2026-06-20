@@ -100,3 +100,76 @@ Skips are expected: 5 skips for tests requiring live test DB (migration 036 not 
 2. **`disease_mapping_derive` loads all `mondo_xref` rows into R memory** — appropriate for the MONDO xref table (tens of thousands of rows). If the table grows to millions, a cursor-based approach would be needed.
 3. **`disease_mapping_write` projection UPDATE** uses a simplified `GROUP BY disease_ontology_id` without explicit predicate ordering — picks first target_id per prefix. For production, a ranked subquery would be more deterministic; this is acceptable for now given the allowlist filtering.
 4. **`mondo-functions.R` has `require(tidyverse)`** at file top (pre-existing). The warnings in test output are expected and not caused by WP-B changes.
+
+---
+
+## Fix pass
+
+Commit: `ca0e4045`  
+Date: 2026-06-20
+
+### Fixes applied
+
+| ID | Fix | File(s) |
+|----|-----|---------|
+| C1 | Added `DOID/MONDO/Orphanet/EFO` to `.MAPPING_PREFIX_COLUMN` (was only 4, now all 8); removed wrong comment | `disease-ontology-mapping-builder.R` |
+| C2 | Reset all 8 columns to NULL before write; populate via `GROUP_CONCAT(DISTINCT … ORDER BY … SEPARATOR ';')` per-prefix grouped by disease_ontology_id | `disease-ontology-mapping-builder.R` |
+| I3 | Replaced `paste0("… '", release_version, "' …")` interpolation with `DBI::dbExecute(conn, "… = ? …", params = unname(list(…)))` for both per-prefix UPDATE and ontology_mapping_release UPDATE | `disease-ontology-mapping-builder.R` |
+| I2 | Removed verbatim `.MONDO_PREFIX_ALIASES_FOR_DERIVE()` copy; now delegates to `.MONDO_PREFIX_ALIASES` from `mondo-index-builder.R` | `disease-ontology-mapping-builder.R` |
+| I1 | `.map_predicate` inside `mondo_sssom_parse` now maps `equivalentClass` / `owl:equivalentClass` / bare `equivalentTo` short-forms to `"equivalentTo"` | `mondo-index-builder.R` |
+| M1 | Extracted `.resolve_sssom_url()` helper from `download_mondo_sssom_full`; replaced tautological env-read test with 3 targeted resolution tests (arg → env → default) | `mondo-functions.R`, `test-unit-disease-ontology-mapping-builder.R` |
+| I4 | Added projection-column assertions after `disease_mapping_write` in integration test: checks `MONDO` and `Orphanet` are non-NULL and contain the expected CURIEs | `test-integration-mondo-index.R` |
+
+### Unit test results (host)
+
+```
+# test-unit-mondo-index-builder.R
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-mondo-index-builder.R')"
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 31 ]
+# (was 19 before I1 test added; +12 from duplicated run, net unique: 31)
+
+# test-unit-disease-ontology-mapping-builder.R
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-disease-ontology-mapping-builder.R')"
+[ FAIL 0 | WARN 8 | SKIP 0 | PASS 19 ]
+# 8 WARNings are pre-existing host-R missing tidyverse/fs (container-only); not failures
+```
+
+### Dev-DB rollback probe output (C1/C2/I4 verification)
+
+Ran `/tmp/sysndd_probe_c1c2.R` inside `sysndd-api-1` against `sysndd_db` via `START TRANSACTION … ROLLBACK`. Seeded 1 mondo_term + 8 mondo_xref rows (one per target prefix: OMIM=anchor, plus Orphanet, DOID, EFO, UMLS, MedGen, NCIT, GARD). Matched to real `disease_ontology_id = OMIM:100100`.
+
+```
+=== Derived rows: 6774
+=== Unique target prefixes: MONDO, OMIM, DOID, EFO, GARD, MedGen, NCIT, Orphanet, UMLS
+=== Rows for OMIM:100100 : 9
+  disease_ontology_id target_prefix target_id       source         predicate
+1 OMIM:100100         OMIM          OMIM:100100     sysndd_native  NA
+2 OMIM:100100         MONDO         MONDO:0032745   mondo_obo_xref equivalentTo
+3 OMIM:100100         DOID          DOID:0081234    mondo_sssom    exactMatch
+4 OMIM:100100         EFO           EFO:0004190     mondo_sssom    exactMatch
+5 OMIM:100100         GARD          GARD:0009849    mondo_sssom    exactMatch
+6 OMIM:100100         MedGen        MedGen:C3714756 mondo_sssom    exactMatch
+7 OMIM:100100         NCIT          NCIT:C92168     mondo_sssom    exactMatch
+8 OMIM:100100         Orphanet      Orphanet:530983 mondo_sssom    exactMatch
+9 OMIM:100100         UMLS          UMLS:C3714756   mondo_sssom    exactMatch
+
+=== disease_mapping_write completed
+
+=== Column population summary:
+  DOID                     : 'DOID:0081234'
+  MONDO                    : 'MONDO:0032745'
+  Orphanet                 : 'Orphanet:530983'
+  EFO                      : 'EFO:0004190'
+  UMLS                     : 'UMLS:C3714756'
+  MedGen                   : 'MedGen:C3714756'
+  NCIT                     : 'NCIT:C92168'
+  GARD                     : 'GARD:0009849'
+  ontology_mapping_release : 'probe-2026-06-20'
+
+=== Populated projection columns: 8 / 8
+=== RESULT: ALL 8 cols populated YES
+
+=== ROLLBACK complete — dev DB unchanged
+```
+
+**dev-DB probe: 8 cols populated YES**
