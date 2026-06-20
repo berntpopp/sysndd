@@ -1,0 +1,6 @@
+# SSSOM Mapping Set
+# creator_id: "https://orcid.org/0000-0002-6601-2165"
+subject_id	predicate_id	object_id	object_label	mapping_justification	confidence
+MONDO:0032745	skos:exactMatch	OMIM:618524	CTNNB1 syndrome	semapv:ManualMappingCuration	0.95
+MONDO:0032745	skos:exactMatch	Orphanet:530983	Intellectual disability-severe speech delay-mild dysmorphism syndrome	semapv:ManualMappingCuration	0.95
+MONDO:0008426	skos:closeMatch	DOID:0081234	some disease	semapv:ManualMappingCuration	0.7
