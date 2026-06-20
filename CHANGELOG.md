@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Administrator view "Manage Ontology Mappings"** (`/ManageOntologyMappings`): an admin surface to monitor and trigger the disease cross-ontology mapping refresh. Shows the latest build provenance (MONDO release, term/xref/mapping/disease counts, status, duration) from `GET /api/admin/ontology/mappings/status`, a prominent cold-start warning when no build exists yet, and a "Refresh now" button (`POST /api/admin/ontology/mappings/refresh?force=true`) with live job progress. The mappings still populate automatically on startup (bootstrap), weekly (cron), and after an operator ontology refresh — this view adds operator visibility and a manual trigger.
+
 ## [0.26.0] — 2026-06-20
 
 Minor release: disease cross-ontology mappings (MONDO / Orphanet / OMIM / DOID / UMLS / MedGen / NCIT / GARD / EFO) across database, API, and frontend, in lockstep across app, API, and DB schema versions.

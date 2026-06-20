@@ -117,6 +117,11 @@ const MAIN_NAV = {
         { text: 'LLM Management', path: '/ManageLLM', icons: ['gear', 'robot'] },
         { text: 'Manage NDDScore', path: '/ManageNDDScore', icons: ['gear', 'graph-up-arrow'] },
         { text: 'Manage metadata', path: '/ManageMetadata', icons: ['gear', 'list-check'] },
+        {
+          text: 'Manage ontology mappings',
+          path: '/ManageOntologyMappings',
+          icons: ['gear', 'diagram-3'],
+        },
       ],
     },
     {
