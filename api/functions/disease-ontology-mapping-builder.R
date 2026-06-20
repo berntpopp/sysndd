@@ -217,21 +217,26 @@ disease_mapping_derive <- function(conn, target_allowlist = MONDO_TARGET_ALLOWLI
   tibble::tibble(
     disease_ontology_id = vapply(result_rows, `[[`, character(1L), "disease_ontology_id"),
     mondo_id            = vapply(result_rows, function(x) {
-      v <- x[["mondo_id"]]; if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+      v <- x[["mondo_id"]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
     }, character(1L)),
     target_prefix       = vapply(result_rows, function(x) {
-      v <- x[["target_prefix"]]; if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+      v <- x[["target_prefix"]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
     }, character(1L)),
     target_id           = vapply(result_rows, `[[`, character(1L), "target_id"),
     target_label        = vapply(result_rows, function(x) {
-      v <- x[["target_label"]]; if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+      v <- x[["target_label"]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
     }, character(1L)),
     predicate           = vapply(result_rows, function(x) {
-      v <- x[["predicate"]]; if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+      v <- x[["predicate"]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
     }, character(1L)),
     source              = vapply(result_rows, `[[`, character(1L), "source"),
     release_version     = vapply(result_rows, function(x) {
-      v <- x[["release_version"]]; if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+      v <- x[["release_version"]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
     }, character(1L))
   )
 }
