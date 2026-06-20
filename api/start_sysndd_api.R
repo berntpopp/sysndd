@@ -164,6 +164,21 @@ tryCatch(
 )
 
 ## -------------------------------------------------------------------##
+# 9d) Bootstrap the disease cross-ontology mapping index if no successful build
+#     exists yet (WP-C): a fresh deploy rebuilds the MONDO index + derived
+#     `disease_ontology_mapping` rows without waiting for the weekly cron.
+#     Idempotent (existence-checked) + dedup-safe; gated; staggered (360s) so it
+#     does not co-launch with the snapshot/pubtatornidd bootstraps; never crashes
+#     boot.
+## -------------------------------------------------------------------##
+tryCatch(
+  disease_ontology_mapping_bootstrap_on_startup(),
+  error = function(e) {
+    message(sprintf("[ontology-mapping-bootstrap] skipped: %s", conditionMessage(e)))
+  }
+)
+
+## -------------------------------------------------------------------##
 # 10) Run the API.
 ## -------------------------------------------------------------------##
 root %>% pr_run(host = "0.0.0.0", port = as.numeric(dw$port_self))
