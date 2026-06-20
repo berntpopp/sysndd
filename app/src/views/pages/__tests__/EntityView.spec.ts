@@ -7,6 +7,10 @@
 //   3. Linked-gene block hydrates from the entity record's hgnc_id.
 //   4. 404 redirect when the entity record returns empty.
 //
+// WP-G additions:
+//   5. "Linked disease ontologies" SectionCard renders LinkedOntologies (layout="card").
+//   6. Old mondoEquivalent plain-text MONDO pill is gone.
+//
 // Spec ref: .planning/superpowers/specs/2026-04-26-v11.3-genes-entities-perf-ux-design.md
 //           §4.4 (entities page) and §2.3 finding 6 (sequential-await bug).
 
@@ -68,8 +72,26 @@ const heavyChildStubs = {
   NddIcon: { template: '<span />' },
 };
 
+// Default empty-mappings response reused by all tests; individual tests may
+// override with server.use(...) to return real mapping data.
+const emptyMappingsResponse = {
+  disease_ontology_id: 'OMIM:135900',
+  disease_ontology_name: 'Coffin-Siris syndrome 1',
+  mondo_id: null,
+  release_version: null,
+  status: 'missing',
+  mappings: {},
+};
+
 describe('EntityView (v11.3 W3)', () => {
-  beforeEach(() => setActivePinia(createPinia()));
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    // Register a default mappings handler so existing tests don't get
+    // unhandled-request 500s now that useEntityMappings is always mounted.
+    server.use(
+      http.get('*/api/disease/mappings', () => HttpResponse.json(emptyMappingsResponse))
+    );
+  });
   afterEach(() => server.resetHandlers());
 
   it('fires all 5 sub-resource calls in parallel on mount (no sequential await)', async () => {
@@ -630,6 +652,119 @@ describe('EntityView (v11.3 W3)', () => {
 
     expect(w.find('[data-testid="entity-entry-date"]').exists()).toBe(false);
     expect(w.find('[data-testid="entity-last-update"]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  // -------------------------------------------------------------------------
+  // WP-G: Linked disease ontologies card
+  // -------------------------------------------------------------------------
+
+  it('WP-G: renders "Linked disease ontologies" SectionCard with LinkedOntologies (layout=card)', async () => {
+    const mappingsResponse = {
+      disease_ontology_id: 'OMIM:135900',
+      disease_ontology_name: 'Coffin-Siris syndrome 1',
+      mondo_id: 'MONDO:0032745',
+      release_version: '2024-01-01',
+      status: 'current',
+      mappings: {
+        MONDO: [{ id: 'MONDO:0032745', label: 'Coffin-Siris syndrome 1', predicate: 'exactMatch', source: 'mondo_sssom' }],
+        Orphanet: [{ id: 'Orphanet:1465', label: null, predicate: 'exactMatch', source: 'mondo_sssom' }],
+      },
+    };
+
+    server.use(
+      http.get('*/api/disease/mappings', () => HttpResponse.json(mappingsResponse)),
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+              MONDO: 'MONDO:0032745',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () => HttpResponse.json([{ synopsis: '', comment: '' }])),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    // The "Linked disease ontologies" card title should be present.
+    expect(w.text()).toContain('Linked disease ontologies');
+
+    // LinkedOntologies should render mapping badges with MONDO and Orphanet IDs.
+    expect(w.text()).toContain('MONDO:0032745');
+    expect(w.text()).toContain('Orphanet:1465');
+
+    w.unmount();
+  });
+
+  it('WP-G: the old plain-text MONDO pill (mondoEquivalent) is not rendered', async () => {
+    // Return an entity with a MONDO field so the old pill would have appeared.
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+              MONDO: 'MONDO:0032745',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () => HttpResponse.json([{ synopsis: '', comment: '' }])),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    // The hero entity-metadata-row must NOT contain "MONDO MONDO:0032745" (the
+    // old plain-text pill format). The full card "MONDO:0032745" in the ontology
+    // section is fine, but the pill in the hero row is gone.
+    const heroRow = w.find('.entity-metadata-row');
+    if (heroRow.exists()) {
+      // The old pill rendered as literal text "MONDO <id>" in the entity-meta-pill.
+      // It must no longer appear in the hero metadata row.
+      expect(heroRow.text()).not.toMatch(/\bMONDO MONDO:/);
+    }
+
     w.unmount();
   });
 });

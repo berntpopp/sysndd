@@ -74,9 +74,6 @@
                     {{ diseaseSourceId }}
                   </a>
                 </span>
-                <span v-if="mondoEquivalent" class="entity-meta-pill">
-                  MONDO {{ mondoEquivalent }}
-                </span>
                 <span class="entity-meta-pill entity-meta-icon">
                   <NddIcon :status="nddStatus" :show-title="false" size="sm" />
                   <span>NDD {{ nddStatus || 'unknown' }}</span>
@@ -86,6 +83,32 @@
                   :last-update="entityRow?.last_update"
                 />
               </div>
+            </div>
+          </SectionCard>
+        </BCol>
+      </BRow>
+
+      <BRow class="entity-ontology-grid">
+        <BCol cols="12" class="mb-2">
+          <SectionCard
+            :loading="mappings.loading.value"
+            :empty="
+              !mappings.loading.value &&
+              !mappings.error.value &&
+              (mappings.data.value === null ||
+                mappings.data.value?.status === 'missing' ||
+                Object.values(mappings.data.value?.mappings ?? {}).every((g) => g.length === 0))
+            "
+            :error="mappings.error.value ? mappings.error.value.message : null"
+            title="Linked disease ontologies"
+            min-height="4rem"
+          >
+            <div class="entity-ontology-panel">
+              <LinkedOntologies
+                layout="card"
+                :data="mappings.data.value"
+                :loading="mappings.loading.value"
+              />
             </div>
           </SectionCard>
         </BCol>
@@ -282,7 +305,9 @@ import { useEntityReview } from '@/composables/useEntityReview';
 import { useEntityPublications } from '@/composables/useEntityPublications';
 import { useEntityPhenotypes } from '@/composables/useEntityPhenotypes';
 import { useEntityVariation } from '@/composables/useEntityVariation';
+import { useEntityMappings } from '@/composables/useEntityMappings';
 import { useGeneRecord } from '@/composables/useGeneRecord';
+import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
 import { returnToFromRoute } from '@/utils/returnNavigation';
 import { varioTermUrl } from '@/assets/js/constants/ontology_links';
 
@@ -298,13 +323,14 @@ let copyResetTimer: number | NodeJS.Timeout | null = null;
 
 const entityIdStr = computed(() => String(route.params.entity_id ?? ''));
 
-// All six entity-side hooks fire on tick 0 — no sequential awaits.
+// All entity-side hooks fire on tick 0 — no sequential awaits.
 const entity = useEntityRecord(entityIdStr);
 const status = useEntityStatus(entityIdStr);
 const review = useEntityReview(entityIdStr);
 const publications = useEntityPublications(entityIdStr);
 const phenotypes = useEntityPhenotypes(entityIdStr);
 const variation = useEntityVariation(entityIdStr);
+const mappings = useEntityMappings(entityIdStr);
 
 const entityRow = computed(() => entity.data.value as EntityRowMap | null);
 
@@ -369,7 +395,6 @@ const diseaseSourceUrl = computed(() => {
   }
   return diseaseLink.value;
 });
-const mondoEquivalent = computed(() => asString(entityRow.value?.MONDO));
 const inheritanceName = computed(() =>
   asString(entityRow.value?.hpo_mode_of_inheritance_term_name)
 );
@@ -583,9 +608,13 @@ useHead({
 .entity-meta-icon {
   padding-left: 0.28rem;
 }
+.entity-ontology-grid,
 .entity-clinical-grid,
 .entity-evidence-grid {
   padding-top: 0.15rem;
+}
+.entity-ontology-panel {
+  padding: 0.75rem;
 }
 .clinical-card-header {
   display: flex;
