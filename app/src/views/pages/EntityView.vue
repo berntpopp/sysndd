@@ -88,27 +88,7 @@
         </BCol>
       </BRow>
 
-      <BRow class="entity-ontology-grid">
-        <BCol cols="12" class="mb-2">
-          <SectionCard
-            :loading="mappings.loading.value"
-            :empty="
-              !mappings.loading.value && !mappings.error.value && mappings.data.value === null
-            "
-            :error="mappings.error.value ? mappings.error.value.message : null"
-            title="Linked disease ontologies"
-            min-height="4rem"
-          >
-            <div class="entity-ontology-panel">
-              <LinkedOntologies
-                layout="card"
-                :data="mappings.data.value"
-                :loading="mappings.loading.value"
-              />
-            </div>
-          </SectionCard>
-        </BCol>
-      </BRow>
+      <EntityOntologiesCard :entity-id="entityIdStr" />
 
       <BRow class="entity-clinical-grid">
         <BCol cols="12" class="mb-2">
@@ -301,9 +281,8 @@ import { useEntityReview } from '@/composables/useEntityReview';
 import { useEntityPublications } from '@/composables/useEntityPublications';
 import { useEntityPhenotypes } from '@/composables/useEntityPhenotypes';
 import { useEntityVariation } from '@/composables/useEntityVariation';
-import { useEntityMappings } from '@/composables/useEntityMappings';
 import { useGeneRecord } from '@/composables/useGeneRecord';
-import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
+import EntityOntologiesCard from '@/components/disease/EntityOntologiesCard.vue';
 import { returnToFromRoute } from '@/utils/returnNavigation';
 import { varioTermUrl } from '@/assets/js/constants/ontology_links';
 
@@ -326,7 +305,6 @@ const review = useEntityReview(entityIdStr);
 const publications = useEntityPublications(entityIdStr);
 const phenotypes = useEntityPhenotypes(entityIdStr);
 const variation = useEntityVariation(entityIdStr);
-const mappings = useEntityMappings(entityIdStr);
 
 const entityRow = computed(() => entity.data.value as EntityRowMap | null);
 
@@ -604,13 +582,9 @@ useHead({
 .entity-meta-icon {
   padding-left: 0.28rem;
 }
-.entity-ontology-grid,
 .entity-clinical-grid,
 .entity-evidence-grid {
   padding-top: 0.15rem;
-}
-.entity-ontology-panel {
-  padding: 0.75rem;
 }
 .clinical-card-header {
   display: flex;
