@@ -41,11 +41,11 @@ disease_mapping_group_rows <- function(
     return(list(mappings = list(), mondo_id = NULL))
   }
 
-  # Determine which prefixes are present, ordered by allowlist
+  # Determine which prefixes are present, ordered by allowlist.
+  # Drop any prefix not in the allowlist — the public response must only
+  # contain allowlisted ontologies.
   present_prefixes <- prefix_order[prefix_order %in% rows$target_prefix]
-  # Also include any prefixes not in the allowlist (appended after)
-  extra_prefixes <- setdiff(unique(rows$target_prefix), prefix_order)
-  ordered_prefixes <- c(present_prefixes, extra_prefixes)
+  ordered_prefixes <- present_prefixes
 
   if (length(ordered_prefixes) == 0L) {
     return(list(mappings = list(), mondo_id = NULL))
@@ -89,8 +89,8 @@ disease_mapping_group_rows <- function(
 #'   (e.g., "OMIM:618524").
 #' @param conn DBI connection. If NULL, uses the global `pool`.
 #' @return A list with elements: disease_ontology_id, disease_ontology_name,
-#'   mondo_id, release_version, ontology_mapping_release, status
-#'   ("current" or "missing"), mappings (named list).
+#'   mondo_id, release_version, status ("current" or "missing"),
+#'   mappings (named list).
 #' @export
 disease_mapping_for_disease <- function(disease_ontology_id, conn = NULL) {
   conn_used <- if (is.null(conn)) pool else conn
@@ -99,7 +99,7 @@ disease_mapping_for_disease <- function(disease_ontology_id, conn = NULL) {
   meta_rows <- DBI::dbGetQuery(
     conn_used,
     paste0(
-      "SELECT disease_ontology_name, ontology_mapping_release ",
+      "SELECT disease_ontology_name ",
       "FROM disease_ontology_set ",
       "WHERE disease_ontology_id = ? ",
       "LIMIT 1"
@@ -109,11 +109,6 @@ disease_mapping_for_disease <- function(disease_ontology_id, conn = NULL) {
 
   disease_ontology_name <- if (nrow(meta_rows) > 0L) {
     meta_rows$disease_ontology_name[[1L]]
-  } else {
-    NA_character_
-  }
-  ontology_mapping_release <- if (nrow(meta_rows) > 0L && !is.null(meta_rows$ontology_mapping_release)) {
-    meta_rows$ontology_mapping_release[[1L]]
   } else {
     NA_character_
   }
@@ -132,20 +127,19 @@ disease_mapping_for_disease <- function(disease_ontology_id, conn = NULL) {
 
   if (nrow(mapping_rows) == 0L) {
     return(list(
-      disease_ontology_id      = disease_ontology_id,
-      disease_ontology_name    = disease_ontology_name,
-      ontology_mapping_release = ontology_mapping_release,
-      mondo_id                 = NULL,
-      release_version          = NULL,
-      status                   = "missing",
-      mappings                 = list()
+      disease_ontology_id   = disease_ontology_id,
+      disease_ontology_name = disease_ontology_name,
+      mondo_id              = NULL,
+      release_version       = NULL,
+      status                = "missing",
+      mappings              = list()
     ))
   }
 
   # 3. Group rows
   grouped <- disease_mapping_group_rows(mapping_rows)
 
-  # 4. Extract release_version from rows
+  # 4. Extract release_version from rows (single contract field)
   release_version <- if (!is.null(mapping_rows$release_version)) {
     ver <- mapping_rows$release_version[!is.na(mapping_rows$release_version)]
     if (length(ver) > 0L) ver[[1L]] else NULL
@@ -154,13 +148,12 @@ disease_mapping_for_disease <- function(disease_ontology_id, conn = NULL) {
   }
 
   list(
-    disease_ontology_id      = disease_ontology_id,
-    disease_ontology_name    = disease_ontology_name,
-    ontology_mapping_release = ontology_mapping_release,
-    mondo_id                 = grouped$mondo_id,
-    release_version          = release_version,
-    status                   = "current",
-    mappings                 = grouped$mappings
+    disease_ontology_id   = disease_ontology_id,
+    disease_ontology_name = disease_ontology_name,
+    mondo_id              = grouped$mondo_id,
+    release_version       = release_version,
+    status                = "current",
+    mappings              = grouped$mappings
   )
 }
 
@@ -200,13 +193,12 @@ disease_mapping_for_entity <- function(entity_id, conn = NULL) {
   if (nrow(entity_rows) == 0L) {
     # Entity not found in public view — return missing without leaking data
     return(list(
-      disease_ontology_id      = NA,
-      disease_ontology_name    = NA,
-      ontology_mapping_release = NA,
-      mondo_id                 = NULL,
-      release_version          = NULL,
-      status                   = "missing",
-      mappings                 = list()
+      disease_ontology_id   = NA,
+      disease_ontology_name = NA,
+      mondo_id              = NULL,
+      release_version       = NULL,
+      status                = "missing",
+      mappings              = list()
     ))
   }
 
@@ -226,13 +218,12 @@ disease_mapping_for_entity <- function(entity_id, conn = NULL) {
 
   if (nrow(dos_rows) == 0L) {
     return(list(
-      disease_ontology_id      = NA,
-      disease_ontology_name    = NA,
-      ontology_mapping_release = NA,
-      mondo_id                 = NULL,
-      release_version          = NULL,
-      status                   = "missing",
-      mappings                 = list()
+      disease_ontology_id   = NA,
+      disease_ontology_name = NA,
+      mondo_id              = NULL,
+      release_version       = NULL,
+      status                = "missing",
+      mappings              = list()
     ))
   }
 
