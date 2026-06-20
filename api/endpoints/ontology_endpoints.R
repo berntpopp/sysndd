@@ -66,7 +66,12 @@ function(ontology_input, input_type = "ontology_id") {
       DOID,
       MONDO,
       Orphanet,
-      EFO
+      EFO,
+      UMLS,
+      MedGen,
+      NCIT,
+      GARD,
+      ontology_mapping_release
     ) %>%
     arrange(disease_ontology_id_version) %>%
     left_join(mode_of_inheritance_list_coll, by = c("hpo_mode_of_inheritance_term")) %>%
