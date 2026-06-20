@@ -17,35 +17,24 @@
     <!-- Mapping groups (allowlist order, hide empty groups) -->
     <template v-else-if="data">
       <div
-        v-for="prefix in visiblePrefixes"
-        :key="prefix"
+        v-for="group in resolvedGroups"
+        :key="group.prefix"
         class="linked-ontologies__group"
         :class="`linked-ontologies__group--${layout}`"
       >
         <!-- Card layout: show labelled row header -->
-        <span v-if="layout === 'card'" class="linked-ontologies__prefix-label">{{ prefix }}</span>
+        <span v-if="layout === 'card'" class="linked-ontologies__prefix-label">{{ group.prefix }}</span>
 
-        <!-- Badges for each entry in the group -->
-        <component
-          :is="outlink(prefix, entry.id).url ? 'a' : 'span'"
-          v-for="entry in data.mappings[prefix]"
-          :key="entry.id"
-          :href="outlink(prefix, entry.id).url ?? undefined"
-          :target="outlink(prefix, entry.id).url ? '_blank' : undefined"
-          :rel="outlink(prefix, entry.id).url ? 'noopener noreferrer' : undefined"
-          :aria-label="
-            outlink(prefix, entry.id).url
-              ? `Open ${entry.id} in ${prefix} (opens in new tab)`
-              : undefined
-          "
-          class="linked-ontologies__badge"
-          :class="{
-            'linked-ontologies__badge--link': !!outlink(prefix, entry.id).url,
-            'linked-ontologies__badge--plain': !outlink(prefix, entry.id).url,
-          }"
-        >
-          {{ entry.id }}
-        </component>
+        <!-- ResourceLink badge for each entry in the group -->
+        <ResourceLink
+          v-for="item in group.items"
+          :key="item.entry.id"
+          compact
+          :name="item.entry.id"
+          :url="item.url ?? undefined"
+          :available="item.url !== null"
+          icon="bi-box-arrow-up-right"
+        />
       </div>
     </template>
   </div>
@@ -55,6 +44,7 @@
 import { computed } from 'vue';
 import type { DiseaseMappingResponse } from '@/api/disease-mappings';
 import { ontologyOutlink } from '@/assets/js/constants/ontology_links';
+import ResourceLink from '@/components/gene/ResourceLink.vue';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -81,22 +71,25 @@ const ALLOWLIST_ORDER = ['MONDO', 'Orphanet', 'OMIM', 'DOID', 'UMLS', 'MedGen', 
 // Computed
 // ---------------------------------------------------------------------------
 
-/** Prefixes that have at least one entry in the current mappings, in display order. */
-const visiblePrefixes = computed(() => {
+/**
+ * Resolved groups: only prefixes with at least one entry, in display order.
+ * Each item has the mapping entry plus the resolved url (computed once per entry).
+ */
+const resolvedGroups = computed(() => {
   if (!props.data?.mappings) return [];
-  return ALLOWLIST_ORDER.filter(
-    (prefix) =>
-      props.data!.mappings[prefix] && props.data!.mappings[prefix].length > 0
-  );
+  return ALLOWLIST_ORDER
+    .filter(
+      (prefix) =>
+        props.data!.mappings[prefix] && props.data!.mappings[prefix].length > 0
+    )
+    .map((prefix) => ({
+      prefix,
+      items: props.data!.mappings[prefix].map((entry) => {
+        const resolved = ontologyOutlink(prefix, entry.id);
+        return { entry, url: resolved.url };
+      }),
+    }));
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function outlink(prefix: string, id: string) {
-  return ontologyOutlink(prefix, id);
-}
 </script>
 
 <style scoped>
@@ -134,43 +127,6 @@ function outlink(prefix: string, id: string) {
   flex-shrink: 0;
 }
 
-/* Shared badge styles */
-.linked-ontologies__badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  border: 1px solid #dee2e6;
-  text-decoration: none;
-  line-height: 1.4;
-}
-
-.linked-ontologies__badge--link {
-  background: #fff;
-  color: #495057;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.linked-ontologies__badge--link:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-  color: #212529;
-  text-decoration: none;
-}
-
-.linked-ontologies__badge--plain {
-  background: #f8f9fa;
-  color: #6c757d;
-  border-color: #dee2e6;
-  cursor: default;
-}
-
 /* Loading / missing states */
 .linked-ontologies__loading {
   display: flex;
@@ -185,12 +141,5 @@ function outlink(prefix: string, id: string) {
   color: #6c757d;
   font-style: italic;
   margin: 0;
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .linked-ontologies__badge--link {
-    transition: none;
-  }
 }
 </style>

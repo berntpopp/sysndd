@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import type { DiseaseMappingResponse } from '@/api/disease-mappings';
+import { ontologyOutlink } from '@/assets/js/constants/ontology_links';
 import LinkedOntologies from './LinkedOntologies.vue';
 
 const mockData: DiseaseMappingResponse = {
@@ -19,7 +20,6 @@ const mockData: DiseaseMappingResponse = {
 function mountComponent(props = {}) {
   return mount(LinkedOntologies, {
     props: { data: mockData, ...props },
-    global: { stubs: { ResourceLink: false } },
   });
 }
 
@@ -28,8 +28,9 @@ describe('LinkedOntologies', () => {
     const wrapper = mountComponent();
     const links = wrapper.findAll('a[target="_blank"]');
     const hrefs = links.map(l => l.attributes('href'));
-    expect(hrefs.some(h => h?.includes('purl.obolibrary.org'))).toBe(true); // MONDO
-    expect(hrefs.some(h => h?.includes('orpha.net'))).toBe(true); // Orphanet
+    // M-2: exact href assertions
+    expect(hrefs).toContain(ontologyOutlink('MONDO', 'MONDO:0032745').url);
+    expect(hrefs).toContain(ontologyOutlink('Orphanet', 'Orphanet:530983').url);
   });
 
   it('renders UMLS as a non-link badge (no <a> for UMLS)', () => {
@@ -50,5 +51,41 @@ describe('LinkedOntologies', () => {
   it('shows "being prepared" note for status missing', () => {
     const wrapper = mountComponent({ data: { ...mockData, status: 'missing', mappings: {} } });
     expect(wrapper.text().toLowerCase()).toContain('being prepared');
+  });
+
+  // M-1: assert rel="noopener noreferrer" on external links
+  it('sets rel="noopener noreferrer" on all external anchor links', () => {
+    const wrapper = mountComponent();
+    const links = wrapper.findAll('a[target="_blank"]');
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      const rel = link.attributes('rel') ?? '';
+      expect(rel).toContain('noopener');
+      expect(rel).toContain('noreferrer');
+    }
+  });
+
+  // F-1: assert ResourceLink is rendered (composed, not a hand-rolled badge)
+  it('renders ResourceLink components for each mapping entry', () => {
+    const wrapper = mountComponent();
+    // ResourceLink compact mode renders .resource-badge elements
+    const badges = wrapper.findAll('.resource-badge');
+    // 3 entries: MONDO, Orphanet, UMLS
+    expect(badges.length).toBe(3);
+  });
+
+  // M-4: loading state
+  it('renders loading state when loading=true', () => {
+    const wrapper = mountComponent({ data: null, loading: true });
+    expect(wrapper.find('.linked-ontologies__loading').exists()).toBe(true);
+    expect(wrapper.find('.linked-ontologies__loading-text').text()).toContain('Loading');
+  });
+
+  // M-4: null data state
+  it('renders nothing when data=null and loading=false', () => {
+    const wrapper = mountComponent({ data: null, loading: false });
+    expect(wrapper.find('.linked-ontologies__loading').exists()).toBe(false);
+    expect(wrapper.find('.linked-ontologies__missing').exists()).toBe(false);
+    expect(wrapper.findAll('.linked-ontologies__group').length).toBe(0);
   });
 });
