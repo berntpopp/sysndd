@@ -279,3 +279,100 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
 
   return(enriched_set)
 }
+
+
+#' Download the full MONDO SSSOM mapping file
+#'
+#' Downloads the full mondo.sssom.tsv (all cross-ontology mappings) from the
+#' Monarch Initiative GitHub repository. Unlike download_mondo_sssom() which
+#' fetches only the OMIM exactMatch subset, this function fetches the complete
+#' SSSOM file used for the disease_ontology_mapping refresh job.
+#'
+#' URL resolution order: DISEASE_ONTOLOGY_MONDO_SSSOM_URL env ->
+#'   config$mondo_sssom_url -> built-in default.
+#'
+#' Uses external_proxy_budget("mondo", ...) for timeout/retry — never hardcodes
+#' a numeric literal (enforced by test-unit-external-budget-guard.R).
+#'
+#' @param output_path Character. Directory path where the file will be saved.
+#' @param force Logical. If TRUE, forces download even if a recent file exists.
+#' @param sssom_url Character or NULL. Override URL (used in tests; NULL = resolve
+#'   from env/config).
+#'
+#' @return Character string with the path to the downloaded/cached SSSOM file.
+#' @export
+download_mondo_sssom_full <- function(output_path = "data/mondo_mappings/",
+                                      force = FALSE,
+                                      sssom_url = NULL) {
+  # URL resolution: arg -> env -> config -> built-in default
+  # nolint start: line_length_linter
+  default_url <- "https://raw.githubusercontent.com/monarch-initiative/mondo/master/src/ontology/mappings/mondo.sssom.tsv"
+  # nolint end
+
+  if (is.null(sssom_url) || sssom_url == "") {
+    sssom_url <- Sys.getenv("DISEASE_ONTOLOGY_MONDO_SSSOM_URL", "")
+  }
+  if (sssom_url == "") {
+    sssom_url <- tryCatch(
+      {
+        cfg <- config::get()
+        if (!is.null(cfg$mondo_sssom_url) && nzchar(cfg$mondo_sssom_url)) {
+          cfg$mondo_sssom_url
+        } else {
+          default_url
+        }
+      },
+      error = function(e) default_url
+    )
+  }
+
+  if (!dir.exists(output_path)) {
+    fs::dir_create(output_path, recurse = TRUE)
+  }
+
+  file_basename <- "mondo-full"
+
+  # Check if recent file exists (unless force=TRUE)
+  if (!force && exists("check_file_age", mode = "function") &&
+      check_file_age(file_basename, output_path, 1)) {
+    existing_file <- get_newest_file(file_basename, output_path)
+    if (!is.null(existing_file)) {
+      return(existing_file)
+    }
+  }
+
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
+  output_file  <- file.path(
+    output_path,
+    paste0(file_basename, ".", current_date, ".sssom.tsv")
+  )
+
+  budget <- external_proxy_budget("mondo")
+
+  tryCatch(
+    {
+      response <- httr2::request(sssom_url) |>
+        httr2::req_retry(
+          max_tries    = budget$max_tries,
+          max_seconds  = budget$max_seconds,
+          is_transient = ~ httr2::resp_status(.x) %in% c(429L, 500L, 502L, 503L, 504L)
+        ) |>
+        httr2::req_timeout(budget$timeout_seconds) |>
+        httr2::req_perform()
+
+      if (httr2::resp_status(response) == 200L) {
+        content <- httr2::resp_body_string(response)
+        writeLines(content, output_file)
+        return(output_file)
+      } else {
+        stop(paste(
+          "Failed to download full MONDO SSSOM file. HTTP status:",
+          httr2::resp_status(response)
+        ))
+      }
+    },
+    error = function(e) {
+      stop(paste("Error downloading full MONDO SSSOM file:", e$message))
+    }
+  )
+}
