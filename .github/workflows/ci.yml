@@ -58,7 +58,7 @@ jobs:
       doctor: ${{ steps.filter.outputs.doctor }}
       smoke: ${{ steps.filter.outputs.smoke }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Run fast code-quality audit
         run: |
@@ -103,7 +103,7 @@ jobs:
       run:
         working-directory: ./api
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -174,7 +174,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -250,7 +250,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -355,7 +355,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -425,7 +425,7 @@ jobs:
       run:
         working-directory: ./app
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -458,7 +458,7 @@ jobs:
       run:
         working-directory: ./app
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -505,7 +505,7 @@ jobs:
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -575,7 +575,7 @@ jobs:
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.smoke == 'true' }}
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Verify docker is available
         run: |
