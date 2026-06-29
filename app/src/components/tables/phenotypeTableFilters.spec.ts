@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyPhenotypeLogicMode, createDefaultPhenotypeFilter } from './phenotypeTableFilters';
+import { createDefaultPhenotypeFilter, phenotypeLogicOperator } from './phenotypeTableFilters';
 
 describe('phenotypeTableFilters', () => {
   it('creates the default phenotype entity filter state', () => {
@@ -15,14 +15,10 @@ describe('phenotypeTableFilters', () => {
     });
   });
 
-  it('sets phenotype filter logic without mutating the original filter object', () => {
-    const filter = createDefaultPhenotypeFilter();
-
-    const anyFilter = applyPhenotypeLogicMode(filter, true);
-    expect(anyFilter.modifier_phenotype_id.operator).toBe('any');
-    expect(filter.modifier_phenotype_id.operator).toBe('all');
-
-    const allFilter = applyPhenotypeLogicMode(anyFilter, false);
-    expect(allFilter.modifier_phenotype_id.operator).toBe('all');
+  it('maps the AND/OR logic toggle to the modifier_phenotype_id operator', () => {
+    // OR mode -> "any", AND mode -> "all". Applied in place by the caller so a
+    // no-op write does not re-fire the deep filter watcher (#466).
+    expect(phenotypeLogicOperator(true)).toBe('any');
+    expect(phenotypeLogicOperator(false)).toBe('all');
   });
 });

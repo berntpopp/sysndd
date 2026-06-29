@@ -339,7 +339,7 @@ import { useUiStore } from '@/stores/ui';
 import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
-import { applyPhenotypeLogicMode, createDefaultPhenotypeFilter } from './phenotypeTableFilters';
+import { createDefaultPhenotypeFilter, phenotypeLogicOperator } from './phenotypeTableFilters';
 
 const phenotypeEntitiesRequestCoordinator = createTableRequestCoordinator();
 
@@ -621,20 +621,8 @@ export default {
       this.filtered();
     },
     filtered() {
-      // Apply the AND/OR logic mode IN PLACE. Reassigning `this.filter` to a
-      // new object here (as a previous refactor did via
-      // `this.filter = applyPhenotypeLogicMode(...)`) re-triggers the deep
-      // `filter` watcher, which calls filtered() again, which reassigns again —
-      // an infinite "Maximum recursive updates exceeded" loop that froze the
-      // page on every filter change (e.g. selecting a Category). Mutating the
-      // single operator field is idempotent: Vue only re-triggers reactivity
-      // when the value actually changes, so the watcher settles immediately.
-      const nextOperator = applyPhenotypeLogicMode(this.filter, this.checked === true)
-        .modifier_phenotype_id.operator;
-      if (this.filter.modifier_phenotype_id.operator !== nextOperator) {
-        this.filter.modifier_phenotype_id.operator = nextOperator;
-      }
-
+      // In-place (idempotent) AND/OR operator; reassigning re-loops the deep watcher (#466).
+      this.filter.modifier_phenotype_id.operator = phenotypeLogicOperator(this.checked === true);
       const filter_string_loc = this.filterObjToStr(this.filter);
       if (filter_string_loc !== this.filter_string) {
         this.filter_string = this.filterObjToStr(this.filter);
