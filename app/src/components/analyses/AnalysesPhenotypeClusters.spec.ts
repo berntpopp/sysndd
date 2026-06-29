@@ -156,4 +156,42 @@ describe('AnalysesPhenotypeClusters', () => {
     expect(wrapper.vm.currentSummary).toBeNull();
     expect(wrapper.vm.summaryLoading).toBe(false);
   });
+
+  // Regression: the p-value / v-test stats arrive with dotted keys
+  // ('p.value', 'v.test'). BTable renders a blank cell for a dotted field key,
+  // so those columns showed empty. The component must feed the table FLAT field
+  // keys backed by de-dotted row aliases.
+  it('renders p-value / v-test via de-dotted flat field keys, not dotted ones', async () => {
+    getPhenotypeClusteringMock.mockReset();
+    getPhenotypeClusteringMock.mockResolvedValue({
+      clusters: [
+        {
+          cluster: 1,
+          hash_filter: 'equals(hash,one)',
+          cluster_size: 2,
+          identifiers: [],
+          quali_inp_var: [{ variable: 'Age of death', 'p.value': 1.7047e-86, 'v.test': 19.7119 }],
+          quali_sup_var: [],
+          quanti_sup_var: [],
+        },
+      ],
+      meta: {},
+    });
+    mocks.getPhenotypeClusterSummary.mockResolvedValue(null);
+
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    const fieldKeys = wrapper.vm.fields.map((f: { key: string }) => f.key);
+    expect(fieldKeys).toContain('p_value');
+    expect(fieldKeys).toContain('v_test');
+    expect(fieldKeys).not.toContain('p.value');
+    expect(fieldKeys).not.toContain('v.test');
+
+    const row = wrapper.vm.displayedItems[0];
+    expect(row.p_value).toBe(1.7047e-86);
+    expect(row.v_test).toBe(19.7119);
+    // Original dotted keys preserved for the Excel export.
+    expect(row['p.value']).toBe(1.7047e-86);
+  });
 });

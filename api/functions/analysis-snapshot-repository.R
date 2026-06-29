@@ -476,6 +476,38 @@ analysis_snapshot_public_manifest <- function(analysis_type,
   manifest
 }
 
+#' Cheap "is the active public snapshot CURRENT?" probe.
+#'
+#' Unlike `analysis_snapshot_public_exists()` (which only checks that a
+#' public-ready row exists), this returns TRUE only when that row is also
+#' *current* — its computed `status_code` is `"available"`, not `snapshot_stale`
+#' or `source_version_mismatch`. Used as the skip predicate by the startup
+#' bootstrap and the non-force admin refresh so a STALE or VERSION-MISMATCHED
+#' snapshot is re-enqueued (self-heals on restart) instead of being treated as
+#' "already present" and left serving a permanent 503. The #420/#440 self-heal
+#' only covered `snapshot_missing`; a snapshot that aged past `stale_after`
+#' (default 7 days) never refreshed on its own. See AGENTS.md "Public analysis
+#' endpoints".
+#'
+#' @param manifest_fn Injectable manifest read (default
+#'   `analysis_snapshot_public_manifest`) so this is unit-testable without a DB.
+#' @return TRUE only when a public-ready snapshot exists and is current.
+#' @export
+analysis_snapshot_public_current <- function(analysis_type,
+                                             parameter_hash,
+                                             conn = NULL,
+                                             manifest_fn = analysis_snapshot_public_manifest) {
+  manifest <- tryCatch(
+    manifest_fn(analysis_type, parameter_hash, conn = conn),
+    error = function(e) NULL
+  )
+  if (is.null(manifest) ||
+    (is.data.frame(manifest) && nrow(manifest) == 0L)) {
+    return(FALSE)
+  }
+  identical(as.character(manifest$status_code)[1], "available")
+}
+
 analysis_snapshot_source_data_version <- function(conn = NULL) {
   result <- db_execute_query(
     "SELECT SHA2(CONCAT_WS('|',

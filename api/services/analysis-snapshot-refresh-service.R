@@ -75,7 +75,11 @@ analysis_snapshot_bootstrap_stagger_seconds <- function() {
 #' @param force When TRUE, submit even when a current snapshot exists.
 #' @param presets Optional preset list (defaults to the supported presets).
 #' @param submit_fn Injectable job-submit fn (default `async_job_service_submit`).
-#' @param exists_fn Injectable existence probe (default `analysis_snapshot_public_exists`).
+#' @param exists_fn Injectable skip predicate: returns TRUE when a *current*
+#'   public-ready snapshot already exists, so the refresh is skipped. Defaults to
+#'   `analysis_snapshot_public_current`, which treats stale / source-version
+#'   mismatched snapshots as NOT current so they re-enqueue and self-heal on
+#'   startup (the #420/#440 self-heal only covered `snapshot_missing`).
 #' @param conn Optional DB connection/pool.
 #' @param stagger When TRUE, offset HEAVY presets' `scheduled_at` so they are not
 #'   claim-eligible at the same instant as the light presets (startup bootstrap
@@ -90,7 +94,7 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
                                                      force = FALSE,
                                                      presets = NULL,
                                                      submit_fn = async_job_service_submit,
-                                                     exists_fn = analysis_snapshot_public_exists,
+                                                     exists_fn = analysis_snapshot_public_current,
                                                      conn = NULL,
                                                      stagger = FALSE,
                                                      now = Sys.time(),
@@ -310,14 +314,16 @@ analysis_snapshot_bootstrap_on_startup <- function(
     return(invisible(FALSE))
   }
 
-  missing <- summary$requested - summary$skipped
-  if (missing > 0L) {
+  # "needs refresh" = missing OR stale OR source-version mismatched (anything the
+  # staleness-aware skip probe does not consider current).
+  needs_refresh <- summary$requested - summary$skipped
+  if (needs_refresh > 0L) {
     message(sprintf(
-      "[snapshot-bootstrap] %d/%d presets missing -> submitted %d refresh jobs (reused %d, failed %d)",
-      missing, summary$requested, summary$submitted, summary$reused, summary$failed
+      "[snapshot-bootstrap] %d/%d presets need refresh -> submitted %d refresh jobs (reused %d, failed %d)",
+      needs_refresh, summary$requested, summary$submitted, summary$reused, summary$failed
     ))
   } else {
-    message("[snapshot-bootstrap] all presets present, nothing to do")
+    message("[snapshot-bootstrap] all presets current, nothing to do")
   }
-  invisible(missing > 0L)
+  invisible(needs_refresh > 0L)
 }

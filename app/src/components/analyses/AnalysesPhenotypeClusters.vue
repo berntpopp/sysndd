@@ -11,7 +11,11 @@
         annotations. The graphical part allows you to explore the clusters by clicking on the nodes,
         and the table displays detailed information about the variables within each cluster.
       </BPopover>
-      <div class="btn-group btn-group-sm" role="group" aria-label="Export phenotype cluster network">
+      <div
+        class="btn-group btn-group-sm"
+        role="group"
+        aria-label="Export phenotype cluster network"
+      >
         <BButton
           variant="outline-secondary"
           size="sm"
@@ -44,7 +48,7 @@
           border-variant="light"
         >
           <template #header>
-            <p class="mb-0 fw-semibold" style="font-size: 0.875rem;">
+            <p class="mb-0 fw-semibold" style="font-size: 0.875rem">
               Selected cluster {{ selectedCluster.cluster }}
               with
               <span class="sysndd-chip sysndd-chip--blue">
@@ -58,8 +62,8 @@
             <div v-if="isPreparing" class="error-state text-center p-4">
               <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
               <p class="text-muted mb-3">
-                This analysis is being prepared and will appear here shortly. This can take a
-                couple of minutes after a deploy or data update.
+                This analysis is being prepared and will appear here shortly. This can take a couple
+                of minutes after a deploy or data update.
               </p>
               <BButton variant="primary" @click="retryLoad">
                 <i class="bi bi-arrow-clockwise me-1" />
@@ -138,7 +142,9 @@
               <BRow>
                 <BCol sm="6" class="mb-1">
                   <BInputGroup size="sm">
-                    <label for="phenotype-table-type-select" class="input-group-text">Table type</label>
+                    <label for="phenotype-table-type-select" class="input-group-text"
+                      >Table type</label
+                    >
                     <BFormSelect
                       id="phenotype-table-type-select"
                       v-model="tableType"
@@ -205,24 +211,6 @@
                   />
                 </td>
               </template>
-
-              <template #cell-variable="{ row }">
-                <span class="sysndd-chip sysndd-chip--blue">
-                  {{ row.variable }}
-                </span>
-              </template>
-
-              <template #cell-p.value="{ row }">
-                <span class="sysndd-chip sysndd-chip--info sysndd-chip--mono">
-                  {{ row['p.value'] }}
-                </span>
-              </template>
-
-              <template #cell-v.test="{ row }">
-                <span class="sysndd-chip sysndd-chip--warning sysndd-chip--mono">
-                  {{ row['v.test'] }}
-                </span>
-              </template>
             </GenericTable>
 
             <BRow v-if="!loading" class="justify-content-end">
@@ -265,6 +253,7 @@ import {
   filterPhenotypeClusterRows,
   buildPhenotypeClusterExportFilename,
   phenotypeClusterExportSheetName,
+  normalizePhenotypeClusterRows,
   PHENOTYPE_CLUSTER_EXPORT_HEADERS,
 } from './phenotypeClusterTable';
 
@@ -332,13 +321,16 @@ export default {
           sortable: true,
         },
         {
-          key: 'p.value',
+          // Flat key alias for the raw 'p.value' stat. BootstrapVueNext BTable
+          // renders a blank cell for a dotted field key, so the column is fed a
+          // de-dotted alias added by normalizePhenotypeClusterRows().
+          key: 'p_value',
           label: 'p-value',
           class: 'text-start',
           sortable: true,
         },
         {
-          key: 'v.test',
+          key: 'v_test',
           label: 'v-test',
           class: 'text-start',
           sortable: true,
@@ -363,13 +355,13 @@ export default {
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
-      sortBy: 'p.value',
+      sortBy: 'p_value',
       sortDesc: false,
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
         variable: { content: null, join_char: null, operator: 'contains' },
-        'p.value': { content: null, join_char: null, operator: 'contains' },
-        'v.test': { content: null, join_char: null, operator: 'contains' },
+        p_value: { content: null, join_char: null, operator: 'contains' },
+        v_test: { content: null, join_char: null, operator: 'contains' },
       },
 
       currentSummary: null,
@@ -458,7 +450,14 @@ export default {
       this.isPreparing = false;
       try {
         const data = await getPhenotypeClustering();
-        this.itemsCluster = data.clusters;
+        // De-dot the MCA stat keys (p.value -> p_value, v.test -> v_test) so the
+        // table columns render; BTable cannot resolve a dotted field key.
+        this.itemsCluster = (data.clusters || []).map((cluster) => ({
+          ...cluster,
+          quali_inp_var: normalizePhenotypeClusterRows(cluster.quali_inp_var),
+          quali_sup_var: normalizePhenotypeClusterRows(cluster.quali_sup_var),
+          quanti_sup_var: normalizePhenotypeClusterRows(cluster.quanti_sup_var),
+        }));
         this.setActiveCluster();
         // Fetch LLM summary for initial cluster
         const clusterData = this.itemsCluster.find(

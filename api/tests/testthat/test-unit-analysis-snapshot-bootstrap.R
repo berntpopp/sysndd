@@ -36,6 +36,44 @@ test_that("submit refresh skips presets that already have a public-ready snapsho
   expect_false("gene_network_edges" %in% seen)
 })
 
+test_that("the default skip predicate re-enqueues a STALE snapshot so it self-heals on restart", {
+  # Regression (#440 gap): a public-ready snapshot that has aged past
+  # stale_after must NOT be treated as "already present". Before the fix the
+  # bootstrap skipped any existing public-ready row (stale or fresh), so a stale
+  # snapshot served a permanent 503 until an operator forced a rebuild.
+  source_api_file("functions/analysis-snapshot-repository.R", local = FALSE)
+
+  stale_manifest <- function(analysis_type, parameter_hash, conn = NULL) {
+    data.frame(status_code = "snapshot_stale", stringsAsFactors = FALSE)
+  }
+  stale_skip <- function(analysis_type, parameter_hash, conn = NULL) {
+    analysis_snapshot_public_current(
+      analysis_type, parameter_hash,
+      conn = conn, manifest_fn = stale_manifest
+    )
+  }
+
+  n <- 0L
+  fake_submit <- function(job_type, request_payload, ...) {
+    n <<- n + 1L
+    fake_job(paste0("job-", n))
+  }
+
+  summary <- service_analysis_snapshot_submit_refresh(
+    force = FALSE, submit_fn = fake_submit, exists_fn = stale_skip
+  )
+
+  expect_equal(summary$skipped, 0L)
+  expect_equal(summary$submitted, 5L)
+})
+
+test_that("submit refresh skip predicate defaults to the staleness-aware probe", {
+  # Guard against reverting to analysis_snapshot_public_exists, which ignores
+  # staleness and re-introduces the permanent-503 bug for stale snapshots.
+  default_exists <- formals(service_analysis_snapshot_submit_refresh)$exists_fn
+  expect_equal(as.character(default_exists), "analysis_snapshot_public_current")
+})
+
 test_that("force = TRUE submits every preset regardless of existence", {
   n <- 0L
   fake_submit <- function(job_type, request_payload, ...) {
