@@ -150,6 +150,9 @@ The public read endpoint `GET /api/disease/mappings?entity_id=<int>|disease_onto
 - `disease_ontology_mapping.disease_ontology_id` is declared `CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci` to match the `disease_ontology_set` join key — never change this collation or the projection `UPDATE … JOIN` will raise "Illegal mix of collations".
 - MONDO download budgets are tunable via `EXTERNAL_PROXY_MONDO_*` env vars (default timeout 120s / max 300s / 3 tries for the ~50–80MB artifacts).
 - Additional env vars: `DISEASE_ONTOLOGY_MONDO_OBO_URL`, `DISEASE_ONTOLOGY_MONDO_SSSOM_URL`.
+- When an `omim_update` job is blocked by critical entity-referenced changes, it first additively inserts all brand-new, entity-unreferenced terms via `extract_additive_ontology_terms()` + `apply_additive_ontology_terms()` (live anti-join inside the FK-disabled transaction; idempotent; best-effort — an insert failure is logged as `additive_error` and never turns the blocked job into a job failure). A successful additive insert triggers the usual `disease_ontology_mapping_refresh` chain. Only entity-referenced critical changes gate the full apply.
+- `GET /api/admin/ontology/dictionary-status` (Administrator; `/api/admin/ontology` router, mounted before `/api/admin`) reports blocked/stale state derived from async job history — not from `MAX(update_date)`, which additive auto-apply stamps fresh each cycle even when staged critical changes remain. `blocked` requires a fresh (≤48 h) pending CSV; `stale` uses `ONTOLOGY_DICTIONARY_STALE_AFTER_DAYS` (default 30 days).
+- A recurring `blocked` status is an intentional standing-review flag, **not a freeze**: the dictionary continues to grow each cycle via additive auto-apply. Resolve the flagged critical entity-referenced changes via Force Apply (`PUT /api/admin/force_apply_ontology?blocked_job_id=<id>`, or Admin → Manage Annotations → Force Apply).
 
 ### Public SEO prerendering
 

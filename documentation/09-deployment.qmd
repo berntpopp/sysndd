@@ -174,6 +174,38 @@ curl -sS https://<host>/api/admin/ontology/mappings/status \
 
 **Important:** when an operator ontology refresh runs (`force_apply_ontology` job), it rebuilds `disease_ontology_set` from scratch, erasing the denormalized projection columns (`UMLS`, `MedGen`, `NCIT`, `GARD`, `ontology_mapping_release`). The chaining handler in `api/functions/admin-ontology-refresh.R` automatically enqueues a `disease_ontology_mapping_refresh(force=TRUE)` afterward to re-derive them. Never run `refresh_disease_ontology_set()` in isolation without also triggering the mapping refresh.
 
+### OMIM dictionary update: blocked state and remediation
+
+The `omim_update` async job refreshes `disease_ontology_set` from OMIM on each run. When `identify_critical_ontology_changes()` finds entity-referenced terms that require manual review, the job returns `status = "blocked"` and writes a pending CSV. **Before returning blocked**, the handler additively inserts all brand-new, entity-unreferenced terms via `apply_additive_terms_on_block()` so the dictionary continues to grow each cycle without manual intervention. The additive step is best-effort: an insert failure is logged and reported in `result_json` as `additive_error`, but never converts a blocked result into a job failure. A successful additive insert chains the usual `disease_ontology_mapping_refresh` refresh.
+
+**`GET /api/admin/ontology/dictionary-status`** (Administrator; `/api/admin/ontology` router, mounted before `/api/admin`) reports the current blocked/stale state derived from async job history — not from `MAX(update_date)` in the table, which additive auto-apply would stamp fresh every nightly cycle even when staged critical changes remain unresolved. Key response fields:
+
+- `blocked` / `blocked_job_id` — whether the latest `omim_update` result is `"blocked"` and its pending CSV is still fresh (≤48 h).
+- `stale` — `true` if blocked, if a blocked run postdates the last full apply, or if the last full apply is absent or older than `ONTOLOGY_DICTIONARY_STALE_AFTER_DAYS` (default 30 days).
+- `last_full_apply_at` / `last_additive_apply_at` — timestamps of the most recent full and additive-only applies.
+- `critical_count` / `additive_applied` — from the most recent blocked job's `result_json`.
+- `disease_ontology_last_applied` / `max_omim_id` — live DB values from `disease_ontology_set` (informational; reflects additive inserts as well as full applies).
+
+```bash
+curl -sS https://<host>/api/admin/ontology/dictionary-status \
+  -H "Authorization: Bearer <admin-token>" | jq
+```
+
+**Configuration:** `ONTOLOGY_DICTIONARY_STALE_AFTER_DAYS` (default `30`) — number of days after the last full apply before `stale` becomes `true`. Tune lower for more sensitive alerting; higher for quarterly-refresh deployments.
+
+**Remediation — flush staged critical changes:** a `blocked` status does not halt new-term ingestion (additive auto-apply continues each cycle), but the entity-referenced critical changes remain staged until an operator reviews and applies them. To resolve:
+
+```bash
+# Option A — Admin HTTP (no SSH needed):
+curl -sS -X PUT "https://<host>/api/admin/force_apply_ontology?blocked_job_id=<id>" \
+  -H "Authorization: Bearer <admin-token>"
+
+# Option B — Admin UI: Admin → Manage Annotations → Force Apply
+#   (the blocked_job_id is shown in the dictionary-status response)
+```
+
+After a successful Force Apply the chaining handler automatically re-derives cross-ontology mapping projections; no separate mapping refresh is required.
+
 ### Gemini model configuration
 
 The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.
