@@ -920,10 +920,7 @@ export default {
 }
 </style>
 
-<!-- Unscoped: override Bootstrap-Vue-Next's overflow:hidden on sortable <th>
-     so tooltips rendered inside column headers are not clipped -->
-<style>
-.entities-table th.b-table-sortable-column {
-  overflow: visible !important;
-}
-</style>
+<!-- The override that keeps column-header tooltips from being clipped by the
+     sortable <th>'s overflow:hidden now lives once in
+     `assets/scss/components/_tables.scss`, shared by `.entities-table` and
+     `.public-data-table` surfaces. Kept there to avoid duplicating it per table. -->

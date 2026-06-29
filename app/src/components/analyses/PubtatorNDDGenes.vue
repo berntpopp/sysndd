@@ -23,18 +23,18 @@
           <ul class="mb-2">
             <li>
               <em>Enrichment (default):</em> NDD co-mentions normalized by the gene's total
-              publication count, so popularity bias (e.g. heavily-studied genes) does not
-              dominate the raw count.
+              publication count, so popularity bias (e.g. heavily-studied genes) does not dominate
+              the raw count.
             </li>
             <li>
-              <em>FDR significance:</em> Benjamini-Hochberg adjusted Fisher exact test
-              (* q&lt;0.05, ** q&lt;0.01, *** q&lt;0.001).
+              <em>FDR significance:</em> Benjamini-Hochberg adjusted Fisher exact test (* q&lt;0.05,
+              ** q&lt;0.01, *** q&lt;0.001).
             </li>
             <li><em>NDD Pubs:</em> Raw co-occurrence count (still sortable).</li>
           </ul>
           <p class="small text-muted mb-0">
-            Background (total) publication counts and enrichment metrics are refreshed
-            periodically; genes show “—” until the first refresh.
+            Background (total) publication counts and enrichment metrics are refreshed periodically;
+            genes show “—” until the first refresh.
           </p>
         </BPopover>
         <BButton
@@ -136,6 +136,7 @@
         hover
         sort-icon-left
         stacked="md"
+        class="public-data-table"
         @update:sort-by="handleSortByUpdate"
       >
         <!-- Custom table header cell with tooltips -->
@@ -143,14 +144,12 @@
           <div
             v-b-tooltip.hover.top
             :title="
-              columnData.label +
-              (fields.find((f) => f.label === columnData.label)?.count_filtered
-                ? ' (unique/total: ' +
-                  fields.find((f) => f.label === columnData.label)?.count_filtered +
-                  '/' +
-                  fields.find((f) => f.label === columnData.label)?.count +
-                  ')'
-                : '')
+              getCompactTooltipText(
+                fields.find((f) => f.label === columnData.label) || {
+                  key: columnData.column,
+                  label: columnData.label,
+                }
+              )
             "
           >
             {{ truncateText(columnData.label, 20) }}
@@ -332,7 +331,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { listPubtatorGenes } from '@/api/publication';
 
 // Import composables
-import { useToast, useUrlParsing, useTableData } from '@/composables';
+import { useToast, useUrlParsing, useTableData, useColumnTooltip } from '@/composables';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { usePubtatorGenePublications } from '@/composables/usePubtatorGenePublications';
 
@@ -418,6 +417,7 @@ const emit = defineEmits<{
 
 // Composables
 const { makeToast } = useToast();
+const { getCompactTooltipText } = useColumnTooltip();
 const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
 const tableData = useTableData({
   pageSizeInput: props.pageSizeInput,

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createComparisonFields,
   createComparisonFilter,
+  withCuratedComparisonLabels,
   COMPARISON_SOURCE_COLUMNS,
 } from './curationComparisonsTableConfig';
 
@@ -62,5 +63,30 @@ describe('COMPARISON_SOURCE_COLUMNS', () => {
       .map((f) => f.key)
       .filter((k) => k !== 'symbol');
     expect([...COMPARISON_SOURCE_COLUMNS]).toEqual(fieldKeys);
+  });
+});
+
+describe('withCuratedComparisonLabels', () => {
+  it('re-applies curated source labels while preserving backend count facets', () => {
+    const fspec = [
+      { key: 'SysNDD', label: 'Sysndd', count: 6, count_filtered: 5, filterable: true },
+      { key: 'panelapp', label: 'Panelapp', count: 4, count_filtered: 4 },
+      { key: 'omim_ndd', label: 'Omim ndd', count: 2, count_filtered: 2 },
+    ];
+
+    const result = withCuratedComparisonLabels(fspec);
+
+    expect(result.map((f) => f.label)).toEqual(['SysNDD', 'PanelApp', 'OMIM NDD']);
+    // Backend-computed properties are preserved untouched.
+    expect(result[0]).toMatchObject({ count: 6, count_filtered: 5, filterable: true });
+  });
+
+  it('leaves unknown keys and their labels unchanged', () => {
+    const fspec = [{ key: 'mystery_col', label: 'Mystery col', count: 1 }];
+    expect(withCuratedComparisonLabels(fspec)[0].label).toBe('Mystery col');
+  });
+
+  it('returns the input unchanged when it is not an array', () => {
+    expect(withCuratedComparisonLabels(undefined as never)).toBeUndefined();
   });
 });

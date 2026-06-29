@@ -78,23 +78,13 @@
                 <template #head()="data">
                   <div
                     v-b-tooltip.hover.top
-                    :data="data"
-                    data-html="true"
                     :title="
-                      data.label +
-                      ' (unique filtered/total values: ' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count_filtered;
-                        })[0] +
-                      '/' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count;
-                        })[0] +
-                      ')'
+                      getTooltipText(
+                        fields.find((f) => f.label === data.label) || {
+                          key: data.column,
+                          label: data.label,
+                        }
+                      )
                     "
                   >
                     {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
@@ -338,6 +328,7 @@ import {
   useText,
   useTableData,
   useTableMethods,
+  useColumnTooltip,
 } from '@/composables';
 
 // Import the Table components
@@ -416,6 +407,7 @@ export default {
     const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
+    const { getTooltipText } = useColumnTooltip();
 
     // Table state composable
     const tableData = useTableData({
@@ -470,6 +462,7 @@ export default {
       ...text,
       ...tableData,
       ...restTableMethods,
+      getTooltipText,
       filter,
       axios,
       // Shared select-option normalizer used by the table-header filter row.
