@@ -27,6 +27,10 @@ test('monkey: ManageAnnotations survives a randomized interaction storm (#470)',
     if (m.type() === 'error') errors.push(m.text());
   });
   page.on('pageerror', (e) => errors.push(String(e)));
+  const server5xx: string[] = [];
+  page.on('response', (r) => {
+    if (r.status() >= 500) server5xx.push(`${r.status()} ${r.request().method()} ${r.url()}`);
+  });
 
   await page.goto('/ManageAnnotations');
   await expect(page.getByRole('heading', { name: /Manage Annotations/i })).toBeVisible({
@@ -65,15 +69,23 @@ test('monkey: ManageAnnotations survives a randomized interaction storm (#470)',
   // (captured via `pageerror`) must be zero. Filtered out as environment noise:
   //  - ResizeObserver/favicon — benign browser chatter
   //  - clipboard / "Failed to copy" — navigator.clipboard is unavailable headless
-  //  - "Failed to load resource" / net::ERR — the storm deliberately fires admin
-  //    actions whose backend calls (OMIM/HGNC refresh, etc.) need external deps
-  //    absent in the isolated test stack; the app handles those 4xx/5xx
-  //    gracefully (error toast), which is resilience, not a crash.
+  //  - "Failed to load resource" / net::ERR — random input legitimately produces
+  //    4xx responses that the app rejects gracefully (error toast), which is
+  //    resilience, not a crash. Genuine 5xx are NOT swallowed here — they are
+  //    asserted separately below via `server5xx`.
   const fatal = errors.filter(
     (e) =>
       !/ResizeObserver|favicon|net::ERR|clipboard|Failed to copy|Failed to load resource/i.test(e)
   );
   expect(fatal, `console/page errors:\n${fatal.join('\n')}`).toHaveLength(0);
+
+  // No SERVER errors (5xx) during the storm. A 500 is a real backend defect, not
+  // env noise — unlike a 4xx from random bad input, which the app rejects
+  // gracefully. (This storm originally hit a cold-start 500 in
+  // GET /api/publication/pubtator/genes when the pubtator view is absent; fixed
+  // in api/functions/pubtator-gene-summary.R to degrade to an empty result.)
+  const unique5xx = [...new Set(server5xx)];
+  expect(unique5xx, `server 5xx responses during storm:\n${unique5xx.join('\n')}`).toHaveLength(0);
 
   // The app is still functional after the storm: re-navigating renders the page
   // (robust to any in-page navigation a random click may have triggered).
