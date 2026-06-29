@@ -60,6 +60,7 @@ bootstrap_load_modules <- function() {
     "functions/db-helpers.R",
     "functions/db-version.R",
     "functions/metadata-refresh.R",
+    "functions/ontology-status-service.R",
     "functions/async-job-repository.R",
     "functions/async-job-service.R",
     "functions/analysis-snapshot-presets.R",
