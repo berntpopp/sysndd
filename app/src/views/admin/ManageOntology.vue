@@ -245,16 +245,18 @@ import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
 // the request interceptor still injects the Bearer header from
 // `useAuth().token.value` (single source of truth for session auth).
 import { listVariantOntology, updateVariantOntology } from '@/api/ontology';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
-// Module-level variables to track API calls across component remounts
-// This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null; // Cache last API response for remounted components
+// Module-level request coordinator (survives Vue Router remounts on URL change).
+// Replaces the previous hand-rolled module-level dedup, which deduped only
+// identical params and applied every response unconditionally — so a slow
+// earlier request could overwrite the table after a newer filter was applied.
+// The coordinator dedupes identical concurrent requests, serves a short recent
+// cache, and (via isCurrent) drops stale responses.
+const ontologyRequestCoordinator = createTableRequestCoordinator();
 
 export default {
   name: 'ManageOntology',
@@ -582,44 +584,33 @@ export default {
 
     // Actual data loading method with module-level caching
     async doLoadData() {
-      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-      const now = Date.now();
-
-      // Prevent duplicate API calls using module-level tracking
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-        }
-        return;
-      }
-
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
-        return;
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
+      const buildParams = () =>
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      const urlParam = buildParams();
       this.isBusy = true;
 
-      try {
+      const result = await ontologyRequestCoordinator.request({
+        params: urlParam,
         // Typed ontology client resolves with the response payload directly;
         // apiClient's interceptor adds the Bearer header.
-        const data = await listVariantOntology({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: this.currentItemID,
-          page_size: this.perPage,
-        });
-        moduleApiCallInProgress = false;
-        moduleLastApiResponse = data;
-        this.applyApiResponse(data);
-        this.updateBrowserUrl();
-        this.isBusy = false;
-      } catch (e) {
-        moduleApiCallInProgress = false;
-        this.makeToast(e, 'Error', 'danger');
+        fetcher: () =>
+          listVariantOntology({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: this.currentItemID,
+            page_size: this.perPage,
+          }),
+        apply: (data, source) => {
+          this.applyApiResponse(data);
+          if (source === 'network') {
+            this.updateBrowserUrl();
+          }
+        },
+        onError: (e) => this.makeToast(e, 'Error', 'danger'),
+        isCurrent: (params) => buildParams() === params,
+      });
+
+      if (result.handled) {
         this.isBusy = false;
       }
     },

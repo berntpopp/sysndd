@@ -268,12 +268,19 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 
 // Typed API client (W5)
 import { browseComparisons, browseComparisonsXlsx } from '@/api/comparisons';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
 import {
   createComparisonFields,
   createComparisonFilter,
   COMPARISON_SOURCE_COLUMNS,
 } from './curationComparisonsTableConfig';
+
+// Module-level request coordinator: dedupes identical concurrent requests and
+// discards stale responses so a late-arriving earlier request cannot overwrite
+// the table after a newer filter/sort has been applied (the cause of the
+// "filter to a gene, then it reverts to something else" race).
+const comparisonsRequestCoordinator = createTableRequestCoordinator();
 
 export default {
   name: 'AnalysesCurationComparisonsTable',
@@ -401,34 +408,55 @@ export default {
       navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     async loadTableData() {
+      // Build a stable key for the in-flight request from every parameter that
+      // affects the result. The coordinator dedupes identical concurrent calls
+      // (the deep `filter` watcher and the input `@update:model-value` both fire
+      // filtered() per change) and, via isCurrent, drops responses that arrive
+      // after a newer filter/sort/page has been requested — preventing a slow
+      // earlier request from clobbering the table.
+      const buildParams = () =>
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}` +
+        `&page_size=${this.perPage}&definitive_only=${this.definitiveOnly}`;
+      const params = buildParams();
       this.isBusy = true;
 
-      try {
-        const data = await browseComparisons({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: String(this.currentItemID),
-          page_size: String(this.perPage),
-          definitive_only: String(this.definitiveOnly),
-        });
-        this.items = data.data;
+      const result = await comparisonsRequestCoordinator.request({
+        params,
+        fetcher: () =>
+          browseComparisons({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: String(this.currentItemID),
+            page_size: String(this.perPage),
+            definitive_only: String(this.definitiveOnly),
+          }),
+        apply: (data) => this.applyApiResponse(data),
+        onError: (e) => this.makeToast(e, 'Error', 'danger'),
+        isCurrent: (current) => buildParams() === current,
+      });
 
-        this.totalRows = data.meta[0].totalItems;
-        this.$nextTick(() => {
-          this.currentPage = data.meta[0].currentPage;
-        });
-        this.totalPages = data.meta[0].totalPages;
-        this.prevItemID = data.meta[0].prevItemID;
-        this.currentItemID = data.meta[0].currentItemID;
-        this.nextItemID = data.meta[0].nextItemID;
-        this.lastItemID = data.meta[0].lastItemID;
-        this.executionTime = data.meta[0].executionTime;
-        this.fields = data.meta[0].fspec;
-
+      if (result.handled) {
         this.isBusy = false;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
       }
+    },
+    /**
+     * Apply a comparisons API response to component state.
+     * Extracted so the request coordinator can apply (or skip) it.
+     * @param {Object} data - API response envelope
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = data.meta[0].prevItemID;
+      this.currentItemID = data.meta[0].currentItemID;
+      this.nextItemID = data.meta[0].nextItemID;
+      this.lastItemID = data.meta[0].lastItemID;
+      this.executionTime = data.meta[0].executionTime;
+      this.fields = data.meta[0].fspec;
     },
     async requestExcel() {
       this.downloading = true;

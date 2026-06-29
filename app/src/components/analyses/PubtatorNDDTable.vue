@@ -209,11 +209,7 @@
               </div>
 
               <!-- Annotated Text Section -->
-              <PubtatorAnnotatedText
-                v-if="row.text_hl"
-                :text="row.text_hl"
-                section-class="mt-3"
-              />
+              <PubtatorAnnotatedText v-if="row.text_hl" :text="row.text_hl" section-class="mt-3" />
               <div v-else class="text-muted mt-3">
                 <i class="bi bi-info-circle me-1" />No annotated text available.
               </div>
@@ -245,6 +241,12 @@ import { normalizeSelectOptions } from '@/utils/selectOptions';
 
 // Typed API client (W5)
 import { listPubtatorTable, listPubtatorTableXlsx } from '@/api/publication';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+
+// Module-level request coordinator: dedupes identical concurrent requests and
+// drops stale responses (via isCurrent) so a slow earlier request cannot
+// overwrite the table after a newer filter/sort/page has been applied.
+const pubtatorRequestCoordinator = createTableRequestCoordinator();
 
 /** Field definition with optional selection properties */
 interface TableField {
@@ -486,56 +488,73 @@ export default {
      * Fetches data from the API using sort/filter/cursor pagination
      */
     async loadTableData() {
+      const buildParams = () =>
+        `sort=${this.sort}&filter=${this.filter_string}` +
+        `&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      const params = buildParams();
       this.isBusy = true;
 
-      try {
-        const data = await listPubtatorTable({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: String(this.currentItemID),
-          page_size: String(this.perPage),
-          fields: this.fspecInput,
-        });
-        this.items = data.data;
+      const result = await pubtatorRequestCoordinator.request({
+        params,
+        fetcher: () =>
+          listPubtatorTable({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: String(this.currentItemID),
+            page_size: String(this.perPage),
+            fields: this.fspecInput,
+          }),
+        apply: (data) => this.applyApiResponse(data),
+        onError: (error) => this.makeToast(error, 'Error', 'danger'),
+        isCurrent: (current) => buildParams() === current,
+      });
 
-        // R/Plumber serialises meta as a 1-row array of dynamic-key objects.
-        const meta = data.meta as Array<Record<string, unknown>> | undefined;
-        if (meta && meta.length > 0) {
-          const metaObj = meta[0] as Record<string, unknown> & {
-            totalItems?: number;
-            currentPage?: number;
-            totalPages?: number;
-            prevItemID?: number | null;
-            currentItemID?: number | null;
-            nextItemID?: number | null;
-            lastItemID?: number | null;
-            executionTime?: number;
-            fspec?: TableField[];
-          };
-          this.totalRows = metaObj.totalItems || 0;
-
-          // Fix for b-pagination
-          this.$nextTick(() => {
-            this.currentPage = metaObj.currentPage;
-          });
-          this.totalPages = metaObj.totalPages;
-          this.prevItemID = metaObj.prevItemID;
-          this.currentItemID = metaObj.currentItemID;
-          this.nextItemID = metaObj.nextItemID;
-          this.lastItemID = metaObj.lastItemID;
-          this.executionTime = metaObj.executionTime;
-
-          if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
-            this.fields = this.mergeFields(metaObj.fspec);
-          }
-        }
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
-      } catch (error) {
-        this.makeToast(error, 'Error', 'danger');
-      } finally {
+      if (result.handled) {
         this.isBusy = false;
       }
+    },
+
+    /**
+     * Apply a Pubtator table API response to component state.
+     * Extracted so the request coordinator can apply (or skip) it.
+     * @param {Object} data - API response envelope
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+
+      // R/Plumber serialises meta as a 1-row array of dynamic-key objects.
+      const meta = data.meta as Array<Record<string, unknown>> | undefined;
+      if (meta && meta.length > 0) {
+        const metaObj = meta[0] as Record<string, unknown> & {
+          totalItems?: number;
+          currentPage?: number;
+          totalPages?: number;
+          prevItemID?: number | null;
+          currentItemID?: number | null;
+          nextItemID?: number | null;
+          lastItemID?: number | null;
+          executionTime?: number;
+          fspec?: TableField[];
+        };
+        this.totalRows = metaObj.totalItems || 0;
+
+        // Fix for b-pagination
+        this.$nextTick(() => {
+          this.currentPage = metaObj.currentPage;
+        });
+        this.totalPages = metaObj.totalPages;
+        this.prevItemID = metaObj.prevItemID;
+        this.currentItemID = metaObj.currentItemID;
+        this.nextItemID = metaObj.nextItemID;
+        this.lastItemID = metaObj.lastItemID;
+        this.executionTime = metaObj.executionTime;
+
+        if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
+          this.fields = this.mergeFields(metaObj.fspec);
+        }
+      }
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
     },
 
     handlePageChange(value) {

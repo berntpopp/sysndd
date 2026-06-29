@@ -621,7 +621,19 @@ export default {
       this.filtered();
     },
     filtered() {
-      this.filter = applyPhenotypeLogicMode(this.filter, this.checked === true);
+      // Apply the AND/OR logic mode IN PLACE. Reassigning `this.filter` to a
+      // new object here (as a previous refactor did via
+      // `this.filter = applyPhenotypeLogicMode(...)`) re-triggers the deep
+      // `filter` watcher, which calls filtered() again, which reassigns again —
+      // an infinite "Maximum recursive updates exceeded" loop that froze the
+      // page on every filter change (e.g. selecting a Category). Mutating the
+      // single operator field is idempotent: Vue only re-triggers reactivity
+      // when the value actually changes, so the watcher settles immediately.
+      const nextOperator = applyPhenotypeLogicMode(this.filter, this.checked === true)
+        .modifier_phenotype_id.operator;
+      if (this.filter.modifier_phenotype_id.operator !== nextOperator) {
+        this.filter.modifier_phenotype_id.operator = nextOperator;
+      }
 
       const filter_string_loc = this.filterObjToStr(this.filter);
       if (filter_string_loc !== this.filter_string) {
