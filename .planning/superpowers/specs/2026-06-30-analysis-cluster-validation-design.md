@@ -165,41 +165,52 @@ New file `api/functions/analysis-cluster-validation.R` (registered in
 `api/bootstrap/load_modules.R`). Two helpers, **worker/heavy-path only**, deterministic,
 hand-rolled (no `fpc`):
 
-**`validate_functional_clusters(hgnc_list, score_threshold = 400, resolution = 1.0, n_resamples = 100, min_size = 10, seed = 42)`**
+> **Resampling scheme — subsampling, not with-replacement bootstrap.** A nonparametric
+> bootstrap (sample-with-replacement) is ill-defined for a graph (igraph has no duplicate
+> nodes) and for the MCA row matrix (duplicate rows distort inertia). We therefore use
+> **subsampling without replacement** — `bootmethod = "subset"` in Hennig's `clusterboot`
+> taxonomy, a *documented* clusterboot method, so the Jaccard interpretation bands legitimately
+> apply. Each resample draws a fraction `subsample_fraction` (default 0.8) without replacement.
+> `n_resamples_effective` records resamples that yielded ≥1 cluster.
 
-- Build the STRING subgraph **once** (fixed graph) via the existing `get_string_db` path
-  with `enrichment = FALSE, subcluster = FALSE`.
-- Reference partition: weighted + converged Leiden, then `cluster_size >= min_size`
-  (`partition_scope = "visible_top_level"`). Clusters `C_1..C_K` over node set `V`.
-- **Weighted modularity** of the reference partition:
-  `Q = igraph::modularity(subgraph, membership, weights = E(subgraph)$combined_score)`.
-- **Per-cluster bootstrap-Jaccard (Hennig 2007 / `clusterboot` "boot" semantics):**
-  for `b = 1..B`: draw a nonparametric bootstrap sample of the node set (sample `|V|`
-  nodes with replacement), collapse to the distinct sampled set `S_b`, induce the
-  subgraph `G[S_b]`, recluster with identical settings → `D_1..D_{L_b}`. For each
-  reference cluster `C_k`, compute the recovery
-  `γ_{k,b} = max_l Jaccard(C_k ∩ S_b, D_l)`; cluster stability `s_k = mean_b γ_{k,b}`.
-  Per-resample seed is `seed + b` (reproducible). `resampling_scheme = "bootstrap_nodes"`
-  is recorded; subsampling without replacement is a documented alternative parameter.
-- **Optional conductance** per cluster (cheap; cut-weight / min(vol(C), vol(V∖C))).
+**`validate_functional_clusters(hgnc_list, score_threshold = 400, resolution = 1.0, n_resamples = 100, min_size = 10, subsample_fraction = 0.8, seed = 42)`**
+
+- Build the STRING subgraph **once** via the shared `build_string_subgraph()` helper
+  (refactored out of `gen_string_clust_obj` so the graph is byte-identical to production).
+- Reference: one weighted + converged Leiden membership. **Modularity is reported on the
+  FULL optimized partition** (`modularity_scope = "full_partition"`) — that is the quantity
+  the objective maximizes. The **visible top-level** clusters (post `cluster_size >= min_size`,
+  `partition_scope = "visible_top_level"`) are the subject of the per-cluster Jaccard.
+- **Per-cluster Jaccard (Hennig `clusterboot` "subset" recovery):** for `b = 1..B` draw
+  `S_b ⊂ V` (fraction `f`, no replacement), induce `G[S_b]`, recluster → `D_1..D_{L_b}`;
+  for each reference cluster `C_k`, `γ_{k,b} = max_l Jaccard(C_k ∩ S_b, D_l)`; stability
+  `s_k = mean_b γ_{k,b}`. Per-resample seed `seed + b`.
+- **Optional conductance** per cluster.
+- Returns: per-cluster `{cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed}` and
+  partition-level `{validation_schema_version, algorithm="leiden", weighted=TRUE,
+  n_iterations=-1, resolution_parameter, modularity, modularity_scope="full_partition",
+  n_clusters, n_dropped_below_min_size, partition_scope="visible_top_level",
+  resampling_scheme="subsample", subsample_fraction, n_resamples, n_resamples_effective}`.
+
+**`validate_phenotype_clusters(wide_phenotypes_df, quali_sup_var = 1:1, quanti_sup_var = 2:4, min_size = 10, n_resamples = 100, subsample_fraction = 0.8, seed = 42)`** — **self-contained**
+
+- Recompute the reference partition (`gen_mca_clust_obj`, data-driven k, `min_size` enforced)
+  **and** the MCA coordinates (`FactoMineR::MCA`, `set.seed(42)`) internally — so
+  `gen_mca_clust_obj`'s return shape is never changed (no caller breakage; Codex-driven).
+- **Mean silhouette** on the **retained (assigned)** entities only, in MCA Euclidean space:
+  `cluster::silhouette(membership_int, dist(coords[assigned, ]))`. Returns `NA` with an
+  explicit `silhouette_status` (`"undefined_lt2_clusters"`) when `< 2` clusters; reports
+  `n_entities_assigned` / `n_entities_dropped`.
+- **k-selection diagnostic:** `k_selection_metric = "hcpc_relative_inertia_loss"` plus a
+  corroborating mean-silhouette `k_selection_curve` over `k ∈ {2..10}` on the same Ward
+  linkage (assigned entities).
+- **Per-cluster Jaccard:** subsample **entities** without replacement, recompute MCA+HCPC,
+  per-cluster `max`-Jaccard against the reference.
 - Returns: per-cluster `{cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed,
-  conductance?}` and partition-level `{algorithm="leiden", weighted=TRUE, n_iterations=-1,
-  resolution_parameter, modularity, n_clusters, partition_scope, resampling_scheme}`.
-
-**`validate_phenotype_clusters(wide_phenotypes_df, quali_sup_var, quanti_sup_var, min_size, n_resamples = 100, seed = 42)`**
-
-- Recompute MCA+HCPC deterministically (data-driven k, `min_size` enforced).
-- **Mean silhouette** (valid — MCA is a Euclidean embedding):
-  `cluster::silhouette(membership_int, dist(mca_ind_coord))`; report overall mean +
-  per-cluster mean. Coordinates come from `mca_ind_coord` (helper input, not recomputed).
-- **k-selection diagnostic:** the HCPC relative-inertia-loss value at the chosen k
-  (`k_selection_metric = "hcpc_relative_inertia_loss"`), plus a corroborating mean
-  silhouette computed over `k ∈ {2..10}` (stored as a small curve).
-- **Per-cluster bootstrap-Jaccard:** resample **entities** (rows) with replacement,
-  recompute MCA+HCPC, per-cluster `max`-Jaccard against the reference, mean over `B`.
-- Returns: per-cluster `{cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed,
-  silhouette_mean}` and partition-level `{algorithm="mca_hcpc", k, k_selection_metric,
-  k_selection_curve[], mean_silhouette, partition_scope, resampling_scheme="bootstrap_entities"}`.
+  silhouette_mean}` and partition-level `{validation_schema_version, algorithm="mca_hcpc", k,
+  k_selection_metric, k_selection_curve, mean_silhouette, silhouette_status, n_clusters,
+  n_entities_assigned, n_entities_dropped, partition_scope="visible_top_level",
+  resampling_scheme="subsample", subsample_fraction, n_resamples, n_resamples_effective}`.
 
 **Hennig interpretation bands** (carried as metric documentation, not as gates): mean
 Jaccard ≤0.5 "dissolved"; 0.6–0.75 "pattern but membership doubtful"; ≥0.75
@@ -244,15 +255,22 @@ asserting guard tests (`test-unit-core-views-manifest.R`,
   `db_release` object (`{version, commit}`) in the meta block.
 
 **MCP** (`api/services/mcp-analysis-service.R`, `api/functions/mcp-analysis-repository.R`):
-- `get_phenotype_analysis_context` (`:390`) and `get_gene_network_context` (`:500`)
-  surface `validation` (data-class `curated_derived_analysis`) and `db_release` +
-  `partition_scope` (data-class `operational_metadata`), read-only. Document new fields in
-  `get_sysndd_capabilities`.
+- **Codex-verified prerequisite:** the cluster readers
+  (`mcp_analysis_repo_get_snapshot_phenotype_clusters` / `…_functional_clusters`) currently
+  return only the unnested member rows and **discard `shaped$meta`** — fix them to return
+  `{records, meta}` so validation reaches the service (the network reader already threads its
+  meta). Then the tool that reads each snapshot surfaces its metrics: **phenotype** validation
+  via the phenotype-clusters tool, **functional** validation via the functional-clusters tool.
+  `get_gene_network_context` reads the distinct `gene_network_edges` preset (no cluster
+  validation there) and surfaces only the `db_release` label.
+- Surface `validation` (data-class `curated_derived_analysis`) and `db_release` +
+  `partition_scope`/`modularity_scope` (data-class `operational_metadata`), read-only.
+  Document new fields in `get_sysndd_capabilities`.
 
 ### E. Snapshot preset weighting + schema version
 
 - `analysis_snapshot_preset_weight()` (`api/functions/analysis-snapshot-presets.R`):
-  reclassify `phenotype_clusters` as `"heavy"` now that it runs bootstrap validation, so
+  reclassify `phenotype_clusters` as `"heavy"` now that it runs subsampling validation, so
   the startup bootstrap staggers it (mirrors `functional_clusters`).
 - Bump `ANALYSIS_SNAPSHOT_SCHEMA_VERSION` `"1.0"` → `"1.1"` (new persisted fields).
 
@@ -281,10 +299,14 @@ reports (no production wiring, no public surface):
 | `validation_json` | `analysis_snapshot_manifest` (migration 037) | partition-level |
 | `db_release_version`, `db_release_commit` | `analysis_snapshot_manifest` (037) + `source_versions_json` | snapshot |
 
-`validation_json` shape — functional: `{algorithm, weighted, n_iterations,
-resolution_parameter, modularity, n_clusters, partition_scope, resampling_scheme,
-resolution_sweep?}`; phenotype: `{algorithm, k, k_selection_metric, k_selection_curve,
-mean_silhouette, n_clusters, partition_scope, resampling_scheme}`.
+`validation_json` shape — functional: `{validation_schema_version, algorithm, weighted,
+n_iterations, resolution_parameter, modularity, modularity_scope="full_partition", n_clusters,
+n_dropped_below_min_size, partition_scope="visible_top_level", resampling_scheme="subsample",
+subsample_fraction, n_resamples, n_resamples_effective, resolution_sweep?}`; phenotype:
+`{validation_schema_version, algorithm, k, k_selection_metric, k_selection_curve,
+mean_silhouette, silhouette_status, n_clusters, n_entities_assigned, n_entities_dropped,
+partition_scope="visible_top_level", resampling_scheme="subsample", subsample_fraction,
+n_resamples, n_resamples_effective}`.
 
 ## Testing
 
