@@ -97,7 +97,7 @@ ontology_dictionary_status <- function(history_limit = 100L,
       jobs[[length(jobs) + 1]] <- list(
         operation = relevant$operation[[i]],
         job_id = jid,
-        completed_at = as.POSIXct(relevant$completed_at[[i]], tz = "UTC"),
+        completed_at = as.POSIXct(relevant$completed_at[[i]], format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
         result_status = rs,
         critical_count = if (is.list(res)) res$critical_count else 0,
         auto_fixable_count = if (is.list(res)) res$auto_fixable_count else 0,

@@ -24,6 +24,18 @@ if (!exists("async_job_get_handler", mode = "function")) {
     }
   }
 
+  omim_apply_candidates <- c(
+    "functions/async-job-omim-apply.R",
+    "/app/functions/async-job-omim-apply.R"
+  )
+
+  for (path in omim_apply_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
   handler_candidates <- c(
     "functions/async-job-handlers.R",
     "/app/functions/async-job-handlers.R"

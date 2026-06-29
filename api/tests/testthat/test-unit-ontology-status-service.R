@@ -60,3 +60,54 @@ test_that("last_additive_apply_at is populated when additive_applied > 0", {
   expect_false(is.na(s$last_additive_apply_at))
   expect_equal(s$additive_applied, 12)
 })
+
+test_that("ontology_dictionary_status IO wrapper resolves injected deps and parses ISO-8601 without truncation", {
+  fixed_now <- as.POSIXct("2026-06-29 14:00:00", tz = "UTC")
+  fake_jid <- "blocked-job-1"
+
+  fake_history <- function(limit) {
+    data.frame(
+      job_id      = fake_jid,
+      operation   = "omim_update",
+      status      = "completed",
+      completed_at = "2026-06-29T12:30:00Z",
+      stringsAsFactors = FALSE
+    )
+  }
+
+  fake_status <- function(jid, result_mode) {
+    list(result = list(
+      status            = "blocked",
+      pending_csv_path  = "x.csv",
+      critical_count    = 5,
+      auto_fixable_count = 1,
+      additive_applied  = 12
+    ))
+  }
+
+  fake_csv_fresh <- function(path, now) TRUE
+
+  fake_db_lookup <- function() {
+    list(last_applied = "2026-06-29", max_omim_id = "OMIM:621533")
+  }
+
+  s <- ontology_dictionary_status(
+    get_history    = fake_history,
+    get_status     = fake_status,
+    now            = fixed_now,
+    csv_fresh      = fake_csv_fresh,
+    db_lookup      = fake_db_lookup,
+    stale_after_days = 30
+  )
+
+  expect_true(s$blocked)
+  expect_equal(s$blocked_job_id, fake_jid)
+  expect_equal(s$critical_count, 5L)
+  expect_equal(s$additive_applied, 12L)
+  expect_equal(s$disease_ontology_last_applied, "2026-06-29")
+  expect_equal(s$max_omim_id, "OMIM:621533")
+  # Fix 2 lock: ISO-8601 "T12:30:00Z" must not be truncated to midnight
+  at <- s$latest_blocked_omim_update_at
+  expect_false(is.na(at))
+  expect_equal(as.integer(format(at, "%H", tz = "UTC")), 12L)
+})
