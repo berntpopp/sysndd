@@ -683,17 +683,39 @@ phenotype_clusters = {
     db_release_commit  = db_release_commit,
     ```
 
-- [ ] **Step 5: Extend `analysis_snapshot_create_manifest`** (`repository.R:106`, single named-list arg). Read `manifest$validation`, `manifest$db_release_version`, `manifest$db_release_commit` from the list; serialize `validation` with `jsonlite::toJSON(validation, auto_unbox = TRUE, null = "null")` when non-NULL (else bind `NA`); add the three columns to the INSERT column list (`:112-117`) + three `?` placeholders + the binding (the call already builds a positional params vector — append in the same order and keep the existing `unname()` wrapping for `DBI::dbBind`).
+- [ ] **Step 5: Extend `analysis_snapshot_create_manifest`** (`repository.R:106`, single named-`manifest`-list arg, builds an INSERT via `db_execute_statement(<sql>, unname(list(...)))`). Add the three columns to the INSERT column list (`:112-115`), three `?` to VALUES, and three entries to the positional `unname(list(...))` — **using the existing serialization helpers** (not raw `jsonlite`):
 
-- [ ] **Step 6: Expose in the meta block.** In `service_analysis_snapshot_meta()` (`:316-350`) add:
-
-```r
-validation = service_analysis_snapshot_parse_json_object(manifest$validation_json[[1]]),
-db_release = list(version = manifest$db_release_version[[1]] %||% "unknown",
-                  commit  = manifest$db_release_commit[[1]]  %||% "unknown")
+```sql
+-- add to the column list and VALUES (...) in the same positions:
+   ..., last_error_message, validation_json, db_release_version, db_release_commit
+   VALUES ( ..., ?, ?, ?, ? )
 ```
 
-(The read path is `SELECT *`, so the new columns are already present on `manifest`.)
+```r
+# append to the unname(list(...)) in matching order:
+  analysis_snapshot_scalar(manifest$last_error_message, NA_character_),
+  analysis_snapshot_json(manifest$validation),                       # JSON column
+  analysis_snapshot_scalar(manifest$db_release_version, NA_character_),
+  analysis_snapshot_scalar(manifest$db_release_commit,  NA_character_)
+```
+
+(`analysis_snapshot_json()` already handles NULL → SQL NULL; `analysis_snapshot_scalar(x, NA_character_)` mirrors the existing scalar columns.)
+
+- [ ] **Step 6: Expose in the meta block.** In `service_analysis_snapshot_meta()` (`:316-350`) the manifest row is `row <- manifest[1, ]` and optional columns are read via the safe `service_analysis_snapshot_column_value(row, "<col>")` accessor (tolerates absent columns). Add inside the returned `snapshot = list(...)`:
+
+```r
+validation = service_analysis_snapshot_parse_json_object(
+  service_analysis_snapshot_column_value(row, "validation_json")
+),
+db_release = list(
+  version = service_analysis_snapshot_json_scalar(
+    service_analysis_snapshot_column_value(row, "db_release_version")),
+  commit  = service_analysis_snapshot_json_scalar(
+    service_analysis_snapshot_column_value(row, "db_release_commit"))
+)
+```
+
+(The read path `analysis_snapshot_get_public()` is `SELECT *`, so the new columns arrive on `row` automatically; the safe accessor keeps older snapshots — pre-037 rows — from erroring.)
 
 - [ ] **Step 7: Run the build test; verify PASS**
 
