@@ -145,8 +145,11 @@ function(req,
       sysndd_db_genes_table_filtered,
       fspec
     )
-    sysndd_db_genes_table_fspec$fspec$count_filtered <-
-      sysndd_db_genes_table_filtered_fspec$fspec$count
+    # Global `count` + filtered `count_filtered`, joined by key.
+    sysndd_db_genes_table_fspec <- fspec_merge_filtered_counts(
+      sysndd_db_genes_table_fspec,
+      sysndd_db_genes_table_filtered_fspec
+    )
   }
 
   # Nest data

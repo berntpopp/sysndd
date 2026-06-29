@@ -333,3 +333,43 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
 
   return(return_data)
 }
+
+
+#' Merge filtered-set distinct counts into a global fspec as `count_filtered`
+#'
+#' @description
+#' Faceted table column tooltips display "<count_filtered>/<count>": the number
+#' of distinct values surviving the active filter over the total number of
+#' distinct values. `count` is taken from the fspec computed on the global
+#' (unfiltered) tibble; `count_filtered` is taken from the fspec computed on the
+#' post-filter tibble and joined back **by key** (never positionally), so a
+#' column whose rows are entirely removed by the filter coalesces to 0 instead
+#' of misaligning the columns. This is the single source of truth for the
+#' global-vs-filtered fspec merge shared by the entity, gene, phenotype,
+#' variant, and comparisons table endpoints.
+#'
+#' @param global_fspec An fspec object (`list(fspec = <tibble>)`) from
+#'   [generate_tibble_fspec()] / `generate_tibble_fspec_mem()` computed on the
+#'   global (unfiltered) tibble; its `count` column is preserved as the total.
+#' @param filtered_fspec An fspec object from the same helpers computed on the
+#'   filtered tibble; its `count` column becomes `count_filtered`.
+#'
+#' @return `global_fspec` with an integer `count_filtered` column added to
+#'   `global_fspec$fspec`.
+#'
+#' @examples
+#' g <- generate_tibble_fspec(tibble::tibble(a = c(1, 2, 3)), "a")
+#' f <- generate_tibble_fspec(tibble::tibble(a = c(1, 2)), "a")
+#' fspec_merge_filtered_counts(g, f)$fspec
+#'
+#' @export
+fspec_merge_filtered_counts <- function(global_fspec, filtered_fspec) {
+  global_fspec$fspec <- global_fspec$fspec %>%
+    dplyr::left_join(
+      filtered_fspec$fspec %>% dplyr::select(key, count_filtered = count),
+      by = "key"
+    ) %>%
+    dplyr::mutate(count_filtered = dplyr::coalesce(count_filtered, 0L))
+
+  global_fspec
+}
