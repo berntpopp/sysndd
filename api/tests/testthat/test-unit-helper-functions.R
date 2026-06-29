@@ -528,6 +528,57 @@ test_that("generate_tibble_fspec handles fspecInput filtering", {
 
 
 # =============================================================================
+# fspec_merge_filtered_counts() tests
+# =============================================================================
+
+test_that("fspec_merge_filtered_counts keeps global count and adds filtered count", {
+  global <- generate_tibble_fspec(
+    tibble(category = c("a", "b", "c"), symbol = c("X", "Y", "Z")),
+    "category,symbol"
+  )
+  filtered <- generate_tibble_fspec(
+    tibble(category = c("a", "b"), symbol = c("X", "Y")),
+    "category,symbol"
+  )
+
+  merged <- fspec_merge_filtered_counts(global, filtered)
+
+  # Total `count` is preserved from the global fspec...
+  expect_equal(merged$fspec$count[merged$fspec$key == "category"], 3L)
+  # ...while `count_filtered` reflects the filtered set.
+  expect_equal(merged$fspec$count_filtered[merged$fspec$key == "category"], 2L)
+  expect_true("count_filtered" %in% colnames(merged$fspec))
+})
+
+test_that("fspec_merge_filtered_counts joins by key, not by row position", {
+  # Reverse the filtered fspec row order to prove the merge is key-based.
+  global <- generate_tibble_fspec(
+    tibble(alpha = c("a", "b", "c", "d"), zeta = c("p", "q", "r", "s")),
+    "alpha,zeta"
+  )
+  filtered <- generate_tibble_fspec(
+    tibble(alpha = "a", zeta = c("p", "q")),
+    "zeta,alpha"
+  )
+
+  merged <- fspec_merge_filtered_counts(global, filtered)
+
+  expect_equal(merged$fspec$count_filtered[merged$fspec$key == "alpha"], 1L)
+  expect_equal(merged$fspec$count_filtered[merged$fspec$key == "zeta"], 2L)
+})
+
+test_that("fspec_merge_filtered_counts coalesces missing filtered keys to zero", {
+  global <- generate_tibble_fspec(tibble(category = c("a", "b", "c")), "category")
+  # Empty filtered set => no rows for any key.
+  filtered <- generate_tibble_fspec(tibble(category = character(0)), "category")
+
+  merged <- fspec_merge_filtered_counts(global, filtered)
+
+  expect_equal(merged$fspec$count_filtered[merged$fspec$key == "category"], 0L)
+})
+
+
+# =============================================================================
 # generate_panel_hash() and generate_json_hash() tests
 # =============================================================================
 

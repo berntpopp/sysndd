@@ -30,5 +30,23 @@ export function useColumnTooltip() {
     return `${label} (unique filtered/total values: ${filtered}/${total})`;
   };
 
-  return { getTooltipText };
+  /**
+   * Compact tooltip variant for tables whose columns do not all carry
+   * distinct-value counts (e.g. continuous analysis metrics). Appends
+   * "(unique/total: X/Y)" only when a filtered count is present; otherwise
+   * returns the bare label so count-less columns never render a meaningless
+   * "0/0".
+   *
+   * @param field - Field definition with optional count data
+   * @returns Formatted tooltip string
+   */
+  const getCompactTooltipText = (field: FieldWithCounts): string => {
+    const label = field.label || field.key;
+    if (!field.count_filtered) {
+      return label;
+    }
+    return `${label} (unique/total: ${field.count_filtered}/${field.count})`;
+  };
+
+  return { getTooltipText, getCompactTooltipText };
 }

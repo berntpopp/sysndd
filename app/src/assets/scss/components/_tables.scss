@@ -120,6 +120,18 @@
       color: var(--neutral-600, #757575);
     }
   }
+
+  // Column-statistics header tooltip must stay visible.
+  // Bootstrap-Vue-Next renders the `v-b-tooltip` popover as a child *inside*
+  // the <th>, not teleported to <body>. Fixed-layout tables set
+  // `overflow: hidden` on thead th (for label ellipsis), which would clip that
+  // popover and hide the "unique filtered/total values" hover entirely — the
+  // exact symptom that left the Phenotypes/Genes headers without tooltips while
+  // Entities (which already had this override locally) worked. The header label
+  // is JS-truncated before render, so visible overflow is safe here.
+  th.b-table-sortable-column {
+    overflow: visible !important;
+  }
 }
 
 // Table container with border radius

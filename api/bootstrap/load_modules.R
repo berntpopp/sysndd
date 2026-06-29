@@ -87,6 +87,7 @@ bootstrap_load_modules <- function() {
     "functions/metadata-vocabulary-repository.R",
     "functions/category-normalization.R",
     "functions/endpoint-functions.R",
+    "functions/comparisons-list.R",
     "functions/publication-endpoint-helpers.R",
     "functions/publication-functions.R",
     "functions/genereviews-functions.R",

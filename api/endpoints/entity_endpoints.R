@@ -171,15 +171,11 @@ function(req,
       ndd_entity_view,
       fspec
     )
-    # Assign the filtered count safely via join
-    # (handles differing row counts when filters reduce distinct fspec values)
-    disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
-      dplyr::left_join(
-        sysndd_db_disease_table_fspec$fspec %>%
-          dplyr::select(key, count_filtered = count),
-        by = "key"
-      ) %>%
-      dplyr::mutate(count_filtered = dplyr::coalesce(count_filtered, 0L))
+    # Global `count` + filtered `count_filtered`, joined by key.
+    disease_table_fspec <- fspec_merge_filtered_counts(
+      disease_table_fspec,
+      sysndd_db_disease_table_fspec
+    )
   }
 
   # Compute execution time

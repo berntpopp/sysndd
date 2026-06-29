@@ -83,6 +83,34 @@ export function createComparisonFields(): ComparisonTableField[] {
 }
 
 /**
+ * Overlay the curated, source-correct column labels onto the backend field
+ * spec, preserving every backend-computed property (`count`, `count_filtered`,
+ * `selectOptions`, `filterable`, …).
+ *
+ * The backend derives generic labels via `str_to_sentence(key)`
+ * ("SysNDD" -> "Sysndd", "panelapp" -> "Panelapp", "omim_ndd" -> "Omim ndd").
+ * Those are wrong for these external sources, so we re-apply the curated labels
+ * from {@link createComparisonFields} (matched by `key`) while keeping the
+ * backend's count facets that drive the column-statistics header tooltip.
+ *
+ * @param fspec - The `meta[0].fspec` array returned by `/api/comparisons/browse`.
+ * @returns The same entries with curated labels applied where the key is known.
+ */
+export function withCuratedComparisonLabels<T extends { key: string; label?: string }>(
+  fspec: T[]
+): T[] {
+  if (!Array.isArray(fspec)) {
+    return fspec;
+  }
+  const curatedLabels = new Map(createComparisonFields().map((field) => [field.key, field.label]));
+  return fspec.map((field) =>
+    curatedLabels.has(field.key)
+      ? { ...field, label: curatedLabels.get(field.key) as string }
+      : field
+  );
+}
+
+/**
  * Default (empty) filter object for the comparisons table. Returns a fresh
  * object each call so `data()` and `removeFilters()` never share state.
  */

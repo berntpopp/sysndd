@@ -272,6 +272,7 @@ import { browseComparisons, browseComparisonsXlsx } from '@/api/comparisons';
 import {
   createComparisonFields,
   createComparisonFilter,
+  withCuratedComparisonLabels,
   COMPARISON_SOURCE_COLUMNS,
 } from './curationComparisonsTableConfig';
 
@@ -429,7 +430,9 @@ export default {
         this.nextItemID = data.meta[0].nextItemID;
         this.lastItemID = data.meta[0].lastItemID;
         this.executionTime = data.meta[0].executionTime;
-        this.fields = data.meta[0].fspec;
+        // Keep the backend count facets but re-apply curated source labels
+        // ("Sysndd" -> "SysNDD", "Panelapp" -> "PanelApp", ...).
+        this.fields = withCuratedComparisonLabels(data.meta[0].fspec);
 
         this.isBusy = false;
       } catch (e) {
