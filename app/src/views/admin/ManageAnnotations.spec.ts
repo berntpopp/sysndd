@@ -664,6 +664,47 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Task 9 (#470): stale-only banner on page load (not blocked)
+  // -------------------------------------------------------------------------
+  it('shows the stale-only banner on load when status is stale and not blocked', async () => {
+    // Override dictionary-status BEFORE mounting. blocked=false so the view
+    // must NOT call fetchOntologyJobResult or fetchForceApplyUsers — those
+    // mocks are intentionally omitted; any accidental call would trip MSW's
+    // onUnhandledRequest: 'error' and fail the test immediately.
+    server.use(
+      http.get('/api/admin/ontology/dictionary-status', () =>
+        HttpResponse.json({
+          blocked: false,
+          blocked_job_id: null,
+          stale: true,
+          last_full_apply_at: '2026-01-01',
+          last_additive_apply_at: null,
+          latest_blocked_omim_update_at: null,
+          disease_ontology_last_applied: null,
+          max_omim_id: null,
+          critical_count: 0,
+          auto_fixable_count: 0,
+          additive_applied: 0,
+        })
+      ),
+      http.get('/api/jobs/history', () =>
+        HttpResponse.json({ data: [], meta: { count: [0], limit: [50] } })
+      )
+    );
+
+    const wrapper = await mountView();
+    // Drain any remaining microtasks (loadOntologyStatus chains two awaits)
+    await flushPromises();
+
+    // Stale-only banner must be visible.
+    expect(wrapper.text()).toContain('Disease dictionary may be stale');
+
+    // Blocked banner must NOT be present — v-if="stale && !blocked" guards
+    // mutual exclusivity between the two alerts in OntologyAnnotationsCard.
+    expect(wrapper.text()).not.toContain('Ontology Update Blocked');
+  });
+
+  // -------------------------------------------------------------------------
   // Locked handshake for Phase E4 (exact string from Appendix C)
   // -------------------------------------------------------------------------
   // Phase E4 (`rewrite-manage-annotations`) unpins this after rewriting the
