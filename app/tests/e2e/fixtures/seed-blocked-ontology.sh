@@ -45,7 +45,7 @@ PENDING_CSV_SRC="${PENDING_CSV_SRC:-/run/media/bernt-popp/1819-E513/sysndd-omim-
 # Resolve paths relative to this script's directory so the script can be
 # invoked from any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
 SQL_FIXTURE="${REPO_ROOT}/db/fixtures/playwright_blocked_omim_job.sql"
 
 # ── Pre-flight checks ────────────────────────────────────────────────────────
