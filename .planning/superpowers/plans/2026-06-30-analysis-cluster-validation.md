@@ -47,6 +47,18 @@ test_that("gen_string_clust_obj passes STRING weights and converges", {
   # resolution is an explicit argument, not a hardcoded literal
   expect_match(body, "resolution\\s*=\\s*1\\.0", fixed = FALSE)              # signature default
   expect_match(body, "resolution_parameter\\s*=\\s*resolution", fixed = FALSE)
+  expect_match(body, "cluster_signature")                                   # degree-based identity (Step 5)
+})
+
+test_that("igraph 2.3.1 accepts n_iterations = -1 (iterate to stable)", {
+  # Codex flagged that -1 is documented in the igraph C docs but not the R help page;
+  # this behavioral regression proves the installed igraph 2.3.1 accepts it.
+  g <- igraph::make_graph(~ a-b, b-c, c-a, d-e, e-f, f-d)   # two triangles
+  igraph::E(g)$combined_score <- 900
+  expect_silent(cl <- igraph::cluster_leiden(
+    g, objective_function = "modularity", weights = igraph::E(g)$combined_score,
+    resolution_parameter = 1.0, beta = 0.01, n_iterations = -1))
+  expect_gte(length(unique(cl$membership)), 2L)
 })
 ```
 
@@ -101,6 +113,23 @@ mutate(., subclusters = list(gen_string_clust_obj(
 
 (Also fixes the pre-existing drop of `min_size` on the recursive call.)
 
+- [ ] **Step 5b: Add a deterministic `cluster_signature` to the visible-cluster tibble** (Codex 4c — the spec promises a functional signature; implement it). After the `filter(cluster_size >= min_size)` (`:191-193`) where `identifiers` (member `hgnc_id`s) is available, add a degree-based signature using the same `subgraph` (degree is deterministic from the fixed graph; map STRING node → `hgnc_id` via `sysndd_db_string_id_df`):
+
+```r
+deg <- igraph::degree(subgraph)                                  # named by STRING_id
+id_map <- stats::setNames(sysndd_db_string_id_df$hgnc_id, sysndd_db_string_id_df$STRING_id)
+%>% dplyr::mutate(cluster_signature = vapply(identifiers, function(d) {
+  hg <- d$hgnc_id
+  sid <- names(id_map)[match(hg, id_map)]                        # hgnc_id -> STRING_id
+  ord <- order(-deg[sid], hg)                                    # highest degree first, tie-break by id
+  paste(utils::head(hg[ord], 5L), collapse = "|")
+}, character(1)),
+cluster_signature_hash = vapply(cluster_signature,
+  function(s) digest::digest(s, algo = "sha256"), character(1)))
+```
+
+(Both partitions now carry a reproducible content signature: functional = top-5 highest-degree member genes; phenotype = top-5 enriched HPO terms.)
+
 - [ ] **Step 6: Run the guard test; verify PASS**
 
 Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-functional-leiden-weights.R')"`
@@ -122,9 +151,15 @@ git commit -m "fix(analysis): functional Leiden uses STRING combined_score weigh
 - Test: `api/tests/testthat/test-unit-phenotype-hcpc-k.R` (Create)
 
 **Interfaces:**
-- Produces: `gen_mca_clust_obj(wide_phenotypes_df, min_size = 10, quali_sup_var = 1:1, quanti_sup_var = 2:4, cutpoint = -1)`. Returns a list `{clusters = <tibble with cols cluster, identifiers, hash_filter, cluster_size, cluster_signature, quali_inp_var, quali_sup_var, quanti_sup_var>, k = <int>, mca_ind_coord = <matrix rownamed by entity_id>}`. (Change from a bare tibble to a named list — update all callers in Task 5 hooks.)
+- Produces: `gen_mca_clust_obj(wide_phenotypes_df, min_size = 10, quali_sup_var = 1:1, quanti_sup_var = 2:4, cutpoint = -1)` — **return shape UNCHANGED** (still the bare `clusters_tibble`), now with a `cluster_signature` column added and rows filtered by `min_size`. k is no longer a positional cutpoint; `cutpoint = -1` makes HCPC select k from the data.
 
-> Caller note: `generate_phenotype_clusters()` (`analysis-phenotype-functions.R:220`) and `gen_mca_clust_obj_mem` currently consume the bare tibble. After this task the return is a list; `generate_phenotype_clusters()` must read `result$clusters` and pass `result$mca_ind_coord` / `result$k` onward. This is handled in Step 5 below and consumed in Task 3.
+> **Codex-verified design choice:** do NOT change the return type. Many callers pipe/unnest
+> the tibble directly (`async-job-handlers.R:198-214`, `jobs_endpoints.R:370-381`/`:490-500`,
+> `analysis-phenotype-functions.R:326-337`); returning a list (or attaching attributes that
+> dplyr verbs strip) would break them. The phenotype validator (Task 3) therefore
+> **recomputes** the MCA coordinates itself from `wide_phenotypes_df` — deterministic
+> (`set.seed(42)`, identical MCA params) so the coords match the stored partition exactly,
+> with zero coupling to this function's return.
 
 - [ ] **Step 1: Write the failing static-guard test**
 
@@ -137,7 +172,6 @@ test_that("gen_mca_clust_obj selects k from data and enforces min_size", {
   expect_match(body, "cutpoint\\s*=\\s*-1", fixed = FALSE)             # default is data-driven
   expect_match(body, "filter\\(cluster_size\\s*>=\\s*min_size\\)")     # min_size now enforced
   expect_match(body, "cluster_signature")                              # stable identity present
-  expect_match(body, "mca_ind_coord")                                  # coords surfaced for silhouette
 })
 ```
 
@@ -154,47 +188,26 @@ Expected: FAIL (current default `cutpoint = 5`, no `min_size` filter, no signatu
 emergent_k <- nlevels(mca_hcpc$data.clust$clust)
 ```
 
-- [ ] **Step 5: Enforce `min_size`, add `cluster_signature`, and return coords + k.** In the cluster-assembly pipeline (the block that builds `clusters_tibble`, around `:58-112`):
+- [ ] **Step 5: Enforce `min_size` and add `cluster_signature`; keep the tibble return.** In the cluster-assembly pipeline (`:58-112`):
   - After `mutate(cluster_size = nrow(identifiers))` (`:74`), add the filter mirroring the functional path:
     ```r
     dplyr::filter(cluster_size >= min_size) %>%
     ```
-  - Add a deterministic `cluster_signature` from the already-computed enriched HPO terms in `quali_inp_var` (top-5 by ascending `p.value`, tie-break by term name; signature string + short hash):
+  - Add a deterministic `cluster_signature` from the enriched HPO terms in `quali_inp_var`. **Codex-verified:** that tibble's term-identifier column is **`variable`** (from `rownames = "variable"`), already `arrange(p.value)`-sorted; there is **no `category` column**. Top-5 by ascending `p.value`, tie-break by `variable`:
     ```r
     dplyr::mutate(cluster_signature = vapply(quali_inp_var, function(qv) {
       if (is.null(qv) || nrow(qv) == 0) return(NA_character_)
-      ord <- order(qv$p.value, qv$category)          # deterministic
-      terms <- utils::head(qv$category[ord], 5L)
+      ord   <- order(qv$p.value, qv$variable)         # deterministic; column is `variable`
+      terms <- utils::head(qv$variable[ord], 5L)
       paste(terms, collapse = "|")
     }, character(1))) %>%
-    dplyr::mutate(cluster_signature_hash =
-      vapply(cluster_signature, function(s)
-        if (is.na(s)) NA_character_ else digest::digest(s, algo = "sha256"),
-        character(1)))
+    dplyr::mutate(cluster_signature_hash = vapply(cluster_signature, function(s)
+      if (is.na(s)) NA_character_ else digest::digest(s, algo = "sha256"), character(1)))
     ```
-    (`digest` is already a transitive dep via memoise/hashing in this codebase; if the load check fails, substitute `openssl::sha256`.)
-  - Change the final `return(clusters_tibble)` (`:112`) to:
-    ```r
-    return(list(
-      clusters = clusters_tibble,
-      k = emergent_k,
-      mca_ind_coord = mca_phenotypes$ind$coord   # rows are entity_id rownames
-    ))
-    ```
-  - Ensure the empty-input branch (`:106-107`) returns the same list shape with an empty tibble, `k = 0L`, `mca_ind_coord = NULL`.
+    (`digest` is already loaded in this codebase; if not, substitute `openssl::sha256`.)
+  - **Leave `return(clusters_tibble)` (`:112`) unchanged** — same columns plus `cluster_signature`/`cluster_signature_hash`. The empty-input branch (`:106-107`) just gains the two new (empty) columns. `emergent_k` (Step 4) is optional/log-only — it is NOT returned, so no caller sees a shape change.
 
-- [ ] **Step 6: Update `generate_phenotype_clusters()`** (`analysis-phenotype-functions.R:220` area) to consume the new list:
-
-```r
-mca_result <- gen_mca_clust_obj_mem(input$matrix)
-clusters    <- mca_result$clusters
-# carry coords + k for the validation helper / builder
-attr(clusters, "mca_ind_coord") <- mca_result$mca_ind_coord
-attr(clusters, "phenotype_k")   <- mca_result$k
-# ... existing unnest/join hgnc_id+symbol/re-nest identifiers logic unchanged ...
-```
-
-(Attaching coords/k as attributes keeps the downstream nested-tibble shape identical while making them available to the builder in Task 5.)
+- [ ] **Step 6: No caller changes needed.** Because the return shape is preserved, `generate_phenotype_clusters()` (`:326-337`), `gen_mca_clust_obj_mem`, and the `async-job-handlers.R`/`jobs_endpoints.R` callers keep working unmodified. The phenotype validator (Task 3) recomputes MCA coordinates from `wide_phenotypes_df` itself, so nothing needs to thread coords through this function. (Add a quick caller-smoke assertion that `generate_phenotype_clusters()` still returns a nested tibble with `cluster`/`identifiers`.)
 
 - [ ] **Step 7: Add a behavioral unit test** with a synthetic phenotype matrix that has clear structure, asserting data-driven k ≥ 2 and that small clusters are dropped:
 
@@ -241,10 +254,27 @@ git commit -m "fix(analysis): phenotype HCPC selects k from data, enforces min_s
 - Modify: `api/bootstrap/load_modules.R` (register the new module)
 - Test: `api/tests/testthat/test-unit-analysis-cluster-validation.R` (Create)
 
+**Resampling-scheme decision (Codex-driven, scientifically corrected):** the original plan used
+`unique(sample(..., replace = TRUE))`, which is neither a true Hennig `clusterboot` bootstrap
+(it collapses duplicate draws) nor a clean subsample. **Switch to subsampling without
+replacement** (`bootmethod = "subset"` in Hennig's `clusterboot` taxonomy — a *documented*
+clusterboot method, so the Jaccard interpretation bands legitimately apply). Draw a fraction
+`subsample_fraction` (default 0.8) of nodes/entities **without replacement**, recluster, and
+take the per-reference-cluster max-Jaccard recovery. This avoids the graph-duplicate-node and
+duplicate-row problems entirely and has a well-defined estimand. Record
+`resampling_scheme = "subsample"`, `subsample_fraction`, and `n_resamples_effective`
+(resamples that produced ≥1 cluster).
+
+**Modularity scope (Codex-driven):** report `modularity` of the **full optimized Leiden
+partition** (raw `cluster_leiden` membership, before the `min_size` filter) — that is the
+quantity the objective actually maximizes. The bootstrap-Jaccard is separately scoped to the
+**visible top-level** clusters (`partition_scope = "visible_top_level"`). The two scopes are
+labeled distinctly so neither is over-interpreted.
+
 **Interfaces:**
 - Produces:
-  - `validate_functional_clusters(hgnc_list, score_threshold = 400, resolution = 1.0, n_resamples = 100, min_size = 10, seed = 42)` → `list(per_cluster = tibble(cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed), partition = list(algorithm = "leiden", weighted = TRUE, n_iterations = -1, resolution_parameter = resolution, modularity = <dbl>, n_clusters = <int>, partition_scope = "visible_top_level", resampling_scheme = "bootstrap_nodes"))`.
-  - `validate_phenotype_clusters(reference_clusters, mca_ind_coord, wide_phenotypes_df, quali_sup_var, quanti_sup_var, min_size = 10, n_resamples = 100, seed = 42)` → `list(per_cluster = tibble(cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed, silhouette_mean), partition = list(algorithm = "mca_hcpc", k = <int>, k_selection_metric = "hcpc_relative_inertia_loss", mean_silhouette = <dbl>, n_clusters = <int>, partition_scope = "visible_top_level", resampling_scheme = "bootstrap_entities"))`.
+  - `validate_functional_clusters(hgnc_list, score_threshold = 400, resolution = 1.0, n_resamples = 100, min_size = 10, subsample_fraction = 0.8, seed = 42)` → `list(per_cluster = tibble(cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed), partition = list(validation_schema_version = "1.0", algorithm = "leiden", weighted = TRUE, n_iterations = -1, resolution_parameter, modularity, modularity_scope = "full_partition", n_clusters, n_dropped_below_min_size, partition_scope = "visible_top_level", resampling_scheme = "subsample", subsample_fraction, n_resamples, n_resamples_effective))`.
+  - `validate_phenotype_clusters(wide_phenotypes_df, quali_sup_var = 1:1, quanti_sup_var = 2:4, min_size = 10, n_resamples = 100, subsample_fraction = 0.8, seed = 42)` — **self-contained**: recomputes the reference partition (`gen_mca_clust_obj`) and the MCA coordinates itself. → `list(per_cluster = tibble(cluster_id, jaccard_mean, jaccard_n_resamples, bootstrap_seed, silhouette_mean), partition = list(validation_schema_version = "1.0", algorithm = "mca_hcpc", k, k_selection_metric = "hcpc_relative_inertia_loss", k_selection_curve, mean_silhouette, silhouette_status, n_clusters, n_entities_assigned, n_entities_dropped, partition_scope = "visible_top_level", resampling_scheme = "subsample", subsample_fraction, n_resamples, n_resamples_effective))`.
   - `cluster_max_jaccard(reference_members, bootstrap_clusters, present_ids)` — internal: for each reference cluster (intersected with `present_ids`), max Jaccard against any bootstrap cluster.
 
 - [ ] **Step 1: Write the failing test for the Jaccard primitive**
@@ -292,65 +322,67 @@ cluster_max_jaccard <- function(reference_members, bootstrap_clusters, present_i
   }, numeric(1))
 }
 
-# Build the fixed STRING subgraph + weighted/converged reference partition (visible top level).
-.functional_reference_partition <- function(hgnc_list, score_threshold, resolution, min_size) {
-  clusters <- gen_string_clust_obj(
-    hgnc_list, min_size = min_size, resolution = resolution,
-    subcluster = FALSE, enrichment = FALSE, score_threshold = score_threshold
-  )
-  # gen_string_clust_obj returns a tibble of visible top-level clusters (post min_size).
-  members <- stats::setNames(
-    lapply(clusters$identifiers, function(d) d$hgnc_id),
-    as.character(clusters$cluster)
-  )
-  members
+# One weighted+converged Leiden membership (shared by reference + each resample).
+.leiden_membership <- function(g, resolution, seed) {
+  set.seed(seed)
+  igraph::cluster_leiden(
+    g, objective_function = "modularity",
+    weights = igraph::E(g)$combined_score,
+    resolution_parameter = resolution, beta = 0.01, n_iterations = -1
+  )$membership
 }
 
 validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resolution = 1.0,
-                                          n_resamples = 100, min_size = 10, seed = 42) {
-  subgraph <- build_string_subgraph(hgnc_list, score_threshold)      # shared refactored helper (Step 4)
-  ref_members <- .functional_reference_partition(subgraph, resolution, min_size)
-  n_clusters <- length(ref_members)
-
-  # Weighted modularity of the reference partition on the full induced subgraph.
-  membership <- .membership_vector(subgraph, ref_members)
-  modularity <- igraph::modularity(
-    subgraph, membership,
-    weights = igraph::E(subgraph)$combined_score
-  )
-
+                                          n_resamples = 100, min_size = 10,
+                                          subsample_fraction = 0.8, seed = 42) {
+  subgraph  <- build_string_subgraph(hgnc_list, score_threshold)     # shared refactored helper (Step 4)
   all_nodes <- igraph::V(subgraph)$name
-  per_cluster_acc <- stats::setNames(
-    rep(list(numeric(0)), n_clusters), names(ref_members)
-  )
+
+  # FULL optimized Leiden partition = the quantity the objective maximizes; report ITS modularity.
+  full_membership <- .leiden_membership(subgraph, resolution, seed)
+  modularity <- igraph::modularity(subgraph, full_membership,
+                                   weights = igraph::E(subgraph)$combined_score)
+
+  # VISIBLE top-level reference = full partition restricted to clusters >= min_size (for Jaccard).
+  parts       <- split(all_nodes, full_membership)
+  visible     <- parts[vapply(parts, length, integer(1)) >= min_size]
+  ref_members <- stats::setNames(visible, as.character(seq_along(visible)))
+  n_clusters  <- length(ref_members)
+  n_dropped   <- length(parts) - n_clusters
+
+  # Subsample WITHOUT replacement (Hennig clusterboot "subset" method) — well-defined estimand,
+  # no graph-duplicate-node problem. f = subsample_fraction of the node set per resample.
+  m <- max(2L, floor(subsample_fraction * length(all_nodes)))
+  per_cluster_acc <- stats::setNames(rep(list(numeric(0)), n_clusters), names(ref_members))
+  n_eff <- 0L
   for (b in seq_len(n_resamples)) {
     set.seed(seed + b)
-    sampled <- unique(sample(all_nodes, length(all_nodes), replace = TRUE))
-    sub_b <- igraph::induced_subgraph(subgraph, which(all_nodes %in% sampled))
-    set.seed(seed + b)
-    cl_b <- igraph::cluster_leiden(
-      sub_b, objective_function = "modularity",
-      weights = igraph::E(sub_b)$combined_score,
-      resolution_parameter = resolution, beta = 0.01, n_iterations = -1
-    )
-    boot_clusters <- split(igraph::V(sub_b)$name, cl_b$membership)
+    sampled <- sample(all_nodes, m, replace = FALSE)
+    sub_b   <- igraph::induced_subgraph(subgraph, which(all_nodes %in% sampled))
+    boot_clusters <- split(igraph::V(sub_b)$name, .leiden_membership(sub_b, resolution, seed + b))
+    if (!length(boot_clusters)) next
+    n_eff <- n_eff + 1L
     jac <- cluster_max_jaccard(ref_members, boot_clusters, sampled)
     for (k in names(ref_members)) per_cluster_acc[[k]] <- c(per_cluster_acc[[k]], jac[[k]])
   }
 
   per_cluster <- dplyr::tibble(
     cluster_id = names(ref_members),
-    jaccard_mean = vapply(per_cluster_acc, function(v) mean(v, na.rm = TRUE), numeric(1)),
-    jaccard_n_resamples = n_resamples,
+    jaccard_mean = vapply(per_cluster_acc, function(v) if (length(v)) mean(v, na.rm = TRUE) else NA_real_, numeric(1)),
+    jaccard_n_resamples = vapply(per_cluster_acc, length, integer(1)),
     bootstrap_seed = seed
   )
   list(
     per_cluster = per_cluster,
     partition = list(
+      validation_schema_version = "1.0",
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
-      resolution_parameter = resolution, modularity = modularity,
-      n_clusters = n_clusters, partition_scope = "visible_top_level",
-      resampling_scheme = "bootstrap_nodes"
+      resolution_parameter = resolution,
+      modularity = modularity, modularity_scope = "full_partition",
+      n_clusters = n_clusters, n_dropped_below_min_size = n_dropped,
+      partition_scope = "visible_top_level",
+      resampling_scheme = "subsample", subsample_fraction = subsample_fraction,
+      n_resamples = n_resamples, n_resamples_effective = n_eff
     )
   )
 }
@@ -374,85 +406,73 @@ build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_ta
   genes_in_graph <- intersect(igraph::V(string_graph)$name, id_df$STRING_id)
   igraph::induced_subgraph(string_graph, vids = which(igraph::V(string_graph)$name %in% genes_in_graph))
 }
-
-# Visible top-level reference partition computed directly on the shared subgraph
-# (weighted, converged, post-min_size) — guarantees the SAME graph object production uses.
-.functional_reference_partition <- function(subgraph, resolution = 1.0, min_size = 10) {
-  set.seed(42)
-  cl <- igraph::cluster_leiden(
-    subgraph, objective_function = "modularity",
-    weights = igraph::E(subgraph)$combined_score,
-    resolution_parameter = resolution, beta = 0.01, n_iterations = -1
-  )
-  parts <- split(igraph::V(subgraph)$name, cl$membership)
-  parts <- parts[vapply(parts, length, integer(1)) >= min_size]   # visible_top_level
-  stats::setNames(parts, as.character(seq_along(parts)))
-}
-
-.membership_vector <- function(subgraph, members) {
-  node_names <- igraph::V(subgraph)$name
-  m <- rep(NA_integer_, length(node_names)); names(m) <- node_names
-  for (i in seq_along(members)) m[names(m) %in% members[[i]]] <- i
-  # nodes not in any visible cluster get their own singleton ids (so modularity is defined)
-  na_idx <- which(is.na(m)); if (length(na_idx)) m[na_idx] <- length(members) + seq_along(na_idx)
-  m
-}
 ```
 
-> Contract: the validator's reference graph MUST be the same object production clusters. Refactoring (not reconstructing) the construction is what guarantees that. Add a guard test asserting `gen_string_clust_obj` calls `build_string_subgraph`.
+> Contract: the validator's reference graph MUST be the same object production clusters. Refactoring (not reconstructing) the construction is what guarantees that. Add a guard test asserting `gen_string_clust_obj` calls `build_string_subgraph`. (The validator computes the reference partition + modularity inline from this subgraph in Step 3 — no separate `.functional_reference_partition`/`.membership_vector` helper is needed.)
 
 - [ ] **Step 5: Implement `validate_phenotype_clusters`** (silhouette + entity-bootstrap Jaccard):
 
 ```r
-validate_phenotype_clusters <- function(reference_clusters, mca_ind_coord, wide_phenotypes_df,
-                                         quali_sup_var, quanti_sup_var, min_size = 10,
-                                         n_resamples = 100, seed = 42) {
+# Self-contained: recomputes the reference partition AND the MCA coords from wide_phenotypes_df
+# (deterministic, set.seed(42)) — so gen_mca_clust_obj's return shape is never touched.
+validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
+                                         quanti_sup_var = 2:4, min_size = 10,
+                                         n_resamples = 100, subsample_fraction = 0.8, seed = 42) {
+  ref <- gen_mca_clust_obj(wide_phenotypes_df, min_size = min_size,
+                           quali_sup_var = quali_sup_var, quanti_sup_var = quanti_sup_var,
+                           cutpoint = -1)                                   # tibble (Task 2)
   ref_members <- stats::setNames(
-    lapply(reference_clusters$identifiers, function(d) as.character(d$entity_id)),
-    as.character(reference_clusters$cluster)
+    lapply(ref$identifiers, function(d) as.character(d$entity_id)),
+    as.character(ref$cluster)
   )
   n_clusters <- length(ref_members)
 
-  # Silhouette on MCA Euclidean coordinates (valid embedding).
-  ent_to_cluster <- stats::setNames(
-    rep(names(ref_members), lengths(ref_members)), unlist(ref_members)
-  )
-  coord_ids <- rownames(mca_ind_coord)
-  keep <- coord_ids %in% names(ent_to_cluster)
-  memb_int <- as.integer(factor(ent_to_cluster[coord_ids[keep]]))
-  sil_mean <- NA_real_; per_sil <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
-  k_curve <- NULL
-  if (length(unique(memb_int)) >= 2) {
-    d <- stats::dist(mca_ind_coord[keep, , drop = FALSE])
+  set.seed(42)
+  mca <- FactoMineR::MCA(wide_phenotypes_df, ncp = 8, quali.sup = quali_sup_var,
+                         quanti.sup = quanti_sup_var, graph = FALSE)
+  coords <- mca$ind$coord
+  rownames(coords) <- as.character(wide_phenotypes_df$entity_id)
+
+  ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
+  keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
+  n_assigned <- sum(keep); n_dropped <- nrow(coords) - n_assigned           # dropped = unassigned (sub-min_size)
+  memb_int   <- as.integer(factor(ent_to_cluster[rownames(coords)[keep]]))
+
+  sil_mean <- NA_real_; sil_status <- "ok"; k_curve <- NULL
+  per_sil  <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
+  if (n_clusters < 2 || length(unique(memb_int)) < 2) {
+    sil_status <- "undefined_lt2_clusters"                                  # silhouette undefined; NA with reason
+  } else {
+    d <- stats::dist(coords[keep, , drop = FALSE])                          # assigned entities only
     sil <- cluster::silhouette(memb_int, d)
     sil_mean <- mean(sil[, "sil_width"])
     agg <- tapply(sil[, "sil_width"], sil[, "cluster"], mean)
     per_sil <- stats::setNames(as.numeric(agg)[order(as.integer(names(agg)))], names(ref_members))
-    # k-selection curve: mean silhouette over k in 2..10 on the SAME Ward linkage HCPC uses,
-    # so the data-driven k can be shown to sit at/near a silhouette optimum (supporting diagnostic).
-    d_full <- stats::dist(mca_ind_coord)
-    hc <- stats::hclust(d_full, method = "ward.D2")
-    ks <- 2:min(10L, nrow(mca_ind_coord) - 1L)
+    # supporting k-selection curve on the SAME Ward linkage HCPC uses (assigned entities only).
+    hc <- stats::hclust(d, method = "ward.D2")
+    ks <- 2:min(10L, n_assigned - 1L)
     k_curve <- stats::setNames(
-      lapply(ks, function(k) mean(cluster::silhouette(stats::cutree(hc, k = k), d_full)[, "sil_width"])),
+      lapply(ks, function(k) mean(cluster::silhouette(stats::cutree(hc, k = k), d)[, "sil_width"])),
       as.character(ks)
     )
   }
 
-  # Entity-bootstrap Jaccard: resample entities, recompute MCA+HCPC, max-Jaccard per cluster.
+  # Subsample entities WITHOUT replacement; recompute MCA+HCPC; max-Jaccard per visible cluster.
   per_cluster_acc <- stats::setNames(rep(list(numeric(0)), n_clusters), names(ref_members))
   all_entities <- as.character(wide_phenotypes_df$entity_id)
+  m <- max(2L, floor(subsample_fraction * length(all_entities)))
+  n_eff <- 0L
   for (b in seq_len(n_resamples)) {
     set.seed(seed + b)
-    sampled <- unique(sample(all_entities, length(all_entities), replace = TRUE))
+    sampled <- sample(all_entities, m, replace = FALSE)
     df_b <- wide_phenotypes_df[match(sampled, all_entities), , drop = FALSE]
     cl_b <- tryCatch(
-      gen_mca_clust_obj(df_b, min_size = min_size,
-                        quali_sup_var = quali_sup_var, quanti_sup_var = quanti_sup_var,
-                        cutpoint = -1)$clusters,
+      gen_mca_clust_obj(df_b, min_size = min_size, quali_sup_var = quali_sup_var,
+                        quanti_sup_var = quanti_sup_var, cutpoint = -1),     # tibble
       error = function(e) NULL
     )
     if (is.null(cl_b) || nrow(cl_b) == 0) next
+    n_eff <- n_eff + 1L
     boot_members <- lapply(cl_b$identifiers, function(d) as.character(d$entity_id))
     jac <- cluster_max_jaccard(ref_members, boot_members, sampled)
     for (k in names(ref_members)) per_cluster_acc[[k]] <- c(per_cluster_acc[[k]], jac[[k]])
@@ -468,11 +488,14 @@ validate_phenotype_clusters <- function(reference_clusters, mca_ind_coord, wide_
   list(
     per_cluster = per_cluster,
     partition = list(
+      validation_schema_version = "1.0",
       algorithm = "mca_hcpc", k = n_clusters,
-      k_selection_metric = "hcpc_relative_inertia_loss",
-      k_selection_curve = k_curve,             # mean silhouette per k in 2..10 (Ward), or NULL
-      mean_silhouette = sil_mean, n_clusters = n_clusters,
-      partition_scope = "visible_top_level", resampling_scheme = "bootstrap_entities"
+      k_selection_metric = "hcpc_relative_inertia_loss", k_selection_curve = k_curve,
+      mean_silhouette = sil_mean, silhouette_status = sil_status,
+      n_clusters = n_clusters, n_entities_assigned = n_assigned, n_entities_dropped = n_dropped,
+      partition_scope = "visible_top_level",
+      resampling_scheme = "subsample", subsample_fraction = subsample_fraction,
+      n_resamples = n_resamples, n_resamples_effective = n_eff
     )
   )
 }
@@ -504,12 +527,22 @@ git commit -m "feat(analysis): membership-only cluster-validation helpers (boots
 **Interfaces:**
 - Produces: three new nullable columns on `analysis_snapshot_manifest`: `validation_json JSON`, `db_release_version VARCHAR(64)`, `db_release_commit VARCHAR(64)`.
 
-- [ ] **Step 1: Update the failing manifest guard test first** (it currently asserts the old latest/count):
+- [ ] **Step 1: Update the failing manifest guard test first** (it currently asserts the old latest/count) and add a column-presence assertion (Codex 4b — the guard must check the new columns, not only latest/count):
 
 ```r
 # test-unit-analysis-snapshot-migration.R:8  (and test-unit-core-views-manifest.R:13)
 EXPECTED_LATEST_MIGRATION <- "037_add_analysis_snapshot_validation.sql"   # was 036_...
 EXPECTED_MIGRATION_COUNT  <- 35L                                          # was 34L
+
+# new static assertion: migration 037 adds the three columns
+test_that("migration 037 adds validation + db release columns", {
+  sql <- paste(readLines(file.path(get_api_dir(), "..", "db", "migrations",
+    "037_add_analysis_snapshot_validation.sql")), collapse = "\n")
+  expect_match(sql, "validation_json")
+  expect_match(sql, "db_release_version")
+  expect_match(sql, "db_release_commit")
+  expect_match(sql, "ALTER TABLE\\s+analysis_snapshot_manifest")
+})
 ```
 
 - [ ] **Step 2: Run the guard tests; verify FAIL** (manifest constant mismatch)
@@ -634,16 +667,14 @@ functional_clusters = {
 }
 ```
 
-Phenotype branch (`:396-405`) — coords + k were attached as attributes in Task 2 Step 6:
+Phenotype branch (`:396-405`) — the validator is self-contained (recomputes reference + coords from the same input), so just pass the wide matrix:
 
 ```r
 phenotype_clusters = {
   clusters <- generate_phenotype_clusters()
-  mca_coord <- attr(clusters, "mca_ind_coord")
   n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
   val <- validate_phenotype_clusters(
-    clusters, mca_coord,
-    wide_phenotypes_df = generate_phenotype_cluster_input()$matrix,
+    generate_phenotype_cluster_input()$matrix,
     quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res
   )
   clusters <- dplyr::left_join(
@@ -733,41 +764,53 @@ git commit -m "feat(analysis): persist cluster-validation metrics + DB release l
 
 ### Task 6: MCP exposure + capabilities (#459)
 
+**Codex-verified architecture (read before editing):** the MCP analysis repo **discards
+snapshot meta** for the cluster readers — `mcp_analysis_repo_get_snapshot_phenotype_clusters`
+and `mcp_analysis_repo_get_snapshot_functional_clusters` (`mcp-analysis-repository.R:243-268` +
+the functional reader just below) return only the unnested `rows`, dropping `shaped$meta`. So
+the validation in `meta` never reaches the service. Separately, **functional cluster validation
+lives in the `functional_clusters` snapshot** (Task 5), which is read by the *functional* reader
+— **NOT** `mcp_analysis_repo_get_snapshot_network`, which reads the distinct `gene_network_edges`
+preset (that preset has no cluster validation; it surfaces only `db_release`).
+
 **Files:**
-- Modify: `api/services/mcp-analysis-service.R` (`mcp_get_phenotype_analysis_context` `:390`, `mcp_get_gene_network_context` `:500`)
-- Modify: the capabilities doc source for `get_sysndd_capabilities` (grep `mcp-capabilities-service.R` for the analysis section)
-- Test: `api/tests/testthat/test-mcp-analysis-service.R` (extend)
+- Modify: `api/functions/mcp-analysis-repository.R` (both cluster readers: return `list(records = rows, meta = shaped$meta)` instead of bare `rows`)
+- Modify: `api/services/mcp-analysis-service.R` (the tools that call those readers — thread `meta` to the tool output)
+- Modify: `api/services/mcp-capabilities-service.R` (`get_sysndd_capabilities` analysis section)
+- Test: `api/tests/testthat/test-mcp-analysis-service.R`, `test-mcp-analysis-repository.R` (extend)
 
 **Interfaces:**
-- Consumes: the `meta.validation` + `meta.db_release` produced in Task 5.
+- Consumes: the `meta.validation` + `meta.db_release` produced in Task 5 (present on `shaped$meta`).
 - Produces: MCP analysis payloads carry `validation` (data-class `curated_derived_analysis`) and `db_release` + `partition_scope` (data-class `operational_metadata`), read-only.
 
-- [ ] **Step 1: Write the failing MCP test**
+- [ ] **Step 1: Grep the callers** of `mcp_analysis_repo_get_snapshot_phenotype_clusters` and `mcp_analysis_repo_get_snapshot_functional_clusters` in `mcp-analysis-service.R` to find the exact tools that must expose each validation (phenotype → phenotype reader's tool; functional → functional reader's tool). Confirm `get_gene_network_context` reads `gene_network_edges` (db_release only, no cluster validation).
+
+- [ ] **Step 2: Write the failing tests** — one per cluster reader, asserting `meta` is no longer discarded:
 
 ```r
-test_that("phenotype analysis context surfaces validation + db release", {
-  out <- mcp_get_phenotype_analysis_context(/* minimal args per existing tests */)
-  expect_true(!is.null(out$validation))
-  expect_true(!is.null(out$db_release$version))
-  expect_equal(out$validation$partition_scope, "visible_top_level")
+test_that("phenotype cluster reader returns snapshot meta with validation", {
+  res <- mcp_analysis_repo_get_snapshot_phenotype_clusters()      # fixture snapshot w/ validation_json
+  expect_true(is.list(res) && !is.null(res$meta))
+  expect_equal(res$meta$snapshot$validation$partition_scope, "visible_top_level")
 })
+# analogous test for mcp_analysis_repo_get_snapshot_functional_clusters
 ```
 
-(Model the call + fixtures on the existing `test-mcp-analysis-service.R` cases.)
+(These readers currently return a bare tibble of rows; callers that did `rows <- reader(...)` must switch to `res$records`.)
 
-- [ ] **Step 2: Run; verify FAIL** — `cd api && Rscript -e "testthat::test_file('tests/testthat/test-mcp-analysis-service.R')"`
+- [ ] **Step 3: Run; verify FAIL** — `cd api && Rscript -e "testthat::test_file('tests/testthat/test-mcp-analysis-repository.R')"`
 
-- [ ] **Step 3: Surface the fields** in both MCP analysis tools by copying `meta$validation` and `meta$db_release` from the snapshot read result into the tool output, attaching the data-class labels the MCP envelope uses (`curated_derived_analysis` for metrics, `operational_metadata` for the label/scope). Follow the existing data-class attachment pattern in `mcp-analysis-service.R`.
+- [ ] **Step 4: Fix the two cluster readers** to return `list(records = <rows>, meta = shaped$meta)` (mirroring how the network reader already threads `network$meta$snapshot`). Update their callers in `mcp-analysis-service.R` to read `res$records` for the rows and `res$meta$snapshot$validation` / `res$meta$snapshot$db_release` for the metadata, attaching the MCP data-class labels (`curated_derived_analysis` for metrics; `operational_metadata` for the label/scope). For `get_gene_network_context`, surface only `db_release` from the `gene_network_edges` snapshot meta (no cluster validation there).
 
-- [ ] **Step 4: Document** the new fields in the `get_sysndd_capabilities` analysis section (one short paragraph: validation metrics, `partition_scope` semantics, DB release label, read-only).
+- [ ] **Step 5: Document** the new fields in the `get_sysndd_capabilities` analysis section (validation metrics, `partition_scope`/`modularity_scope` semantics, the functional-vs-network distinction, DB release label, read-only).
 
-- [ ] **Step 5: Run; verify PASS** — same command as Step 2.
+- [ ] **Step 7: Run; verify PASS** — both repo + service test files.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add api/services/mcp-analysis-service.R api/services/mcp-capabilities-service.R api/tests/testthat/test-mcp-analysis-service.R
-git commit -m "feat(mcp): expose cluster-validation metrics + DB release label read-only (#459)"
+git add api/functions/mcp-analysis-repository.R api/services/mcp-analysis-service.R api/services/mcp-capabilities-service.R api/tests/testthat/test-mcp-analysis-service.R api/tests/testthat/test-mcp-analysis-repository.R
+git commit -m "feat(mcp): thread snapshot meta so cluster-validation + DB release label surface read-only (#459)"
 ```
 
 ---
@@ -814,9 +857,11 @@ git commit -m "chore(analysis): phenotype_clusters is heavy (bootstrap validatio
 #!/usr/bin/env Rscript
 # Operator diagnostic: functional Leiden resolution sweep + algorithm-factor attribution.
 # Usage: Rscript api/scripts/analysis-validation/functional-resolution-sweep.R
-# (sources the API runtime, reads approved genes, writes reports/.)
-source(file.path("api", "start_sysndd_api_min.R"))   # or the minimal bootstrap used by other scripts
-genes <- analysis_snapshot_approved_gene_ids(pool)
+# Codex-verified: there is NO start_sysndd_api_min.R. Use the same bootstrap as an existing
+# operator script (e.g. api/scripts/refresh-analysis-snapshots.R / db/updates/*.R) to set up
+# `pool` + load modules, then read approved genes with the documented signature.
+source(file.path("api", "bootstrap", "load_modules.R")); bootstrap_load_modules()  # mirror an existing script's bootstrap
+genes <- analysis_snapshot_approved_gene_ids(conn = pool)   # builder:364, arg is `conn` (NULL-tolerant)
 gammas <- c(0.5, 0.7, 1.0, 1.4, 2.0)
 ref <- NULL; rows <- list()
 for (g in gammas) {
@@ -838,7 +883,7 @@ jsonlite::write_json(rows, "api/scripts/analysis-validation/reports/functional-r
 
 (Add the factorial attribution block: rerun with `weights = NULL` and `n_iterations = 2` to decompose unweighted/non-converged effects, reporting pairwise ARI.)
 
-- [ ] **Step 2: Write the ncp/kk ARI script** — `ari(partition(ncp=8) vs partition(ncp=15))` and ARI across ≥5 `kk` k-means seeds; keep fast settings only if ARI ≳ 0.9, else print a FLAG. Write `reports/phenotype-approximation-ari-<date>.json`.
+- [ ] **Step 2: Write the ncp/kk ARI script** — `ari(partition(ncp=8) vs partition(ncp=15))` and ARI across ≥5 `kk` k-means seeds; keep fast settings only if ARI ≳ 0.9, else print a FLAG. Write `reports/phenotype-approximation-ari-<date>.json`. **Codex note (1c):** FactoMineR 2.13 `HCPC` **disables `consol` when `kk != Inf`**, so the production call's `consol = TRUE` with `kk = 50` is effectively `FALSE`. The diagnostic must report this (the inline `consol = TRUE` comment is misleading); either set/comment `consol = FALSE` for `kk = 50`, or use `kk = Inf` if k-means consolidation is actually wanted — and the ARI comparison should hold this constant.
 
 - [ ] **Step 3: Run both once and commit the reports** (host R with DB access per `documentation/08-development.qmd`; `HOST_R_LD_LIBRARY_PATH` override may be needed).
 
@@ -849,12 +894,30 @@ git commit -m "chore(analysis): archived resolution-sweep + ncp/kk ARI diagnosti
 
 ---
 
+### Task 9: Post-merge release checklist (cache invalidation) (#457, #458, #459)
+
+**Files:**
+- Modify: the derived-analysis cache version source (Codex ref: `api/bootstrap/init_cache.R:29-68`, `:85-103`) / `CACHE_VERSION`.
+
+> **Codex 3c — make this an explicit gate, not just a note.** The snapshot builder calls the
+> memoised wrappers (`gen_string_clust_obj_mem`, `gen_mca_clust_obj_mem`, `gen_network_edges_mem`),
+> whose `api_cache` keys are argument-derived and will serve **pre-fix partitions** from a warm
+> cache. The corrected (weighted/converged/data-driven) functions only take effect once the cache
+> is invalidated.
+
+- [ ] **Step 1:** Bump the derived-analysis `CACHE_VERSION` (per `init_cache.R`) so the memoised cluster wrappers re-key. (MCP mounts `api_cache` read-only and must NOT clear it — the bump + reprime happen on the API/worker side only.)
+- [ ] **Step 2:** Trigger a snapshot refresh (operator `POST /api/admin/analysis/snapshots/refresh?force=true`, or `scripts/refresh-analysis-snapshots.R`) so `functional_clusters` + `phenotype_clusters` rebuild with weighted/data-driven partitions + validation.
+- [ ] **Step 3:** Regenerate affected LLM cluster summaries (re-partitioning changed `hash_filter` → LLM cache keys) via the existing admin/worker path.
+- [ ] **Step 4:** Verify a fresh snapshot's `validation_json` + `db_release_*` via `GET /api/admin/analysis/snapshots/status` and an MCP analysis-context call.
+
+---
+
 ## Self-Review
 
-- **Spec coverage:** #457 weighted+converged (T1), `resolution` (T1), validation helper + `partition_scope` (T3), resolution sweep + attribution (T8). #458 data-driven k (T2), `min_size` (T2), coords for silhouette (T2/T3), `cluster_signature` (T2), ncp/kk ARI (T8). #459 migration (T4), persist per-cluster + partition-level + DB label (T5), expose service + MCP (T5/T6), preset weight + schema (T7). ✅ all spec sections mapped.
-- **Placeholder scan:** the only "align to actual source" notes (builder entry-point name in T5, MCP fixtures in T6) are explicit read-the-file instructions with the exact target identified, not deferred work. No TODO/TBD.
-- **Type consistency:** `validate_functional_clusters`/`validate_phenotype_clusters` return shapes in T3 match the consumption in T5 (`val$per_cluster`, `val$partition`); `gen_mca_clust_obj` list return in T2 matches the attribute consumption in T5; `cluster_max_jaccard(reference_members, bootstrap_clusters, present_ids)` signature consistent T3↔helpers.
+- **Spec coverage:** #457 weighted+converged (T1), `resolution` (T1), functional `cluster_signature` (T1), validation helper + `partition_scope` + full-partition modularity + subsampling (T3), resolution sweep + attribution (T8). #458 data-driven k (T2), `min_size` (T2), phenotype `cluster_signature` (T2), silhouette + dropped-row handling (T3), ncp/kk ARI + consol note (T8). #459 migration + column assertions (T4), persist per-cluster + partition-level + DB label (T5), expose via threaded MCP meta (T6), preset weight + schema (T7), cache invalidation (T9). ✅ all spec sections mapped.
+- **Placeholder scan:** remaining "align to actual source" notes (builder DB-open idiom, MCP fixtures, the diagnostic-script bootstrap) are explicit read-the-file instructions with named targets, not deferred work. No TODO/TBD.
+- **Type consistency (post-Codex):** `gen_mca_clust_obj` keeps its **tibble** return (T2) — no caller breakage; the phenotype validator (T3) is self-contained and takes `wide_phenotypes_df` (matches the T5 call). `validate_*` return `{per_cluster, partition}` shapes (T3) match the T5 consumption (`val$per_cluster`, `val$partition`). `cluster_max_jaccard(reference_members, bootstrap_clusters, present_ids)` consistent T3↔validators. `resampling_scheme = "subsample"` and `modularity_scope`/`partition_scope` labels consistent across T3 ↔ validation_json (T5) ↔ MCP exposure (T6).
 
 ## Execution sequencing
 
-T1 ∥ T2 (independent) → T3 (needs T1, T2) → T4 (independent, can run any time) → T5 (needs T3, T4) → T6 ∥ T7 (need T5) → T8 (needs T1, T2). Post-merge operational step: bump derived-analysis cache version + refresh snapshots + regenerate affected LLM summaries (see spec Operational notes).
+T1 ∥ T2 (independent) → T3 (needs T1, T2) → T4 (independent, any time) → T5 (needs T3, T4) → T6 ∥ T7 (need T5) → T8 (needs T1, T2) → **T9 post-merge** (cache invalidation + refresh + LLM regen). Migration 037 lands with T4/T5.
