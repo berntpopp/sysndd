@@ -44,3 +44,11 @@ test_that("admin ontology endpoint is mounted via mount_endpoint before /api/adm
   # The more-specific /api/admin/ontology prefix must be mounted first.
   expect_lt(ontology_line, admin_line)
 })
+
+test_that("dictionary-status route exists, is Administrator-gated, and calls the status service", {
+  src <- read_api_lines("endpoints/admin_ontology_mapping_endpoints.R")
+  body <- paste(src, collapse = "\n")
+  expect_match(body, "@get /dictionary-status")
+  expect_match(body, "ontology_dictionary_status")
+  expect_match(body, "require_role\\(req, res, \"Administrator\"\\)")
+})

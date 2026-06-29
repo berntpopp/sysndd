@@ -53,3 +53,19 @@ function(req, res) {
   require_role(req, res, "Administrator")
   service_disease_ontology_mapping_status()
 }
+
+#* Disease dictionary apply/blocked status (Administrator only)
+#*
+#* Derived from async job history (not table MAX(update_date)): reports whether
+#* the latest omim_update is blocked (fresh pending CSV), when the dictionary was
+#* last fully applied, how many additive terms were auto-applied, and a staleness
+#* flag. Cheap (DB + job history only).
+#*
+#* @tag admin
+#* @serializer unboxedJSON
+#*
+#* @get /dictionary-status
+function(req, res) {
+  require_role(req, res, "Administrator")
+  ontology_dictionary_status()
+}
