@@ -55,11 +55,19 @@ if [ ! -f "${SQL_FIXTURE}" ]; then
   exit 1
 fi
 
+# The blocked banner only needs the pending CSV to EXIST and be ≤ 48 h old
+# (api/functions/ontology-status-service.R::.ontology_status_csv_fresh() checks
+# file.exists() + mtime — it never reads the contents). So when a real source
+# CSV isn't available on this host (e.g. CI or a fresh checkout without the
+# OMIM-investigation drive mounted), synthesize a minimal placeholder rather
+# than failing — the freshness gate is satisfied identically.
 if [ ! -f "${PENDING_CSV_SRC}" ]; then
-  echo "ERROR: Source pending CSV not found at ${PENDING_CSV_SRC}" >&2
-  echo "       Set PENDING_CSV_SRC to the path of a valid" >&2
-  echo "       pending_ontology_update CSV file on this host." >&2
-  exit 1
+  echo "NOTE: Source pending CSV not found at ${PENDING_CSV_SRC}" >&2
+  echo "      Synthesizing a minimal placeholder CSV (content is not read by the" >&2
+  echo "      blocked-banner freshness check — only existence + mtime ≤ 48 h)." >&2
+  PENDING_CSV_SRC="$(mktemp --suffix=.csv)"
+  printf 'disease_ontology_id_version,update_type\nOMIM:000000_1,blocked_placeholder\n' \
+    > "${PENDING_CSV_SRC}"
 fi
 
 # ── Step 1: seed the async_jobs row ─────────────────────────────────────────
