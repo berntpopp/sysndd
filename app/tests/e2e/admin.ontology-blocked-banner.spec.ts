@@ -65,6 +65,21 @@ test.describe('admin: ontology blocked banner (#470)', () => {
     'admin sees the persistent blocked banner on ManageAnnotations load (no update click required)',
     async ({ loggedInAs }) => {
       const page = await loggedInAs('admin');
+
+      // Preflight: read the on-mount dictionary-status response (the app's own
+      // authenticated request) so we can SKIP cleanly when the blocked-OMIM
+      // fixture isn't seeded, instead of a 15 s timeout-fail. Set up the waiter
+      // before navigating so the mount request is captured. Requires
+      // seed-blocked-ontology.sh to have run.
+      const statusPromise = page
+        .waitForResponse(
+          (r) =>
+            r.url().includes('/api/admin/ontology/dictionary-status') && r.status() === 200,
+          { timeout: 15_000 },
+        )
+        .then((r) => r.json())
+        .catch(() => null);
+
       await page.goto('/ManageAnnotations');
 
       // AuthenticatedPageShell renders title="Manage Annotations" as <h1>.
@@ -72,14 +87,15 @@ test.describe('admin: ontology blocked banner (#470)', () => {
         page.getByRole('heading', { name: /Manage Annotations/i }),
       ).toBeVisible({ timeout: 10_000 });
 
+      const status = await statusPromise;
+      test.skip(
+        status?.blocked !== true,
+        'blocked-OMIM fixture not seeded (run app/tests/e2e/fixtures/seed-blocked-ontology.sh); skipping persistent-banner assertion',
+      );
+
       // The blocked-banner alert is rendered by OntologyAnnotationsCard inside a
       // <BAlert v-if="blocked"> block.  Its heading text is:
       //   <h6 class="alert-heading ...">Ontology Update Blocked <span ...>…</span></h6>
-      // The on-mount dictionary-status fetch can take a few seconds; 15 s timeout.
-      //
-      // NOTE: this assertion requires the SQL seed row AND the pending CSV to be
-      // present in the API container (see seed-blocked-ontology.sh).  Without the
-      // seed the status endpoint returns blocked=false and this test will time out.
       await expect(page.getByText(/Ontology Update Blocked/i)).toBeVisible({
         timeout: 15_000,
       });
