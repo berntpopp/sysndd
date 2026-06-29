@@ -18,7 +18,7 @@
               :model-value="ontologyInput as any"
               :results="ontologySearchResults"
               :loading="ontologySearchLoading"
-              :no-results-message="ontologyNoResultsMessage ?? 'No results found'"
+              :no-results-message="ontologyNoResultsMessage"
               label="Disease"
               input-id="ontology-select"
               placeholder="Search by disease name or ontology ID..."

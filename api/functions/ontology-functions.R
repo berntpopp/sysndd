@@ -216,9 +216,13 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #' Extract purely-additive ontology terms
 #'
 #' Returns rows of the freshly-built ontology set whose
-#' `disease_ontology_id_version` does not yet exist in the current set. Such
-#' versions are brand-new and therefore not referenced by any entity (entities
-#' can only reference versions already present), so inserting them is zero-risk.
+#' `disease_ontology_id_version` does not yet exist in the current set. This is
+#' net-new versions, which includes BOTH brand-new diseases AND a new version of
+#' an already-present (possibly entity-referenced) disease — the version string
+#' differs, so it is absent from current. Inserting them is FK-safe because no
+#' existing row is modified or removed: an entity that references the OLD version
+#' keeps pointing at the retained old row, and Force Apply reconciles the
+#' superseding version later. The insert can never break an entity FK.
 #'
 #' @param disease_ontology_set_update Freshly built ontology set (tibble).
 #' @param disease_ontology_set_current Current ontology set (tibble; needs
