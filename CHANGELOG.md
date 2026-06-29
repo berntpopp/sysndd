@@ -16,6 +16,11 @@ Patch release: analysis snapshots self-heal when stale, and the phenotype-cluste
 - **Phenotype Clustering "p-value" and "v-test" columns rendered blank**: the MCA stats arrive with dotted keys (`p.value`, `v.test`), and BootstrapVueNext's `BTable` renders an empty cell for a dotted field key (and Vue parses a `#cell-p.value` slot name as `cell-p` + a `value` modifier), so neither the column nor a custom cell slot could show the values. The rows are now normalized to flat aliases (`p_value`, `v_test`) via `normalizePhenotypeClusterRows()` before they reach the table, with the original dotted keys preserved for the Excel export. Regression-guarded by `phenotypeClusterTable.spec.ts` and `AnalysesPhenotypeClusters.spec.ts`.
 - **The Phenotype–Functional Correlation page showed a raw "Request failed with status code 503" toast** while its snapshot was being prepared, instead of the friendly "being prepared" panel + retry shown by its sibling analysis pages. It now classifies the snapshot-preparing 503 via `isSnapshotPreparingError()` and renders the same graceful state. Covered by a new `AnalysesPhenotypeFunctionalCorrelation.spec.ts`.
 
+### Dependencies
+
+- Bumped the app production-minor-patch group (#472): `@unhead/vue` 3.1.4 → 3.1.6, `swagger-ui` / `swagger-ui-dist` 5.32.7 → 5.32.8, `vue` 3.5.35 → 3.5.39.
+- Bumped the app dev-dependencies group (#473, 11 updates): `@axe-core/playwright` 4.11.3 → 4.12.1, `@playwright/test` 1.61.0 → 1.61.1, `@types/node` 26.0.0 → 26.0.1, `@vue/compiler-sfc` 3.5.35 → 3.5.39, `axios` 1.18.0 → 1.18.1, `eslint` 10.5.0 → 10.6.0, `globals` 17.6.0 → 17.7.0, `postcss` 8.5.15 → 8.5.16, `prettier` 3.8.4 → 3.9.3, `typescript-eslint` 8.61.1 → 8.62.0, `vite` 7.3.5 → 7.3.6.
+
 ## [0.26.2] — 2026-06-29
 
 Patch release: restore the column-statistics header tooltips across all public tables and make the underlying counts correct everywhere.
