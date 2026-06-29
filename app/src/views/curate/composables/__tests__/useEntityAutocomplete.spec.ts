@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test-utils/mocks/server';
-import { useEntityAutocomplete } from '../useEntityAutocomplete';
+import { useEntityAutocomplete, OMIM_PENDING_HINT } from '../useEntityAutocomplete';
 
 // Lifecycle (listen / resetHandlers / close) is provided globally by
 // vitest.setup.ts. This file only adds per-test handler overrides via
@@ -55,6 +55,25 @@ describe('useEntityAutocomplete', () => {
     const a = useEntityAutocomplete({ getCurrentEntityId: () => 5 });
     await a.searchReplacementEntity('GR');
     expect(a.replace_entity_search_results.value.map((e) => e.entity_id)).toEqual([6]);
+  });
+
+  it('exposes an OMIM-pending hint when an OMIM-shaped query returns nothing', async () => {
+    server.use(
+      http.get('*/api/search/ontology*', () => HttpResponse.json([]))
+    );
+    const { searchOntology, ontologyNoResultsMessage } = useEntityAutocomplete();
+    // searchOntologyApi is mocked to return [] by the MSW override above
+    await searchOntology('621533');
+    expect(ontologyNoResultsMessage.value).toBe(OMIM_PENDING_HINT);
+  });
+
+  it('keeps the default hint for a non-OMIM query', async () => {
+    server.use(
+      http.get('*/api/search/ontology*', () => HttpResponse.json([]))
+    );
+    const { searchOntology, ontologyNoResultsMessage } = useEntityAutocomplete();
+    await searchOntology('seizure');
+    expect(ontologyNoResultsMessage.value).toBe('No results found');
   });
 
   test('clearAll resets every buffer', () => {

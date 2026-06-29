@@ -18,6 +18,7 @@
               :model-value="ontologyInput as any"
               :results="ontologySearchResults"
               :loading="ontologySearchLoading"
+              :no-results-message="ontologyNoResultsMessage ?? 'No results found'"
               label="Disease"
               input-id="ontology-select"
               placeholder="Search by disease name or ontology ID..."
@@ -277,6 +278,7 @@ const props = defineProps<{
   ontologyInput: string | null;
   ontologySearchResults: any[];
   ontologySearchLoading: boolean;
+  ontologyNoResultsMessage?: string;
   deactivateCheck: boolean;
   replaceCheck: boolean;
   replaceDisplay: string;
