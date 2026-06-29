@@ -14,7 +14,14 @@ const viewports = [
 
 async function gotoGene(page: Page, symbol: string) {
   await page.goto(`/Genes/${symbol}`);
-  await expect(page.getByRole('heading', { level: 1, name: symbol })).toBeVisible();
+  // The gene page's <main> hydrates after the SPA fetches the gene record. On a
+  // cold load — and especially under the serial group's back-to-back navigations
+  // — that first paint can exceed the default 5s expect timeout, so give the H1
+  // the same generous budget as the constraint-header wait below to avoid a
+  // hydration-timing flake short-circuiting the whole serial group.
+  await expect(page.getByRole('heading', { level: 1, name: symbol })).toBeVisible({
+    timeout: 30_000,
+  });
   // The gene page hydrates several async sources after the heading renders; the
   // first (cold) load is slow. Wait (best-effort) for the gnomAD constraint card
   // header — always present once that card mounts — so the per-viewport layout

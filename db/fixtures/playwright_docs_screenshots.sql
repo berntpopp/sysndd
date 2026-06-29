@@ -26,6 +26,47 @@ ON DUPLICATE KEY UPDATE
   `locus_type` = VALUES(`locus_type`),
   `status` = VALUES(`status`);
 
+-- Gene-detail UI/UX e2e fixtures (app/tests/e2e/genes-detail-ui-ux.spec.ts and
+-- gene-page-own-data-priority.spec.ts). ARID1B carries real gnomAD v4 constraint
+-- scores so the gnomAD constraint MATRIX renders (the dense-data layout the
+-- overflow checks exercise); NAA10 has no constraint data so the no-data empty
+-- state + "view on gnomAD" link render. Without these rows /Genes/ARID1B and
+-- /Genes/NAA10 404 and the specs time out waiting for the gene heading.
+INSERT INTO `non_alt_loci_set` (
+  `hgnc_id`,
+  `symbol`,
+  `name`,
+  `locus_group`,
+  `locus_type`,
+  `status`,
+  `gnomad_constraints`
+) VALUES
+  (
+    'HGNC:18040',
+    'ARID1B',
+    'AT-rich interaction domain 1B',
+    'protein-coding gene',
+    'gene with protein product',
+    'Approved',
+    '{"pLI":1,"oe_lof":0.15062,"oe_lof_lower":0.111,"oe_lof_upper":0.205,"oe_mis":0.95931,"oe_mis_lower":0.929,"oe_mis_upper":0.989,"oe_syn":1.1558,"oe_syn_lower":1.105,"oe_syn_upper":1.208,"exp_lof":192.54,"obs_lof":29,"exp_mis":2977.1,"obs_mis":2856,"exp_syn":1198.3,"obs_syn":1385,"lof_z":9.986,"mis_z":0.81072,"syn_z":-2.9392}'
+  ),
+  (
+    'HGNC:18704',
+    'NAA10',
+    'N-alpha-acetyltransferase 10, NatA catalytic subunit',
+    'protein-coding gene',
+    'gene with protein product',
+    'Approved',
+    NULL
+  )
+ON DUPLICATE KEY UPDATE
+  `symbol` = VALUES(`symbol`),
+  `name` = VALUES(`name`),
+  `locus_group` = VALUES(`locus_group`),
+  `locus_type` = VALUES(`locus_type`),
+  `status` = VALUES(`status`),
+  `gnomad_constraints` = VALUES(`gnomad_constraints`);
+
 INSERT INTO `mode_of_inheritance_list` (
   `hpo_mode_of_inheritance_term`,
   `hpo_mode_of_inheritance_term_name`,
