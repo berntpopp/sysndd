@@ -421,12 +421,22 @@ validate_phenotype_clusters <- function(reference_clusters, mca_ind_coord, wide_
   keep <- coord_ids %in% names(ent_to_cluster)
   memb_int <- as.integer(factor(ent_to_cluster[coord_ids[keep]]))
   sil_mean <- NA_real_; per_sil <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
+  k_curve <- NULL
   if (length(unique(memb_int)) >= 2) {
     d <- stats::dist(mca_ind_coord[keep, , drop = FALSE])
     sil <- cluster::silhouette(memb_int, d)
     sil_mean <- mean(sil[, "sil_width"])
     agg <- tapply(sil[, "sil_width"], sil[, "cluster"], mean)
     per_sil <- stats::setNames(as.numeric(agg)[order(as.integer(names(agg)))], names(ref_members))
+    # k-selection curve: mean silhouette over k in 2..10 on the SAME Ward linkage HCPC uses,
+    # so the data-driven k can be shown to sit at/near a silhouette optimum (supporting diagnostic).
+    d_full <- stats::dist(mca_ind_coord)
+    hc <- stats::hclust(d_full, method = "ward.D2")
+    ks <- 2:min(10L, nrow(mca_ind_coord) - 1L)
+    k_curve <- stats::setNames(
+      lapply(ks, function(k) mean(cluster::silhouette(stats::cutree(hc, k = k), d_full)[, "sil_width"])),
+      as.character(ks)
+    )
   }
 
   # Entity-bootstrap Jaccard: resample entities, recompute MCA+HCPC, max-Jaccard per cluster.
@@ -460,6 +470,7 @@ validate_phenotype_clusters <- function(reference_clusters, mca_ind_coord, wide_
     partition = list(
       algorithm = "mca_hcpc", k = n_clusters,
       k_selection_metric = "hcpc_relative_inertia_loss",
+      k_selection_curve = k_curve,             # mean silhouette per k in 2..10 (Ward), or NULL
       mean_silhouette = sil_mean, n_clusters = n_clusters,
       partition_scope = "visible_top_level", resampling_scheme = "bootstrap_entities"
     )
