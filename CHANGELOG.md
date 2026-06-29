@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.3] — 2026-06-29
+
+Patch release: analysis snapshots self-heal when stale, and the phenotype-cluster p-value / v-test columns render again.
+
+### Fixed
+
+- **Public analysis pages got permanently stuck on "This analysis is being prepared…" / `503` once their snapshot aged past 7 days** (GeneNetworks, Phenotype Clustering, Phenotype–Functional Correlation, and the other analysis presets): the startup self-heal (#420/#440) only re-built snapshots that were *missing*. Its skip probe, `analysis_snapshot_public_exists()`, returned TRUE for *any* public-ready row — including a `snapshot_stale` or `source_version_mismatch` one — so a stale snapshot was treated as "already present" and never re-enqueued, serving a 503 forever until an operator forced a rebuild. The bootstrap (and the non-`force` admin refresh) now use a staleness-aware probe, `analysis_snapshot_public_current()`, which only skips a preset whose active snapshot is genuinely current (`status_code == "available"`). Stale / version-mismatched snapshots now self-heal on the next API restart, exactly like missing ones. Regression-guarded by `test-unit-analysis-snapshot-repository.R` and `test-unit-analysis-snapshot-bootstrap.R`.
+- **Phenotype Clustering "p-value" and "v-test" columns rendered blank**: the MCA stats arrive with dotted keys (`p.value`, `v.test`), and BootstrapVueNext's `BTable` renders an empty cell for a dotted field key (and Vue parses a `#cell-p.value` slot name as `cell-p` + a `value` modifier), so neither the column nor a custom cell slot could show the values. The rows are now normalized to flat aliases (`p_value`, `v_test`) via `normalizePhenotypeClusterRows()` before they reach the table, with the original dotted keys preserved for the Excel export. Regression-guarded by `phenotypeClusterTable.spec.ts` and `AnalysesPhenotypeClusters.spec.ts`.
+- **The Phenotype–Functional Correlation page showed a raw "Request failed with status code 503" toast** while its snapshot was being prepared, instead of the friendly "being prepared" panel + retry shown by its sibling analysis pages. It now classifies the snapshot-preparing 503 via `isSnapshotPreparingError()` and renders the same graceful state. Covered by a new `AnalysesPhenotypeFunctionalCorrelation.spec.ts`.
+
 ## [0.26.2] — 2026-06-29
 
 Patch release: restore the column-statistics header tooltips across all public tables and make the underlying counts correct everywhere.
