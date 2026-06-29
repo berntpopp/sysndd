@@ -17,14 +17,15 @@ test.describe('auth: signup flow', () => {
     // to keep the spec aligned with the live UI.
     await page.getByPlaceholder('Username').fill(username);
     await page.getByPlaceholder(/your-institution\.com/).fill(email);
-    await page.getByPlaceholder(/NNNN-NNNN/).fill(orcid);
+    // RegisterView's ORCID field placeholder is "0000-0000-0000-000X".
+    await page.getByPlaceholder(/0000-0000-0000-000X/).fill(orcid);
     await page.getByPlaceholder('First name').fill('PW');
     await page.getByPlaceholder('Family name').fill('Test');
     await page
       .getByPlaceholder('Your interest in SysNDD')
       .fill('Playwright e2e test fixture user (auto-generated, may be deleted).');
 
-    await page.getByText(/I accept the terms and use/i).click();
+    await page.getByText(/accept the terms of use/i).click();
 
     await page.getByRole('button', { name: /^Register$/ }).click();
 

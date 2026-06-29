@@ -146,12 +146,24 @@ function(req, res) {
       )
     )
 
-    send_noreply_email(
-      email_body = email_html,
-      email_subject = "SysNDD Registration Request Received",
-      email_recipient = user$email,
-      email_blind_copy = "curator@sysndd.org",
-      html_content = TRUE
+    # The registration request is recorded once the user row is inserted above.
+    # The notification email is best-effort: a transient SMTP failure must not
+    # fail (or half-complete) the registration — the account already exists and
+    # is visible to admins for approval. Log loudly and continue with a 200.
+    tryCatch(
+      send_noreply_email(
+        email_body = email_html,
+        email_subject = "SysNDD Registration Request Received",
+        email_recipient = user$email,
+        email_blind_copy = "curator@sysndd.org",
+        html_content = TRUE
+      ),
+      error = function(e) {
+        message(sprintf(
+          "[signup] registration recorded for '%s' but notification email failed (non-fatal): %s",
+          user$user_name, conditionMessage(e)
+        ))
+      }
     )
   } else {
     res$status <- 404
