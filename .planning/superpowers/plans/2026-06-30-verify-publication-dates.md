@@ -66,28 +66,18 @@ rows_affected <- db_execute_statement(
 )
 ```
 
-- [ ] **Step 4: Add a behavioral test** with a mocked `info_from_pmid` returning a known source, asserting the row's `publication_date_source` is written (use `with_test_db_transaction`):
+- [ ] **Step 4: Run; verify PASS** — same command as Step 2.
 
-```r
-test_that("a refreshed publication row gets its source persisted", {
-  with_test_db_transaction({
-    conn <- getOption(".test_db_con")
-    DBI::dbExecute(conn, "INSERT INTO publication (PMID, publication_date_source) VALUES (999001, NULL)")
-    local_mocked_bindings(info_from_pmid = function(pmid, ...) dplyr::tibble(
-      PMID = 999001, Publication_date = as.Date("2020-05-01"),
-      publication_date_source = "pubmed"), .package = NULL)
-    .async_job_run_publication_refresh(list(pmids = 999001), conn = conn, progress = function(...) NULL)
-    got <- DBI::dbGetQuery(conn, "SELECT publication_date_source FROM publication WHERE PMID = 999001")
-    expect_equal(got$publication_date_source, "pubmed")
-  })
-})
-```
+> **Codex-verified note:** the durable handler signature is
+> `.async_job_run_publication_refresh(job, payload, state, worker_config)` (`:758`) — NOT
+> `(payload, conn, progress)`. Invoking it directly in a unit test is heavy (it needs a
+> `job` row, `state`, and `worker_config`), so Task 1 is intentionally a **static guard
+> only**; the source-persistence behavior is exercised end-to-end by the shared-function
+> test in Task 2 (which tests the same UPDATE columns through `backfill_publication_dates_run`).
+> The publication key column is `publication_id` (a prefixed string, e.g. `PMID:123`), not a
+> bare numeric `PMID` — never seed/query a `PMID` column.
 
-(Align the handler call signature to the actual `.async_job_run_publication_refresh` interface.)
-
-- [ ] **Step 5: Run; verify PASS** — same command as Step 2.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add api/functions/async-job-handlers.R api/tests/testthat/test-unit-publication-refresh-source.R
@@ -111,18 +101,20 @@ git commit -m "fix(api): publication_refresh persists publication_date_source so
 
 ```r
 # api/tests/testthat/test-unit-publication-date-backfill.R
+# NOTE: publication key is `publication_id` (prefixed string, e.g. "PMID:999100"); there is
+# no bare numeric PMID column. Seed publication_id + a primary-approved review join.
 test_that("backfill selects unverified primary-approved rows and writes both columns", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
-    # seed a primary-approved publication with NULL source (fixtures: see test-integration-omim-snapshot-additive.R for join seeding patterns)
-    seed_primary_approved_publication(conn, pmid = 999100, source = NULL)
-    local_mocked_bindings(info_from_pmid = function(pmids, ...) dplyr::tibble(
-      PMID = 999100, Publication_date = as.Date("2019-03-01"),
-      publication_date_source = "pubmed"), .package = NULL)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999100", source = NULL)
+    # info_from_pmid returns one row per fetched PMID with Publication_date + publication_date_source
+    local_mocked_bindings(info_from_pmid = function(pmid_value, ...) dplyr::tibble(
+      Publication_date = as.Date("2019-03-01"), publication_date_source = "pubmed"),
+      .package = NULL)
     res <- backfill_publication_dates_run(conn, dry_run = FALSE)
-    expect_gte(res$targeted, 1L)
-    expect_equal(res$verified, 1L)
-    got <- DBI::dbGetQuery(conn, "SELECT Publication_date, publication_date_source FROM publication WHERE PMID = 999100")
+    expect_gte(res$targeted, 1L); expect_equal(res$verified, 1L)
+    got <- DBI::dbGetQuery(conn,
+      "SELECT Publication_date, publication_date_source FROM publication WHERE publication_id = 'PMID:999100'")
     expect_equal(got$publication_date_source, "pubmed")
     expect_equal(as.character(got$Publication_date), "2019-03-01")
   })
@@ -131,67 +123,39 @@ test_that("backfill selects unverified primary-approved rows and writes both col
 test_that("dry_run reports targets without writing", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
-    seed_primary_approved_publication(conn, pmid = 999101, source = NULL)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999101", source = NULL)
     res <- backfill_publication_dates_run(conn, dry_run = TRUE)
     expect_gte(res$targeted, 1L); expect_equal(res$verified, 0L)
-    got <- DBI::dbGetQuery(conn, "SELECT publication_date_source FROM publication WHERE PMID = 999101")
+    got <- DBI::dbGetQuery(conn,
+      "SELECT publication_date_source FROM publication WHERE publication_id = 'PMID:999101'")
     expect_true(is.na(got$publication_date_source))
   })
 })
 ```
 
-(Provide `seed_primary_approved_publication()` as a small test helper, or inline the inserts mirroring the join used by `db/updates/backfill_publication_dates.R:102-111`.)
+(`seed_primary_approved_publication()` is a small test helper seeding `publication` +
+`ndd_review_publication_join` (`is_reviewed=1`) + `ndd_entity_review` (`is_primary=1`,
+`review_approved=1`), mirroring the join in `db/updates/backfill_publication_dates.R:102-111`.)
 
 - [ ] **Step 2: Run; verify FAIL** — `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-publication-date-backfill.R')"`
 
-- [ ] **Step 3: Extract the shared function.** Read `db/updates/backfill_publication_dates.R` (target query `:102-111`, chunked fetch, rate delay `:53-54,:121`, batched UPDATE `:183`) and move its core into `backfill_publication_dates_run(conn, limit, dry_run, progress)`:
+- [ ] **Step 3: Extract the shared function by lifting the script's existing logic verbatim.** **Codex-verified** — do NOT re-derive the SQL; the standalone script already keys on `publication_id` and has a per-PMID fallback that must be preserved:
+  - **Target query** (`:102-111`, lift verbatim) selects `DISTINCT p.publication_id` (NOT `PMID`):
+    ```sql
+    SELECT DISTINCT p.publication_id, p.Publication_date AS old_date, p.publication_date_source AS old_source
+      FROM publication p
+      JOIN ndd_review_publication_join rpj ON rpj.publication_id = p.publication_id AND rpj.is_reviewed = 1
+      JOIN ndd_entity_review er ON er.review_id = rpj.review_id AND er.is_primary = 1 AND er.review_approved = 1
+     WHERE p.publication_date_source IS NULL
+        OR p.publication_date_source NOT IN ('pubmed','pubmed_partial','medline_date','unknown')
+    ```
+  - **UPDATE** (`:183`, lift verbatim) keys on `publication_id`:
+    ```sql
+    UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?
+    ```
+  - **Per-PMID fallback (`:120-159`, MUST preserve):** the script chunk-fetches via `info_from_pmid` and, on a chunk error, falls back to single-PMID `fetch_one` fetches so one bad PMID doesn't fail the whole chunk/job. Copy that fallback into the shared function — do not replace it with a single bulk fetch that aborts the chunk.
 
-```r
-# api/functions/publication-date-backfill.R
-backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE, progress = NULL) {
-  locked <- DBI::dbGetQuery(conn, "SELECT GET_LOCK('sysndd_backfill_publication_dates', 0) AS l")$l
-  if (is.na(locked) || locked != 1) return(list(targeted = 0L, verified = 0L, partial = 0L,
-                                                unresolved = 0L, dry_run = dry_run, skipped = "lock_held"))
-  on.exit(DBI::dbExecute(conn, "SELECT RELEASE_LOCK('sysndd_backfill_publication_dates')"), add = TRUE)
-
-  targets <- DBI::dbGetQuery(conn,
-    "SELECT DISTINCT p.PMID
-       FROM publication p
-       JOIN ndd_review_publication_join j ON j.publication_id = p.publication_id AND j.is_reviewed = 1
-       JOIN ndd_entity_review er ON er.review_id = j.review_id
-      WHERE er.is_primary = 1 AND er.review_approved = 1
-        AND (p.publication_date_source IS NULL
-             OR p.publication_date_source NOT IN ('pubmed','pubmed_partial','medline_date'))")$PMID
-  if (!is.null(limit)) targets <- utils::head(targets, limit)
-  if (!is.null(progress)) progress("select", total = length(targets))
-  if (length(targets) == 0 || dry_run)
-    return(list(targeted = length(targets), verified = 0L, partial = 0L,
-                unresolved = 0L, dry_run = dry_run))
-
-  verified <- 0L; partial <- 0L; unresolved <- 0L
-  chunks <- split(targets, ceiling(seq_along(targets) / 200))
-  for (ci in seq_along(chunks)) {
-    info <- info_from_pmid(chunks[[ci]])                       # returns Publication_date + publication_date_source
-    DBI::dbWithTransaction(conn, {
-      for (i in seq_len(nrow(info))) {
-        r <- info[i, ]
-        # publication_id == PMID in this schema (the refresh handler binds pmid to
-        # `WHERE publication_id = ?`); preserve the standalone script's exact UPDATE.
-        DBI::dbExecute(conn,
-          "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?",
-          params = unname(list(r$Publication_date, r$publication_date_source, r$PMID)))
-      }
-    })
-    verified  <- verified  + sum(info$publication_date_source == "pubmed", na.rm = TRUE)
-    partial   <- partial   + sum(info$publication_date_source %in% c("pubmed_partial","medline_date"), na.rm = TRUE)
-    unresolved<- unresolved+ sum(is.na(info$publication_date_source) | info$publication_date_source == "unknown")
-    Sys.sleep(0.34)                                            # NCBI rate-gate
-    if (!is.null(progress)) progress("fetch", current = ci, total = length(chunks))
-  }
-  list(targeted = length(targets), verified = verified, partial = partial,
-       unresolved = unresolved, dry_run = FALSE)
-}
-```
+  Wrap the lifted logic in `backfill_publication_dates_run(conn, limit = NULL, dry_run = FALSE, progress = NULL)`: acquire `GET_LOCK('sysndd_backfill_publication_dates', 0)` (return `skipped="lock_held"` if not acquired, `RELEASE_LOCK` on exit), apply `limit` via `utils::head`, short-circuit on `dry_run` returning `list(targeted, verified=0L, partial=0L, unresolved=0L, dry_run=TRUE)`, otherwise chunk (≤200), fetch (with the per-PMID fallback), `DBI::dbWithTransaction` batched UPDATE keyed on `publication_id`, `Sys.sleep(0.34)` NCBI rate-gate between chunks, call `progress(...)` if non-NULL, and return `list(targeted, verified, partial, unresolved, dry_run=FALSE)`. The `verified`/`partial`/`unresolved` counters derive from `publication_date_source` (`pubmed`→verified; `pubmed_partial`/`medline_date`→partial; `NA`/`unknown`→unresolved).
 
 - [ ] **Step 4: Register the module** in `api/bootstrap/load_modules.R`. Then **rewrite the standalone script** `db/updates/backfill_publication_dates.R` to source the runtime + parse `--dry-run/--apply/--limit` and call `backfill_publication_dates_run(conn, limit, dry_run)`, preserving the operator CLI.
 
@@ -216,29 +180,36 @@ git commit -m "refactor(api): shared verified-date backfill function reused by s
 - Consumes: `backfill_publication_dates_run` (Task 2).
 - Produces: registered handler `publication_date_backfill`; returns the run summary into `result_json`.
 
-- [ ] **Step 1: Write the failing registration test**
+- [ ] **Step 1: Write the failing registration test.** **Codex-verified:** `async_job_handler_registry` is a **list object** (`async-job-handlers.R:834`), not a function — use `names(...)` directly:
 
 ```r
 test_that("publication_date_backfill handler is registered", {
-  reg <- async_job_handler_registry()
-  expect_true("publication_date_backfill" %in% names(reg))
+  expect_true("publication_date_backfill" %in% names(async_job_handler_registry))
 })
 ```
 
 - [ ] **Step 2: Run; verify FAIL** — `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-publication-date-backfill.R')"`
 
-- [ ] **Step 3: Add the handler + registry entry** (model on the pubtatornidd/ontology-mapping handlers — benign skip completes successfully; hard failure marks the job failed):
+- [ ] **Step 3: Add the handler + registry entry.** **Codex-verified:** durable handlers take `(job, payload, state, worker_config)` (e.g. `.async_job_run_publication_refresh` `:758`), open their own DB connection from the worker config, and create a progress reporter via `.async_job_progress_reporter(job$job_id[[1]])`. Model the skip/fail semantics on the pubtatornidd/ontology-mapping handlers (benign skip completes successfully; hard failure marks the job failed):
 
 ```r
-.async_job_run_publication_date_backfill <- function(payload, conn, progress = function(...) NULL) {
-  res <- backfill_publication_dates_run(conn,
-           limit = payload$limit %||% NULL,
-           dry_run = isTRUE(payload$dry_run),
-           progress = progress)
+.async_job_run_publication_date_backfill <- function(job, payload, state, worker_config) {
+  reporter <- .async_job_progress_reporter(job$job_id[[1]])
+  conn <- async_job_open_connection(worker_config)        # mirror the DB-open used by other handlers
+  on.exit(pool::poolReturn(conn), add = TRUE)             # align to the actual connection lifecycle
+  res <- backfill_publication_dates_run(
+    conn,
+    limit   = payload$limit %||% NULL,
+    dry_run = isTRUE(payload$dry_run),
+    progress = function(stage, ...) reporter(stage, ...)
+  )
   list(status = "success", summary = res)
 }
-# in async_job_handler_registry():  publication_date_backfill = .async_job_run_publication_date_backfill
+# add to the async_job_handler_registry <- list( ... ) object:
+#   publication_date_backfill = .async_job_run_publication_date_backfill,
 ```
+
+(Read an existing handler `:758-832` + the registry `:834-929` to copy the exact DB-open + reporter idiom; `async_job_open_connection`/`pool::poolReturn` above are placeholders for whatever those handlers actually use.)
 
 - [ ] **Step 4: Run; verify PASS** — same command.
 
@@ -304,20 +275,23 @@ git commit -m "feat(api): Administrator endpoints to trigger + inspect verified-
 - [ ] **Step 1: Write the test** — a row with `publication_date_source = 'pubmed'` yields `publication_date_confidence = "pubmed_verified"` and a year-bearing `recommended_citation`:
 
 ```r
+# Codex-verified: mcp_get_publication_context(pmid, abstract_max_chars, abstract_mode) takes a
+# SINGLE prefixed pmid and NO conn (it opens its own approved-public read). Batch variant is
+# mcp_get_publications_context(pmids, ...).
 test_that("verified publication yields pubmed_verified confidence and a dated citation", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
-    seed_primary_approved_publication(conn, pmid = 999200, source = "pubmed",
-                                      pub_date = "2018-07-15")
-    out <- mcp_get_publication_context(list(pmids = 999200), conn = conn)
-    rec <- out$publications[[1]]
+    seed_primary_approved_publication(conn, publication_id = "PMID:999200",
+                                      source = "pubmed", pub_date = "2018-07-15")
+    rec <- mcp_get_publication_context("PMID:999200")
     expect_equal(rec$publication_date_confidence, "pubmed_verified")
     expect_match(rec$recommended_citation, "2018")
   })
 })
 ```
 
-(Align `mcp_get_publication_context` call shape to the existing MCP record-service tests.)
+(Confirm the exact result shape against `mcp-record-service.R:188-193` and the existing MCP
+record-service tests — `mcp_get_publication_context` returns the single record object.)
 
 - [ ] **Step 2: Run; verify PASS** (the derivation + citation logic already supports this once the source is set) — `cd api && Rscript -e "testthat::test_file('tests/testthat/test-mcp-publication-context-verified.R')"`
 
