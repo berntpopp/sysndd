@@ -611,6 +611,59 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Task 9 (#470): persistent blocked banner on page load
+  // -------------------------------------------------------------------------
+  it('shows the blocked banner on page load when dictionary status reports blocked', async () => {
+    // Override dictionary-status BEFORE mounting so the on-mount hydration
+    // call sees the blocked payload immediately.
+    server.use(
+      http.get('/api/admin/ontology/dictionary-status', () =>
+        HttpResponse.json({
+          blocked: true,
+          blocked_job_id: 'job-x',
+          stale: false,
+          last_full_apply_at: null,
+          last_additive_apply_at: null,
+          latest_blocked_omim_update_at: null,
+          disease_ontology_last_applied: null,
+          max_omim_id: null,
+          critical_count: 2,
+          auto_fixable_count: 1,
+          additive_applied: 0,
+        })
+      ),
+      // fetchOntologyJobResult calls GET /api/jobs/:job_id/status
+      http.get('/api/jobs/:job_id/status', () =>
+        HttpResponse.json({
+          job_id: ['job-x'],
+          status: ['completed'],
+          step: ['Blocked'],
+          result: {
+            status: ['blocked'],
+            blocked_job_id: ['job-x'],
+            critical_count: [2],
+            auto_fixable_count: [1],
+            total_affected: [3],
+            critical_entities: [],
+            auto_fixes: [],
+          },
+        })
+      ),
+      // fetchForceApplyUsers calls GET /api/user/list (no auth in test env)
+      http.get('/api/user/list', () => HttpResponse.json([])),
+      http.get('/api/jobs/history', () =>
+        HttpResponse.json({ data: [], meta: { count: [0], limit: [50] } })
+      )
+    );
+
+    const wrapper = await mountView();
+    // Drain any remaining microtasks (loadOntologyStatus chains two awaits)
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Ontology Update Blocked');
+  });
+
+  // -------------------------------------------------------------------------
   // Locked handshake for Phase E4 (exact string from Appendix C)
   // -------------------------------------------------------------------------
   // Phase E4 (`rewrite-manage-annotations`) unpins this after rewriting the

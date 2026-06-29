@@ -801,6 +801,27 @@ export const handlers = [
   // api/endpoints/comparisons_endpoints.R @get /metadata
   http.get('/api/comparisons/metadata', () => HttpResponse.json(comparisonsMetadataOk)),
 
+  // OpenAPI: GET /api/admin/ontology/dictionary-status
+  // api/endpoints/admin_ontology_endpoints.R (Task 7, #470)
+  // Default: non-blocked, non-stale — per-test overrides via server.use() for
+  // blocked/stale scenarios. A blocked default would hydrate the banner in every
+  // ManageAnnotations mount and break unrelated tests.
+  http.get('/api/admin/ontology/dictionary-status', () =>
+    HttpResponse.json({
+      blocked: false,
+      blocked_job_id: null,
+      stale: false,
+      last_full_apply_at: '2026-06-01',
+      last_additive_apply_at: null,
+      latest_blocked_omim_update_at: null,
+      disease_ontology_last_applied: null,
+      max_omim_id: null,
+      critical_count: 0,
+      auto_fixable_count: 0,
+      additive_applied: 0,
+    })
+  ),
+
   // ---------------------------------------------------------------------------
   // Phase E.E3 — GeneView.vue migration (first-client-migration)
   //

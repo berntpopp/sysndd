@@ -13,6 +13,7 @@
               :ontology-job="ontologyJob"
               :force-apply-job="forceApplyJob"
               :blocked="ontologyBlocked"
+              :stale="ontologyStale"
               :last-updated="annotationDates.omim_update"
               :user-options="forceApplyUserOptions"
               :loading-users="loadingForceApplyUsers"
@@ -208,6 +209,7 @@ const annotationDates = ref<api.AnnotationDates>({
 });
 
 const ontologyBlocked = ref<OntologyBlockedState | null>(null);
+const ontologyStale = ref<{ lastApplied: string | null } | null>(null);
 const forceApplyUserOptions = ref<UserOption[]>([]);
 const loadingForceApplyUsers = ref(false);
 
@@ -336,6 +338,26 @@ async function loadAnnotationDates(): Promise<void> {
     annotationDates.value = await api.fetchAnnotationDates();
   } catch (error) {
     console.warn('Failed to fetch annotation dates:', error);
+  }
+}
+
+async function loadOntologyStatus(): Promise<void> {
+  try {
+    const status = await api.fetchOntologyDictionaryStatus();
+    if (status.blocked && status.blocked_job_id) {
+      const result = await api.fetchOntologyJobResult(status.blocked_job_id);
+      if (result && result.kind === 'blocked') {
+        ontologyBlocked.value = result.state;
+        ontologyStale.value = null;
+        forceApplyUserOptions.value = await api.fetchForceApplyUsers().catch(() => []);
+        return;
+      }
+    }
+    ontologyStale.value = status.stale
+      ? { lastApplied: status.last_full_apply_at }
+      : null;
+  } catch (error) {
+    console.warn('Failed to fetch ontology dictionary status:', error);
   }
 }
 
@@ -555,6 +577,7 @@ async function onRefreshAllPublications(): Promise<void> {
 onMounted(() => {
   initFromUrl();
   loadAnnotationDates();
+  loadOntologyStatus();
   loadJobHistory();
   loadPubtatorStats();
   loadPublicationStats();
