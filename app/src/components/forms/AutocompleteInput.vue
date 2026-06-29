@@ -71,7 +71,7 @@
         class="autocomplete-no-results"
         :style="popupStyle"
       >
-        <small class="text-muted">No results found</small>
+        <small class="text-muted">{{ noResultsMessage }}</small>
       </div>
     </Teleport>
   </div>
@@ -163,6 +163,14 @@ export default defineComponent({
     placeholder: {
       type: String,
       default: 'Search...',
+    },
+
+    /**
+     * Message shown when search returns no results
+     */
+    noResultsMessage: {
+      type: String,
+      default: 'No results found',
     },
 
     /**
