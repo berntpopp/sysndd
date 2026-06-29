@@ -308,11 +308,11 @@ cluster_max_jaccard <- function(reference_members, bootstrap_clusters, present_i
 
 validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resolution = 1.0,
                                           n_resamples = 100, min_size = 10, seed = 42) {
-  ref_members <- .functional_reference_partition(hgnc_list, score_threshold, resolution, min_size)
+  subgraph <- build_string_subgraph(hgnc_list, score_threshold)      # shared refactored helper (Step 4)
+  ref_members <- .functional_reference_partition(subgraph, resolution, min_size)
   n_clusters <- length(ref_members)
 
   # Weighted modularity of the reference partition on the full induced subgraph.
-  subgraph <- get_string_subgraph(hgnc_list, score_threshold)        # see Step 4 helper
   membership <- .membership_vector(subgraph, ref_members)
   modularity <- igraph::modularity(
     subgraph, membership,
@@ -356,17 +356,37 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
 }
 ```
 
-- [ ] **Step 4: Add the two small graph helpers** used above (extract the existing subgraph-construction from `gen_string_clust_obj` so the validator reuses the identical fixed graph — read `analyses-functions.R:120-123` for the `induced_subgraph` call and the `get_string_db(score_threshold)` path, then add):
+- [ ] **Step 4: Refactor the real subgraph construction into a shared helper** (so the validator reuses the byte-identical fixed graph, not a reconstruction). **Codebase-verified:** `gen_string_clust_obj` (`analyses-functions.R:87-123`) builds the subgraph from a module-local `sysndd_db_string_id_df` (the `non_alt_loci_set` STRING ids filtered by `hgnc_id %in% hgnc_list`, or the passed `string_id_table`), then `induced_subgraph` over `string_db$get_graph()`. Extract lines ~87-123 verbatim into `build_string_subgraph(hgnc_list, score_threshold = 400, string_id_table = NULL)` in `analyses-functions.R`, have `gen_string_clust_obj` call it (no behavior change), and have the validator call it too:
 
 ```r
-get_string_subgraph <- function(hgnc_list, score_threshold = 400) {
-  # Mirror gen_string_clust_obj graph construction exactly (induced_subgraph over the
-  # STRINGdb graph restricted to the mapped STRING ids for hgnc_list).
+build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_table = NULL) {
   string_db <- get_string_db(score_threshold)
-  full_graph <- string_db$get_graph()
-  mapped <- string_db$map(data.frame(hgnc_id = hgnc_list), "hgnc_id", removeUnmappedRows = TRUE)
-  keep <- igraph::V(full_graph)$name %in% mapped$STRING_id
-  igraph::induced_subgraph(full_graph, which(keep))
+  if (!is.null(string_id_table)) {
+    id_tbl <- dplyr::filter(string_id_table, hgnc_id %in% hgnc_list)
+  } else {
+    id_tbl <- pool %>% dplyr::tbl("non_alt_loci_set") %>%
+      dplyr::filter(!is.na(STRING_id)) %>%
+      dplyr::select(symbol, hgnc_id, STRING_id) %>%
+      dplyr::collect() %>% dplyr::filter(hgnc_id %in% hgnc_list)
+  }
+  id_df <- as.data.frame(id_tbl)
+  string_graph <- string_db$get_graph()
+  genes_in_graph <- intersect(igraph::V(string_graph)$name, id_df$STRING_id)
+  igraph::induced_subgraph(string_graph, vids = which(igraph::V(string_graph)$name %in% genes_in_graph))
+}
+
+# Visible top-level reference partition computed directly on the shared subgraph
+# (weighted, converged, post-min_size) — guarantees the SAME graph object production uses.
+.functional_reference_partition <- function(subgraph, resolution = 1.0, min_size = 10) {
+  set.seed(42)
+  cl <- igraph::cluster_leiden(
+    subgraph, objective_function = "modularity",
+    weights = igraph::E(subgraph)$combined_score,
+    resolution_parameter = resolution, beta = 0.01, n_iterations = -1
+  )
+  parts <- split(igraph::V(subgraph)$name, cl$membership)
+  parts <- parts[vapply(parts, length, integer(1)) >= min_size]   # visible_top_level
+  stats::setNames(parts, as.character(seq_along(parts)))
 }
 
 .membership_vector <- function(subgraph, members) {
@@ -379,7 +399,7 @@ get_string_subgraph <- function(hgnc_list, score_threshold = 400) {
 }
 ```
 
-> If `gen_string_clust_obj` maps hgnc→STRING via a different helper (it accepts a `string_id_table`), align `get_string_subgraph` to that exact path while reviewing `analyses-functions.R`. The contract: the validator's reference graph must be byte-identical to production's.
+> Contract: the validator's reference graph MUST be the same object production clusters. Refactoring (not reconstructing) the construction is what guarantees that. Add a guard test asserting `gen_string_clust_obj` calls `build_string_subgraph`.
 
 - [ ] **Step 5: Implement `validate_phenotype_clusters`** (silhouette + entity-bootstrap Jaccard):
 
@@ -521,24 +541,39 @@ git commit -m "feat(db): migration 037 adds validation_json + db_release label t
 ### Task 5: Builder wires validation + DB label; repository persists; service exposes (#459)
 
 **Files:**
-- Modify: `api/functions/analysis-snapshot-builder.R` (`analysis_snapshot_build_payload` switch; manifest assembly `:460-486`)
+- Modify: `api/functions/analysis-snapshot-builder.R` (`analysis_snapshot_build_payload` switch `:381-438`; `analysis_snapshot_refresh` manifest assembly `:460-491`; `payload_hash` exclusion `:467`)
 - Modify: `api/functions/analysis-snapshot-repository.R` (`analysis_snapshot_create_manifest` `:106`, INSERT `:112-143`)
 - Modify: `api/services/analysis-snapshot-service.R` (`service_analysis_snapshot_meta` `:316-350`)
 - Test: `api/tests/testthat/test-unit-analysis-snapshot-validation-build.R` (Create)
 
+**Codebase-verified wiring (read before editing):** the build+persist entry point is
+`analysis_snapshot_refresh(analysis_type, params, job_id = NULL, conn = NULL)` (`:441`),
+which calls `analysis_snapshot_build_payload(...)` (`:462`) then
+`analysis_snapshot_create_manifest(list(...), conn = txn_conn)` (`:475-493`) passing a
+**single named list** (not positional args). `analysis_snapshot_payload_hash` (`:467`)
+hashes `payload[setdiff(names(payload), c("raw"))]`. The functional branch calls
+`gen_string_clust_obj_mem(analysis_snapshot_approved_gene_ids(conn), algorithm)` (`:383`);
+the phenotype branch calls `generate_phenotype_clusters()` (`:397`).
+
 **Interfaces:**
 - Consumes: `validate_functional_clusters`, `validate_phenotype_clusters` (Task 3), `db_version_get(conn)` (`api/functions/db-version.R`).
-- Produces: `analysis_snapshot_create_manifest(..., validation = NULL, db_release_version = NULL, db_release_commit = NULL)`; per-cluster `metadata_json` gains `jaccard_mean`/`jaccard_n_resamples`/`bootstrap_seed`/`silhouette_mean`/`cluster_signature`; the meta block gains `validation` + `db_release`.
+- Produces: the manifest `list(...)` at `:475` gains `validation`, `db_release_version`, `db_release_commit`; `analysis_snapshot_create_manifest` reads them from the list; per-cluster `metadata_json` gains `jaccard_mean`/`jaccard_n_resamples`/`bootstrap_seed`/`silhouette_mean`/`cluster_signature`; the meta block gains `validation` + `db_release`.
 
-- [ ] **Step 1: Write the failing builder test** (uses `with_test_db_transaction` to build a real functional snapshot and read back the manifest + a cluster row). Mock the heavy validators to keep it fast:
+- [ ] **Step 1: Write the failing builder test.** Drive the **real** entry point `analysis_snapshot_refresh`, stubbing the heavy STRING compute AND the validators AND `db_version_get` so it is deterministic and offline:
 
 ```r
 # api/tests/testthat/test-unit-analysis-snapshot-validation-build.R
 test_that("functional snapshot persists validation + db release label", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
-    # Stub the validators + db_version so the test is deterministic and fast.
     local_mocked_bindings(
+      # avoid the live STRING API: return a minimal visible-cluster tibble shaped like
+      # gen_string_clust_obj's output (cluster, identifiers[hgnc_id], hash_filter, cluster_size)
+      gen_string_clust_obj_mem = function(...) dplyr::tibble(
+        cluster = 1L,
+        identifiers = list(dplyr::tibble(hgnc_id = c("HGNC:1","HGNC:2"))),
+        hash_filter = "deadbeef", cluster_size = 2L
+      ),
       validate_functional_clusters = function(...) list(
         per_cluster = dplyr::tibble(cluster_id = "1", jaccard_mean = 0.82,
                                     jaccard_n_resamples = 100L, bootstrap_seed = 42L),
@@ -546,16 +581,15 @@ test_that("functional snapshot persists validation + db release label", {
                          resolution_parameter = 1.0, modularity = 0.41, n_clusters = 1L,
                          partition_scope = "visible_top_level", resampling_scheme = "bootstrap_nodes")
       ),
-      db_version_get = function(...) list(version = "v3.2.0", commit = "abc1234",
-                                          available = TRUE),
+      db_version_get = function(...) list(version = "v3.2.0", commit = "abc1234", available = TRUE),
       .package = NULL
     )
-    res <- analysis_snapshot_build_and_store("functional_clusters",
+    res <- analysis_snapshot_refresh("functional_clusters",
              params = list(algorithm = "leiden"), conn = conn)
     man <- DBI::dbGetQuery(conn,
       "SELECT validation_json, db_release_version, db_release_commit
-         FROM analysis_snapshot_manifest WHERE snapshot_id = ?",
-      params = list(res$snapshot_id))
+         FROM analysis_snapshot_manifest
+        WHERE analysis_type = 'functional_clusters' ORDER BY snapshot_id DESC LIMIT 1")
     expect_false(is.na(man$validation_json))
     expect_match(man$validation_json, "visible_top_level")
     expect_equal(man$db_release_version, "v3.2.0")
@@ -563,57 +597,82 @@ test_that("functional snapshot persists validation + db release label", {
 })
 ```
 
-(Use the builder's actual public entry-point name in place of `analysis_snapshot_build_and_store` — read `analysis-snapshot-builder.R` for the function that builds + persists a preset; align the call.)
+(Confirm the cluster-tibble fixture columns against `analysis_snapshot_build_cluster_rows` (`:164-241`) so `left_join(... by = c("cluster" = "cluster_id"))` type-aligns — coerce `cluster` to character if needed.)
 
 - [ ] **Step 2: Run; verify FAIL**
 
 Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-validation-build.R')"`
 Expected: FAIL (manifest columns unpopulated / function args absent).
 
-- [ ] **Step 3: Wire validation into the build payload.** In `analysis_snapshot_build_payload`, after computing `clusters` for each clustering preset, compute validation and merge per-cluster fields onto the cluster tibble (they auto-flow into `metadata_json`):
+- [ ] **Step 3: Wire validation into the two clustering branches of `analysis_snapshot_build_payload`.** Insert the validation call **between** `clusters <- ...` and `built <- analysis_snapshot_build_cluster_rows(...)` so per-cluster fields are joined onto `clusters` before row-building (they then auto-flow into `metadata_json`), and add `partition_validation` to the returned list. Full functional branch (`:382-395`):
 
 ```r
-# functional_clusters branch
-n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
-val <- validate_functional_clusters(analysis_snapshot_approved_gene_ids(conn),
-                                    resolution = 1.0, n_resamples = n_res)
-clusters <- dplyr::left_join(clusters, val$per_cluster,
-                             by = c("cluster" = "cluster_id"))
-partition_validation <- val$partition
+functional_clusters = {
+  gene_ids <- analysis_snapshot_approved_gene_ids(conn = conn)
+  clusters <- gen_string_clust_obj_mem(gene_ids, algorithm = params$algorithm)
+  n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
+  val <- validate_functional_clusters(gene_ids, resolution = 1.0, n_resamples = n_res)
+  clusters <- dplyr::left_join(
+    dplyr::mutate(clusters, cluster_id = as.character(cluster)),   # type-align the join key
+    val$per_cluster, by = "cluster_id"
+  ) %>% dplyr::select(-cluster_id)
+  built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
+  list(kind = "clusters", raw = clusters, clusters = built$clusters,
+       members = built$members, row_counts = built$row_counts,
+       partition_validation = val$partition)
+}
 ```
+
+Phenotype branch (`:396-405`) — coords + k were attached as attributes in Task 2 Step 6:
 
 ```r
-# phenotype_clusters branch  (coords + k were attached as attributes in Task 2 Step 6)
-mca_coord <- attr(clusters, "mca_ind_coord"); pheno_k <- attr(clusters, "phenotype_k")
-n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
-val <- validate_phenotype_clusters(clusters, mca_coord,
-          wide_phenotypes_df = generate_phenotype_cluster_input()$matrix,
-          quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res)
-clusters <- dplyr::left_join(clusters, val$per_cluster,
-                             by = c("cluster" = "cluster_id"))
-partition_validation <- val$partition
+phenotype_clusters = {
+  clusters <- generate_phenotype_clusters()
+  mca_coord <- attr(clusters, "mca_ind_coord")
+  n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
+  val <- validate_phenotype_clusters(
+    clusters, mca_coord,
+    wide_phenotypes_df = generate_phenotype_cluster_input()$matrix,
+    quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res
+  )
+  clusters <- dplyr::left_join(
+    dplyr::mutate(clusters, cluster_id = as.character(cluster)),
+    val$per_cluster, by = "cluster_id"
+  ) %>% dplyr::select(-cluster_id)
+  built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
+  list(kind = "clusters", raw = clusters, clusters = built$clusters,
+       members = built$members, row_counts = built$row_counts,
+       partition_validation = val$partition)
+}
 ```
 
-Thread `partition_validation` out of `analysis_snapshot_build_payload` (add it to the returned list, default `NULL` for non-clustering presets).
+(Non-clustering branches are unchanged; they simply omit `partition_validation`, which reads as `NULL` downstream.)
 
-- [ ] **Step 4: Add the DB release label + validation to the manifest assembly** (`:460-486`):
+- [ ] **Step 4: In `analysis_snapshot_refresh`, exclude `partition_validation` from the payload hash, compute the DB label, and extend the manifest list.**
+  - At `:467` change the hash exclusion so the (derived, non-input) validation does not perturb `payload_hash`:
+    ```r
+    payload_hash <- analysis_snapshot_payload_hash(
+      payload[setdiff(names(payload), c("raw", "partition_validation"))]
+    )
+    ```
+  - Just before the `analysis_snapshot_create_manifest(list(...))` call (`:475`):
+    ```r
+    dbv <- tryCatch(db_version_get(conn = refresh_conn),
+                    error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
+    db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
+    db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
+    ```
+  - Extend the existing manifest `list(...)` (`:476-491`) with three new keys and the enriched `source_versions`:
+    ```r
+    source_versions = list(sysndd_public_data = source_data_version,
+                           db_release_version = db_release_version,
+                           db_release_commit  = db_release_commit),
+    validation = payload$partition_validation,   # NULL for non-clustering presets
+    db_release_version = db_release_version,
+    db_release_commit  = db_release_commit,
+    ```
 
-```r
-dbv <- tryCatch(db_version_get(conn = refresh_conn), error = function(e)
-        list(version = "unknown", commit = "unknown", available = FALSE))
-db_release_version <- if (isTRUE(dbv$available)) dbv$version else "unknown"
-db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  else "unknown"
-
-source_versions <- list(
-  sysndd_public_data = source_data_version,
-  db_release_version = db_release_version,
-  db_release_commit  = db_release_commit
-)
-```
-
-Pass `validation = partition_validation`, `db_release_version`, `db_release_commit`, and the extended `source_versions` into `analysis_snapshot_create_manifest(...)`.
-
-- [ ] **Step 5: Extend `analysis_snapshot_create_manifest`** (`repository.R:106`): add params `validation = NULL, db_release_version = NULL, db_release_commit = NULL`; serialize `validation` with `jsonlite::toJSON(validation, auto_unbox = TRUE, null = "null")` (or `NA` when NULL); add the three columns to the INSERT column list + `?` placeholders + the `unname(params)` binding (mind `DBI::dbBind` needs `unname`).
+- [ ] **Step 5: Extend `analysis_snapshot_create_manifest`** (`repository.R:106`, single named-list arg). Read `manifest$validation`, `manifest$db_release_version`, `manifest$db_release_commit` from the list; serialize `validation` with `jsonlite::toJSON(validation, auto_unbox = TRUE, null = "null")` when non-NULL (else bind `NA`); add the three columns to the INSERT column list (`:112-117`) + three `?` placeholders + the binding (the call already builds a positional params vector — append in the same order and keep the existing `unname()` wrapping for `DBI::dbBind`).
 
 - [ ] **Step 6: Expose in the meta block.** In `service_analysis_snapshot_meta()` (`:316-350`) add:
 
@@ -728,7 +787,7 @@ genes <- analysis_snapshot_approved_gene_ids(pool)
 gammas <- c(0.5, 0.7, 1.0, 1.4, 2.0)
 ref <- NULL; rows <- list()
 for (g in gammas) {
-  sub <- get_string_subgraph(genes, 400)
+  sub <- build_string_subgraph(genes, 400)
   set.seed(42)
   cl <- igraph::cluster_leiden(sub, objective_function = "modularity",
           weights = igraph::E(sub)$combined_score,

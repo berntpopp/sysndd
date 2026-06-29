@@ -48,14 +48,21 @@ test_that("publication_refresh UPDATE persists publication_date_source", {
 Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-publication-refresh-source.R')"`
 Expected: FAIL (current UPDATE omits the source column).
 
-- [ ] **Step 3: Read `:758-832`** to confirm the exact UPDATE string and the variable holding the `info_from_pmid` row, then add `publication_date_source` to the SET list and bind the value. Example shape (align column/param names to the actual code):
+- [ ] **Step 3: Add `publication_date_source` to the existing UPDATE.** **Codebase-verified:** the handler (`:782-800`) uses `db_execute_statement(<sql>, list(...))` with `WHERE publication_id = ?` bound to `pmid`, and `info <- info_from_pmid(pmid)` already returns a `publication_date_source` column (`publication-functions.R:428-463`). Insert `publication_date_source = ?` into the SET list and bind `info$publication_date_source[1]` in the matching params position:
 
 ```r
-DBI::dbExecute(conn,
-  "UPDATE publication
-      SET Publication_date = ?, publication_date_source = ?, update_date = NOW()
-    WHERE PMID = ?",
-  params = unname(list(row$Publication_date, row$publication_date_source, row$PMID))
+rows_affected <- db_execute_statement(
+  "UPDATE publication SET
+      Title = ?, Abstract = ?, Publication_date = ?,
+      publication_date_source = ?,                 -- NEW
+      Journal = ?, Keywords = ?, Lastname = ?, Firstname = ?, update_date = NOW()
+    WHERE publication_id = ?",
+  list(
+    info$Title[1], info$Abstract[1], info$Publication_date[1],
+    info$publication_date_source[1],               -- NEW (same position as the new column)
+    info$Journal[1], info$Keywords[1], info$Lastname[1], info$Firstname[1],
+    pmid
+  )
 )
 ```
 
@@ -168,8 +175,10 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE, 
     DBI::dbWithTransaction(conn, {
       for (i in seq_len(nrow(info))) {
         r <- info[i, ]
+        # publication_id == PMID in this schema (the refresh handler binds pmid to
+        # `WHERE publication_id = ?`); preserve the standalone script's exact UPDATE.
         DBI::dbExecute(conn,
-          "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE PMID = ?",
+          "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?",
           params = unname(list(r$Publication_date, r$publication_date_source, r$PMID)))
       }
     })
