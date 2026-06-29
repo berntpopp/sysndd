@@ -117,3 +117,40 @@ refresh_disease_ontology_set <- function(conn,
     })
   })
 }
+
+#' Append only purely-additive ontology rows (no DELETE).
+#'
+#' Inserts `additive_rows` that are not already present in the live
+#' `disease_ontology_set`, inside the FK-checks-disabled transaction wrapper.
+#' The anti-join is re-derived against the live table inside the transaction
+#' (not a caller snapshot) so a concurrent change or a re-run is a safe no-op
+#' rather than a PRIMARY KEY (`disease_ontology_id_version`) violation.
+#'
+#' @param conn DBI connection.
+#' @param additive_rows Tibble of candidate new rows (disease_ontology_set cols).
+#' @return Integer count of rows inserted.
+#' @export
+apply_additive_ontology_terms <- function(conn, additive_rows) {
+  if (is.null(additive_rows) || nrow(additive_rows) == 0) {
+    return(0L)
+  }
+
+  metadata_with_foreign_key_checks_disabled(conn, function() {
+    DBI::dbWithTransaction(conn, {
+      existing <- DBI::dbGetQuery(
+        conn,
+        "SELECT disease_ontology_id_version FROM disease_ontology_set"
+      )$disease_ontology_id_version
+
+      to_insert <- additive_rows %>%
+        dplyr::filter(!(as.character(disease_ontology_id_version) %in% as.character(existing)))
+
+      if (nrow(to_insert) == 0) {
+        return(0L)
+      }
+
+      DBI::dbAppendTable(conn, "disease_ontology_set", to_insert)
+      nrow(to_insert)
+    })
+  })
+}
