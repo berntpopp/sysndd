@@ -45,3 +45,18 @@ test_that("an old last-full-apply is stale even with no block", {
   s <- derive_ontology_dictionary_status(jobs, now, stale_after_days = 30)
   expect_true(s$stale)
 })
+
+test_that("an empty job history is the safe fallback: neither blocked nor stale", {
+  s <- derive_ontology_dictionary_status(list(), now, stale_after_days = 30)
+  expect_false(s$blocked)
+  expect_false(s$stale)
+  expect_true(is.na(s$blocked_job_id))
+  expect_equal(s$additive_applied, 0L)
+})
+
+test_that("last_additive_apply_at is populated when additive_applied > 0", {
+  jobs <- list(job("omim_update", 1, "blocked", fresh = TRUE, crit = 5, add = 12))
+  s <- derive_ontology_dictionary_status(jobs, now, stale_after_days = 30)
+  expect_false(is.na(s$last_additive_apply_at))
+  expect_equal(s$additive_applied, 12)
+})

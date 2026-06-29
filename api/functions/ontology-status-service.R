@@ -15,6 +15,12 @@ derive_ontology_dictionary_status <- function(jobs, now, stale_after_days = 30) 
     latest_blocked_omim_update_at = NA,
     critical_count = 0L, auto_fixable_count = 0L, additive_applied = 0L
   )
+  # Empty-jobs is the safe fallback for two cases: (a) a fresh deploy with no
+  # job history yet, and (b) a transient DB/read error in the IO wrapper
+  # (ontology_dictionary_status sets jobs <- list() when get_history() errors).
+  # In both cases the contract mandates a SAFE payload (blocked = FALSE,
+  # stale = FALSE) so the admin page never shows a false-alarm banner.
+  # Do NOT change stale to TRUE here — this is intentional error-safe design.
   if (length(jobs) == 0) return(empty)
 
   ats <- as.POSIXct(vapply(jobs, function(j) as.numeric(j$completed_at), numeric(1)),
@@ -111,7 +117,7 @@ ontology_dictionary_status <- function(history_limit = 100L,
 #' @keywords internal
 .ontology_status_csv_fresh <- function(csv_path, now = Sys.time()) {
   if (is.null(csv_path) || length(csv_path) == 0) return(FALSE)
-  csv_path <- if (is.list(csv_path)) csv_path[[1]] else csv_path[[1]]
+  csv_path <- csv_path[[1]]
   if (is.na(csv_path) || !file.exists(csv_path)) return(FALSE)
   age_h <- as.numeric(difftime(now, file.info(csv_path)$mtime, units = "hours"))
   !is.na(age_h) && age_h <= 48
