@@ -339,7 +339,7 @@ import { useUiStore } from '@/stores/ui';
 import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
-import { applyPhenotypeLogicMode, createDefaultPhenotypeFilter } from './phenotypeTableFilters';
+import { createDefaultPhenotypeFilter, phenotypeLogicOperator } from './phenotypeTableFilters';
 
 const phenotypeEntitiesRequestCoordinator = createTableRequestCoordinator();
 
@@ -621,8 +621,8 @@ export default {
       this.filtered();
     },
     filtered() {
-      this.filter = applyPhenotypeLogicMode(this.filter, this.checked === true);
-
+      // In-place (idempotent) AND/OR operator; reassigning re-loops the deep watcher (#466).
+      this.filter.modifier_phenotype_id.operator = phenotypeLogicOperator(this.checked === true);
       const filter_string_loc = this.filterObjToStr(this.filter);
       if (filter_string_loc !== this.filter_string) {
         this.filter_string = this.filterObjToStr(this.filter);

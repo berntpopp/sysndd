@@ -6,9 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.1] — 2026-06-29
+
+Patch release: public table filter fixes and dependency maintenance.
+
+### Fixed
+
+- **Phenotypes table froze when filtering by Category** (#466): `filtered()` reassigned `this.filter` to a fresh object (via `applyPhenotypeLogicMode()`), which re-fired the deep `filter` watcher → `filtered()` → reassign → an infinite "Maximum recursive updates" loop that hung the page on any filter change. The AND/OR logic mode is now applied in place (idempotent), so the object reference is stable and the watcher settles. Regression test added.
+- **Curation comparisons Table filters reverted to stale results** (#467): the table applied every browse response with no guard, so a slow earlier (unfiltered) request could resolve after a newer filtered one and clobber it ("filter to a gene, then it reverts"). The load now carries a monotonic serial id and drops superseded responses (the same lightweight guard `PanelsTable` uses). Regression test added. The same stale-response race was also swept across the other server-paginated tables: `PublicationsNDDTable` and the admin `ManageOntology` table had hand-rolled per-params dedup but no stale guard — both were migrated to the shared `createTableRequestCoordinator` (dedupe + `isCurrent` stale-drop), which also removed their bespoke dedup. `TablesEntities`/`TablesGenes`/`TablesPhenotypes` already used the coordinator; `PanelsTable` already had a serial guard. (`PubtatorNDDTable` is the remaining gap, deferred to a dedicated refactor so its 900+-line SFC can be modularised first rather than grown.)
+
 ### Added
 
 - **Administrator view "Manage Ontology Mappings"** (`/ManageOntologyMappings`): an admin surface to monitor and trigger the disease cross-ontology mapping refresh. Shows the latest build provenance (MONDO release, term/xref/mapping/disease counts, status, duration) from `GET /api/admin/ontology/mappings/status`, a prominent cold-start warning when no build exists yet, and a "Refresh now" button (`POST /api/admin/ontology/mappings/refresh?force=true`) with live job progress. The mappings still populate automatically on startup (bootstrap), weekly (cron), and after an operator ontology refresh — this view adds operator visibility and a manual trigger.
+
+### Dependencies
+
+- Bumped the production-minor-patch app dependency group (4 updates, #461), the dev-dependencies app group (2 updates, #462), `@types/node` 25 → 26 (#463), the Docker Compose images group (mysql 8.4.9 → 8.4.10, mailpit v1.30.1 → v1.30.2, #464), and `actions/checkout` 6 → 7 in CI (#465).
 
 ## [0.26.0] — 2026-06-20
 

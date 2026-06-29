@@ -21,15 +21,17 @@ export function createDefaultPhenotypeFilter(): PhenotypeTableFilter {
   };
 }
 
-export function applyPhenotypeLogicMode(
-  filter: PhenotypeTableFilter,
-  isOrMode: boolean
-): PhenotypeTableFilter {
-  return {
-    ...filter,
-    modifier_phenotype_id: {
-      ...filter.modifier_phenotype_id,
-      operator: isOrMode ? 'any' : 'all',
-    },
-  };
+/**
+ * The `modifier_phenotype_id` filter operator for the AND/OR logic toggle.
+ *
+ * Callers MUST assign this onto the existing reactive filter in place, e.g.
+ *   filter.modifier_phenotype_id.operator = phenotypeLogicOperator(isOr)
+ * and never reassign the whole filter object. `TablesPhenotypes` watches
+ * `filter` deeply and re-runs `filtered()` on every change, so swapping in a
+ * fresh object re-fires the watcher endlessly ("Maximum recursive updates").
+ * Writing the same string back is a no-op for Vue reactivity, so the in-place
+ * assignment is idempotent and the watcher settles immediately. (#466)
+ */
+export function phenotypeLogicOperator(isOrMode: boolean): 'any' | 'all' {
+  return isOrMode ? 'any' : 'all';
 }

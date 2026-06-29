@@ -255,6 +255,37 @@ describe('TablesPhenotypes', () => {
     expect(observedFilters.at(-1)).toContain('any(modifier_phenotype_id,HP:0001250)');
   });
 
+  it('re-filters in place without replacing the filter object reference (no recursive-update loop)', async () => {
+    // Regression: a refactor changed filtered() to do
+    //   this.filter = applyPhenotypeLogicMode(this.filter, ...)
+    // which assigns a NEW object every call. Because there is a deep `filter`
+    // watcher that calls filtered(), the reassignment re-fired the watcher ->
+    // filtered() -> reassign -> ... an infinite "Maximum recursive updates"
+    // loop that froze the page whenever a filter (e.g. Category) changed.
+    // filtered() must mutate the operator field in place so the reference is
+    // stable and the watcher settles immediately.
+    server.use(
+      http.get('/api/list/phenotype', () => HttpResponse.json({ data: [] })),
+      http.get('/api/phenotype/entities/browse', () =>
+        HttpResponse.json({
+          meta: [{ fspec: [], totalItems: 0, currentPage: 1, totalPages: 1, currentItemID: 0 }],
+          data: [],
+        })
+      )
+    );
+
+    const wrapper = await mountSubject();
+    const vm = wrapper.vm as unknown as { filter: object; filtered: () => void };
+
+    const filterRefBefore = vm.filter;
+    vm.filtered();
+    expect(vm.filter).toBe(filterRefBefore);
+
+    // Even toggling the AND/OR operator keeps the same object reference.
+    vm.filtered();
+    expect(vm.filter).toBe(filterRefBefore);
+  });
+
   it('exports all selected phenotype rows as phenotype_search.xlsx', async () => {
     let exportQuery: URLSearchParams | null = null;
     const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(((

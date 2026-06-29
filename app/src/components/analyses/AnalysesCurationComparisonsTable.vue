@@ -341,6 +341,9 @@ export default {
       isBusy: true,
       downloading: false,
       definitiveOnly: false,
+      // Monotonic id of the latest load; a response whose id is stale is
+      // dropped so an earlier request can't overwrite a newer filter (#467).
+      loadSerial: 0,
     };
   },
   computed: {
@@ -401,6 +404,7 @@ export default {
       navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     async loadTableData() {
+      const serial = (this.loadSerial += 1);
       this.isBusy = true;
 
       try {
@@ -411,6 +415,8 @@ export default {
           page_size: String(this.perPage),
           definitive_only: String(this.definitiveOnly),
         });
+        // Drop a stale response superseded by a newer load (#467).
+        if (serial !== this.loadSerial) return;
         this.items = data.data;
 
         this.totalRows = data.meta[0].totalItems;
@@ -427,7 +433,7 @@ export default {
 
         this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        if (serial === this.loadSerial) this.makeToast(e, 'Error', 'danger');
       }
     },
     async requestExcel() {

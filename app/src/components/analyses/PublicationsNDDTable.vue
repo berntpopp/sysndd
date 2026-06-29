@@ -242,13 +242,15 @@ import {
 
 // Typed API client (W5)
 import { listPublications, listPublicationsXlsx } from '@/api/publication';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
-// Module-level variables to track API calls across component remounts
-// This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null; // Cache last API response for remounted components
+// Module-level request coordinator (survives Vue Router remounts on URL change).
+// Replaces the previous hand-rolled module-level dedup, which deduped only
+// identical params and applied every response unconditionally — so a slow
+// earlier request could overwrite the table after a newer filter was applied.
+// The coordinator dedupes identical concurrent requests, serves a short recent
+// cache, and (via isCurrent) drops stale responses.
+const publicationsRequestCoordinator = createTableRequestCoordinator();
 
 export default {
   name: 'PublicationsNDDTable',
@@ -503,55 +505,36 @@ export default {
      * Uses module-level caching to prevent duplicate API calls
      */
     async doLoadData() {
-      const urlParam =
+      const buildParams = () =>
         `sort=${this.sort}` +
         `&filter=${this.filter_string}` +
         `&page_after=${this.currentItemID}` +
         `&page_size=${this.perPage}`;
-
-      const now = Date.now();
-
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false; // Clear busy state when using cached data
-        }
-        return;
-      }
-
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
-        return;
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
+      const urlParam = buildParams();
       this.isBusy = true;
 
-      try {
-        const data = await listPublications({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: String(this.currentItemID),
-          page_size: String(this.perPage),
-          fields: this.fspecInput,
-        });
-        moduleApiCallInProgress = false;
-        // Cache response for remounted components
-        moduleLastApiResponse = data;
-        this.applyApiResponse(data);
+      const result = await publicationsRequestCoordinator.request({
+        params: urlParam,
+        fetcher: () =>
+          listPublications({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: String(this.currentItemID),
+            page_size: String(this.perPage),
+            fields: this.fspecInput,
+          }),
+        apply: (data, source) => {
+          this.applyApiResponse(data);
+          if (source === 'network') {
+            // Update URL AFTER API success to prevent component remount mid-call
+            this.updateBrowserUrl();
+          }
+        },
+        onError: (error) => this.makeToast(error, 'Error', 'danger'),
+        isCurrent: (params) => buildParams() === params,
+      });
 
-        // Update URL AFTER API success to prevent component remount during API call
-        this.updateBrowserUrl();
-
-        this.isBusy = false;
-      } catch (error) {
-        moduleApiCallInProgress = false;
-        this.makeToast(error, 'Error', 'danger');
+      if (result.handled) {
         this.isBusy = false;
       }
     },
