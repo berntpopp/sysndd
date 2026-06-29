@@ -23,11 +23,39 @@
 
     <!-- content with overlay spinner -->
     <div class="position-relative">
-      <div id="phenotypeFunctionalCorrelationViz" class="svg-container" />
-      <div v-show="loadingCorrelation" class="m-3 text-center">
-        <BSpinner label="Loading..." class="spinner" />
-        <p>Loading correlation data...</p>
+      <!-- A snapshot "being prepared" 503 is a transient, expected state — show
+           a friendly panel + retry instead of a raw error toast, mirroring the
+           other analysis pages (GeneNetworks / PhenotypeClusters). (#420) -->
+      <div v-if="isPreparing" class="error-state text-center p-4">
+        <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
+        <p class="text-muted mb-3">
+          This analysis is being prepared and will appear here shortly. This can take a couple of
+          minutes after a deploy or data update.
+        </p>
+        <BButton variant="primary" @click="retryLoad">
+          <i class="bi bi-arrow-clockwise me-1" />
+          Check again
+        </BButton>
       </div>
+
+      <div v-else-if="error" class="error-state text-center p-4">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+        <p class="text-muted mb-3">
+          {{ error }}
+        </p>
+        <BButton variant="primary" @click="retryLoad">
+          <i class="bi bi-arrow-clockwise me-1" />
+          Retry
+        </BButton>
+      </div>
+
+      <template v-else>
+        <div id="phenotypeFunctionalCorrelationViz" class="svg-container" />
+        <div v-show="loadingCorrelation" class="m-3 text-center">
+          <BSpinner label="Loading..." class="spinner" />
+          <p>Loading correlation data...</p>
+        </div>
+      </template>
     </div>
   </AnalysisPanel>
 </template>
@@ -47,7 +75,7 @@ import * as d3 from 'd3';
 // import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue'; // If needed
 
 // Typed API client (W5)
-import { getPhenotypeFunctionalCorrelation } from '@/api/analysis';
+import { getPhenotypeFunctionalCorrelation, isSnapshotPreparingError } from '@/api/analysis';
 
 export default {
   name: 'AnalysesPhenotypeFunctionalCorrelation',
@@ -59,6 +87,8 @@ export default {
   data() {
     return {
       loadingCorrelation: false,
+      error: null,
+      isPreparing: false,
       correlationMatrix: {}, // if needed
       correlationMelted: [], // array of { x, y, value }
     };
@@ -72,16 +102,36 @@ export default {
      */
     async loadCorrelationData() {
       this.loadingCorrelation = true;
+      this.error = null;
+      this.isPreparing = false;
       try {
         const data = await getPhenotypeFunctionalCorrelation();
         this.correlationMatrix = data.correlation_matrix;
         this.correlationMelted = data.correlation_melted;
-        this.renderHeatmap();
+        // Render after the v-else branch (which owns the viz container) is in
+        // the DOM, so a retry after an error/preparing state still draws.
+        this.$nextTick(() => {
+          this.renderHeatmap();
+        });
       } catch (err) {
-        this.makeToast(err.message, 'Error fetching correlation data', 'danger');
+        // A snapshot "being prepared" 503 is a transient, expected state — show a
+        // friendly panel instead of a hard error toast. (#420)
+        if (isSnapshotPreparingError(err)) {
+          this.isPreparing = true;
+        } else {
+          this.error = err.message || 'Failed to load correlation data. Please try again.';
+          this.makeToast(err.message, 'Error fetching correlation data', 'danger');
+        }
       } finally {
         this.loadingCorrelation = false;
       }
+    },
+
+    /**
+     * Retry loading data after an error or while a snapshot is being prepared.
+     */
+    retryLoad() {
+      this.loadCorrelationData();
     },
 
     /**
@@ -253,5 +303,13 @@ export default {
 .spinner {
   width: 2rem;
   height: 2rem;
+}
+
+.error-state {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>

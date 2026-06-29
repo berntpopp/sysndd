@@ -54,6 +54,43 @@ test_that("snapshot status helpers classify missing and stale rows", {
   expect_equal(analysis_snapshot_status_code(fresh), "available")
 })
 
+test_that("analysis_snapshot_public_current is TRUE only for a current (available) snapshot", {
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
+  source(file.path("functions", "analysis-snapshot-repository.R"), local = TRUE)
+
+  available <- function(...) data.frame(status_code = "available", stringsAsFactors = FALSE)
+  stale <- function(...) data.frame(status_code = "snapshot_stale", stringsAsFactors = FALSE)
+  mismatch <- function(...) {
+    data.frame(status_code = "source_version_mismatch", stringsAsFactors = FALSE)
+  }
+  missing <- function(...) NULL
+
+  expect_true(
+    analysis_snapshot_public_current("gene_network_edges", "h", manifest_fn = available)
+  )
+  # A snapshot that aged past stale_after must NOT count as current, so the
+  # bootstrap re-enqueues it instead of leaving it to serve a permanent 503.
+  expect_false(
+    analysis_snapshot_public_current("gene_network_edges", "h", manifest_fn = stale)
+  )
+  expect_false(
+    analysis_snapshot_public_current("gene_network_edges", "h", manifest_fn = mismatch)
+  )
+  expect_false(
+    analysis_snapshot_public_current("gene_network_edges", "h", manifest_fn = missing)
+  )
+})
+
+test_that("analysis_snapshot_public_current returns FALSE when the manifest read errors", {
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
+  source(file.path("functions", "analysis-snapshot-repository.R"), local = TRUE)
+
+  boom <- function(...) stop("db down")
+  expect_false(
+    analysis_snapshot_public_current("gene_network_edges", "h", manifest_fn = boom)
+  )
+})
+
 test_that("public snapshot reads include current source version for mismatch diagnostics", {
   env <- new.env(parent = globalenv())
   source(file.path("functions", "analysis-snapshot-repository.R"), local = env)

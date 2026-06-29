@@ -4,6 +4,7 @@ import {
   filterPhenotypeClusterRows,
   buildPhenotypeClusterExportFilename,
   phenotypeClusterExportSheetName,
+  normalizePhenotypeClusterRows,
   PHENOTYPE_CLUSTER_EXPORT_HEADERS,
   type PhenotypeClusterFilter,
 } from './phenotypeClusterTable';
@@ -107,5 +108,38 @@ describe('export config', () => {
   it('exposes the export headers', () => {
     expect(PHENOTYPE_CLUSTER_EXPORT_HEADERS['p.value']).toBe('p-value');
     expect(PHENOTYPE_CLUSTER_EXPORT_HEADERS.Mean_in_category).toBe('Mean in Category');
+  });
+});
+
+describe('normalizePhenotypeClusterRows', () => {
+  // Regression: BTable renders a blank cell for a dotted field key, so the
+  // p-value / v-test columns were empty. The de-dotted aliases fix the display.
+  it('adds flat p_value / v_test aliases for the dotted stat keys', () => {
+    const out = normalizePhenotypeClusterRows([
+      { variable: 'Age of death', 'p.value': 1.7047e-86, 'v.test': 19.7119 },
+    ]);
+    expect(out[0].p_value).toBe(1.7047e-86);
+    expect(out[0].v_test).toBe(19.7119);
+  });
+
+  it('preserves the original dotted keys (Excel export still works)', () => {
+    const out = normalizePhenotypeClusterRows([{ 'p.value': 0.01, 'v.test': 3.2 }]);
+    expect(out[0]['p.value']).toBe(0.01);
+    expect(out[0]['v.test']).toBe(3.2);
+  });
+
+  it('does not mutate the input rows and tolerates null/undefined', () => {
+    const input = [{ variable: 'x', 'p.value': 0.5, 'v.test': 1 }];
+    const out = normalizePhenotypeClusterRows(input);
+    expect(input[0]).not.toHaveProperty('p_value');
+    expect(out).not.toBe(input);
+    expect(normalizePhenotypeClusterRows(null)).toEqual([]);
+    expect(normalizePhenotypeClusterRows(undefined)).toEqual([]);
+  });
+
+  it('carries missing stats through as undefined aliases', () => {
+    const out = normalizePhenotypeClusterRows([{ variable: 'only' }]);
+    expect(out[0].p_value).toBeUndefined();
+    expect(out[0].v_test).toBeUndefined();
   });
 });

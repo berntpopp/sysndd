@@ -96,6 +96,31 @@ export function filterPhenotypeClusterRows(
   });
 }
 
+/**
+ * Add de-dotted aliases for the MCA stat columns to each row.
+ *
+ * The clustering snapshot serialises the per-variable stats with dotted keys
+ * (`p.value`, `v.test`). BootstrapVueNext's BTable renders a BLANK cell for a
+ * field key containing a dot (its cell value resolver does not return the flat
+ * `item['p.value']`), and Vue also parses a `#cell-p.value` slot name as
+ * `cell-p` + a `value` modifier — so neither the column nor a custom slot can
+ * display these stats while the key is dotted. Aliasing to `p_value` / `v_test`
+ * (no dot) lets the columns render like the unaffected `variable` column.
+ *
+ * The original dotted keys are preserved so the Excel export
+ * (PHENOTYPE_CLUSTER_EXPORT_HEADERS) and any other consumer keep working.
+ * Returns a new array; input rows are not mutated.
+ */
+export function normalizePhenotypeClusterRows(
+  rows: PhenotypeClusterRow[] | null | undefined
+): PhenotypeClusterRow[] {
+  return (rows || []).map((row) => ({
+    ...row,
+    p_value: row['p.value'],
+    v_test: row['v.test'],
+  }));
+}
+
 /** Sheet-name labels for the Excel export, keyed by table type. */
 export const PHENOTYPE_CLUSTER_EXPORT_LABELS: Record<PhenotypeClusterTableType, string> = {
   quali_inp_var: 'Qualitative Input Variables',
