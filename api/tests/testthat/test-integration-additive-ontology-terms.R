@@ -27,6 +27,11 @@ test_that("apply_additive_ontology_terms inserts new rows, leaves existing untou
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
 
+    if (!DBI::dbExistsTable(conn, "ndd_entity") ||
+        !DBI::dbExistsTable(conn, "disease_ontology_set")) {
+      testthat::skip("base schema (ndd_entity/disease_ontology_set) not initialized on this test DB; skip.")
+    }
+
     DBI::dbExecute(conn, "DELETE FROM ndd_entity")
     DBI::dbExecute(conn, "DELETE FROM disease_ontology_set")
     DBI::dbAppendTable(conn, "disease_ontology_set", make_row("OMIM:111111", "Existing"))
