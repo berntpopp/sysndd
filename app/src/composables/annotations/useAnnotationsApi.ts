@@ -226,8 +226,12 @@ export type OntologyJobResult =
   | null;
 
 export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJobResult> {
+  // result_mode=full is required: the default "summary" mode returns result:{}
+  // (no result_json), so the blocked payload (status, critical_entities, …) would
+  // be missing and the blocked banner would never hydrate — both on page-load
+  // (ManageAnnotations onMounted) and in the reactive post-run flow.
   const statusData = await apiClient.get<{ result?: Record<string, unknown> }>(
-    `/api/jobs/${jobId}/status`,
+    `/api/jobs/${jobId}/status?result_mode=full`,
     authRequestConfig()
   );
   const result = statusData?.result;
