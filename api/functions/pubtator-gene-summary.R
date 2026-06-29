@@ -121,7 +121,34 @@ pubtator_genes_summary_base <- function(pool_obj) {
     DBI::dbExecute(conn, "SET SESSION group_concat_max_len = 4194304"),
     error = function(e) NULL
   )
-  df <- DBI::dbGetQuery(conn, .pubtator_gene_summary_select_sql())
+  df <- tryCatch(
+    DBI::dbGetQuery(conn, .pubtator_gene_summary_select_sql()),
+    error = function(e) {
+      # The underlying pubtator_human_gene_entity_view (or its source tables) is
+      # absent/errored — e.g. a DB provisioned without any pubtator data (fresh
+      # deploy / CI / cold start before the view exists). Degrade a public read
+      # endpoint to an empty result instead of 500-ing. The empty set keeps the
+      # summary column contract so the downstream sort/select/paginate steps
+      # return cleanly.
+      base::message(sprintf(
+        "[pubtator-genes] live cold-start aggregation unavailable (%s); serving empty set",
+        conditionMessage(e)
+      ))
+      NULL
+    }
+  )
+  if (is.null(df)) {
+    empty <- if (!is.null(summary)) {
+      summary[0, , drop = FALSE]
+    } else {
+      tibble::as_tibble(stats::setNames(
+        rep(list(character(0)), length(PUBTATOR_GENE_SUMMARY_COLS)),
+        PUBTATOR_GENE_SUMMARY_COLS
+      ))
+    }
+    empty$oldest_pub_date <- as.character(empty$oldest_pub_date)
+    return(list(data = empty, source = "empty"))
+  }
   df$oldest_pub_date <- as.character(df$oldest_pub_date)
   list(data = tibble::as_tibble(df), source = "live")
 }

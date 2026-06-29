@@ -226,8 +226,12 @@ export type OntologyJobResult =
   | null;
 
 export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJobResult> {
+  // result_mode=full is required: the default "summary" mode returns result:{}
+  // (no result_json), so the blocked payload (status, critical_entities, …) would
+  // be missing and the blocked banner would never hydrate — both on page-load
+  // (ManageAnnotations onMounted) and in the reactive post-run flow.
   const statusData = await apiClient.get<{ result?: Record<string, unknown> }>(
-    `/api/jobs/${jobId}/status`,
+    `/api/jobs/${jobId}/status?result_mode=full`,
     authRequestConfig()
   );
   const result = statusData?.result;
@@ -265,4 +269,41 @@ export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJob
 
   const applied = Number(unwrapValue(result?.auto_fixes_applied)) || 0;
   return { kind: 'ok', autoFixesApplied: applied };
+}
+
+export interface OntologyDictionaryStatus {
+  blocked: boolean;
+  blocked_job_id: string | null;
+  stale: boolean;
+  last_full_apply_at: string | null;
+  last_additive_apply_at: string | null;
+  latest_blocked_omim_update_at: string | null;
+  disease_ontology_last_applied: string | null;
+  max_omim_id: string | null;
+  critical_count: number;
+  auto_fixable_count: number;
+  additive_applied: number;
+}
+
+export async function fetchOntologyDictionaryStatus(): Promise<OntologyDictionaryStatus> {
+  const data = await apiClient.get<Record<string, unknown>>(
+    '/api/admin/ontology/dictionary-status',
+    authRequestConfig()
+  );
+  const b = (v: unknown) => unwrapValue(v) === true || unwrapValue(v) === 'TRUE';
+  const n = (v: unknown) => (unwrapValue(v) as number) ?? 0;
+  const s = (v: unknown) => (unwrapValue(v) as string) ?? null;
+  return {
+    blocked: b(data.blocked),
+    blocked_job_id: s(data.blocked_job_id),
+    stale: b(data.stale),
+    last_full_apply_at: s(data.last_full_apply_at),
+    last_additive_apply_at: s(data.last_additive_apply_at),
+    latest_blocked_omim_update_at: s(data.latest_blocked_omim_update_at),
+    disease_ontology_last_applied: s(data.disease_ontology_last_applied),
+    max_omim_id: s(data.max_omim_id),
+    critical_count: n(data.critical_count),
+    auto_fixable_count: n(data.auto_fixable_count),
+    additive_applied: n(data.additive_applied),
+  };
 }

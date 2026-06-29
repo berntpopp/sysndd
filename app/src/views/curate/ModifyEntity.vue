@@ -159,6 +159,7 @@
                 :ontology-input="ontology_input"
                 :ontology-search-results="ontology_search_results"
                 :ontology-search-loading="ontology_search_loading"
+                :ontology-no-results-message="ontologyNoResultsMessage"
                 :deactivate-check="deactivate_check"
                 :replace-check="replace_check"
                 :replace-display="replace_entity_display"

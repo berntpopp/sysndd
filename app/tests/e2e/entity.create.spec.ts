@@ -9,8 +9,8 @@ test.describe('curate: entity create', () => {
 
     await page.goto('/CreateEntity');
 
-    // The wizard renders with a page header.
-    await expect(page.getByRole('heading', { name: /Create New Entity/i })).toBeVisible({
+    // The wizard renders with a page header (AuthenticatedPageShell title="Create Entity").
+    await expect(page.getByRole('heading', { name: /Create Entity/i })).toBeVisible({
       timeout: 10_000,
     });
 

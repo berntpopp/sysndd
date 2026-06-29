@@ -187,12 +187,21 @@ async function handleCopy() {
 }
 
 .identifier-badge__empty {
-  color: #adb5bd;
+  color: #6c757d;
   font-style: italic;
 }
 
+/*
+ * Unavailable identifiers are de-emphasised with a recessed border + italic
+ * "n/a", NOT by dimming the whole badge. The previous `opacity: 0.45` composited
+ * the label (#6c757d) and "n/a" text against white down to ~1.8:1 / ~1.4:1,
+ * failing WCAG AA (4.5:1). Keeping the badge on white preserves the label/value
+ * greys at their accessible ratios (#6c757d ≈ 4.7:1) while the lighter border
+ * still reads as secondary. Guards app/tests/e2e/genes-detail-ui-ux.spec.ts axe
+ * color-contrast.
+ */
 .identifier-badge--unavailable {
-  opacity: 0.45;
+  border-color: #e9ecef;
 }
 
 .identifier-badge__action {

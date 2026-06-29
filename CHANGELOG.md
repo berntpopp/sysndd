@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.4] — 2026-06-30
+
+Patch release: a blocked OMIM dictionary update no longer freezes the disease dictionary — brand-new terms are applied additively each cycle while critical entity-referenced changes await Force Apply — plus correctness fixes for Force Apply and the blocked-dictionary status banner (#470, #474).
+
+### Added
+
+- **Additive auto-apply for blocked OMIM dictionary updates** (#470): when an `omim_update` job is blocked by critical, entity-referenced changes, all brand-new, entity-unreferenced terms are now inserted additively (idempotent live anti-join inside the FK-disabled transaction; best-effort — an insert failure is logged and never turns the blocked job into a job failure) so the dictionary keeps growing each night instead of freezing. A successful additive insert chains the disease cross-ontology mapping refresh. A recurring `blocked` status is a standing-review flag, **not** a freeze; resolve the flagged entity-referenced changes via Force Apply.
+
+### Fixed
+
+- **Force Apply could never resolve a blocked OMIM update**: `PUT /api/admin/force_apply_ontology` looked up the blocked job with `get_job_status()` in summary mode, which omits the parsed `result_json`, so the "was the job blocked?" check always failed with `409 Referenced job was not blocked`. It now reads the job in `full` mode.
+- **The blocked-dictionary banner stayed "blocked" after a successful Force Apply**: a resolved block kept re-asserting `blocked`/`stale` on every `/ManageAnnotations` load while its pending CSV lingered on disk (≤ 48 h). `derive_ontology_dictionary_status()` now excludes blocked jobs at or before the most recent successful apply.
+- **`max_omim_id` could report a non-OMIM identifier**: a plain lexical `MAX()` over the mixed-prefix `disease_ontology_set` ranked `Orphanet:…` above `OMIM:…`; the lookup is now scoped to OMIM ids.
+- **Additive apply no longer leaves a transaction open on the empty-insert branch** (a `return()` inside the `dbWithTransaction` block bypassed the commit on a shared connection), and the additive integration tests now actually run against a real connection instead of skipping/erroring on a nested transaction.
+- **The MSW↔OpenAPI verifier (`make lint-app`) failed** on the `/api/admin/ontology/dictionary-status` handler because its mount map lacked the `/api/admin/ontology` and `/api/admin/analysis` sub-routers; both are now mapped before `/api/admin`.
+
 ## [0.26.3] — 2026-06-29
 
 Patch release: analysis snapshots self-heal when stale, and the phenotype-cluster p-value / v-test columns render again.

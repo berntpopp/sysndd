@@ -213,6 +213,31 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 }
 
 
+#' Extract purely-additive ontology terms
+#'
+#' Returns rows of the freshly-built ontology set whose
+#' `disease_ontology_id_version` does not yet exist in the current set. This is
+#' net-new versions, which includes BOTH brand-new diseases AND a new version of
+#' an already-present (possibly entity-referenced) disease — the version string
+#' differs, so it is absent from current. Inserting them is FK-safe because no
+#' existing row is modified or removed: an entity that references the OLD version
+#' keeps pointing at the retained old row, and Force Apply reconciles the
+#' superseding version later. The insert can never break an entity FK.
+#'
+#' @param disease_ontology_set_update Freshly built ontology set (tibble).
+#' @param disease_ontology_set_current Current ontology set (tibble; needs
+#'   `disease_ontology_id_version`).
+#' @return Tibble subset of `disease_ontology_set_update` (same columns); 0 rows
+#'   when nothing is additive.
+#' @export
+extract_additive_ontology_terms <- function(disease_ontology_set_update,
+                                            disease_ontology_set_current) {
+  existing <- unique(as.character(disease_ontology_set_current$disease_ontology_id_version))
+  disease_ontology_set_update %>%
+    dplyr::filter(!(as.character(disease_ontology_id_version) %in% existing))
+}
+
+
 #' Process and Combine Ontology Data
 #'
 #' This function processes MONDO and OMIM ontology data, combines them, and
@@ -528,60 +553,4 @@ process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progres
   write_csv(omim_terms, file = csv_file_path, na = "NULL")
 
   return(omim_terms)
-}
-
-
-#' Download and Load an Ontology Based on Provided Parameters
-#'
-#' This function downloads an ontology file if it's older than a specified age
-#' and then loads it into an ontology object. It supports Human Phenotype Ontology (HPO), # nolint: line_length_linter
-#' Mammalian Phenotype Ontology (MPO), and MONDO.
-#'
-#' @param ontology_type A character string specifying the type of ontology ("hpo", "mpo", or "mondo").
-#' @param config_vars List of configuration variables including the URL and file paths for each ontology type.
-#' @param tags A character string specifying the type of tags to be extracted from the ontology ("minimal", "default", or "everything"). # nolint: line_length_linter
-#' @param max_age Integer, maximum age of the file in months before re-downloading.
-#' @return An ontology object loaded with the specified ontology data.
-#'
-#' @examples
-#' \dontrun{
-#'   config_vars <- list(
-#'     hpo_obo_url = "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2023-10-09/hp.obo",
-#'     mpo_obo_url = "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2023-10-31/mp.obo",
-#'     mondo_obo_url = "http://purl.obolibrary.org/obo/mondo.obo",
-#'     download_path = "data/"
-#'   )
-#'   hpo_ontology <- get_ontology_object("hpo", config_vars, "everything", 1)
-#' }
-#'
-#' @export
-get_ontology_object <- function(ontology_type, config_vars, tags = "everything", max_age = 1) {
-  # Determine file prefix based on ontology type
-  file_prefix <- switch(ontology_type,
-    "hpo" = "hpo_obo",
-    "mpo" = "mpo_obo",
-    "mondo" = "mondo_obo",
-    stop("Invalid ontology type")
-  )
-
-  # Check if the current ontology file is older than max_age
-  if (check_file_age(file_prefix, config_vars$download_path, max_age)) {
-    ontology_filename <- get_newest_file(file_prefix, config_vars$download_path)
-  } else {
-    # Download a new file if the existing one is too old
-    ontology_url <- config_vars[[paste0(ontology_type, "_obo_url")]]
-    current_date <- format(Sys.Date(), "%Y-%m-%d")
-    ontology_filename <- paste0(config_vars$download_path, file_prefix, ".", current_date, ".obo")
-    download.file(ontology_url, ontology_filename, mode = "wb")
-  }
-
-  # Load the ontology
-  ontology <- get_ontology(
-    ontology_filename,
-    propagate_relationships = "is_a",
-    extract_tags = tags,
-    merge_equivalent_terms = TRUE
-  )
-
-  return(ontology)
 }

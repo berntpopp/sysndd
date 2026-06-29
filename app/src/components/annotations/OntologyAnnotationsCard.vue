@@ -17,6 +17,15 @@
 
     <JobProgressDisplay :job="ontologyJob" idle-message="This may take several minutes..." />
 
+    <BAlert v-if="stale && !blocked" variant="warning" show class="mt-3 mb-0">
+      <h6 class="alert-heading">Disease dictionary may be stale</h6>
+      <p class="mb-0 small">
+        A previous ontology update was blocked and its staged data has expired
+        (last fully applied {{ stale.lastApplied ? formatDate(stale.lastApplied) : 'unknown' }}).
+        Re-run "Update Ontology Annotations" to refresh; new terms will be auto-applied.
+      </p>
+    </BAlert>
+
     <BAlert v-if="blocked" variant="warning" show class="mt-3 mb-0">
       <h6 class="alert-heading d-flex align-items-center gap-2">
         Ontology Update Blocked
@@ -141,6 +150,7 @@ const props = defineProps<{
   ontologyJob: UseAsyncJobReturn;
   forceApplyJob: UseAsyncJobReturn;
   blocked: OntologyBlockedState | null;
+  stale?: { lastApplied: string | null } | null;
   lastUpdated: string | null;
   userOptions: UserOption[];
   loadingUsers: boolean;

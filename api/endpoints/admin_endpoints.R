@@ -183,8 +183,10 @@ function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
     NULL
   }
 
-  # Look up the blocked job result
-  blocked_job <- get_job_status(blocked_job_id)
+  # Look up the blocked job result. result_mode = "full" is REQUIRED: the
+  # summary mode omits the parsed result_json, leaving blocked_job$result NULL,
+  # which makes the "was the job blocked?" check below always fail with 409.
+  blocked_job <- get_job_status(blocked_job_id, result_mode = "full")
 
   if (!is.null(blocked_job$error) && blocked_job$error == "JOB_NOT_FOUND") {
     res$status <- 404L

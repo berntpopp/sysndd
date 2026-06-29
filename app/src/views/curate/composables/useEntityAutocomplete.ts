@@ -1,7 +1,12 @@
 // app/src/views/curate/composables/useEntityAutocomplete.ts
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { listEntities } from '@/api/entity';
 import { searchOntology as searchOntologyApi } from '@/api/search';
+
+export const OMIM_PENDING_HINT =
+  'No matching disease found. If you recently added this OMIM ID, the disease dictionary may need an administrator refresh.';
+
+const OMIM_SHAPED = /^(omim:?\s*)?\d{6}$/i;
 
 export interface UseEntityAutocompleteOptions {
   onToast?: (...args: unknown[]) => void;
@@ -44,8 +49,18 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
   const ontology_search_loading = ref(false);
   const replace_entity_search_loading = ref(false);
 
+  // Tracks the last trimmed ontology query for OMIM-shaped hint logic
+  const last_ontology_query = ref('');
+
   // Loaded flag
   const entity_loaded = ref(false);
+
+  // OMIM-aware no-results hint for the disease autocomplete
+  const ontologyNoResultsMessage = computed(() =>
+    ontology_search_results.value.length === 0 && OMIM_SHAPED.test(last_ontology_query.value)
+      ? OMIM_PENDING_HINT
+      : 'No results found'
+  );
 
   async function searchEntity(query: string): Promise<void> {
     if (!query || query.length < 2) {
@@ -66,6 +81,7 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
   }
 
   async function searchOntology(query: string): Promise<void> {
+    last_ontology_query.value = (query || '').trim();
     if (!query || query.length < 2) {
       ontology_search_results.value = [];
       return;
@@ -156,6 +172,7 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
     ontology_search_loading,
     replace_entity_search_loading,
     entity_loaded,
+    ontologyNoResultsMessage,
     searchEntity,
     searchOntology,
     searchReplacementEntity,

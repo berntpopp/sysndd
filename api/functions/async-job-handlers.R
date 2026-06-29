@@ -535,30 +535,6 @@
   )
 }
 
-.async_job_omim_db_write <- function(disease_ontology_set_update, safeguard, db_config) {
-  sysndd_db <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = db_config$dbname,
-    user = db_config$user,
-    password = db_config$password,
-    server = db_config$server,
-    host = db_config$host,
-    port = db_config$port
-  )
-  on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
-
-  refresh_result <- refresh_disease_ontology_set(
-    conn = sysndd_db,
-    disease_ontology_set_update = disease_ontology_set_update,
-    auto_fixes = safeguard$auto_fixes
-  )
-
-  # Correction #2: the disease set changed, so rebuild the cross-ontology
-  # mappings (best-effort; never fails the ontology refresh).
-  .async_job_chain_ontology_mapping_refresh()
-
-  refresh_result$auto_fixes_applied
-}
 
 .async_job_run_omim_update <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
@@ -599,6 +575,8 @@
     )
     readr::write_csv(disease_ontology_set_update, file = csv_path, na = "NULL")
 
+    additive <- apply_additive_terms_on_block(payload, disease_ontology_set_update)
+
     progress("blocked", "Critical ontology changes require manual review", 5, 5)
 
     return(list(
@@ -611,6 +589,8 @@
       critical_count = safeguard$summary$truly_critical,
       auto_fixable_count = safeguard$summary$auto_fixable,
       total_affected = safeguard$summary$total_affected,
+      additive_applied = additive$applied,
+      additive_error = additive$error,
       critical_entities = safeguard$critical |>
         dplyr::select(
           disease_ontology_id_version,
