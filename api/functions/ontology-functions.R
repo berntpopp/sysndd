@@ -213,6 +213,27 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 }
 
 
+#' Extract purely-additive ontology terms
+#'
+#' Returns rows of the freshly-built ontology set whose
+#' `disease_ontology_id_version` does not yet exist in the current set. Such
+#' versions are brand-new and therefore not referenced by any entity (entities
+#' can only reference versions already present), so inserting them is zero-risk.
+#'
+#' @param disease_ontology_set_update Freshly built ontology set (tibble).
+#' @param disease_ontology_set_current Current ontology set (tibble; needs
+#'   `disease_ontology_id_version`).
+#' @return Tibble subset of `disease_ontology_set_update` (same columns); 0 rows
+#'   when nothing is additive.
+#' @export
+extract_additive_ontology_terms <- function(disease_ontology_set_update,
+                                            disease_ontology_set_current) {
+  existing <- unique(as.character(disease_ontology_set_current$disease_ontology_id_version))
+  disease_ontology_set_update %>%
+    dplyr::filter(!(as.character(disease_ontology_id_version) %in% existing))
+}
+
+
 #' Process and Combine Ontology Data
 #'
 #' This function processes MONDO and OMIM ontology data, combines them, and

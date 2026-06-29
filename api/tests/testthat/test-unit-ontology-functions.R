@@ -895,3 +895,42 @@ test_that("UTC timestamp formatting", {
 
   expect_true(str_detect(utc_timestamp, "^\\d{4}-\\d{2}-\\d{2}$"))
 })
+
+# =============================================================================
+# extract_additive_ontology_terms() tests
+# =============================================================================
+
+test_that("extract_additive_ontology_terms returns only brand-new id_versions", {
+  current <- tibble::tibble(
+    disease_ontology_id_version = c("OMIM:111111", "OMIM:222222"),
+    disease_ontology_id = c("OMIM:111111", "OMIM:222222"),
+    disease_ontology_name = c("Old A", "Old B")
+  )
+  update <- tibble::tibble(
+    disease_ontology_id_version = c("OMIM:111111", "OMIM:222222", "OMIM:621533", "OMIM:621608"),
+    disease_ontology_id = c("OMIM:111111", "OMIM:222222", "OMIM:621533", "OMIM:621608"),
+    disease_ontology_name = c("Old A renamed", "Old B", "New NDD seizures", "New DEE 122")
+  )
+
+  additive <- extract_additive_ontology_terms(update, current)
+
+  expect_equal(sort(additive$disease_ontology_id_version), c("OMIM:621533", "OMIM:621608"))
+  expect_setequal(colnames(additive), colnames(update))
+})
+
+test_that("extract_additive_ontology_terms returns 0-row tibble when nothing is new", {
+  current <- tibble::tibble(disease_ontology_id_version = c("OMIM:1", "OMIM:2"))
+  update <- tibble::tibble(disease_ontology_id_version = c("OMIM:1", "OMIM:2"))
+
+  additive <- extract_additive_ontology_terms(update, current)
+
+  expect_equal(nrow(additive), 0L)
+  expect_true("disease_ontology_id_version" %in% colnames(additive))
+})
+
+test_that("extract_additive_ontology_terms treats an empty current set as all-additive", {
+  current <- tibble::tibble(disease_ontology_id_version = character(0))
+  update <- tibble::tibble(disease_ontology_id_version = c("OMIM:621533"))
+
+  expect_equal(nrow(extract_additive_ontology_terms(update, current)), 1L)
+})
