@@ -47,7 +47,10 @@ Consequences observed in production (snapshot `sysndd_snapshot_20260629_1545`):
 - **Fix 3 (persistent acknowledgement table).** Once additive auto-apply lands the
   dictionary no longer freezes, so re-blocking just correctly flags 5 entities that
   genuinely need a curator decision. A full ack table risks permanently hiding
-  reviews that should happen. Deferred.
+  reviews that should happen. Deferred. **The PR description must state explicitly
+  that a recurring blocked status is intentional and expected until an admin Force
+  Applies the critical entities — it is no longer a freeze, just a standing review
+  flag.**
 - **Changing the `async_jobs.status` enum.** The job genuinely completed; only its
   *result* is "blocked". Reclassifying the shared job lifecycle is invasive and
   risks the durable job state machine. We surface a derived signal instead.
@@ -75,6 +78,14 @@ Add two functions and wire one call:
    `DBI::dbWithTransaction()` wrapper, mirroring `refresh_disease_ontology_set`'s
    transaction discipline (no `TRUNCATE`, no manual begin/commit). Returns the
    number of rows inserted. A 0-row input is a no-op returning `0L`.
+   **Duplicate-safe against the live DB:** `disease_ontology_set` has
+   `PRIMARY KEY (disease_ontology_id_version)` and an inbound `ndd_entity` FK. The
+   payload `disease_ontology_set_current` is captured at job *submit* time
+   (`admin_endpoints.R`) but the worker runs later, so the live table may have
+   changed. The helper therefore re-derives the anti-join **inside the
+   transaction** — `SELECT disease_ontology_id_version FROM disease_ontology_set`
+   and drops any additive row already present — before appending. This makes a
+   concurrent change or a re-run a safe no-op instead of a PK violation.
 
 3. In `.async_job_run_omim_update` blocked branch (`api/functions/async-job-handlers.R`):
    after writing the pending CSV and before `return()`, compute the additive rows,
@@ -85,10 +96,10 @@ Add two functions and wire one call:
    into a job failure: on insert error we log, set `additive_applied = 0`, and still
    return `status = "blocked"`.
 
-Idempotency: a re-run recomputes additive rows against the now-updated current set,
-so previously inserted terms are excluded. A later Force Apply or clean run does a
-full `DELETE` + reinsert from CSV, which includes the additive rows, so they are
-cleanly superseded — never duplicated.
+Idempotency: enforced inside the transaction against the **live** table (above),
+not only the payload snapshot. A later Force Apply or clean run does a full
+`DELETE` + reinsert from CSV, which includes the additive rows, so they are cleanly
+superseded — never duplicated.
 
 Column contract: `additive_rows` are rows of `disease_ontology_set_update`, which
 carries the CSV column set (`disease_ontology_id_version`, `disease_ontology_id`,
@@ -102,51 +113,72 @@ behaves today.
 
 ### Fix 1 — Visibility: derived status endpoint + persistent banner (API + UI)
 
-**API:** `GET /api/admin/ontology/status` (Administrator-gated, DB-only, cheap).
-Logic:
+**Routing (point 1).** `/api/admin/ontology` is already mounted to
+`admin_ontology_mapping_endpoints.R` at `mount_endpoints.R:145`, *before* the
+generic `/api/admin` at line 146 — so a route placed only in `admin_endpoints.R`
+would never be reached. The status route therefore lives in the
+`/api/admin/ontology` router as **`@get /dictionary-status`** →
+`GET /api/admin/ontology/dictionary-status`. No new mount / no mount-ordering
+change. The handler is a thin shell delegating to a small new service file
+`api/functions/ontology-status-service.R` (registered via
+`bootstrap_load_modules()` in `api/bootstrap/load_modules.R`), keeping both
+endpoint files small (point 6).
 
-- Read `disease_ontology_set` for `MAX(update_date)` (last applied) and
-  `MAX(disease_ontology_id)` for OMIM rows (informational `max_omim_id`).
-- Find the most recent `omim_update` job from job history and read its
-  `result_json`. If its result status is `"blocked"` and the pending CSV still
-  exists and is fresh (≤ the same 48h staleness window Force Apply enforces),
-  set `blocked = TRUE` and surface `blocked_job_id`, `critical_count`,
-  `auto_fixable_count`, `additive_applied`, `pending_csv_path`.
-- `stale = blocked || last-applied older than a threshold` (reuse a sensible
-  default, e.g. 30 days, env-overridable; the headline signal is `blocked`).
+**Status derivation (point 2).** Table `MAX(update_date)` is **not** a reliable
+"dictionary applied" signal: once additive auto-apply appends new rows stamped with
+today's date, the table max looks fresh while critical staged changes remain. The
+service derives the real signals from **job history**, not the table max:
 
-Returns a flat JSON object:
-`{ blocked, blocked_job_id, disease_ontology_last_applied, max_omim_id,
-   critical_count, auto_fixable_count, additive_applied, stale,
-   last_omim_update_status, last_omim_update_at }`.
+- `last_full_apply_at` — most recent successful `omim_update` (`result.status ==
+  "success"`) **or** `force_apply_ontology` job (the only paths that do a full
+  `DELETE` + reinsert).
+- `last_additive_apply_at` — most recent `omim_update` whose blocked result
+  reported `additive_applied > 0`.
+- `latest_blocked_omim_update_at` + `blocked_job_id` — most recent `omim_update`
+  whose `result.status == "blocked"`, **only if** its pending CSV still exists and
+  is fresh (≤ the same 48h window Force Apply enforces in `admin_endpoints.R:231`).
+- `pending_csv_fresh` — boolean; FALSE when a blocked result exists but its CSV is
+  missing or >48h old (drives the stale-only banner, point 4).
+- `max_omim_id` — informational only.
+- `stale = (a blocked result exists) || (last_full_apply_at older than a 30-day
+  threshold, env-overridable)`.
 
-**Frontend:** `ManageAnnotations.vue` calls the status endpoint `onMounted` (via a
-new typed helper in `useAnnotationsApi.ts`). When `blocked` and a `blocked_job_id`
-is present, it reuses the existing `fetchOntologyJobResult(blocked_job_id)` to
-hydrate `ontologyBlocked`, so the existing `OntologyAnnotationsCard` blocked panel
-renders **persistently on page load** (today it only appears reactively right after
-running an update). The panel already renders the critical-entity table, auto-fix
-list, user-assignment select, and Force Apply button. Copy additions:
+Returns a flat JSON object with all of the above plus `blocked` (= fresh pending
+CSV present) and `critical_count` / `auto_fixable_count` / `additive_applied` from
+the blocked result. DB + job-history only; cheap.
 
-- A staleness line: "Disease dictionary last applied {date} — {N} new term(s) were
-  auto-applied; {critical_count} entity-referenced change(s) need review."
-- Clearer instruction directing the admin to review the listed entities and Force
-  Apply to flush the remaining staged changes.
+**Frontend.** `ManageAnnotations.vue` calls the status endpoint `onMounted` (new
+typed helper in `useAnnotationsApi.ts`). Three states:
+
+1. `blocked` (fresh pending CSV) → reuse the existing
+   `fetchOntologyJobResult(blocked_job_id)` to hydrate `ontologyBlocked`, so the
+   existing `OntologyAnnotationsCard` blocked panel renders **persistently on
+   load** (today it only appears reactively right after running an update). Panel
+   already has the critical-entity table, auto-fixes, user-assignment, and Force
+   Apply. Copy: "Disease dictionary last fully applied {last_full_apply_at} — {N}
+   new term(s) auto-applied since; {critical_count} entity-referenced change(s)
+   need review, then Force Apply."
+2. **stale-only** (`stale && !blocked` — i.e. a block happened but the CSV is gone
+   / >48h, so Force Apply would 410) → a distinct warning banner instructing the
+   admin to **re-run the OMIM update** (no dead Force Apply button) (point 4).
+3. neither → no banner.
 
 This reuses the existing card and force-apply flow — minimal new frontend surface.
 
 ### Fix 4 — Curator-facing hint (UI only)
 
-In the rename-disease autocomplete path
-(`app/src/views/curate/composables/useEntityAutocomplete.ts` and the component that
-renders the disease treeselect), when `searchOntology` returns an empty array **and**
-the trimmed query is OMIM-shaped (`/^(omim:?\s*)?\d{6}$/i`) **and** not loading,
-expose an `ontologyEmptyHint` message:
+Rename-disease uses `AutocompleteInput` (`app/src/components/forms/AutocompleteInput.vue`),
+**not** a treeselect, wired in `InlineEntityWorkflow.vue:16`. The empty copy is
+hard-coded at `AutocompleteInput.vue:68` ("No results found"). Add a generic
+`noResultsMessage?: string` prop (default "No results found") to `AutocompleteInput`
+and render it in that block. The rename flow computes an OMIM-aware message — when
+the trimmed query is OMIM-shaped (`/^(omim:?\s*)?\d{6}$/i`) — and passes it down:
 
 > "No matching disease found. If you recently added this OMIM ID, the disease
 > dictionary may need an administrator refresh."
 
-For non-OMIM-shaped empty queries the behavior is unchanged (standard "No results").
+For non-OMIM-shaped queries the default copy is unchanged. Generic prop on the
+shared component; OMIM-specific string supplied only by the rename flow.
 Frontend-only; always-correct guidance regardless of pending state.
 
 ## Data flow
@@ -186,9 +218,15 @@ Rename-disease autocomplete
 
 - **R unit:** `extract_additive_ontology_terms` (additive subset correctness,
   empty-input, no-additive cases) in `test-unit-ontology-functions.R`;
-  `apply_additive_ontology_terms` transaction-pattern static guard +
   blocked-branch wiring static guard in `test-unit-async-job-handlers.R`;
-  status-endpoint blocked/stale derivation logic test.
+  status-service blocked/stale derivation logic test (separating
+  `last_full_apply_at` vs additive vs blocked).
+- **R DB-backed (point 7):** a transactional test for `apply_additive_ontology_terms`
+  proving existing rows are untouched, additive rows insert, a re-run is a no-op
+  (live anti-join, no PK violation), and the migration-036 nullable projection
+  columns (`UMLS`/`MedGen`/`NCIT`/`GARD`/`ontology_mapping_release`,
+  `036_add_disease_ontology_mappings.sql:64`) are accepted on append. Use
+  `with_test_db_transaction()` per the repo testing contract.
 - **Frontend unit:** status→banner hydration in `ManageAnnotations.spec.ts`;
   OMIM-shaped empty-state hint in `useEntityAutocomplete.spec.ts`.
 - **Playwright (local-only):** load the production snapshot into the dev DB; assert
