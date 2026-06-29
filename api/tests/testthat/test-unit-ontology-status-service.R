@@ -32,6 +32,31 @@ test_that("a blocked omim_update with a stale CSV is stale-only (not blocked)", 
   expect_true(s$stale)
 })
 
+test_that("a fresh block RESOLVED by a later full apply is neither blocked nor stale", {
+  # #470 review A2: a blocked omim_update whose pending CSV is still fresh
+  # (<= 48 h) must NOT keep the dictionary blocked once a later full apply
+  # (force_apply_ontology success here) has resolved it. Previously the fresh
+  # CSV alone re-asserted blocked=TRUE on every page reload for up to 48 h.
+  jobs <- list(
+    job("force_apply_ontology", 1, "success"),                 # most recent: resolves block
+    job("omim_update", 2, "blocked", fresh = TRUE, crit = 5)    # earlier block, CSV still fresh
+  )
+  s <- derive_ontology_dictionary_status(jobs, now, stale_after_days = 30)
+  expect_false(s$blocked)
+  expect_false(s$stale)
+})
+
+test_that("a fresh block that POSTDATES the last full apply stays blocked", {
+  # Converse guard: a new block after the most recent apply must remain blocked.
+  jobs <- list(
+    job("omim_update", 1, "blocked", fresh = TRUE, crit = 5),  # most recent: new block
+    job("force_apply_ontology", 5, "success")                  # older apply
+  )
+  s <- derive_ontology_dictionary_status(jobs, now, stale_after_days = 30)
+  expect_true(s$blocked)
+  expect_equal(s$blocked_job_id, "omim_update-1")
+})
+
 test_that("a clean recent success is neither blocked nor stale", {
   jobs <- list(job("omim_update", 2, "success", add = 0))
   s <- derive_ontology_dictionary_status(jobs, now, stale_after_days = 30)

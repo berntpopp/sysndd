@@ -37,14 +37,20 @@ derive_ontology_dictionary_status <- function(jobs, now, stale_after_days = 30) 
     NA
   }
 
+  # last_full = the most recent successful full apply (omim_update success OR
+  # force_apply_ontology success). A blocked job that completed at-or-before it
+  # has already been resolved, so it must NOT keep the dictionary "blocked"
+  # even while its pending CSV lingers on disk (≤ 48 h). Computed before
+  # fresh_blocked so the filter can exclude resolved blocks.
+  last_full <- pick_at(is_full_apply)
   fresh_blocked <- Filter(function(j) {
     identical(j$operation, "omim_update") && identical(j$result_status, "blocked") &&
-      isTRUE(j$pending_csv_fresh)
+      isTRUE(j$pending_csv_fresh) &&
+      (is.na(last_full) || j$completed_at > last_full)
   }, jobs)
   any_blocked_at <- pick_at(function(j) {
     identical(j$operation, "omim_update") && identical(j$result_status, "blocked")
   })
-  last_full <- pick_at(is_full_apply)
 
   out <- empty
   out$last_full_apply_at <- last_full
@@ -125,13 +131,21 @@ ontology_dictionary_status <- function(history_limit = 100L,
 
 #' @keywords internal
 .ontology_status_db_lookup <- function() {
-  row <- pool %>%
-    dplyr::tbl("disease_ontology_set") %>%
-    dplyr::summarise(
-      last_applied = max(update_date, na.rm = TRUE),
-      max_omim_id = max(disease_ontology_id, na.rm = TRUE)
-    ) %>%
-    dplyr::collect()
+  # max_omim_id must be scoped to OMIM ids: disease_ontology_set holds mixed
+  # prefixes (OMIM/MONDO/Orphanet/...) and a plain MAX() is a LEXICAL max, so
+  # "Orphanet:..." > "OMIM:..." would mislabel a non-OMIM id as the max OMIM id.
+  # last_applied stays over the whole table (the dictionary-wide applied date).
+  conn <- pool::poolCheckout(pool)
+  on.exit(pool::poolReturn(conn), add = TRUE)
+  row <- DBI::dbGetQuery(
+    conn,
+    paste0(
+      "SELECT MAX(update_date) AS last_applied, ",
+      "MAX(CASE WHEN disease_ontology_id LIKE 'OMIM:%' ",
+      "THEN disease_ontology_id END) AS max_omim_id ",
+      "FROM disease_ontology_set"
+    )
+  )
   list(
     last_applied = as.character(row$last_applied[[1]]),
     max_omim_id = as.character(row$max_omim_id[[1]])

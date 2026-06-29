@@ -145,12 +145,18 @@ apply_additive_ontology_terms <- function(conn, additive_rows) {
       to_insert <- additive_rows %>%
         dplyr::filter(!(as.character(disease_ontology_id_version) %in% as.character(existing)))
 
+      # Terminal expression, NOT return(): a return() inside the dbWithTransaction
+      # block is a non-local exit out of this function that bypasses
+      # dbWithTransaction's commit, leaving the transaction open on `conn`. Benign
+      # for the dedicated add_conn used in production (disconnected immediately ->
+      # implicit rollback), but this is an @exported helper that may receive a
+      # pooled/shared connection, so end the block with a value instead.
       if (nrow(to_insert) == 0) {
-        return(0L)
+        0L
+      } else {
+        DBI::dbAppendTable(conn, "disease_ontology_set", to_insert)
+        nrow(to_insert)
       }
-
-      DBI::dbAppendTable(conn, "disease_ontology_set", to_insert)
-      nrow(to_insert)
     })
   })
 }

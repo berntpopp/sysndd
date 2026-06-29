@@ -63,6 +63,20 @@ test_that("force_apply_ontology validates blocked_job_id before job submission",
   })
 })
 
+# Source-level (no DB) so it always runs, including in CI without a test DB.
+test_that("force_apply_ontology reads the blocked job in full mode", {
+  body <- admin_body_blob("^#\\*\\s+@put\\s+force_apply_ontology\\s*$")
+  # #470 review A1: the handler inspects blocked_job$result to confirm the job
+  # was "blocked", but get_job_status() omits the parsed result in summary mode.
+  # Without result_mode = "full" the blocked check returns 409 every time, so
+  # Force Apply could never resolve a block. Lock the full-mode lookup in place.
+  expect_match(
+    body,
+    "get_job_status\\(\\s*blocked_job_id\\s*,\\s*result_mode\\s*=\\s*[\"']full[\"']"
+  )
+  expect_match(body, "Referenced job was not blocked")
+})
+
 test_that("NDDScore admin routes keep Administrator guard and async job boundary", {
   with_test_db_transaction({
     src <- admin_source()
