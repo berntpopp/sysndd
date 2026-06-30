@@ -85,7 +85,11 @@ INSERT INTO async_jobs (
     --   auto_fixable_count drives the blue badge
     --   additive_applied read by derive_ontology_dictionary_status for out$additive_applied
     --   total_affected   exposed via OntologyBlockedState to the frontend
-    --   critical_entities array shown in the BTable inside the banner alert
-    --   auto_fixes       empty array (no auto-fixable remappings in this fixture)
-    '{"status":"blocked","pending_csv_path":"data/pending_ontology/pending_ontology_update.2026-06-29.csv","critical_count":5,"auto_fixable_count":1,"additive_applied":12,"total_affected":18,"critical_entities":[{"disease_ontology_id_version":"OMIM:111111","disease_ontology_name":"Example NDD","hgnc_id":"HGNC:1","hpo_mode_of_inheritance_term":"Autosomal dominant"}],"auto_fixes":[]}'
+    --   critical_entities array shown in the critical BTable (Version cell links
+    --                    out to OMIM; a versioned id exercises suffix stripping)
+    --   auto_fixes       array shown in the collapsible auto-fixable BTable, with
+    --                    disease_ontology_name (Disease column) and old/new
+    --                    versions that link out to OMIM with the _N suffix
+    --                    stripped from the URL but kept in the label
+    '{"status":"blocked","pending_csv_path":"data/pending_ontology/pending_ontology_update.2026-06-29.csv","critical_count":2,"auto_fixable_count":2,"additive_applied":12,"total_affected":18,"critical_entities":[{"disease_ontology_id_version":"OMIM:111111","disease_ontology_name":"Example NDD","hgnc_id":"HGNC:1","hpo_mode_of_inheritance_term":"Autosomal dominant"},{"disease_ontology_id_version":"OMIM:222222_1","disease_ontology_name":"Example NDD two","hgnc_id":"HGNC:2","hpo_mode_of_inheritance_term":"Autosomal recessive"}],"auto_fixes":[{"old_version":"OMIM:333333","new_version":"OMIM:333333_1","fix_type":"id_fingerprint","disease_ontology_name":"Example remap disease","hgnc_id":"HGNC:3","hpo_mode_of_inheritance_term":"X-linked"},{"old_version":"OMIM:444444_2","new_version":"OMIM:444444","fix_type":"name_fingerprint","disease_ontology_name":"Another remap disease","hgnc_id":"HGNC:4","hpo_mode_of_inheritance_term":"Autosomal dominant"}]}'
 );

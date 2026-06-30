@@ -35,13 +35,22 @@
         </span>
       </h6>
       <p class="mb-2 small">
-        The ontology update detected {{ blocked.critical_count }} entity-referenced version(s) that
-        would disappear with no automatic remapping. These entities need manual review after
-        force-applying.
+        This update splits into two groups. <strong>Critical entities</strong> changed in a way that
+        has no automatic remapping, so they need manual review. The
+        <strong>auto-fixable remappings</strong> map cleanly to a new version and are applied for
+        you. Force Apply proceeds with both.
       </p>
 
       <div v-if="blocked.critical_entities.length > 0" class="mb-3">
-        <strong class="small">Critical entities:</strong>
+        <div class="d-flex align-items-baseline gap-2">
+          <strong class="small">Critical entities</strong>
+          <span class="badge bg-danger-subtle text-danger-emphasis">manual review</span>
+        </div>
+        <p class="text-muted small mb-1">
+          {{ blocked.critical_count }} entity-referenced version(s) with no automatic remapping. On
+          Force Apply they are kept as inactive compatibility records (so existing curations stay
+          valid) and queued in a re-review batch for an assigned curator.
+        </p>
         <BTable
           :items="blocked.critical_entities"
           :fields="criticalEntityFields"
@@ -50,7 +59,11 @@
           small
           responsive
           class="mb-0 mt-1"
-        />
+        >
+          <template #cell(disease_ontology_id_version)="row">
+            <OmimVersionLink :version="row.item.disease_ontology_id_version" />
+          </template>
+        </BTable>
       </div>
 
       <div v-if="blocked.auto_fixes.length > 0" class="mb-3">
@@ -58,11 +71,16 @@
           variant="link"
           size="sm"
           class="p-0 text-decoration-none"
+          :aria-expanded="showAutoFixes ? 'true' : 'false'"
           @click="showAutoFixes = !showAutoFixes"
         >
           {{ showAutoFixes ? 'Hide' : 'Show' }}
-          {{ blocked.auto_fixable_count }} auto-fixable remappings
+          {{ blocked.auto_fixable_count }} auto-fixable remapping(s)
         </BButton>
+        <p v-if="showAutoFixes" class="text-muted small mb-1 mt-1">
+          Same gene and inheritance, matched by ID or disease name. Force Apply remaps these
+          automatically — no review needed.
+        </p>
         <BTable
           v-if="showAutoFixes"
           :items="blocked.auto_fixes"
@@ -71,7 +89,17 @@
           small
           responsive
           class="mb-0 mt-1"
-        />
+        >
+          <template #cell(disease_ontology_name)="row">
+            {{ row.item.disease_ontology_name || '—' }}
+          </template>
+          <template #cell(old_version)="row">
+            <OmimVersionLink :version="row.item.old_version" />
+          </template>
+          <template #cell(new_version)="row">
+            <OmimVersionLink :version="row.item.new_version" />
+          </template>
+        </BTable>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -131,6 +159,7 @@ import type { UseAsyncJobReturn } from '@/composables/useAsyncJob';
 import { formatDate } from '@/composables/annotations/useAnnotationFormatters';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import JobProgressDisplay from './JobProgressDisplay.vue';
+import OmimVersionLink from './OmimVersionLink.vue';
 
 export interface OntologyBlockedState {
   blocked_job_id: string;
@@ -173,6 +202,7 @@ const criticalEntityFields = [
 ];
 
 const autoFixFields = [
+  { key: 'disease_ontology_name', label: 'Disease', sortable: true },
   { key: 'old_version', label: 'Old Version' },
   { key: 'new_version', label: 'New Version' },
   { key: 'fix_type', label: 'Match Type' },

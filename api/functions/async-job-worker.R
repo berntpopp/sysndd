@@ -36,6 +36,18 @@ if (!exists("async_job_get_handler", mode = "function")) {
     }
   }
 
+  force_apply_payload_candidates <- c(
+    "functions/async-job-force-apply-payload.R",
+    "/app/functions/async-job-force-apply-payload.R"
+  )
+
+  for (path in force_apply_payload_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
   handler_candidates <- c(
     "functions/async-job-handlers.R",
     "/app/functions/async-job-handlers.R"
