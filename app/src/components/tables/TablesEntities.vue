@@ -68,9 +68,9 @@
               >
                 <!-- Column header tooltips -->
                 <template #column-header="{ data }">
+                  <!-- Tooltip via directive VALUE (not :title) so counts update on filter; see AGENTS.md (bvn v-b-tooltip). -->
                   <div
-                    v-b-tooltip.hover.bottom
-                    :title="
+                    v-b-tooltip.hover.bottom="
                       getTooltipText(
                         fields.find((f) => f.label === data.label) || {
                           key: data.column,
