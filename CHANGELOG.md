@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.5] — 2026-06-30
+
+Patch release: security update — four vulnerable transitive npm dependencies in the frontend lockfile are bumped to their patched versions, closing nine Dependabot alerts. Lockfile-only; no source, public-API, or behavioural changes.
+
+### Security
+
+- **Patched four vulnerable transitive npm dependencies** flagged by Dependabot (`app/package-lock.json` only — each parent's existing semver range already permitted the patched release, so no `package.json` change was needed and `npm update` resolves them):
+  - **`undici` 7.25.0 → 7.28.0** — closes six alerts, including high-severity cross-origin request routing via SOCKS5 proxy pool reuse (GHSA-hm92-r4w5-c3mj) and TLS certificate-validation bypass in the SOCKS5 ProxyAgent (GHSA-vmh5-mc38-953g), plus Set-Cookie and cache-related issues. Dev/test only (pulled in by jsdom via vitest).
+  - **`form-data` 4.0.5 → 4.0.6** — high-severity CRLF injection via unescaped multipart field names and filenames (GHSA-hmw2-7cc7-3qxx). Runtime, via axios.
+  - **`@babel/core` 7.29.0 → 7.29.7** — arbitrary file read via `sourceMappingURL` comment (GHSA-4x5r-pxfx-6jf8). Build only, via vite-plugin-pwa → workbox-build.
+  - **`esbuild` 0.27.7 → 0.28.1** — arbitrary file read when running the dev server on Windows (GHSA-g7r4-m6w7-qqqr). Build only, via vite.
+- `npm audit` now reports **0 vulnerabilities**. Verified against the bumped lockfile with the production build, `type-check`/`type-check:strict`, vitest (1651 pass), eslint (0 errors), and the MSW↔OpenAPI verifier.
+
 ## [0.26.4] — 2026-06-30
 
 Patch release: a blocked OMIM dictionary update no longer freezes the disease dictionary — brand-new terms are applied additively each cycle while critical entity-referenced changes await Force Apply — plus correctness fixes for Force Apply and the blocked-dictionary status banner (#470, #474).
