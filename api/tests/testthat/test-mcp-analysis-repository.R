@@ -129,9 +129,9 @@ test_that("MCP snapshot phenotype cluster repository filters shaped snapshot row
 
   result <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = "GENE1", cluster_id = "3")
 
-  expect_equal(nrow(result), 1L)
-  expect_equal(result$cluster[[1]], "3")
-  expect_equal(result$hgnc_id[[1]], "HGNC:1")
+  expect_equal(nrow(result$records), 1L)
+  expect_equal(result$records$cluster[[1]], "3")
+  expect_equal(result$records$hgnc_id[[1]], "HGNC:1")
 })
 
 test_that("MCP snapshot functional cluster repository filters shaped snapshot rows", {
@@ -156,9 +156,9 @@ test_that("MCP snapshot functional cluster repository filters shaped snapshot ro
 
   result <- mcp_analysis_repo_get_snapshot_functional_clusters(gene = "HGNC:1", cluster_id = "7")
 
-  expect_equal(nrow(result), 1L)
-  expect_equal(result$cluster[[1]], "7")
-  expect_equal(result$symbol[[1]], "GENE1")
+  expect_equal(nrow(result$records), 1L)
+  expect_equal(result$records$cluster[[1]], "7")
+  expect_equal(result$records$symbol[[1]], "GENE1")
 })
 
 test_that("MCP snapshot phenotype correlations filter by phenotype and limit results", {
@@ -211,10 +211,10 @@ test_that("MCP snapshot phenotype functional filters use producer cluster key fo
     ))
   }, envir = .GlobalEnv)
   assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", function(...) {
-    tibble::tibble(cluster = "3", hgnc_id = "HGNC:1", symbol = "GENE1")
+    list(records = tibble::tibble(cluster = "3", hgnc_id = "HGNC:1", symbol = "GENE1"))
   }, envir = .GlobalEnv)
   assign("mcp_analysis_repo_get_snapshot_functional_clusters", function(...) {
-    tibble::tibble(cluster = "7", hgnc_id = "HGNC:1", symbol = "GENE1")
+    list(records = tibble::tibble(cluster = "7", hgnc_id = "HGNC:1", symbol = "GENE1"))
   }, envir = .GlobalEnv)
 
   withr::defer({
@@ -294,4 +294,66 @@ test_that("shared phenotype correlations preserve the public filter argument", {
   expect_gt(modifier_pos, 0L)
   expect_gt(filter_pos, modifier_pos)
   expect_false(grepl("categories <- c(\"Definitive\")", correlation_body, fixed = TRUE))
+})
+
+test_that("phenotype cluster reader threads snapshot meta with validation + db_release", {
+  source_mcp_analysis_repository()
+
+  old_get <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("mcp_analysis_repo_shape_snapshot_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+  on.exit({
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_get)
+    restore_binding("mcp_analysis_repo_shape_snapshot_phenotype_clusters", old_shape)
+  })
+
+  assign("mcp_analysis_repo_get_public_snapshot",
+    function(...) list(snapshot = list(stub = TRUE)), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_shape_snapshot_phenotype_clusters", function(snapshot) list(
+    clusters = tibble::tibble(
+      cluster = "1", hash_filter = "h1",
+      identifiers = list(tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "A"))
+    ),
+    meta = list(snapshot = list(
+      validation = list(partition_scope = "visible_top_level", mean_silhouette = 0.4),
+      db_release = list(version = "v3.2.0", commit = "abc1234")
+    ))
+  ), envir = .GlobalEnv)
+
+  res <- mcp_analysis_repo_get_snapshot_phenotype_clusters()
+  expect_true(is.list(res) && !is.null(res$meta))
+  expect_equal(res$meta$snapshot$validation$partition_scope, "visible_top_level")
+  expect_equal(res$meta$snapshot$db_release$version, "v3.2.0")
+  expect_true(tibble::is_tibble(res$records) && nrow(res$records) >= 1L)
+})
+
+test_that("functional cluster reader threads snapshot meta with validation + db_release", {
+  source_mcp_analysis_repository()
+
+  old_get <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("service_analysis_snapshot_shape_functional", envir = .GlobalEnv, ifnotfound = NULL)
+  on.exit({
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_get)
+    restore_binding("service_analysis_snapshot_shape_functional", old_shape)
+  })
+
+  assign("mcp_analysis_repo_get_public_snapshot",
+    function(...) list(snapshot = list(stub = TRUE)), envir = .GlobalEnv)
+  assign("service_analysis_snapshot_shape_functional", function(snapshot) list(
+    clusters = tibble::tibble(
+      cluster = "1", hash_filter = "h1",
+      identifiers = list(tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "A"))
+    ),
+    meta = list(snapshot = list(
+      validation = list(partition_scope = "visible_top_level", modularity = 0.41,
+                        modularity_scope = "full_partition"),
+      db_release = list(version = "v3.2.0", commit = "abc1234")
+    ))
+  ), envir = .GlobalEnv)
+
+  res <- mcp_analysis_repo_get_snapshot_functional_clusters()
+  expect_true(is.list(res) && !is.null(res$meta))
+  expect_equal(res$meta$snapshot$validation$partition_scope, "visible_top_level")
+  expect_equal(res$meta$snapshot$validation$modularity_scope, "full_partition")
+  expect_equal(res$meta$snapshot$db_release$version, "v3.2.0")
+  expect_true(tibble::is_tibble(res$records) && nrow(res$records) >= 1L)
 })
