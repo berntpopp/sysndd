@@ -10,9 +10,33 @@ source_api_file("functions/analyses-functions.R", local = FALSE)
 source_api_file("functions/analysis-phenotype-functions.R", local = FALSE)
 source_api_file("functions/analysis-cluster-validation.R", local = FALSE)
 
+# The default local/PR test DB (sysndd_db_test) starts empty, so this DB-schema
+# test skips gracefully unless the snapshot tables are present (repo convention,
+# mirrors test-integration-entity-rename.R / test-unit-metadata-refresh.R). It
+# still runs for real against an initialized DB.
+skip_if_missing_analysis_snapshot_schema <- function(conn) {
+  required_tables <- c(
+    "analysis_snapshot_manifest",
+    "analysis_snapshot_cluster",
+    "analysis_snapshot_cluster_member"
+  )
+  missing_tables <- required_tables[!vapply(
+    required_tables,
+    function(table) DBI::dbExistsTable(conn, table),
+    logical(1)
+  )]
+  if (length(missing_tables) > 0) {
+    testthat::skip(paste(
+      "Test database schema is not initialized; missing table(s):",
+      paste(missing_tables, collapse = ", ")
+    ))
+  }
+}
+
 test_that("functional snapshot persists validation + db release label", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    skip_if_missing_analysis_snapshot_schema(conn)
     local_mocked_bindings(
       # avoid the live STRING API: return a minimal visible-cluster tibble shaped like
       # gen_string_clust_obj's output (cluster, identifiers[hgnc_id], hash_filter, cluster_size)
