@@ -45,3 +45,9 @@ test_that("dry_run reports targets without writing", {
     expect_true(is.na(got$publication_date_source))
   })
 })
+
+test_that("publication_date_backfill handler is registered", {
+  source_api_file("functions/async-job-force-apply-payload.R", local = FALSE)
+  source_api_file("functions/async-job-handlers.R", local = FALSE)
+  expect_true("publication_date_backfill" %in% names(async_job_handler_registry))
+})
