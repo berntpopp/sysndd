@@ -121,10 +121,13 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
-  n_assigned <- sum(keep); n_dropped <- nrow(coords) - n_assigned           # dropped = unassigned (sub-min_size)
+  n_assigned <- sum(keep)
+  n_dropped  <- nrow(coords) - n_assigned                                   # dropped = unassigned (sub-min_size)
   memb_int   <- as.integer(factor(ent_to_cluster[rownames(coords)[keep]]))
 
-  sil_mean <- NA_real_; sil_status <- "ok"; k_curve <- NULL
+  sil_mean   <- NA_real_
+  sil_status <- "ok"
+  k_curve    <- NULL
   per_sil  <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
   if (n_clusters < 2 || length(unique(memb_int)) < 2) {
     sil_status <- "undefined_lt2_clusters"                                  # silhouette undefined; NA with reason

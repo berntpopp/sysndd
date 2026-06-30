@@ -55,10 +55,12 @@ build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_ta
   if (!is.null(string_id_table)) {
     id_tbl <- dplyr::filter(string_id_table, hgnc_id %in% hgnc_list)
   } else {
-    id_tbl <- pool %>% dplyr::tbl("non_alt_loci_set") %>%
+    id_tbl <- pool %>%
+      dplyr::tbl("non_alt_loci_set") %>%
       dplyr::filter(!is.na(STRING_id)) %>%
       dplyr::select(symbol, hgnc_id, STRING_id) %>%
-      dplyr::collect() %>% dplyr::filter(hgnc_id %in% hgnc_list)
+      dplyr::collect() %>%
+      dplyr::filter(hgnc_id %in% hgnc_list)
   }
   id_df <- as.data.frame(id_tbl)
   string_graph <- string_db$get_graph()
