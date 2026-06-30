@@ -20,6 +20,7 @@ test_that("backfill selects unverified primary-approved rows and writes both col
 
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
     seed_primary_approved_publication(conn, publication_id = "PMID:999100", source = NULL)
     res <- backfill_publication_dates_run(conn, dry_run = FALSE)
     expect_gte(res$targeted, 1L)
@@ -36,6 +37,7 @@ test_that("dry_run reports targets without writing", {
   source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
     seed_primary_approved_publication(conn, publication_id = "PMID:999101", source = NULL)
     res <- backfill_publication_dates_run(conn, dry_run = TRUE)
     expect_gte(res$targeted, 1L)

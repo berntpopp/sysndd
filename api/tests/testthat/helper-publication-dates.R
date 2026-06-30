@@ -9,6 +9,33 @@
 # there is no bare numeric PMID column. FOREIGN_KEY_CHECKS is disabled because the
 # synthetic entity_id / review_user_id do not reference real ndd_entity / user rows;
 # the whole insert runs inside the test's rolled-back transaction.
+#' Skip a backfill DB test when the publication/review schema is not initialized.
+#'
+#' Mirrors the repo convention (`test-integration-entity-rename.R`,
+#' `test-unit-metadata-refresh.R`): the default local/PR test DB (`sysndd_db_test`)
+#' starts empty, so DB-schema tests skip gracefully unless the required tables are
+#' present. Keeps `make test-api-fast` / `make ci-local` green on the empty profile
+#' while still running for real against an initialized DB.
+skip_if_missing_publication_backfill_schema <- function(conn) {
+  required_tables <- c(
+    "publication",
+    "ndd_review_publication_join",
+    "ndd_entity_review"
+  )
+  missing_tables <- required_tables[!vapply(
+    required_tables,
+    function(table) DBI::dbExistsTable(conn, table),
+    logical(1)
+  )]
+
+  if (length(missing_tables) > 0) {
+    testthat::skip(paste(
+      "Test database schema is not initialized; missing table(s):",
+      paste(missing_tables, collapse = ", ")
+    ))
+  }
+}
+
 seed_primary_approved_publication <- function(conn, publication_id, source = NULL,
                                               pub_date = NULL) {
   source_val <- if (is.null(source)) NA_character_ else as.character(source)

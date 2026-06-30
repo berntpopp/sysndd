@@ -161,14 +161,28 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
     report("write", sprintf("Writing %d verified publication dates...", nrow(to_update)),
            current = nrow(to_update), total = nrow(to_update))
     upd <- "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?"
-    DBI::dbWithTransaction(conn, {
+    apply_updates <- function() {
       for (i in seq_len(nrow(to_update))) {
         r <- to_update[i, ]
         DBI::dbExecute(conn, upd, params = unname(list(
           r$Publication_date, r$publication_date_source, r$publication_id
         )))
       }
-    })
+    }
+    # Batched UPDATE is transactional. Use a SAVEPOINT when the connection is
+    # already inside a transaction (the test harness wraps the call in
+    # with_test_db_transaction(); MySQL forbids nested dbBegin); otherwise own a
+    # dedicated transaction (the operator CLI / worker call with a fresh conn).
+    in_transaction <- isTRUE(tryCatch({
+      DBI::dbExecute(conn, "SAVEPOINT sysndd_backfill_pub_dates")
+      TRUE
+    }, error = function(e) FALSE))
+    if (in_transaction) {
+      apply_updates()
+      DBI::dbExecute(conn, "RELEASE SAVEPOINT sysndd_backfill_pub_dates")
+    } else {
+      DBI::dbWithTransaction(conn, apply_updates())
+    }
   }
 
   # Counters derive from the resolved publication_date_source over the targeted set
