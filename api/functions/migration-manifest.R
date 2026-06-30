@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "036_add_disease_ontology_mappings.sql"
-EXPECTED_MIGRATION_COUNT <- 34L
+EXPECTED_LATEST_MIGRATION <- "037_add_analysis_snapshot_validation.sql"
+EXPECTED_MIGRATION_COUNT <- 35L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

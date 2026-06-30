@@ -454,7 +454,7 @@ mcp_get_phenotype_analysis_context <- function(mode,
     mcp_stop_analysis_snapshot_unavailable(snapshot_status, "Requested phenotype analysis", "mode")
   }
 
-  records <- tryCatch(
+  reader_result <- tryCatch(
     switch(
       mode,
       correlations = mcp_analysis_repo_get_snapshot_phenotype_correlations(
@@ -469,6 +469,27 @@ mcp_get_phenotype_analysis_context <- function(mode,
     ),
     error = function(e) NULL
   )
+  if (is.null(reader_result)) {
+    stop(mcp_error(
+      "snapshot_missing",
+      "Requested phenotype analysis is supported but no public-ready snapshot is available.",
+      list(argument = "mode", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
+    ))
+  }
+
+  # The clusters reader threads snapshot meta as list(records, meta) so the
+  # partition-level cluster-validation metrics + DB release label surface
+  # read-only; other modes return a bare rows tibble.
+  cluster_validation <- NULL
+  cluster_db_release <- NULL
+  if (identical(mode, "clusters")) {
+    snapshot_meta <- reader_result$meta$snapshot %||% list()
+    cluster_validation <- snapshot_meta$validation %||% NULL
+    cluster_db_release <- snapshot_meta$db_release %||% NULL
+    records <- reader_result$records
+  } else {
+    records <- reader_result
+  }
   if (is.null(records)) {
     stop(mcp_error(
       "snapshot_missing",
@@ -479,20 +500,31 @@ mcp_get_phenotype_analysis_context <- function(mode,
 
   record_list <- mcp_rows_to_records(records)
   trimmed <- mcp_analysis_trim_records(record_list, max_records = limit, budget = budget, label = paste0("phenotype_", mode))
+  meta <- list(
+    limit = limit,
+    returned = length(trimmed$records),
+    min_abs_correlation = min_abs_correlation,
+    drop_diagonal = isTRUE(drop_diagonal),
+    triangle_only = isTRUE(triangle_only),
+    include_cached_llm_summaries = include_cached_llm_summaries,
+    snapshot_available = snapshot_available,
+    snapshot_status = snapshot_status
+  )
+  if (identical(mode, "clusters")) {
+    # validation is curated_derived_analysis; db_release/partition_scope/
+    # modularity_scope are operational_metadata. Read-only.
+    meta$validation <- cluster_validation
+    meta$db_release <- cluster_db_release
+    meta$data_classes <- list(
+      validation = "curated_derived_analysis",
+      db_release = "operational_metadata"
+    )
+  }
   c(envelope, list(
     mode = mode,
     records = trimmed$records,
     cached_llm_summaries = list(),
-    meta = list(
-      limit = limit,
-      returned = length(trimmed$records),
-      min_abs_correlation = min_abs_correlation,
-      drop_diagonal = isTRUE(drop_diagonal),
-      triangle_only = isTRUE(triangle_only),
-      include_cached_llm_summaries = include_cached_llm_summaries,
-      snapshot_available = snapshot_available,
-      snapshot_status = snapshot_status
-    ),
+    meta = meta,
     budget = trimmed$budget
   ))
 }
@@ -572,6 +604,9 @@ mcp_get_gene_network_context <- function(gene = NULL,
   }
   edge_records <- mcp_rows_to_records(network$edges)
   trimmed <- mcp_analysis_trim_records(edge_records, max_records = max_edges, budget = budget, label = "gene_network_edges")
+  # gene_network_edges has no cluster validation; surface only the db_release
+  # label (operational_metadata) from the snapshot meta, read-only.
+  network_db_release <- (network$metadata$snapshot$db_release) %||% NULL
   payload <- list(
     nodes = mcp_rows_to_records(network$nodes),
     edges = trimmed$records,
@@ -581,7 +616,9 @@ mcp_get_gene_network_context <- function(gene = NULL,
       max_edges = max_edges,
       stored_snapshot_params = normalized$params,
       snapshot_status = snapshot_status,
-      include_cached_llm_summaries = include_cached_llm_summaries
+      include_cached_llm_summaries = include_cached_llm_summaries,
+      db_release = network_db_release,
+      data_classes = list(db_release = "operational_metadata")
     ))
   )
   trimmed$budget <- mcp_analysis_finalize_budget(payload, trimmed$budget)

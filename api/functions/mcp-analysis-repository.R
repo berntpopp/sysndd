@@ -251,7 +251,7 @@ mcp_analysis_repo_get_snapshot_phenotype_clusters <- function(gene = NULL,
   shaped <- mcp_analysis_repo_shape_snapshot_phenotype_clusters(snapshot$snapshot)
   clusters <- tibble::as_tibble(shaped$clusters %||% tibble::tibble())
   if (nrow(clusters) == 0L || !"identifiers" %in% names(clusters)) {
-    return(tibble::tibble())
+    return(list(records = tibble::tibble(), meta = shaped$meta))
   }
 
   rows <- clusters %>%
@@ -264,7 +264,9 @@ mcp_analysis_repo_get_snapshot_phenotype_clusters <- function(gene = NULL,
     rows <- rows %>% dplyr::filter(as.character(cluster) == as.character(cluster_id)[1])
   }
   rows <- rows %>% dplyr::arrange(cluster, hgnc_id, entity_id)
-  utils::head(rows, mcp_analysis_repo_limit(limit))
+  # Thread snapshot meta so partition-level cluster-validation + DB release label
+  # reach the service (previously shaped$meta was discarded here).
+  list(records = utils::head(rows, mcp_analysis_repo_limit(limit)), meta = shaped$meta)
 }
 
 mcp_analysis_repo_get_snapshot_functional_clusters <- function(gene = NULL,
@@ -278,7 +280,7 @@ mcp_analysis_repo_get_snapshot_functional_clusters <- function(gene = NULL,
   shaped <- service_analysis_snapshot_shape_functional(snapshot$snapshot)
   clusters <- tibble::as_tibble(shaped$clusters %||% tibble::tibble())
   if (nrow(clusters) == 0L || !"identifiers" %in% names(clusters)) {
-    return(tibble::tibble())
+    return(list(records = tibble::tibble(), meta = shaped$meta))
   }
 
   rows <- clusters %>%
@@ -291,7 +293,9 @@ mcp_analysis_repo_get_snapshot_functional_clusters <- function(gene = NULL,
     rows <- rows %>% dplyr::filter(as.character(cluster) == as.character(cluster_id)[1])
   }
   rows <- rows %>% dplyr::arrange(cluster, hgnc_id, entity_id)
-  utils::head(rows, mcp_analysis_repo_limit(limit))
+  # Thread snapshot meta so functional cluster-validation + DB release label reach
+  # the service (previously shaped$meta was discarded here).
+  list(records = utils::head(rows, mcp_analysis_repo_limit(limit)), meta = shaped$meta)
 }
 
 mcp_analysis_repo_cluster_keys <- function(rows, prefix) {
@@ -318,8 +322,9 @@ mcp_analysis_repo_get_snapshot_phenotype_functional_correlations <- function(gen
   }
 
   if (!is.null(gene) && nzchar(trimws(as.character(gene)[1]))) {
-    phenotype_rows <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = gene, limit = 50L)
-    functional_rows <- mcp_analysis_repo_get_snapshot_functional_clusters(gene = gene, limit = 50L)
+    # The cluster readers now return list(records, meta); read $records here.
+    phenotype_rows <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = gene, limit = 50L)$records
+    functional_rows <- mcp_analysis_repo_get_snapshot_functional_clusters(gene = gene, limit = 50L)$records
     gene_cluster_keys <- unique(c(
       mcp_analysis_repo_cluster_keys(phenotype_rows %||% tibble::tibble(), "pc_"),
       mcp_analysis_repo_cluster_keys(functional_rows %||% tibble::tibble(), "fc_")

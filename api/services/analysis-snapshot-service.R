@@ -344,7 +344,20 @@ service_analysis_snapshot_meta <- function(snapshot) {
       payload_hash = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_column_value(row, "payload_hash")
       ),
-      record_counts = service_analysis_snapshot_record_counts(row)
+      record_counts = service_analysis_snapshot_record_counts(row),
+      # Cluster-validation metrics (curated_derived_analysis) + human-facing DB
+      # release label (operational_metadata), persisted by migration 037. The
+      # read path is SELECT *, so the new columns arrive on `row` automatically;
+      # the safe accessor keeps pre-037 snapshots from erroring.
+      validation = service_analysis_snapshot_parse_json_object(
+        service_analysis_snapshot_column_value(row, "validation_json")
+      ),
+      db_release = list(
+        version = service_analysis_snapshot_json_scalar(
+          service_analysis_snapshot_column_value(row, "db_release_version")),
+        commit  = service_analysis_snapshot_json_scalar(
+          service_analysis_snapshot_column_value(row, "db_release_commit"))
+      )
     )
   )
 }

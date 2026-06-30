@@ -9,9 +9,10 @@ source_api_file("functions/pubtatornidd-nightly.R", local = FALSE)
 
 # --- Task 1: preset weights -------------------------------------------------
 
-test_that("functional_clusters is the only heavy preset", {
+test_that("clustering presets are heavy (functional + phenotype run validation)", {
   expect_equal(analysis_snapshot_preset_weight("functional_clusters"), "heavy")
-  for (at in c("phenotype_clusters", "phenotype_correlations",
+  expect_equal(analysis_snapshot_preset_weight("phenotype_clusters"), "heavy")
+  for (at in c("phenotype_correlations",
                "phenotype_functional_correlations", "gene_network_edges")) {
     expect_equal(analysis_snapshot_preset_weight(at), "light")
   }
@@ -66,7 +67,7 @@ test_that("bootstrap stagger offsets heavy presets only", {
     vapply(captured, function(c) c$at, character(1))
   )
   expect_equal(offs[["functional_clusters"]], 120)
-  expect_equal(offs[["phenotype_clusters"]], 0)
+  expect_equal(offs[["phenotype_clusters"]], 120)
   expect_equal(offs[["gene_network_edges"]], 0)
   expect_equal(offs[["phenotype_correlations"]], 0)
 })
