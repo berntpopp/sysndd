@@ -91,6 +91,7 @@ bootstrap_load_modules <- function() {
     "functions/comparisons-list.R",
     "functions/publication-endpoint-helpers.R",
     "functions/publication-functions.R",
+    "functions/publication-date-backfill.R",
     "functions/genereviews-functions.R",
     "functions/analyses-functions.R",
     "functions/analysis-phenotype-functions.R",
