@@ -37,6 +37,35 @@ get_string_db <- function(score_threshold = 400L) {
   string_db_cache[[cache_key]]
 }
 
+#' Build the induced STRING subgraph for a gene list.
+#'
+#' Extracted from `gen_string_clust_obj` so the functional cluster validator
+#' (`analysis-cluster-validation.R`) reuses a byte-identical fixed graph rather
+#' than reconstructing it. The validator's reference graph MUST be the same
+#' object production clusters, so this is refactored (not duplicated).
+#'
+#' @param hgnc_list Character vector of HGNC IDs to include.
+#' @param score_threshold STRING confidence score threshold (default 400).
+#' @param string_id_table Optional pre-fetched STRING ID table (daemon context);
+#'   when NULL the table is collected from `non_alt_loci_set`.
+#' @return An igraph subgraph induced on the input genes' STRING nodes.
+#' @export
+build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_table = NULL) {
+  string_db <- get_string_db(score_threshold)
+  if (!is.null(string_id_table)) {
+    id_tbl <- dplyr::filter(string_id_table, hgnc_id %in% hgnc_list)
+  } else {
+    id_tbl <- pool %>% dplyr::tbl("non_alt_loci_set") %>%
+      dplyr::filter(!is.na(STRING_id)) %>%
+      dplyr::select(symbol, hgnc_id, STRING_id) %>%
+      dplyr::collect() %>% dplyr::filter(hgnc_id %in% hgnc_list)
+  }
+  id_df <- as.data.frame(id_tbl)
+  string_graph <- string_db$get_graph()
+  genes_in_graph <- intersect(igraph::V(string_graph)$name, id_df$STRING_id)
+  igraph::induced_subgraph(string_graph, vids = which(igraph::V(string_graph)$name %in% genes_in_graph))
+}
+
 ## -------------------------------------------------------------------##
 # Analysis Functions
 ## -------------------------------------------------------------------##
@@ -108,20 +137,9 @@ gen_string_clust_obj <- function(
   # Perform clustering using Leiden algorithm via igraph
   # (replaced Walktrap for 2-3x performance improvement)
 
-  # Get full STRING graph for Leiden clustering
-  string_graph <- string_db$get_graph()
-
-  # Filter to input gene set (intersect with genes having STRING IDs)
-  genes_in_graph <- intersect(
-    igraph::V(string_graph)$name,
-    sysndd_db_string_id_df$STRING_id
-  )
-
-  # Create subgraph with only input genes
-  subgraph <- igraph::induced_subgraph(
-    string_graph,
-    vids = which(igraph::V(string_graph)$name %in% genes_in_graph)
-  )
+  # Build the induced STRING subgraph via the shared helper so the functional
+  # validator (analysis-cluster-validation.R) clusters a byte-identical graph.
+  subgraph <- build_string_subgraph(hgnc_list, score_threshold, string_id_table)
 
   # Run clustering algorithm based on parameter
   # Leiden: 2-3x faster, good for large networks
