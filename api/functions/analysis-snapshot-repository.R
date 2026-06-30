@@ -114,11 +114,13 @@ analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
          public_ready, generated_by_job_id, generated_at, stale_after,
          source_versions_json, source_data_version, parameters_json,
          input_hash, payload_hash, algorithm_name, algorithm_version,
-         package_versions_json, row_counts_json, warnings_json, last_error_message
+         package_versions_json, row_counts_json, warnings_json, last_error_message,
+         validation_json, db_release_version, db_release_commit
        ) VALUES (
          ?, ?, ?, ?, ?, 0, ?, COALESCE(?, NOW(6)), ?,
          ?, ?, ?, ?, ?, ?, ?,
-         ?, ?, ?, ?
+         ?, ?, ?, ?,
+         ?, ?, ?
        )",
       unname(list(
         manifest$analysis_type,
@@ -139,7 +141,10 @@ analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
         analysis_snapshot_json(manifest$package_versions),
         analysis_snapshot_json(manifest$row_counts),
         analysis_snapshot_json(manifest$warnings),
-        analysis_snapshot_scalar(manifest$last_error_message, NA_character_)
+        analysis_snapshot_scalar(manifest$last_error_message, NA_character_),
+        analysis_snapshot_json(manifest$validation),                       # JSON column
+        analysis_snapshot_scalar(manifest$db_release_version, NA_character_),
+        analysis_snapshot_scalar(manifest$db_release_commit,  NA_character_)
       )),
       conn = manifest_conn
     )
