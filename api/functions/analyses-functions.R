@@ -73,6 +73,7 @@ select_network_gene_category <- function(categories) {
 gen_string_clust_obj <- function(
   hgnc_list,
   min_size = 10,
+  resolution = 1.0,
   subcluster = TRUE,
   parent = NA,
   enrichment = TRUE,
@@ -142,15 +143,20 @@ gen_string_clust_obj <- function(
     # Default: Leiden clustering (faster)
     # Parameters optimized for PPI networks:
     # - modularity: Standard objective for biological networks
-    # - resolution=1.0: Default, produces similar cluster sizes to Walktrap
+    # - weights=combined_score: STRING confidence drives the weighted-modularity
+    #   objective; without it the >=400 filter's signal is discarded and the
+    #   partition is driven by degree topology only.
+    # - resolution: explicit argument (default 1.0)
     # - beta=0.01: Low randomness ensures reproducible results
-    # - n_iterations=2: Default, balances quality and speed
+    # - n_iterations=-1: iterate until the partition is stable (Leiden's
+    #   convergence guarantees are asymptotic in iteration count)
     cluster_result <- igraph::cluster_leiden(
       subgraph,
-      objective_function = "modularity",
-      resolution_parameter = 1.0,
-      beta = 0.01,
-      n_iterations = 2
+      objective_function   = "modularity",
+      weights              = igraph::E(subgraph)$combined_score,
+      resolution_parameter = resolution,
+      beta                 = 0.01,
+      n_iterations         = -1
     )
   }
 
@@ -219,6 +225,8 @@ gen_string_clust_obj <- function(
       if (subcluster && nrow(.) > 0) {
         mutate(., subclusters = list(gen_string_clust_obj(
           identifiers$hgnc_id,
+          min_size = min_size,
+          resolution = resolution,
           subcluster = FALSE,
           parent = cluster,
           algorithm = algorithm,
@@ -230,6 +238,25 @@ gen_string_clust_obj <- function(
       }
     } %>%
     ungroup()
+
+  # Deterministic content signature for stable cluster identity.
+  # Downstream consumers key cluster identity on `cluster_signature` (the top-5
+  # highest-degree member genes from the fixed STRING subgraph, tie-broken by
+  # hgnc_id) rather than the positional integer index, so a partition change does
+  # not silently relabel clusters. Computed before subgraph cleanup below.
+  if (nrow(clusters_tibble) > 0) {
+    deg <- igraph::degree(subgraph) # named by STRING_id
+    id_map <- stats::setNames(sysndd_db_string_id_df$hgnc_id, sysndd_db_string_id_df$STRING_id)
+    clusters_tibble <- clusters_tibble %>%
+      dplyr::mutate(cluster_signature = vapply(identifiers, function(d) {
+        hg <- d$hgnc_id
+        sid <- names(id_map)[match(hg, id_map)] # hgnc_id -> STRING_id
+        ord <- order(-deg[sid], hg) # highest degree first, tie-break by id
+        paste(utils::head(hg[ord], 5L), collapse = "|")
+      }, character(1)),
+      cluster_signature_hash = vapply(cluster_signature,
+        function(s) digest::digest(s, algo = "sha256"), character(1)))
+  }
 
   # Memory cleanup before returning
   # Remove large intermediate objects to help gc()
