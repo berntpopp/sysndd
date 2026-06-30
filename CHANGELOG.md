@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.6] — 2026-06-30
+
+Patch release: Force Apply on a blocked OMIM dictionary update no longer crashes with `$ operator is invalid for atomic vectors`, and the blocked-ontology banner now explains its two tables and links every version out to OMIM (#476, follow-up to #470/#474).
+
+### Fixed
+
+- **Force Apply crashed with `$ operator is invalid for atomic vectors`**: a blocked `omim_update` result carries `critical_entities`/`auto_fixes` as `purrr::transpose()` arrays, but `get_job_status(result_mode="full")` and the async worker both decode with `jsonlite::fromJSON(simplifyVector=TRUE)`, which collapses each array-of-objects into a **data.frame**. The force-apply payload helpers iterated those with `vapply(table, \(x) x$field, ...)` — over a data.frame that walks **columns** (atomic vectors), so the job died before the database write ever ran. The helpers were extracted to `api/functions/async-job-force-apply-payload.R` and now normalize any shape (data.frame, list-of-records, or empty) into a uniform tibble before column access, with data-shape regression tests covering the gap that let this ship.
+
+### Changed
+
+- **Blocked-ontology banner UX** (`ManageAnnotations` → Updating Ontology Annotations): the banner now explains why it shows two tables (critical entities need manual review; auto-fixable remappings are applied automatically on Force Apply), adds a **Disease** column to the auto-fixable table, and renders every version cell in both tables as an OMIM outlink (via the central `ontologyOutlink()` helper) with the `_N` version suffix stripped from the URL while the full versioned id stays visible as the label. The e2e fixture and admin blocked-banner spec were enriched to cover the new UI.
+
 ## [0.26.5] — 2026-06-30
 
 Patch release: security update — four vulnerable transitive npm dependencies in the frontend lockfile are bumped to their patched versions, closing nine Dependabot alerts. Lockfile-only; no source, public-API, or behavioural changes.

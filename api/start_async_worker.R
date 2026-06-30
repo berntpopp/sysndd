@@ -9,6 +9,7 @@ bootstrap_init_cache_version()
 bootstrap_bind_memoised(envir = .GlobalEnv)
 source("functions/async-job-progress.R", local = FALSE)
 source("functions/async-job-omim-apply.R", local = FALSE)
+source("functions/async-job-force-apply-payload.R", local = FALSE)
 source("functions/async-job-handlers.R", local = FALSE)
 source("functions/async-job-worker.R", local = FALSE)
 

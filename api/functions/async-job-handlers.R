@@ -625,39 +625,11 @@
   )
 }
 
-.async_job_force_apply_auto_fixes <- function(auto_fixes_raw) {
-  if (length(auto_fixes_raw) == 0) {
-    return(tibble::tibble(old_version = character(0), new_version = character(0)))
-  }
-
-  tibble::tibble(
-    old_version = vapply(
-      auto_fixes_raw,
-      function(x) as.character(.async_job_or(x$old_version, x$old_version[[1]])),
-      character(1)
-    ),
-    new_version = vapply(
-      auto_fixes_raw,
-      function(x) as.character(.async_job_or(x$new_version, x$new_version[[1]])),
-      character(1)
-    )
-  )
-}
-
-.async_job_force_apply_critical_versions <- function(critical_entities_raw) {
-  if (length(critical_entities_raw) == 0) {
-    return(character(0))
-  }
-
-  vapply(
-    critical_entities_raw,
-    function(x) {
-      value <- x$disease_ontology_id_version
-      if (is.list(value)) value[[1]] else value
-    },
-    character(1)
-  )
-}
+# Force-apply payload-shape helpers (.async_job_force_apply_table /
+# _auto_fixes / _critical_versions) live in
+# functions/async-job-force-apply-payload.R, sourced before this file at every
+# worker entrypoint. Keeping them out of this oversized file avoids growing it
+# past the AGENTS.md soft ceiling.
 
 .async_job_run_force_apply_ontology <- function(job, payload, state, worker_config) {
   disease_ontology_set_update <- readr::read_csv(

@@ -106,6 +106,38 @@ test.describe('admin: ontology blocked banner (#470)', () => {
       await expect(
         page.getByRole('button', { name: /Force Apply/i }),
       ).toBeVisible();
+
+      // ── Two-group distinction copy (OntologyAnnotationsCard) ───────────────
+      // The banner explains why there are two tables: critical entities need
+      // manual review; auto-fixable remappings are applied automatically.
+      await expect(
+        page.getByText(/This update splits into two groups/i),
+      ).toBeVisible();
+
+      // ── Critical table: Version cell links out to OMIM, suffix stripped ────
+      // OMIM:222222_1 → label keeps the full versioned id, href drops "_1".
+      const criticalVersionLink = page.getByRole('link', { name: 'OMIM:222222_1' });
+      await expect(criticalVersionLink).toBeVisible();
+      await expect(criticalVersionLink).toHaveAttribute(
+        'href',
+        'https://www.omim.org/entry/222222',
+      );
+
+      // ── Auto-fixable table: expand, then assert Disease column + OMIM links ─
+      await page.getByRole('button', { name: /auto-fixable remapping/i }).click();
+
+      // Disease name from the fixture's auto_fixes (the column the report asked
+      // for) is now rendered.
+      await expect(page.getByText('Example remap disease')).toBeVisible();
+
+      // old_version OMIM:333333 links to its entry; new_version OMIM:444444 too.
+      await expect(
+        page.getByRole('link', { name: 'OMIM:333333' }),
+      ).toHaveAttribute('href', 'https://www.omim.org/entry/333333');
+      // new_version with a stripped suffix: OMIM:444444_2 → /entry/444444.
+      await expect(
+        page.getByRole('link', { name: 'OMIM:444444_2' }),
+      ).toHaveAttribute('href', 'https://www.omim.org/entry/444444');
     },
   );
 
