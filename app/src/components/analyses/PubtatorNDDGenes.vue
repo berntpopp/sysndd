@@ -141,9 +141,9 @@
       >
         <!-- Custom table header cell with tooltips -->
         <template #head()="columnData">
+          <!-- Tooltip via directive VALUE (not :title) so counts update on filter; see AGENTS.md (bvn v-b-tooltip). -->
           <div
-            v-b-tooltip.hover.top
-            :title="
+            v-b-tooltip.hover.top="
               getCompactTooltipText(
                 fields.find((f) => f.label === columnData.label) || {
                   key: columnData.column,

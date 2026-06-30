@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.7] — 2026-06-30
+
+Patch release: faceted-table column-header tooltips now show the correct "unique filtered/total" counts after an interactive filter (Entities, Genes, Phenotypes, PubtatorNDD genes, curation comparisons).
+
+### Fixed
+
+- **Column-header distinct-count tooltips were stuck at the global total after filtering**: applying a filter (e.g. Category → Definitive on `/Entities`) left the header tooltip showing `4200/4200` (and `3215/3215` for genes) instead of `count_filtered/count` (`1997/4200`, `1802/3215`). The data was correct end-to-end — the API returned the right `count_filtered` and the component's `fields` held it — but the rendered tooltip body never updated. Root cause: bootstrap-vue-next's `v-b-tooltip` directive only re-renders its floating popover body when `binding.value` changes (`hasBindingChanged` compares `[modifiers, value]`); the tables bound the text via the reactive `:title` **attribute**, so `binding.value` stayed `undefined` and the popover body froze at its first render (which is why a fresh page-load with the filter already in the URL looked fine). The five faceted count tables now bind the tooltip through the directive **value** (`v-b-tooltip.hover.bottom="getTooltipText(field)"`), so the counts update reactively. Guarded by `app/src/components/tables/columnHeaderTooltipReactivity.spec.ts`, which exercises the real directive both ways.
+
 ## [0.26.6] — 2026-06-30
 
 Patch release: Force Apply on a blocked OMIM dictionary update no longer crashes with `$ operator is invalid for atomic vectors`, and the blocked-ontology banner now explains its two tables and links every version out to OMIM (#476, follow-up to #470/#474).
