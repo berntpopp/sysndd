@@ -180,13 +180,113 @@ table_articles_from_xml <- function(pubmed_xml_data) {
   })
 }
 
-#' Parse PubMed EFetch XML and normalize empty/no-article responses
+#' Parse <PubmedBookArticle>/<BookDocument> nodes (GeneReviews / NCBI Bookshelf)
+#'
+#' EFetch on db=pubmed returns GeneReviews chapters as <PubmedBookArticle>, which
+#' table_articles_from_xml (//PubmedArticle only) ignores (#500). Date ladder,
+#' first present wins, then resolve_pubmed_date(): (1) BookDocument/ContributionDate
+#' (the chapter's authored/revision date -> a verified full date), (2)
+#' PubmedBookData/History/PubMedPubDate[@PubStatus='pubmed'], (3) Book/PubDate
+#' (often year-only -> pubmed_partial). Reuses the pubmed/pubmed_partial source
+#' vocabulary. Modeled on the proven ../genereviews-link _parse_book_article.
+#' @noRd
+table_book_articles_from_xml <- function(pubmed_xml_data) {
+  book_xml <- read_xml(pubmed_xml_data)
+  books <- xml_find_all(book_xml, "//PubmedBookArticle")
+  if (length(books) == 0L) {
+    return(empty_pubmed_article_tibble())
+  }
+
+  text_first <- function(node, xpath, default = "") {
+    value <- xml_text(xml_find_first(node, xpath))
+    if (length(value) == 0L || is.na(value)) {
+      return(default)
+    }
+    value
+  }
+  text_all <- function(node, xpath) {
+    values <- xml_text(xml_find_all(node, xpath))
+    values[!is.na(values)]
+  }
+
+  book_date_parts <- function(book) {
+    bases <- c(
+      ".//BookDocument/ContributionDate",
+      ".//PubmedBookData/History/PubMedPubDate[@PubStatus = 'pubmed' or @Pubstatus = 'pubmed']",
+      ".//BookDocument/Book/PubDate"
+    )
+    for (base in bases) {
+      yr <- text_first(book, paste0(base, "/Year"), default = NA_character_)
+      if (!is.na(yr) && nzchar(yr)) {
+        return(list(
+          year = yr,
+          month = text_first(book, paste0(base, "/Month"), default = NA_character_),
+          day = text_first(book, paste0(base, "/Day"), default = NA_character_)
+        ))
+      }
+    }
+    list(year = NA_character_, month = NA_character_, day = NA_character_)
+  }
+
+  purrr::map_dfr(books, function(book) {
+    parts <- book_date_parts(book)
+    pub_date <- resolve_pubmed_date(parts$year, parts$month, parts$day)
+
+    title <- text_first(book, ".//BookDocument/ArticleTitle")
+    if (!nzchar(title)) title <- text_first(book, ".//BookDocument/BookTitle")
+    if (!nzchar(title)) title <- text_first(book, ".//BookDocument/Book/BookTitle")
+
+    book_title <- text_first(book, ".//BookDocument/Book/BookTitle")
+    journal <- if (nzchar(book_title)) book_title else "GeneReviews"
+
+    lastname <- text_first(book, ".//AuthorList[@Type = 'authors']/Author[1]/LastName")
+    firstname <- text_first(book, ".//AuthorList[@Type = 'authors']/Author[1]/ForeName")
+    if (lastname == "" && firstname == "") {
+      lastname <- text_first(book, ".//AuthorList/Author[1]/LastName")
+      firstname <- text_first(book, ".//AuthorList/Author[1]/ForeName")
+    }
+    collective <- text_first(book, ".//AuthorList/Author[1]/CollectiveName",
+      default = NA_character_
+    )
+    if ((lastname == "" || firstname == "") && !is.na(collective)) {
+      lastname <- collective
+      firstname <- collective
+    }
+
+    as_tibble(list(
+      pmid = text_first(book, ".//BookDocument/PMID"),
+      doi = "",
+      title = title,
+      abstract = str_c(text_all(book, ".//Abstract/AbstractText"), collapse = " "),
+      jabbrv = "",
+      journal = journal,
+      keywords = "",
+      year = pub_date$year,
+      month = pub_date$month,
+      day = pub_date$day,
+      date_source = pub_date$date_source,
+      lastname = lastname,
+      firstname = firstname,
+      address = ""
+    ))
+  })
+}
+
+#' Parse PubMed EFetch XML (both <PubmedArticle> and <PubmedBookArticle>) and
+#' normalize empty responses. A mixed EFetch batch contains both node types as
+#' siblings under <PubmedArticleSet>; //PubmedArticle and //PubmedBookArticle are
+#' disjoint, so no record is double-counted.
 #' @noRd
 parse_pubmed_fetch_xml <- function(pubmed_xml_data) {
-  parsed <- tryCatch(
+  articles <- tryCatch(
     table_articles_from_xml(pubmed_xml_data),
     error = function(e) empty_pubmed_article_tibble()
   )
+  books <- tryCatch(
+    table_book_articles_from_xml(pubmed_xml_data),
+    error = function(e) empty_pubmed_article_tibble()
+  )
+  parsed <- dplyr::bind_rows(articles, books)
   if (nrow(parsed) == 0L || all(is.na(parsed$pmid))) {
     return(empty_pubmed_article_tibble())
   }
