@@ -37,7 +37,7 @@ gen_mca_clust_obj <- function(
   # For adaptive ncp selection, generate scree plot and identify elbow point:
   #   factoextra::fviz_screeplot(mca_result)
   # See: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
-  mca_phenotypes <- MCA(wide_phenotypes_df,
+  mca_phenotypes <- FactoMineR::MCA(wide_phenotypes_df,
     ncp = 8, # Reduced from 15 for 20-30% speedup (validated stable clustering)
     quali.sup = quali_sup_var,
     quanti.sup = quanti_sup_var,
@@ -49,7 +49,7 @@ gen_mca_clust_obj <- function(
   # This reduces computational complexity from O(n^2) to O(50^2)
   # providing 50-70% speedup for datasets with >100 observations
   # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
-  mca_hcpc <- HCPC(mca_phenotypes,
+  mca_hcpc <- FactoMineR::HCPC(mca_phenotypes,
     # nb.clust = -1 (the cutpoint default) makes HCPC select k from the data via
     # the largest relative within-cluster-inertia loss; a positive cutpoint
     # imposes exactly that many clusters.
