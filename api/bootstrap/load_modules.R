@@ -90,6 +90,7 @@ bootstrap_load_modules <- function() {
     "functions/endpoint-functions.R",
     "functions/comparisons-list.R",
     "functions/publication-endpoint-helpers.R",
+    "functions/pubmed-xml-parser.R",
     "functions/publication-functions.R",
     "functions/publication-date-backfill.R",
     "functions/genereviews-functions.R",
