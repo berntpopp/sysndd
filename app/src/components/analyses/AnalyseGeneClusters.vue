@@ -45,7 +45,7 @@
         <div class="pane-content">
           <!-- LLM Summary Card (above table) - only shown for single cluster selection -->
           <LlmSummaryCard
-            v-if="currentSummary && !summaryLoading && !showAllClustersInTable"
+            v-if="currentSummary && !summaryLoading && !summaryRejected && !showAllClustersInTable"
             :summary="currentSummary.summary_json"
             :model-name="
               Array.isArray(currentSummary.model_name)
@@ -64,6 +64,24 @@
             "
             :cluster-number="Number(activeParentCluster)"
           />
+          <BCard
+            v-else-if="summaryRejected && !summaryLoading && !showAllClustersInTable"
+            class="my-3 mx-2"
+            border-variant="warning"
+            data-testid="ai-summary-unavailable"
+          >
+            <div class="d-flex align-items-start">
+              <i class="bi bi-shield-exclamation text-warning fs-4 me-2" aria-hidden="true" />
+              <div>
+                <p class="fw-semibold mb-1">AI summary could not be validated for this cluster</p>
+                <p class="text-muted small mb-0">
+                  The automated reviewer could not validate an AI-generated summary for this
+                  cluster, so none is shown.
+                  <span v-if="summaryRejectionReason"> Reason: {{ summaryRejectionReason }}</span>
+                </p>
+              </div>
+            </div>
+          </BCard>
           <div v-else-if="summaryLoading && !showAllClustersInTable" class="mb-3">
             <BSpinner small class="me-2" />
             <span class="text-muted">Loading AI summary...</span>
