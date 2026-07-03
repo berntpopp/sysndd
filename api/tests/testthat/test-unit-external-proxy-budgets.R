@@ -83,13 +83,17 @@ test_that("external proxy aggregate budget is bounded and configurable", {
 
 test_that("external proxy aggregate helper reports skipped sources after budget", {
   source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
-  withr::local_envvar(c(EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS = "0.001"))
+  # Budget must sit safely above OS scheduling jitter (a 1ms budget occasionally
+  # tripped the check at source #1 under CI load, wrongly skipping `first`) yet
+  # well below `first`'s runtime so `second` is deterministically skipped once
+  # `first` has run.
+  withr::local_envvar(c(EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS = "0.05"))
 
   result <- external_proxy_aggregate_sources(
     "GENE1",
     list(
       first = function() {
-        Sys.sleep(0.01)
+        Sys.sleep(0.2)
         list(source = "first")
       },
       second = function() stop("second should be skipped")
@@ -104,13 +108,16 @@ test_that("external proxy aggregate helper reports skipped sources after budget"
 
 test_that("external proxy aggregate helper keeps error-then-skip partial", {
   source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
-  withr::local_envvar(c(EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS = "0.001"))
+  # Budget safely above OS scheduling jitter but well below `first`'s runtime, so
+  # `second` is deterministically skipped once `first` runs (see the note above; a
+  # 1ms budget flaked at source #1 under CI load).
+  withr::local_envvar(c(EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS = "0.05"))
 
   result <- external_proxy_aggregate_sources(
     "GENE1",
     list(
       first = function() {
-        Sys.sleep(0.01)
+        Sys.sleep(0.2)
         stop("first failed")
       },
       second = function() list(source = "second")
