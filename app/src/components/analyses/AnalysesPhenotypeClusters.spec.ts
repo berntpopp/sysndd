@@ -146,6 +146,43 @@ describe('AnalysesPhenotypeClusters', () => {
     expect(wrapper.vm.summaryLoading).toBe(false);
   });
 
+  it('renders a distinct "could not be validated" card when the summary is judge-rejected (#490)', async () => {
+    getPhenotypeClusteringMock.mockReset();
+    getPhenotypeClusteringMock.mockResolvedValue({
+      clusters: [
+        {
+          cluster: 1,
+          hash_filter: 'equals(hash,one)',
+          cluster_size: 1043,
+          identifiers: [],
+          quali_inp_var: [],
+          quali_sup_var: [],
+          quanti_sup_var: [],
+        },
+      ],
+      meta: {},
+    });
+    // Terminal rejected payload (HTTP 200), not a 404.
+    mocks.getPhenotypeClusterSummary.mockResolvedValue({
+      summary_json: {},
+      summary_available: false,
+      validation_status: 'rejected',
+      reason: 'over-broad, low specificity',
+    });
+
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    const card = wrapper.find('[data-testid="ai-summary-unavailable"]');
+    expect(card.exists()).toBe(true);
+    expect(card.text()).toContain('could not be validated');
+    expect(card.text()).toContain('over-broad, low specificity');
+    // The normal AI summary card (LlmSummaryCard stub renders <article>) is hidden.
+    expect(wrapper.find('article').exists()).toBe(false);
+    // A judge-rejected summary is not a transient error -> no toast.
+    expect(mocks.makeToast).not.toHaveBeenCalled();
+  });
+
   it('does not show a transient-error toast when phenotype summaries are unavailable', async () => {
     mocks.getPhenotypeClusterSummary.mockRejectedValue({ response: { status: 503 } });
 

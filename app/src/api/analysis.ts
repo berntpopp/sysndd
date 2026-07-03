@@ -278,6 +278,14 @@ export interface ClusterSummary {
   summary_json: Record<string, unknown>;
   validation_status?: string;
   generated_at?: string;
+  /**
+   * Terminal "could not be validated" state (#490). When the judge rejected the
+   * cluster's summary the API returns HTTP 200 with `summary_available = false`,
+   * `validation_status = 'rejected'`, and a `reason` — distinct from a 404 "not
+   * yet generated". Plumber may array-wrap these scalars.
+   */
+  summary_available?: boolean | boolean[];
+  reason?: string | string[];
   [key: string]: unknown;
 }
 

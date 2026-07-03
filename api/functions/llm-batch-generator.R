@@ -32,6 +32,13 @@ if (!exists("get_cached_summary", mode = "function")) {
   }
 }
 
+# Load the cluster-row -> cluster_data builder (extracted helper) if not present
+if (!exists("llm_batch_build_cluster_data", mode = "function")) {
+  if (file.exists("functions/llm-batch-cluster-data.R")) {
+    source("functions/llm-batch-cluster-data.R", local = TRUE)
+  }
+}
+
 # Load progress reporter (if not already loaded)
 if (!exists("create_progress_reporter", mode = "function")) {
   if (file.exists("functions/job-progress.R")) {
@@ -59,6 +66,25 @@ llm_cluster_progress_message <- function(cluster_num, current, total) {
 }
 
 
+#' Decide whether a cluster's cache-first lookup should short-circuit (#488)
+#'
+#' The batch executor is cache-first: if a current summary already exists for a
+#' cluster's hash, it normally skips generation. A forced regeneration must
+#' bypass that short-circuit so it actually re-generates. Extracted as a pure
+#' function so the truth table is unit-testable without a database.
+#'
+#' @param cached The `get_cached_summary()` result (NULL / 0-row => cache miss).
+#' @param force Logical, TRUE to force regeneration regardless of cache hit.
+#' @return TRUE to skip generation (use the cached summary); FALSE to (re)generate.
+#' @export
+llm_should_skip_cached <- function(cached, force = FALSE) {
+  if (isTRUE(force)) {
+    return(FALSE)
+  }
+  !is.null(cached) && is.data.frame(cached) && nrow(cached) > 0
+}
+
+
 #' Trigger LLM batch generation after clustering completion
 #'
 #' Entry point for chaining LLM generation after clustering jobs.
@@ -67,6 +93,8 @@ llm_cluster_progress_message <- function(cluster_num, current, total) {
 #' @param clusters Tibble of cluster data from clustering result
 #' @param cluster_type Character, "functional" or "phenotype"
 #' @param parent_job_id Character, UUID of the clustering job that triggered this
+#' @param force Logical, if TRUE regenerate even for clusters already cached
+#'   (bypasses the executor's cache-first short-circuit). Default FALSE.
 #'
 #' @return List with:
 #'   - skipped: Logical, TRUE if Gemini not configured
@@ -77,7 +105,7 @@ llm_cluster_progress_message <- function(cluster_num, current, total) {
 #' @details
 #' - Checks is_gemini_configured() before proceeding
 #' - Creates job with operation="llm_generation"
-#' - Passes clusters, cluster_type, and parent_job_id to executor
+#' - Passes clusters, cluster_type, parent_job_id, and force to executor
 #' - Timeout set to 1 hour for large batches
 #'
 #' @examples
@@ -91,7 +119,7 @@ llm_cluster_progress_message <- function(cluster_num, current, total) {
 #' }
 #'
 #' @export
-trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id) {
+trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, force = FALSE) {
   # Debug: Confirm function entry with message() for Docker logs visibility
   message("[LLM-Batch] ENTERED trigger_llm_batch_generation function")
 
@@ -182,7 +210,8 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id) 
           db_config = db_config,
           clusters = clusters,
           cluster_type = cluster_type,
-          parent_job_id = parent_job_id
+          parent_job_id = parent_job_id,
+          force = isTRUE(force)
         ),
         executor_fn = llm_batch_executor,
         timeout_ms = 3600000  # 1 hour for large batches
@@ -252,8 +281,9 @@ llm_batch_executor <- function(params) {
   job_id <- params$.__job_id__ %||% "unknown"
   parent_job_id <- params$parent_job_id %||% "unknown"
   db_config <- params$db_config
+  force <- isTRUE(params$force)
 
-  message("[LLM-Executor] job_id=", job_id, " parent_job_id=", parent_job_id)
+  message("[LLM-Executor] job_id=", job_id, " parent_job_id=", parent_job_id, " force=", force)
 
   # Create database connection for this daemon
   # Daemons don't have access to the main process's pool object
@@ -318,11 +348,15 @@ llm_batch_executor <- function(params) {
     }
   )
 
-  # Initialize counters
+  # Initialize counters. `rejected` is reported as a distinct bucket (#490): a
+  # cluster the judge deterministically rejects is neither a generation
+  # `failed` (API/parse error) nor `skipped` (cache hit); conflating it with
+  # `failed` hid the judge rejection from the job result_json.
   total <- nrow(clusters)
   succeeded <- 0
   failed <- 0
   skipped <- 0
+  rejected <- 0
 
   # Process each cluster
   for (i in seq_len(total)) {
@@ -345,152 +379,19 @@ llm_batch_executor <- function(params) {
       total = total
     )
 
-    # Build cluster_data structure
-    log_debug("Processing cluster ", cluster_num, " (", i, "/", total, ")")
+    # Build the cluster_data structure + resolve the authoritative cluster hash
+    # (extracted to llm-batch-cluster-data.R to keep the executor under the
+    # file-size ratchet, and to make the row-shaping unit-testable).
     message("[LLM-Executor] Processing cluster ", cluster_num, " (", i, "/", total, ")")
-    cluster_data <- list(
-      cluster_number = cluster_num
-    )
-
-    # Extract identifiers - handle nested tibble structure from clustering functions
-    if ("identifiers" %in% names(cluster_row)) {
-      # identifiers is a nested tibble (list-column)
-      identifiers_tbl <- cluster_row$identifiers[[1]]
-      log_debug("Cluster ", cluster_num, " identifiers columns: ", paste(names(identifiers_tbl), collapse = ", "))
-      message(
-        "[LLM-Executor] Cluster ", cluster_num, " identifiers columns: ",
-        paste(names(identifiers_tbl), collapse = ", ")
-      )
-
-      if (cluster_type == "functional") {
-        # Functional clusters have symbol and hgnc_id columns
-        if ("symbol" %in% names(identifiers_tbl) && "hgnc_id" %in% names(identifiers_tbl)) {
-          cluster_data$identifiers <- identifiers_tbl
-          message("[LLM-Executor] Cluster ", cluster_num, " has ", nrow(identifiers_tbl), " genes")
-        } else {
-          message("[LLM-Executor] ERROR: Cluster ", cluster_num, " missing symbol/hgnc_id columns")
-          log_warn("Cluster {cluster_num} identifiers missing symbol/hgnc_id columns")
-          failed <- failed + 1
-          next
-        }
-      } else {
-        # Phenotype clusters have entity_id column
-        if ("entity_id" %in% names(identifiers_tbl)) {
-          cluster_data$identifiers <- identifiers_tbl
-        } else {
-          message("[LLM-Executor] ERROR: Cluster ", cluster_num, " missing entity_id column")
-          log_warn("Cluster {cluster_num} identifiers missing entity_id column")
-          failed <- failed + 1
-          next
-        }
-      }
-    } else if ("symbols" %in% names(cluster_row)) {
-      # Legacy format: comma-separated symbols string
-      symbols <- strsplit(as.character(cluster_row$symbols), ",")[[1]]
-      symbols <- trimws(symbols)
-      cluster_data$identifiers <- tibble::tibble(
-        symbol = symbols,
-        hgnc_id = seq_along(symbols)
-      )
-    } else if ("entity_ids" %in% names(cluster_row)) {
-      # Legacy format: comma-separated entity_ids string
-      entity_ids <- strsplit(as.character(cluster_row$entity_ids), ",")[[1]]
-      entity_ids <- trimws(entity_ids)
-      cluster_data$identifiers <- tibble::tibble(
-        entity_id = as.integer(entity_ids)
-      )
-    } else {
-      log_warn("Cluster {cluster_num} has no identifiers data")
+    built <- llm_batch_build_cluster_data(cluster_row, cluster_type, cluster_num)
+    if (!isTRUE(built$ok)) {
+      log_warn("Cluster {cluster_num} skipped: {built$reason}")
+      message("[LLM-Executor] Cluster ", cluster_num, " skipped: ", built$reason)
       failed <- failed + 1
       next
     }
-
-    # Add term enrichment data if available
-    if ("term_enrichment" %in% names(cluster_row)) {
-      # Handle nested tibble (list-column) from clustering functions
-      enrichment_data <- cluster_row$term_enrichment[[1]]
-      if (is.character(enrichment_data)) {
-        cluster_data$term_enrichment <- jsonlite::fromJSON(enrichment_data)
-      } else if (is.data.frame(enrichment_data)) {
-        cluster_data$term_enrichment <- enrichment_data
-      } else {
-        cluster_data$term_enrichment <- enrichment_data
-      }
-    } else {
-      # No enrichment data - LLM can still generate but with lower quality
-      cluster_data$term_enrichment <- tibble::tibble(
-        category = character(0),
-        term = character(0),
-        fdr = numeric(0)
-      )
-    }
-
-    # Add phenotype-specific data for phenotype clusters
-    # These are the enriched/depleted HPO phenotypes from MCA analysis
-    if (cluster_type == "phenotype") {
-      # quali_inp_var contains HPO phenotype enrichment data (main phenotype data)
-      if ("quali_inp_var" %in% names(cluster_row)) {
-        quali_data <- cluster_row$quali_inp_var[[1]]
-        if (is.data.frame(quali_data) && nrow(quali_data) > 0) {
-          cluster_data$quali_inp_var <- quali_data
-          message("[LLM-Executor] Cluster ", cluster_num, " has ", nrow(quali_data), " phenotype variables")
-        }
-      }
-
-      # quali_sup_var contains supplementary categorical variables (e.g., inheritance)
-      if ("quali_sup_var" %in% names(cluster_row)) {
-        sup_data <- cluster_row$quali_sup_var[[1]]
-        if (is.data.frame(sup_data) && nrow(sup_data) > 0) {
-          cluster_data$quali_sup_var <- sup_data
-        }
-      }
-
-      # quanti_sup_var contains supplementary quantitative variables
-      if ("quanti_sup_var" %in% names(cluster_row)) {
-        quanti_data <- cluster_row$quanti_sup_var[[1]]
-        if (is.data.frame(quanti_data) && nrow(quanti_data) > 0) {
-          cluster_data$quanti_sup_var <- quanti_data
-        }
-      }
-    }
-
-    # Extract cluster hash from clustering result's hash_filter column
-    # The hash_filter is pre-computed during clustering in format: equals(hash,XXX)
-    # Using this hash ensures consistency between what the API queries and what we store
-    cluster_hash <- tryCatch({
-      if ("hash_filter" %in% names(cluster_row)) {
-        hash_str <- as.character(cluster_row$hash_filter)
-        log_debug("Cluster ", cluster_num, " raw hash_filter: ", hash_str)
-        message("[LLM-Executor] Cluster ", cluster_num, " raw hash_filter: ", hash_str)
-
-        # Extract hash from equals(hash,XXX) format
-        if (grepl("^equals\\(hash,", hash_str)) {
-          extracted_hash <- sub("^equals\\(hash,(.*)\\)$", "\\1", hash_str)
-          log_debug("Cluster ", cluster_num, " extracted hash: ", substr(extracted_hash, 1, 16), "...")
-          message("[LLM-Executor] Cluster ", cluster_num, " extracted hash: ", substr(extracted_hash, 1, 16), "...")
-          extracted_hash
-        } else {
-          # hash_filter is already a plain hash
-          hash_str
-        }
-      } else {
-        # Fallback: generate hash from identifiers (for backwards compatibility)
-        log_debug("Cluster ", cluster_num, " has no hash_filter, generating from identifiers")
-        message("[LLM-Executor] Cluster ", cluster_num, " has no hash_filter, generating from identifiers")
-        generate_cluster_hash(cluster_data$identifiers, cluster_type)
-      }
-    }, error = function(e) {
-      log_warn("Failed to extract/generate hash for cluster {cluster_row$cluster_number}: {e$message}")
-      return(NULL)
-    })
-
-    if (is.null(cluster_hash)) {
-      log_debug("ERROR: Cluster ", cluster_num, " hash generation returned NULL")
-      message("[LLM-Executor] ERROR: Cluster ", cluster_num, " hash generation returned NULL")
-      failed <- failed + 1
-      next
-    }
-    log_debug("Cluster ", cluster_num, " hash: ", substr(cluster_hash, 1, 16), "...")
+    cluster_data <- built$cluster_data
+    cluster_hash <- built$cluster_hash
     message("[LLM-Executor] Cluster ", cluster_num, " hash: ", substr(cluster_hash, 1, 16), "...")
 
     # Check cache
@@ -503,19 +404,33 @@ llm_batch_executor <- function(params) {
       }
     )
 
-    if (!is.null(cached) && nrow(cached) > 0) {
+    # Cache-first short-circuit, unless a forced regeneration was requested
+    # (#488). `llm_should_skip_cached` centralizes the decision so it is
+    # unit-testable and `force` actually bypasses the cache instead of being a
+    # dead query param.
+    if (llm_should_skip_cached(cached, force)) {
       message("[LLM-Executor] Cluster ", cluster_num, " found in cache (cache_id=", cached$cache_id[1], ")")
       log_debug("Cluster {cluster_row$cluster_number} found in cache (cache_id={cached$cache_id[1]})")
       skipped <- skipped + 1
       next
     }
 
-    message("[LLM-Executor] Cluster ", cluster_num, " not in cache, generating summary...")
+    if (force && !is.null(cached) && nrow(cached) > 0) {
+      message("[LLM-Executor] Cluster ", cluster_num, " cached but force=TRUE, regenerating...")
+    } else {
+      message("[LLM-Executor] Cluster ", cluster_num, " not in cache, generating summary...")
+    }
 
-    # Attempt generation with retry
+    # Attempt generation with retry. `judge_attempts` counts judge verdicts so
+    # the batch does not re-generate a cluster the judge deterministically
+    # rejects more than `max_judge_attempts` times per run (#490): a repeat
+    # rejection of the same content wastes API calls and never validates.
     max_retries <- 3
+    max_judge_attempts <- 2
     attempt <- 0
+    judge_attempts <- 0
     generation_success <- FALSE
+    last_validation_status <- NA_character_
 
     while (attempt < max_retries && !generation_success) {
       attempt <- attempt + 1
@@ -550,6 +465,8 @@ llm_batch_executor <- function(params) {
         }
       )
 
+      last_validation_status <- result$validation_status %||% last_validation_status
+
       if (result$success) {
         # Success - already cached by generate_and_validate_with_judge
         log_debug("Cluster ", cluster_num, " SUCCESS: ", result$validation_status)
@@ -560,16 +477,37 @@ llm_batch_executor <- function(params) {
         )
         succeeded <- succeeded + 1
         generation_success <- TRUE
+      } else if (identical(result$validation_status, "rejected")) {
+        # Judge REJECTION (not an API/parse failure). The row is cached
+        # is_current with the snapshot hash so serving can surface a terminal
+        # "could not be validated" state (#490). Bound the judge re-tries so we
+        # don't burn API calls re-rejecting the same content.
+        judge_attempts <- judge_attempts + 1
+        log_warn(
+          "Cluster {cluster_row$cluster_number} rejected by judge ",
+          "(judge_attempt {judge_attempts}/{max_judge_attempts})"
+        )
+        message("[LLM-Executor] Cluster ", cluster_num, " rejected by judge (attempt ", judge_attempts, ")")
+        if (judge_attempts >= max_judge_attempts) {
+          message("[LLM-Executor] Cluster ", cluster_num, " judge-rejection cap reached; stopping retries")
+          break
+        }
       } else {
         log_debug("Cluster ", cluster_num, " attempt ", attempt, " failed: ", result$error %||% "unknown")
         message("[LLM-Executor] Cluster ", cluster_num, " attempt ", attempt, " failed: ", result$error %||% "unknown")
       }
     }
 
-    # If still not successful after retries, count as failed
+    # Classify the outcome (#490): a judge rejection is reported in the distinct
+    # `rejected` bucket, a generation/API error in `failed`.
     if (!generation_success) {
-      log_warn("Failed to generate summary for cluster {cluster_row$cluster_number} after {max_retries} attempts")
-      failed <- failed + 1
+      if (identical(last_validation_status, "rejected")) {
+        log_warn("Cluster {cluster_row$cluster_number} not validated: judge rejected after {judge_attempts} attempt(s)")
+        rejected <- rejected + 1
+      } else {
+        log_warn("Failed to generate summary for cluster {cluster_row$cluster_number} after {max_retries} attempts")
+        failed <- failed + 1
+      }
     }
 
     # Periodic memory cleanup every 10 clusters
@@ -588,16 +526,23 @@ llm_batch_executor <- function(params) {
   # Final progress update
   reporter(
     step = "complete",
-    message = sprintf("Done: %d succeeded, %d failed, %d cached", succeeded, failed, skipped),
+    message = sprintf(
+      "Done: %d succeeded, %d rejected, %d failed, %d cached",
+      succeeded, rejected, failed, skipped
+    ),
     current = total,
     total = total
   )
 
-  log_info("LLM batch generation complete: {succeeded} succeeded, {failed} failed, {skipped} cached (total={total})")
+  log_info(
+    "LLM batch generation complete: {succeeded} succeeded, {rejected} rejected, ",
+    "{failed} failed, {skipped} cached (total={total})"
+  )
 
   return(list(
     total = as.integer(total),
     succeeded = as.integer(succeeded),
+    rejected = as.integer(rejected),
     failed = as.integer(failed),
     skipped = as.integer(skipped)
   ))

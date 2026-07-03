@@ -10,6 +10,14 @@
 
 require(glue)
 
+# Cluster-size threshold (entity count) at/above which the phenotype judge
+# applies the relaxed grounding/specificity bar for a high-level GESTALT
+# characterization (#490). The largest phenotype cluster (~1000+ entities) is
+# defined mostly by broad, weakly-enriched features; under the strict per-claim
+# bar the judge deterministically rejects any usable high-level summary of it,
+# leaving that cluster stuck "being prepared" forever.
+LLM_JUDGE_LARGE_CLUSTER_THRESHOLD <- 300L
+
 #' Build judge prompt for FUNCTIONAL cluster validation
 #'
 #' Creates validation prompt for functional clusters which group genes by function.
@@ -307,6 +315,33 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
     "unknown"
   }
 
+  # Large-cluster relaxation note (#490). For a very large, heterogeneous cluster
+  # a grounded high-level GESTALT characterization at a relaxed grounding /
+  # specificity bar is accept / accept_with_corrections, NOT reject. Empty for
+  # normal-sized clusters so their strict bar is unchanged.
+  entity_count_numeric <- suppressWarnings(as.integer(entity_count))
+  is_large_cluster <- !is.na(entity_count_numeric) &&
+    entity_count_numeric >= LLM_JUDGE_LARGE_CLUSTER_THRESHOLD
+  large_cluster_note <- if (is_large_cluster) {
+    glue::glue("
+## LARGE, HETEROGENEOUS CLUSTER -> RELAXED BAR ({entity_count} entities)
+This cluster is LARGE and heterogeneous. It is defined largely by BROAD,
+weakly-enriched features (and strong DEPLETIONS), so no narrow, highly specific
+phenotype gestalt exists. Judge it accordingly:
+- A grounded, HIGH-LEVEL GESTALT characterization of the overall cluster
+  (e.g. 'a broad, predominantly non-syndromic neurodevelopmental presentation
+  with mild intellectual disability and behavioral features, lacking severe
+  malformations') is ACCEPTABLE at a RELAXED grounding / specificity bar.
+- For a large cluster, prefer 'accept' or 'accept_with_corrections' for such a
+  grounded high-level summary; do NOT 'reject' merely because the summary is
+  broad, high-level, or omits low-|v.test| terms.
+- The severe-error hard rejects (fundamentally molecular mechanism, direction
+  inversion, a fabricated NEW specific phenotype) STILL apply.
+")
+  } else {
+    ""
+  }
+
   # Extract summary components (phenotype-specific fields)
   summary_text <- summary$summary %||% ""
 
@@ -346,7 +381,7 @@ Your job is to DETECT HALLUCINATIONS and REJECT inaccurate summaries.
 - Entities were clustered by PHENOTYPE PATTERNS, NOT by gene function
 - The summary MUST describe CLINICAL PHENOTYPES, not molecular mechanisms
 - v.test interpretation: POSITIVE = phenotype ENRICHED, NEGATIVE = phenotype DEPLETED
-
+{large_cluster_note}
 ---
 
 ## SEVERE ERRORS (verdict = 'reject')

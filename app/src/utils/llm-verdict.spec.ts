@@ -39,6 +39,18 @@ describe('extractJudgeVerdict', () => {
     expect(r.verdict).toBe('accept');
   });
 
+  it('reads the unified on-demand rejected write (#490): flat + nested agree', () => {
+    // llm-service.R now writes the SAME flat keys the batch path uses AND keeps
+    // the nested block; the flat keys win and both carry the reject reason.
+    const r = extractJudgeVerdict({
+      llm_judge_verdict: 'reject',
+      llm_judge_reasoning: 'over-broad, low specificity',
+      validation: { verdict: 'reject', reasoning: 'over-broad, low specificity' },
+    });
+    expect(r.verdict).toBe('reject');
+    expect(r.reasoning).toBe('over-broad, low specificity');
+  });
+
   it('returns nulls / empty when absent', () => {
     const r = extractJudgeVerdict({ summary: 'x' });
     expect(r.verdict).toBeNull();

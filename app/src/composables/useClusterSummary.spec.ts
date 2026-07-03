@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { ClusterSummary } from '@/api/analysis';
-import { useClusterSummary, type ClusterSummaryFetcher } from './useClusterSummary';
+import {
+  useClusterSummary,
+  isRejectedSummary,
+  rejectionReason,
+  type ClusterSummaryFetcher,
+} from './useClusterSummary';
 
 // The summary fetcher is injected, so the spec supplies a plain mock rather than
 // relying on a hardcoded `@/api/analysis` import.
@@ -93,6 +98,48 @@ describe('useClusterSummary', () => {
     await pheno.fetchClusterSummary('equals(hash,one)', 1);
     expect(makeToastPheno).not.toHaveBeenCalled();
     expect(pheno.currentSummary.value).toBeNull();
+  });
+
+  it('exposes the terminal "could not be validated" state (#490), not a silent null', async () => {
+    // The API returns HTTP 200 with an explicit rejected payload (not a 404).
+    const rejected = {
+      cluster_hash: 'h',
+      cluster_number: 2,
+      summary_json: {},
+      summary_available: false,
+      validation_status: 'rejected',
+      reason: 'over-broad, low specificity',
+    } as unknown as ClusterSummary;
+    fetchSummary.mockResolvedValue(rejected);
+    const makeToast = vi.fn();
+    const { currentSummary, summaryRejected, summaryRejectionReason, fetchClusterSummary } =
+      useClusterSummary(makeToast, fetchSummary);
+
+    await fetchClusterSummary('equals(hash,two)', 2);
+
+    // Not treated as a silent null; recognized as the terminal rejected state.
+    expect(currentSummary.value).not.toBeNull();
+    expect(summaryRejected.value).toBe(true);
+    expect(summaryRejectionReason.value).toBe('over-broad, low specificity');
+    expect(makeToast).not.toHaveBeenCalled();
+  });
+
+  it('isRejectedSummary handles Plumber array-wrapped scalars and non-rejected shapes', () => {
+    expect(
+      isRejectedSummary({
+        summary_available: [false],
+        validation_status: ['rejected'],
+      } as unknown as ClusterSummary)
+    ).toBe(true);
+    // A normal validated summary is not "rejected".
+    expect(
+      isRejectedSummary({
+        summary_json: { summary: 'x' },
+        validation_status: 'validated',
+      } as unknown as ClusterSummary)
+    ).toBe(false);
+    expect(isRejectedSummary(null)).toBe(false);
+    expect(rejectionReason({ reason: ['  '] } as unknown as ClusterSummary)).toBeNull();
   });
 
   it('keeps a stale response from replacing the active cluster summary', async () => {

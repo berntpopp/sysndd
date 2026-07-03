@@ -106,7 +106,7 @@
 
       <BCol md="8">
         <LlmSummaryCard
-          v-if="currentSummary && !summaryLoading"
+          v-if="currentSummary && !summaryLoading && !summaryRejected"
           class="my-3 mx-2"
           :summary="currentSummary.summary_json"
           :model-name="
@@ -126,6 +126,24 @@
           "
           :cluster-number="Number(selectedCluster?.cluster)"
         />
+        <BCard
+          v-else-if="summaryRejected && !summaryLoading"
+          class="my-3 mx-2"
+          border-variant="warning"
+          data-testid="ai-summary-unavailable"
+        >
+          <div class="d-flex align-items-start">
+            <i class="bi bi-shield-exclamation text-warning fs-4 me-2" aria-hidden="true" />
+            <div>
+              <p class="fw-semibold mb-1">AI summary could not be validated for this cluster</p>
+              <p class="text-muted small mb-0">
+                The automated reviewer could not validate an AI-generated summary for this
+                cluster, so none is shown.
+                <span v-if="summaryRejectionReason"> Reason: {{ summaryRejectionReason }}</span>
+              </p>
+            </div>
+          </div>
+        </BCard>
         <div v-else-if="summaryLoading" class="my-3 mx-2">
           <BSpinner small class="me-2" />
           <span class="text-muted">Loading AI summary...</span>
@@ -191,8 +209,14 @@ export default {
 
     // LLM cluster-summary state and fetch logic (request-id race guarded).
     // The phenotype endpoint silences both 404 and a transient 503.
-    const { currentSummary, summaryLoading, fetchClusterSummary, clearClusterSummary } =
-      useClusterSummary(makeToast, getPhenotypeClusterSummary, { noSummaryStatuses: [404, 503] });
+    const {
+      currentSummary,
+      summaryLoading,
+      summaryRejected,
+      summaryRejectionReason,
+      fetchClusterSummary,
+      clearClusterSummary,
+    } = useClusterSummary(makeToast, getPhenotypeClusterSummary, { noSummaryStatuses: [404, 503] });
 
     onBeforeUnmount(() => {
       cytoscape.destroy();
@@ -205,6 +229,8 @@ export default {
       activeClusterRef,
       currentSummary,
       summaryLoading,
+      summaryRejected,
+      summaryRejectionReason,
       fetchClusterSummary,
       clearClusterSummary,
     };

@@ -331,11 +331,32 @@ analysis_snapshot_cluster_llm_type <- function(analysis_type) {
   )
 }
 
-analysis_snapshot_trigger_llm_generation <- function(analysis_type, payload, parent_job_id = NULL) {
+analysis_snapshot_trigger_llm_generation <- function(analysis_type, payload, parent_job_id = NULL, conn = NULL) {
   cluster_type <- analysis_snapshot_cluster_llm_type(analysis_type)
   if (is.null(cluster_type)) {
     return(NULL)
   }
+
+  # Retire orphaned is_current summary rows whose hash is not in the
+  # just-published snapshot (#485). Runs regardless of whether generation is
+  # triggered so a re-clustering that drops cluster numbers cannot leave stale
+  # is_current rows behind. Best-effort: a cleanup failure must not fail the
+  # refresh. Guarded by exists() so the builder can be sourced standalone.
+  if (exists("retire_orphan_cluster_summaries", mode = "function")) {
+    current_hashes <- if (is.data.frame(payload$clusters) &&
+                            "cluster_hash" %in% names(payload$clusters)) {
+      payload$clusters$cluster_hash
+    } else {
+      character()
+    }
+    tryCatch(
+      retire_orphan_cluster_summaries(cluster_type, current_hashes, conn = conn),
+      error = function(e) {
+        message("[snapshot] retire_orphan_cluster_summaries failed: ", conditionMessage(e))
+      }
+    )
+  }
+
   if (!exists("trigger_llm_batch_generation", mode = "function")) {
     return(list(skipped = TRUE, reason = "llm_trigger_unavailable"))
   }
@@ -535,7 +556,8 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     llm_generation <- analysis_snapshot_trigger_llm_generation(
       normalized$analysis_type,
       payload,
-      parent_job_id = job_id %||% write_result$snapshot_id
+      parent_job_id = job_id %||% write_result$snapshot_id,
+      conn = refresh_conn
     )
 
     list(

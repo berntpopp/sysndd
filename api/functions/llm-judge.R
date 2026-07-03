@@ -339,12 +339,42 @@ generate_and_validate_with_judge <- function(
   }
   log_info("Starting generation + validation pipeline for {cluster_type} cluster with model={model}")
 
-  # Step 1: Generate summary (includes entity validation)
+  # Resolve the authoritative cluster_hash up-front (#490 secondary log-hash
+  # divergence). The batch generator passes the snapshot's hash_filter here; we
+  # thread the SAME hash into generation logging, the judge-outcome log, and the
+  # cache write so all three agree. Previously generate_cluster_summary()
+  # recomputed the hash from identifiers for its own log, producing the stale
+  # `1e31d83ed4`-style value while the cache stored the snapshot hash.
+  cluster_number <- cluster_data$cluster_number %||% 0L
+  final_hash <- if (!is.null(cluster_hash) && nzchar(cluster_hash)) {
+    message("[llm-judge] Using passed cluster_hash: ", substr(cluster_hash, 1, 16), "...")
+    cluster_hash
+  } else {
+    message("[llm-judge] No cluster_hash passed, generating from identifiers")
+    tryCatch(
+      {
+        id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"
+        if (id_col %in% names(cluster_data$identifiers)) {
+          generate_cluster_hash(cluster_data$identifiers, cluster_type)
+        } else {
+          digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
+        }
+      },
+      error = function(e) {
+        digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
+      }
+    )
+  }
+
+  # Step 1: Generate summary (includes entity validation). Pass the authoritative
+  # hash so the pre-judge generation log row carries the SAME cluster_hash as the
+  # cache.
   gen_result <- tryCatch(
     generate_cluster_summary(
       cluster_data = cluster_data,
       cluster_type = cluster_type,
-      model = model
+      model = model,
+      cluster_hash = final_hash
     ),
     error = function(e) {
       log_error("Summary generation failed: {e$message}")
@@ -402,38 +432,37 @@ generate_and_validate_with_judge <- function(
     summary_with_metadata$derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
   }
 
-  # Step 5: Save to cache with validation_status
-  cluster_number <- cluster_data$cluster_number %||% 0L
-
-  # Use passed-in cluster_hash if provided (from batch generator extracting hash_filter),
-  # otherwise fallback to generating from identifiers
-  final_hash <- if (!is.null(cluster_hash) && nzchar(cluster_hash)) {
-    message("[llm-judge] Using passed cluster_hash: ", substr(cluster_hash, 1, 16), "...")
-    cluster_hash
-  } else {
-    message("[llm-judge] No cluster_hash passed, generating from identifiers")
+  # Step 4b: Persist the JUDGE outcome to the operator-visible generation log
+  # (#490). generate_cluster_summary() only logs the pre-judge attempt as
+  # 'success'; on a non-accept judge verdict that row still reads 'success' with
+  # NULL validation_errors, so operator SQL cannot see the rejection. Record a
+  # distinct 'validation_failed' log row carrying the judge reasoning + the
+  # authoritative cluster_hash so a rejected/low-confidence cluster is
+  # diagnosable. Best-effort: a logging failure must not fail the pipeline.
+  if (!judge_result$verdict %in% c("accept", "accept_with_corrections")) {
     tryCatch(
-      {
-        id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"
-        if (id_col %in% names(cluster_data$identifiers)) {
-          generate_cluster_hash(cluster_data$identifiers, cluster_type)
-        } else {
-          digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
-        }
-      },
-      error = function(e) {
-        digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
-      }
+      log_generation_attempt(
+        cluster_type = cluster_type,
+        cluster_number = as.integer(cluster_number),
+        cluster_hash = final_hash,
+        model_name = model,
+        status = "validation_failed",
+        prompt_text = paste0("[judge] verdict=", judge_result$verdict %||% "unknown"),
+        response_json = summary_with_metadata,
+        validation_errors = judge_result$reasoning %||% NA_character_
+      ),
+      error = function(e) log_warn("Failed to log judge outcome: {conditionMessage(e)}")
     )
   }
 
+  # Step 5: Save to cache with validation_status (final_hash resolved above).
   cache_id <- tryCatch(
     save_summary_to_cache(
       cluster_type = cluster_type,
       cluster_number = as.integer(cluster_number),
       cluster_hash = final_hash,
       model_name = model,
-      prompt_version = "1.0",
+      prompt_version = LLM_SUMMARY_PROMPT_VERSION,
       summary_json = summary_with_metadata,
       tags = gen_result$summary$tags,
       validation_status = validation_status

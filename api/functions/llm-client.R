@@ -60,7 +60,8 @@ generate_cluster_summary <- function(
   cluster_type = "functional",
   model = NULL,
   max_retries = 3,
-  top_n_terms = 20
+  top_n_terms = 20,
+  cluster_hash = NULL
 ) {
   # Use default model if not specified
   if (is.null(model)) {
@@ -120,8 +121,13 @@ generate_cluster_summary <- function(
     )
   }
 
-  # Generate cluster hash for logging
-  cluster_hash <- if ("identifiers" %in% names(cluster_data)) {
+  # Cluster hash for logging. Prefer the authoritative hash threaded from the
+  # caller (batch generator -> generate_and_validate_with_judge) so the
+  # llm_generation_log.cluster_hash matches llm_cluster_summary_cache.cluster_hash
+  # (#490 secondary). Only recompute from identifiers when no hash was passed.
+  cluster_hash <- if (!is.null(cluster_hash) && nzchar(cluster_hash)) {
+    cluster_hash
+  } else if ("identifiers" %in% names(cluster_data)) {
     id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"
     if (id_col %in% names(cluster_data$identifiers)) {
       generate_cluster_hash(cluster_data$identifiers, cluster_type)
