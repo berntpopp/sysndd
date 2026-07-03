@@ -18,10 +18,10 @@
 # =============================================================================
 # Stage 1: Base - System dependencies and R configuration
 # =============================================================================
-FROM rocker/r-ver:4.6.0 AS base
+FROM rocker/r-ver:4.6.1 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
-# rocker/r-ver:4.6.0 uses Ubuntu 24.04 (noble), so we use noble binaries
+# rocker/r-ver:4.6.1 uses Ubuntu 24.04 (noble), so we use noble binaries
 #
 # IMPORTANT: pin to a dated snapshot (not /latest) so that CRAN pruning old
 # versions cannot silently drift the build. Bump this date intentionally,
