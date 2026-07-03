@@ -196,6 +196,36 @@ export function findCategoryLink(
   return found ? `${found.link}${termVal}` : '#';
 }
 
+/**
+ * Map a category value to a sysndd-chip modifier class. Uses quiet token chips
+ * instead of a heavy dark-bordered badge; unknown categories fall back to the
+ * neutral chip.
+ */
+export function categoryChipClass(category: string): string {
+  const map: Record<string, string> = {
+    GO: 'sysndd-chip--teal',
+    KEGG: 'sysndd-chip--blue',
+    MONDO: 'sysndd-chip--info',
+    HPO: 'sysndd-chip--success',
+  };
+  return map[category] || 'sysndd-chip--neutral';
+}
+
+/**
+ * Format an FDR value as scientific notation so tiny values (e.g. 1e-15) render
+ * meaningfully instead of collapsing to "0".
+ */
+export function formatFdr(fdr: unknown): string {
+  if (fdr == null) return '—';
+  const n = Number(fdr);
+  if (Number.isNaN(n)) return String(fdr);
+  if (n === 0) return '0';
+  if (n < 0.001 || n >= 1000) {
+    return n.toExponential(2);
+  }
+  return n.toPrecision(3);
+}
+
 /** Column headers used for the Excel export, keyed by table type. */
 export const CLUSTER_EXPORT_HEADERS: Record<ClusterTableType, Record<string, string>> = {
   term_enrichment: {

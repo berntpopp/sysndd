@@ -130,102 +130,11 @@
           <BSpinner small class="me-2" />
           <span class="text-muted">Loading AI summary...</span>
         </div>
-        <BCard
-          header-tag="header"
-          class="my-3 mx-2 text-start"
-          body-class="p-0"
-          header-class="p-1"
-          border-variant="light"
-        >
-          <template #header>
-            <div class="mb-0 font-weight-bold">
-              <BRow>
-                <BCol sm="6" class="mb-1">
-                  <BInputGroup size="sm">
-                    <label for="phenotype-table-type-select" class="input-group-text"
-                      >Table type</label
-                    >
-                    <BFormSelect
-                      id="phenotype-table-type-select"
-                      v-model="tableType"
-                      :options="tableOptions"
-                      size="sm"
-                      aria-label="Select table type"
-                    />
-                  </BInputGroup>
-                </BCol>
-
-                <BCol sm="6" class="mb-1 text-end">
-                  <div class="d-flex align-items-center justify-content-end gap-2">
-                    <TableSearchInput
-                      v-model="filter.any.content"
-                      :placeholder="'Search variables here...'"
-                      :debounce-time="500"
-                      @input="onFilterChange"
-                    />
-                    <BButton
-                      v-b-tooltip.hover.bottom
-                      size="sm"
-                      variant="outline-secondary"
-                      title="Download table data as Excel file"
-                      aria-label="Download table data as Excel file"
-                      :disabled="loading || isExporting"
-                      @click="downloadExcel"
-                    >
-                      <i class="bi bi-table me-1" aria-hidden="true" />
-                      <i v-if="!isExporting" class="bi bi-download" aria-hidden="true" />
-                      <BSpinner v-else small />
-                      .xlsx
-                    </BButton>
-                  </div>
-                </BCol>
-              </BRow>
-            </div>
-          </template>
-
-          <BCardText class="text-start" :aria-busy="loading ? 'true' : 'false'">
-            <TableLoadingState
-              v-if="loading"
-              class="phenotype-table-loading"
-              label="Loading phenotype cluster rows"
-              :rows="6"
-            />
-
-            <GenericTable
-              v-else
-              :items="displayedItems"
-              :fields="fields"
-              :sort-by="sortBy"
-              :sort-desc="sortDesc"
-              @update-sort="handleSortUpdate"
-            >
-              <template #filter-controls>
-                <td v-for="field in fields" :key="field.key" role="presentation">
-                  <BFormInput
-                    v-if="field.key !== 'details'"
-                    v-model="filter[field.key].content"
-                    :placeholder="'Filter ' + field.label"
-                    :aria-label="'Filter by ' + field.label"
-                    debounce="500"
-                    @input="onFilterChange"
-                  />
-                </td>
-              </template>
-            </GenericTable>
-
-            <BRow v-if="!loading" class="justify-content-end">
-              <BCol cols="12" md="auto" class="my-1">
-                <TablePaginationControls
-                  :total-rows="totalRows"
-                  :initial-per-page="perPage"
-                  :page-options="[5, 10, 20]"
-                  @page-change="handlePageChange"
-                  @per-page-change="handlePerPageChange"
-                />
-              </BCol>
-            </BRow>
-          </BCardText>
-        </BCard>
+        <PhenotypeClusterVariableTable
+          :selected-cluster="selectedCluster"
+          :loading="loading"
+          :active-cluster="activeCluster"
+        />
       </BCol>
     </BRow>
     <ClusterValidationCard
@@ -239,41 +148,28 @@
 <script>
 import { ref, onBeforeUnmount } from 'vue';
 import useToast from '@/composables/useToast';
-import { usePhenotypeCytoscape, useExcelExport } from '@/composables';
-import GenericTable from '@/components/small/GenericTable.vue';
-import TableSearchInput from '@/components/small/TableSearchInput.vue';
-import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import { usePhenotypeCytoscape } from '@/composables';
+import { useClusterSummary } from '@/composables/useClusterSummary';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
-import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
+import PhenotypeClusterVariableTable from '@/components/analyses/PhenotypeClusterVariableTable.vue';
 import {
   getPhenotypeClustering,
   getPhenotypeClusterSummary,
   isSnapshotPreparingError,
 } from '@/api/analysis';
-import { isApiError } from '@/api/client';
-import {
-  sortPhenotypeClusterRows,
-  filterPhenotypeClusterRows,
-  buildPhenotypeClusterExportFilename,
-  phenotypeClusterExportSheetName,
-  normalizePhenotypeClusterRows,
-  PHENOTYPE_CLUSTER_EXPORT_HEADERS,
-} from './phenotypeClusterTable';
+import { normalizePhenotypeClusterRows } from './phenotypeClusterTable';
 
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
     AnalysisPanel,
     ClusterValidationCard,
-    GenericTable,
     InlineHelpBadge,
-    TableLoadingState,
-    TableSearchInput,
-    TablePaginationControls,
     LlmSummaryCard,
+    PhenotypeClusterVariableTable,
   },
   props: {
     filterState: {
@@ -293,7 +189,10 @@ export default {
       },
     });
 
-    const { isExporting, exportToExcel } = useExcelExport();
+    // LLM cluster-summary state and fetch logic (request-id race guarded).
+    // The phenotype endpoint silences both 404 and a transient 503.
+    const { currentSummary, summaryLoading, fetchClusterSummary, clearClusterSummary } =
+      useClusterSummary(makeToast, getPhenotypeClusterSummary, { noSummaryStatuses: [404, 503] });
 
     onBeforeUnmount(() => {
       cytoscape.destroy();
@@ -304,8 +203,10 @@ export default {
       cytoscapeContainer,
       cytoscape,
       activeClusterRef,
-      isExporting,
-      exportToExcel,
+      currentSummary,
+      summaryLoading,
+      fetchClusterSummary,
+      clearClusterSummary,
     };
   },
   data() {
@@ -321,61 +222,6 @@ export default {
       loading: true,
       error: null,
       isPreparing: false,
-
-      fields: [
-        {
-          key: 'variable',
-          label: 'Variable',
-          class: 'text-start',
-          sortable: true,
-        },
-        {
-          // Flat key alias for the raw 'p.value' stat. BootstrapVueNext BTable
-          // renders a blank cell for a dotted field key, so the column is fed a
-          // de-dotted alias added by normalizePhenotypeClusterRows().
-          key: 'p_value',
-          label: 'p-value',
-          class: 'text-start',
-          sortable: true,
-        },
-        {
-          key: 'v_test',
-          label: 'v-test',
-          class: 'text-start',
-          sortable: true,
-        },
-      ],
-      tableOptions: [
-        {
-          value: 'quali_inp_var',
-          text: 'Qualitative input variables (phenotypes)',
-        },
-        {
-          value: 'quali_sup_var',
-          text: 'Qualitative supplementary variables (inheritance)',
-        },
-        {
-          value: 'quanti_sup_var',
-          text: 'Quantitative supplementary variables (phenotype counts)',
-        },
-      ],
-      tableType: 'quali_inp_var',
-
-      perPage: 10,
-      totalRows: 1,
-      currentPage: 1,
-      sortBy: 'p_value',
-      sortDesc: false,
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        variable: { content: null, join_char: null, operator: 'contains' },
-        p_value: { content: null, join_char: null, operator: 'contains' },
-        v_test: { content: null, join_char: null, operator: 'contains' },
-      },
-
-      currentSummary: null,
-      summaryLoading: false,
-      summaryRequestId: 0,
     };
   },
   computed: {
@@ -402,24 +248,6 @@ export default {
       }
       return base;
     },
-    /**
-     * The items currently being displayed in the table (filtered + sorted + paginated).
-     */
-    displayedItems() {
-      // 1. Start from the relevant cluster data
-      let dataArray = this.selectedCluster[this.tableType] || [];
-
-      // 2. Apply filtering
-      dataArray = this.applyFilters(dataArray);
-
-      // 3. Apply sorting (numeric / scientific-notation aware)
-      dataArray = sortPhenotypeClusterRows(dataArray, this.sortBy, this.sortDesc);
-
-      // 4. Paginate (client-side)
-      const start = (this.currentPage - 1) * this.perPage;
-      const end = start + this.perPage;
-      return dataArray.slice(start, end);
-    },
   },
   watch: {
     // Update data whenever the user picks a new cluster
@@ -438,12 +266,6 @@ export default {
       } else {
         this.clearClusterSummary();
       }
-    },
-    // Watch the tableType so we can update totalRows based on new array
-    tableType() {
-      const arr = this.selectedCluster[this.tableType] || [];
-      this.totalRows = arr.length;
-      this.currentPage = 1; // Reset to first page
     },
   },
   mounted() {
@@ -509,86 +331,6 @@ export default {
         quali_sup_var: [],
         quanti_sup_var: [],
       };
-      // Update total rows
-      const arr = this.selectedCluster[this.tableType] || [];
-      this.totalRows = arr.length;
-    },
-
-    /**
-     * Fetch LLM-generated summary for a specific phenotype cluster
-     * Uses cluster's hash_filter as the cluster_hash parameter
-     */
-    async fetchClusterSummary(clusterHash, clusterNumber) {
-      if (!clusterHash) {
-        this.clearClusterSummary();
-        return;
-      }
-
-      const requestId = ++this.summaryRequestId;
-      this.summaryLoading = true;
-      try {
-        const data = await getPhenotypeClusterSummary({
-          cluster_hash: clusterHash,
-          cluster_number: String(clusterNumber),
-        });
-        if (requestId !== this.summaryRequestId) return;
-        this.currentSummary = data;
-      } catch (error) {
-        if (requestId !== this.summaryRequestId) return;
-        // 404/503 are expected for cache misses when generation is unavailable.
-        if (isApiError(error) && error.response && [404, 503].includes(error.response.status)) {
-          this.currentSummary = null;
-          return;
-        }
-        // Only reaches here for actual errors (network, 500, etc.)
-        this.makeToast(
-          'Unable to load AI summary. The summary may still be generating.',
-          'Info',
-          'info'
-        );
-        this.currentSummary = null;
-      } finally {
-        if (requestId === this.summaryRequestId) {
-          this.summaryLoading = false;
-        }
-      }
-    },
-
-    clearClusterSummary() {
-      this.summaryRequestId += 1;
-      this.currentSummary = null;
-      this.summaryLoading = false;
-    },
-
-    /* --------------------------------------
-     * Searching + Filtering (client-side example)
-     * ------------------------------------ */
-    applyFilters(items) {
-      // Delegates to the pure global "any" + per-column filter helper.
-      return filterPhenotypeClusterRows(items, this.filter);
-    },
-    onFilterChange() {
-      // Reset page to 1 to see the updated first page
-      this.currentPage = 1;
-    },
-
-    /* --------------------------------------
-     * Pagination controls
-     * ------------------------------------ */
-    handlePageChange(newPage) {
-      this.currentPage = newPage;
-    },
-    handlePerPageChange(newPerPage) {
-      this.perPage = newPerPage;
-      this.currentPage = 1;
-    },
-
-    /* --------------------------------------
-     * Sorting
-     * ------------------------------------ */
-    handleSortUpdate(ctx) {
-      this.sortBy = ctx.sortBy;
-      this.sortDesc = ctx.sortDesc;
     },
 
     /* --------------------------------------
@@ -640,30 +382,6 @@ export default {
       link.click();
       URL.revokeObjectURL(url);
     },
-
-    /**
-     * Download the current table data as Excel file
-     * Exports all filtered data (not just the current page)
-     */
-    downloadExcel() {
-      // Get all filtered data (not just paginated subset)
-      let dataArray = this.selectedCluster[this.tableType] || [];
-      dataArray = this.applyFilters(dataArray);
-
-      if (dataArray.length === 0) {
-        this.makeToast('No data to export', 'Warning', 'warning');
-        return;
-      }
-
-      // Generate filename with context
-      const filename = buildPhenotypeClusterExportFilename(this.activeCluster, this.tableType);
-
-      this.exportToExcel(dataArray, {
-        filename,
-        sheetName: phenotypeClusterExportSheetName(this.tableType),
-        headers: PHENOTYPE_CLUSTER_EXPORT_HEADERS,
-      });
-    },
   },
 };
 </script>
@@ -699,13 +417,5 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #eaadba;
 }
 </style>
