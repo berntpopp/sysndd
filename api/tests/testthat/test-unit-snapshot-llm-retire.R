@@ -48,21 +48,31 @@ test_that("trigger_llm_generation retires orphans by payload$clusters$cluster_ha
   expect_equal(out$job_id, "llm-job")
 })
 
-test_that("trigger_llm_generation retires even when generation is unavailable", {
+test_that("trigger_llm_generation retires even when generation is skipped", {
   env <- source_builder_env()
   captured <- new.env()
+  triggered <- new.env()
+  triggered$called <- FALSE
   env$retire_orphan_cluster_summaries <- function(cluster_type, current_hashes, conn = NULL) {
     captured$hashes <- current_hashes
     length(current_hashes)
   }
-  # trigger_llm_batch_generation intentionally NOT defined -> exists() FALSE.
+  # Stub trigger so exists() is deterministically TRUE regardless of what the
+  # surrounding test suite has loaded into globalenv (exists() searches parent
+  # envs). Generation is instead skipped because the payload has no `raw`
+  # clusters -> the orphan retire must still run first.
+  env$trigger_llm_batch_generation <- function(...) {
+    triggered$called <- TRUE
+    list(job_id = "should-not-run")
+  }
 
   payload <- list(clusters = tibble::tibble(cluster_hash = c("f556", "175f")))
   out <- env$analysis_snapshot_trigger_llm_generation("functional_clusters", payload)
 
   expect_equal(captured$hashes, c("f556", "175f"))
+  expect_false(triggered$called)
   expect_true(isTRUE(out$skipped))
-  expect_equal(out$reason, "llm_trigger_unavailable")
+  expect_equal(out$reason, "empty_clusters")
 })
 
 test_that("trigger_llm_generation returns NULL (no retire) for non-cluster analysis types", {
