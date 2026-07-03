@@ -91,8 +91,11 @@ if (!is.null(summary$skipped)) {
   message(sprintf("[backfill] dry-run: %d publications would be re-checked. Re-run with --apply to write.",
                   summary$targeted))
 } else {
+  failed_n <- if (is.null(summary$failed_count)) 0L else summary$failed_count
+  unresolved_skips_n <- if (is.null(summary$unresolved_skip_count)) 0L else summary$unresolved_skip_count
   message(sprintf(
-    "[backfill] done: targeted=%d verified=%d partial=%d unresolved=%d",
-    summary$targeted, summary$verified, summary$partial, summary$unresolved
+    "[backfill] done: targeted=%d verified=%d partial=%d unresolved=%d (failed=%d unresolved_skips=%d)",
+    summary$targeted, summary$verified, summary$partial, summary$unresolved,
+    failed_n, unresolved_skips_n
   ))
 }

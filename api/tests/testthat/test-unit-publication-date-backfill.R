@@ -64,6 +64,37 @@ test_that("backfill fails observably when every targeted PMID errors (systemic o
   })
 })
 
+test_that("backfill treats parse-empty PMIDs as unresolved, not a systemic outage", {
+  # #500: a genuinely unresolvable PMID (info_from_pmid raises
+  # publication_fetch_error after a clean fetch) is a DATA condition -> the run
+  # succeeds with unresolved counted and nothing written; it must NOT raise the
+  # transport-only systemic-outage error.
+  skip_if_no_test_db()
+  source(file.path(get_api_dir(), "functions", "publication-functions.R"), local = FALSE)
+  source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
+
+  old_info <- get("info_from_pmid", envir = .GlobalEnv)
+  assign("info_from_pmid", function(pmid_value, ...) {
+    rlang::abort("PMIDs not retrievable from PubMed: PMID:999103",
+                 class = "publication_fetch_error")
+  }, envir = .GlobalEnv)
+  withr::defer(assign("info_from_pmid", old_info, envir = .GlobalEnv))
+
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999103", source = NULL)
+    res <- backfill_publication_dates_run(conn, dry_run = FALSE, manage_transaction = FALSE)
+    expect_equal(res$verified, 0L)
+    expect_equal(res$written, 0L)
+    expect_gte(res$unresolved_skip_count, 1L)
+    expect_equal(res$failed_count, 0L)
+    got <- DBI::dbGetQuery(conn,
+      "SELECT publication_date_source FROM publication WHERE publication_id = 'PMID:999103'")
+    expect_true(is.na(got$publication_date_source))
+  })
+})
+
 test_that("dry_run reports targets without writing", {
   skip_if_no_test_db()
   source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)

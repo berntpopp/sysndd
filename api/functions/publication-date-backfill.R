@@ -114,15 +114,24 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
   }
 
   # Per-PMID fallback (lifted verbatim): a chunk error falls back to single-PMID
-  # fetches so one bad PMID does not fail the whole chunk/job. Skipped PMIDs and
-  # their error messages are accumulated so the caller can report them (and so a
-  # systemic outage — every PMID skipped — can fail the job observably instead of
-  # reporting a false "success" with unresolved == targeted).
-  skipped <- character()
-  skipped_errors <- character()
-  record_skip <- function(publication_id, e) {
-    skipped <<- c(skipped, publication_id)
-    skipped_errors <<- c(skipped_errors, conditionMessage(e))
+  # fetches so one bad PMID does not fail the whole chunk/job. Skips are split by
+  # CAUSE (#500): a publication_fetch_error is a DATA condition (PMID fetched but
+  # unresolvable / no parseable record, e.g. a withdrawn PMID) -> `unresolved`;
+  # any other error is an INFRA condition (transport/HTTP/timeout) -> `failed`.
+  # Only a wholesale infra outage (every targeted PMID failed) fails the job; a
+  # batch that is entirely genuinely-unresolvable succeeds with unresolved counted.
+  unresolved_ids <- character()
+  unresolved_errors <- character()
+  failed_ids <- character()
+  failed_errors <- character()
+  record_unresolved <- function(publication_id, e) {
+    unresolved_ids <<- c(unresolved_ids, publication_id)
+    unresolved_errors <<- c(unresolved_errors, conditionMessage(e))
+    tibble::tibble()
+  }
+  record_failed <- function(publication_id, e) {
+    failed_ids <<- c(failed_ids, publication_id)
+    failed_errors <<- c(failed_errors, conditionMessage(e))
     tibble::tibble()
   }
   fetch_one <- function(publication_id) {
@@ -133,8 +142,8 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
         row$publication_id <- paste0("PMID:", sub("^PMID:", "", publication_id))
         row
       },
-      publication_fetch_error = function(e) record_skip(publication_id, e),
-      error = function(e) record_skip(publication_id, e)
+      publication_fetch_error = function(e) record_unresolved(publication_id, e),
+      error = function(e) record_failed(publication_id, e)
     )
   }
 
@@ -215,18 +224,19 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
   partial <- sum(source_vec %in% c("pubmed_partial", "medline_date"), na.rm = TRUE)
   unresolved <- targeted - verified - partial
 
-  skipped_unique <- unique(skipped)
-  skipped_count <- length(skipped_unique)
+  all_skipped_ids <- unique(c(failed_ids, unresolved_ids))
+  skipped_count <- length(all_skipped_ids)
+  failed_count <- length(unique(failed_ids))
+  unresolved_skip_count <- length(unique(unresolved_ids))
 
-  # Fail observably on a systemic fetch outage: if EVERY targeted PMID errored
-  # during fetch (NCBI down, worker egress broken, info_from_pmid unavailable),
-  # nothing was written and the run would otherwise report a false "success" with
-  # unresolved == targeted. Raise a classed error so the async handler marks the
-  # job failed and the operator CLI exits non-zero. A partial failure (some rows
-  # resolved, some skipped) stays a success with reduced yield — the skip detail
-  # is returned for inspection. Genuinely unverifiable PMIDs that fetched cleanly
-  # but carry no date are `unresolved`, not `skipped`, and do not fail the run.
-  if (targeted > 0L && skipped_count >= targeted) {
+  # Fail observably only on a systemic TRANSPORT/INFRA outage: every targeted PMID
+  # hit a non-classed error (NCBI down, worker egress broken, info_from_pmid
+  # unavailable), nothing was written, and the run would otherwise report a false
+  # "success". A batch that is entirely genuinely-unresolvable (parse-empty ->
+  # publication_fetch_error, e.g. an all-GeneReviews/withdrawn target set) is a
+  # DATA condition (#500): it completes as a success with 0 verified and N
+  # unresolved, never a false systemic failure. Rows that resolved are persisted.
+  if (targeted > 0L && failed_count >= targeted) {
     stop(structure(
       class = c("publication_backfill_systemic_failure", "error", "condition"),
       list(
@@ -234,7 +244,7 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
           paste0("verified publication-date backfill: all %d targeted PMIDs failed ",
                  "to fetch (systemic outage; no rows written). First error: %s"),
           targeted,
-          if (length(skipped_errors)) skipped_errors[[1]] else "unknown"
+          if (length(failed_errors)) failed_errors[[1]] else "unknown"
         ),
         call = sys.call(-1)
       )
@@ -248,8 +258,11 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
     unresolved = as.integer(unresolved),
     written = as.integer(written),
     skipped_count = as.integer(skipped_count),
-    skipped_pmids = utils::head(skipped_unique, 50L),
-    skipped_errors = utils::head(unique(skipped_errors), 5L),
+    failed_count = as.integer(failed_count),
+    unresolved_skip_count = as.integer(unresolved_skip_count),
+    skipped_pmids = utils::head(all_skipped_ids, 50L),
+    failed_pmids = utils::head(unique(failed_ids), 50L),
+    skipped_errors = utils::head(unique(c(failed_errors, unresolved_errors)), 5L),
     dry_run = FALSE
   )
 }

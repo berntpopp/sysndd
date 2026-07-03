@@ -165,6 +165,11 @@ services:
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
       MIRAI_WORKERS: ${MIRAI_WORKERS:-2}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # NCBI E-utilities identity/rate-limit (#494/#499): raises the per-IP EUtils
+      # cap from the anonymous 3 req/s to 10 req/s so publication ingestion and the
+      # publication_date_backfill do not 429. Inert when unset (anonymous is valid).
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      NCBI_EUTILS_EMAIL: ${NCBI_EUTILS_EMAIL:-}
       # CORS configuration: comma-separated list of allowed origins
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
@@ -291,6 +296,10 @@ services:
       # head-of-line block clustering / llm_generation / snapshot->LLM jobs on
       # this worker.
       ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
+      # NCBI E-utilities key (#494/#499). The dev override drains the maintenance
+      # lane on this worker too, so the backfill runs here locally.
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      NCBI_EUTILS_EMAIL: ${NCBI_EUTILS_EMAIL:-}
       ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
     healthcheck:
       test: ["CMD-SHELL", "ps -ef | grep '[s]tart_async_worker.R' >/dev/null || exit 1"]
@@ -389,6 +398,9 @@ services:
       MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
       # Maintenance lane only. Override ASYNC_JOB_MAINTENANCE_QUEUES to widen it.
       ASYNC_JOB_QUEUES: ${ASYNC_JOB_MAINTENANCE_QUEUES:-maintenance}
+      # NCBI E-utilities key (#494/#499): this container runs publication_date_backfill.
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      NCBI_EUTILS_EMAIL: ${NCBI_EUTILS_EMAIL:-}
       ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
     healthcheck:
       test: ["CMD-SHELL", "ps -ef | grep '[s]tart_async_worker.R' >/dev/null || exit 1"]
