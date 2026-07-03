@@ -384,6 +384,16 @@ analysis_snapshot_status_code <- function(row) {
     return("snapshot_missing")
   }
 
+  # Rebuild on a snapshot-schema bump even when source data is unchanged (#483):
+  # a stored schema_version != the code's ANALYSIS_SNAPSHOT_SCHEMA_VERSION is
+  # treated as not-current (like source_version_mismatch) so it self-heals.
+  expected_schema <- tryCatch(as.character(ANALYSIS_SNAPSHOT_SCHEMA_VERSION)[1], error = function(e) NA_character_)
+  stored_schema <- analysis_snapshot_scalar(row$schema_version, NA_character_)
+  if (!is.na(expected_schema) && !is.na(stored_schema) && nzchar(stored_schema) &&
+    !identical(stored_schema, expected_schema)) {
+    return("schema_version_mismatch")
+  }
+
   source_version <- analysis_snapshot_scalar(row$source_data_version, NA_character_)
   current_version <- if ("current_source_data_version" %in% names(row)) {
     analysis_snapshot_scalar(row$current_source_data_version, NA_character_)

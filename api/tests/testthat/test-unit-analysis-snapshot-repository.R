@@ -52,6 +52,16 @@ test_that("snapshot status helpers classify missing and stale rows", {
   expect_equal(analysis_snapshot_status_code(stale), "snapshot_stale")
   fresh <- list(stale_after = Sys.time() + 60)
   expect_equal(analysis_snapshot_status_code(fresh), "available")
+
+  # #483: a fresh, source-current manifest built under an OLDER snapshot schema
+  # must be flagged for rebuild (was ignored -> served the old-schema snapshot).
+  old_schema <- list(stale_after = Sys.time() + 60, schema_version = "1.0")
+  expect_equal(analysis_snapshot_status_code(old_schema), "schema_version_mismatch")
+  current_schema <- list(
+    stale_after = Sys.time() + 60,
+    schema_version = ANALYSIS_SNAPSHOT_SCHEMA_VERSION
+  )
+  expect_equal(analysis_snapshot_status_code(current_schema), "available")
 })
 
 test_that("analysis_snapshot_public_current is TRUE only for a current (available) snapshot", {
