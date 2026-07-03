@@ -1,4 +1,9 @@
 source_mcp_analysis_repository <- function() {
+  # llm-summary-config.R defines LLM_SUMMARY_PROMPT_VERSION, which
+  # mcp-analysis-repository.R references as a default arg (evaluated lazily at
+  # call time). In production both are loaded by bootstrap_load_modules(); the
+  # test must source it too or the lookup errors with "object not found".
+  source("../../functions/llm-summary-config.R")
   source("../../functions/mcp-analysis-cache-repository.R")
   source("../../functions/mcp-analysis-repository.R")
 }

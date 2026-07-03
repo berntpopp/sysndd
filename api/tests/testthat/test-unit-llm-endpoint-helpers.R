@@ -399,3 +399,49 @@ test_that("format_summary_response handles dates correctly", {
   expect_type(result$created_at, "character")
   expect_true(grepl("2026", result$created_at))
 })
+
+# ============================================================================
+# Terminal "could not be validated" serving state (#490)
+# ============================================================================
+
+test_that("get_cluster_summary returns a terminal rejected payload (200), not a 404", {
+  res <- new.env()
+  res$status <- 200L
+
+  rejected_row <- data.frame(
+    cache_id = 5L,
+    cluster_type = "phenotype",
+    cluster_number = 2L,
+    validation_status = "rejected",
+    summary_json = '{"summary":"x","llm_judge_reasoning":"over-broad, low specificity"}',
+    stringsAsFactors = FALSE
+  )
+  mockery::stub(get_cluster_summary, "get_cached_summary", function(...) rejected_row)
+
+  result <- get_cluster_summary("abc123", "2", "phenotype", res)
+
+  # Terminal state is HTTP 200 with an explicit "not available + why" payload so
+  # the frontend can distinguish it from "still generating" (404).
+  expect_equal(res$status, 200L)
+  expect_false(result$summary_available)
+  expect_equal(result$validation_status, "rejected")
+  expect_equal(result$reason, "over-broad, low specificity")
+  expect_null(result$summary_json)
+})
+
+test_that("llm_summary_rejection_reason reads flat then nested reason", {
+  flat <- data.frame(
+    summary_json = '{"llm_judge_reasoning":"flat reason"}',
+    stringsAsFactors = FALSE
+  )
+  expect_equal(llm_summary_rejection_reason(flat), "flat reason")
+
+  nested <- data.frame(
+    summary_json = '{"validation":{"reasoning":"nested reason"}}',
+    stringsAsFactors = FALSE
+  )
+  expect_equal(llm_summary_rejection_reason(nested), "nested reason")
+
+  none <- data.frame(summary_json = '{"summary":"x"}', stringsAsFactors = FALSE)
+  expect_true(is.na(llm_summary_rejection_reason(none)))
+})

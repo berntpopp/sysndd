@@ -82,6 +82,24 @@ test_that("phenotype judge prompt allows grounded synthesis + correction path", 
   expect_match(p, "Grounding score < 50%", fixed = TRUE)
 })
 
+# --- #490: large-cluster judge relaxation -----------------------------------
+
+test_that("phenotype judge prompt adds a relaxed-bar instruction for LARGE clusters", {
+  big <- build_phenotype_judge_prompt(
+    summary = list(summary = "x", confidence = "low"),
+    cluster_data = list(identifiers = data.frame(entity_id = seq_len(1043)))
+  )
+  small <- build_phenotype_judge_prompt(
+    summary = list(summary = "x", confidence = "low"),
+    cluster_data = list(identifiers = data.frame(entity_id = 1:5))
+  )
+  # Large, heterogeneous cluster -> relaxed, high-level GESTALT bar is present.
+  expect_match(big, "RELAXED BAR", fixed = TRUE)
+  expect_match(big, "HIGH-LEVEL GESTALT", fixed = TRUE)
+  # Normal-sized clusters keep the strict bar (no relaxation note).
+  expect_false(grepl("RELAXED BAR", small, fixed = TRUE))
+})
+
 # --- Task 4: generation prompt permits grounded gestalt synthesis -----------
 
 test_that("phenotype generation prompt permits grounded gestalt synthesis", {

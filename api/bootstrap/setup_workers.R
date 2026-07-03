@@ -135,6 +135,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/comparisons-sources.R", local = FALSE)
     source("/app/functions/comparisons-functions.R", local = FALSE)
     # Source LLM-related functions for async LLM batch generation jobs
+    source("/app/functions/llm-summary-config.R", local = FALSE)
     source("/app/functions/llm-cache-repository.R", local = FALSE)
     source("/app/functions/llm-validation.R", local = FALSE)
     source("/app/functions/llm-rate-limiter.R", local = FALSE)
@@ -143,6 +144,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/llm-client.R", local = FALSE)
     source("/app/functions/llm-service.R", local = FALSE)
     source("/app/functions/llm-judge.R", local = FALSE)
+    source("/app/functions/llm-batch-cluster-data.R", local = FALSE)
     source("/app/functions/llm-batch-generator.R", local = FALSE)
   })
   message(sprintf(

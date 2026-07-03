@@ -261,10 +261,14 @@ function(req, res, cluster_type = "all") {
 ## LLM Regeneration Endpoint
 ## -------------------------------------------------------------------##
 
-#* Trigger LLM batch regeneration
+#* Trigger LLM batch regeneration (snapshot-driven)
 #*
-#* Starts an async job to regenerate LLM summaries for clusters.
-#* Returns immediately with job_id for status polling.
+#* Starts async job(s) to regenerate LLM summaries for the PUBLISHED analysis
+#* snapshot's clusters. Never recomputes clustering (#488): summaries are keyed
+#* to the snapshot's stored `cluster_hash`, so regenerating off an independent
+#* recompute produced un-servable summaries and corrupted the served set. If a
+#* requested cluster type has no public-ready snapshot, returns 409 (refresh the
+#* snapshot first) instead of recomputing.
 #*
 #* # `Request Body`
 #* {
@@ -309,11 +313,9 @@ function(req, res, cluster_type = "all", force = FALSE) {
     ))
   }
 
-  # Convert force to logical
-  force <- as.logical(force)
+  # Coerce force robustly (Plumber query params arrive as strings; NA -> FALSE).
+  force <- isTRUE(suppressWarnings(as.logical(force)))
 
-  # Fetch cluster data from database (pool not available in daemon)
-  # We need to pre-fetch the clustering result for the daemon
   cluster_types_to_process <- if (cluster_type == "all") {
     c("functional", "phenotype")
   } else {
@@ -323,122 +325,35 @@ function(req, res, cluster_type = "all", force = FALSE) {
   # Generate a parent job_id for tracking
   parent_job_id <- uuid::UUIDgenerate()
 
-  # For each cluster type, fetch clusters and trigger generation
+  # Drive regeneration from the published snapshot for each cluster type so the
+  # generated summaries' hashes match what serving looks up (#488). If any
+  # requested type lacks a public-ready snapshot, fail fast with 409 rather than
+  # partially regenerating (and never recompute clustering here).
   results <- list()
   for (ct in cluster_types_to_process) {
-    # Fetch clusters based on type
-    # NOTE: Must match exactly how jobs_endpoints.R prepares data for clustering
-    # The memoised functions expect specific input formats, not arbitrary params
-    clusters <- tryCatch({
-      if (ct == "functional") {
-        # Functional clusters: need genes_list (HGNC IDs of NDD genes)
-        genes_list <- pool %>%
-          tbl("ndd_entity_view") %>%
-          arrange(entity_id) %>%
-          filter(ndd_phenotype == 1) %>%
-          select(hgnc_id) %>%
-          collect() %>%
-          unique() %>%
-          pull(hgnc_id)
-
-        # Call memoised function with correct params - returns tibble directly
-        gen_string_clust_obj_mem(genes_list)
-      } else {
-        # Phenotype clusters: need wide phenotypes data frame
-        # Build data exactly like analysis_endpoints.R phenotype_clustering
-
-        # Define constants for filtering (same as analysis_endpoints.R)
-        id_phenotype_ids <- c(
-          "HP:0001249",
-          "HP:0001256",
-          "HP:0002187",
-          "HP:0002342",
-          "HP:0006889",
-          "HP:0010864"
-        )
-
-        # NDD entity categories (NOT phenotype categories!)
-        categories <- c("Definitive")
-
-        # Fetch required tables
-        ndd_entity_view_tbl <- pool %>%
-          tbl("ndd_entity_view") %>%
-          collect()
-
-        ndd_entity_review_tbl <- pool %>%
-          tbl("ndd_entity_review") %>%
-          collect() %>%
-          filter(is_primary == 1) %>%
-          dplyr::select(review_id)
-
-        ndd_review_phenotype_connect_tbl <- pool %>%
-          tbl("ndd_review_phenotype_connect") %>%
-          collect()
-
-        modifier_list_tbl <- pool %>%
-          tbl("modifier_list") %>%
-          collect()
-
-        phenotype_list_tbl <- pool %>%
-          tbl("phenotype_list") %>%
-          collect()
-
-        # Build the phenotypes data frame (same as analysis_endpoints.R)
-        sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
-          left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-          left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-          left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-          mutate(ndd_phenotype = case_when(
-            ndd_phenotype == 1 ~ "Yes",
-            ndd_phenotype == 0 ~ "No"
-          )) %>%
-          filter(ndd_phenotype == "Yes") %>%
-          filter(category %in% categories) %>%
-          filter(modifier_name == "present") %>%
-          filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
-          dplyr::select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
-          group_by(entity_id) %>%
-          mutate(
-            phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
-            phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
-          ) %>%
-          ungroup() %>%
-          unique()
-
-        sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
-          mutate(present = "yes") %>%
-          select(-phenotype_id) %>%
-          pivot_wider(names_from = HPO_term, values_from = present) %>%
-          group_by(hgnc_id) %>%
-          mutate(gene_entity_count = n()) %>%
-          ungroup() %>%
-          relocate(gene_entity_count, .after = phenotype_id_count) %>%
-          select(-hgnc_id)
-
-        sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
-          select(-entity_id) %>%
-          as.data.frame()
-        row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
-
-        # Call memoised function with correct params - returns tibble directly
-        gen_mca_clust_obj_mem(sysndd_db_phenotypes_wider_df)
+    outcome <- tryCatch(
+      llm_regenerate_from_snapshot(ct, parent_job_id = parent_job_id, force = force),
+      error = function(e) {
+        log_warn("Snapshot-driven regeneration failed for {ct}: {conditionMessage(e)}")
+        list(ready = FALSE, reason = "error", cluster_type = ct, error = conditionMessage(e))
       }
-    }, error = function(e) {
-      log_warn("Failed to fetch {ct} clusters: {e$message}")
-      NULL
-    })
+    )
 
-    if (!is.null(clusters) && nrow(clusters) > 0) {
-      # Trigger LLM batch generation
-      result <- trigger_llm_batch_generation(
-        clusters = clusters,
+    if (!isTRUE(outcome$ready)) {
+      res$status <- 409
+      return(list(
+        error = "SNAPSHOT_NOT_READY",
+        message = paste0(
+          "No public-ready analysis snapshot is available for '", ct,
+          "' clusters. Refresh the analysis snapshot (POST /api/admin/analysis/snapshots/refresh) ",
+          "before regenerating summaries."
+        ),
         cluster_type = ct,
-        parent_job_id = parent_job_id
-      )
-      results[[ct]] <- result
-    } else {
-      results[[ct]] <- list(skipped = TRUE, reason = "No clusters found")
+        reason = outcome$reason %||% "snapshot_not_ready"
+      ))
     }
+
+    results[[ct]] <- outcome$result
   }
 
   res$status <- 202
@@ -447,6 +362,7 @@ function(req, res, cluster_type = "all", force = FALSE) {
     status = "accepted",
     status_url = paste0("/api/jobs/", parent_job_id),
     cluster_types = cluster_types_to_process,
+    force = force,
     results = results
   )
 }

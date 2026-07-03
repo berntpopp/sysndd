@@ -167,22 +167,22 @@ get_or_generate_summary <- function(
       }
       summary_with_confidence$derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
 
-      # Persist the LLM judge's verdict + reasoning on the rejected row so the
-      # rejection is debuggable (#443). Rejected summaries are never served by
-      # the public endpoint (get_cached_summary requires validation_status =
-      # 'validated'), so this is internal QA metadata embedded in summary_json
-      # rather than a schema change.
-      summary_with_confidence$validation <- list(
-        verdict = result$last_validation$verdict %||% NA_character_,
-        reasoning = result$last_validation$reasoning %||% NA_character_
-      )
+      # Persist the judge verdict + reasoning on the rejected row (#443). Unify
+      # the blob keys (#490): write the SAME flat llm_judge_verdict /
+      # llm_judge_reasoning keys the batch path uses, and keep the nested
+      # `validation` block for backward compatibility.
+      verdict_value <- result$last_validation$verdict %||% NA_character_
+      reasoning_value <- result$last_validation$reasoning %||% NA_character_
+      summary_with_confidence$llm_judge_verdict <- verdict_value
+      summary_with_confidence$llm_judge_reasoning <- reasoning_value
+      summary_with_confidence$validation <- list(verdict = verdict_value, reasoning = reasoning_value)
 
       cache_id <- save_summary_to_cache(
         cluster_type = cluster_type,
         cluster_number = as.integer(cluster_number),
         cluster_hash = cluster_hash,
         model_name = model,
-        prompt_version = "1.0",
+        prompt_version = LLM_SUMMARY_PROMPT_VERSION,
         summary_json = summary_with_confidence,
         tags = result$last_result$tags,
         validation_status = "rejected"
@@ -228,7 +228,7 @@ get_or_generate_summary <- function(
     cluster_number = as.integer(cluster_number),
     cluster_hash = cluster_hash,
     model_name = model,
-    prompt_version = "1.0",
+    prompt_version = LLM_SUMMARY_PROMPT_VERSION,
     summary_json = summary_with_confidence,
     tags = tags
   )

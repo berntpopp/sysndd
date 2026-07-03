@@ -57,10 +57,22 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res,
   )
 
   if (!is.null(cached) && nrow(cached) > 0) {
-    # Filter rejected summaries (per CONTEXT.md - hide rejected from users)
+    # A current REJECTED row is a TERMINAL serving state (#490): the judge
+    # deterministically rejected this cluster's summary, so it will never
+    # validate no matter how many times it is regenerated. Return HTTP 200 with
+    # an explicit "not available + why" payload instead of a bare 404, which the
+    # frontend could not distinguish from "still generating" (so the cluster was
+    # stuck showing "being prepared" forever). We do NOT auto-promote
+    # rejected -> validated; MCP / public analysis stay validated-only.
     if (cached$validation_status[1] == "rejected") {
-      res$status <- 404L
-      return(list(message = "Summary not found for this cluster"))
+      return(list(
+        cluster_type = cached$cluster_type[1],
+        cluster_number = as.integer(cluster_number),
+        validation_status = "rejected",
+        summary_available = FALSE,
+        reason = llm_summary_rejection_reason(cached),
+        generated = FALSE
+      ))
     }
     return(format_summary_response(cached, cluster_number))
   }
@@ -153,6 +165,40 @@ extract_raw_hash <- function(cluster_hash) {
   } else {
     cluster_hash
   }
+}
+
+#' Extract the LLM-judge rejection reason from a cached summary row (#490)
+#'
+#' Reads the judge reasoning persisted in `summary_json`, tolerating both the
+#' flat `llm_judge_reasoning` key (batch + unified on-demand path) and the older
+#' nested `validation$reasoning` shape. Returns `NA_character_` when no reason is
+#' present or the JSON cannot be parsed.
+#'
+#' @param cached Single-row cache data frame (with a `summary_json` column).
+#' @return Character scalar reason, or `NA_character_`.
+#' @export
+llm_summary_rejection_reason <- function(cached) {
+  summary_json <- tryCatch(
+    if (is.character(cached$summary_json[1])) {
+      jsonlite::fromJSON(cached$summary_json[1])
+    } else {
+      cached$summary_json[[1]]
+    },
+    error = function(e) NULL
+  )
+  if (is.null(summary_json)) {
+    return(NA_character_)
+  }
+
+  reason <- summary_json$llm_judge_reasoning
+  if (is.null(reason) || length(reason) == 0 || (length(reason) == 1 && is.na(reason))) {
+    validation <- summary_json$validation
+    reason <- if (!is.null(validation)) validation$reasoning else NULL
+  }
+  if (is.null(reason) || length(reason) == 0) {
+    return(NA_character_)
+  }
+  as.character(reason[[1]])
 }
 
 #' Format Summary Response
