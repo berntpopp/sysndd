@@ -97,8 +97,17 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
   }
 
   # Per-PMID fallback (lifted verbatim): a chunk error falls back to single-PMID
-  # fetches so one bad PMID does not fail the whole chunk/job.
+  # fetches so one bad PMID does not fail the whole chunk/job. Skipped PMIDs and
+  # their error messages are accumulated so the caller can report them (and so a
+  # systemic outage — every PMID skipped — can fail the job observably instead of
+  # reporting a false "success" with unresolved == targeted).
   skipped <- character()
+  skipped_errors <- character()
+  record_skip <- function(publication_id, e) {
+    skipped <<- c(skipped, publication_id)
+    skipped_errors <<- c(skipped_errors, conditionMessage(e))
+    tibble::tibble()
+  }
   fetch_one <- function(publication_id) {
     on.exit(Sys.sleep(ncbi_delay), add = TRUE)
     tryCatch(
@@ -107,14 +116,8 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
         row$publication_id <- paste0("PMID:", sub("^PMID:", "", publication_id))
         row
       },
-      publication_fetch_error = function(e) {
-        skipped <<- c(skipped, publication_id)
-        tibble::tibble()
-      },
-      error = function(e) {
-        skipped <<- c(skipped, publication_id)
-        tibble::tibble()
-      }
+      publication_fetch_error = function(e) record_skip(publication_id, e),
+      error = function(e) record_skip(publication_id, e)
     )
   }
 
@@ -200,11 +203,40 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
   partial <- sum(source_vec %in% c("pubmed_partial", "medline_date"), na.rm = TRUE)
   unresolved <- targeted - verified - partial
 
+  skipped_unique <- unique(skipped)
+  skipped_count <- length(skipped_unique)
+
+  # Fail observably on a systemic fetch outage: if EVERY targeted PMID errored
+  # during fetch (NCBI down, worker egress broken, info_from_pmid unavailable),
+  # nothing was written and the run would otherwise report a false "success" with
+  # unresolved == targeted. Raise a classed error so the async handler marks the
+  # job failed and the operator CLI exits non-zero. A partial failure (some rows
+  # resolved, some skipped) stays a success with reduced yield — the skip detail
+  # is returned for inspection. Genuinely unverifiable PMIDs that fetched cleanly
+  # but carry no date are `unresolved`, not `skipped`, and do not fail the run.
+  if (targeted > 0L && skipped_count >= targeted) {
+    stop(structure(
+      class = c("publication_backfill_systemic_failure", "error", "condition"),
+      list(
+        message = sprintf(
+          paste0("verified publication-date backfill: all %d targeted PMIDs failed ",
+                 "to fetch (systemic outage; no rows written). First error: %s"),
+          targeted,
+          if (length(skipped_errors)) skipped_errors[[1]] else "unknown"
+        ),
+        call = sys.call(-1)
+      )
+    ))
+  }
+
   list(
     targeted = targeted,
     verified = as.integer(verified),
     partial = as.integer(partial),
     unresolved = as.integer(unresolved),
+    skipped_count = as.integer(skipped_count),
+    skipped_pmids = utils::head(skipped_unique, 50L),
+    skipped_errors = utils::head(unique(skipped_errors), 5L),
     dry_run = FALSE
   )
 }

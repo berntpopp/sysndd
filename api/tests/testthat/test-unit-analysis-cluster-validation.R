@@ -16,6 +16,24 @@ test_that("cluster_max_jaccard penalizes a split cluster", {
   expect_equal(unname(res[["A"]]), 0.5)              # max(2/4, 2/4)
 })
 
+test_that("cluster_max_jaccard returns NA (not -Inf) when a reference cluster is absent from the subsample", {
+  # Cluster B has no members in `present`, so every recovery is NA. The result
+  # must be NA_real_, never max(numeric(0)) == -Inf (which would poison the mean).
+  ref  <- list(A = c("g1", "g2"), B = c("g8", "g9"))
+  boot <- list(X = c("g1", "g2"))
+  present <- c("g1", "g2", "g3")                     # B's members not sampled
+  res <- cluster_max_jaccard(ref, boot, present)
+  expect_equal(unname(res[["A"]]), 1.0)
+  expect_true(is.na(res[["B"]]))
+  expect_false(is.infinite(res[["B"]]))
+})
+
+test_that("cluster_max_jaccard returns NA for every cluster when no bootstrap clusters exist", {
+  ref <- list(A = c("g1", "g2"), B = c("g3"))
+  res <- cluster_max_jaccard(ref, list(), c("g1", "g2", "g3"))
+  expect_true(all(is.na(res)))
+})
+
 test_that("gen_string_clust_obj clusters the shared build_string_subgraph helper", {
   # Contract: the validator's reference graph must be the SAME object production
   # clusters. Refactoring (not reconstructing) the construction guarantees that.

@@ -809,8 +809,10 @@
 # egress (already on the `proxy` network). Opens its own DB connection from
 # payload$db_config (mirroring .async_job_run_publication_refresh) and delegates to
 # the shared backfill_publication_dates_run(). A benign single-flight skip
-# (lock_held) returns successfully; a hard fetch/DB failure propagates and marks the
-# job failed (observable in job history).
+# (lock_held) returns successfully; a hard DB failure OR a systemic fetch outage
+# (every targeted PMID failed to fetch -> classed publication_backfill_systemic_failure)
+# propagates and marks the job failed (observable in job history). A partial fetch
+# failure returns success with skipped_count/skipped_pmids/skipped_errors in the summary.
 .async_job_run_publication_date_backfill <- function(job, payload, state, worker_config) {
   reporter <- .async_job_progress_reporter(job$job_id[[1]])
 

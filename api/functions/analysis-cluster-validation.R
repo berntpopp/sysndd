@@ -20,6 +20,13 @@
 # <=0.5 "dissolved"; 0.6-0.75 "pattern but membership doubtful"; >=0.75
 # "valid/stable"; >=0.85 "highly stable".
 
+# Mean over the non-NA recoveries; NA_real_ when a cluster was never testable in
+# any resample (avoids NaN from mean(<all-NA>, na.rm = TRUE)).
+jaccard_mean_non_na <- function(v) {
+  v <- v[!is.na(v)]
+  if (length(v)) mean(v) else NA_real_
+}
+
 cluster_max_jaccard <- function(reference_members, bootstrap_clusters, present_ids) {
   jac <- function(a, b) {
     a <- intersect(a, present_ids)
@@ -30,7 +37,14 @@ cluster_max_jaccard <- function(reference_members, bootstrap_clusters, present_i
   }
   vapply(reference_members, function(ref) {
     if (length(bootstrap_clusters) == 0) return(NA_real_)
-    max(vapply(bootstrap_clusters, function(bc) jac(ref, bc), numeric(1)), na.rm = TRUE)
+    vals <- vapply(bootstrap_clusters, function(bc) jac(ref, bc), numeric(1))
+    vals <- vals[!is.na(vals)]
+    # A reference cluster with no members present in this subsample yields an
+    # all-NA recovery vector; report NA_real_ (not max(numeric(0)) == -Inf, which
+    # would poison the per-cluster mean) so this resample is simply not counted
+    # for that cluster.
+    if (length(vals) == 0) return(NA_real_)
+    max(vals)
   }, numeric(1))
 }
 
@@ -84,8 +98,11 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
 
   per_cluster <- dplyr::tibble(
     cluster_id = names(ref_members),
-    jaccard_mean = vapply(per_cluster_acc, function(v) if (length(v)) mean(v, na.rm = TRUE) else NA_real_, numeric(1)),
-    jaccard_n_resamples = vapply(per_cluster_acc, length, integer(1)),
+    # Mean/count over resamples where the cluster was actually testable (had >=1
+    # reference member present in the subsample). NA recoveries are excluded so
+    # jaccard_n_resamples reflects effective coverage, not the raw resample count.
+    jaccard_mean = vapply(per_cluster_acc, jaccard_mean_non_na, numeric(1)),
+    jaccard_n_resamples = vapply(per_cluster_acc, function(v) sum(!is.na(v)), integer(1)),
     bootstrap_seed = seed
   )
   list(
@@ -182,8 +199,10 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
 
   per_cluster <- dplyr::tibble(
     cluster_id = names(ref_members),
-    jaccard_mean = vapply(per_cluster_acc, function(v) if (length(v)) mean(v, na.rm = TRUE) else NA_real_, numeric(1)),
-    jaccard_n_resamples = vapply(per_cluster_acc, length, integer(1)),
+    # Mean/count over resamples where the cluster was actually testable (had >=1
+    # reference member present in the subsample); NA recoveries are excluded.
+    jaccard_mean = vapply(per_cluster_acc, jaccard_mean_non_na, numeric(1)),
+    jaccard_n_resamples = vapply(per_cluster_acc, function(v) sum(!is.na(v)), integer(1)),
     bootstrap_seed = seed,
     silhouette_mean = per_sil
   )

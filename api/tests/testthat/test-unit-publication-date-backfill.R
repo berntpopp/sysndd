@@ -32,6 +32,35 @@ test_that("backfill selects unverified primary-approved rows and writes both col
   })
 })
 
+test_that("backfill fails observably when every targeted PMID errors (systemic outage)", {
+  # Codex review (#460): a systemic fetch outage (NCBI down / worker egress broken)
+  # must NOT complete as "success" with unresolved == targeted. When every targeted
+  # PMID errors during fetch, the run raises a classed error so the async handler
+  # marks the job failed and the CLI exits non-zero.
+  skip_if_no_test_db()
+  source(file.path(get_api_dir(), "functions", "publication-functions.R"), local = FALSE)
+  source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
+
+  old_info <- get("info_from_pmid", envir = .GlobalEnv)
+  assign("info_from_pmid", function(pmid_value, ...) stop("simulated NCBI outage"),
+         envir = .GlobalEnv)
+  withr::defer(assign("info_from_pmid", old_info, envir = .GlobalEnv))
+
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999102", source = NULL)
+    expect_error(
+      backfill_publication_dates_run(conn, dry_run = FALSE),
+      class = "publication_backfill_systemic_failure"
+    )
+    # No partial write leaked from the failed run.
+    got <- DBI::dbGetQuery(conn,
+      "SELECT publication_date_source FROM publication WHERE publication_id = 'PMID:999102'")
+    expect_true(is.na(got$publication_date_source))
+  })
+})
+
 test_that("dry_run reports targets without writing", {
   skip_if_no_test_db()
   source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)

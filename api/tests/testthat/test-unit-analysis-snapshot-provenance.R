@@ -56,6 +56,31 @@ test_that("snapshot meta surfaces lineage hashes and record counts from the mani
   expect_equal(meta$record_counts$nodes, 2L)
   expect_equal(meta$record_counts$edges, 1L)
   expect_null(meta$record_counts$network_metadata)
+
+  # No validation_json on this row -> validation_hash is NULL (Codex #457-459 P2:
+  # payload_hash excludes the partition-validation block).
+  expect_null(meta$validation_hash)
+})
+
+test_that("snapshot meta exposes validation_hash bound to the persisted validation_json", {
+  source(file.path("services", "analysis-snapshot-service.R"), local = TRUE)
+
+  validation_json <- "{\"algorithm\":\"leiden\",\"modularity\":0.42}"
+  snapshot <- analysis_snapshot_provenance_fake_snapshot(
+    row_counts_json = "{\"nodes\":2,\"edges\":1}"
+  )
+  snapshot$manifest$validation_json <- validation_json
+
+  meta <- service_analysis_snapshot_meta(snapshot)$snapshot
+
+  # validation_hash binds the served `validation` metadata (excluded from
+  # payload_hash) so clients can detect a validation-only change.
+  expect_equal(
+    as.character(meta$validation_hash),
+    digest::digest(validation_json, algo = "sha256", serialize = FALSE)
+  )
+  expect_false(identical(as.character(meta$validation_hash),
+                         as.character(meta$payload_hash)))
 })
 
 test_that("snapshot meta record_counts is null when no row counts were stored", {
