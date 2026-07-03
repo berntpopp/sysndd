@@ -286,6 +286,10 @@ services:
       ASYNC_JOB_IDLE_SLEEP_SECONDS: ${ASYNC_JOB_IDLE_SLEEP_SECONDS:-2}
       MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
       MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
+      # Interactive lane only (#486): heavy/bulk maintenance jobs run on the
+      # sibling `worker-maintenance` container's `maintenance` lane so they never
+      # head-of-line block clustering / llm_generation / snapshot->LLM jobs on
+      # this worker.
       ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
       ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
     healthcheck:
@@ -297,6 +301,104 @@ services:
     networks:
       # Backend is internal-only; worker also needs proxy egress for external
       # provider APIs such as Gemini, PubMed, and PubTator.
+      - proxy
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/core
+          target: /app/core
+        - action: sync
+          path: ./api/services
+          target: /app/services
+        - action: sync
+          path: ./api/bootstrap
+          target: /app/bootstrap
+        - action: rebuild
+          path: ./api/renv.lock
+
+  # Maintenance-lane async worker (#486). This is a deliberate mirror of `worker`
+  # and MUST stay in sync with it (same image / command / volumes / networks /
+  # env / restart / depends_on) — only ASYNC_JOB_QUEUES differs. It drains the
+  # `maintenance` lane so heavy/bulk/external jobs (publication_date_backfill,
+  # omim_update, publication_refresh, disease_ontology_mapping_refresh, backups,
+  # etc.) run in parallel with the interactive `worker` instead of blocking it.
+  # Like `worker`, it needs BOTH the internal `backend` (DB) and egress-capable
+  # `proxy` (PubMed / OMIM / Zenodo / MONDO) networks.
+  worker-maintenance:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command:
+      - bash
+      - -lc
+      - >
+          drain_file="$${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}";
+          rm -f "$$drain_file";
+          trap 'touch "$$drain_file"' TERM INT;
+          Rscript /app/start_async_worker.R &
+          child=$$!;
+          wait "$$child"
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./api/functions:/app/functions
+      - ./api/core:/app/core
+      - ./api/services:/app/services
+      - ./api/bootstrap:/app/bootstrap
+      - ./api/config:/app/config
+      - ./api/layout/gene-network-fcose-layout.mjs:/app/layout/gene-network-fcose-layout.mjs:ro
+      - ./api/layout/package.json:/app/layout/package.json:ro
+      - ./api/layout/package-lock.json:/app/layout/package-lock.json:ro
+      - ./api/data:/app/data
+      - ./api/results:/app/results
+      - ./db/migrations:/app/db/migrations:ro
+      - api_cache:/app/cache
+      - mysql_backup:/backup:rw
+      - ./api/config.yml:/app/config.yml:ro
+      - ./api/start_async_worker.R:/app/start_async_worker.R
+    environment:
+      ENVIRONMENT: production
+      PASSWORD: ${PASSWORD}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CACHE_VERSION: ${CACHE_VERSION:-3}
+      OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      NDDSCORE_ZENODO_RECORD_ID: "${NDDSCORE_ZENODO_RECORD_ID:-20258027}"
+      NDDSCORE_ZENODO_API_BASE_URL: "${NDDSCORE_ZENODO_API_BASE_URL:-https://zenodo.org/api/records}"
+      ASYNC_JOB_LEASE_SECONDS: ${ASYNC_JOB_LEASE_SECONDS:-60}
+      ASYNC_JOB_IDLE_SLEEP_SECONDS: ${ASYNC_JOB_IDLE_SLEEP_SECONDS:-2}
+      MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
+      MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
+      # Maintenance lane only. Override ASYNC_JOB_MAINTENANCE_QUEUES to widen it.
+      ASYNC_JOB_QUEUES: ${ASYNC_JOB_MAINTENANCE_QUEUES:-maintenance}
+      ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
+    healthcheck:
+      test: ["CMD-SHELL", "ps -ef | grep '[s]tart_async_worker.R' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      # Backend is internal-only; the maintenance worker also needs proxy egress
+      # for external provider APIs such as PubMed, OMIM, Zenodo, and MONDO.
       - proxy
       - backend
     develop:

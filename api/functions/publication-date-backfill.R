@@ -31,11 +31,21 @@
 #' @param dry_run When TRUE, report the target count without fetching or writing.
 #' @param progress Optional `function(step, message, current = NULL, total = NULL)`
 #'   progress reporter (job-history visibility).
-#' @return list(targeted=, verified=, partial=, unresolved=, dry_run=) and, on a
-#'   benign single-flight skip, an additional `skipped = "lock_held"`.
+#' @param manage_transaction When TRUE (default; the worker handler and operator
+#'   CLI, which both call with a fresh AUTOCOMMIT connection) each write batch owns
+#'   its own `DBI::dbWithTransaction()`. When FALSE (the test harness, which already
+#'   holds an open transaction via `with_test_db_transaction()`) the writes
+#'   participate in the caller's transaction because MySQL forbids a nested
+#'   `dbBegin`.
+#' @param write_batch_size Integer number of rows committed per write batch, so
+#'   partial progress persists across a mid-run failure/outage and a retry resumes.
+#' @return list(targeted=, verified=, partial=, unresolved=, written=, dry_run=)
+#'   and, on a benign single-flight skip, an additional `skipped = "lock_held"`.
 #' @export
 backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
-                                           progress = NULL) {
+                                           progress = NULL,
+                                           manage_transaction = TRUE,
+                                           write_batch_size = 200L) {
   report <- function(step, message, current = NULL, total = NULL) {
     if (!is.null(progress) && is.function(progress)) {
       tryCatch(progress(step, message, current = current, total = total),
@@ -173,39 +183,21 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
 
   to_update <- merged %>% dplyr::filter(changed)
 
+  # Write the verified dates in committed batches (see backfill_write_updates).
+  # Batched commits mean partial progress persists across a mid-run failure or
+  # outage, and re-runs are idempotent because the target query above already
+  # excludes rows whose publication_date_source is now valid. No SAVEPOINT probe:
+  # the previous "am I in a transaction?" detection via a bare SAVEPOINT was
+  # unreliable on a fresh AUTOCOMMIT connection and threw "SAVEPOINT ... does not
+  # exist" at write time (#489).
+  written <- 0L
   if (nrow(to_update) > 0L) {
-    report("write", sprintf("Writing %d verified publication dates...", nrow(to_update)),
-           current = nrow(to_update), total = nrow(to_update))
-    upd <- "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?"
-    apply_updates <- function() {
-      for (i in seq_len(nrow(to_update))) {
-        r <- to_update[i, ]
-        DBI::dbExecute(conn, upd, params = unname(list(
-          r$Publication_date, r$publication_date_source, r$publication_id
-        )))
-      }
-    }
-    # Batched UPDATE is transactional. Use a SAVEPOINT when the connection is
-    # already inside a transaction (the test harness wraps the call in
-    # with_test_db_transaction(); MySQL forbids nested dbBegin); otherwise own a
-    # dedicated transaction (the operator CLI / worker call with a fresh conn).
-    in_transaction <- isTRUE(tryCatch({
-      DBI::dbExecute(conn, "SAVEPOINT sysndd_backfill_pub_dates")
-      TRUE
-    }, error = function(e) FALSE))
-    if (in_transaction) {
-      # Keep the SAVEPOINT path atomic: roll back partial writes on error so a
-      # mid-batch failure never leaves the enclosing transaction partly applied.
-      tryCatch({
-        apply_updates()
-        DBI::dbExecute(conn, "RELEASE SAVEPOINT sysndd_backfill_pub_dates")
-      }, error = function(e) {
-        try(DBI::dbExecute(conn, "ROLLBACK TO SAVEPOINT sysndd_backfill_pub_dates"), silent = TRUE)
-        stop(e)
-      })
-    } else {
-      DBI::dbWithTransaction(conn, apply_updates())
-    }
+    written <- backfill_write_updates(
+      conn, to_update,
+      manage_transaction = manage_transaction,
+      write_batch_size = write_batch_size,
+      report = report
+    )
   }
 
   # Counters derive from the resolved publication_date_source over the targeted set
@@ -247,9 +239,78 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
     verified = as.integer(verified),
     partial = as.integer(partial),
     unresolved = as.integer(unresolved),
+    written = as.integer(written),
     skipped_count = as.integer(skipped_count),
     skipped_pmids = utils::head(skipped_unique, 50L),
     skipped_errors = utils::head(unique(skipped_errors), 5L),
     dry_run = FALSE
   )
+}
+
+#' Write verified publication-date updates to the DB in committed batches.
+#'
+#' Splits `to_update` into chunks of `write_batch_size` rows and applies each
+#' chunk's `UPDATE publication ...` statements. When `manage_transaction` is TRUE
+#' each batch is wrapped in its own `DBI::dbWithTransaction()`, so committed
+#' progress persists across a mid-run failure/outage and a retry safely resumes
+#' (the backfill target query already excludes rows whose `publication_date_source`
+#' is now valid, so re-application is idempotent). When FALSE the UPDATEs run
+#' directly on the caller's already-open transaction (MySQL forbids a nested
+#' `dbBegin`; the test harness wraps the run in `with_test_db_transaction()`).
+#'
+#' Deliberately issues NO `SAVEPOINT` / `RELEASE SAVEPOINT` /
+#' `ROLLBACK TO SAVEPOINT`: the previous transaction-probe via a bare SAVEPOINT was
+#' unreliable on a fresh AUTOCOMMIT connection and produced
+#' "SAVEPOINT ... does not exist" at write time (#489).
+#'
+#' @param conn A live DBI connection.
+#' @param to_update Data frame with `Publication_date`, `publication_date_source`,
+#'   and `publication_id` columns (one row per UPDATE).
+#' @param manage_transaction When TRUE own one transaction per batch; when FALSE
+#'   participate in the caller's open transaction.
+#' @param write_batch_size Integer number of rows committed per batch.
+#' @param report Optional `function(step, message, current = NULL, total = NULL)`
+#'   progress reporter (per-batch progress).
+#' @return Integer count of rows written.
+#' @export
+backfill_write_updates <- function(conn, to_update, manage_transaction = TRUE,
+                                   write_batch_size = 200L, report = NULL) {
+  total <- nrow(to_update)
+  if (total == 0L) {
+    return(0L)
+  }
+
+  reporter <- if (!is.null(report) && is.function(report)) {
+    report
+  } else {
+    function(...) NULL
+  }
+  upd <- "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?"
+  batch_size <- max(1L, as.integer(write_batch_size))
+  batches <- split(seq_len(total), ceiling(seq_len(total) / batch_size))
+
+  apply_rows <- function(row_indices) {
+    for (i in row_indices) {
+      r <- to_update[i, ]
+      DBI::dbExecute(conn, upd, params = unname(list(
+        r$Publication_date, r$publication_date_source, r$publication_id
+      )))
+    }
+  }
+
+  written <- 0L
+  for (bi in seq_along(batches)) {
+    row_indices <- batches[[bi]]
+    if (isTRUE(manage_transaction)) {
+      DBI::dbWithTransaction(conn, apply_rows(row_indices))
+    } else {
+      apply_rows(row_indices)
+    }
+    written <- written + length(row_indices)
+    reporter("write",
+             sprintf("Wrote %d/%d verified publication dates", written, total),
+             current = written, total = total)
+  }
+
+  written
 }

@@ -37,6 +37,80 @@ async_job_active_count <- function(queue_name = "default", conn = NULL) {
 }
 
 # ---------------------------------------------------------------------------
+# Queue routing + priority by job type (#486)
+#
+# One serial worker draining one shared "default" queue lets a long-running,
+# non-interruptible maintenance job (e.g. publication_date_backfill) head-of-line
+# block latency-sensitive interactive jobs (clustering / phenotype_clustering /
+# llm_generation and the snapshot -> LLM deploy chain). These helpers are the
+# single source of truth for which lane and priority a job type defaults to; the
+# `worker-maintenance` container drains the "maintenance" lane so heavy jobs run
+# in parallel with the interactive worker instead of blocking it.
+# ---------------------------------------------------------------------------
+
+# Heavy / bulk / external maintenance job types, routed to the "maintenance" lane.
+ASYNC_MAINTENANCE_JOB_TYPES <- c(
+  "publication_date_backfill",
+  "publication_refresh",
+  "pubtator_update",
+  "pubtator_enrichment_refresh",
+  "pubtatornidd_nightly",
+  "omim_update",
+  "hgnc_update",
+  "comparisons_update",
+  "ontology_update",
+  "force_apply_ontology",
+  "disease_ontology_mapping_refresh",
+  "nddscore_import",
+  "backup_create",
+  "backup_restore"
+)
+
+# Latency-sensitive / user-visible interactive job types. They stay on the
+# "default" lane but get the LOWEST priority number so a worker claims them ahead
+# of any maintenance job that happens to share the queue.
+ASYNC_INTERACTIVE_JOB_TYPES <- c(
+  "clustering",
+  "phenotype_clustering",
+  "llm_generation",
+  "analysis_snapshot_refresh",
+  "network_layout_prewarm"
+)
+
+# Priority tiers (lower number = claimed first; the claim query orders
+# `priority ASC`). interactive < maintenance < everything-else default.
+ASYNC_PRIORITY_INTERACTIVE <- 10L
+ASYNC_PRIORITY_MAINTENANCE <- 50L
+ASYNC_PRIORITY_DEFAULT <- 100L
+
+#' Resolve the durable queue lane for a job type.
+#'
+#' @param job_type Character durable job type.
+#' @return "maintenance" for heavy/bulk/external maintenance job types, else
+#'   "default".
+#' @export
+async_job_queue_for_type <- function(job_type) {
+  jt <- if (length(job_type) >= 1L) as.character(job_type)[[1]] else ""
+  if (jt %in% ASYNC_MAINTENANCE_JOB_TYPES) "maintenance" else "default"
+}
+
+#' Resolve the default claim priority for a job type.
+#'
+#' @param job_type Character durable job type.
+#' @return Integer priority: interactive (10) < maintenance (50) < default (100).
+#' @export
+async_job_priority_for_type <- function(job_type) {
+  jt <- if (length(job_type) >= 1L) as.character(job_type)[[1]] else ""
+  if (jt %in% ASYNC_INTERACTIVE_JOB_TYPES) {
+    ASYNC_PRIORITY_INTERACTIVE
+  } else if (jt %in% ASYNC_MAINTENANCE_JOB_TYPES) {
+    ASYNC_PRIORITY_MAINTENANCE
+  } else {
+    ASYNC_PRIORITY_DEFAULT
+  }
+}
+
+# ---------------------------------------------------------------------------
 
 .async_job_service_scalar <- function(value, default = NULL) {
   if (is.null(value) || length(value) == 0) {
@@ -120,8 +194,12 @@ async_job_service_request_hash <- function(job_type, request_payload_json) {
 #' @param job_type Character durable job type.
 #' @param request_payload Named list or JSON payload string.
 #' @param submitted_by Optional user id.
-#' @param queue_name Character queue name.
-#' @param priority Integer queue priority.
+#' @param queue_name Character queue name. `NULL` (default) routes by job type via
+#'   `async_job_queue_for_type()` (maintenance lane for heavy jobs, else default);
+#'   an explicit value is honored as-is.
+#' @param priority Integer queue priority. `NULL` (default) resolves by job type
+#'   via `async_job_priority_for_type()` (interactive < maintenance < default); an
+#'   explicit value is honored as-is.
 #' @param max_attempts Integer maximum attempts.
 #' @param scheduled_at Optional schedule time.
 #' @param job_id Optional explicit job id for tests.
@@ -133,8 +211,8 @@ async_job_service_submit <- function(
   job_type,
   request_payload,
   submitted_by = NULL,
-  queue_name = "default",
-  priority = 100L,
+  queue_name = NULL,
+  priority = NULL,
   max_attempts = 1L,
   scheduled_at = Sys.time(),
   job_id = uuid::UUIDgenerate(),
@@ -142,6 +220,14 @@ async_job_service_submit <- function(
 ) {
   job_type <- .async_job_service_non_empty_string(job_type, "job_type")
   job_id <- .async_job_service_non_empty_string(job_id, "job_id")
+  # Default the lane + priority from the job type so heavy maintenance jobs never
+  # head-of-line block interactive jobs (#486). Explicit overrides are honored.
+  if (is.null(queue_name)) {
+    queue_name <- async_job_queue_for_type(job_type)
+  }
+  if (is.null(priority)) {
+    priority <- async_job_priority_for_type(job_type)
+  }
   queue_name <- .async_job_service_non_empty_string(queue_name, "queue_name")
   payload_json <- async_job_service_payload_json(request_payload)
   request_hash <- async_job_service_request_hash(job_type, payload_json)

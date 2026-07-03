@@ -124,10 +124,12 @@ service_disease_ontology_mapping_submit_refresh <- function(
     sched <- now + stagger_seconds
   }
 
+  # queue_name intentionally omitted so async_job_service_submit() routes this
+  # heavy external MONDO refresh to the "maintenance" lane by job type (#486); it
+  # is a maintenance-classified job and must not run on the interactive lane.
   outcome <- submit_fn(
     job_type        = "disease_ontology_mapping_refresh",
     request_payload = list(force = force),
-    queue_name      = "default",
     priority        = 50L,
     max_attempts    = DISEASE_ONTOLOGY_MAPPING_REFRESH_MAX_ATTEMPTS,
     scheduled_at    = sched,

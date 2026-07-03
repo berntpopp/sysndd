@@ -141,3 +141,19 @@ services:
         # Rebuild on Vite config changes
         - action: rebuild
           path: ./app/vite.config.ts
+
+  # DEV: a single combined async worker drains BOTH lanes (#486) so local dev
+  # does not need a second worker container. Production (docker-compose.yml only,
+  # no overrides) runs the dedicated `worker` (default) + `worker-maintenance`
+  # (maintenance) pair instead.
+  worker:
+    environment:
+      ASYNC_JOB_QUEUES: default,maintenance
+
+  # DEV: keep the dedicated maintenance worker OUT of the local stack — the
+  # combined `worker` above already drains the maintenance lane. Assigning a
+  # profile that dev never activates excludes it from `docker compose up`; it
+  # still starts in production, where this override file is not loaded.
+  worker-maintenance:
+    profiles:
+      - prod-maintenance-worker

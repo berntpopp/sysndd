@@ -178,3 +178,90 @@ test_that("async_job_service_cancel returns the refreshed durable job row", {
   expect_equal(cancelled$status[[1]], "cancel_requested")
   expect_equal(cancelled$cancelled_by[[1]], 9L)
 })
+
+# --- #486: queue routing + priority by job type ----------------------------
+
+test_that("async_job_queue_for_type routes heavy maintenance jobs to the maintenance lane", {
+  runtime <- load_async_job_service_runtime()
+
+  expect_equal(runtime$async_job_queue_for_type("publication_date_backfill"), "maintenance")
+  expect_equal(runtime$async_job_queue_for_type("omim_update"), "maintenance")
+  expect_equal(runtime$async_job_queue_for_type("disease_ontology_mapping_refresh"), "maintenance")
+  expect_equal(runtime$async_job_queue_for_type("nddscore_import"), "maintenance")
+
+  expect_equal(runtime$async_job_queue_for_type("llm_generation"), "default")
+  expect_equal(runtime$async_job_queue_for_type("clustering"), "default")
+  expect_equal(runtime$async_job_queue_for_type("phenotype_clustering"), "default")
+  # Unknown / unclassified job types default to the interactive lane.
+  expect_equal(runtime$async_job_queue_for_type("some_new_job"), "default")
+})
+
+test_that("interactive jobs outrank maintenance jobs in claim priority", {
+  runtime <- load_async_job_service_runtime()
+
+  interactive <- runtime$async_job_priority_for_type("llm_generation")
+  maintenance <- runtime$async_job_priority_for_type("publication_date_backfill")
+  other <- runtime$async_job_priority_for_type("some_new_job")
+
+  # Lower number = claimed first (claim query orders priority ASC).
+  expect_lt(interactive, maintenance)
+  expect_lt(maintenance, other)
+  expect_equal(runtime$async_job_priority_for_type("clustering"), interactive)
+  expect_equal(runtime$async_job_priority_for_type("omim_update"), maintenance)
+})
+
+test_that("async_job_service_submit defaults queue + priority from the job type", {
+  runtime <- load_async_job_service_runtime()
+  created_job <- NULL
+
+  runtime$async_job_repository_create <- function(job, conn = NULL) {
+    created_job <<- job
+    job$job_id
+  }
+  runtime$async_job_repository_get <- function(job_id, include_result = FALSE, conn = NULL) {
+    tibble::tibble(job_id = job_id, queue_name = created_job$queue_name,
+                   priority = created_job$priority)
+  }
+
+  # publication_date_backfill (maintenance) with no explicit queue/priority.
+  runtime$async_job_service_submit(
+    job_type = "publication_date_backfill",
+    request_payload = list(dry_run = FALSE),
+    job_id = "job-maint"
+  )
+  expect_equal(created_job$queue_name, "maintenance")
+  expect_equal(created_job$priority, 50L)
+
+  # llm_generation (interactive) with no explicit queue/priority.
+  runtime$async_job_service_submit(
+    job_type = "llm_generation",
+    request_payload = list(cluster = 1L),
+    job_id = "job-llm"
+  )
+  expect_equal(created_job$queue_name, "default")
+  expect_equal(created_job$priority, 10L)
+})
+
+test_that("async_job_service_submit still honors explicit queue + priority overrides", {
+  runtime <- load_async_job_service_runtime()
+  created_job <- NULL
+
+  runtime$async_job_repository_create <- function(job, conn = NULL) {
+    created_job <<- job
+    job$job_id
+  }
+  runtime$async_job_repository_get <- function(job_id, include_result = FALSE, conn = NULL) {
+    tibble::tibble(job_id = job_id, queue_name = created_job$queue_name,
+                   priority = created_job$priority)
+  }
+
+  runtime$async_job_service_submit(
+    job_type = "publication_date_backfill",
+    request_payload = list(dry_run = FALSE),
+    queue_name = "analysis",
+    priority = 5L,
+    job_id = "job-explicit"
+  )
+  expect_equal(created_job$queue_name, "analysis")
+  expect_equal(created_job$priority, 5L)
+})

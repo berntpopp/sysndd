@@ -61,9 +61,11 @@ function(req, res, limit = NULL, dry_run = FALSE) {
         port = dw$port
       )
     ),
-    queue_name = "default",
-    priority = 50L,
-    max_attempts = 1L
+    # queue_name / priority default from the job type (#486): the backfill routes
+    # to the "maintenance" lane so it no longer head-of-line blocks interactive
+    # jobs. max_attempts = 2 is safe now that writes are committed in idempotent
+    # batches (#489), so a retry resumes instead of re-doing persisted rows.
+    max_attempts = 2L
   )
 
   job_id <- tryCatch(as.character(outcome$job$job_id[[1]]), error = function(e) NA_character_)

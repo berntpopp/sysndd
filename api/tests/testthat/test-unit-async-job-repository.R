@@ -355,6 +355,112 @@ test_that("async_job_repository_claim_next claims one eligible job and marks it 
   })
 })
 
+test_that("a default-only claim never returns a maintenance-lane backfill (#486)", {
+  skip_if_no_test_db()
+  ensure_async_job_repository_loaded()
+  ensure_async_job_schema()
+
+  with_async_job_test_connection({
+    conn <- getOption(".test_db_con")
+
+    # Mirrors the routing async_job_service_submit() now applies: heavy
+    # publication_date_backfill -> "maintenance" lane; interactive llm_generation
+    # -> "default" lane.
+    seed_async_job(
+      conn,
+      job_id = "job-lane-llm",
+      job_type = "llm_generation",
+      queue_name = "default",
+      priority = 10L,
+      request_hash = "lane-hash-llm"
+    )
+    seed_async_job(
+      conn,
+      job_id = "job-lane-backfill",
+      job_type = "publication_date_backfill",
+      queue_name = "maintenance",
+      priority = 50L,
+      request_hash = "lane-hash-backfill"
+    )
+
+    # The interactive worker (default lane) claims llm_generation ...
+    default_claim <- async_job_repository_claim_next(
+      worker_id = "worker-default",
+      worker_hostname = "host-default",
+      worker_pid = 7001L,
+      lease_seconds = 60L,
+      queues = "default",
+      conn = conn
+    )
+    expect_equal(default_claim$job_id[[1]], "job-lane-llm")
+
+    # ... and never claims the maintenance backfill, even after the default lane
+    # drains.
+    empty_claim <- async_job_repository_claim_next(
+      worker_id = "worker-default",
+      worker_hostname = "host-default",
+      worker_pid = 7001L,
+      lease_seconds = 60L,
+      queues = "default",
+      conn = conn
+    )
+    expect_equal(nrow(empty_claim), 0L)
+
+    # The maintenance worker claims the backfill from its own lane.
+    maintenance_claim <- async_job_repository_claim_next(
+      worker_id = "worker-maintenance",
+      worker_hostname = "host-maintenance",
+      worker_pid = 7002L,
+      lease_seconds = 60L,
+      queues = "maintenance",
+      conn = conn
+    )
+    expect_equal(maintenance_claim$job_id[[1]], "job-lane-backfill")
+  })
+})
+
+test_that("interactive priority beats maintenance priority within a shared lane (#486)", {
+  skip_if_no_test_db()
+  ensure_async_job_repository_loaded()
+  ensure_async_job_schema()
+
+  with_async_job_test_connection({
+    conn <- getOption(".test_db_con")
+
+    # Both on the same lane: the lower interactive priority number must win even
+    # when the backfill was submitted first (belt-and-suspenders for the inverted
+    # priority the routing fix corrects).
+    seed_async_job(
+      conn,
+      job_id = "job-prio-backfill",
+      job_type = "publication_date_backfill",
+      queue_name = "default",
+      priority = 50L,
+      request_hash = "prio-hash-backfill",
+      scheduled_at = as.POSIXct("2026-07-03 10:00:00", tz = "UTC")
+    )
+    seed_async_job(
+      conn,
+      job_id = "job-prio-llm",
+      job_type = "llm_generation",
+      queue_name = "default",
+      priority = 10L,
+      request_hash = "prio-hash-llm",
+      scheduled_at = as.POSIXct("2026-07-03 10:05:00", tz = "UTC")
+    )
+
+    claim <- async_job_repository_claim_next(
+      worker_id = "worker-prio",
+      worker_hostname = "host-prio",
+      worker_pid = 7003L,
+      lease_seconds = 60L,
+      queues = "default",
+      conn = conn
+    )
+    expect_equal(claim$job_id[[1]], "job-prio-llm")
+  })
+})
+
 test_that("async job repository updates progress, appends events, heartbeats, and completes", {
   skip_if_no_test_db()
   ensure_async_job_repository_loaded()
