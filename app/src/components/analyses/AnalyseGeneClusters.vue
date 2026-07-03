@@ -355,6 +355,11 @@
         </div>
       </Pane>
     </Splitpanes>
+    <ClusterValidationCard
+      analysis-type="functional_clusters"
+      :snapshot-meta="snapshotMeta"
+      :clusters="clusterRows"
+    />
   </AnalysisPanel>
 </template>
 
@@ -369,6 +374,7 @@ import {
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
+import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -415,6 +421,7 @@ export default {
   name: 'AnalyseGeneClusters',
   components: {
     AnalysisPanel,
+    ClusterValidationCard,
     GenericTable,
     InlineHelpBadge,
     TableLoadingState,
@@ -464,6 +471,8 @@ export default {
        * Data from the API
        * ------------------------------------ */
       itemsCluster: [],
+      snapshotMeta: null,
+      clusterRows: [],
       valueCategories: [], // for showing text, link, etc. by category
       selectedCluster: {
         term_enrichment: [],
@@ -760,6 +769,8 @@ export default {
           page_size: '50',
         });
         this.itemsCluster = data.clusters;
+        this.clusterRows = data.clusters || [];
+        this.snapshotMeta = data.meta?.snapshot || null;
         this.valueCategories = data.categories;
 
         // Default to showing all clusters

@@ -228,6 +228,11 @@
         </BCard>
       </BCol>
     </BRow>
+    <ClusterValidationCard
+      analysis-type="phenotype_clusters"
+      :snapshot-meta="snapshotMeta"
+      :clusters="clusterRows"
+    />
   </AnalysisPanel>
 </template>
 
@@ -242,6 +247,7 @@ import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import {
   getPhenotypeClustering,
   getPhenotypeClusterSummary,
@@ -261,6 +267,7 @@ export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
     AnalysisPanel,
+    ClusterValidationCard,
     GenericTable,
     InlineHelpBadge,
     TableLoadingState,
@@ -304,6 +311,8 @@ export default {
   data() {
     return {
       itemsCluster: [],
+      snapshotMeta: null,
+      clusterRows: [],
       selectedCluster: {
         quali_inp_var: [],
         quali_sup_var: [],
@@ -450,6 +459,8 @@ export default {
       this.isPreparing = false;
       try {
         const data = await getPhenotypeClustering();
+        this.clusterRows = data.clusters || [];
+        this.snapshotMeta = data.meta?.snapshot || null;
         // De-dot the MCA stat keys (p.value -> p_value, v.test -> v_test) so the
         // table columns render; BTable cannot resolve a dotted field key.
         this.itemsCluster = (data.clusters || []).map((cluster) => ({
