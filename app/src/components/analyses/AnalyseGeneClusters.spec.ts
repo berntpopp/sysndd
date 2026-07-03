@@ -210,6 +210,39 @@ describe('AnalyseGeneClusters', () => {
     expect(wrapper.find('button[aria-label="View cluster 1 summary"]').exists()).toBe(false);
   });
 
+  it('renders a distinct "could not be validated" card when a functional summary is judge-rejected (#490)', async () => {
+    const wrapper = mountComponent();
+    wrapper.vm.loading = false;
+    wrapper.vm.itemsCluster = [
+      {
+        cluster: 1,
+        cluster_size: 10,
+        hash_filter: 'equals(hash,abc)',
+        term_enrichment: [],
+        identifiers: [],
+      },
+    ];
+    // Terminal rejected payload (HTTP 200), not a 404 — mirrors the phenotype view.
+    wrapper.vm.currentSummary = {
+      cluster_hash: 'equals(hash,abc)',
+      cluster_number: 1,
+      summary_json: {},
+      summary_available: false,
+      validation_status: 'rejected',
+      reason: 'over-broad, low specificity',
+    };
+    wrapper.vm.summaryLoading = false;
+    wrapper.vm.showAllClustersInTable = false;
+    await wrapper.vm.$nextTick();
+
+    const card = wrapper.find('[data-testid="ai-summary-unavailable"]');
+    expect(card.exists()).toBe(true);
+    expect(card.text()).toContain('could not be validated');
+    expect(card.text()).toContain('over-broad, low specificity');
+    // The normal AI summary card (LlmSummaryCard stub renders <article>) is hidden.
+    expect(wrapper.find('article').exists()).toBe(false);
+  });
+
   it('treats cluster 0 as a valid available cluster', async () => {
     const wrapper = mountComponent();
     wrapper.vm.loading = false;
