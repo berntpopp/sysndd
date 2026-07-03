@@ -414,4 +414,27 @@ function barWidth(value: number | null): string {
 .cluster-validation-card__hash {
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
+
+/* Narrow viewports: stack each cluster row (label above a full-width bar + metrics)
+   so the band chip and Jaccard value never clip or force horizontal scroll. */
+@media (max-width: 560px) {
+  .cluster-validation-card__clusters-head {
+    display: none;
+  }
+
+  .cluster-validation-card__row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .cluster-validation-card__row:last-child {
+    border-bottom: 0;
+  }
+
+  .cluster-validation-card__row-metrics {
+    flex-wrap: wrap;
+  }
+}
 </style>
