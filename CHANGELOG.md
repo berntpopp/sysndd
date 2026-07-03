@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.3] — 2026-07-03
+
+Post-deploy fix release completing the `publication_date_backfill` work from #494. Closes #499. Closes #500.
+
+### Fixed
+
+- **NCBI API key now reaches the containers** (#499, follow-on to #494/#496): `docker-compose.yml` uses explicit `environment:` maps, so `NCBI_API_KEY`/`NCBI_EUTILS_EMAIL` in `.env` were never visible inside `api`, `worker`, or `worker-maintenance` — the backfill still ran anonymous (3 req/s). The two vars are now mapped into all three egress services (mirroring `GEMINI_API_KEY`). `pubtatornidd-cron` is intentionally excluded (backend-only network, DB-only enqueue, no egress). Set `NCBI_API_KEY` in the deployed `.env` and restart the workers.
+- **GeneReviews publication dates can finally be verified** (#500, real cause behind #494): the shared PubMed EFetch parser matched `//PubmedArticle` only, so GeneReviews chapters — returned by EFetch as `<PubmedBookArticle>/<BookDocument>` and a large, permanent share of SysNDD references (~393 of ~553 unverified) — yielded 0 rows and were permanently "not retrievable". Once the non-book targets were verified, every subsequent run targeted only the unresolvable book records and the systemic-outage guard failed the whole job with 0 writes, on every run. The parser (now in `api/functions/pubmed-xml-parser.R`) parses book records with a `ContributionDate` → `PubMedPubDate[@PubStatus='pubmed']` → `Book/PubDate` date ladder (reusing the `pubmed`/`pubmed_partial` vocabulary), and the backfill now distinguishes `unresolved` (parse-empty data condition) from `failed` (transport/infra), firing the systemic-outage guard only on wholesale transport failure. Worker-executed code changed — restart `worker`/`worker-maintenance` after deploy.
+
 ## [0.27.2] — 2026-07-03
 
 Post-deploy fix release resolving two production issues found while verifying v0.27.1. Closes #494, #495.
