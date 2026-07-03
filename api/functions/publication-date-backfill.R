@@ -1,0 +1,210 @@
+## -------------------------------------------------------------------##
+# api/functions/publication-date-backfill.R
+#
+# Shared verified-date backfill logic (#460). Re-fetches PubMed metadata for
+# publications linked to a primary-approved review whose
+# publication.publication_date_source is NULL/invalid, and corrects both
+# publication.Publication_date and publication.publication_date_source using the
+# fixed date parser (resolve_pubmed_date / info_from_pmid).
+#
+# One source of truth shared by:
+#   - the operator CLI wrapper db/updates/backfill_publication_dates.R, and
+#   - the durable `publication_date_backfill` async job (worker-executed).
+#
+# Framed generically: makes literature publication dates temporally/provenance
+# queryable through the API/MCP once their source is verified. Unresolvable PMIDs
+# stay NULL/`unknown` -> `unverified`. PubMed EUtils is the single source; the job
+# carries its own chunking + NCBI rate-limit (it does not route through the public
+# per-request external-time budget).
+## -------------------------------------------------------------------##
+
+#' Run the verified publication-date backfill against a connection.
+#'
+#' Single-flights via `GET_LOCK('sysndd_backfill_publication_dates', 0)`. Selects
+#' primary-approved publications with a NULL/invalid `publication_date_source`,
+#' chunk-fetches PubMed metadata (<=200/req, NCBI rate-limited, per-PMID fallback so
+#' one bad PMID does not fail the chunk), and writes both `Publication_date` and
+#' `publication_date_source` in a batched transaction.
+#'
+#' @param conn A live DBI connection (or pool-checked-out connection).
+#' @param limit Optional integer cap on the number of targeted publications.
+#' @param dry_run When TRUE, report the target count without fetching or writing.
+#' @param progress Optional `function(step, message, current = NULL, total = NULL)`
+#'   progress reporter (job-history visibility).
+#' @return list(targeted=, verified=, partial=, unresolved=, dry_run=) and, on a
+#'   benign single-flight skip, an additional `skipped = "lock_held"`.
+#' @export
+backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
+                                           progress = NULL) {
+  report <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress) && is.function(progress)) {
+      tryCatch(progress(step, message, current = current, total = total),
+               error = function(e) NULL)
+    }
+  }
+
+  chunk_size <- 200L
+  ncbi_delay <- 0.34
+
+  # Single-flight lock (mirrors db/updates/backfill_publication_dates.R).
+  lock_row <- DBI::dbGetQuery(
+    conn, "SELECT GET_LOCK('sysndd_backfill_publication_dates', 0) AS acquired"
+  )
+  if (!identical(as.integer(lock_row$acquired[[1]]), 1L)) {
+    # Benign skip: another backfill holds the lock. Completes successfully.
+    return(list(
+      targeted = 0L, verified = 0L, partial = 0L, unresolved = 0L,
+      dry_run = isTRUE(dry_run), skipped = "lock_held"
+    ))
+  }
+  on.exit({
+    tryCatch(
+      DBI::dbGetQuery(conn, "SELECT RELEASE_LOCK('sysndd_backfill_publication_dates')"),
+      error = function(e) NULL
+    )
+  }, add = TRUE)
+
+  # Target query (lifted verbatim from the standalone script): DISTINCT
+  # publication_id of primary-approved publications with NULL/invalid source.
+  report("select", "Selecting unverified primary-approved publications...")
+  linked <- DBI::dbGetQuery(conn, "
+    SELECT DISTINCT p.publication_id, p.Publication_date AS old_date,
+           p.publication_date_source AS old_source
+    FROM publication p
+    JOIN ndd_review_publication_join rpj
+      ON rpj.publication_id = p.publication_id AND rpj.is_reviewed = 1
+    JOIN ndd_entity_review er
+      ON er.review_id = rpj.review_id AND er.is_primary = 1 AND er.review_approved = 1
+    WHERE p.publication_date_source IS NULL
+       OR p.publication_date_source NOT IN ('pubmed', 'pubmed_partial', 'medline_date', 'unknown')")
+
+  if (!is.null(limit) && !is.na(suppressWarnings(as.integer(limit)))) {
+    linked <- utils::head(linked, as.integer(limit))
+  }
+  targeted <- nrow(linked)
+
+  if (isTRUE(dry_run)) {
+    return(list(
+      targeted = targeted, verified = 0L, partial = 0L, unresolved = 0L,
+      dry_run = TRUE
+    ))
+  }
+
+  if (targeted == 0L) {
+    return(list(
+      targeted = 0L, verified = 0L, partial = 0L, unresolved = 0L, dry_run = FALSE
+    ))
+  }
+
+  # Per-PMID fallback (lifted verbatim): a chunk error falls back to single-PMID
+  # fetches so one bad PMID does not fail the whole chunk/job.
+  skipped <- character()
+  fetch_one <- function(publication_id) {
+    on.exit(Sys.sleep(ncbi_delay), add = TRUE)
+    tryCatch(
+      {
+        row <- info_from_pmid(publication_id)
+        row$publication_id <- paste0("PMID:", sub("^PMID:", "", publication_id))
+        row
+      },
+      publication_fetch_error = function(e) {
+        skipped <<- c(skipped, publication_id)
+        tibble::tibble()
+      },
+      error = function(e) {
+        skipped <<- c(skipped, publication_id)
+        tibble::tibble()
+      }
+    )
+  }
+
+  fetch_chunk <- function(publication_ids) {
+    tryCatch(
+      {
+        rows <- info_from_pmid(publication_ids)
+        rows$publication_id <- paste0("PMID:", sub("^PMID:", "", publication_ids))
+        Sys.sleep(ncbi_delay)
+        rows
+      },
+      publication_fetch_error = function(e) {
+        purrr::map_dfr(publication_ids, fetch_one)
+      },
+      error = function(e) {
+        purrr::map_dfr(publication_ids, fetch_one)
+      }
+    )
+  }
+
+  chunks <- split(
+    linked$publication_id,
+    ceiling(seq_along(linked$publication_id) / chunk_size)
+  )
+  total_chunks <- length(chunks)
+  fetched <- purrr::map_dfr(seq_along(chunks), function(i) {
+    report("fetch", sprintf("Fetching chunk %d/%d", i, total_chunks),
+           current = i, total = total_chunks)
+    fetch_chunk(chunks[[i]])
+  })
+
+  merged <- linked %>%
+    dplyr::left_join(
+      fetched %>% dplyr::select(publication_id, Publication_date, publication_date_source),
+      by = "publication_id"
+    ) %>%
+    dplyr::filter(!is.na(Publication_date) | !is.na(publication_date_source)) %>%
+    dplyr::mutate(changed = is.na(old_date) | as.character(old_date) != Publication_date |
+                    is.na(old_source) | old_source != publication_date_source)
+
+  to_update <- merged %>% dplyr::filter(changed)
+
+  if (nrow(to_update) > 0L) {
+    report("write", sprintf("Writing %d verified publication dates...", nrow(to_update)),
+           current = nrow(to_update), total = nrow(to_update))
+    upd <- "UPDATE publication SET Publication_date = ?, publication_date_source = ? WHERE publication_id = ?"
+    apply_updates <- function() {
+      for (i in seq_len(nrow(to_update))) {
+        r <- to_update[i, ]
+        DBI::dbExecute(conn, upd, params = unname(list(
+          r$Publication_date, r$publication_date_source, r$publication_id
+        )))
+      }
+    }
+    # Batched UPDATE is transactional. Use a SAVEPOINT when the connection is
+    # already inside a transaction (the test harness wraps the call in
+    # with_test_db_transaction(); MySQL forbids nested dbBegin); otherwise own a
+    # dedicated transaction (the operator CLI / worker call with a fresh conn).
+    in_transaction <- isTRUE(tryCatch({
+      DBI::dbExecute(conn, "SAVEPOINT sysndd_backfill_pub_dates")
+      TRUE
+    }, error = function(e) FALSE))
+    if (in_transaction) {
+      # Keep the SAVEPOINT path atomic: roll back partial writes on error so a
+      # mid-batch failure never leaves the enclosing transaction partly applied.
+      tryCatch({
+        apply_updates()
+        DBI::dbExecute(conn, "RELEASE SAVEPOINT sysndd_backfill_pub_dates")
+      }, error = function(e) {
+        try(DBI::dbExecute(conn, "ROLLBACK TO SAVEPOINT sysndd_backfill_pub_dates"), silent = TRUE)
+        stop(e)
+      })
+    } else {
+      DBI::dbWithTransaction(conn, apply_updates())
+    }
+  }
+
+  # Counters derive from the resolved publication_date_source over the targeted set
+  # (pubmed -> verified; pubmed_partial/medline_date -> partial; NA/unknown/skipped
+  # -> unresolved). verified + partial + unresolved == targeted.
+  source_vec <- merged$publication_date_source
+  verified <- sum(source_vec == "pubmed", na.rm = TRUE)
+  partial <- sum(source_vec %in% c("pubmed_partial", "medline_date"), na.rm = TRUE)
+  unresolved <- targeted - verified - partial
+
+  list(
+    targeted = targeted,
+    verified = as.integer(verified),
+    partial = as.integer(partial),
+    unresolved = as.integer(unresolved),
+    dry_run = FALSE
+  )
+}
