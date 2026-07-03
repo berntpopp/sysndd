@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.2] — 2026-07-03
+
+Post-deploy fix release resolving two production issues found while verifying v0.27.1. Closes #494, #495.
+
+### Fixed
+
+- **`publication_date_backfill` no longer 429s itself into a whole-job "systemic outage"** (#494, follow-on to #489): the PubMed EUtils helpers (`pubmed_fetch_xml`/`pubmed_esearch_count`) now route their query params through `pubmed_eutils_query()`, which attaches an NCBI `api_key` (plus optional `email`/`tool`) from `NCBI_API_KEY`/`NCBI_EUTILS_EMAIL` when set — raising the per-IP EUtils cap from the anonymous 3 req/s to 10 req/s — and the backfill self-throttles at a key-aware `pubmed_min_request_interval()`. Without a key the previous 200-id EFetch batch 429'd, the per-PMID fallback hammered a throttled endpoint (shared with the pubtator cron on the same IP), every PMID errored, and the systemic-outage guard failed the run with nothing written. Set `NCBI_API_KEY` in the worker `.env` and restart `worker-maintenance`.
+- **The largest phenotype cluster's AI summary validates again** (#495, follow-on to #490): the phenotype LLM-judge grounded against only the top-15 phenotypes by `|v.test|`; for the ~1000-entity "pure/isolated intellectual disability + seizures" cluster the top-15 are dominated by strong depletions (heart, genitourinary, skeletal — all *absent*), so genuinely enriched, cluster-defining phenotypes (Seizures +8.2, ID-profound +8.2, Behavioral +7.7, Microcephaly +4.1) fell out of the judge's view and it hard-rejected the generator's correctly-grounded mentions of them as "fabricated". `build_phenotype_judge_prompt()` now lists ENRICHED and DEPLETED phenotypes separately (both `|v.test| > 2`, mirroring the generator) so an enriched term is never crowded out. Verified with a live Gemini A/B on the real cluster (old top-15 judge → reject, new judge → accept) and corroborated by independent Claude and Codex judging of the full data. Judge-only change — `LLM_SUMMARY_PROMPT_VERSION` intentionally unchanged; recover a cached terminal-`rejected` cluster with `POST /api/admin/analysis/snapshots/refresh?analysis_type=phenotype_clusters&force=true` after restarting the worker.
+
 ## [0.27.1] — 2026-07-03
 
 Post-deploy fix release resolving the batch of issues the deployment agent filed against the v0.27.0 analysis-snapshot / clustering / LLM-summary work. Closes #483, #484, #485, #486, #488, #489, #490.
