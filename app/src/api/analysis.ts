@@ -80,6 +80,10 @@ export interface FunctionalCluster {
   hash_filter: string;
   identifiers?: unknown;
   term_enrichment?: unknown;
+  // Per-cluster stability joined in by the snapshot builder (scalar-or-array).
+  cluster_size?: number | number[];
+  jaccard_mean?: number | number[];
+  jaccard_n_resamples?: number | number[];
   [key: string]: unknown;
 }
 
@@ -91,6 +95,40 @@ export interface PaginationMeta {
   has_more: boolean;
 }
 
+/**
+ * Partition-level cluster-validation metrics persisted on the snapshot manifest
+ * (#457–459). The functional (Leiden) and phenotype (MCA/HCPC) presets populate
+ * different subsets; all fields are optional. Values arrive as Plumber
+ * scalar-arrays, so read them through the unwrap helpers in
+ * `components/analyses/clusterValidation.ts`.
+ */
+export interface ClusterValidation {
+  validation_schema_version?: string | string[];
+  algorithm?: string | string[];
+  // functional (leiden)
+  weighted?: boolean | boolean[];
+  modularity?: number | number[];
+  modularity_scope?: string | string[];
+  resolution_parameter?: number | number[];
+  n_iterations?: number | number[];
+  n_clusters?: number | number[];
+  n_dropped_below_min_size?: number | number[];
+  // phenotype (mca_hcpc)
+  k?: number | number[];
+  k_selection_metric?: string | string[];
+  mean_silhouette?: number | number[];
+  silhouette_status?: string | string[];
+  n_entities_assigned?: number | number[];
+  n_entities_dropped?: number | number[];
+  // shared
+  partition_scope?: string | string[];
+  resampling_scheme?: string | string[];
+  subsample_fraction?: number | number[];
+  n_resamples?: number | number[];
+  n_resamples_effective?: number | number[];
+  [key: string]: unknown;
+}
+
 export interface AnalysisSnapshotMeta {
   snapshot_id?: number;
   analysis_type?: string;
@@ -100,6 +138,11 @@ export interface AnalysisSnapshotMeta {
   generated_at?: string;
   stale_after?: string;
   source_data_version?: string;
+  // Cluster-validation surface (#457–459). `validation` is an empty array/object
+  // for snapshots built before validation existed; the card hides itself then.
+  validation?: ClusterValidation | unknown[];
+  validation_hash?: string | string[];
+  db_release?: { version?: string | string[]; commit?: string | string[] };
 }
 
 export interface ClusteringMeta {
@@ -125,6 +168,11 @@ export interface FunctionalClusteringResponse {
 export interface PhenotypeCluster {
   cluster: string | number;
   identifiers: Array<{ entity_id: number; hgnc_id: string; symbol: string }>;
+  // Per-cluster stability joined in by the snapshot builder (scalar-or-array).
+  cluster_size?: number | number[];
+  jaccard_mean?: number | number[];
+  jaccard_n_resamples?: number | number[];
+  silhouette_mean?: number | number[];
   [key: string]: unknown;
 }
 
