@@ -222,8 +222,20 @@ Complete the verification steps, calculate total points, then provide your verdi
 #'
 #' @keywords internal
 build_phenotype_judge_prompt <- function(summary, cluster_data) {
-  # Extract phenotype data from quali_inp_var
-  phenotype_terms <- if ("quali_inp_var" %in% names(cluster_data)) {
+  # Judge grounding MUST match what the generator saw (#495). The old prompt
+  # truncated to the top-15 phenotypes by |v.test|; for the largest cluster (the
+  # "pure/isolated intellectual disability + seizures" cluster, ~1000 entities)
+  # the |v.test| ranking is dominated by strong DEPLETIONS (heart, genitourinary,
+  # skeletal, ... all absent), so genuinely ENRICHED, cluster-defining phenotypes
+  # — Seizures (+8.18), ID-profound (+8.20), Behavioral (+7.71), Microcephaly
+  # (+4.11) — fell to rank #17+ and vanished from the judge's "authoritative
+  # source". The judge then flagged the generator's correctly-grounded mentions
+  # of them as "fabricated specific phenotypes" and HARD-REJECTED every attempt.
+  # Fix: list ENRICHED and DEPLETED separately (both |v.test| > 2), each capped
+  # generously, exactly mirroring build_phenotype_cluster_prompt(), so an
+  # enriched term is never crowded out of the judge's view by larger depletions.
+  phenotype_terms <- "(no phenotype data)"
+  if ("quali_inp_var" %in% names(cluster_data)) {
     phenotypes_df <- if (is.data.frame(cluster_data$quali_inp_var)) {
       cluster_data$quali_inp_var
     } else if (is.list(cluster_data$quali_inp_var)) {
@@ -234,20 +246,33 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
 
     if (!is.null(phenotypes_df) && nrow(phenotypes_df) > 0 &&
         all(c("variable", "v.test") %in% names(phenotypes_df))) {
-      phenotypes_df %>%
-        dplyr::arrange(dplyr::desc(abs(`v.test`))) %>%
-        dplyr::slice_head(n = 15) %>%
-        dplyr::mutate(
-          direction = dplyr::if_else(`v.test` > 0, "ENRICHED", "DEPLETED"),
-          term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction}]")
-        ) %>%
-        dplyr::pull(term_line) %>%
-        paste(collapse = "\n")
-    } else {
-      "(no phenotype data)"
+      format_terms <- function(df) {
+        df %>%
+          dplyr::mutate(
+            direction = dplyr::if_else(`v.test` > 0, "ENRICHED", "DEPLETED"),
+            term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction}]")
+          ) %>%
+          dplyr::pull(term_line) %>%
+          paste(collapse = "\n")
+      }
+      significant <- phenotypes_df %>% dplyr::filter(abs(`v.test`) > 2)
+      enriched <- significant %>%
+        dplyr::filter(`v.test` > 0) %>%
+        dplyr::arrange(dplyr::desc(`v.test`)) %>%
+        dplyr::slice_head(n = 30)
+      depleted <- significant %>%
+        dplyr::filter(`v.test` < 0) %>%
+        dplyr::arrange(`v.test`) %>%
+        dplyr::slice_head(n = 30)
+      enriched_text <- if (nrow(enriched) > 0) format_terms(enriched) else "(none)"
+      depleted_text <- if (nrow(depleted) > 0) format_terms(depleted) else "(none)"
+      phenotype_terms <- paste0(
+        "#### ENRICHED phenotypes (positive v.test; the cluster's defining features)\n",
+        enriched_text,
+        "\n\n#### DEPLETED phenotypes (negative v.test; notably absent from the cluster)\n",
+        depleted_text
+      )
     }
-  } else {
-    "(no phenotype data)"
   }
 
   # Extract inheritance patterns from quali_sup_var
