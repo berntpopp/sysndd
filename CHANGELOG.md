@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.1] — 2026-07-03
+
+Post-deploy fix release resolving the batch of issues the deployment agent filed against the v0.27.0 analysis-snapshot / clustering / LLM-summary work. Closes #483, #484, #485, #486, #488, #489, #490.
+
+### Fixed
+
+- **Analysis snapshots now rebuild on a snapshot-schema bump** (#483): `analysis_snapshot_status_code()` classifies a stored `schema_version` other than the code's `ANALYSIS_SNAPSHOT_SCHEMA_VERSION` as `schema_version_mismatch` (checked after `source_version_mismatch`), so the auto-bootstrap / admin refresh re-enqueue the preset and it self-heals on the next deploy instead of silently serving the old schema.
+- **`publication_date_backfill` persists dates again** (#489): removed the SAVEPOINT-probe transaction detection that false-positived on a fresh autocommit connection (throwing `SAVEPOINT ... does not exist` and failing the whole job after fetching every PMID). Verified dates are now written in committed batches (`backfill_write_updates`, `write_batch_size`/`manage_transaction`), so partial progress persists across a mid-run outage and re-runs resume idempotently; `max_attempts` raised 1 → 2.
+- **Heavy maintenance jobs no longer head-of-line block interactive work** (#486): `async-job-service.R` routes bulk/external maintenance job types to a dedicated `maintenance` queue lane (drained by a new `worker-maintenance` container; dev runs one combined worker) and corrects an inverted priority (batch backfill previously outranked interactive `llm_generation`/`clustering`). Interactive < maintenance < default priority tiers.
+- **LLM cluster summaries stay consistent with the published snapshot** (#485, #488): the summary cache is now keyed on `cluster_hash` **plus** `LLM_SUMMARY_PROMPT_VERSION` (bump-to-regenerate; old-version rows no longer served stale), orphaned `is_current` rows whose hash left the snapshot are retired on refresh, and Administrator `POST /api/llm/regenerate` is driven from the published snapshot (reads `service_analysis_snapshot_shape_clusters` instead of recomputing clustering, which had produced non-matching hashes that blanked every cluster) with a real `force` path and a 409 when no public snapshot exists.
+- **Judge-rejected cluster summaries are a distinct terminal state, not "being prepared" forever** (#490): `get_cluster_summary()` returns HTTP 200 `{summary_available:false, validation_status:"rejected", reason}`, both the phenotype and functional analysis views render an explicit "AI summary could not be validated for this cluster" card, the judge reason is persisted to `llm_generation_log`, and very large heterogeneous clusters get a relaxed gestalt judge instruction.
+- **Corrected `refresh-analysis-snapshots.R` operator usage comment** (#484): documented the working `make refresh-analysis-snapshots` / stdin form instead of a `docker exec … /app/scripts/…` path that cannot exist (`scripts/` is excluded from the image and the container is non-root).
+
 ## [0.27.0] — 2026-07-03
 
 Feature release: verifiable literature publication dates, scientifically-corrected + validated gene/phenotype clustering surfaced by a new in-app **Cluster validation** card, plus base-image/dependency bumps. Closes #457, #458, #459, #460.
