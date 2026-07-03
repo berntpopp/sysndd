@@ -149,6 +149,19 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
     fetch_chunk(chunks[[i]])
   })
 
+  # On a total fetch outage every chunk returns an empty tibble, so `fetched`
+  # has 0 columns and the select below would throw an opaque "column
+  # publication_id doesn't exist" error before the systemic-failure check runs.
+  # Normalize to the expected empty shape so the join yields all-NA (all
+  # unresolved) and the observable classed failure fires instead.
+  if (!("publication_id" %in% names(fetched))) {
+    fetched <- tibble::tibble(
+      publication_id = character(),
+      Publication_date = as.Date(character()),
+      publication_date_source = character()
+    )
+  }
+
   merged <- linked %>%
     dplyr::left_join(
       fetched %>% dplyr::select(publication_id, Publication_date, publication_date_source),
