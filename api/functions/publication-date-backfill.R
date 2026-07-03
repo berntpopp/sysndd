@@ -54,7 +54,14 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
   }
 
   chunk_size <- 200L
-  ncbi_delay <- 0.34
+  # NCBI rate-limit self-throttle. Key-aware (#494): ~3 req/s anonymous, faster
+  # with an NCBI_API_KEY present. pubmed_min_request_interval() lives in
+  # publication-functions.R (sourced by both the worker and the operator CLI).
+  ncbi_delay <- if (exists("pubmed_min_request_interval", mode = "function")) {
+    pubmed_min_request_interval()
+  } else {
+    0.34
+  }
 
   # Single-flight lock (mirrors db/updates/backfill_publication_dates.R).
   lock_row <- DBI::dbGetQuery(

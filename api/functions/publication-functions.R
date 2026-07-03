@@ -33,6 +33,53 @@ normalize_pubmed_ids <- function(pmid_input) {
   pmids
 }
 
+#' Attach NCBI E-utilities identity/rate-limit params to a query list
+#'
+#' Mirrors `genereviews_eutils_query()` (the sibling EUtils module): appends
+#' `tool`, and — when configured in the environment — `email` and `api_key`.
+#' An NCBI `api_key` raises the per-IP rate limit from the anonymous 3 req/s to
+#' 10 req/s, which is what keeps the publication-date backfill from 429-ing large
+#' EFetch batches into a whole-job "systemic outage" (#494). Never hardcodes a
+#' key; anonymous requests remain valid for low-volume use.
+#'
+#' @param query Named list of query parameters.
+#' @return The query list with `tool`, and `email`/`api_key` when set in env.
+#' @noRd
+pubmed_eutils_query <- function(query) {
+  if (is.null(query$tool)) {
+    query$tool <- "sysndd"
+  }
+
+  email <- Sys.getenv("NCBI_EUTILS_EMAIL", "")
+  if (nzchar(email)) {
+    query$email <- email
+  }
+
+  api_key <- Sys.getenv("NCBI_API_KEY", "")
+  if (nzchar(api_key)) {
+    query$api_key <- api_key
+  }
+
+  query
+}
+
+#' Minimum inter-request interval (seconds) for NCBI E-utilities calls
+#'
+#' NCBI caps anonymous callers at 3 req/s and keyed callers at 10 req/s. The
+#' backfill self-throttles at this interval; with an `NCBI_API_KEY` present it
+#' can pace faster (kept conservatively below the 10 req/s ceiling to leave
+#' headroom for other NCBI callers sharing the IP, e.g. the pubtator cron).
+#'
+#' @return Numeric seconds to sleep between E-utilities requests.
+#' @noRd
+pubmed_min_request_interval <- function() {
+  if (nzchar(Sys.getenv("NCBI_API_KEY", ""))) {
+    0.15  # ~6.7 req/s, safely under the keyed 10 req/s cap
+  } else {
+    0.34  # ~2.9 req/s, under the anonymous 3 req/s cap
+  }
+}
+
 #' Count matching PubMed records for one PMID via ESearch
 #'
 #' @param pmid PMID without the `PMID:` prefix.
@@ -48,11 +95,11 @@ pubmed_esearch_count <- function(pmid) {
   tryCatch(
     {
       response <- httr2::request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi") %>%
-        httr2::req_url_query(
+        httr2::req_url_query(!!!pubmed_eutils_query(list(
           db = "pubmed",
           term = paste0(pmid, "[PMID]"),
           retmode = "xml"
-        ) %>%
+        ))) %>%
         httr2::req_retry(
           max_tries = 3,
           backoff = ~ 2^.x,
@@ -87,12 +134,12 @@ pubmed_fetch_xml <- function(pmids) {
   }
 
   response <- httr2::request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi") %>%
-    httr2::req_url_query(
+    httr2::req_url_query(!!!pubmed_eutils_query(list(
       db = "pubmed",
       id = paste(pmids, collapse = ","),
       retmode = "xml",
       rettype = "xml"
-    ) %>%
+    ))) %>%
     httr2::req_retry(
       max_tries = 3,
       backoff = ~ 2^.x,
