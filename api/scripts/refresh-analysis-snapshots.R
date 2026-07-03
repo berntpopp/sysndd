@@ -14,11 +14,16 @@
 # public route that triggers a refresh (correct: it is admin/operator-only and
 # heavy), so this script is the operator entry point.
 #
-# Usage (inside the running API or worker container, which already has STRINGdb
-# and the full runtime available):
-#   docker exec sysndd-api-1 Rscript /app/scripts/refresh-analysis-snapshots.R
+# Usage: this file is NOT baked into the API image (`api/.dockerignore` excludes
+# `scripts/`), and the container runs as a non-root user (so `docker cp` into
+# `/app` is denied). Pipe it into the running container's R over stdin — the
+# container already has STRINGdb and the full runtime available:
 #
-# Or via the Make target:  make refresh-analysis-snapshots
+#   make refresh-analysis-snapshots
+#     (which runs: docker exec -i sysndd-api-1 Rscript - < api/scripts/refresh-analysis-snapshots.R)
+#
+# Do NOT use `docker exec sysndd-api-1 Rscript /app/scripts/refresh-analysis-snapshots.R`
+# — that path does not exist in the image (#484).
 #
 # The worker (queue "default") picks up the jobs and runs them; clustering-backed
 # snapshots can take 30-80s each. Re-running while jobs are queued/running returns

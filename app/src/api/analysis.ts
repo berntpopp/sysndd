@@ -25,6 +25,7 @@ export const SNAPSHOT_PREPARING_CODES = [
   'snapshot_missing',
   'snapshot_stale',
   'source_version_mismatch',
+  'schema_version_mismatch',
 ] as const;
 
 /**
