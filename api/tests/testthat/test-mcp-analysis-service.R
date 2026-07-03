@@ -4,6 +4,7 @@ source("../../services/mcp-analysis-shaping.R")
 source("../../services/mcp-query-service.R")
 source("../../services/mcp-record-service.R")
 source("../../services/mcp-analysis-service.R")
+source("../../services/mcp-analysis-llm-cache-service.R")
 source("../../services/mcp-research-context-service.R")
 
 source_mcp_analysis_repository <- function() {
@@ -728,4 +729,32 @@ test_that("gene research marks budget-dropped sections and returns recovery hint
   expect_true(is.null(result$sections$nddscore))
   expect_false(is.null(result$recovery$retry_with))
   expect_gte(result$budget$total_chars, mcp_analysis_estimate_chars(result))
+})
+
+test_that("phenotype clusters tool surfaces read-only validation + db_release", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_status <- get0("mcp_analysis_repo_public_snapshot_status", envir = .GlobalEnv, ifnotfound = NULL)
+  old_reader <- get0("mcp_analysis_repo_get_snapshot_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", function(...) list(
+    records = tibble::tibble(cluster = "1", hgnc_id = "HGNC:1", entity_id = 1L, symbol = "A"),
+    meta = list(snapshot = list(
+      validation = list(partition_scope = "visible_top_level", mean_silhouette = 0.4,
+                        k = 3L, algorithm = "mca_hcpc"),
+      db_release = list(version = "v3.2.0", commit = "abc1234")
+    ))
+  ), envir = .GlobalEnv)
+  withr::defer({
+    if (!is.null(old_status)) assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    if (!is.null(old_reader)) assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", old_reader, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_phenotype_analysis_context(mode = "clusters", limit = 10L)
+
+  expect_equal(result$meta$validation$partition_scope, "visible_top_level")
+  expect_equal(result$meta$db_release$version, "v3.2.0")
+  expect_equal(result$meta$data_classes$validation, "curated_derived_analysis")
+  expect_equal(result$meta$data_classes$db_release, "operational_metadata")
 })
