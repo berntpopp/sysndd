@@ -755,6 +755,7 @@
             Title = ?,
             Abstract = ?,
             Publication_date = ?,
+            publication_date_source = ?,
             Journal = ?,
             Keywords = ?,
             Lastname = ?,
@@ -765,6 +766,7 @@
             info$Title[1],
             info$Abstract[1],
             info$Publication_date[1],
+            info$publication_date_source[1],
             info$Journal[1],
             info$Keywords[1],
             info$Lastname[1],
@@ -801,6 +803,39 @@
     not_found = sum(vapply(results, function(r) identical(r$status, "not_found"), logical(1))),
     results = results
   )
+}
+
+# Durable verified publication-date backfill (#460). Worker-executed; needs NCBI
+# egress (already on the `proxy` network). Opens its own DB connection from
+# payload$db_config (mirroring .async_job_run_publication_refresh) and delegates to
+# the shared backfill_publication_dates_run(). A benign single-flight skip
+# (lock_held) returns successfully; a hard DB failure OR a systemic fetch outage
+# (every targeted PMID failed to fetch -> classed publication_backfill_systemic_failure)
+# propagates and marks the job failed (observable in job history). A partial fetch
+# failure returns success with skipped_count/skipped_pmids/skipped_errors in the summary.
+.async_job_run_publication_date_backfill <- function(job, payload, state, worker_config) {
+  reporter <- .async_job_progress_reporter(job$job_id[[1]])
+
+  sysndd_db <- DBI::dbConnect(
+    RMariaDB::MariaDB(),
+    dbname = payload$db_config$dbname,
+    user = payload$db_config$user,
+    password = payload$db_config$password,
+    host = payload$db_config$host,
+    port = payload$db_config$port
+  )
+  on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
+
+  res <- backfill_publication_dates_run(
+    sysndd_db,
+    limit = payload$limit,
+    dry_run = isTRUE(payload$dry_run),
+    progress = function(step, message, current = NULL, total = NULL) {
+      reporter(step, message, current = current, total = total)
+    }
+  )
+
+  list(status = "success", summary = res)
 }
 
 async_job_handler_registry <- list(
@@ -896,6 +931,11 @@ async_job_handler_registry <- list(
   publication_refresh = list(
     cancel_mode = "best_effort",
     run = .async_job_run_publication_refresh,
+    after_success = .async_job_after_success_noop
+  ),
+  publication_date_backfill = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_publication_date_backfill,
     after_success = .async_job_after_success_noop
   )
 )

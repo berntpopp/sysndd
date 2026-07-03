@@ -335,8 +335,12 @@ service_analysis_snapshot_meta <- function(snapshot) {
       # Lineage hashes (W3C-PROV / FAIR provenance per issue #347 output
       # contract): input_hash binds the snapshot to its supported parameter set
       # plus the public source-data version; payload_hash binds it to the
-      # materialized result. record_counts exposes the stored row counts so
-      # callers can audit completeness without a second query. All come from the
+      # materialized scientific result (clusters/coords/rows) but NOT the
+      # partition-level validation block, which is excluded from the payload hash
+      # by design (see analysis_snapshot_build_payload). validation_hash binds the
+      # served `validation` metadata so a client caching on hashes still detects a
+      # validation change. record_counts exposes the stored row counts so callers
+      # can audit completeness without a second query. All come from the
       # public-ready manifest row already selected by analysis_snapshot_get_public().
       input_hash = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_column_value(row, "input_hash")
@@ -344,7 +348,21 @@ service_analysis_snapshot_meta <- function(snapshot) {
       payload_hash = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_column_value(row, "payload_hash")
       ),
-      record_counts = service_analysis_snapshot_record_counts(row)
+      validation_hash = service_analysis_snapshot_validation_hash(row),
+      record_counts = service_analysis_snapshot_record_counts(row),
+      # Cluster-validation metrics (curated_derived_analysis) + human-facing DB
+      # release label (operational_metadata), persisted by migration 037. The
+      # read path is SELECT *, so the new columns arrive on `row` automatically;
+      # the safe accessor keeps pre-037 snapshots from erroring.
+      validation = service_analysis_snapshot_parse_json_object(
+        service_analysis_snapshot_column_value(row, "validation_json")
+      ),
+      db_release = list(
+        version = service_analysis_snapshot_json_scalar(
+          service_analysis_snapshot_column_value(row, "db_release_version")),
+        commit  = service_analysis_snapshot_json_scalar(
+          service_analysis_snapshot_column_value(row, "db_release_commit"))
+      )
     )
   )
 }
@@ -388,6 +406,24 @@ service_analysis_snapshot_json_scalar <- function(value) {
     return(NULL)
   }
   jsonlite::unbox(value)
+}
+
+#' SHA-256 of the persisted validation_json blob (NULL when absent).
+#'
+#' `payload_hash` deliberately excludes the partition-level validation block
+#' (see analysis_snapshot_build_payload), so a client caching on payload_hash
+#' alone cannot detect a validation change. This companion hash binds the
+#' `validation` metadata that is actually served, computed over the exact stored
+#' JSON so it always matches the served value. Non-clustering / pre-037 snapshots
+#' (no validation_json) return NULL.
+service_analysis_snapshot_validation_hash <- function(row) {
+  raw <- service_analysis_snapshot_column_value(row, "validation_json")
+  if (is.null(raw) || length(raw) == 0L || is.na(raw[[1]]) || !nzchar(raw[[1]])) {
+    return(NULL)
+  }
+  service_analysis_snapshot_json_scalar(
+    digest::digest(raw[[1]], algo = "sha256", serialize = FALSE)
+  )
 }
 
 service_analysis_snapshot_scalar_value <- function(value, default = NULL) {

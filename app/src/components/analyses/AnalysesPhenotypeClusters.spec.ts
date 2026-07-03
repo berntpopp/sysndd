@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPhenotypeClustering } from '@/api/analysis';
 import AnalysesPhenotypeClusters from './AnalysesPhenotypeClusters.vue';
+import PhenotypeClusterVariableTable from './PhenotypeClusterVariableTable.vue';
 
 const mocks = vi.hoisted(() => ({
   getPhenotypeClusterSummary: vi.fn(),
@@ -182,13 +183,15 @@ describe('AnalysesPhenotypeClusters', () => {
     const wrapper = mountComponent();
     await flushPromises();
 
-    const fieldKeys = wrapper.vm.fields.map((f: { key: string }) => f.key);
+    // The table fields + rows now live in the extracted PhenotypeClusterVariableTable child.
+    const table = wrapper.findComponent(PhenotypeClusterVariableTable);
+    const fieldKeys = table.vm.fields.map((f: { key: string }) => f.key);
     expect(fieldKeys).toContain('p_value');
     expect(fieldKeys).toContain('v_test');
     expect(fieldKeys).not.toContain('p.value');
     expect(fieldKeys).not.toContain('v.test');
 
-    const row = wrapper.vm.displayedItems[0];
+    const row = table.vm.displayedItems[0];
     expect(row.p_value).toBe(1.7047e-86);
     expect(row.v_test).toBe(19.7119);
     // Original dotted keys preserved for the Excel export.

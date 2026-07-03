@@ -104,6 +104,8 @@ mcp_get_sysndd_capabilities <- function() {
       snapshot_reads = "Derived analysis tools read public-ready snapshots only and never compute STRING, phenotype clustering, fCoSE layouts, or correlations on request.",
       phenotype_correlations = "MCP phenotype correlations are global snapshot context; omit gene for mode='correlations' and use phenotype or clusters for focused follow-up.",
       network_snapshot = "get_gene_network_context supports only the stored clusters/min_confidence=400/max_edges=10000 snapshot key; max_edges is a response trim cap.",
+      cluster_validation = "get_phenotype_analysis_context(mode='clusters') meta.validation reports read-only cluster-stability metrics (per-cluster bootstrap-Jaccard, mean silhouette for phenotype, data-driven k); functional cluster validation reports weighted modularity. Data class curated_derived_analysis. partition_scope='visible_top_level' scopes per-cluster Jaccard to the stored post-min_size clusters; modularity_scope='full_partition' reports modularity on the full optimized partition.",
+      db_release = "Analysis snapshots carry a human-facing DB release label meta.db_release = {version, commit} (operational_metadata; literal 'unknown' when the db_version surface is unavailable). get_phenotype_analysis_context(mode='clusters') and get_gene_network_context surface it read-only.",
       guardrails = "No Gemini, no prompt/query exposure, no live external providers, no writes, no raw SQL/R tools."
     ),
     resources = list(

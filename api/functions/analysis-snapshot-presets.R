@@ -1,4 +1,4 @@
-ANALYSIS_SNAPSHOT_SCHEMA_VERSION <- "1.0"
+ANALYSIS_SNAPSHOT_SCHEMA_VERSION <- "1.1"
 
 analysis_snapshot_unsupported_parameter <- function(message, fields = list()) {
   rlang::abort(
@@ -22,7 +22,9 @@ analysis_snapshot_supported_presets <- function() {
       analysis_type = "phenotype_clusters",
       data_class = "curated_derived_analysis",
       params = list(),
-      weight = "light"
+      # "heavy": now runs subsampling MCA+HCPC bootstrap validation, so it is
+      # staggered behind the cheap presets at first-start like functional_clusters.
+      weight = "heavy"
     ),
     list(
       analysis_type = "phenotype_correlations",
@@ -47,11 +49,12 @@ analysis_snapshot_supported_presets <- function() {
 
 #' Bootstrap weight for a supported preset.
 #'
-#' "heavy" presets (currently only `functional_clusters`, with its recursive
-#' STRING enrichment build) are staggered behind the cheap "light" presets at
-#' first-start so a single small-host worker does not contend for the shared DB
-#' pool / CPU and push the heavy build over its lease (#447). Unknown types fail
-#' open to "light" so an unrecognized preset is never delayed.
+#' "heavy" presets (`functional_clusters`, with its recursive STRING enrichment
+#' build, and `phenotype_clusters`, which now runs subsampling MCA+HCPC bootstrap
+#' validation) are staggered behind the cheap "light" presets at first-start so a
+#' single small-host worker does not contend for the shared DB pool / CPU and
+#' push the heavy build over its lease (#447). Unknown types fail open to "light"
+#' so an unrecognized preset is never delayed.
 #'
 #' @param analysis_type Character analysis type.
 #' @return "heavy" or "light".

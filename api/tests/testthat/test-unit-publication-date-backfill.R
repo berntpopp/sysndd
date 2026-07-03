@@ -1,0 +1,84 @@
+# api/tests/testthat/test-unit-publication-date-backfill.R
+# NOTE: publication key is `publication_id` (prefixed string, e.g. "PMID:999100"); there is
+# no bare numeric PMID column. Seed publication_id + a primary-approved review join.
+
+test_that("backfill selects unverified primary-approved rows and writes both columns", {
+  skip_if_no_test_db()
+  source(file.path(get_api_dir(), "functions", "publication-functions.R"), local = FALSE)
+  source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
+
+  # info_from_pmid returns one row per fetched PMID with Publication_date +
+  # publication_date_source. Override the global binding (the repo convention for
+  # mocking sourced-into-global free functions; mirrors
+  # test-mcp-service-publication-discovery.R). testthat::local_mocked_bindings cannot
+  # target these non-package bindings.
+  old_info <- get("info_from_pmid", envir = .GlobalEnv)
+  assign("info_from_pmid", function(pmid_value, ...) dplyr::tibble(
+    Publication_date = as.Date("2019-03-01"), publication_date_source = "pubmed"
+  ), envir = .GlobalEnv)
+  withr::defer(assign("info_from_pmid", old_info, envir = .GlobalEnv))
+
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999100", source = NULL)
+    res <- backfill_publication_dates_run(conn, dry_run = FALSE)
+    expect_gte(res$targeted, 1L)
+    expect_equal(res$verified, 1L)
+    got <- DBI::dbGetQuery(conn,
+      "SELECT Publication_date, publication_date_source FROM publication WHERE publication_id = 'PMID:999100'")
+    expect_equal(got$publication_date_source, "pubmed")
+    expect_equal(as.character(got$Publication_date), "2019-03-01")
+  })
+})
+
+test_that("backfill fails observably when every targeted PMID errors (systemic outage)", {
+  # Codex review (#460): a systemic fetch outage (NCBI down / worker egress broken)
+  # must NOT complete as "success" with unresolved == targeted. When every targeted
+  # PMID errors during fetch, the run raises a classed error so the async handler
+  # marks the job failed and the CLI exits non-zero.
+  skip_if_no_test_db()
+  source(file.path(get_api_dir(), "functions", "publication-functions.R"), local = FALSE)
+  source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
+
+  old_info <- get("info_from_pmid", envir = .GlobalEnv)
+  assign("info_from_pmid", function(pmid_value, ...) stop("simulated NCBI outage"),
+         envir = .GlobalEnv)
+  withr::defer(assign("info_from_pmid", old_info, envir = .GlobalEnv))
+
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999102", source = NULL)
+    expect_error(
+      backfill_publication_dates_run(conn, dry_run = FALSE),
+      class = "publication_backfill_systemic_failure"
+    )
+    # No partial write leaked from the failed run.
+    got <- DBI::dbGetQuery(conn,
+      "SELECT publication_date_source FROM publication WHERE publication_id = 'PMID:999102'")
+    expect_true(is.na(got$publication_date_source))
+  })
+})
+
+test_that("dry_run reports targets without writing", {
+  skip_if_no_test_db()
+  source(file.path(get_api_dir(), "functions", "publication-date-backfill.R"), local = FALSE)
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_publication_backfill_schema(conn)
+    seed_primary_approved_publication(conn, publication_id = "PMID:999101", source = NULL)
+    res <- backfill_publication_dates_run(conn, dry_run = TRUE)
+    expect_gte(res$targeted, 1L)
+    expect_equal(res$verified, 0L)
+    got <- DBI::dbGetQuery(conn,
+      "SELECT publication_date_source FROM publication WHERE publication_id = 'PMID:999101'")
+    expect_true(is.na(got$publication_date_source))
+  })
+})
+
+test_that("publication_date_backfill handler is registered", {
+  source_api_file("functions/async-job-force-apply-payload.R", local = FALSE)
+  source_api_file("functions/async-job-handlers.R", local = FALSE)
+  expect_true("publication_date_backfill" %in% names(async_job_handler_registry))
+})

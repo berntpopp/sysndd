@@ -4,19 +4,23 @@
 #' A function clustering entities based on their phenotype annotations
 #'
 #' @param wide_phenotypes_df data frame of variables to be used for MCA
-#' @param min_size number defining the minimal cluster size to return
+#' @param min_size number defining the minimal cluster size to return. Clusters
+#'   smaller than `min_size` are DROPPED (their entities become unassigned;
+#'   they are not merged, to avoid manufacturing a non-data-driven cluster).
 #' @param quali_sup_var vector of qualitative supplementary variables
 #' @param quanti_sup_var vector of quantitative supplementary variables
-#' @param cutpoint cutpoint for hierarchical clustering
+#' @param cutpoint number of clusters for HCPC. Default `-1` selects k from the
+#'   data (the largest relative loss of within-cluster inertia). A positive value
+#'   imposes exactly that many clusters.
 #'
-#' @return The clusters tibble
+#' @return The clusters tibble (with a deterministic `cluster_signature` column)
 #' @export
 gen_mca_clust_obj <- function(
   wide_phenotypes_df,
   min_size = 10,
   quali_sup_var = 1:1,
   quanti_sup_var = 2:4,
-  cutpoint = 5
+  cutpoint = -1
 ) {
   # Caching is handled by the memoise wrapper (gen_mca_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
@@ -33,7 +37,7 @@ gen_mca_clust_obj <- function(
   # For adaptive ncp selection, generate scree plot and identify elbow point:
   #   factoextra::fviz_screeplot(mca_result)
   # See: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
-  mca_phenotypes <- MCA(wide_phenotypes_df,
+  mca_phenotypes <- FactoMineR::MCA(wide_phenotypes_df,
     ncp = 8, # Reduced from 15 for 20-30% speedup (validated stable clustering)
     quali.sup = quali_sup_var,
     quanti.sup = quanti_sup_var,
@@ -45,7 +49,10 @@ gen_mca_clust_obj <- function(
   # This reduces computational complexity from O(n^2) to O(50^2)
   # providing 50-70% speedup for datasets with >100 observations
   # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
-  mca_hcpc <- HCPC(mca_phenotypes,
+  mca_hcpc <- FactoMineR::HCPC(mca_phenotypes,
+    # nb.clust = -1 (the cutpoint default) makes HCPC select k from the data via
+    # the largest relative within-cluster-inertia loss; a positive cutpoint
+    # imposes exactly that many clusters.
     nb.clust = cutpoint,
     kk = 50, # Pre-partition into 50 clusters (was Inf - no pre-partitioning)
     mi = 3,
@@ -53,6 +60,13 @@ gen_mca_clust_obj <- function(
     consol = TRUE, # Consolidation still performed after kk partitioning
     graph = FALSE
   )
+
+  # Log the emergent (data-driven) k. Not part of the tibble return shape so
+  # existing callers (which pipe/unnest the tibble directly) are unaffected.
+  message(sprintf(
+    "[phenotype-hcpc] data-driven k = %d",
+    nlevels(mca_hcpc$data.clust$clust)
+  ))
 
   # add entity_id back as column
   mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
@@ -72,6 +86,7 @@ gen_mca_clust_obj <- function(
       if (nrow(.) > 0) {
         rowwise(.) %>%
           mutate(cluster_size = nrow(identifiers)) %>%
+          filter(cluster_size >= min_size) %>%
           mutate(quali_inp_var = list(tibble::as_tibble(
             mca_hcpc$desc.var$category[[cluster]],
             rownames = "variable",
@@ -107,6 +122,22 @@ gen_mca_clust_obj <- function(
         mutate(., cluster_size = integer(), quali_inp_var = list(), quali_sup_var = list(), quanti_sup_var = list())
       }
     }
+
+  # Deterministic content signature for stable cluster identity. Downstream
+  # consumers key cluster identity on `cluster_signature` (the top-5 enriched HPO
+  # terms from quali_inp_var, ordered by ascending p.value and tie-broken by the
+  # `variable` term id) rather than the positional integer index, so a k change
+  # does not silently relabel clusters.
+  clusters_tibble <- clusters_tibble %>%
+    dplyr::mutate(cluster_signature = vapply(quali_inp_var, function(qv) {
+      if (is.null(qv) || nrow(qv) == 0) return(NA_character_)
+      ord <- order(qv$p.value, qv$variable) # deterministic; column is `variable`
+      terms <- utils::head(qv$variable[ord], 5L)
+      paste(terms, collapse = "|")
+    }, character(1))) %>%
+    dplyr::mutate(cluster_signature_hash = vapply(cluster_signature, function(s) {
+      if (is.na(s)) NA_character_ else digest::digest(s, algo = "sha256")
+    }, character(1)))
 
   # return result
   return(clusters_tibble)

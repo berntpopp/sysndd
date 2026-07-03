@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-07-03
+
+Feature release: verifiable literature publication dates, scientifically-corrected + validated gene/phenotype clustering surfaced by a new in-app **Cluster validation** card, plus base-image/dependency bumps. Closes #457, #458, #459, #460.
+
+### Added
+
+- **Cluster validation card** on the functional (`/GeneNetworks`, `/Analysis`) and phenotype (`/PhenotypeCorrelations/PhenotypeClusters`) analysis pages: shows the partition metrics (weighted **modularity** for functional Leiden / **mean silhouette + data-driven k** for phenotype MCA-HCPC) and per-cluster **bootstrap-Jaccard stability** bands (`stable ≥0.75 · doubtful · weak · dissolved <0.5`) with the DB release label. Accessible (band label + numeric value, never colour-only); hides itself for snapshots built before validation existed. Frontend-only — the metrics were already served by the API. (#457, #458, #459)
+- **Verified publication dates** end-to-end: the `publication_refresh` async job persists `publication_date_source`; a durable `publication_date_backfill` async job plus Administrator endpoints (`POST`/`GET /api/admin/publications/verify-dates[/status]`) let an operator run + inspect the one-time backfill; MCP publication outputs carry a `pubmed_verified` confidence flag and a year-bearing `recommended_citation`. (#460)
+- **Cluster-validation metrics persisted in analysis snapshots** (migration `037_add_analysis_snapshot_validation.sql`): weighted-modularity + per-cluster Jaccard (functional), silhouette + data-driven k + per-cluster Jaccard (phenotype), and a human-facing DB release label, exposed read-only through the API (`meta.snapshot.validation`, a serve-time `validation_hash`, `db_release`) and MCP. (#457, #458, #459)
+
+### Changed
+
+- Functional Leiden now optimises **weighted** modularity on STRING `combined_score` and runs to convergence (`n_iterations = -1`); phenotype HCPC selects **k from the data** (was a hardcoded `k = 5`) and enforces `min_size`. (#457, #458)
+- Bumped `rocker/r-ver` **4.6.0 → 4.6.1** (API base image; Ubuntu 24.04 noble unchanged) and `axllent/mailpit` **v1.30.2 → v1.30.3** (dev + Playwright compose mail sink). Supersedes #480, #481.
+- Refactored the functional and phenotype cluster views under the 600-line ceiling — extracted `FunctionalClusterTablePanel.vue` / `PhenotypeClusterVariableTable.vue` table panels, `useFunctionalClusterTable` / `usePhenotypeClusterTable` composables, and a shared `useClusterSummary` composable — with no behaviour change.
+
+### Fixed
+
+- Verified-date backfill now **fails observably** on a systemic PubMed/worker outage (classed `publication_backfill_systemic_failure` when every targeted PMID errors) instead of a false "success"; surfaces `skipped_count`/`skipped_pmids`/`skipped_errors`. (#460)
+- `cluster_max_jaccard()` returns `NA` (not `-Inf`) when a reference cluster is absent from a subsample, and per-cluster Jaccard counts only effective (non-NA) resamples. (#457, #458, #459)
+- A serve-time `validation_hash` binds the served partition-validation metadata (which `payload_hash` intentionally excludes) so clients can detect a validation-only change; the Compose `CACHE_VERSION` default was bumped `2 → 3` so a redeploy invalidates the memoised cluster partitions from the old algorithms. (#457, #458, #459)
+
 ## [0.26.7] — 2026-06-30
 
 Patch release: faceted-table column-header tooltips now show the correct "unique filtered/total" counts after an interactive filter (Entities, Genes, Phenotypes, PubtatorNDD genes, curation comparisons).

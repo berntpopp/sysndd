@@ -194,6 +194,8 @@ describe('AnalyseGeneClusters', () => {
       },
     ];
     wrapper.vm.currentSummary = {
+      cluster_hash: 'equals(hash,abc)',
+      cluster_number: 1,
       summary_json: { summary: 'Cluster summary' },
       model_name: 'gemini-test',
       created_at: '2026-05-15T00:00:00Z',

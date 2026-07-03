@@ -380,29 +380,34 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
 
   switch(normalized$analysis_type,
     functional_clusters = {
-      clusters <- gen_string_clust_obj_mem(
-        analysis_snapshot_approved_gene_ids(conn = conn),
-        algorithm = params$algorithm
-      )
+      gene_ids <- analysis_snapshot_approved_gene_ids(conn = conn)
+      clusters <- gen_string_clust_obj_mem(gene_ids, algorithm = params$algorithm)
+      n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
+      val <- validate_functional_clusters(gene_ids, resolution = 1.0, n_resamples = n_res)
+      clusters <- dplyr::left_join(
+        dplyr::mutate(clusters, cluster_id = as.character(cluster)),   # type-align the join key
+        val$per_cluster, by = "cluster_id"
+      ) %>% dplyr::select(-cluster_id)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
-      list(
-        kind = "clusters",
-        raw = clusters,
-        clusters = built$clusters,
-        members = built$members,
-        row_counts = built$row_counts
-      )
+      list(kind = "clusters", raw = clusters, clusters = built$clusters,
+           members = built$members, row_counts = built$row_counts,
+           partition_validation = val$partition)
     },
     phenotype_clusters = {
       clusters <- generate_phenotype_clusters()
-      built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
-      list(
-        kind = "clusters",
-        raw = clusters,
-        clusters = built$clusters,
-        members = built$members,
-        row_counts = built$row_counts
+      n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
+      val <- validate_phenotype_clusters(
+        generate_phenotype_cluster_input()$matrix,
+        quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res
       )
+      clusters <- dplyr::left_join(
+        dplyr::mutate(clusters, cluster_id = as.character(cluster)),
+        val$per_cluster, by = "cluster_id"
+      ) %>% dplyr::select(-cluster_id)
+      built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
+      list(kind = "clusters", raw = clusters, clusters = built$clusters,
+           members = built$members, row_counts = built$row_counts,
+           partition_validation = val$partition)
     },
     phenotype_correlations = {
       rows <- generate_phenotype_correlations_mem(
@@ -464,12 +469,21 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     if (identical(payload$kind, "network")) {
       row_counts$network_metadata <- payload$metadata %||% list()
     }
-    payload_hash <- analysis_snapshot_payload_hash(payload[setdiff(names(payload), c("raw"))])
+    payload_hash <- analysis_snapshot_payload_hash(
+      payload[setdiff(names(payload), c("raw", "partition_validation"))]
+    )
     input_hash <- analysis_snapshot_input_hash(list(
       analysis_type = normalized$analysis_type,
       params = normalized$params,
       source_data_version = source_data_version
     ))
+
+    # Human-facing DB release label (#22 / #459). Policy: when the db_version
+    # surface is unavailable, store the literal "unknown" (never omit).
+    dbv <- tryCatch(db_version_get(conn = refresh_conn),
+                    error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
+    db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
+    db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
 
     write_result <- analysis_snapshot_with_write_transaction(refresh_conn, function(txn_conn) {
       snapshot_id <- analysis_snapshot_create_manifest(
@@ -481,13 +495,18 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
           status = "pending",
           generated_by_job_id = job_id,
           stale_after = stale_after,
-          source_versions = list(sysndd_public_data = source_data_version),
+          source_versions = list(sysndd_public_data = source_data_version,
+                                 db_release_version = db_release_version,
+                                 db_release_commit  = db_release_commit),
           source_data_version = source_data_version,
           parameters_json = normalized$parameters_json,
           input_hash = input_hash,
           payload_hash = payload_hash,
           algorithm_name = normalized$params$algorithm %||% normalized$params$cluster_type %||% NA_character_,
-          row_counts = row_counts
+          row_counts = row_counts,
+          validation = payload$partition_validation,   # NULL for non-clustering presets
+          db_release_version = db_release_version,
+          db_release_commit  = db_release_commit
         ),
         conn = txn_conn
       )

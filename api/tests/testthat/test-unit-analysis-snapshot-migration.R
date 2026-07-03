@@ -5,8 +5,19 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "036_add_disease_ontology_mappings.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 34L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "037_add_analysis_snapshot_validation.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
+})
+
+test_that("migration 037 adds validation + db release columns", {
+  sql <- paste(readLines(file.path(
+    get_api_dir(), "..", "db", "migrations",
+    "037_add_analysis_snapshot_validation.sql"
+  )), collapse = "\n")
+  expect_match(sql, "validation_json")
+  expect_match(sql, "db_release_version")
+  expect_match(sql, "db_release_commit")
+  expect_match(sql, "ALTER TABLE\\s+analysis_snapshot_manifest")
 })
 
 test_that("public analysis snapshot migration enforces scoped public-ready uniqueness", {

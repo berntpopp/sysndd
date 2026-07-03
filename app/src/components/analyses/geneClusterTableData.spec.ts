@@ -5,6 +5,8 @@ import {
   buildClusterTableFields,
   findCategoryText,
   findCategoryLink,
+  categoryChipClass,
+  formatFdr,
   buildClusterExportFilename,
   clusterExportSheetName,
   CLUSTER_EXPORT_HEADERS,
@@ -93,6 +95,37 @@ describe('category helpers', () => {
   it('builds a category link and falls back to #', () => {
     expect(findCategoryLink(categories, 'GO', '0001234')).toBe('https://example.org/go/0001234');
     expect(findCategoryLink(categories, 'KEGG', 'x')).toBe('#');
+  });
+});
+
+describe('categoryChipClass', () => {
+  it('maps known categories to chip modifiers', () => {
+    expect(categoryChipClass('GO')).toBe('sysndd-chip--teal');
+    expect(categoryChipClass('KEGG')).toBe('sysndd-chip--blue');
+    expect(categoryChipClass('MONDO')).toBe('sysndd-chip--info');
+    expect(categoryChipClass('HPO')).toBe('sysndd-chip--success');
+  });
+
+  it('falls back to the neutral chip for unknown categories', () => {
+    expect(categoryChipClass('OTHER')).toBe('sysndd-chip--neutral');
+  });
+});
+
+describe('formatFdr', () => {
+  it('renders an em dash for nullish values', () => {
+    expect(formatFdr(null)).toBe('—');
+    expect(formatFdr(undefined)).toBe('—');
+  });
+
+  it('renders tiny values in scientific notation instead of "0"', () => {
+    expect(formatFdr(1e-15)).toBe('1.00e-15');
+    expect(formatFdr('1e-5')).toBe('1.00e-5');
+  });
+
+  it('keeps mid-range values in precision notation and passes through non-numbers', () => {
+    expect(formatFdr(0)).toBe('0');
+    expect(formatFdr(0.05)).toBe('0.0500');
+    expect(formatFdr('n/a')).toBe('n/a');
   });
 });
 
