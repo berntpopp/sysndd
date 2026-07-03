@@ -178,8 +178,15 @@ backfill_publication_dates_run <- function(conn, limit = NULL, dry_run = FALSE,
       TRUE
     }, error = function(e) FALSE))
     if (in_transaction) {
-      apply_updates()
-      DBI::dbExecute(conn, "RELEASE SAVEPOINT sysndd_backfill_pub_dates")
+      # Keep the SAVEPOINT path atomic: roll back partial writes on error so a
+      # mid-batch failure never leaves the enclosing transaction partly applied.
+      tryCatch({
+        apply_updates()
+        DBI::dbExecute(conn, "RELEASE SAVEPOINT sysndd_backfill_pub_dates")
+      }, error = function(e) {
+        try(DBI::dbExecute(conn, "ROLLBACK TO SAVEPOINT sysndd_backfill_pub_dates"), silent = TRUE)
+        stop(e)
+      })
     } else {
       DBI::dbWithTransaction(conn, apply_updates())
     }
