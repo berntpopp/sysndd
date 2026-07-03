@@ -4,6 +4,7 @@ source("../../services/mcp-analysis-shaping.R")
 source("../../services/mcp-query-service.R")
 source("../../services/mcp-record-service.R")
 source("../../services/mcp-analysis-service.R")
+source("../../services/mcp-analysis-llm-cache-service.R")
 source("../../services/mcp-research-context-service.R")
 
 source_mcp_analysis_repository <- function() {
