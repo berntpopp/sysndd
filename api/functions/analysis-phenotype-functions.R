@@ -61,9 +61,12 @@ gen_mca_clust_obj <- function(
     graph = FALSE
   )
 
-  # Capture the emergent (data-driven) k. Log-only; not part of the tibble return
-  # shape so existing callers (which pipe/unnest the tibble directly) are unaffected.
-  emergent_k <- nlevels(mca_hcpc$data.clust$clust)
+  # Log the emergent (data-driven) k. Not part of the tibble return shape so
+  # existing callers (which pipe/unnest the tibble directly) are unaffected.
+  message(sprintf(
+    "[phenotype-hcpc] data-driven k = %d",
+    nlevels(mca_hcpc$data.clust$clust)
+  ))
 
   # add entity_id back as column
   mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)

@@ -141,7 +141,8 @@ gen_string_clust_obj <- function(
 
   # Build the induced STRING subgraph via the shared helper so the functional
   # validator (analysis-cluster-validation.R) clusters a byte-identical graph.
-  subgraph <- build_string_subgraph(hgnc_list, score_threshold, string_id_table)
+  # Reuse the already-collected id table (avoids a second non_alt_loci_set query).
+  subgraph <- build_string_subgraph(hgnc_list, score_threshold, sysndd_db_string_id_table)
 
   # Run clustering algorithm based on parameter
   # Leiden: 2-3x faster, good for large networks

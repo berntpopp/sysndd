@@ -56,9 +56,13 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
                                    weights = igraph::E(subgraph)$combined_score)
 
   # VISIBLE top-level reference = full partition restricted to clusters >= min_size (for Jaccard).
+  # Key each reference cluster by its ORIGINAL split position (1..N), matching
+  # gen_string_clust_obj's row_number()-derived `cluster`, so per-cluster metrics
+  # join onto the correct stored clusters even when min_size drops earlier
+  # clusters (which leaves gaps in the numbering — seq_along() would desync them).
   parts       <- split(all_nodes, full_membership)
-  visible     <- parts[vapply(parts, length, integer(1)) >= min_size]
-  ref_members <- stats::setNames(visible, as.character(seq_along(visible)))
+  visible_idx <- which(vapply(parts, length, integer(1)) >= min_size)
+  ref_members <- stats::setNames(parts[visible_idx], as.character(visible_idx))
   n_clusters  <- length(ref_members)
   n_dropped   <- length(parts) - n_clusters
 
@@ -113,11 +117,20 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   )
   n_clusters <- length(ref_members)
 
+  # Entity IDs may live in an `entity_id` column or (the production matrix from
+  # generate_phenotype_cluster_input()) in the rownames — support both so the
+  # validator keys entities the same way gen_mca_clust_obj does.
+  entity_ids <- if (!is.null(wide_phenotypes_df$entity_id)) {
+    as.character(wide_phenotypes_df$entity_id)
+  } else {
+    as.character(rownames(wide_phenotypes_df))
+  }
+
   set.seed(42)
   mca <- FactoMineR::MCA(wide_phenotypes_df, ncp = 8, quali.sup = quali_sup_var,
                          quanti.sup = quanti_sup_var, graph = FALSE)
   coords <- mca$ind$coord
-  rownames(coords) <- as.character(wide_phenotypes_df$entity_id)
+  rownames(coords) <- entity_ids
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
@@ -148,7 +161,7 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
 
   # Subsample entities WITHOUT replacement; recompute MCA+HCPC; max-Jaccard per visible cluster.
   per_cluster_acc <- stats::setNames(rep(list(numeric(0)), n_clusters), names(ref_members))
-  all_entities <- as.character(wide_phenotypes_df$entity_id)
+  all_entities <- entity_ids
   m <- max(2L, floor(subsample_fraction * length(all_entities)))
   n_eff <- 0L
   for (b in seq_len(n_resamples)) {
