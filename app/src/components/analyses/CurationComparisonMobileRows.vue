@@ -81,7 +81,7 @@ const sources = [
   { key: 'panelapp', label: 'PanelApp', short: 'PA' },
   { key: 'radboudumc_ID', label: 'Radboudumc', short: 'R' },
   { key: 'sfari', label: 'SFARI', short: 'SF' },
-  { key: 'geisinger_DBD', label: 'Geisinger DBD', short: 'DBD' },
+  { key: 'ndd_genehub', label: 'NDD GeneHub', short: 'NDD' },
   { key: 'orphanet_id', label: 'Orphanet', short: 'OR' },
   { key: 'omim_ndd', label: 'OMIM NDD', short: 'OMIM' },
 ] as const;

@@ -5,16 +5,17 @@
 #
 # This module handles:
 # - Downloading data from 7+ external NDD databases
-# - Parsing various formats (PDF, CSV, TSV, JSON, TXT)
-# - Standardizing data to common schema
 # - Resolving gene symbols to HGNC IDs via local database lookup
-# - All-or-nothing database update via transaction
+# - Resilient per-list database update: each source refreshes independently
+#   (per-list replace); a failed source keeps its previous rows, and the refresh
+#   only aborts when every source fails (see comparisons_refresh_outcome()).
+#
+# The per-source parsers + standardize_comparison_data live in the sibling
+# functions/comparisons-parsers.R (extracted to keep both files < 600 lines).
 #
 # Key functions:
 #   - comparisons_update_async(params): Main async entry point for mirai daemon
 #   - download_source_data(source_config, temp_dir): Download single source
-#   - parse_* functions: Parse each source format
-#   - standardize_comparison_data(parsed_data, source_name): Normalize schema
 #   - resolve_hgnc_symbols(symbols, conn): Batch lookup HGNC IDs
 #
 # Usage:
@@ -31,6 +32,20 @@ library(tibble)
 # Conditionally load pdftools (may not be installed in all environments)
 if (requireNamespace("pdftools", quietly = TRUE)) {
   library(pdftools)
+}
+
+# Ensure the extracted per-source parsers are available. setup_workers.R sources
+# comparisons-parsers.R before this file, but guard-source it too so any
+# entrypoint that sources this file directly (unit tests, a future durable-worker
+# path) still gets parse_* / standardize_comparison_data.
+if (!exists("standardize_comparison_data", mode = "function")) {
+  for (.cmp_parsers_path in c("functions/comparisons-parsers.R",
+                              "/app/functions/comparisons-parsers.R")) {
+    if (file.exists(.cmp_parsers_path)) {
+      source(.cmp_parsers_path, local = FALSE)
+      break
+    }
+  }
 }
 
 #' Download Source Data
@@ -82,488 +97,6 @@ download_source_data <- function(source_config, temp_dir, timeout_seconds = 300)
     warning(sprintf("[%s] Download failed: %s", source_name, e$message))
     return(NULL)
   })
-}
-
-#' Parse Radboudumc PDF
-#'
-#' Parses the Radboudumc ID gene panel PDF to extract gene symbols and OMIM IDs.
-#' Adapted from the original script's radboudumc parsing logic.
-#'
-#' @param file_path Path to downloaded PDF file
-#'
-#' @return Tibble with columns: gene_symbol, OMIMdiseaseID, list, version
-#'
-#' @export
-parse_radboudumc_pdf <- function(file_path) {
-  if (!requireNamespace("pdftools", quietly = TRUE)) {
-    stop("pdftools package required for PDF parsing")
-  }
-
-  # Read PDF text
-  pdf_pages <- pdftools::pdf_text(file_path)
-
-  # Extract version from first page (first line typically contains version)
-  version <- pdf_pages[1] %>%
-    str_extract(pattern = "^.+\\n") %>%
-    str_remove(pattern = "\\n") %>%
-    str_squish()
-
-  # Parse all pages
-  radboudumc_pdf_list <- pdf_pages %>%
-    read_lines(skip = 3) %>%
-    str_squish() %>%
-    as_tibble() %>%
-    separate(value,
-             c("gene_symbol", "MedianCoverage", "pCoveredo10x", "pCoveredo20x", "OMIMdiseaseID"),
-             sep = " ",
-             fill = "right",
-             extra = "drop") %>%
-    filter(!is.na(gene_symbol)) %>%
-    # Filter out PDF header/footer text and non-gene entries
-    filter(!(gene_symbol %in% c(
-      "", "%", "OMIM", "Gene", "Genes", "Median", "Ad",
-      "Coverage", "Covered", "Non", "EAS.GenProductCoverage.pdf.footer.ad01",
-      "PHENOTYPE", "DESCRIPTION", "ALACRIMIA", "ADDISONIANISM-"
-    ))) %>%
-    # Valid gene symbols are uppercase, 1-12 chars, alphanumeric with optional dash/number
-    # Filter out entries that look like descriptions (contain lowercase, end with dash, etc.)
-    filter(str_detect(gene_symbol, "^[A-Z0-9][A-Z0-9-]*[A-Z0-9]$|^[A-Z0-9]$")) %>%
-    filter(nchar(gene_symbol) <= 15)
-
-  # Clean up OMIM IDs
-  result <- radboudumc_pdf_list %>%
-    dplyr::select(gene_symbol, OMIMdiseaseID) %>%
-    mutate(
-      OMIMdiseaseID = na_if(OMIMdiseaseID, "-"),
-      list = "radboudumc_ID",
-      version = version
-    )
-
-  return(result)
-}
-
-#' Parse Gene2Phenotype CSV
-#'
-#' Parses the Gene2Phenotype DDG2P CSV (gzipped) file.
-#'
-#' @param file_path Path to downloaded CSV.gz file
-#'
-#' @return Tibble with extracted columns
-#'
-#' @export
-parse_gene2phenotype_csv <- function(file_path) {
-  data <- read_csv(file_path, show_col_types = FALSE)
-
-  # G2P changed their column names in 2026:
-  #   "confidence category" -> "confidence"
-  #   "mutation consequence" -> "variant consequence"
-  #   "pmids" -> "publications"
-  result <- data %>%
-    dplyr::select(
-      gene_symbol = `gene symbol`,
-      disease_ontology_name = `disease name`,
-      disease_ontology_id = `disease mim`,
-      category = confidence,
-      inheritance = `allelic requirement`,
-      pathogenicity_mode = `variant consequence`,
-      phenotype = phenotypes,
-      publication_id = publications
-    ) %>%
-    mutate(
-      list = "gene2phenotype",
-      version = basename(file_path) %>% str_remove(pattern = "\\.csv(\\.gz)?$")
-    )
-
-  return(result)
-}
-
-#' Parse PanelApp TSV
-#'
-#' Parses the PanelApp intellectual disability panel TSV file.
-#'
-#' @param file_path Path to downloaded TSV file
-#'
-#' @return Tibble with extracted columns
-#'
-#' @export
-parse_panelapp_tsv <- function(file_path) {
-  data <- read_tsv(file_path, show_col_types = FALSE)
-
-  # Filter for genes only (not regions/STRs)
-  result <- data %>%
-    filter(`Entity type` == "gene") %>%
-    dplyr::select(
-      gene_symbol = `Gene Symbol`,
-      disease_ontology = Phenotypes,
-      category = GEL_Status,
-      inheritance = Model_Of_Inheritance,
-      pathogenicity_mode = `Mode of pathogenicity`,
-      phenotype = HPO,
-      publication_id = Publications,
-      version
-    ) %>%
-    mutate(list = "panelapp")
-
-  return(result)
-}
-
-#' Parse SFARI CSV
-#'
-#' Parses the SFARI autism gene database CSV file.
-#'
-#' @param file_path Path to downloaded CSV file
-#'
-#' @return Tibble with extracted columns
-#'
-#' @export
-parse_sfari_csv <- function(file_path) {
-  data <- read_csv(file_path, show_col_types = FALSE)
-
-  result <- data %>%
-    dplyr::select(
-      gene_symbol = `gene-symbol`,
-      disease_ontology_name = syndromic,
-      disease_ontology_id = syndromic,
-      category = `gene-score`
-    ) %>%
-    mutate(
-      list = "sfari",
-      version = basename(file_path) %>% str_remove(pattern = "\\.csv$"),
-      category = as.character(category),
-      disease_ontology_id = as.character(disease_ontology_id),
-      disease_ontology_name = as.character(disease_ontology_name)
-    )
-
-  return(result)
-}
-
-#' Parse Geisinger DBD CSV
-#'
-#' Parses the Geisinger Developmental Brain Disorders database CSV.
-#'
-#' @param file_path Path to downloaded CSV file
-#'
-#' @return Tibble with extracted columns
-#'
-#' @export
-parse_geisinger_csv <- function(file_path) {
-  data <- read_csv(file_path, show_col_types = FALSE)
-
-  # Create inheritance lookup table
-  geisinger_inheritance_lookup <- data %>%
-    dplyr::select(Inheritance, Chr) %>%
-    mutate(
-      Chr = case_when(
-        Chr > 22 ~ "X",
-        Chr <= 22 ~ "A",
-        is.na(Chr) ~ "A"
-      )
-    ) %>%
-    unique() %>%
-    mutate(
-      inheritance_term_name = case_when(
-        Chr == "X" ~ "X-linked inheritance",
-        Inheritance == "De novo" ~ "Sporadic",
-        Inheritance == "Inherited" ~ "Autosomal dominant inheritance",
-        Inheritance == "Maternal" ~ "Autosomal dominant inheritance",
-        Inheritance == "Paternal" ~ "Autosomal dominant inheritance",
-        Inheritance == "Parental" ~ "Autosomal dominant inheritance",
-        Inheritance == "Unknown" ~ "Autosomal dominant inheritance",
-        Inheritance == "Bi-parental" ~ "Autosomal recessive inheritance",
-        Inheritance == "Mosaic" ~ "Somatic mosaicism",
-        TRUE ~ NA_character_
-      )
-    ) %>%
-    mutate(Inheritance = paste0(Inheritance, "_", Chr)) %>%
-    dplyr::select(-Chr) %>%
-    unique()
-
-  # Process main data
-  geisinger_csv <- data %>%
-    dplyr::select(
-      gene_symbol = Gene,
-      ID = `ID?DD`,
-      Autism,
-      ADHD,
-      Schizophrenia,
-      Bipolar = `Bipolar Disorder`,
-      Inheritance,
-      PMID,
-      additional_information = `Additional Information`,
-      Chr
-    ) %>%
-    mutate(
-      Chr = case_when(
-        Chr > 22 ~ "X",
-        Chr <= 22 ~ "A",
-        is.na(Chr) ~ "A"
-      )
-    ) %>%
-    mutate(Inheritance = paste0(Inheritance, "_", Chr)) %>%
-    mutate(additional_information = str_extract(additional_information, pattern = "PMID [0-9]+")) %>%
-    mutate(additional_information = str_remove(additional_information, pattern = "PMID ")) %>%
-    mutate(PMID = as.character(PMID)) %>%
-    pivot_longer(c(PMID, additional_information), values_to = "PMID") %>%
-    filter(!is.na(PMID)) %>%
-    dplyr::select(-name) %>%
-    pivot_longer(c(ID, Autism, ADHD, Schizophrenia, Bipolar), names_to = "phenotype") %>%
-    filter(!is.na(value)) %>%
-    dplyr::select(-value) %>%
-    left_join(geisinger_inheritance_lookup, by = c("Inheritance")) %>%
-    dplyr::select(-Inheritance, -Chr) %>%
-    unique() %>%
-    group_by(gene_symbol) %>%
-    arrange(gene_symbol, PMID) %>%
-    mutate(PMID = paste0(PMID, collapse = ";")) %>%
-    unique() %>%
-    arrange(gene_symbol, phenotype) %>%
-    mutate(phenotype = paste0(phenotype, collapse = ";")) %>%
-    unique() %>%
-    arrange(gene_symbol, inheritance_term_name) %>%
-    mutate(inheritance_term_name = paste0(inheritance_term_name, collapse = ";")) %>%
-    unique() %>%
-    ungroup()
-
-  result <- geisinger_csv %>%
-    mutate(
-      list = "geisinger_DBD",
-      version = basename(file_path) %>% str_remove(pattern = "\\.csv$")
-    ) %>%
-    rename(inheritance = inheritance_term_name, publication_id = PMID)
-
-  return(result)
-}
-
-#' Parse Orphanet ID JSON
-#'
-#' Parses the Orphanet ID genes JSON from their API endpoint.
-#'
-#' @param file_path Path to downloaded JSON file
-#'
-#' @return Tibble with extracted columns
-#'
-#' @export
-parse_orphanet_json <- function(file_path) {
-  json_content <- paste(readLines(file_path, warn = FALSE), collapse = "")
-  json_data <- fromJSON(json_content)
-
-  result <- as_tibble(json_data$data) %>%
-    filter(GeneType != "Disorder-associated locus") %>%
-    mutate(
-      list = "orphanet_id",
-      version = basename(file_path) %>% str_remove(pattern = "\\.json$"),
-      category = "Definitive",
-      SourceOfValidation = str_replace_all(SourceOfValidation, " ", ""),
-      DisorderOMIM = str_replace_all(DisorderOMIM, "(?=[1-9][0-9]{5})", "OMIM:"),
-      DisorderOMIM = str_replace_all(DisorderOMIM, ", ", ";"),
-      OrphaCode = str_replace_all(OrphaCode, " ", ""),
-      DisorderGeneAssociationType = str_replace_all(DisorderGeneAssociationType, "<br>", ""),
-      SourceOfValidation = na_if(SourceOfValidation, "NULL")
-    ) %>%
-    separate_rows(Inheritance, sep = ", ") %>%
-    dplyr::select(
-      gene_symbol = GeneSymbol,
-      disease_ontology_id = OrphaCode,
-      disease_ontology_name = DisorderName,
-      inheritance = Inheritance,
-      pathogenicity_mode = DisorderGeneAssociationType,
-      publication_id = SourceOfValidation,
-      list,
-      version,
-      category
-    )
-
-  return(result)
-}
-
-#' Parse OMIM Genemap2 with HPO Phenotype-to-Genes Annotations
-#'
-#' Filters OMIM genemap2 data to NDD-related genes using the HPO
-#' phenotype_to_genes.txt file, which contains pre-propagated HPO hierarchy
-#' annotations. Filtering for HP:0012759 (Neurodevelopmental abnormality)
-#' captures all descendant terms automatically.
-#'
-#' @param genemap2_data Pre-parsed tibble from parse_genemap2()
-#' @param phenotype_to_genes_path Path to phenotype_to_genes.txt file
-#'
-#' @return Tibble with extracted NDD-related genes
-#'
-#' @export
-adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_path) {
-  # Read phenotype_to_genes.txt (tab-delimited, 1 header line starting with #)
-  ptg <- read_tsv(
-    phenotype_to_genes_path,
-    comment = "#",
-    col_names = c(
-      "hpo_id", "hpo_name", "ncbi_gene_id",
-      "gene_symbol", "disease_id"
-    ),
-    col_types = cols(.default = col_character()),
-    show_col_types = FALSE
-  )
-
-  # Filter for NDD root term (propagated annotations include all descendants)
-  # and OMIM diseases only
-  ndd_omim_diseases <- ptg %>%
-    filter(hpo_id == "HP:0012759") %>%
-    filter(str_detect(disease_id, "^OMIM:")) %>%
-    dplyr::select(disease_id) %>%
-    unique()
-
-  # Join to get NDD genes from pre-parsed genemap2 data
-  result <- ndd_omim_diseases %>%
-    left_join(
-      genemap2_data,
-      by = c("disease_id" = "disease_ontology_id")
-    ) %>%
-    filter(!is.na(Approved_Symbol)) %>%
-    mutate(
-      list = "omim_ndd",
-      version = format(Sys.Date(), "%Y-%m-%d"),
-      category = "Definitive"
-    ) %>%
-    dplyr::select(
-      gene_symbol = Approved_Symbol,
-      disease_ontology_id = disease_id,
-      disease_ontology_name,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      list,
-      version,
-      category
-    )
-
-  return(result)
-}
-
-#' Standardize Comparison Data
-#'
-#' Normalizes parsed data from any source to the common schema used in
-#' ndd_database_comparison table.
-#'
-#' @param parsed_data Tibble from a parse_* function
-#' @param source_name Name of the source (e.g., "radboudumc_ID")
-#' @param import_date Date string for import_date column
-#'
-#' @return Tibble with standardized columns
-#'
-#' @export
-standardize_comparison_data <- function(parsed_data, source_name, import_date) {
-  # Define expected columns
-  expected_cols <- c(
-    "symbol", "hgnc_id", "disease_ontology_id", "disease_ontology_name",
-    "inheritance", "category", "pathogenicity_mode", "phenotype",
-    "publication_id", "list", "version", "import_date", "granularity"
-  )
-
-  # Start with the parsed data
-  result <- parsed_data
-
-  # Rename gene_symbol to symbol if present
-  if ("gene_symbol" %in% colnames(result)) {
-    result <- result %>% rename(symbol = gene_symbol)
-  }
-
-  # Ensure all expected columns exist
-  for (col in expected_cols) {
-    if (!col %in% colnames(result)) {
-      result[[col]] <- NA_character_
-    }
-  }
-
-  # Set import_date
-  result$import_date <- import_date
-
-  # Set source-specific granularity
-  result$granularity <- switch(source_name,
-    "radboudumc_ID" = "gene,disease,category(implied)",
-    "gene2phenotype" = "gene,disease,inheritance,category,pathogenicity",
-    "panelapp" = "gene,disease(aggregated),inheritance(aggregated),category,pathogenicity(incomplete)",
-    "sfari" = "gene,disease,category",
-    "geisinger_DBD" = "gene,disease,category",
-    "omim_ndd" = "gene(aggregated),disease,inheritance(aggregated),category(implied)",
-    "orphanet_id" = "gene,disease,inheritance,category(implied),pathogenicity(low-resolution)",
-    "unknown"
-  )
-
-  # Handle radboudumc-specific OMIM ID formatting and set category
-  # Original script sets category = "Definitive" for all radboudumc entries
-  if (source_name == "radboudumc_ID" && "OMIMdiseaseID" %in% colnames(result)) {
-    result <- result %>%
-      dplyr::select(-any_of("disease_ontology_id")) %>%
-      rename(disease_ontology_id = OMIMdiseaseID) %>%
-      separate_rows(disease_ontology_id, sep = ";") %>%
-      mutate(
-        disease_ontology_id = case_when(
-          is.na(disease_ontology_id) ~ disease_ontology_id,
-          !is.na(disease_ontology_id) ~ paste0("OMIM:", disease_ontology_id)
-        ),
-        category = "Definitive"  # All radboudumc entries are considered Definitive
-      )
-  }
-
-  # Geisinger DBD also sets category = "Definitive" per original script
-  if (source_name == "geisinger_DBD") {
-    result <- result %>%
-      mutate(category = "Definitive")
-  }
-
-  # Handle gene2phenotype OMIM ID formatting
-  if (source_name == "gene2phenotype") {
-    result <- result %>%
-      mutate(
-        # Convert to character first (new G2P format has numeric disease_mim column)
-        disease_ontology_id = as.character(disease_ontology_id),
-        # Handle both old format ("No disease mim" text) and new format (NA)
-        disease_ontology_id = na_if(disease_ontology_id, "No disease mim"),
-        disease_ontology_id = case_when(
-          is.na(disease_ontology_id) ~ NA_character_,
-          TRUE ~ paste0("OMIM:", disease_ontology_id)
-        ),
-        phenotype = str_replace_all(phenotype, ";", ","),
-        publication_id = str_replace_all(publication_id, ";", ",")
-      )
-  }
-
-  # Handle panelapp OMIM/MONDO ID extraction
-  if (source_name == "panelapp" && "disease_ontology" %in% colnames(result)) {
-    result <- result %>%
-      mutate(
-        disease_ontology = str_replace_all(disease_ontology, "(?<=[1-9][0-9]{5})", ";"),
-        disease_ontology = str_replace_all(disease_ontology, "(?=[1-9][0-9]{5})", "OMIM:"),
-        disease_ontology = str_replace_all(disease_ontology, "OMIM:OMIM:", "OMIM:"),
-        disease_ontology = str_replace_all(disease_ontology, ";;", ";"),
-        disease_ontology = str_replace_all(disease_ontology, "; ", ";"),
-        disease_ontology = str_replace(disease_ontology, ";$", ""),
-        publication_id = str_replace_all(publication_id, ";", ",")
-      ) %>%
-      separate_rows(disease_ontology, sep = ";") %>%
-      separate(disease_ontology, c("disease_ontology_name", "disease_ontology_id"),
-               sep = "(?=OMIM:|MONDO:)", fill = "right") %>%
-      mutate(
-        disease_ontology_name = str_squish(disease_ontology_name),
-        disease_ontology_id = str_squish(disease_ontology_id),
-        disease_ontology_name = str_replace(disease_ontology_name, ",$", "")
-      ) %>%
-      {
-        # Guard rowwise operations against empty tibble
-        if (nrow(.) > 0) {
-          rowwise(.) %>%
-            mutate(
-              category = toString(category),
-              version = toString(version)
-            ) %>%
-            ungroup()
-        } else {
-          .
-        }
-      }
-  }
-
-  # Select only expected columns in order
-  result <- result %>%
-    dplyr::select(all_of(expected_cols))
-
-  return(result)
 }
 
 #' Resolve HGNC Symbols to HGNC IDs
@@ -711,7 +244,10 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 #' Downloads all active sources, parses, standardizes, resolves HGNC IDs,
 #' merges, and atomically updates the database.
 #'
-#' All-or-nothing: any source failure aborts entire refresh.
+#' Resilient per-list refresh: each source is downloaded/parsed independently;
+#' a source that fails keeps its previously-imported rows (per-list replace), and
+#' the refresh only aborts when every source fails. Status is "success" (all ok)
+#' or "partial" (some failed), recorded in comparisons_metadata.
 #'
 #' @param params List containing:
 #'   - db_config: Database connection config (host, port, user, password, dbname)
@@ -762,6 +298,9 @@ comparisons_update_async <- function(params) {
     # Track downloaded files
     downloaded_files <- list()
     all_parsed_data <- list()
+    # Sources that failed download or parse this run. They are NOT aborted on;
+    # they keep their previously-imported rows via the per-list replace below.
+    failed_sources <- character(0)
     import_date <- format(Sys.Date(), "%Y-%m-%d")
 
     # Download all sources
@@ -777,9 +316,13 @@ comparisons_update_async <- function(params) {
       file_path <- download_source_data(source, temp_dir)
 
       if (is.null(file_path)) {
-        update_comparisons_metadata(conn, "failed", nrow(sources), 0,
-                                    sprintf("Failed to download %s", source_name))
-        stop(sprintf("Failed to download source: %s", source_name))
+        # Resilient refresh: record the failure and keep going. This source
+        # retains its previously-imported rows (per-list replace below) instead
+        # of freezing every comparator because one upstream is down.
+        failed_sources <- c(failed_sources, source_name)
+        message(sprintf("[%s] [job:%s] Download FAILED for %s; keeping its previous data",
+                        Sys.time(), job_id, source_name))
+        next
       }
 
       downloaded_files[[source_name]] <- file_path
@@ -795,8 +338,6 @@ comparisons_update_async <- function(params) {
       source_name <- source$source_name
       file_path <- downloaded_files[[source_name]]
 
-      message(sprintf("[%s] [job:%s] Parsing %s...", Sys.time(), job_id, source_name))
-
       # Skip deprecated sources that may remain if migrations haven't run
       deprecated_sources <- c("phenotype_hpoa", "omim_genemap2",
                               "hpo_phenotype_to_genes")
@@ -806,23 +347,33 @@ comparisons_update_async <- function(params) {
         next
       }
 
+      # Skip sources whose download failed above (already recorded as failed).
+      if (is.null(file_path)) {
+        next
+      }
+
+      message(sprintf("[%s] [job:%s] Parsing %s...", Sys.time(), job_id, source_name))
+
       parsed_data <- tryCatch({
         switch(source_name,
           "radboudumc_ID" = parse_radboudumc_pdf(file_path),
           "gene2phenotype" = parse_gene2phenotype_csv(file_path),
           "panelapp" = parse_panelapp_tsv(file_path),
           "sfari" = parse_sfari_csv(file_path),
-          "geisinger_DBD" = parse_geisinger_csv(file_path),
+          "ndd_genehub" = parse_ndd_genehub_csv(file_path),
           "orphanet_id" = parse_orphanet_json(file_path),
           stop(sprintf("Unknown source: %s", source_name))
         )
       }, error = function(e) {
-        update_comparisons_metadata(conn, "failed", nrow(sources), 0,
-                                    sprintf("Failed to parse %s: %s", source_name, e$message))
-        stop(sprintf("Failed to parse %s: %s", source_name, e$message))
+        # Resilient refresh: record the parse failure and keep going.
+        message(sprintf("[%s] [job:%s] Parse FAILED for %s: %s; keeping its previous data",
+                        Sys.time(), job_id, source_name, e$message))
+        NULL
       })
 
-      if (!is.null(parsed_data) && nrow(parsed_data) > 0) {
+      if (is.null(parsed_data)) {
+        failed_sources <- c(failed_sources, source_name)
+      } else if (nrow(parsed_data) > 0) {
         # Standardize the data
         standardized <- standardize_comparison_data(parsed_data, source_name, import_date)
         all_parsed_data[[source_name]] <- standardized
@@ -841,12 +392,27 @@ comparisons_update_async <- function(params) {
       parsed <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
       standardize_comparison_data(parsed, "omim_genemap2", import_date)
     }, error = function(e) {
-      update_comparisons_metadata(conn, "failed", nrow(sources), 0,
-                                   sprintf("Failed to parse omim_genemap2: %s", e$message))
-      stop(sprintf("Failed to parse omim_genemap2: %s", e$message))
+      # Resilient refresh: OMIM needs OMIM_DOWNLOAD_KEY + external egress. If it
+      # is unavailable, keep the previous omim_ndd rows instead of aborting the
+      # whole refresh.
+      message(sprintf("[%s] [job:%s] OMIM parse FAILED: %s; keeping previous omim_ndd data",
+                      Sys.time(), job_id, e$message))
+      NULL
     })
-    all_parsed_data[["omim_genemap2"]] <- omim_parsed
-    message(sprintf("[%s] [job:%s] Parsed %d rows from omim_genemap2", Sys.time(), job_id, nrow(omim_parsed)))
+    if (is.null(omim_parsed)) {
+      failed_sources <- c(failed_sources, "omim_genemap2")
+    } else {
+      all_parsed_data[["omim_genemap2"]] <- omim_parsed
+      message(sprintf("[%s] [job:%s] Parsed %d rows from omim_genemap2", Sys.time(), job_id, nrow(omim_parsed)))
+    }
+
+    # Decide commit vs abort from which sources produced data. Never wipe the
+    # table on a total outage; commit succeeded sources otherwise.
+    outcome <- comparisons_refresh_outcome(names(all_parsed_data), unique(failed_sources))
+    if (!isTRUE(outcome$commit)) {
+      update_comparisons_metadata(conn, "failed", 0, 0, outcome$error)
+      stop(outcome$error)
+    }
 
     # Merge all data
     progress("merge", "Merging and resolving HGNC IDs...",
@@ -855,10 +421,16 @@ comparisons_update_async <- function(params) {
     merged_data <- bind_rows(all_parsed_data)
 
     if (nrow(merged_data) == 0) {
+      update_comparisons_metadata(conn, "failed", 0, 0, "No rows parsed from any source")
       stop("No data parsed from any source")
     }
 
-    message(sprintf("[%s] [job:%s] Merged %d total rows", Sys.time(), job_id, nrow(merged_data)))
+    message(sprintf(
+      "[%s] [job:%s] Merged %d rows from %d source(s); %d failed (%s)",
+      Sys.time(), job_id, nrow(merged_data), length(all_parsed_data),
+      length(unique(failed_sources)),
+      if (length(failed_sources)) paste(unique(failed_sources), collapse = ", ") else "none"
+    ))
 
     # Resolve HGNC symbols - use unique symbols only to avoid duplication
     symbols_to_resolve <- unique(toupper(merged_data$symbol[!is.na(merged_data$symbol)]))
@@ -888,38 +460,50 @@ comparisons_update_async <- function(params) {
       ) %>%
       mutate(symbol = coalesce(resolved_symbol, symbol)) %>%
       dplyr::select(-resolved_symbol) %>%
-      # Filter out rows without HGNC ID
-      filter(!is.na(hgnc_id) & hgnc_id != "HGNC:NA") %>%
-      # Add comparison_id
-      mutate(comparison_id = row_number())
+      # Filter out rows without HGNC ID. (comparison_id is AUTO_INCREMENT and is
+      # intentionally NOT assigned here so the per-list replace below never
+      # collides with rows retained from sources that were not refreshed.)
+      filter(!is.na(hgnc_id) & hgnc_id != "HGNC:NA")
 
     message(sprintf("[%s] [job:%s] Final dataset: %d rows with HGNC IDs", Sys.time(), job_id, nrow(merged_data)))
+
+    # Only replace the lists we successfully refreshed; failed sources keep their
+    # existing rows.
+    refreshed_lists <- unique(merged_data$list[!is.na(merged_data$list)])
 
     # Write to database atomically
     progress("write", "Writing to database...",
              current = 2 + nrow(sources) + 3, total = 2 + nrow(sources) + 4)
 
-    # Atomic table replacement: DELETE + INSERT in transaction
+    # Per-list atomic replacement: DELETE(refreshed lists) + INSERT in a txn
     tryCatch({
       DBI::dbBegin(conn)
 
-      # Delete existing data
-      DBI::dbExecute(conn, "DELETE FROM ndd_database_comparison")
+      # Delete only the successfully-refreshed lists (never a blanket wipe).
+      if (length(refreshed_lists) > 0) {
+        placeholders <- paste(rep("?", length(refreshed_lists)), collapse = ", ")
+        del_stmt <- DBI::dbSendStatement(
+          conn,
+          sprintf("DELETE FROM ndd_database_comparison WHERE list IN (%s)", placeholders)
+        )
+        DBI::dbBind(del_stmt, unname(as.list(refreshed_lists)))
+        DBI::dbClearResult(del_stmt)
+      }
 
-      # Insert new data
+      # Insert new data (let the DB assign comparison_id via AUTO_INCREMENT).
       if (nrow(merged_data) > 0) {
-        # Select only columns that exist in the table
         table_cols <- DBI::dbListFields(conn, "ndd_database_comparison")
         insert_data <- merged_data %>%
-          dplyr::select(any_of(table_cols))
+          dplyr::select(any_of(setdiff(table_cols, "comparison_id")))
 
         DBI::dbAppendTable(conn, "ndd_database_comparison", insert_data)
       }
 
-      # Update metadata
-      update_comparisons_metadata(conn, "success", length(all_parsed_data), nrow(merged_data))
+      # Update metadata (success or partial, with the failed-source warning)
+      update_comparisons_metadata(conn, outcome$status, length(all_parsed_data),
+                                  nrow(merged_data), outcome$error)
 
-      # Update source timestamps
+      # Update source timestamps for the sources that refreshed
       for (source_name in names(all_parsed_data)) {
         # Skip omim_genemap2 (not in comparisons_config table anymore)
         if (source_name == "omim_genemap2") {
@@ -937,16 +521,25 @@ comparisons_update_async <- function(params) {
       stop(sprintf("Database write failed: %s", e$message))
     })
 
-    message(sprintf("[%s] [job:%s] Comparisons update completed: %d rows from %d sources",
-                    Sys.time(), job_id, nrow(merged_data), length(all_parsed_data)))
+    message(sprintf("[%s] [job:%s] Comparisons update %s: %d rows from %d source(s), %d failed",
+                    Sys.time(), job_id, outcome$status, nrow(merged_data),
+                    length(all_parsed_data), length(unique(failed_sources))))
 
-    # Return success result
+    # Return result (status is "success" or "partial")
     list(
       status = "completed",
+      refresh_status = outcome$status,
       sources_updated = length(all_parsed_data),
+      sources_failed = length(unique(failed_sources)),
+      failed_sources = unique(failed_sources),
       rows_written = nrow(merged_data),
-      message = sprintf("Successfully updated %d rows from %d sources",
-                        nrow(merged_data), length(all_parsed_data))
+      message = if (identical(outcome$status, "partial")) {
+        sprintf("Updated %d rows from %d source(s); %s",
+                nrow(merged_data), length(all_parsed_data), outcome$error)
+      } else {
+        sprintf("Successfully updated %d rows from %d sources",
+                nrow(merged_data), length(all_parsed_data))
+      }
     )
 
   }, error = function(e) {

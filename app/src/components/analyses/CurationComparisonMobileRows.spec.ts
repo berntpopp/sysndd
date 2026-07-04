@@ -15,7 +15,7 @@ describe('CurationComparisonMobileRows', () => {
             panelapp: 'Green',
             radboudumc_ID: '',
             sfari: 'not listed',
-            geisinger_DBD: 'DBD-123',
+            ndd_genehub: 'DBD-123',
             orphanet_id: null,
             omim_ndd: 'false',
           },

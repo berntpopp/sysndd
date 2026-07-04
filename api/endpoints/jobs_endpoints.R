@@ -95,7 +95,7 @@ function(req, res) {
       "https://www.ebi.ac.uk/QuickGO/term/",
       "https://disease-ontology.org/term/",
       "https://www.ebi.ac.uk/QuickGO/term/",
-      "https://hpo.jax.org/app/browse/term/",
+      "https://hpo.jax.org/browse/term/",
       "http://www.ebi.ac.uk/interpro/entry/InterPro/",
       "https://www.genome.jp/dbget-bin/www_bget?",
       "https://www.uniprot.org/keywords/",

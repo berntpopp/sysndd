@@ -19,7 +19,7 @@
         <BPopover target="popover-badge-help-upset" variant="info" triggers="focus hover">
           <template #title>Comparisons of Curation Efforts</template>
           UpSet plots show set intersections as connected dots and bars. Sources include SysNDD,
-          Radboudumc, SFARI, Gene2Phenotype, PanelApp, Geisinger DBD, Orphanet and OMIM NDD.
+          Radboudumc, SFARI, Gene2Phenotype, PanelApp, NDD GeneHub, Orphanet and OMIM NDD.
         </BPopover>
       </div>
       <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />

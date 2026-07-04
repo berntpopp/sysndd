@@ -230,7 +230,7 @@ function(req,
          fields = "",
          `page_after` = "0",
          `page_size` = "10",
-         fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id,omim_ndd",
+         fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,ndd_genehub,orphanet_id,omim_ndd",
          definitive_only = "false",
          format = "json") {
   # Set serializer
@@ -322,6 +322,84 @@ function() {
     last_refresh_error = metadata$last_refresh_error,
     sources_count = metadata$sources_count,
     rows_imported = metadata$rows_imported
+  )
+}
+
+#* Get Comparison Source Registry
+#*
+#* Returns the active external comparison sources (from `comparisons_config`)
+#* plus the out-of-band OMIM-NDD source, so the frontend provenance panel is
+#* driven by the live source registry (current URLs + per-source last-updated)
+#* instead of hardcoded, drift-prone text. Also returns the last full-refresh
+#* timestamp for the panel header.
+#*
+#* @tag comparisons
+#* @serializer json list(na="string")
+#*
+#* @get /sources
+function() {
+  labels <- c(
+    radboudumc_ID = "Radboudumc ID",
+    gene2phenotype = "Gene2Phenotype",
+    panelapp = "PanelApp (Intellectual disability)",
+    sfari = "SFARI Gene",
+    ndd_genehub = "NDD GeneHub",
+    orphanet_id = "Orphanet ID"
+  )
+
+  cfg <- tryCatch(
+    pool %>%
+      tbl("comparisons_config") %>%
+      dplyr::filter(is_active == 1) %>%
+      dplyr::arrange(id) %>%
+      dplyr::collect(),
+    error = function(e) NULL
+  )
+
+  meta <- tryCatch(
+    pool %>% tbl("comparisons_metadata") %>% dplyr::collect() %>% dplyr::slice(1),
+    error = function(e) NULL
+  )
+  last_full_refresh <- if (!is.null(meta) && nrow(meta) > 0) {
+    as.character(meta$last_full_refresh[[1]])
+  } else {
+    NA_character_
+  }
+
+  sources <- list()
+  if (!is.null(cfg) && nrow(cfg) > 0) {
+    for (i in seq_len(nrow(cfg))) {
+      nm <- cfg$source_name[[i]]
+      sources[[length(sources) + 1]] <- list(
+        name = nm,
+        label = if (nm %in% names(labels)) labels[[nm]] else nm,
+        url = cfg$source_url[[i]],
+        format = cfg$file_format[[i]],
+        last_updated = as.character(cfg$last_updated[[i]]),
+        description = NA_character_
+      )
+    }
+  }
+
+  # OMIM-NDD is derived out-of-band (not in comparisons_config); describe it.
+  omim_seed <- Sys.getenv("OMIM_NDD_SEED_TERM", unset = "HP:0012759")
+  sources[[length(sources) + 1]] <- list(
+    name = "omim_ndd",
+    label = "OMIM NDD",
+    url = "http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt",
+    format = "txt",
+    last_updated = last_full_refresh,
+    description = paste0(
+      "Filtered OMIM for the HPO term \"Neurodevelopmental abnormality\" (",
+      omim_seed,
+      ") using the pre-propagated phenotype_to_genes.txt and OMIM genemap2 ",
+      "(requires an OMIM download key)."
+    )
+  )
+
+  list(
+    last_full_refresh = last_full_refresh,
+    sources = sources
   )
 }
 

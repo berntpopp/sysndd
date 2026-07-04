@@ -106,13 +106,16 @@ hpo_name_from_term <- function(term_input_id) {
       {
         hpo_term_response <- jsonlite::fromJSON(
           paste0(
-            "https://hpo.jax.org/api/hpo/term/",
+            "https://ontology.jax.org/api/hp/terms/",
             URLencode(term_input_id, reserved = TRUE)
           )
         )
 
-        hpo_term_name <- tidyr::as_tibble(hpo_term_response$details$name) %>%
-          dplyr::select(hpo_mode_of_inheritance_term_name = value)
+        term_name <- hpo_term_response$name
+        if (is.null(term_name) || length(term_name) == 0) term_name <- NA_character_
+        hpo_term_name <- tibble::tibble(
+          hpo_mode_of_inheritance_term_name = as.character(term_name)[1]
+        )
 
         return(hpo_term_name)
       },
@@ -155,13 +158,16 @@ hpo_definition_from_term <- function(term_input_id) {
       {
         hpo_term_response <- jsonlite::fromJSON(
           paste0(
-            "https://hpo.jax.org/api/hpo/term/",
+            "https://ontology.jax.org/api/hp/terms/",
             URLencode(term_input_id, reserved = TRUE)
           )
         )
 
-        hpo_term_definition <- tidyr::as_tibble(hpo_term_response$details$definition) %>%
-          dplyr::select(hpo_mode_of_inheritance_term_definition = value)
+        term_definition <- hpo_term_response$definition
+        if (is.null(term_definition) || length(term_definition) == 0) term_definition <- ""
+        hpo_term_definition <- tibble::tibble(
+          hpo_mode_of_inheritance_term_definition = as.character(term_definition)[1]
+        )
 
         return(hpo_term_definition)
       },
@@ -202,14 +208,19 @@ hpo_children_count_from_term <- function(term_input_id) {
   for (attempt in 1:retries) {
     tryCatch(
       {
-        hpo_term_response <- jsonlite::fromJSON(
+        hpo_term_children <- jsonlite::fromJSON(
           paste0(
-            "https://hpo.jax.org/api/hpo/term/",
-            URLencode(term_input_id, reserved = TRUE)
+            "https://ontology.jax.org/api/hp/terms/",
+            URLencode(term_input_id, reserved = TRUE),
+            "/children"
           )
         )
 
-        hpo_term_children_count <- length(hpo_term_response$relations$children)
+        hpo_term_children_count <- if (is.data.frame(hpo_term_children)) {
+          nrow(hpo_term_children)
+        } else {
+          length(hpo_term_children)
+        }
 
         return(hpo_term_children_count)
       },
@@ -248,14 +259,15 @@ hpo_children_from_term_api <- function(term_input_id) {
   for (attempt in 1:retries) {
     tryCatch(
       {
-        hpo_term_response <- jsonlite::fromJSON(
+        hpo_term_children_response <- jsonlite::fromJSON(
           paste0(
-            "https://hpo.jax.org/api/hpo/term/",
-            URLencode(term_input_id, reserved = TRUE)
+            "https://ontology.jax.org/api/hp/terms/",
+            URLencode(term_input_id, reserved = TRUE),
+            "/children"
           )
         )
 
-        hpo_term_children <- tidyr::as_tibble(hpo_term_response$relations$children)
+        hpo_term_children <- tidyr::as_tibble(hpo_term_children_response)
 
         return(hpo_term_children)
       },
@@ -288,24 +300,22 @@ hpo_children_from_term_api <- function(term_input_id) {
 #'
 #' @export
 hpo_all_children_from_term_api <- function(term_input, all_children_list = list()) {
-  children_list <- hpo_children_from_term_api(term_input)
+  # The current JAX ontology API exposes a /descendants endpoint that returns
+  # the full transitive descendant set in a single request, so this no longer
+  # recursively walks one HTTP call per term (against the retired hpo.jax.org
+  # API). Returns the seed term plus all of its descendants.
+  desc_url <- paste0(
+    "https://ontology.jax.org/api/hp/terms/",
+    URLencode(term_input, reserved = TRUE),
+    "/descendants"
+  )
+  descendants <- tryCatch(jsonlite::fromJSON(desc_url), error = function(e) NULL)
 
-  # Combine all_children_list and term_input
-  all_children_list <- c(all_children_list, term_input)
-
-  if (length(children_list) != 0) {
-    for (p in children_list$ontologyId) {
-      # Update all_children_list with each recursive call
-      all_children_list <- hpo_all_children_from_term_api(p, all_children_list)
-    }
+  ids <- term_input
+  if (!is.null(descendants) && length(descendants) > 0) {
+    desc_ids <- if (is.data.frame(descendants)) descendants$id else descendants
+    ids <- c(ids, as.character(desc_ids))
   }
 
-  # If no more children are found, convert the list to a tibble and remove duplicates
-  if (length(children_list) == 0) {
-    all_children_tibble <- tidyr::as_tibble(unlist(all_children_list)) %>%
-      unique()
-    return(all_children_tibble)
-  } else {
-    return(all_children_list)
-  }
+  tidyr::as_tibble(unique(c(unlist(all_children_list), ids)))
 }

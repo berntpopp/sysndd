@@ -210,3 +210,68 @@ export async function getComparisonsMetadata(
 ): Promise<ComparisonsMetadata> {
   return apiClient.get<ComparisonsMetadata>('/api/comparisons/metadata', config);
 }
+
+/**
+ * A single external comparison source, as advertised by the live source
+ * registry (`comparisons_config` + the derived OMIM-NDD source).
+ */
+export interface ComparisonsSource {
+  name: string;
+  label: string;
+  url: string | null;
+  format: string | null;
+  last_updated: string | null;
+  description: string | null;
+}
+
+export interface ComparisonsSourcesResponse {
+  last_full_refresh: string | null;
+  sources: ComparisonsSource[];
+}
+
+/** Plumber serializes scalars as single-element arrays; unwrap them. */
+function unwrapScalar(value: unknown): unknown {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function toStr(value: unknown): string {
+  return String(unwrapScalar(value) ?? '');
+}
+
+/** Unwrap + normalize the `na="string"` serializer's `"NA"`/empty to null. */
+function toStrOrNull(value: unknown): string | null {
+  const scalar = unwrapScalar(value);
+  if (scalar === null || scalar === undefined) return null;
+  const str = String(scalar);
+  return str === 'NA' || str === '' ? null : str;
+}
+
+/**
+ * GET /api/comparisons/sources
+ * Mirrors api/endpoints/comparisons_endpoints.R (handler `@get /sources`).
+ *
+ * Returns the live comparison-source registry (current download URLs and
+ * per-source last-updated timestamps) plus the last full-refresh time, so the
+ * provenance panel stays in sync with the API instead of hardcoded text.
+ * Plumber array-wrapping is unwrapped here so callers get clean scalars.
+ */
+export async function getComparisonsSources(
+  config?: AxiosRequestConfig
+): Promise<ComparisonsSourcesResponse> {
+  const raw = await apiClient.get<Record<string, unknown>>('/api/comparisons/sources', config);
+  const rawSources = Array.isArray(raw?.sources)
+    ? (raw.sources as Array<Record<string, unknown>>)
+    : [];
+  const sources: ComparisonsSource[] = rawSources.map((s) => ({
+    name: toStr(s.name),
+    label: toStr(s.label),
+    url: toStrOrNull(s.url),
+    format: toStrOrNull(s.format),
+    last_updated: toStrOrNull(s.last_updated),
+    description: toStrOrNull(s.description),
+  }));
+  return {
+    last_full_refresh: toStrOrNull(raw?.last_full_refresh),
+    sources,
+  };
+}

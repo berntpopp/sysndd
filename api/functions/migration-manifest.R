@@ -2,7 +2,7 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "037_add_analysis_snapshot_validation.sql"
+EXPECTED_LATEST_MIGRATION <- "040_rename_geisinger_to_ndd_genehub.sql"
 EXPECTED_MIGRATION_COUNT <- 35L
 
 #' Validate the migration manifest for strict startup/readiness checks

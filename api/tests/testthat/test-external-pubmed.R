@@ -18,8 +18,13 @@ library(xml2)
 library(rvest)
 
 # Source required files using helper-paths.R (loaded automatically by setup.R)
-# Use local = FALSE to make functions available in test scope
+# Use local = FALSE to make functions available in test scope.
+# pubmed-xml-parser.R must be sourced explicitly into the test scope: the
+# guard-source inside publication-functions.R uses base `source(local = TRUE)`,
+# which does not surface `table_articles_from_xml` into the test_that scope the
+# way the helper's `source_api_file(local = FALSE)` does (#500 parser split).
 source_api_file("functions/genereviews-functions.R", local = FALSE)
+source_api_file("functions/pubmed-xml-parser.R", local = FALSE)
 source_api_file("functions/publication-functions.R", local = FALSE)
 
 # Skip tests if required packages not available

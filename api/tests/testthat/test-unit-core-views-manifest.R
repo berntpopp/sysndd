@@ -9,8 +9,8 @@
 source_api_file("functions/migration-manifest.R", local = FALSE)
 source_api_file("functions/migration-runner.R", local = FALSE)
 
-test_that("manifest expects migration 037 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "037_add_analysis_snapshot_validation.sql")
+test_that("manifest expects migration 040 as latest", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "040_rename_geisinger_to_ndd_genehub.sql")
   expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
 })
 
@@ -18,7 +18,7 @@ test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(get_api_dir(), "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "037_add_analysis_snapshot_validation.sql")
+  expect_identical(res$latest, "040_rename_geisinger_to_ndd_genehub.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {

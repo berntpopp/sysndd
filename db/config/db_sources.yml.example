@@ -21,8 +21,10 @@ sources:
   genenames_rest_base: "http://rest.genenames.org/search"
 
   # Human Phenotype Ontology term API base — scripts 02, 03, 04, 11.
-  # Full URLs are built as "<base>/<url-encoded term id>".
-  hpo_term_api_base: "https://hpo.jax.org/api/hpo/term"
+  # Full URLs are built as "<base>/<url-encoded term id>" for term detail and
+  # "<base>/<id>/children" / "<base>/<id>/descendants" for the hierarchy.
+  # The legacy hpo.jax.org term API was retired; use the Monarch ontology API.
+  hpo_term_api_base: "https://ontology.jax.org/api/hp/terms"
 
   # EBI OxO cross-ontology mappings API — scripts 02, 04.
   # Full URLs are built as "<base>?fromId=<id>".

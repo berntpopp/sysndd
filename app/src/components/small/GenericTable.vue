@@ -370,9 +370,9 @@
       </slot>
     </template>
 
-    <template #cell(geisinger_DBD)="data">
-      <slot name="cell-geisinger_DBD" :row="data.item" :index="data.index">
-        {{ data.item.geisinger_DBD }}
+    <template #cell(ndd_genehub)="data">
+      <slot name="cell-ndd_genehub" :row="data.item" :index="data.index">
+        {{ data.item.ndd_genehub }}
       </slot>
     </template>
 
