@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.28.1] — 2026-07-04
+
+Follow-ups to the v0.28.0 comparison work.
+
+### Fixed
+
+- **OMIM-NDD comparator now includes the seed term's HPO descendants, not just the exact seed** (follow-up to #502): `adapt_genemap2_for_comparisons()` filtered `hpo_id == seed_term` on HPO's `phenotype_to_genes.txt`, on the assumption that the file is upward-propagated. It is not — a disease annotated only with a specific descendant term (e.g. `HP:0001249` "Intellectual disability") does **not** also carry the ancestor seed `HP:0012759` "Neurodevelopmental abnormality", so the single-seed filter silently dropped it. Measured against the current HPO release, the seed-only filter matched 2216 OMIM diseases while the seed + its 48 descendants match 2844 — ~628 NDD diseases (including ~25 annotated with intellectual disability) were missing. The adapter now expands the seed to its full descendant set via `omim_ndd_resolve_terms()` (JAX ontology `/descendants` API via `hpo_all_children_from_term_api()`, degrading to seed-only on failure) and filters `hpo_id %in% ndd_terms` — matching the kidney-genetics pipeline and this repo's own db-side data-prep script, which already did `HPO_all_children_from_term()` + `filter(hpo_id %in% ndd_phenotypes)` (only the API side was out of sync). `omim_ndd_seed_sweep()` inherits the fix (each seed expands to its subtree). Regression-guarded by a descendant-only fixture case in `test-unit-comparisons-functions.R`. Worker-executed; restart the worker after deploy.
+- **`normalize_comparison_categories()` ndd_genehub docstring** corrected to spell out the actual differentiated Tier→ClinGen mapping (Tier 1/AR→Definitive, Tier 2→Moderate, Tier 3/4/Missense/Unclassified→Limited) instead of the stale "all entries → Definitive" (#504).
+
 ## [0.28.0] — 2026-07-04
 
 Curation-comparison source repair + refresh hardening, and the upstream half of #502 (configurable OMIM-NDD seed). The single dead comparison source (`geisinger_DBD`) had been blocking every production comparison refresh; the refresh is now resilient so no single dead upstream can freeze the comparator again.
