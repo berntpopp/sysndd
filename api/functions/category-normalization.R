@@ -34,7 +34,11 @@
 #'   - "2" → "Moderate"
 #'   - "3" → "Limited"
 #'   - NA → "Definitive"
-#' - **ndd_genehub**: All entries → "Definitive"
+#' - **ndd_genehub** (NDD GeneHub evidence tiers → normalized scale):
+#'   - "Tier 1", "AR" → "Definitive"
+#'   - "Tier 2" → "Moderate"
+#'   - "Tier 3", "Tier 4", "Missense" → "Limited"
+#'   - any other tier (e.g. "Unclassified") → "Limited"
 #' - **radboudumc_ID**: All entries → "Definitive"
 #' - **SysNDD, omim_ndd, orphanet_id**: Categories unchanged
 #'
