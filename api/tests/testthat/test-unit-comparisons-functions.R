@@ -477,7 +477,9 @@ test_that("adapt_genemap2_for_comparisons returns correct schema columns", {
   genemap2_data <- parse_genemap2(genemap2_path)
 
   # Pass pre-parsed data to adapter
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   # Must have exact comparisons schema columns
   expected_cols <- c("gene_symbol", "disease_ontology_id", "disease_ontology_name",
@@ -493,7 +495,9 @@ test_that("adapt_genemap2_for_comparisons filters only NDD-related entries", {
   skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   # Should include NDD genes (those matching HP:0012759 in phenotype_to_genes.txt)
   # Should NOT include non-NDD genes (e.g., BRCA1 only has HP:0003002)
@@ -520,7 +524,9 @@ test_that("adapt_genemap2_for_comparisons uses date-based version field", {
   skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -538,7 +544,9 @@ test_that("adapt_genemap2_for_comparisons has normalized inheritance values", {
   skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -559,7 +567,9 @@ test_that("adapt_genemap2_for_comparisons disease_ontology_id has OMIM prefix", 
   skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -574,7 +584,9 @@ test_that("adapt_genemap2_for_comparisons excludes entries without gene symbol",
   skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  # ndd_terms injected (seed-only) to keep the test deterministic and offline;
+  # descendant expansion is covered by its own regression test below.
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
 
   # No NA gene_symbol values should be present
   expect_false(any(is.na(result$gene_symbol)))
@@ -588,13 +600,13 @@ test_that("adapt_genemap2_for_comparisons receives tibble not file path", {
 
   # Passing a file path (string) instead of tibble should error
   expect_error(
-    adapt_genemap2_for_comparisons(genemap2_path, ptg_path),
+    adapt_genemap2_for_comparisons(genemap2_path, ptg_path, ndd_terms = "HP:0012759"),
     regexp = NULL  # Any error - adapter expects tibble not string
   )
 
   # Passing pre-parsed tibble should work
   genemap2_data <- parse_genemap2(genemap2_path)
-  expect_no_error(adapt_genemap2_for_comparisons(genemap2_data, ptg_path))
+  expect_no_error(adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759"))
 })
 
 # ============================================================================
@@ -633,7 +645,7 @@ test_that("comparisons_refresh_outcome ignores NA/empty source names", {
 # #502: configurable NDD seed + omim_ndd_seed_sweep()
 # ============================================================================
 
-test_that("adapt_genemap2_for_comparisons honors the seed_term argument", {
+test_that("adapt_genemap2_for_comparisons honors the ndd_terms set", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
   ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
@@ -641,15 +653,46 @@ test_that("adapt_genemap2_for_comparisons honors the seed_term argument", {
 
   genemap2_data <- parse_genemap2(genemap2_path)
 
-  default_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
-  explicit_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:0012759")
-  # Default argument reproduces the historical HP:0012759 set exactly.
-  expect_equal(nrow(default_res), nrow(explicit_res))
+  # The NDD term set drives the filter (not a hardcoded term).
+  seed_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
+  expect_true(all(c("MECP2", "SCN1A") %in% seed_res$gene_symbol))
 
-  # A seed absent from the fixture yields no NDD genes (proves the filter uses
-  # the argument, not the hardcoded term).
-  absent_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:9999999")
+  # A term set absent from the fixture yields no NDD genes. seed_term is always
+  # unioned in, so pass an absent seed_term with an empty ndd_terms set.
+  absent_res <- adapt_genemap2_for_comparisons(
+    genemap2_data, ptg_path, seed_term = "HP:9999999", ndd_terms = character(0)
+  )
   expect_equal(nrow(absent_res), 0)
+})
+
+test_that("adapt_genemap2_for_comparisons captures descendant-only NDD diseases (kidney-style expansion)", {
+  # Regression guard for the fix: HPO's phenotype_to_genes.txt is NOT upward
+  # propagated, so a disease annotated only with a descendant term (here
+  # HP:0001249 "Intellectual disability", a child of the seed HP:0012759) must
+  # still be captured by expanding the seed to its descendants. Filtering the
+  # single seed alone silently drops it.
+  genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
+  skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
+  genemap2_data <- parse_genemap2(genemap2_path)
+
+  # SCN1A (OMIM:607208) is in the genemap2 fixture; annotate it ONLY with the
+  # descendant term, never the seed.
+  tmp_ptg <- tempfile(fileext = ".txt")
+  on.exit(unlink(tmp_ptg), add = TRUE)
+  writeLines(c(
+    "#format: HPO-ID\tHPO-Name\tGene-ID\tGene-Name\tDisease-ID",
+    "HP:0001249\tIntellectual disability\t6323\tSCN1A\tOMIM:607208"
+  ), tmp_ptg)
+
+  # Seed-only term set MISSES the descendant-only disease (the old bug).
+  seed_only <- adapt_genemap2_for_comparisons(genemap2_data, tmp_ptg, ndd_terms = "HP:0012759")
+  expect_false("SCN1A" %in% seed_only$gene_symbol)
+
+  # Expanding to the descendant term captures it (the correct behavior).
+  with_desc <- adapt_genemap2_for_comparisons(
+    genemap2_data, tmp_ptg, ndd_terms = c("HP:0012759", "HP:0001249")
+  )
+  expect_true("SCN1A" %in% with_desc$gene_symbol)
 })
 
 test_that("omim_ndd_seed_sweep returns a per-seed summary", {
@@ -660,16 +703,18 @@ test_that("omim_ndd_seed_sweep returns a per-seed summary", {
 
   genemap2_data <- parse_genemap2(genemap2_path)
 
+  # term_resolver = identity keeps the sweep seed-only and offline (deterministic).
   sweep <- omim_ndd_seed_sweep(
     genemap2_data, ptg_path,
-    seeds = c(default = "HP:0012759", narrow = "HP:0001249", absent = "HP:9999999")
+    seeds = c(default = "HP:0012759", narrow = "HP:0001249", absent = "HP:9999999"),
+    term_resolver = function(seed) seed
   )
 
   expect_equal(nrow(sweep), 3)
   expect_true(all(c("seed_label", "seed", "gene_count") %in% colnames(sweep)))
   expect_equal(sweep$gene_count[sweep$seed == "HP:9999999"], 0)
   # Sweep's default-seed count matches the direct adapter call.
-  direct <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:0012759")
+  direct <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, ndd_terms = "HP:0012759")
   expect_equal(
     sweep$gene_count[sweep$seed == "HP:0012759"],
     length(unique(toupper(direct$gene_symbol)))
@@ -688,7 +733,8 @@ test_that("omim_ndd_seed_sweep adds coverage-gap columns when SysNDD genes given
   sweep <- omim_ndd_seed_sweep(
     genemap2_data, ptg_path,
     seeds = c(default = "HP:0012759"),
-    sysndd_symbols = sysndd
+    sysndd_symbols = sysndd,
+    term_resolver = function(seed) seed
   )
 
   expect_true(all(c("overlap", "only_in_omim_ndd", "only_in_sysndd") %in% colnames(sweep)))
