@@ -100,17 +100,20 @@ test_that("normalize_comparison_categories maps sfari gene scores", {
 # ndd_genehub and radboudumc_ID Category Mapping Tests
 # ============================================================================
 
-test_that("normalize_comparison_categories maps ndd_genehub and radboudumc_ID to Definitive", {
+test_that("normalize_comparison_categories maps ndd_genehub tiers + radboudumc_ID", {
   fixture <- tibble(
-    symbol = c("GENE1", "GENE2", "GENE3", "GENE4"),
-    list = c("ndd_genehub", "ndd_genehub", "radboudumc_ID", "radboudumc_ID"),
-    category = c("high", "low", "strong", "unknown")
+    symbol = c("G1", "G2", "G3", "G4", "G5", "G6"),
+    list = c("ndd_genehub", "ndd_genehub", "ndd_genehub", "ndd_genehub", "ndd_genehub", "radboudumc_ID"),
+    category = c("Tier 1", "AR", "Tier 2", "Tier 3", "Unclassified", "anything")
   )
 
   result <- normalize_comparison_categories(fixture)
 
-  # All should map to "Definitive" regardless of original category value
-  expect_equal(result$category, c("Definitive", "Definitive", "Definitive", "Definitive"))
+  # NDD GeneHub evidence tiers map onto the normalized scale; radboudumc -> Definitive.
+  expect_equal(
+    result$category,
+    c("Definitive", "Definitive", "Moderate", "Limited", "Limited", "Definitive")
+  )
 })
 
 # ============================================================================

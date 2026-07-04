@@ -198,7 +198,53 @@ parse_sfari_csv <- function(file_path) {
 #'   publication_id, list, version
 #'
 #' @export
-parse_ndd_genehub_csv <- function(file_path) {
+# NDD GeneHub publishes the evidence tier in the per-mechanism table exports, not
+# in the case-level Full-Data.csv: Full-LoF-Table-Data.csv carries the LoF `Tier`
+# (1-4, or AR), and Full-Missense-Table-Data.csv lists the Missense-classified
+# genes. A gene present in Full-Data.csv but in neither table has a single
+# reported LoF variant and is "Unclassified". See https://nddgenehub.org/methodology.
+NDD_GENEHUB_LOF_URL <- "https://nddgenehub.org/files/Full-LoF-Table-Data.csv"
+NDD_GENEHUB_MISSENSE_URL <- "https://nddgenehub.org/files/Full-Missense-Table-Data.csv"
+
+#' Build the NDD GeneHub gene -> evidence-tier category lookup.
+#'
+#' Reads the LoF + Missense tier tables (URLs by default, local paths for tests).
+#' Best-effort: a table that cannot be read contributes nothing. LoF tier wins
+#' over Missense when a gene is in both.
+#'
+#' @return Tibble(gene_symbol, category) with category in
+#'   {AR, Tier 1, Tier 2, Tier 3, Tier 4, Missense}.
+#' @export
+ndd_genehub_category_lookup <- function(lof_path = NDD_GENEHUB_LOF_URL,
+                                        missense_path = NDD_GENEHUB_MISSENSE_URL) {
+  tier_labels <- c("AR" = "AR", "1" = "Tier 1", "2" = "Tier 2", "3" = "Tier 3", "4" = "Tier 4")
+  lof <- tryCatch(read_csv(lof_path, show_col_types = FALSE), error = function(e) NULL)
+  missense <- tryCatch(read_csv(missense_path, show_col_types = FALSE), error = function(e) NULL)
+
+  lof_cat <- if (!is.null(lof) && all(c("Gene", "Tier") %in% colnames(lof))) {
+    lof %>%
+      dplyr::transmute(
+        gene_symbol = as.character(Gene),
+        category = unname(tier_labels[as.character(Tier)])
+      ) %>%
+      dplyr::filter(!is.na(category) & !is.na(gene_symbol))
+  } else {
+    tibble(gene_symbol = character(), category = character())
+  }
+
+  missense_cat <- if (!is.null(missense) && "Gene" %in% colnames(missense)) {
+    missense %>%
+      dplyr::transmute(gene_symbol = as.character(Gene), category = "Missense") %>%
+      dplyr::filter(!is.na(gene_symbol)) %>%
+      dplyr::anti_join(lof_cat, by = "gene_symbol")
+  } else {
+    tibble(gene_symbol = character(), category = character())
+  }
+
+  dplyr::bind_rows(lof_cat, missense_cat) %>% dplyr::distinct(gene_symbol, .keep_all = TRUE)
+}
+
+parse_ndd_genehub_csv <- function(file_path, category_lookup = NULL) {
   data <- read_csv(file_path, show_col_types = FALSE)
 
   gene_col <- intersect(c("Gene Symbol", "Gene"), colnames(data))[1]
@@ -281,10 +327,21 @@ parse_ndd_genehub_csv <- function(file_path) {
     base <- base %>% mutate(inheritance = NA_character_)
   }
 
+  # Category is the NDD GeneHub evidence tier (AR / Tier 1-4 / Missense), from the
+  # tier tables; genes in neither table are "Unclassified".
+  if (is.null(category_lookup)) {
+    category_lookup <- tryCatch(ndd_genehub_category_lookup(), error = function(e) NULL)
+  }
+  if (!is.null(category_lookup) && nrow(category_lookup) > 0) {
+    base <- base %>% left_join(category_lookup, by = "gene_symbol")
+  } else {
+    base <- base %>% mutate(category = NA_character_)
+  }
+
   result <- base %>%
     mutate(
       list = "ndd_genehub",
-      category = "Definitive",
+      category = dplyr::coalesce(category, "Unclassified"),
       version = basename(file_path) %>% str_remove(pattern = "\\.csv$")
     )
 
@@ -331,129 +388,6 @@ parse_orphanet_json <- function(file_path) {
     )
 
   return(result)
-}
-
-#' Parse OMIM Genemap2 with HPO Phenotype-to-Genes Annotations
-#'
-#' Filters OMIM genemap2 data to NDD-related genes using the HPO
-#' phenotype_to_genes.txt file, which contains pre-propagated HPO hierarchy
-#' annotations. Because the annotations are propagated, filtering for a single
-#' seed term captures every disease annotated with that term or any of its
-#' descendants automatically.
-#'
-#' The NDD seed term is a parameter (issue #502) so the comparator's NDD
-#' definition can be varied for a sensitivity sweep. The default HP:0012759
-#' ("Neurodevelopmental abnormality") reproduces the historical published set;
-#' defensible alternatives are HP:0001249 ("Intellectual disability", narrower)
-#' and HP:0000707 ("Abnormality of the nervous system", broader). See
-#' omim_ndd_seed_sweep().
-#'
-#' @param genemap2_data Pre-parsed tibble from parse_genemap2()
-#' @param phenotype_to_genes_path Path to phenotype_to_genes.txt file
-#' @param seed_term HPO NDD seed term (default "HP:0012759"). All diseases
-#'   annotated (propagated) with this term are treated as NDD.
-#'
-#' @return Tibble with extracted NDD-related genes
-#'
-#' @export
-adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_path,
-                                           seed_term = "HP:0012759") {
-  # Read phenotype_to_genes.txt (tab-delimited, 1 header line starting with #)
-  ptg <- read_tsv(
-    phenotype_to_genes_path,
-    comment = "#",
-    col_names = c(
-      "hpo_id", "hpo_name", "ncbi_gene_id",
-      "gene_symbol", "disease_id"
-    ),
-    col_types = cols(.default = col_character()),
-    show_col_types = FALSE
-  )
-
-  # Filter for the NDD seed term (propagated annotations include all descendants)
-  # and OMIM diseases only
-  ndd_omim_diseases <- ptg %>%
-    filter(hpo_id == seed_term) %>%
-    filter(str_detect(disease_id, "^OMIM:")) %>%
-    dplyr::select(disease_id) %>%
-    unique()
-
-  # Join to get NDD genes from pre-parsed genemap2 data
-  result <- ndd_omim_diseases %>%
-    left_join(
-      genemap2_data,
-      by = c("disease_id" = "disease_ontology_id")
-    ) %>%
-    filter(!is.na(Approved_Symbol)) %>%
-    mutate(
-      list = "omim_ndd",
-      version = format(Sys.Date(), "%Y-%m-%d"),
-      category = "Definitive"
-    ) %>%
-    dplyr::select(
-      gene_symbol = Approved_Symbol,
-      disease_ontology_id = disease_id,
-      disease_ontology_name,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      list,
-      version,
-      category
-    )
-
-  return(result)
-}
-
-#' OMIM-NDD seed sensitivity sweep
-#'
-#' Runs adapt_genemap2_for_comparisons() over a set of NDD seed terms and
-#' returns a per-seed summary (gene-set size and, when a SysNDD gene set is
-#' supplied, the coverage gap). This is the sensitivity report requested in
-#' issue #502; it does NOT change the default published omim_ndd set (which
-#' uses seed HP:0012759 via the default argument).
-#'
-#' @param genemap2_data Pre-parsed tibble from parse_genemap2().
-#' @param phenotype_to_genes_path Path to phenotype_to_genes.txt.
-#' @param seeds Named character vector of HPO seed terms. Default: narrow
-#'   (HP:0001249 "Intellectual disability"), default (HP:0012759
-#'   "Neurodevelopmental abnormality"), broad (HP:0000707 "Abnormality of the
-#'   nervous system").
-#' @param sysndd_symbols Optional character vector of SysNDD gene symbols; when
-#'   supplied, coverage-gap columns are added.
-#'
-#' @return Tibble: seed_label, seed, gene_count, and (when sysndd_symbols is
-#'   given) overlap, only_in_omim_ndd, only_in_sysndd.
-#'
-#' @export
-omim_ndd_seed_sweep <- function(genemap2_data, phenotype_to_genes_path,
-                                seeds = c(narrow = "HP:0001249",
-                                          default = "HP:0012759",
-                                          broad = "HP:0000707"),
-                                sysndd_symbols = NULL) {
-  sysndd_set <- if (!is.null(sysndd_symbols)) unique(toupper(sysndd_symbols)) else NULL
-
-  rows <- lapply(seq_along(seeds), function(i) {
-    seed <- unname(seeds[i])
-    label <- names(seeds)[i]
-    genes <- tryCatch(
-      adapt_genemap2_for_comparisons(genemap2_data, phenotype_to_genes_path, seed_term = seed),
-      error = function(e) NULL
-    )
-    gene_syms <- if (is.null(genes)) character(0) else unique(toupper(genes$gene_symbol))
-
-    row <- tibble(
-      seed_label = if (is.null(label) || label == "") NA_character_ else label,
-      seed = seed,
-      gene_count = length(gene_syms)
-    )
-    if (!is.null(sysndd_set)) {
-      row$overlap <- length(intersect(gene_syms, sysndd_set))
-      row$only_in_omim_ndd <- length(setdiff(gene_syms, sysndd_set))
-      row$only_in_sysndd <- length(setdiff(sysndd_set, gene_syms))
-    }
-    row
-  })
-
-  dplyr::bind_rows(rows)
 }
 
 #' Standardize Comparison Data

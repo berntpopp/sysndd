@@ -28,6 +28,7 @@ library(readr)
 source(file.path(api_dir, "functions/comparisons-functions.R"))
 source(file.path(api_dir, "functions/omim-functions.R"))
 source(file.path(api_dir, "functions/comparisons-sources.R"))
+source(file.path(api_dir, "functions/comparisons-omim.R"))
 
 # ============================================================================
 # download_source_data() Tests
@@ -297,14 +298,22 @@ test_that("parse_ndd_genehub_csv aggregates NDD GeneHub case-level rows per gene
   fixture <- file.path(api_dir, "tests/testthat/fixtures/ndd_genehub_test.csv")
   skip_if_not(file.exists(fixture), "geisinger DBD fixture not found")
 
-  result <- parse_ndd_genehub_csv(fixture)
+  # Category comes from the NDD GeneHub evidence-tier tables; supply a lookup so
+  # the test does not hit the network. DMD is absent -> "Unclassified".
+  tier_lookup <- tibble::tibble(
+    gene_symbol = c("ADNP", "ADGRG1"),
+    category = c("Tier 1", "AR")
+  )
+  result <- parse_ndd_genehub_csv(fixture, category_lookup = tier_lookup)
 
   expect_true(all(c(
     "gene_symbol", "category", "inheritance", "phenotype",
     "publication_id", "list", "version"
   ) %in% colnames(result)))
   expect_true(all(result$list == "ndd_genehub"))
-  expect_true(all(result$category == "Definitive"))
+  expect_equal(result$category[result$gene_symbol == "ADNP"], "Tier 1")
+  expect_equal(result$category[result$gene_symbol == "ADGRG1"], "AR")
+  expect_equal(result$category[result$gene_symbol == "DMD"], "Unclassified")
   # Blank-gene "NONGENE" row (empty Gene Symbol) is dropped; 3 real genes remain.
   expect_setequal(result$gene_symbol, c("ADNP", "ADGRG1", "DMD"))
 

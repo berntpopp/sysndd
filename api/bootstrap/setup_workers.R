@@ -134,6 +134,7 @@ bootstrap_setup_workers <- function() {
     # Source comparisons functions for async comparisons update jobs
     source("/app/functions/comparisons-sources.R", local = FALSE)
     source("/app/functions/comparisons-parsers.R", local = FALSE)
+    source("/app/functions/comparisons-omim.R", local = FALSE)
     source("/app/functions/comparisons-functions.R", local = FALSE)
     # Source LLM-related functions for async LLM batch generation jobs
     source("/app/functions/llm-summary-config.R", local = FALSE)

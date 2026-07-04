@@ -68,8 +68,11 @@ normalize_comparison_categories <- function(data) {
       list == "sfari" & category == "2" ~ "Moderate",
       list == "sfari" & category == "3" ~ "Limited",
       list == "sfari" & is.na(category) ~ "Definitive",
-      # ndd_genehub - all entries are high confidence
-      list == "ndd_genehub" ~ "Definitive",
+      # ndd_genehub - map NDD GeneHub evidence tiers to the normalized scale
+      list == "ndd_genehub" & category %in% c("Tier 1", "AR") ~ "Definitive",
+      list == "ndd_genehub" & category == "Tier 2" ~ "Moderate",
+      list == "ndd_genehub" & category %in% c("Tier 3", "Tier 4", "Missense") ~ "Limited",
+      list == "ndd_genehub" ~ "Limited",
       # radboudumc_ID - all entries are high confidence
       list == "radboudumc_ID" ~ "Definitive",
       # omim_ndd and orphanet_id already have "Definitive" set
