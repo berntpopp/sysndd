@@ -1,0 +1,6 @@
+"Gene Symbol","Reference Sequence","PubMed ID","Abstract Only","ID","ASD","EP","ADHD","SCZ","BD","CP","Zygosity","Variant 1 Type","Variant 1 Inheritance","Variant 1 Chr","Total Cases"
+"ADNP","NM_015339.5","25326635","No","X","X","","","","","","Heterozygous","Nonsense","De novo","20","101"
+"ADNP","NM_015339.5","27479843","No","","","","X","","","","Heterozygous","Frameshift","De novo","20","101"
+"ADGRG1","NM_005682.7","15218094","No","X","","X","","","","","Homozygous","Missense","Bi-parental","16","8"
+"DMD","NM_004006.3","10023456","No","X","","","","","","","Hemizygous","Deletion","Inherited","X","3"
+"","","","No","","","","","","","","","","","",""

@@ -491,7 +491,7 @@ service_analysis_snapshot_functional_categories <- function(clusters) {
     Component = "https://www.ebi.ac.uk/QuickGO/term/",
     DISEASES = "https://disease-ontology.org/term/",
     Function = "https://www.ebi.ac.uk/QuickGO/term/",
-    HPO = "https://hpo.jax.org/app/browse/term/",
+    HPO = "https://hpo.jax.org/browse/term/",
     InterPro = "http://www.ebi.ac.uk/interpro/entry/InterPro/",
     KEGG = "https://www.genome.jp/dbget-bin/www_bget?",
     Keyword = "https://www.uniprot.org/keywords/",

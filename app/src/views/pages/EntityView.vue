@@ -424,7 +424,7 @@ function publicationAriaLabel(publication: EntityRowMap): string {
 }
 
 function hpoUrl(phenotype: EntityRowMap): string {
-  return `https://hpo.jax.org/app/browse/term/${asString(phenotype.phenotype_id)}`;
+  return `https://hpo.jax.org/browse/term/${asString(phenotype.phenotype_id)}`;
 }
 
 // VariO links are built from the configurable EBI OLS4 base (the previous

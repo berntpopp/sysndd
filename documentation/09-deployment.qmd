@@ -97,6 +97,17 @@ Configuration (environment variables, with defaults):
 
 The worker resets the per-request external-time accumulator at the start of every job, and the enrichment batch additionally resets it per external call, so the per-request external ceiling (`EXTERNAL_PROXY_REQUEST_MAX_SECONDS`) — intended for public request paths — does not short-circuit this legitimately external-heavy nightly batch.
 
+### Curation-comparison source refresh
+
+The cross-database comparator (`/CurationComparisons`) is refreshed by the Administrator via `POST /api/jobs/comparisons_update/submit` (or the admin *Manage Annotations → Comparisons* card). Source URLs live in the `comparisons_config` table and are patched by migrations, so a redeploy that applies migrations picks up URL fixes automatically. Recent operator-relevant changes:
+
+- **geisinger_DBD** was repointed from the retired `dbd.geisingeradmi.org` CSV (404) to NDD GeneHub (`https://nddgenehub.org/files/Full-Data.csv`) by migration `038`; the parser was rewritten for that schema. This was the single broken source that had been blocking every comparison refresh.
+- The refresh is now **resilient**: a source that fails to download or parse no longer aborts the whole job. Failed sources keep their previously-imported rows (per-list replace) and are named in `comparisons_metadata.last_refresh_error`; the run reports status `partial` (some failed) or `success` (all OK). A refresh only fails outright when *every* source fails. The `GET /api/comparisons/metadata` badge on the page shows the status.
+- OMIM (`omim_ndd`) needs `OMIM_DOWNLOAD_KEY` (and outbound egress) in the environment that runs the refresh; without it that one source is skipped (`partial`) rather than aborting.
+- The OMIM-NDD NDD seed term is configurable via `OMIM_NDD_SEED_TERM` (default `HP:0012759`, "Neurodevelopmental abnormality"); it does not change the published default set.
+- The refresh runs in the API's mirai daemon pool, which is sourced at API startup — **restart the API container** after deploying comparisons code changes before triggering a refresh.
+- HPO term lookups (data-prep + outlinks) moved to the JAX ontology API (`https://ontology.jax.org/api/hp/terms`) and the rebuilt HPO site's `https://hpo.jax.org/browse/term/{id}` outlinks after the legacy `hpo.jax.org` term API / `/app/browse/` routes were retired.
+
 ### Database version (`DB_VERSION` / `DB_COMMIT`)
 The human-facing database version (issue #22) is tracked in the single-row `db_version` table (migration `028_add_db_version.sql`), separate from the migration runner's `schema_version` apply ledger and from `about_content.version`. The migration seeds a baseline semantic version, and the API exposes it in the `database` block of the public `GET /api/version` response (semantic `version`, last `db/`-folder git `commit`, optional `description`/`updated_at`, and an `available` flag). The App surfaces it on the About page. The endpoint degrades gracefully: if the DB or table is unreachable it reports `version`/`commit` as `"unknown"` and `available: false` instead of failing.
 

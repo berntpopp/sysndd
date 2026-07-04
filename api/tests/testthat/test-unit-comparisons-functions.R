@@ -27,6 +27,7 @@ library(readr)
 # Source functions being tested
 source(file.path(api_dir, "functions/comparisons-functions.R"))
 source(file.path(api_dir, "functions/omim-functions.R"))
+source(file.path(api_dir, "functions/comparisons-sources.R"))
 
 # ============================================================================
 # download_source_data() Tests
@@ -273,17 +274,70 @@ test_that("standardize_comparison_data handles missing columns", {
   expect_true(is.na(result$disease_ontology_id))
 })
 
-test_that("standardize_comparison_data sets Definitive category for geisinger", {
+test_that("standardize_comparison_data keeps parser category for geisinger", {
+  # The rewritten NDD GeneHub parser sets category itself ("Definitive");
+  # standardize must not override it (regression guard for the source rewrite).
   input <- tibble(
-    gene_symbol = c("GENE1"),
-    list = c("geisinger_DBD"),
-    version = c("1"),
-    category = c("Unknown")
+    gene_symbol = c("GENE1", "GENE2"),
+    list = c("geisinger_DBD", "geisinger_DBD"),
+    version = c("1", "1"),
+    category = c("Definitive", "Definitive")
   )
 
   result <- standardize_comparison_data(input, "geisinger_DBD", "2026-01-01")
 
-  expect_equal(result$category, "Definitive")
+  expect_equal(result$category, c("Definitive", "Definitive"))
+})
+
+# ============================================================================
+# parse_geisinger_csv() Tests (NDD GeneHub case-level "Full-Data.csv" schema)
+# ============================================================================
+
+test_that("parse_geisinger_csv aggregates NDD GeneHub case-level rows per gene", {
+  fixture <- file.path(api_dir, "tests/testthat/fixtures/geisinger_dbd_test.csv")
+  skip_if_not(file.exists(fixture), "geisinger DBD fixture not found")
+
+  result <- parse_geisinger_csv(fixture)
+
+  expect_true(all(c(
+    "gene_symbol", "category", "inheritance", "phenotype",
+    "publication_id", "list", "version"
+  ) %in% colnames(result)))
+  expect_true(all(result$list == "geisinger_DBD"))
+  expect_true(all(result$category == "Definitive"))
+  # Blank-gene "NONGENE" row (empty Gene Symbol) is dropped; 3 real genes remain.
+  expect_setequal(result$gene_symbol, c("ADNP", "ADGRG1", "DMD"))
+
+  # ADNP: two De novo cases on chr 20 -> Sporadic; union of phenotypes across
+  # both cases (ID+ASD from case 1, ADHD from case 2); both PMIDs collected.
+  adnp <- result[result$gene_symbol == "ADNP", ]
+  expect_equal(adnp$inheritance, "Sporadic")
+  expect_true(grepl("Intellectual disability", adnp$phenotype))
+  expect_true(grepl("Autism", adnp$phenotype))
+  expect_true(grepl("Attention deficit", adnp$phenotype))
+  expect_setequal(strsplit(adnp$publication_id, ";")[[1]], c("25326635", "27479843"))
+
+  # ADGRG1: Bi-parental autosomal recessive
+  adgrg1 <- result[result$gene_symbol == "ADGRG1", ]
+  expect_equal(adgrg1$inheritance, "Autosomal recessive inheritance")
+
+  # DMD: variant on chr X -> X-linked inheritance takes precedence
+  dmd <- result[result$gene_symbol == "DMD", ]
+  expect_equal(dmd$inheritance, "X-linked inheritance")
+})
+
+test_that("parse_geisinger_csv drops rows with blank gene symbol", {
+  fixture <- file.path(api_dir, "tests/testthat/fixtures/geisinger_dbd_test.csv")
+  skip_if_not(file.exists(fixture), "geisinger DBD fixture not found")
+
+  result <- parse_geisinger_csv(fixture)
+  expect_false(any(is.na(result$gene_symbol) | result$gene_symbol == ""))
+})
+
+test_that("parse_geisinger_csv errors on missing gene column", {
+  tmp <- withr::local_tempfile(fileext = ".csv")
+  readr::write_csv(tibble(Foo = 1, Bar = 2), tmp)
+  expect_error(parse_geisinger_csv(tmp), "Gene Symbol")
 })
 
 # ============================================================================
@@ -532,4 +586,103 @@ test_that("adapt_genemap2_for_comparisons receives tibble not file path", {
   # Passing pre-parsed tibble should work
   genemap2_data <- parse_genemap2(genemap2_path)
   expect_no_error(adapt_genemap2_for_comparisons(genemap2_data, ptg_path))
+})
+
+# ============================================================================
+# comparisons_refresh_outcome() Tests (resilient per-list refresh policy)
+# ============================================================================
+
+test_that("comparisons_refresh_outcome commits with success when nothing failed", {
+  out <- comparisons_refresh_outcome(c("panelapp", "sfari"), character(0))
+  expect_true(out$commit)
+  expect_equal(out$status, "success")
+  expect_null(out$error)
+})
+
+test_that("comparisons_refresh_outcome commits partial when some sources fail", {
+  out <- comparisons_refresh_outcome(c("panelapp", "sfari"), c("geisinger_DBD"))
+  expect_true(out$commit)
+  expect_equal(out$status, "partial")
+  expect_match(out$error, "geisinger_DBD")
+  expect_match(out$error, "1 of 3")
+})
+
+test_that("comparisons_refresh_outcome aborts (no commit) when all sources fail", {
+  out <- comparisons_refresh_outcome(character(0), c("panelapp", "sfari"))
+  expect_false(out$commit)
+  expect_equal(out$status, "failed")
+  expect_match(out$error, "All 2 source")
+})
+
+test_that("comparisons_refresh_outcome ignores NA/empty source names", {
+  out <- comparisons_refresh_outcome(c("panelapp", NA, ""), c(NA_character_))
+  expect_true(out$commit)
+  expect_equal(out$status, "success")
+})
+
+# ============================================================================
+# #502: configurable NDD seed + omim_ndd_seed_sweep()
+# ============================================================================
+
+test_that("adapt_genemap2_for_comparisons honors the seed_term argument", {
+  genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
+  skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
+
+  genemap2_data <- parse_genemap2(genemap2_path)
+
+  default_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+  explicit_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:0012759")
+  # Default argument reproduces the historical HP:0012759 set exactly.
+  expect_equal(nrow(default_res), nrow(explicit_res))
+
+  # A seed absent from the fixture yields no NDD genes (proves the filter uses
+  # the argument, not the hardcoded term).
+  absent_res <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:9999999")
+  expect_equal(nrow(absent_res), 0)
+})
+
+test_that("omim_ndd_seed_sweep returns a per-seed summary", {
+  genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
+  skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
+
+  genemap2_data <- parse_genemap2(genemap2_path)
+
+  sweep <- omim_ndd_seed_sweep(
+    genemap2_data, ptg_path,
+    seeds = c(default = "HP:0012759", narrow = "HP:0001249", absent = "HP:9999999")
+  )
+
+  expect_equal(nrow(sweep), 3)
+  expect_true(all(c("seed_label", "seed", "gene_count") %in% colnames(sweep)))
+  expect_equal(sweep$gene_count[sweep$seed == "HP:9999999"], 0)
+  # Sweep's default-seed count matches the direct adapter call.
+  direct <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path, seed_term = "HP:0012759")
+  expect_equal(
+    sweep$gene_count[sweep$seed == "HP:0012759"],
+    length(unique(toupper(direct$gene_symbol)))
+  )
+})
+
+test_that("omim_ndd_seed_sweep adds coverage-gap columns when SysNDD genes given", {
+  genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
+  skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
+
+  genemap2_data <- parse_genemap2(genemap2_path)
+  sysndd <- c("MECP2", "FAKEGENE1", "FAKEGENE2")
+
+  sweep <- omim_ndd_seed_sweep(
+    genemap2_data, ptg_path,
+    seeds = c(default = "HP:0012759"),
+    sysndd_symbols = sysndd
+  )
+
+  expect_true(all(c("overlap", "only_in_omim_ndd", "only_in_sysndd") %in% colnames(sweep)))
+  # overlap + only_in_sysndd must equal the SysNDD set size.
+  expect_equal(sweep$overlap + sweep$only_in_sysndd, length(unique(toupper(sysndd))))
 })

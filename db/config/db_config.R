@@ -232,7 +232,10 @@ db_load_config <- function(config_file = NULL, config = "sysndd") {
   # genenames.org REST search endpoints (scripts 02, 04, 11).
   genenames_rest_base   = "http://rest.genenames.org/search",
   # Human Phenotype Ontology term API (scripts 02, 03, 04, 11).
-  hpo_term_api_base     = "https://hpo.jax.org/api/hpo/term",
+  # The legacy hpo.jax.org term API was retired; JAX serves it from the Monarch
+  # ontology API now. Term detail: "<base>/<id>"; children/descendants:
+  # "<base>/<id>/children" and "<base>/<id>/descendants".
+  hpo_term_api_base     = "https://ontology.jax.org/api/hp/terms",
   # EBI OxO cross-ontology mapping API (scripts 02, 04).
   oxo_mappings_api      = "https://www.ebi.ac.uk/spot/oxo/api/mappings",
   # NCBI E-utilities efetch endpoint (script 08).

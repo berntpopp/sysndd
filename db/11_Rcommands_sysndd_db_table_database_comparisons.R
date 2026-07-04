@@ -130,8 +130,11 @@ radboudumc_list <- radboudumc_pdf_list %>%
 ## 2) gene2phenotype
 ## to do: map inheritance terms, map category
 
+# G2P (EBI) moved to an API endpoint and renamed columns in 2026:
+#   "confidence category" -> "confidence", "mutation consequence" ->
+#   "variant consequence", "pmids" -> "publications" (see migration 013).
 gene2phenotype_csv <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "gene2phenotype_ID"))$file_saved)) %>%
-  select(gene_symbol = `gene symbol`, disease_ontology_name = `disease name`, disease_ontology_id = `disease mim`, category = `confidence category`, inheritance = `allelic requirement`, pathogenicity_mode = `mutation consequence`, phenotype = phenotypes, publication_id = pmids)
+  select(gene_symbol = `gene symbol`, disease_ontology_name = `disease name`, disease_ontology_id = `disease mim`, category = confidence, inheritance = `allelic requirement`, pathogenicity_mode = `variant consequence`, phenotype = phenotypes, publication_id = publications)
 
 gene2phenotype_list <- gene2phenotype_csv %>%
   mutate(list = "gene2phenotype") %>%
@@ -226,75 +229,66 @@ sfari_list <- sfari_csv %>%
 
 
 ############################################
-## 5) geisinger dbd
-## to do: sort columns
-## to do: assign disease ontology
-## to do: get publications from website
-## to do: get Disorders from website
-## to do: get Inheritance from website
+## 5) geisinger DBD -> NDD GeneHub (nddgenehub.org "Full-Data.csv")
+## The legacy dbd.geisingeradmi.org CSV was retired; NDD GeneHub publishes the
+## canonical case-level Full-Data.csv (Gene Symbol, PubMed ID, the
+## ID/ASD/EP/ADHD/SCZ/BD/CP phenotype flags, and Variant 1 Inheritance/Chr).
+## We aggregate the case-level rows to one row per gene, mirroring
+## api/functions/comparisons-parsers.R::parse_geisinger_csv().
 
-geisinger_inheritance_lookup <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved)) %>% 
-  select(Inheritance, Chr) %>%
-    mutate(
-    Chr = case_when(
-      Chr > 22 ~ "X",
-      Chr <= 22 ~ "A",
-      is.na(Chr) ~ "A"
-    )
-    ) %>% 
-  unique() %>% 
-    mutate(
-    inheritance_term_name = case_when(
-      Chr == "X" ~ "X-linked inheritance",
-      Inheritance == "De novo" ~ "Sporadic",
-      Inheritance == "Inherited" ~ "Autosomal dominant inheritance",
-      Inheritance == "Maternal" ~ "Autosomal dominant inheritance",
-      Inheritance == "Paternal" ~ "Autosomal dominant inheritance",
-      Inheritance == "Parental" ~ "Autosomal dominant inheritance",
-      Inheritance == "Unknown" ~ "Autosomal dominant inheritance",
-      Inheritance == "Bi-parental" ~ "Autosomal recessive inheritance",
-      Inheritance == "Mosaic" ~ "Somatic mosaicism"
-    )
-    ) %>%
-  mutate(Inheritance = paste0(Inheritance, "_", Chr)) %>% 
-  select(-Chr) %>%
-  unique()
+geisinger_full_data <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved)) %>%
+  rename(gene_symbol = `Gene Symbol`) %>%
+  mutate(gene_symbol = as.character(gene_symbol)) %>%
+  filter(!is.na(gene_symbol) & gene_symbol != "")
 
-geisinger_csv <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved)) %>%
-  select(gene_symbol = Gene, ID = `ID?DD`, Autism, ADHD, Schizophrenia, Bipolar = `Bipolar Disorder`, Inheritance, PMID, additional_information = `Additional Information`, Chr) %>%
-    mutate(
-    Chr = case_when(
-      Chr > 22 ~ "X",
-      Chr <= 22 ~ "A",
-      is.na(Chr) ~ "A"
-    )
-    ) %>%
-  mutate(Inheritance = paste0(Inheritance, "_", Chr)) %>% 
-  mutate(additional_information = str_extract(additional_information, pattern = "PMID [0-9]+")) %>%
-  mutate(additional_information = str_remove(additional_information, pattern = "PMID ")) %>%
-  mutate(PMID = as.character(PMID)) %>%
-  pivot_longer(c(PMID, additional_information), values_to = "PMID") %>%
-  filter(!is.na(PMID)) %>%
-  select(-name) %>%
-  pivot_longer(c(ID, Autism, ADHD, Schizophrenia, Bipolar), names_to = "phenotype") %>%
-  filter(!is.na(value)) %>%
-  select(-value) %>%
-  left_join(geisinger_inheritance_lookup, by = c("Inheritance")) %>%
-  select(-Inheritance, -Chr) %>%
-  unique() %>%
+geisinger_pheno_labels <- c(
+  ID = "Intellectual disability", ASD = "Autism", EP = "Epilepsy",
+  ADHD = "Attention deficit hyperactivity disorder", SCZ = "Schizophrenia",
+  BD = "Bipolar disorder", CP = "Cerebral palsy"
+)
+geisinger_pheno_labels <- geisinger_pheno_labels[names(geisinger_pheno_labels) %in% colnames(geisinger_full_data)]
+
+geisinger_phenotype <- geisinger_full_data %>%
+  select(gene_symbol, all_of(names(geisinger_pheno_labels))) %>%
+  mutate(across(all_of(names(geisinger_pheno_labels)), as.character)) %>%
+  pivot_longer(-gene_symbol, names_to = "code", values_to = "flag") %>%
+  filter(!is.na(flag) & flag != "") %>%
+  mutate(pheno = unname(geisinger_pheno_labels[code])) %>%
+  distinct(gene_symbol, pheno) %>%
   group_by(gene_symbol) %>%
-  arrange(gene_symbol, PMID) %>%
-    mutate(PMID = paste0(PMID, collapse = ";")) %>%
-  unique() %>%
-  arrange(gene_symbol, phenotype) %>%
-    mutate(phenotype = paste0(phenotype, collapse = ";")) %>%
-  unique() %>%
-  arrange(gene_symbol, inheritance_term_name) %>%
-    mutate(inheritance_term_name = paste0(inheritance_term_name, collapse = ";")) %>%
-  unique() %>%
-  ungroup()
+  summarise(phenotype = paste(sort(unique(pheno)), collapse = ";"), .groups = "drop")
 
-geisinger_list <- geisinger_csv %>%
+geisinger_publications <- geisinger_full_data %>%
+  transmute(gene_symbol, pmid = str_extract_all(as.character(`PubMed ID`), "[0-9]+")) %>%
+  unnest(pmid) %>%
+  filter(!is.na(pmid) & pmid != "") %>%
+  distinct(gene_symbol, pmid) %>%
+  group_by(gene_symbol) %>%
+  summarise(publication_id = paste(unique(pmid), collapse = ";"), .groups = "drop")
+
+geisinger_inheritance <- geisinger_full_data %>%
+  mutate(
+    .chr = as.character(`Variant 1 Chr`),
+    .inh = as.character(`Variant 1 Inheritance`),
+    inheritance_term = case_when(
+      .chr %in% c("X", "23") ~ "X-linked inheritance",
+      .inh == "De novo" ~ "Sporadic",
+      .inh %in% c("Inherited", "Maternal", "Paternal", "Parental", "Unknown") ~ "Autosomal dominant inheritance",
+      .inh == "Bi-parental" ~ "Autosomal recessive inheritance",
+      .inh == "Mosaic" ~ "Somatic mosaicism",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(inheritance_term)) %>%
+  distinct(gene_symbol, inheritance_term) %>%
+  group_by(gene_symbol) %>%
+  summarise(inheritance = paste(sort(unique(inheritance_term)), collapse = ";"), .groups = "drop")
+
+geisinger_list <- geisinger_full_data %>%
+  distinct(gene_symbol) %>%
+  left_join(geisinger_phenotype, by = "gene_symbol") %>%
+  left_join(geisinger_publications, by = "gene_symbol") %>%
+  left_join(geisinger_inheritance, by = "gene_symbol") %>%
   mutate(list = "geisinger_DBD") %>%
   mutate(version = (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved %>% str_remove(pattern = "\\.csv")) %>%
   mutate(hgnc_id = hgnc_id_from_symbol_grouped(gene_symbol)) %>%
@@ -303,13 +297,12 @@ geisinger_list <- geisinger_csv %>%
   mutate(hgnc_id = paste0("HGNC:", hgnc_id)) %>%
   mutate(disease_ontology_id = NA) %>%
   mutate(disease_ontology_name = NA) %>%
-  mutate(category = NA) %>%
+  mutate(category = "Definitive") %>%
   mutate(pathogenicity_mode = NA) %>%
-  mutate(publication_id = NA) %>%
   arrange(symbol, disease_ontology_id, disease_ontology_name) %>%
-  select(symbol, hgnc_id, disease_ontology_id, disease_ontology_name, inheritance = inheritance_term_name, category, pathogenicity_mode, phenotype, publication_id, list, version) %>%
+  select(symbol, hgnc_id, disease_ontology_id, disease_ontology_name, inheritance, category, pathogenicity_mode, phenotype, publication_id, list, version) %>%
   mutate(import_date = database_file_date) %>%
-  mutate(granularity = "gene,disease,category")
+  mutate(granularity = "gene,phenotype,inheritance(derived),publication,category(implied)")
 ############################################
 
 
@@ -317,9 +310,15 @@ geisinger_list <- geisinger_csv %>%
 ############################################
 ## 6) OMIM (using the HPO phenotype_to_genes table and filtering)
 
-# get all child terms for Neurodevelopmental abnormality HP:0012759
+# NDD seed term for the OMIM-NDD comparator (issue #502). Configurable via the
+# OMIM_NDD_SEED_TERM env var; default HP:0012759 "Neurodevelopmental
+# abnormality". All descendants of the seed are included (single /descendants
+# call). Defensible alternatives for a sensitivity sweep: HP:0001249
+# "Intellectual disability" (narrower) or HP:0000707 "Abnormality of the nervous
+# system" (broader).
+ndd_seed_term <- Sys.getenv("OMIM_NDD_SEED_TERM", unset = "HP:0012759")
 all_children_list <- list()
-HPO_all_children_from_term("HP:0012759")
+HPO_all_children_from_term(ndd_seed_term)
 ndd_phenotypes <- all_children_list %>% unique()
 
 # load data files

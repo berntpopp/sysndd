@@ -133,54 +133,71 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 }
 
 ## HPO functions
-## to do: make this recursive and independent of global variable
+##
+## These target the current JAX ontology API (ontology.jax.org), configured via
+## `hpo_term_api_base` in db/config/db_config.R. The legacy hpo.jax.org term API
+## (nested `$details`/`$relations`) was retired; the new API returns a flat term
+## object ("<base>/<id>": id/name/definition/descendantCount) and separate
+## "<base>/<id>/children" and "<base>/<id>/descendants" arrays (each row has
+## `id`/`name`). `HPO_all_children_from_term()` now fetches the full descendant
+## set in a SINGLE `/descendants` request instead of recursively walking one HTTP
+## call per term (previously N calls per seed against a now-dead endpoint).
 
 HPO_name_from_term <- function(term_input_id) {
   hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
-  hpo_term_name <- as_tibble(hpo_term_response$details$name) %>%
-  select(hpo_mode_of_inheritance_term_name = value)
+  term_name <- hpo_term_response$name
+  if (is.null(term_name) || length(term_name) == 0) term_name <- NA_character_
 
-  return(hpo_term_name)
+  tibble(hpo_mode_of_inheritance_term_name = as.character(term_name)[1])
 }
 
 
 HPO_definition_from_term <- function(term_input_id) {
   hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
-  hpo_term_definition <- as_tibble(hpo_term_response$details$definition) %>%
-  select(hpo_mode_of_inheritance_term_definition = value)
+  term_definition <- hpo_term_response$definition
+  if (is.null(term_definition) || length(term_definition) == 0) term_definition <- ""
 
-  return(hpo_term_definition)
+  tibble(hpo_mode_of_inheritance_term_definition = as.character(term_definition)[1])
 }
 
 
 HPO_children_count_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
-  hpo_term_children_count <- as_tibble(hpo_term_response$relations$children)
+  children <- HPO_children_from_term(term_input_id)
 
-  return(length(hpo_term_children_count))
+  return(nrow(children))
 }
 
 
 HPO_children_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
-  hpo_term_children <- as_tibble(hpo_term_response$relations$children)
+  children_url <- paste0(db_hpo_term_url(term_input_id, db_src), "/children")
+  children <- tryCatch(fromJSON(children_url), error = function(e) NULL)
 
-  return(hpo_term_children)
+  if (is.null(children) || length(children) == 0) {
+    return(tibble(id = character(0), name = character(0)))
+  }
+
+  as_tibble(children)
 }
 
 HPO_all_children_from_term <- function(term_input) {
+  # One `/descendants` request returns the full transitive descendant set, so
+  # this replaces the old recursive per-term children walk (N HTTP calls per
+  # seed against the retired hpo.jax.org API). Returns the seed term plus all of
+  # its descendants and — for backward compatibility with the parent script,
+  # which reads `all_children_list %>% unique()` after calling this — also
+  # populates the global `all_children_list`.
+  desc_url <- paste0(db_hpo_term_url(term_input, db_src), "/descendants")
+  descendants <- tryCatch(fromJSON(desc_url), error = function(e) NULL)
 
-  children_list <- HPO_children_from_term(term_input)
-  all_children_list <<- append(all_children_list, term_input)
-
-  if(length(children_list)!=0)
-  {
-    for (p in children_list$ontologyId) {
-        all_children_list <<- append(all_children_list, p)
-        Recall(p)
-    }
+  ids <- term_input
+  if (!is.null(descendants) && length(descendants) > 0) {
+    desc_ids <- if (is.data.frame(descendants)) descendants$id else descendants
+    ids <- unique(c(term_input, as.character(desc_ids)))
   }
-  all_children_tibble <- as_tibble(unlist(all_children_list)) %>% unique
+
+  all_children_list <<- as.list(ids)
+
+  all_children_tibble <- as_tibble(unlist(all_children_list)) %>% unique()
 
   return(all_children_tibble)
 }

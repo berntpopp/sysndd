@@ -5,7 +5,7 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "037_add_analysis_snapshot_validation.sql")
+  expect_equal(EXPECTED_LATEST_MIGRATION, "038_update_geisinger_dbd_source.sql")
   expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
 })
 

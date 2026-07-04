@@ -9,7 +9,6 @@ api/endpoints/statistics_endpoints.R	782
 api/endpoints/user_endpoints.R	1117
 api/functions/async-job-handlers.R	973
 api/functions/async-job-repository.R	638
-api/functions/comparisons-functions.R	967
 api/functions/endpoint-functions.R	693
 api/functions/llm-batch-generator.R	604
 api/functions/llm-cache-repository.R	787
