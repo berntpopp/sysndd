@@ -389,7 +389,10 @@ comparisons_update_async <- function(params) {
       genemap2_path <- download_genemap2(output_path = "data/", force = FALSE)
       genemap2_data <- parse_genemap2(genemap2_path)
       ptg_path <- download_phenotype_to_genes(output_path = "data/", force = FALSE)
-      parsed <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+      # Honor the configured seed (OMIM_NDD_SEED_TERM) so the refresh matches
+      # the db-prep script and the /comparisons/sources provenance (#502).
+      parsed <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path,
+                                               seed_term = omim_ndd_seed_term())
       standardize_comparison_data(parsed, "omim_genemap2", import_date)
     }, error = function(e) {
       # Resilient refresh: OMIM needs OMIM_DOWNLOAD_KEY + external egress. If it
