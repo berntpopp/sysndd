@@ -24,7 +24,13 @@ library(stringr)
 library(withr)
 library(readr)
 
-# Source functions being tested
+# Source functions being tested. comparisons-parsers.R MUST be sourced
+# explicitly (absolute path) — comparisons-functions.R only guard-sources it via
+# relative paths, which do not resolve in testthat's working directory, so under
+# a full test_dir run (CI) parse_* / standardize_comparison_data can be undefined
+# and every parser test errors ("could not find function"). See the sibling fix
+# for test-external-pubmed.R.
+source(file.path(api_dir, "functions/comparisons-parsers.R"))
 source(file.path(api_dir, "functions/comparisons-functions.R"))
 source(file.path(api_dir, "functions/omim-functions.R"))
 source(file.path(api_dir, "functions/comparisons-sources.R"))
