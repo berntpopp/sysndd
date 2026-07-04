@@ -5,6 +5,21 @@
 # Extracted from comparisons-parsers.R to keep both files < 600 lines.
 # Sourced alongside comparisons-parsers.R (setup_workers.R / load_modules.R).
 
+#' Resolve the configured OMIM-NDD seed term.
+#'
+#' Reads `OMIM_NDD_SEED_TERM` (default HP:0012759) so the durable API refresh,
+#' the db-prep script (`db/11_Rcommands_...comparisons.R`), and the
+#' `/comparisons/sources` provenance all agree on the seed. This is the single
+#' source for the API side — the refresh must not fall back to a hardcoded seed
+#' while provenance advertises the configured one.
+#'
+#' @return HPO seed term id (character scalar).
+#' @export
+omim_ndd_seed_term <- function() {
+  seed <- Sys.getenv("OMIM_NDD_SEED_TERM", unset = "HP:0012759")
+  if (!nzchar(seed)) "HP:0012759" else seed
+}
+
 #' Resolve the OMIM-NDD HPO term set: the seed term plus all of its descendants.
 #'
 #' The comparator's NDD definition is "the seed term and everything below it in

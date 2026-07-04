@@ -299,23 +299,43 @@ hpo_children_from_term_api <- function(term_input_id) {
 #' hpo_all_children_from_term_api("HP:1234567", list())
 #'
 #' @export
-hpo_all_children_from_term_api <- function(term_input, all_children_list = list()) {
+hpo_all_children_from_term_api <- function(term_input, all_children_list = list(),
+                                           timeout_seconds = 30) {
   # The current JAX ontology API exposes a /descendants endpoint that returns
   # the full transitive descendant set in a single request, so this no longer
   # recursively walks one HTTP call per term (against the retired hpo.jax.org
-  # API). Returns the seed term plus all of its descendants.
+  # API). The request is bounded (req_timeout + one retry) so a stalled ontology
+  # API cannot hang a worker job. On any failure OR an empty/malformed response
+  # we emit a warning() — a silent fall-back to seed-only would re-introduce the
+  # exact under-capture bug the OMIM-NDD descendant expansion fixes, so it must
+  # be observable in worker logs. Returns the seed term plus all descendants.
   desc_url <- paste0(
     "https://ontology.jax.org/api/hp/terms/",
     URLencode(term_input, reserved = TRUE),
     "/descendants"
   )
-  descendants <- tryCatch(jsonlite::fromJSON(desc_url), error = function(e) NULL)
+  desc_ids <- tryCatch({
+    req <- httr2::request(desc_url)
+    req <- httr2::req_timeout(req, timeout_seconds)
+    req <- httr2::req_retry(req, max_tries = 2)
+    parsed <- httr2::resp_body_json(httr2::req_perform(req), simplifyVector = TRUE)
+    raw_ids <- if (is.data.frame(parsed)) parsed[["id"]] else if (is.list(parsed)) parsed[["id"]] else parsed
+    clean <- trimws(as.character(raw_ids))
+    clean <- clean[!is.na(clean) & nzchar(clean)]
+    if (length(clean) == 0) {
+      warning(sprintf(
+        "hpo_all_children_from_term_api: no descendants parsed for %s (unexpected response shape?); using seed-only",
+        term_input
+      ), call. = FALSE)
+    }
+    clean
+  }, error = function(e) {
+    warning(sprintf(
+      "hpo_all_children_from_term_api: /descendants fetch failed for %s (%s); using seed-only",
+      term_input, conditionMessage(e)
+    ), call. = FALSE)
+    character(0)
+  })
 
-  ids <- term_input
-  if (!is.null(descendants) && length(descendants) > 0) {
-    desc_ids <- if (is.data.frame(descendants)) descendants$id else descendants
-    ids <- c(ids, as.character(desc_ids))
-  }
-
-  tidyr::as_tibble(unique(c(unlist(all_children_list), ids)))
+  tidyr::as_tibble(unique(c(unlist(all_children_list), term_input, desc_ids)))
 }

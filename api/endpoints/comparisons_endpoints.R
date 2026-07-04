@@ -382,7 +382,9 @@ function() {
   }
 
   # OMIM-NDD is derived out-of-band (not in comparisons_config); describe it.
-  omim_seed <- Sys.getenv("OMIM_NDD_SEED_TERM", unset = "HP:0012759")
+  # Single source for the seed (shared with the refresh path) so provenance and
+  # the imported set never disagree.
+  omim_seed <- omim_ndd_seed_term()
   sources[[length(sources) + 1]] <- list(
     name = "omim_ndd",
     label = "OMIM NDD",

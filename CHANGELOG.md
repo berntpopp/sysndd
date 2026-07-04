@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.28.2] — 2026-07-04
+
+Hardening follow-ups to the v0.28.1 OMIM-NDD descendant expansion, from a deep code review.
+
+### Fixed
+
+- **Durable OMIM-NDD refresh now honors `OMIM_NDD_SEED_TERM`**: the refresh path (`comparisons-functions.R`) called `adapt_genemap2_for_comparisons()` with the hardcoded default seed, while the db-prep script and the `GET /api/comparisons/sources` provenance both read the `OMIM_NDD_SEED_TERM` env var — so an operator who set a non-default seed got provenance that disagreed with the imported set. Both paths now resolve the seed through a single helper, `omim_ndd_seed_term()`.
+- **Descendant-resolution failure is now observable**: `hpo_all_children_from_term_api()` (the JAX `/descendants` fetch behind `omim_ndd_resolve_terms()`) previously swallowed network/parse errors and silently returned seed-only — re-introducing the exact under-capture bug v0.28.1 fixed. It now emits a `warning()` on any fetch error or empty/malformed response, so a degraded refresh shows up in worker logs. It also normalizes term ids (trim/`NA`/blank) before filtering.
+- **Bounded the JAX request**: the fetch used raw `jsonlite::fromJSON()` (only the global 60 s connection timeout) inside a durable worker job; it now uses a bounded `httr2` request (`req_timeout` + one retry) so a stalled ontology API fails fast instead of tying up a worker.
+
+### Added
+
+- Offline unit tests for the seed/descendant resolution chain (`omim_ndd_seed_term`, `omim_ndd_resolve_terms`, `hpo_all_children_from_term_api`) covering success, empty/malformed, and failure branches with mocked `httr2` (`test-unit-omim-ndd-descendants.R`).
+
 ## [0.28.1] — 2026-07-04
 
 Follow-ups to the v0.28.0 comparison work.
