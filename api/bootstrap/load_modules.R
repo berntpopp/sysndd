@@ -89,6 +89,16 @@ bootstrap_load_modules <- function() {
     "functions/category-normalization.R",
     "functions/endpoint-functions.R",
     "functions/comparisons-list.R",
+    # Comparisons refresh write-path (durable `comparisons_update` job). These
+    # were historically only loaded into the mirai daemon pool via
+    # setup_workers.R, but create_job() now submits comparisons_update as a
+    # durable System B job, so the async worker (which loads via this list) must
+    # define comparisons_update_async() and its helpers too. Order: sources +
+    # parsers + omim before comparisons-functions.R (which uses them).
+    "functions/omim-functions.R",
+    "functions/comparisons-sources.R",
+    "functions/comparisons-parsers.R",
+    "functions/comparisons-functions.R",
     "functions/publication-endpoint-helpers.R",
     "functions/pubmed-xml-parser.R",
     "functions/publication-functions.R",

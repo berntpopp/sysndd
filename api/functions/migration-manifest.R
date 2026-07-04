@@ -2,7 +2,7 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "038_update_geisinger_dbd_source.sql"
+EXPECTED_LATEST_MIGRATION <- "039_fix_comparison_schema_drift.sql"
 EXPECTED_MIGRATION_COUNT <- 35L
 
 #' Validate the migration manifest for strict startup/readiness checks
