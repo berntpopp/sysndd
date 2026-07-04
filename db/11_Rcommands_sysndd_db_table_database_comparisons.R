@@ -236,7 +236,7 @@ sfari_list <- sfari_csv %>%
 ## We aggregate the case-level rows to one row per gene, mirroring
 ## api/functions/comparisons-parsers.R::parse_geisinger_csv().
 
-geisinger_full_data <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved)) %>%
+geisinger_full_data <- read_csv(paste0("data/", (ndd_databases_links %>% filter(name == "ndd_genehub"))$file_saved)) %>%
   rename(gene_symbol = `Gene Symbol`) %>%
   mutate(gene_symbol = as.character(gene_symbol)) %>%
   filter(!is.na(gene_symbol) & gene_symbol != "")
@@ -289,8 +289,8 @@ geisinger_list <- geisinger_full_data %>%
   left_join(geisinger_phenotype, by = "gene_symbol") %>%
   left_join(geisinger_publications, by = "gene_symbol") %>%
   left_join(geisinger_inheritance, by = "gene_symbol") %>%
-  mutate(list = "geisinger_DBD") %>%
-  mutate(version = (ndd_databases_links %>% filter(name == "geisinger_DBD"))$file_saved %>% str_remove(pattern = "\\.csv")) %>%
+  mutate(list = "ndd_genehub") %>%
+  mutate(version = (ndd_databases_links %>% filter(name == "ndd_genehub"))$file_saved %>% str_remove(pattern = "\\.csv")) %>%
   mutate(hgnc_id = hgnc_id_from_symbol_grouped(gene_symbol)) %>%
   filter(!is.na(hgnc_id)) %>%
   mutate(symbol = symbol_from_hgnc_id_grouped(hgnc_id)) %>%

@@ -12,32 +12,7 @@
         aria-label="Show curation comparison table help"
       />
 
-      <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
-        <template #title> Comparisons selection [last update 2023-04-13] </template>
-        The NDD databases and lists for the comparison with SysNDD are:
-        <br />
-        <strong>1) radboudumc ID,</strong> downloaded and normalized from
-        https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br />
-        <strong>2) gene2phenotype ID</strong> downloaded and normalized from
-        https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
-        <br />
-        <strong>3) panelapp ID</strong> downloaded and normalized from
-        https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
-        <br />
-        <strong>4) sfari</strong> downloaded and normalized from
-        https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes,
-        <br />
-        <strong>5) geisinger DBD</strong> downloaded and normalized from
-        https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv,
-        <br />
-        <strong>6) orphanet ID</strong> downloaded and normalized from
-        https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
-        <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental abnormality"
-        (HP:0012759) using the pre-propagated phenotype_to_genes.txt
-        (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2 (genemap2.txt
-        from OMIM, requires download key),
-        <br />
-      </BPopover>
+      <CurationSourcesPopover />
     </template>
 
     <template #actions>
@@ -221,8 +196,8 @@
             <CategoryIcon :category="row.sfari" size="sm" />
           </template>
 
-          <template #cell-geisinger_DBD="{ row }">
-            <CategoryIcon :category="row.geisinger_DBD" size="sm" />
+          <template #cell-ndd_genehub="{ row }">
+            <CategoryIcon :category="row.ndd_genehub" size="sm" />
           </template>
 
           <template #cell-orphanet_id="{ row }">
@@ -261,6 +236,7 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import CurationComparisonMobileRows from '@/components/analyses/CurationComparisonMobileRows.vue';
+import CurationSourcesPopover from '@/components/analyses/CurationSourcesPopover.vue';
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -280,6 +256,7 @@ export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the GenericTable component (Treeselect temporarily disabled)
   components: {
+    CurationSourcesPopover,
     GenericTable,
     InlineHelpBadge,
     TableDownloadLinkCopyButtons,
@@ -301,7 +278,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id,omim_ndd',
+        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,ndd_genehub,orphanet_id,omim_ndd',
     },
   },
   setup() {

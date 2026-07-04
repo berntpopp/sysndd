@@ -15,7 +15,7 @@ describe('createComparisonFields', () => {
       'panelapp',
       'radboudumc_ID',
       'sfari',
-      'geisinger_DBD',
+      'ndd_genehub',
       'orphanet_id',
       'omim_ndd',
     ]);

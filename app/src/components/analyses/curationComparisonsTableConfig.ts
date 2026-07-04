@@ -35,7 +35,7 @@ export const COMPARISON_SOURCE_COLUMNS = [
   'panelapp',
   'radboudumc_ID',
   'sfari',
-  'geisinger_DBD',
+  'ndd_genehub',
   'orphanet_id',
   'omim_ndd',
 ] as const;
@@ -65,8 +65,8 @@ export function createComparisonFields(): ComparisonTableField[] {
     },
     { key: 'sfari', label: 'SFARI', sortable: true, filterable: true, class: 'text-start' },
     {
-      key: 'geisinger_DBD',
-      label: 'Geisinger DBD',
+      key: 'ndd_genehub',
+      label: 'NDD GeneHub',
       sortable: true,
       filterable: true,
       class: 'text-start',
@@ -123,7 +123,7 @@ export function createComparisonFilter(): ComparisonFilter {
     panelapp: { content: null, join_char: ',', operator: 'any' },
     radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
     sfari: { content: null, join_char: ',', operator: 'any' },
-    geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
+    ndd_genehub: { content: null, join_char: null, operator: 'contains' },
     orphanet_id: { content: null, join_char: null, operator: 'contains' },
     omim_ndd: { content: null, join_char: null, operator: 'contains' },
   };

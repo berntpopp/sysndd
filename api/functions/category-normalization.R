@@ -34,7 +34,7 @@
 #'   - "2" → "Moderate"
 #'   - "3" → "Limited"
 #'   - NA → "Definitive"
-#' - **geisinger_DBD**: All entries → "Definitive"
+#' - **ndd_genehub**: All entries → "Definitive"
 #' - **radboudumc_ID**: All entries → "Definitive"
 #' - **SysNDD, omim_ndd, orphanet_id**: Categories unchanged
 #'
@@ -68,8 +68,8 @@ normalize_comparison_categories <- function(data) {
       list == "sfari" & category == "2" ~ "Moderate",
       list == "sfari" & category == "3" ~ "Limited",
       list == "sfari" & is.na(category) ~ "Definitive",
-      # geisinger_DBD - all entries are high confidence
-      list == "geisinger_DBD" ~ "Definitive",
+      # ndd_genehub - all entries are high confidence
+      list == "ndd_genehub" ~ "Definitive",
       # radboudumc_ID - all entries are high confidence
       list == "radboudumc_ID" ~ "Definitive",
       # omim_ndd and orphanet_id already have "Definitive" set

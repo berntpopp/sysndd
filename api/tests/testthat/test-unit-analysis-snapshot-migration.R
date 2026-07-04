@@ -5,7 +5,7 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "039_fix_comparison_schema_drift.sql")
+  expect_equal(EXPECTED_LATEST_MIGRATION, "040_rename_geisinger_to_ndd_genehub.sql")
   expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
 })
 

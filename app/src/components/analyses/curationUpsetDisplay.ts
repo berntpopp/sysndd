@@ -17,7 +17,7 @@ export const SOURCE_COLORS: Record<string, string> = {
   orphanet_id: '#F0E442', // Yellow
   radboudumc_ID: '#CC79A7', // Reddish Purple
   sfari: '#E69F00', // Orange
-  geisinger_DBD: '#D55E00', // Vermilion
+  ndd_genehub: '#D55E00', // Vermilion
   omim_ndd: '#000000', // Black
 };
 
@@ -88,7 +88,7 @@ const SOURCE_NAME_MAP: Record<string, string> = {
   orphanet_id: 'Orphanet',
   radboudumc_ID: 'Radboudumc',
   sfari: 'SFARI',
-  geisinger_DBD: 'Geisinger DBD',
+  ndd_genehub: 'NDD GeneHub',
   omim_ndd: 'OMIM NDD',
 };
 
@@ -106,7 +106,7 @@ const SOURCE_VARIANT_MAP: Record<string, string> = {
   orphanet_id: 'warning',
   radboudumc_ID: 'secondary',
   sfari: 'danger',
-  geisinger_DBD: 'dark',
+  ndd_genehub: 'dark',
   omim_ndd: 'light',
 };
 

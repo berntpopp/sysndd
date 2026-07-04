@@ -9,7 +9,7 @@
     <div class="mb-3">
       <p class="text-muted small mb-2">
         Refresh comparisons data from 7 external NDD databases: Radboudumc, Gene2Phenotype,
-        PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads fresh data
+        PanelApp, SFARI, NDD GeneHub, OMIM NDD, and Orphanet. This operation downloads fresh data
         and updates the database. Any failure aborts the entire refresh.
       </p>
     </div>

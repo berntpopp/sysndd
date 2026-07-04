@@ -10,7 +10,7 @@
 #
 # Functions:
 #   - parse_radboudumc_pdf / parse_gene2phenotype_csv / parse_panelapp_tsv /
-#     parse_sfari_csv / parse_geisinger_csv / parse_orphanet_json
+#     parse_sfari_csv / parse_ndd_genehub_csv / parse_orphanet_json
 #   - adapt_genemap2_for_comparisons(genemap2_data, phenotype_to_genes_path)
 #   - standardize_comparison_data(parsed_data, source_name, import_date)
 
@@ -198,7 +198,7 @@ parse_sfari_csv <- function(file_path) {
 #'   publication_id, list, version
 #'
 #' @export
-parse_geisinger_csv <- function(file_path) {
+parse_ndd_genehub_csv <- function(file_path) {
   data <- read_csv(file_path, show_col_types = FALSE)
 
   gene_col <- intersect(c("Gene Symbol", "Gene"), colnames(data))[1]
@@ -283,7 +283,7 @@ parse_geisinger_csv <- function(file_path) {
 
   result <- base %>%
     mutate(
-      list = "geisinger_DBD",
+      list = "ndd_genehub",
       category = "Definitive",
       version = basename(file_path) %>% str_remove(pattern = "\\.csv$")
     )
@@ -500,7 +500,7 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
     "gene2phenotype" = "gene,disease,inheritance,category,pathogenicity",
     "panelapp" = "gene,disease(aggregated),inheritance(aggregated),category,pathogenicity(incomplete)",
     "sfari" = "gene,disease,category",
-    "geisinger_DBD" = "gene,phenotype,inheritance(derived),publication,category(implied)",
+    "ndd_genehub" = "gene,phenotype,inheritance(derived),publication,category(implied)",
     "omim_ndd" = "gene(aggregated),disease,inheritance(aggregated),category(implied)",
     "orphanet_id" = "gene,disease,inheritance,category(implied),pathogenicity(low-resolution)",
     "unknown"

@@ -97,13 +97,13 @@ test_that("normalize_comparison_categories maps sfari gene scores", {
 })
 
 # ============================================================================
-# geisinger_DBD and radboudumc_ID Category Mapping Tests
+# ndd_genehub and radboudumc_ID Category Mapping Tests
 # ============================================================================
 
-test_that("normalize_comparison_categories maps geisinger_DBD and radboudumc_ID to Definitive", {
+test_that("normalize_comparison_categories maps ndd_genehub and radboudumc_ID to Definitive", {
   fixture <- tibble(
     symbol = c("GENE1", "GENE2", "GENE3", "GENE4"),
-    list = c("geisinger_DBD", "geisinger_DBD", "radboudumc_ID", "radboudumc_ID"),
+    list = c("ndd_genehub", "ndd_genehub", "radboudumc_ID", "radboudumc_ID"),
     category = c("high", "low", "strong", "unknown")
   )
 

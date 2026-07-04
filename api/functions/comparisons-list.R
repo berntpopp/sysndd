@@ -34,7 +34,7 @@ generate_comparisons_list <- function(
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id,omim_ndd",
+  fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,ndd_genehub,orphanet_id,omim_ndd",
   definitive_only = "false"
 ) {
   # set start time

@@ -24,6 +24,7 @@ Curation-comparison source repair + refresh hardening, and the upstream half of 
 
 ### Added
 
+- **Live source-provenance panel + `geisinger_DBD` → `ndd_genehub` rename**: the curation-comparison table's provenance popover (source list, download URLs, and the "last update" date) is now populated from a new `GET /api/comparisons/sources` endpoint (driven by `comparisons_config` + `comparisons_metadata`) instead of hardcoded, drift-prone text — so it always shows the current URLs and refresh date. The source is surfaced everywhere as **NDD GeneHub**, and the internal source key/`list` value was renamed `geisinger_DBD` → `ndd_genehub` (migration `040`, parser, dispatch, and frontend columns) to remove the stale "geisinger" identifier from the API `list` field, exports, and column keys.
 - **Configurable OMIM-NDD seed + sensitivity sweep (#502)**: `adapt_genemap2_for_comparisons(seed_term = "HP:0012759")` makes the NDD definition a documented parameter (default reproduces the published set), and `omim_ndd_seed_sweep()` produces a per-seed report (gene-set size + SysNDD coverage gap) over narrow/default/broad seeds. The db-prep script reads the same seed from `OMIM_NDD_SEED_TERM`. Downstream API exposure of the variant sets remains a separate follow-up per #502.
 
 ## [0.27.3] — 2026-07-03

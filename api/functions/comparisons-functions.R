@@ -360,7 +360,7 @@ comparisons_update_async <- function(params) {
           "gene2phenotype" = parse_gene2phenotype_csv(file_path),
           "panelapp" = parse_panelapp_tsv(file_path),
           "sfari" = parse_sfari_csv(file_path),
-          "geisinger_DBD" = parse_geisinger_csv(file_path),
+          "ndd_genehub" = parse_ndd_genehub_csv(file_path),
           "orphanet_id" = parse_orphanet_json(file_path),
           stop(sprintf("Unknown source: %s", source_name))
         )

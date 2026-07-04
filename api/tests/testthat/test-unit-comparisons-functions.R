@@ -279,31 +279,31 @@ test_that("standardize_comparison_data keeps parser category for geisinger", {
   # standardize must not override it (regression guard for the source rewrite).
   input <- tibble(
     gene_symbol = c("GENE1", "GENE2"),
-    list = c("geisinger_DBD", "geisinger_DBD"),
+    list = c("ndd_genehub", "ndd_genehub"),
     version = c("1", "1"),
     category = c("Definitive", "Definitive")
   )
 
-  result <- standardize_comparison_data(input, "geisinger_DBD", "2026-01-01")
+  result <- standardize_comparison_data(input, "ndd_genehub", "2026-01-01")
 
   expect_equal(result$category, c("Definitive", "Definitive"))
 })
 
 # ============================================================================
-# parse_geisinger_csv() Tests (NDD GeneHub case-level "Full-Data.csv" schema)
+# parse_ndd_genehub_csv() Tests (NDD GeneHub case-level "Full-Data.csv" schema)
 # ============================================================================
 
-test_that("parse_geisinger_csv aggregates NDD GeneHub case-level rows per gene", {
-  fixture <- file.path(api_dir, "tests/testthat/fixtures/geisinger_dbd_test.csv")
+test_that("parse_ndd_genehub_csv aggregates NDD GeneHub case-level rows per gene", {
+  fixture <- file.path(api_dir, "tests/testthat/fixtures/ndd_genehub_test.csv")
   skip_if_not(file.exists(fixture), "geisinger DBD fixture not found")
 
-  result <- parse_geisinger_csv(fixture)
+  result <- parse_ndd_genehub_csv(fixture)
 
   expect_true(all(c(
     "gene_symbol", "category", "inheritance", "phenotype",
     "publication_id", "list", "version"
   ) %in% colnames(result)))
-  expect_true(all(result$list == "geisinger_DBD"))
+  expect_true(all(result$list == "ndd_genehub"))
   expect_true(all(result$category == "Definitive"))
   # Blank-gene "NONGENE" row (empty Gene Symbol) is dropped; 3 real genes remain.
   expect_setequal(result$gene_symbol, c("ADNP", "ADGRG1", "DMD"))
@@ -326,18 +326,18 @@ test_that("parse_geisinger_csv aggregates NDD GeneHub case-level rows per gene",
   expect_equal(dmd$inheritance, "X-linked inheritance")
 })
 
-test_that("parse_geisinger_csv drops rows with blank gene symbol", {
-  fixture <- file.path(api_dir, "tests/testthat/fixtures/geisinger_dbd_test.csv")
+test_that("parse_ndd_genehub_csv drops rows with blank gene symbol", {
+  fixture <- file.path(api_dir, "tests/testthat/fixtures/ndd_genehub_test.csv")
   skip_if_not(file.exists(fixture), "geisinger DBD fixture not found")
 
-  result <- parse_geisinger_csv(fixture)
+  result <- parse_ndd_genehub_csv(fixture)
   expect_false(any(is.na(result$gene_symbol) | result$gene_symbol == ""))
 })
 
-test_that("parse_geisinger_csv errors on missing gene column", {
+test_that("parse_ndd_genehub_csv errors on missing gene column", {
   tmp <- withr::local_tempfile(fileext = ".csv")
   readr::write_csv(tibble(Foo = 1, Bar = 2), tmp)
-  expect_error(parse_geisinger_csv(tmp), "Gene Symbol")
+  expect_error(parse_ndd_genehub_csv(tmp), "Gene Symbol")
 })
 
 # ============================================================================
@@ -600,10 +600,10 @@ test_that("comparisons_refresh_outcome commits with success when nothing failed"
 })
 
 test_that("comparisons_refresh_outcome commits partial when some sources fail", {
-  out <- comparisons_refresh_outcome(c("panelapp", "sfari"), c("geisinger_DBD"))
+  out <- comparisons_refresh_outcome(c("panelapp", "sfari"), c("ndd_genehub"))
   expect_true(out$commit)
   expect_equal(out$status, "partial")
-  expect_match(out$error, "geisinger_DBD")
+  expect_match(out$error, "ndd_genehub")
   expect_match(out$error, "1 of 3")
 })
 
