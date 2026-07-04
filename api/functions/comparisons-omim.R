@@ -127,4 +127,3 @@ omim_ndd_seed_sweep <- function(genemap2_data, phenotype_to_genes_path,
 
   dplyr::bind_rows(rows)
 }
-
