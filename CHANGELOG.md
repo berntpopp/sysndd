@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-07-04
+
+Curation-comparison source repair + refresh hardening, and the upstream half of #502 (configurable OMIM-NDD seed). The single dead comparison source (`geisinger_DBD`) had been blocking every production comparison refresh; the refresh is now resilient so no single dead upstream can freeze the comparator again.
+
+### Fixed
+
+- **`geisinger_DBD` comparison source repaired** (was a hard production blocker): the Developmental Brain Disorders database moved from the now-404 `dbd.geisingeradmi.org` CSV to NDD GeneHub. Migration `038_update_geisinger_dbd_source.sql` repoints the source to `https://nddgenehub.org/files/Full-Data.csv`, and `parse_geisinger_csv()` was rewritten to aggregate that canonical case-level export per gene (phenotype union, distinct PubMed IDs, derived inheritance). Because the historical refresh was all-or-nothing, this one 404 had been aborting the whole refresh. Verified end-to-end against the live 4.9 MB file.
+- **Dead HPO term API replaced across the codebase**: the retired `hpo.jax.org/api/hpo/term` endpoint (and its old nested JSON shape) is replaced by the JAX ontology API `https://ontology.jax.org/api/hp/terms/{id}` in `db/config/db_config.R` (`hpo_term_api_base`), the db-prep HPO helpers, and the (unused) `api/functions/hpo-functions.R` variants. Descendant sets now come from a single `/descendants` call instead of a recursive per-term walk. HPO term browse outlinks moved to `https://hpo.jax.org/browse/term/{id}` (the `/app/` prefix was dropped in the HPO site rebuild); updated in `jobs_endpoints.R`, `analysis-snapshot-service.R`, and `EntityView.vue`.
+
+### Changed
+
+- **Comparison refresh is resilient (per-list replace), not all-or-nothing**: each source downloads/parses independently; a failed source keeps its previously-imported rows and is named in `comparisons_metadata.last_refresh_error`, and the job reports `partial` (some failed) or `success` (all OK), only failing outright when every source fails. `comparisons_refresh_outcome()` is the single decision point. `comparison_id` is left to AUTO_INCREMENT so retained rows never collide with the per-list re-insert. The mirai daemons source comparisons code at API startup, so restart the API before a refresh reflects code changes.
+- **`comparisons-functions.R` split**: the per-source parsers + `standardize_comparison_data` were extracted into `api/functions/comparisons-parsers.R` (registered in `setup_workers.R`, guard-sourced from `comparisons-functions.R`) so both files stay under the 600-line ceiling.
+
+### Added
+
+- **Configurable OMIM-NDD seed + sensitivity sweep (#502)**: `adapt_genemap2_for_comparisons(seed_term = "HP:0012759")` makes the NDD definition a documented parameter (default reproduces the published set), and `omim_ndd_seed_sweep()` produces a per-seed report (gene-set size + SysNDD coverage gap) over narrow/default/broad seeds. The db-prep script reads the same seed from `OMIM_NDD_SEED_TERM`. Downstream API exposure of the variant sets remains a separate follow-up per #502.
+
 ## [0.27.3] — 2026-07-03
 
 Post-deploy fix release completing the `publication_date_backfill` work from #494. Closes #499. Closes #500.
