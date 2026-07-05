@@ -116,3 +116,54 @@ string_textmining_free_edges <- function(detailed_df, score_threshold = 400) {
   )
   dplyr::filter(out, is.finite(.data$exp_db_score) & .data$exp_db_score >= score_threshold)
 }
+
+#' Path to the precomputed compact text-mining-free (exp+db) edge file.
+#'
+#' The full STRING detailed links file is ~12M rows; this compact file
+#' (`protein1 protein2 exp_db_score`, exp+db recombined and thresholded once) is
+#' the operational artifact the functional pipeline reads. Built by the db-prep
+#' step from `9606.protein.links.detailed.v11.5.txt.gz`. Env-overridable.
+#'
+#' @return file path (relative to the API working dir, i.e. resolves under data/).
+#' @export
+string_expdb_edges_file <- function() {
+  Sys.getenv("STRING_EXPDB_EDGES_FILE", "data/9606.protein.links.expdb.v11.5.min400.txt.gz")
+}
+
+#' Build the induced text-mining-free (exp+db) STRING subgraph for a set of ids.
+#'
+#' Reads the compact exp+db edge file, keeps edges whose BOTH endpoints are in
+#' `string_ids` and whose recombined score >= `score_threshold`, and returns a
+#' weighted igraph. The exp+db score is written to the edge attribute
+#' `combined_score` so the existing weighted-Leiden / modularity plumbing consumes
+#' it unchanged, and a graph attribute `weight_channel = "experimental_database"`
+#' labels the channel. Returns NULL when the compact file is absent so the caller
+#' can fall back to the STRINGdb combined graph (graceful degradation).
+#'
+#' @param string_ids character vector of STRING protein ids (e.g. 9606.ENSP...).
+#' @param score_threshold minimum exp+db score to retain an edge (default 400).
+#' @param file compact exp+db edge file (default `string_expdb_edges_file()`).
+#' @return weighted igraph (all `string_ids` as vertices; isolates retained), or NULL.
+#' @export
+string_expdb_subgraph <- function(string_ids, score_threshold = 400,
+                                  file = string_expdb_edges_file()) {
+  if (!file.exists(file)) {
+    return(NULL)
+  }
+  edges <- data.table::fread(
+    cmd = paste("zcat", shQuote(file)),
+    col.names = c("protein1", "protein2", "exp_db_score")
+  )
+  ids <- unique(as.character(string_ids))
+  e <- edges[edges$protein1 %in% ids & edges$protein2 %in% ids &
+               edges$exp_db_score >= score_threshold, ]
+  g <- igraph::graph_from_data_frame(
+    data.frame(from = as.character(e$protein1), to = as.character(e$protein2),
+               stringsAsFactors = FALSE),
+    directed = FALSE,
+    vertices = data.frame(name = ids, stringsAsFactors = FALSE)
+  )
+  igraph::E(g)$combined_score <- as.numeric(e$exp_db_score) # plumbing-compatible weight
+  attr(g, "weight_channel") <- "experimental_database"
+  g
+}

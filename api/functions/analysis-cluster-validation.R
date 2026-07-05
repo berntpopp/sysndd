@@ -63,11 +63,26 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
                                           subsample_fraction = 0.8, seed = 42) {
   subgraph  <- build_string_subgraph(hgnc_list, score_threshold)     # shared refactored helper
   all_nodes <- igraph::V(subgraph)$name
+  weight_channel <- attr(subgraph, "weight_channel")
+  if (is.null(weight_channel)) weight_channel <- "combined_score"
 
   # FULL optimized Leiden partition = the quantity the objective maximizes; report ITS modularity.
   full_membership <- .leiden_membership(subgraph, resolution, seed)
   modularity <- igraph::modularity(subgraph, full_membership,
                                    weights = igraph::E(subgraph)$combined_score)
+
+  # #510 channel sensitivity: how much does Q change if text-mining is included?
+  # Off by default (an extra full STRINGdb combined build); flip the env to report it.
+  modularity_combined <- NA_real_
+  if (identical(weight_channel, "experimental_database") &&
+      identical(tolower(Sys.getenv("ANALYSIS_REPORT_COMBINED_SENSITIVITY", "false")), "true")) {
+    modularity_combined <- tryCatch({
+      cs <- build_string_subgraph(hgnc_list, score_threshold, channel = "combined")
+      cs_lcc <- igraph::largest_component(cs)
+      igraph::modularity(cs_lcc, .leiden_membership(cs_lcc, resolution, seed),
+                         weights = igraph::E(cs_lcc)$combined_score)
+    }, error = function(e) NA_real_)
+  }
 
   # --- #510: giant-component structure + degree-preserving modularity null ---
   # A raw Q is not a significance statement (Leiden maximizes exactly Q, and even
@@ -143,7 +158,8 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
       resolution_parameter = resolution,
       modularity = modularity, modularity_scope = "full_partition",
-      weight_channel = "combined_score",
+      weight_channel = weight_channel,
+      modularity_combined_score = modularity_combined,
       modularity_z = mod_null$z, modularity_p_empirical = mod_null$p_empirical,
       modularity_null_mean = mod_null$q_null_mean, modularity_null_sd = mod_null$q_null_sd,
       null_model = mod_null$null_model, n_null = mod_null$n_null,
