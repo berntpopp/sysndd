@@ -63,6 +63,33 @@ describe('ClusterValidationCard', () => {
     expect(text).toContain('3');
   });
 
+  it('renders the null-calibrated Separation z headline + giant-component metric (schema 2.0)', () => {
+    const wrapper = mount(ClusterValidationCard, {
+      props: {
+        analysisType: 'functional_clusters',
+        snapshotMeta: {
+          db_release: { version: ['1.0.0'] },
+          validation: {
+            algorithm: ['leiden'],
+            modularity: [0.5355],
+            n_clusters: [9],
+            n_resamples_effective: [100],
+            separation_z: [6.42],
+            modularity_p_empirical: [0.0005],
+            null_model: ['degree_preserving_configuration'],
+            giant_component: { n_isolates: [12], n_components: [4] },
+          },
+        },
+        clusters: functionalClusters,
+      },
+    });
+    const text = wrapper.text();
+    expect(text).toContain('Separation z');
+    expect(text).toContain('6.420');
+    expect(text).toContain('Isolates / comps');
+    expect(text).toContain('12 / 4');
+  });
+
   it('renders nothing when validation is absent (old snapshot)', () => {
     const wrapper = mount(ClusterValidationCard, {
       props: {

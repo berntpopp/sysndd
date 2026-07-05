@@ -72,6 +72,59 @@ function fmtInt(value: number | null): string {
   return value == null ? 'n/a' : String(Math.trunc(value));
 }
 
+// Format an empirical/dip p-value for a metric hint (small p collapses to "<0.001").
+function fmtPValue(value: number | null): string {
+  if (value == null) return 'n/a';
+  return value < 0.001 ? '<0.001' : value.toFixed(3);
+}
+
+// Humanize a snake_case token (null-model name, interpretation band) for display.
+function humanizeToken(value: string | null): string | null {
+  if (value == null) return null;
+  return value.replace(/_/g, ' ');
+}
+
+// Headline unit-free separation metric shared by both axes (validation schema
+// >= 2.0). Hidden entirely when `separation_z` is absent/non-finite so older
+// snapshots render unchanged. `pValue` is the axis-specific empirical p.
+function separationHeadline(
+  v: ClusterValidation,
+  pValue: number | null,
+): ValidationMetric | null {
+  const z = toScalarNumber(v.separation_z);
+  if (z == null) return null;
+  const nullModel = humanizeToken(toScalarString(v.null_model));
+  const parts: string[] = [];
+  if (pValue != null) parts.push(`p=${fmtPValue(pValue)}`);
+  if (nullModel) parts.push(`vs ${nullModel}`);
+  return {
+    label: 'Separation z',
+    value: fmtDecimal(z),
+    hint: parts.length ? parts.join(' ') : undefined,
+  };
+}
+
+// Functional-only giant-component summary (isolates / component count). Hidden
+// when `giant_component` is absent.
+function giantComponentMetric(v: ClusterValidation): ValidationMetric | null {
+  const gc = v.giant_component;
+  if (gc == null || typeof gc !== 'object' || Array.isArray(gc)) return null;
+  const isolates = toScalarNumber(gc.n_isolates);
+  const components = toScalarNumber(gc.n_components);
+  if (isolates == null && components == null) return null;
+  return {
+    label: 'Isolates / comps',
+    value: `${fmtInt(isolates)} / ${fmtInt(components)}`,
+  };
+}
+
+// Phenotype-only silhouette structure band (humanized). Hidden when absent.
+function structureMetric(v: ClusterValidation): ValidationMetric | null {
+  const interpretation = humanizeToken(toScalarString(v.silhouette_interpretation));
+  if (interpretation == null) return null;
+  return { label: 'Structure', value: interpretation };
+}
+
 export function hasValidation(
   validation: ClusterValidation | unknown[] | null | undefined,
 ): boolean {
@@ -93,7 +146,10 @@ export function summarizeValidation(
 
   if (analysisType === 'phenotype_clusters' || algorithm === 'mca_hcpc') {
     const status = toScalarString(v.silhouette_status);
+    const headline = separationHeadline(v, toScalarNumber(v.silhouette_p_empirical));
+    const structure = structureMetric(v);
     return [
+      ...(headline ? [headline] : []),
       {
         label: 'Mean silhouette',
         value: fmtDecimal(toScalarNumber(v.mean_silhouette)),
@@ -102,9 +158,13 @@ export function summarizeValidation(
       { label: 'Clusters (k)', value: fmtInt(toScalarNumber(v.k)), hint: 'data-driven' },
       { label: 'Dropped entities', value: fmtInt(toScalarNumber(v.n_entities_dropped)) },
       resamples,
+      ...(structure ? [structure] : []),
     ];
   }
+  const headline = separationHeadline(v, toScalarNumber(v.modularity_p_empirical));
+  const giantComponent = giantComponentMetric(v);
   return [
+    ...(headline ? [headline] : []),
     {
       label: 'Modularity',
       value: fmtDecimal(toScalarNumber(v.modularity)),
@@ -116,6 +176,7 @@ export function summarizeValidation(
       value: fmtInt(toScalarNumber(v.n_dropped_below_min_size)),
     },
     resamples,
+    ...(giantComponent ? [giantComponent] : []),
   ];
 }
 
