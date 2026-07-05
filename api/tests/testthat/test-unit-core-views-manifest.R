@@ -11,7 +11,7 @@ source_api_file("functions/migration-runner.R", local = FALSE)
 
 test_that("manifest expects migration 041 as latest", {
   expect_equal(EXPECTED_LATEST_MIGRATION, "041_add_analysis_reproducibility.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
+  expect_equal(EXPECTED_MIGRATION_COUNT, 39L)
 })
 
 test_that("migration manifest validates against db/migrations", {

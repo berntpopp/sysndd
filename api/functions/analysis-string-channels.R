@@ -164,6 +164,18 @@ string_expdb_subgraph <- function(string_ids, score_threshold = 400,
     vertices = data.frame(name = ids, stringsAsFactors = FALSE)
   )
   igraph::E(g)$combined_score <- as.numeric(e$exp_db_score) # plumbing-compatible weight
+  # STRING's detailed links file lists every undirected pair in BOTH directions
+  # (protein1->protein2 and protein2->protein1), so an undirected graph built from
+  # it is a multigraph with each edge duplicated. Collapse to a simple graph so the
+  # edge counts (giant_component$n_edges, edge_retention) and the exported
+  # reproducibility edge list are the true undirected counts and match the
+  # STRINGdb-combined fallback (which is already simple). Weighted modularity/Leiden
+  # are invariant to the uniform 2x duplication, so the partition is unchanged; the
+  # duplicate scores are identical, so "first" is exact.
+  g <- igraph::simplify(
+    g, remove.multiple = TRUE, remove.loops = TRUE,
+    edge.attr.comb = list(combined_score = "first")
+  )
   attr(g, "weight_channel") <- "experimental_database"
   g
 }

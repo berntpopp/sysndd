@@ -480,6 +480,9 @@ mcp_get_phenotype_analysis_context <- function(mode,
     # validation object. Absent on pre-refresh snapshots -> omitted entirely.
     separation_statistics <- mcp_analysis_separation_statistics(cluster_validation)
     if (!is.null(separation_statistics)) {
+      # Emit separation diagnostics once; drop the same keys from `validation` so no
+      # field is doubled under two conflicting data_class labels (code-review).
+      meta$validation <- meta$validation[setdiff(names(meta$validation), names(separation_statistics))]
       meta$separation_statistics <- separation_statistics
       meta$data_classes$separation_statistics <- "operational_metadata"
     }

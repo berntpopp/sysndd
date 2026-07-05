@@ -137,6 +137,7 @@ export interface ClusterValidation {
   dip_p?: number | number[];
   dip_interpretation?: string | string[];
   // — functional (leiden) —
+  modularity_lcc?: number | number[]; // LCC Q the z is computed on (reconciles with modularity_z)
   modularity_z?: number | number[];
   modularity_p_empirical?: number | number[];
   modularity_null_mean?: number | number[];

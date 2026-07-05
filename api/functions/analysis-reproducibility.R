@@ -332,6 +332,23 @@ analysis_reproducibility_endpoint <- function(analysis_type, res = NULL, conn = 
     ))
   }
 
+  # Staleness gate: mirror the main analysis endpoints (which 503 on a snapshot
+  # whose computed status is not "available") so a stale / source-version-mismatched
+  # snapshot's bundle is never served as if it were current (`status_code` is
+  # computed onto the manifest by analysis_snapshot_public_manifest()).
+  status_code <- tryCatch(as.character(manifest$status_code)[1], error = function(e) NA_character_)
+  if (!is.na(status_code) && !identical(status_code, "available")) {
+    if (!is.null(res)) res$status <- 503L
+    return(list(
+      error = status_code,
+      message = paste(
+        "The current snapshot is not available (stale, missing, or source-version",
+        "mismatch); its reproducibility bundle is not served as current."
+      ),
+      analysis_type = normalized$analysis_type
+    ))
+  }
+
   snapshot_id <- manifest$snapshot_id[[1]]
   row <- analysis_snapshot_get_reproducibility(snapshot_id, conn = conn)
   if (is.null(row) || (is.data.frame(row) && nrow(row) == 0L)) {

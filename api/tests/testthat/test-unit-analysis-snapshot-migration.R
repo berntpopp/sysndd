@@ -6,7 +6,7 @@ test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
   expect_equal(EXPECTED_LATEST_MIGRATION, "041_add_analysis_reproducibility.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
+  expect_equal(EXPECTED_MIGRATION_COUNT, 39L)
 })
 
 test_that("migration 041 adds the reproducibility bundle table", {

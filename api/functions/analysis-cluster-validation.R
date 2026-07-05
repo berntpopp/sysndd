@@ -102,16 +102,34 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
     edge_retention = igraph::ecount(lcc) / max(1L, igraph::ecount(subgraph))
   )
   lcc_membership <- .leiden_membership(lcc, resolution, seed)
+  # Guimera/Sales-Pardo/Amaral (2004) configuration-model benchmark: each null
+  # replicate RE-DETECTS communities with the identical seeded Leiden, so Q_null is
+  # the re-optimized modularity a degree-matched random graph reaches (~0.3-0.5),
+  # not the near-zero Q of the observed labels stranded on a rewired topology.
+  # Without this the z-score only tests "is Q distinguishable from 0" and is
+  # inflated by orders of magnitude.
   mod_null <- modularity_null_zscore(
     lcc, lcc_membership, weights = igraph::E(lcc)$combined_score,
-    n_null = n_null, seed = seed, resolution = resolution
+    n_null = n_null, seed = seed, resolution = resolution,
+    recluster = function(gg, ww) {
+      igraph::cluster_leiden(
+        gg, objective_function = "modularity", weights = ww,
+        resolution_parameter = resolution, beta = 0.01, n_iterations = -1
+      )$membership
+    }
   )
   # Representation-agnostic continuum-vs-modular signal: dip test of unimodality on
-  # the distribution of pairwise shortest-path (hop) distances over an LCC sample.
+  # the distribution of pairwise WEIGHTED shortest-path distances over an LCC
+  # sample. Edge distance = 1 - combined_score/1000 (higher STRING confidence ->
+  # shorter) is a continuous metric, so the dip is not an artifact of the handful
+  # of distinct integer hop counts (Hartigan's dip assumes a continuous sample).
+  # Pairwise distances remain mutually dependent, so dip_p corroborates rather than
+  # strictly tests.
   set.seed(seed)
   lcc_nodes <- igraph::V(lcc)$name
   dip_sample <- if (length(lcc_nodes) > 500L) sample(lcc_nodes, 500L) else lcc_nodes
-  spd <- igraph::distances(lcc, v = dip_sample, to = dip_sample, weights = NA)
+  edge_dist <- pmax(1 - igraph::E(lcc)$combined_score / 1000, .Machine$double.eps)
+  spd <- igraph::distances(lcc, v = dip_sample, to = dip_sample, weights = edge_dist)
   spd <- spd[upper.tri(spd)]
   dip <- dip_unimodality(spd[is.finite(spd)])
 
@@ -158,6 +176,11 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
       resolution_parameter = resolution,
       modularity = modularity, modularity_scope = "full_partition",
+      # The z-score/null/giant-component below are computed on the LARGEST
+      # CONNECTED COMPONENT; `modularity_lcc` is that LCC Q_obs so a consumer can
+      # reconcile the z with a modularity value (the headline `modularity` above is
+      # the full-partition Q, which differs when isolates/fragments are present).
+      modularity_lcc = mod_null$q_obs,
       weight_channel = weight_channel,
       modularity_combined_score = modularity_combined,
       modularity_z = mod_null$z, modularity_p_empirical = mod_null$p_empirical,
@@ -165,7 +188,7 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
       null_model = mod_null$null_model, n_null = mod_null$n_null,
       giant_component = giant_component,
       dip_statistic = dip$dip_statistic, dip_p = dip$p_value,
-      dip_interpretation = dip$interpretation, dip_scope = "shortest_path_sample",
+      dip_interpretation = dip$interpretation, dip_scope = "weighted_shortest_path_sample",
       separation_z = mod_null$z,
       n_clusters = n_clusters, n_dropped_below_min_size = n_dropped,
       partition_scope = "visible_top_level",
@@ -255,8 +278,11 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     # to the assigned entities, and score silhouette on the MCA-coord distance -> by
     # construction k_selection_curve[k] at the reported k equals mean_silhouette.
     # A separate k_decision_curve reports the relative within-cluster inertia loss
-    # (the criterion HCPC actually uses to pick k) so it is explicit that k was NOT
-    # chosen by silhouette. (Wave 1 uses kk = 50; Task 10 flips kk to Inf in both
+    # of the per-k re-runs -- an inertia-based diagnostic (NOT HCPC's own selector,
+    # which maximizes the Ward tree's between-cluster inertia-gain ratio) that makes
+    # explicit k was chosen by inertia, not by the silhouette curve. Because each k
+    # is an independent consolidated k-means (not a nested cut), the loss is not
+    # guaranteed monotone. (Wave 1 uses kk = 50; Task 10 flips kk to Inf in both
     # gen_mca_clust_obj and here so the curve keeps matching the served partition.)
     within_inertia <- function(cm, lab) {
       sum(vapply(split(seq_len(nrow(cm)), lab), function(idx) {
@@ -300,8 +326,9 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     })
     k_curve <- stats::setNames(lapply(per_k, function(x) x$sil), as.character(ks))
     w_vals  <- vapply(per_k, function(x) x$w, numeric(1))
-    # relative within-cluster inertia loss (the criterion HCPC uses to pick k), so
-    # it is explicit that k was chosen by inertia loss, not by the silhouette curve.
+    # relative within-cluster inertia loss across the per-k re-runs (an inertia
+    # diagnostic, not HCPC's between-cluster-gain selector); can be negative because
+    # the per-k consolidated partitions are independent, not nested.
     rel_loss <- c(NA_real_, utils::head(w_vals, -1) / utils::tail(w_vals, -1) - 1)
     k_decision <- stats::setNames(as.list(round(rel_loss, 4)), as.character(ks))
 

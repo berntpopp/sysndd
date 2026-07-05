@@ -125,6 +125,31 @@ function structureMetric(v: ClusterValidation): ValidationMetric | null {
   return { label: 'Structure', value: interpretation };
 }
 
+// Functional-only STRING weight-channel provenance. "experimental_database" is the
+// clean, text-mining-free graph (#510); "combined_score" means it fell back to the
+// STRINGdb combined graph, which INCLUDES text-mining/co-mention — surfaced so a
+// contaminated fallback is never invisible. Hidden when absent.
+function channelMetric(v: ClusterValidation): ValidationMetric | null {
+  const channel = toScalarString(v.weight_channel);
+  if (channel == null) return null;
+  const clean = channel === 'experimental_database';
+  return {
+    label: 'STRING channel',
+    value: clean ? 'exp + database' : humanizeToken(channel) ?? channel,
+    hint: clean ? 'text-mining excluded' : 'includes text-mining (fallback)',
+  };
+}
+
+// Dip-of-unimodality interpretation (both axes): discrete/modular vs continuum.
+// A corroborating signal, so hidden when undefined/unavailable (diptest absent).
+function continuumMetric(v: ClusterValidation): ValidationMetric | null {
+  const interp = humanizeToken(toScalarString(v.dip_interpretation));
+  if (interp == null || interp === 'undefined' || interp.startsWith('unavailable')) {
+    return null;
+  }
+  return { label: 'Distance shape', value: interp, hint: 'dip test' };
+}
+
 export function hasValidation(
   validation: ClusterValidation | unknown[] | null | undefined,
 ): boolean {
@@ -148,6 +173,7 @@ export function summarizeValidation(
     const status = toScalarString(v.silhouette_status);
     const headline = separationHeadline(v, toScalarNumber(v.silhouette_p_empirical));
     const structure = structureMetric(v);
+    const continuum = continuumMetric(v);
     return [
       ...(headline ? [headline] : []),
       {
@@ -159,10 +185,13 @@ export function summarizeValidation(
       { label: 'Dropped entities', value: fmtInt(toScalarNumber(v.n_entities_dropped)) },
       resamples,
       ...(structure ? [structure] : []),
+      ...(continuum ? [continuum] : []),
     ];
   }
   const headline = separationHeadline(v, toScalarNumber(v.modularity_p_empirical));
   const giantComponent = giantComponentMetric(v);
+  const channel = channelMetric(v);
+  const continuum = continuumMetric(v);
   return [
     ...(headline ? [headline] : []),
     {
@@ -177,6 +206,8 @@ export function summarizeValidation(
     },
     resamples,
     ...(giantComponent ? [giantComponent] : []),
+    ...(channel ? [channel] : []),
+    ...(continuum ? [continuum] : []),
   ];
 }
 

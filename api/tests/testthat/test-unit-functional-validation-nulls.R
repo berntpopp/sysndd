@@ -26,7 +26,9 @@ test_that("validate_functional_clusters reports modularity-z + giant component (
   expect_true(all(c("modularity_z", "modularity_p_empirical", "giant_component",
                     "dip_statistic", "dip_p", "separation_z", "null_model") %in% names(p)))
   expect_identical(p$separation_z, p$modularity_z)
-  expect_identical(p$null_model, "degree_preserving_configuration")
+  expect_identical(p$null_model, "degree_preserving_configuration_reoptimized")
+  expect_true("modularity_lcc" %in% names(p)) # LCC Q_obs the z is computed on
+  expect_true(is.finite(p$modularity_lcc))
 
   gc <- p$giant_component
   expect_true(all(c("n_nodes", "n_edges", "n_isolates", "n_components",

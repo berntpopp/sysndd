@@ -54,7 +54,9 @@ build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_ta
                                   channel = c("auto", "expdb", "combined")) {
   channel <- match.arg(channel)
   if (!is.null(string_id_table)) {
-    id_tbl <- dplyr::filter(string_id_table, hgnc_id %in% hgnc_list)
+    # Parity with the pool branch: drop rows without a STRING id, else an NA id
+    # reaches graph_from_data_frame(vertices=...) and raises "NA vertex name".
+    id_tbl <- dplyr::filter(string_id_table, !is.na(STRING_id), hgnc_id %in% hgnc_list)
   } else {
     id_tbl <- pool %>%
       dplyr::tbl("non_alt_loci_set") %>%

@@ -46,9 +46,13 @@ dt <- data.table::fread(cmd = paste("zcat", shQuote(detailed)),
 message(sprintf("[string-expdb] %d edges read in %.1fs", nrow(dt), as.numeric(Sys.time() - t0)))
 
 dt[, exp_db_score := .string_or_combine(lapply(channels, function(cn) dt[[cn]]))]
-keep <- dt[exp_db_score >= threshold,
+# STRING lists every undirected pair in both directions; keep the canonical
+# `protein1 < protein2` half so the written file is a de-duplicated undirected edge
+# list (string_expdb_subgraph also simplify()s at read time, so an older
+# both-directions file stays correct).
+keep <- dt[exp_db_score >= threshold & protein1 < protein2,
            .(protein1, protein2, exp_db_score = round(exp_db_score))]
-message(sprintf("[string-expdb] %d edges >= %g retained", nrow(keep), threshold))
+message(sprintf("[string-expdb] %d unique undirected edges >= %g retained", nrow(keep), threshold))
 
 data.table::fwrite(keep, file = out, sep = " ", compress = "gzip")
 message(sprintf("[string-expdb] wrote %s (%d bytes)", out, file.info(out)$size))

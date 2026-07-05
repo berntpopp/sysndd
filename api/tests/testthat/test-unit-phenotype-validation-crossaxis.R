@@ -50,7 +50,9 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
                     "silhouette_interpretation", "consolidation", "hcpc_nb_clust") %in% names(p)))
   # #509 anchor: the curve at the ACTUAL HCPC k (data-driven, pre-drop) equals the
   # reported mean silhouette, because it re-runs the exact served procedure there.
-  skip_if(p$n_clusters < 2, "fixture produced < 2 surviving clusters")
+  # The fixture is engineered to yield exactly two clusters, so assert it hard — a
+  # skip here would silently convert a clustering regression into a passing test.
+  expect_gte(p$n_clusters, 2)
   expect_equal(as.numeric(p$k_selection_curve[[as.character(p$hcpc_nb_clust)]]),
                p$mean_silhouette, tolerance = 1e-6)
   # #511: separation footing on the phenotype axis = silhouette-z (not raw silhouette)

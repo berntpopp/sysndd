@@ -27,37 +27,73 @@ if (!exists("%||%", mode = "function")) {
 #' Rewire keeps the (unweighted) degree sequence; the observed weight multiset is
 #' permuted onto the null topology and each replicate is re-restricted to its
 #' largest connected component so Q_obs and Q_null share a connected substrate
-#' (a disconnected fragment is a trivial "perfect community" that inflates Q).
+#' (a disconnected fragment is a trivial "perfect community" that inflates Q). The
+#' OBSERVED graph is likewise restricted to its largest component here, so the
+#' caller may pass a graph with disconnected fragments (e.g. a mutual-kNN graph)
+#' and still get a like-for-like q_obs; passing an already-connected component is
+#' a no-op.
 #'
-#' @param graph igraph object (should already be the largest component).
+#' Two null flavours, selected by `recluster`:
+#'   - `recluster = <fn(graph, weights) -> membership>` (functional axis): each
+#'     null replicate RE-DETECTS communities with the same algorithm and its
+#'     re-optimized Q is the null statistic. This is the Guimera/Sales-Pardo/
+#'     Amaral (2004) configuration-model benchmark — even degree-matched random
+#'     graphs reach Q ~ 0.3-0.5 under re-optimization, so this is what makes the
+#'     z a real significance statement rather than "is Q distinguishable from 0".
+#'   - `recluster = NULL` (default; phenotype shared-modularity axis): the given
+#'     membership is an EXTERNAL node attribute (the MCA/HCPC partition) that the
+#'     graph cannot re-derive, so the null holds those labels fixed and asks
+#'     whether that labelling is more assortative than a degree-preserving
+#'     rewiring — an attribute-assortativity significance test.
+#'
+#' @param graph igraph object; restricted to its largest component internally.
 #' @param membership integer/factor membership aligned to V(graph).
 #' @param weights numeric edge weights aligned to E(graph).
 #' @param n_null number of degree-preserving rewirings (default 200; 1000 ideal).
 #' @param seed base RNG seed (replicate i uses seed + i).
 #' @param resolution modularity resolution parameter (must match observed).
+#' @param recluster optional `function(graph, weights)` returning a membership
+#'   vector; when supplied, each null replicate re-detects communities (Guimera
+#'   re-optimized null). When NULL the observed labels are held fixed.
 #' @return list(q_obs, q_null_mean, q_null_sd, z, p_empirical, n_null, null_model)
 #' @export
 modularity_null_zscore <- function(graph, membership, weights,
-                                   n_null = 200L, seed = 42L, resolution = 1.0) {
+                                   n_null = 200L, seed = 42L, resolution = 1.0,
+                                   recluster = NULL) {
   n_null <- as.integer(n_null)
-  q_obs <- igraph::modularity(graph, membership, weights = weights, resolution = resolution)
-  ecount <- igraph::ecount(graph)
+  null_model <- if (is.function(recluster)) {
+    "degree_preserving_configuration_reoptimized"
+  } else {
+    "degree_preserving_configuration_fixed_labels"
+  }
+  # Name-key the observed membership and carry the weights on the graph so both
+  # survive the largest-component restriction (and the per-replicate rewiring).
+  memb_by_name <- stats::setNames(as.integer(factor(membership)), igraph::V(graph)$name)
+  igraph::E(graph)$.null_weight <- weights
+  g  <- igraph::largest_component(graph)                     # shared substrate; no-op if connected
+  gw <- igraph::E(g)$.null_weight
+  obs_memb <- as.integer(factor(memb_by_name[igraph::V(g)$name]))
+  q_obs <- igraph::modularity(g, obs_memb, weights = gw, resolution = resolution)
+  ecount <- igraph::ecount(g)
   if (ecount < 2L || n_null < 2L) {
     return(list(q_obs = q_obs, q_null_mean = NA_real_, q_null_sd = NA_real_,
                 z = NA_real_, p_empirical = NA_real_, n_null = n_null,
-                null_model = "degree_preserving_configuration"))
+                null_model = null_model))
   }
   niter <- max(100L, 10L * ecount)
-  memb_by_name <- stats::setNames(as.integer(factor(membership)), igraph::V(graph)$name)
   q_null <- vapply(seq_len(n_null), function(i) {
     set.seed(seed + i)
-    h <- igraph::rewire(graph, with = igraph::keeping_degseq(loops = FALSE, niter = niter))
-    igraph::E(h)$weight <- sample(weights)                 # permute weight multiset onto null topology
+    h <- igraph::rewire(g, with = igraph::keeping_degseq(loops = FALSE, niter = niter))
+    igraph::E(h)$.null_weight <- sample(gw)                 # permute weight multiset onto null topology
     h <- igraph::largest_component(h)
     if (igraph::ecount(h) < 1L) return(NA_real_)
-    mm <- memb_by_name[igraph::V(h)$name]                  # carry reference labels to kept nodes
-    igraph::modularity(h, as.integer(factor(mm)),
-                       weights = igraph::E(h)$weight, resolution = resolution)
+    hw <- igraph::E(h)$.null_weight
+    null_memb <- if (is.function(recluster)) {
+      as.integer(factor(recluster(h, hw)))                 # re-optimize communities on the null (Guimera)
+    } else {
+      as.integer(factor(memb_by_name[igraph::V(h)$name]))  # external attribute held fixed on kept nodes
+    }
+    igraph::modularity(h, null_memb, weights = hw, resolution = resolution)
   }, numeric(1))
   q_null <- q_null[is.finite(q_null)]
   sdv <- if (length(q_null) > 1L) stats::sd(q_null) else NA_real_
@@ -68,7 +104,7 @@ modularity_null_zscore <- function(graph, membership, weights,
     z = if (isTRUE(is.finite(sdv) && sdv > 0)) (q_obs - mean(q_null)) / sdv else NA_real_,
     p_empirical = (1 + sum(q_null >= q_obs)) / (length(q_null) + 1),
     n_null = length(q_null),
-    null_model = "degree_preserving_configuration"
+    null_model = null_model
   )
 }
 

@@ -38,7 +38,11 @@ if (!exists("%||%", mode = "function")) {
   }
   vals <- unique(as.character(col))
   vals <- vals[!is.na(vals)]
-  all(vals %in% "yes")
+  # Require at least one non-NA "yes": an all-NA character column (e.g. a fully
+  # missing supplementary inheritance column) would otherwise satisfy
+  # `all(character(0) %in% "yes") == TRUE` and be misclassified as a presence
+  # column, then dropped as near_rare and shift the quali.sup/quanti.sup indices.
+  length(vals) > 0L && all(vals %in% "yes")
 }
 
 # Prevalence of a presence column = fraction of rows coded "yes" (absent = NA).
@@ -134,6 +138,17 @@ phenotype_mca_active_filter <- function(matrix,
     reason = ex_reason
   )
 
+  # Defensive: MCA needs >= 2 active variables. With realistic NDD data dozens of
+  # organ-system terms survive the band; an empty/degenerate active set would only
+  # arise from an unexpected input (e.g. a mis-shaped matrix) and would otherwise
+  # crash downstream FactoMineR::MCA() with an opaque error. Surface it early.
+  if (length(kept_terms) < 2L) {
+    warning(sprintf(
+      "phenotype_mca_active_filter: only %d active term(s) survived the prevalence band [%.3f, %.3f]; MCA needs >= 2.",
+      length(kept_terms), prevalence_min, prevalence_max
+    ), call. = FALSE)
+  }
+
   list(
     active_matrix = active_matrix,
     kept_terms = kept_terms,
@@ -162,6 +177,43 @@ phenotype_mca_encode_presence <- function(matrix, presence_cols) {
     mat[[term]] <- factor(coded, levels = c("absent", "present"))
   }
   mat
+}
+
+#' Apply the full #508 MCA feature hygiene to a raw phenotype presence matrix.
+#'
+#' Single entry point so EVERY path that feeds a phenotype matrix into MCA/HCPC —
+#' the served snapshot input (`generate_phenotype_cluster_input`) AND the
+#' interactive/durable async clustering job (`.async_job_phenotype_matrix`) —
+#' consumes the identical cleaned active set and cannot silently diverge. Reads the
+#' prevalence band from `PHENOTYPE_MCA_PREVALENCE_MIN`/`MAX`, drops the HPO subtree
+#' root + near-constant terms, recodes `{"yes", NA}` to `{present, absent}`, and
+#' attaches the `mca_provenance` attribute.
+#'
+#' @param matrix data.frame; entities in rownames, leading supplementary columns +
+#'   `{"yes", NA}` presence columns.
+#' @param hpo_lookup optional data.frame with `HPO_term`/`phenotype_id` for the
+#'   root check (name -> HP:0000118).
+#' @return the cleaned/encoded data.frame carrying an `mca_provenance` attribute.
+#' @export
+phenotype_mca_prep_matrix <- function(matrix, hpo_lookup = NULL) {
+  prev_min <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MIN", "0.05"))
+  prev_max <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"))
+  prep <- phenotype_mca_active_filter(
+    matrix,
+    prevalence_min = prev_min,
+    prevalence_max = prev_max,
+    hpo_lookup = hpo_lookup
+  )
+  active <- phenotype_mca_encode_presence(prep$active_matrix, prep$kept_terms)
+  provenance <- list(
+    kept_terms = prep$kept_terms,
+    excluded_terms = prep$excluded,
+    prevalence_band = c(min = prev_min, max = prev_max),
+    n_active_terms = length(prep$kept_terms),
+    encoding = "absent_present_factor"
+  )
+  attr(active, "mca_provenance") <- provenance
+  active
 }
 
 #' Greenacre 1/Q dimension-retention rule + adjusted inertia.

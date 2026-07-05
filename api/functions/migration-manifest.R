@@ -3,7 +3,7 @@
 # Strict migration manifest validation for startup/readiness.
 
 EXPECTED_LATEST_MIGRATION <- "041_add_analysis_reproducibility.sql"
-EXPECTED_MIGRATION_COUNT <- 35L
+EXPECTED_MIGRATION_COUNT <- 39L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

@@ -246,27 +246,19 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
     as.data.frame()
   row.names(matrix) <- wider$entity_id
 
-  # #508: MCA feature hygiene BEFORE clustering, applied once here so the served
-  # partition (gen_mca_clust_obj) and the validation metrics both consume the same
-  # clean active set. Drops the HPO subtree root (HP:0000118) and any organ-system
-  # term outside the prevalence band (near-universal / near-rare add null/outlier
-  # MCA dimensions that mechanically depress separation), and recodes presence from
-  # {"yes",NA} to explicit {absent,present} factors so absence is a real category.
-  prev_min <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MIN", "0.05"))
-  prev_max <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"))
-  prep <- phenotype_mca_active_filter(
-    matrix, prevalence_min = prev_min, prevalence_max = prev_max,
+  # #508: MCA feature hygiene BEFORE clustering, applied once via the shared
+  # phenotype_mca_prep_matrix() helper so the served partition (gen_mca_clust_obj),
+  # the validation metrics, AND the interactive async clustering job all consume the
+  # identical clean active set. Drops the HPO subtree root (HP:0000118) and any
+  # organ-system term outside the prevalence band, and recodes {"yes",NA} presence
+  # to explicit {absent,present} factors so absence is a real MCA category.
+  active <- phenotype_mca_prep_matrix(
+    matrix,
     hpo_lookup = dplyr::select(phenotype_terms, HPO_term, phenotype_id)
   )
-  active <- phenotype_mca_encode_presence(prep$active_matrix, prep$kept_terms)
-  provenance <- list(
-    kept_terms = prep$kept_terms, excluded_terms = prep$excluded,
-    prevalence_band = c(min = prev_min, max = prev_max),
-    n_active_terms = length(prep$kept_terms), encoding = "absent_present_factor"
-  )
-  attr(active, "mca_provenance") <- provenance
 
-  list(matrix = active, entity_gene_map = entity_gene_map, mca_provenance = provenance)
+  list(matrix = active, entity_gene_map = entity_gene_map,
+       mca_provenance = attr(active, "mca_provenance"))
 }
 
 
