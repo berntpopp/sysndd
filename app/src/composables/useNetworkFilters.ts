@@ -101,7 +101,10 @@ export function useNetworkFilters(): NetworkFiltersState {
       case 'Moderate':
         return ['Definitive', 'Moderate'];
       case 'Limited':
-        return ['Definitive', 'Moderate', 'Limited'];
+        // Top / most-inclusive level = genuinely show-all: include the 4th-tier
+        // `Refuted` classification too, so the badge reads N/N and no gene (e.g.
+        // the single Refuted PLCD1) is silently hidden with no way to reveal it.
+        return ['Definitive', 'Moderate', 'Limited', 'Refuted'];
       default:
         return ['Definitive'];
     }
