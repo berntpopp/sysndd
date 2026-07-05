@@ -69,6 +69,37 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
   modularity <- igraph::modularity(subgraph, full_membership,
                                    weights = igraph::E(subgraph)$combined_score)
 
+  # --- #510: giant-component structure + degree-preserving modularity null ---
+  # A raw Q is not a significance statement (Leiden maximizes exactly Q, and even
+  # degree-matched random graphs reach Q ~ 0.3-0.5; Guimera et al. 2004). Report a
+  # modularity z-score vs a degree-preserving configuration-model null, computed on
+  # the largest connected component so disconnected fragments (each a trivial
+  # "perfect community") do not inflate the benchmark. Disconnected-component counts
+  # are recorded so a "modular only because it shattered" signature is visible.
+  n_null <- as.integer(Sys.getenv("ANALYSIS_MODULARITY_NULL_N", "200"))
+  comp <- igraph::components(subgraph)
+  lcc  <- igraph::largest_component(subgraph)
+  giant_component <- list(
+    n_nodes = igraph::vcount(lcc), n_edges = igraph::ecount(lcc),
+    n_isolates = sum(igraph::degree(subgraph) == 0L),
+    n_components = comp$no,
+    node_retention = igraph::vcount(lcc) / max(1L, igraph::vcount(subgraph)),
+    edge_retention = igraph::ecount(lcc) / max(1L, igraph::ecount(subgraph))
+  )
+  lcc_membership <- .leiden_membership(lcc, resolution, seed)
+  mod_null <- modularity_null_zscore(
+    lcc, lcc_membership, weights = igraph::E(lcc)$combined_score,
+    n_null = n_null, seed = seed, resolution = resolution
+  )
+  # Representation-agnostic continuum-vs-modular signal: dip test of unimodality on
+  # the distribution of pairwise shortest-path (hop) distances over an LCC sample.
+  set.seed(seed)
+  lcc_nodes <- igraph::V(lcc)$name
+  dip_sample <- if (length(lcc_nodes) > 500L) sample(lcc_nodes, 500L) else lcc_nodes
+  spd <- igraph::distances(lcc, v = dip_sample, to = dip_sample, weights = NA)
+  spd <- spd[upper.tri(spd)]
+  dip <- dip_unimodality(spd[is.finite(spd)])
+
   # VISIBLE top-level reference = full partition restricted to clusters >= min_size (for Jaccard).
   # Key each reference cluster by its ORIGINAL split position (1..N), matching
   # gen_string_clust_obj's row_number()-derived `cluster`, so per-cluster metrics
@@ -108,10 +139,18 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
   list(
     per_cluster = per_cluster,
     partition = list(
-      validation_schema_version = "1.0",
+      validation_schema_version = "2.0",
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
       resolution_parameter = resolution,
       modularity = modularity, modularity_scope = "full_partition",
+      weight_channel = "combined_score",
+      modularity_z = mod_null$z, modularity_p_empirical = mod_null$p_empirical,
+      modularity_null_mean = mod_null$q_null_mean, modularity_null_sd = mod_null$q_null_sd,
+      null_model = mod_null$null_model, n_null = mod_null$n_null,
+      giant_component = giant_component,
+      dip_statistic = dip$dip_statistic, dip_p = dip$p_value,
+      dip_interpretation = dip$interpretation, dip_scope = "shortest_path_sample",
+      separation_z = mod_null$z,
       n_clusters = n_clusters, n_dropped_below_min_size = n_dropped,
       partition_scope = "visible_top_level",
       resampling_scheme = "subsample", subsample_fraction = subsample_fraction,
