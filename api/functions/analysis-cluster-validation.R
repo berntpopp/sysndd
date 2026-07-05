@@ -172,6 +172,10 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     as.character(ref$cluster)
   )
   n_clusters <- length(ref_members)
+  # The actual HCPC nb.clust (data-driven k, before min_size dropping). Equals
+  # n_clusters when nothing is dropped (the production case). The curve anchors here.
+  data_driven_k <- attr(ref, "data_driven_k")
+  if (is.null(data_driven_k)) data_driven_k <- n_clusters
 
   # Entity IDs may live in an `entity_id` column or (the production matrix from
   # generate_phenotype_cluster_input()) in the rownames — support both so the
@@ -187,6 +191,17 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
                          quanti.sup = quanti_sup_var, graph = FALSE)
   coords <- mca$ind$coord
   rownames(coords) <- entity_ids
+
+  # #508 provenance: the active/excluded HPO term set (attached by
+  # generate_phenotype_cluster_input) + the Greenacre 1/Q ncp diagnostic. ncp stays
+  # at the empirically-stable denoising value of 8 for the actual clustering; the
+  # 1/Q recommendation and adjusted inertia are reported for transparency.
+  mca_prov <- attr(wide_phenotypes_df, "mca_provenance")
+  q_active <- ncol(wide_phenotypes_df) - length(quali_sup_var) - length(quanti_sup_var)
+  ncp_diag <- if (exists("phenotype_mca_ncp", mode = "function")) {
+    tryCatch(phenotype_mca_ncp(mca$eig[, "eigenvalue"], q_active),
+             error = function(e) NULL)
+  } else NULL
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
@@ -230,7 +245,11 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
         sum((blk - matrix(ctr, nrow(blk), ncol(blk), byrow = TRUE))^2)
       }, numeric(1)))
     }
-    ks <- 2:min(10L, n_assigned - 1L)
+    # Candidate k grid = 2..10 plus the actual data-driven k (so the curve always
+    # contains an anchor point that reproduces the reported partition), capped by N.
+    ks <- sort(unique(c(2:min(10L, n_assigned - 1L),
+                        as.integer(data_driven_k))))
+    ks <- ks[ks >= 2L & ks <= (n_assigned - 1L)]
     keep_names <- rownames(coords)[keep]
     # Re-run the EXACT served procedure (gen_mca_clust_obj, which re-seeds
     # internally and owns the kk/consol config) forcing each k, so the curve
@@ -325,11 +344,14 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     per_cluster = per_cluster,
     partition = list(
       validation_schema_version = "2.0",
-      algorithm = "mca_hcpc", k = n_clusters, k_selected = n_clusters,
-      # Wave 1 keeps the production kk = 50 pre-clustering, under which FactoMineR
-      # 2.13 SILENTLY disables k-means consolidation (kk != Inf) -> report the truth.
-      # Task 10 flips kk to Inf so consolidation actually runs and this becomes TRUE.
-      hcpc_kk = "50", consolidation = FALSE,
+      algorithm = "mca_hcpc", k = n_clusters, k_selected = as.integer(data_driven_k),
+      hcpc_nb_clust = as.integer(data_driven_k),
+      # kk = Inf -> full Ward tree + real k-means consolidation actually runs (#509).
+      hcpc_kk = "Inf", consolidation = TRUE,
+      active_feature_set = mca_prov,
+      ncp_used = 8L,
+      ncp_recommended_1overq = if (!is.null(ncp_diag)) ncp_diag$ncp else NA_integer_,
+      adjusted_inertia = if (!is.null(ncp_diag)) ncp_diag$adjusted_inertia else NA_real_,
       k_selection_metric = "hcpc_relative_inertia_loss",
       k_selection_curve = k_curve, k_decision_curve = k_decision,
       mean_silhouette = sil_mean, silhouette_status = sil_status,

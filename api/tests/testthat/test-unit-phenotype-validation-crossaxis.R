@@ -4,6 +4,7 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
     library(dplyr); library(tibble); library(tidyr); library(purrr); library(stringr)
   }))
   source_api_file("functions/analysis-null-models.R", local = FALSE, envir = globalenv())
+  source_api_file("functions/analysis-phenotype-mca-prep.R", local = FALSE, envir = globalenv())
   source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
   source_api_file("functions/analysis-cluster-validation.R", local = FALSE, envir = globalenv())
 
@@ -19,20 +20,22 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
   withr::local_envvar(ANALYSIS_SILHOUETTE_NULL_N = "60", ANALYSIS_MODULARITY_NULL_N = "40",
                       ANALYSIS_PHENOTYPE_KNN_K = "8")
 
-  set.seed(1)
+  set.seed(7)
+  # crisp two-block phenotype signature with separated supplementary counts, big
+  # enough that both clusters clear min_size under the deterministic kk=Inf HCPC.
   mk <- function(n, cols_on) {
     m <- matrix(NA_character_, n, 6, dimnames = list(NULL, paste0("HP_", 1:6)))
     for (col in cols_on) m[, col] <- "yes"
     as.data.frame(m, stringsAsFactors = FALSE)
   }
-  hpo <- rbind(mk(28, c(1, 2, 3)), mk(29, c(4, 5, 6)), mk(5, c(1, 6)))
+  hpo <- rbind(mk(60, c(1, 2, 3)), mk(60, c(4, 5, 6)))
   n <- nrow(hpo)
-  grp <- c(rep("A", 28), rep("B", 29), rep("C", 5))
+  grp <- rep(c("A", "B"), each = 60)
   df <- data.frame(
-    moi    = ifelse(grp == "A", "AD", ifelse(grp == "B", "AR", "XL")),
-    count1 = as.numeric(ifelse(grp == "A", 8, ifelse(grp == "B", 2, 5)) + rpois(n, 1)),
-    count2 = as.numeric(ifelse(grp == "A", 3, ifelse(grp == "B", 9, 6)) + rpois(n, 1)),
-    count3 = as.numeric(ifelse(grp == "A", 6, ifelse(grp == "B", 6, 1)) + rpois(n, 1)),
+    moi    = ifelse(grp == "A", "AD", "AR"),
+    count1 = as.numeric(ifelse(grp == "A", 10, 1) + rpois(n, 1)),
+    count2 = as.numeric(ifelse(grp == "B", 10, 1) + rpois(n, 1)),
+    count3 = as.numeric(rpois(n, 2)),
     hpo, stringsAsFactors = FALSE, check.names = FALSE
   )
   rownames(df) <- as.character(seq_len(n))
@@ -44,14 +47,16 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
   expect_identical(p$validation_schema_version, "2.0")
   expect_true(all(c("k_decision_curve", "silhouette_z", "silhouette_p_empirical",
                     "shared_modularity_z", "separation_z", "dip_statistic", "dip_p",
-                    "silhouette_interpretation", "consolidation") %in% names(p)))
-  # #509 anchor: the curve at the reported k equals the reported mean silhouette,
-  # because it re-runs the exact served procedure (gen_mca_clust_obj) at that k.
-  expect_equal(as.numeric(p$k_selection_curve[[as.character(p$k)]]),
+                    "silhouette_interpretation", "consolidation", "hcpc_nb_clust") %in% names(p)))
+  # #509 anchor: the curve at the ACTUAL HCPC k (data-driven, pre-drop) equals the
+  # reported mean silhouette, because it re-runs the exact served procedure there.
+  skip_if(p$n_clusters < 2, "fixture produced < 2 surviving clusters")
+  expect_equal(as.numeric(p$k_selection_curve[[as.character(p$hcpc_nb_clust)]]),
                p$mean_silhouette, tolerance = 1e-6)
   # #511: separation footing on the phenotype axis = silhouette-z (not raw silhouette)
   expect_identical(p$separation_z, p$silhouette_z)
   expect_identical(p$null_model, "label_permutation")
-  # Wave 1 keeps kk = 50 -> consolidation is honestly reported as disabled.
-  expect_false(isTRUE(p$consolidation))
+  # kk = Inf -> real consolidation runs and is honestly reported.
+  expect_true(isTRUE(p$consolidation))
+  expect_identical(p$hcpc_kk, "Inf")
 })

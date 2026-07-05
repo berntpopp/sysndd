@@ -44,24 +44,25 @@ gen_mca_clust_obj <- function(
     graph = FALSE
   )
 
-  # Hierarchical Clustering on Principal Components with pre-partitioning
-  # kk=50 performs K-means preprocessing before hierarchical clustering
-  # This reduces computational complexity from O(n^2) to O(50^2)
-  # providing 50-70% speedup for datasets with >100 observations
+  # Hierarchical Clustering on Principal Components.
+  # kk = Inf: NO k-means pre-partitioning, so FactoMineR runs the full Ward tree on
+  # the MCA coordinates AND actually performs k-means consolidation (#509). With a
+  # finite kk (e.g. 50) FactoMineR >= 2.13 SILENTLY disables consolidation
+  # (`if ((kk != Inf) & (consol == TRUE)) { warning(...); consol <- FALSE }`), so the
+  # previous kk = 50 produced an unconsolidated, k-means-preclustered partition while
+  # the code claimed consolidation ran. At N ~ 1932 the full O(n^2) Ward tree is cheap
+  # (seconds), so kk = Inf is the correct textbook HCPC and makes HCPC deterministic
+  # (Ward + seeded consolidation) -> the k-selection curve exactly reproduces the
+  # reported partition.
   # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
   mca_hcpc <- FactoMineR::HCPC(mca_phenotypes,
     # nb.clust = -1 (the cutpoint default) makes HCPC select k from the data via
     # the largest relative within-cluster-inertia loss; a positive cutpoint
     # imposes exactly that many clusters.
     nb.clust = cutpoint,
-    kk = 50, # Pre-partition into 50 clusters (was Inf - no pre-partitioning)
-    mi = 3,
+    kk = Inf, # no pre-partitioning -> consolidation actually runs (#509)
+    min = 3,
     max = 25,
-    # NOTE (#509): FactoMineR >= 2.13 SILENTLY disables k-means consolidation when
-    # kk != Inf (`if ((kk != Inf) & (consol == TRUE)) { warning(...); consol <- FALSE }`),
-    # so with kk = 50 the reported partition is the kk-preclustered Ward cut WITHOUT
-    # consolidation. `consol = TRUE` is kept as intent; Task 10 flips kk to Inf so
-    # consolidation actually runs. Do not claim consolidation happens while kk = 50.
     consol = TRUE,
     graph = FALSE
   )
@@ -143,6 +144,12 @@ gen_mca_clust_obj <- function(
     dplyr::mutate(cluster_signature_hash = vapply(cluster_signature, function(s) {
       if (is.na(s)) NA_character_ else digest::digest(s, algo = "sha256")
     }, character(1)))
+
+  # Expose the actual HCPC nb.clust (data-driven k, BEFORE min_size dropping) as an
+  # attribute so the validator can re-run the exact procedure at that k for the
+  # k-selection curve anchor. Kept off the tibble columns so unnest consumers are
+  # unaffected. Differs from nrow(clusters_tibble) whenever small clusters are dropped.
+  attr(clusters_tibble, "data_driven_k") <- nlevels(mca_hcpc$data.clust$clust)
 
   # return result
   return(clusters_tibble)
@@ -239,7 +246,27 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
     as.data.frame()
   row.names(matrix) <- wider$entity_id
 
-  list(matrix = matrix, entity_gene_map = entity_gene_map)
+  # #508: MCA feature hygiene BEFORE clustering, applied once here so the served
+  # partition (gen_mca_clust_obj) and the validation metrics both consume the same
+  # clean active set. Drops the HPO subtree root (HP:0000118) and any organ-system
+  # term outside the prevalence band (near-universal / near-rare add null/outlier
+  # MCA dimensions that mechanically depress separation), and recodes presence from
+  # {"yes",NA} to explicit {absent,present} factors so absence is a real category.
+  prev_min <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MIN", "0.05"))
+  prev_max <- as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"))
+  prep <- phenotype_mca_active_filter(
+    matrix, prevalence_min = prev_min, prevalence_max = prev_max,
+    hpo_lookup = dplyr::select(phenotype_terms, HPO_term, phenotype_id)
+  )
+  active <- phenotype_mca_encode_presence(prep$active_matrix, prep$kept_terms)
+  provenance <- list(
+    kept_terms = prep$kept_terms, excluded_terms = prep$excluded,
+    prevalence_band = c(min = prev_min, max = prev_max),
+    n_active_terms = length(prep$kept_terms), encoding = "absent_present_factor"
+  )
+  attr(active, "mca_provenance") <- provenance
+
+  list(matrix = active, entity_gene_map = entity_gene_map, mca_provenance = provenance)
 }
 
 
