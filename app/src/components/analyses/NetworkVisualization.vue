@@ -92,6 +92,10 @@
                   All Clusters
                 </BDropdownItemButton>
                 <BDropdownDivider />
+                <div class="px-3 py-1 small text-muted cluster-dropdown-note">
+                  Cluster IDs are stable partition labels; small clusters
+                  (&lt; 10 genes) are omitted, so the numbers are not consecutive.
+                </div>
                 <div
                   v-for="cluster in legendClusters"
                   :key="cluster.id"
@@ -449,13 +453,24 @@ const {
 } = useNetworkHighlight(cy);
 
 const legendClusters = computed(() => {
-  if (!metadata.value || !metadata.value.cluster_count) return [];
-
-  const count = Math.min(metadata.value.cluster_count, 10);
-  return Array.from({ length: count }, (_, i) => ({
-    id: i + 1,
-    color: getClusterColor(i + 1),
-  }));
+  // Build the cluster list/legend from the REAL distinct cluster IDs present in the
+  // network — not a fabricated `1..N` and not capped at 10 (the previous
+  // `Math.min(cluster_count, 10)` truncated the list and `id: i+1` invented IDs
+  // that never matched the sparse split-position IDs on the nodes, so selecting a
+  // cluster filtered nothing). IDs are coerced the same way `applyFilters` matches
+  // them (main cluster = integer part), sorted by member count desc so the largest
+  // clusters lead; colors cycle via getClusterColor when clusters exceed the palette.
+  const counts = new Map<number, number>();
+  for (const el of cytoscapeNodeElements.value) {
+    const raw = (el.data as { cluster?: number | string } | undefined)?.cluster;
+    if (raw === undefined || raw === null) continue;
+    const id = typeof raw === 'string' ? parseInt(raw.split('.')[0], 10) : raw;
+    if (!Number.isFinite(id)) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .map(([id]) => ({ id, color: getClusterColor(id) }));
 });
 
 const categoryOptions = [
