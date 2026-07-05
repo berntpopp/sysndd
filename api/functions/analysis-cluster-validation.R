@@ -217,7 +217,9 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   ncp_diag <- if (exists("phenotype_mca_ncp", mode = "function")) {
     tryCatch(phenotype_mca_ncp(mca$eig[, "eigenvalue"], q_active),
              error = function(e) NULL)
-  } else NULL
+  } else {
+    NULL
+  }
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
@@ -230,8 +232,11 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   k_curve    <- NULL
   k_decision <- NULL
   sil_band   <- NA_character_
-  sil_z <- NA_real_; sil_p <- NA_real_
-  dip_stat <- NA_real_; dip_p <- NA_real_; dip_interp <- NA_character_
+  sil_z <- NA_real_
+  sil_p <- NA_real_
+  dip_stat <- NA_real_
+  dip_p <- NA_real_
+  dip_interp <- NA_character_
   shared_mod_z <- NA_real_
   per_sil  <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
   if (n_clusters < 2 || length(unique(memb_int)) < 2) {
@@ -311,9 +316,12 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     mod_null_n <- as.integer(Sys.getenv("ANALYSIS_MODULARITY_NULL_N", "200"))
     knn_k      <- as.integer(Sys.getenv("ANALYSIS_PHENOTYPE_KNN_K", "15"))
     sz <- silhouette_null_zscore(coords_keep, memb_int, n_null = sil_null_n, seed = seed)
-    sil_z <- sz$z; sil_p <- sz$p_empirical
+    sil_z <- sz$z
+    sil_p <- sz$p_empirical
     dp <- dip_unimodality(as.vector(d))
-    dip_stat <- dp$dip_statistic; dip_p <- dp$p_value; dip_interp <- dp$interpretation
+    dip_stat <- dp$dip_statistic
+    dip_p <- dp$p_value
+    dip_interp <- dp$interpretation
     rownames(coords_keep) <- keep_names
     kg <- tryCatch(knn_similarity_graph(coords_keep, k = knn_k), error = function(e) NULL)
     if (!is.null(kg) && igraph::ecount(kg) > 0L) {
