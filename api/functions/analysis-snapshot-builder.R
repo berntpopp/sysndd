@@ -410,15 +410,21 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         val$per_cluster, by = "cluster_id"
       ) %>% dplyr::select(-cluster_id)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
+      # #512: additive self-reproducing bundle (LCC edge list + full membership +
+      # served modularity). Best-effort; a NULL bundle never blocks the refresh.
+      reproducibility <- analysis_snapshot_functional_reproducibility(
+        gene_ids, val = val, params = list(algorithm = params$algorithm)
+      )
       list(kind = "clusters", raw = clusters, clusters = built$clusters,
            members = built$members, row_counts = built$row_counts,
-           partition_validation = val$partition)
+           partition_validation = val$partition, reproducibility = reproducibility)
     },
     phenotype_clusters = {
       clusters <- generate_phenotype_clusters()
       n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
+      input_matrix <- generate_phenotype_cluster_input()$matrix
       val <- validate_phenotype_clusters(
-        generate_phenotype_cluster_input()$matrix,
+        input_matrix,
         quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res
       )
       clusters <- dplyr::left_join(
@@ -426,9 +432,13 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         val$per_cluster, by = "cluster_id"
       ) %>% dplyr::select(-cluster_id)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
+      # #512: additive bundle (MCA coords + membership + served silhouette).
+      reproducibility <- analysis_snapshot_phenotype_reproducibility(
+        input_matrix, clusters, val = val
+      )
       list(kind = "clusters", raw = clusters, clusters = built$clusters,
            members = built$members, row_counts = built$row_counts,
-           partition_validation = val$partition)
+           partition_validation = val$partition, reproducibility = reproducibility)
     },
     phenotype_correlations = {
       rows <- generate_phenotype_correlations_mem(
@@ -490,8 +500,11 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     if (identical(payload$kind, "network")) {
       row_counts$network_metadata <- payload$metadata %||% list()
     }
+    # `reproducibility` is an ADDITIVE artifact (raw gzip blob) and must stay out
+    # of the payload hash so it never perturbs the cluster/payload hash (#512 is a
+    # Wave-1 additive change: no cluster_hash churn, no LLM-cache invalidation).
     payload_hash <- analysis_snapshot_payload_hash(
-      payload[setdiff(names(payload), c("raw", "partition_validation"))]
+      payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility"))]
     )
     input_hash <- analysis_snapshot_input_hash(list(
       analysis_type = normalized$analysis_type,
@@ -536,6 +549,9 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
         analysis_snapshot_insert_network_rows(snapshot_id, payload, conn = txn_conn)
       } else if (identical(payload$kind, "clusters")) {
         analysis_snapshot_insert_cluster_rows(snapshot_id, payload$clusters, payload$members, conn = txn_conn)
+        if (!is.null(payload$reproducibility)) {
+          analysis_snapshot_insert_reproducibility(snapshot_id, payload$reproducibility, conn = txn_conn)
+        }
       } else if (identical(payload$kind, "correlations")) {
         analysis_snapshot_insert_correlation_rows(snapshot_id, payload$correlations, conn = txn_conn)
       } else {

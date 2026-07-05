@@ -73,6 +73,67 @@ describe('summarizeValidation', () => {
   it('returns [] when validation is absent', () => {
     expect(summarizeValidation('functional_clusters', null)).toEqual([]);
   });
+
+  it('functional: prepends a Separation z headline + isolates/comps when schema 2.0 fields present', () => {
+    const rows = summarizeValidation('functional_clusters', {
+      algorithm: ['leiden'],
+      modularity: [0.5355],
+      n_clusters: [9],
+      n_dropped_below_min_size: [7],
+      n_resamples_effective: [100],
+      separation_z: [6.42],
+      modularity_z: [6.42],
+      modularity_p_empirical: [0.0005],
+      null_model: ['degree_preserving_configuration'],
+      giant_component: { n_isolates: [12], n_components: [4] },
+    });
+    // headline is first
+    expect(rows[0].label).toBe('Separation z');
+    expect(rows[0].value).toBe('6.420');
+    expect(rows[0].hint).toBe('p=<0.001 vs degree preserving configuration');
+    const byLabel = Object.fromEntries(rows.map((r) => [r.label, r.value]));
+    expect(byLabel['Isolates / comps']).toBe('12 / 4');
+    // existing metrics retained after the headline
+    expect(byLabel['Modularity']).toBe('0.535');
+  });
+
+  it('phenotype: prepends a Separation z headline + humanized structure band', () => {
+    const rows = summarizeValidation('phenotype_clusters', {
+      algorithm: ['mca_hcpc'],
+      mean_silhouette: [0.1944],
+      k: [3],
+      n_entities_dropped: [0],
+      n_resamples_effective: [100],
+      separation_z: [3.1],
+      silhouette_z: [3.1],
+      silhouette_p_empirical: [0.012],
+      null_model: ['label_permutation'],
+      silhouette_interpretation: ['no_substantial_structure_continuum'],
+    });
+    expect(rows[0].label).toBe('Separation z');
+    expect(rows[0].value).toBe('3.100');
+    expect(rows[0].hint).toBe('p=0.012 vs label permutation');
+    const byLabel = Object.fromEntries(rows.map((r) => [r.label, r.value]));
+    expect(byLabel['Structure']).toBe('no substantial structure continuum');
+    expect(byLabel['Mean silhouette']).toBe('0.194');
+  });
+
+  it('hides Separation z / component / structure metrics when the 2.0 fields are absent', () => {
+    const functional = summarizeValidation('functional_clusters', {
+      algorithm: ['leiden'],
+      modularity: [0.5],
+      n_clusters: [5],
+    });
+    const phenotype = summarizeValidation('phenotype_clusters', {
+      algorithm: ['mca_hcpc'],
+      mean_silhouette: [0.2],
+      k: [3],
+    });
+    const labels = [...functional, ...phenotype].map((r) => r.label);
+    expect(labels).not.toContain('Separation z');
+    expect(labels).not.toContain('Isolates / comps');
+    expect(labels).not.toContain('Structure');
+  });
 });
 
 describe('perClusterStability', () => {

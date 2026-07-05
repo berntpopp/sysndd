@@ -48,8 +48,7 @@ export function isSnapshotPreparingError(err: unknown): boolean {
   // "being prepared" state actually triggers against the real API (#440).
   const raw = problem.data?.code;
   const code = Array.isArray(raw) ? raw[0] : raw;
-  return typeof code === 'string'
-    && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
+  return typeof code === 'string' && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +126,39 @@ export interface ClusterValidation {
   subsample_fraction?: number | number[];
   n_resamples?: number | number[];
   n_resamples_effective?: number | number[];
+  // Null-calibrated separation statistics (validation schema >= 2.0, #510/#511).
+  // Additive + optional so pre-refresh snapshots still type-check; values may
+  // arrive Plumber-wrapped as 1-element arrays.
+  // — both axes —
+  separation_z?: number | number[];
+  null_model?: string | string[];
+  dip_statistic?: number | number[];
+  dip_p?: number | number[];
+  dip_interpretation?: string | string[];
+  // — functional (leiden) —
+  modularity_lcc?: number | number[]; // LCC Q the z is computed on (reconciles with modularity_z)
+  modularity_z?: number | number[];
+  modularity_p_empirical?: number | number[];
+  modularity_null_mean?: number | number[];
+  modularity_null_sd?: number | number[];
+  modularity_combined_score?: number | number[];
+  weight_channel?: string | string[];
+  giant_component?: {
+    n_nodes?: number | number[];
+    n_edges?: number | number[];
+    n_isolates?: number | number[];
+    n_components?: number | number[];
+    node_retention?: number | number[];
+    edge_retention?: number | number[];
+  };
+  // — phenotype (mca_hcpc) —
+  silhouette_z?: number | number[];
+  silhouette_p_empirical?: number | number[];
+  shared_modularity_z?: number | number[];
+  k_decision_curve?: Record<string, number | number[]>;
+  k_selected?: number | number[];
+  silhouette_interpretation?: string | string[];
+  consolidation?: boolean | boolean[];
   [key: string]: unknown;
 }
 

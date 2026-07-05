@@ -318,6 +318,31 @@ mcp_stop_analysis_snapshot_unavailable <- function(status, label, argument, retr
   ))
 }
 
+# Read-through extraction of the additive null-calibrated separation statistics
+# (validation schema >= 2.0: separation_z, dip test, null-model diagnostics,
+# giant-component counts, silhouette interpretation, k-decision curve). These are
+# operational diagnostics of the served partition, exposed read-only and NEVER
+# recomputed on MCP. Returns NULL when a snapshot predates the fields so older
+# snapshots surface no empty object.
+mcp_analysis_separation_statistics <- function(validation) {
+  if (is.null(validation) || length(validation) == 0L) {
+    return(NULL)
+  }
+  keys <- c(
+    "separation_z", "null_model", "dip_statistic", "dip_p", "dip_interpretation",
+    "modularity_z", "modularity_p_empirical", "modularity_null_mean",
+    "modularity_null_sd", "modularity_combined_score", "weight_channel",
+    "giant_component", "silhouette_z", "silhouette_p_empirical",
+    "shared_modularity_z", "k_decision_curve", "k_selected",
+    "silhouette_interpretation", "consolidation"
+  )
+  present <- keys[keys %in% names(validation)]
+  if (length(present) == 0L) {
+    return(NULL)
+  }
+  validation[present]
+}
+
 mcp_get_phenotype_analysis_context <- function(mode,
                                                gene = NULL,
                                                phenotype = NULL,
@@ -450,6 +475,17 @@ mcp_get_phenotype_analysis_context <- function(mode,
       validation = "curated_derived_analysis",
       db_release = "operational_metadata"
     )
+    # Additive null-calibrated separation diagnostics (validation schema >= 2.0)
+    # surface as their own operational_metadata block, read-through from the same
+    # validation object. Absent on pre-refresh snapshots -> omitted entirely.
+    separation_statistics <- mcp_analysis_separation_statistics(cluster_validation)
+    if (!is.null(separation_statistics)) {
+      # Emit separation diagnostics once; drop the same keys from `validation` so no
+      # field is doubled under two conflicting data_class labels (code-review).
+      meta$validation <- meta$validation[setdiff(names(meta$validation), names(separation_statistics))]
+      meta$separation_statistics <- separation_statistics
+      meta$data_classes$separation_statistics <- "operational_metadata"
+    }
   }
   c(envelope, list(
     mode = mode,

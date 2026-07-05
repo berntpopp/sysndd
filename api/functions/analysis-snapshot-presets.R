@@ -1,4 +1,4 @@
-ANALYSIS_SNAPSHOT_SCHEMA_VERSION <- "1.1"
+ANALYSIS_SNAPSHOT_SCHEMA_VERSION <- "1.2"
 
 analysis_snapshot_unsupported_parameter <- function(message, fields = list()) {
   rlang::abort(

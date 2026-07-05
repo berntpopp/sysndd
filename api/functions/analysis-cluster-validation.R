@@ -63,11 +63,75 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
                                           subsample_fraction = 0.8, seed = 42) {
   subgraph  <- build_string_subgraph(hgnc_list, score_threshold)     # shared refactored helper
   all_nodes <- igraph::V(subgraph)$name
+  weight_channel <- attr(subgraph, "weight_channel")
+  if (is.null(weight_channel)) weight_channel <- "combined_score"
 
   # FULL optimized Leiden partition = the quantity the objective maximizes; report ITS modularity.
   full_membership <- .leiden_membership(subgraph, resolution, seed)
   modularity <- igraph::modularity(subgraph, full_membership,
                                    weights = igraph::E(subgraph)$combined_score)
+
+  # #510 channel sensitivity: how much does Q change if text-mining is included?
+  # Off by default (an extra full STRINGdb combined build); flip the env to report it.
+  modularity_combined <- NA_real_
+  if (identical(weight_channel, "experimental_database") &&
+      identical(tolower(Sys.getenv("ANALYSIS_REPORT_COMBINED_SENSITIVITY", "false")), "true")) {
+    modularity_combined <- tryCatch({
+      cs <- build_string_subgraph(hgnc_list, score_threshold, channel = "combined")
+      cs_lcc <- igraph::largest_component(cs)
+      igraph::modularity(cs_lcc, .leiden_membership(cs_lcc, resolution, seed),
+                         weights = igraph::E(cs_lcc)$combined_score)
+    }, error = function(e) NA_real_)
+  }
+
+  # --- #510: giant-component structure + degree-preserving modularity null ---
+  # A raw Q is not a significance statement (Leiden maximizes exactly Q, and even
+  # degree-matched random graphs reach Q ~ 0.3-0.5; Guimera et al. 2004). Report a
+  # modularity z-score vs a degree-preserving configuration-model null, computed on
+  # the largest connected component so disconnected fragments (each a trivial
+  # "perfect community") do not inflate the benchmark. Disconnected-component counts
+  # are recorded so a "modular only because it shattered" signature is visible.
+  n_null <- as.integer(Sys.getenv("ANALYSIS_MODULARITY_NULL_N", "200"))
+  comp <- igraph::components(subgraph)
+  lcc  <- igraph::largest_component(subgraph)
+  giant_component <- list(
+    n_nodes = igraph::vcount(lcc), n_edges = igraph::ecount(lcc),
+    n_isolates = sum(igraph::degree(subgraph) == 0L),
+    n_components = comp$no,
+    node_retention = igraph::vcount(lcc) / max(1L, igraph::vcount(subgraph)),
+    edge_retention = igraph::ecount(lcc) / max(1L, igraph::ecount(subgraph))
+  )
+  lcc_membership <- .leiden_membership(lcc, resolution, seed)
+  # Guimera/Sales-Pardo/Amaral (2004) configuration-model benchmark: each null
+  # replicate RE-DETECTS communities with the identical seeded Leiden, so Q_null is
+  # the re-optimized modularity a degree-matched random graph reaches (~0.3-0.5),
+  # not the near-zero Q of the observed labels stranded on a rewired topology.
+  # Without this the z-score only tests "is Q distinguishable from 0" and is
+  # inflated by orders of magnitude.
+  mod_null <- modularity_null_zscore(
+    lcc, lcc_membership, weights = igraph::E(lcc)$combined_score,
+    n_null = n_null, seed = seed, resolution = resolution,
+    recluster = function(gg, ww) {
+      igraph::cluster_leiden(
+        gg, objective_function = "modularity", weights = ww,
+        resolution_parameter = resolution, beta = 0.01, n_iterations = -1
+      )$membership
+    }
+  )
+  # Representation-agnostic continuum-vs-modular signal: dip test of unimodality on
+  # the distribution of pairwise WEIGHTED shortest-path distances over an LCC
+  # sample. Edge distance = 1 - combined_score/1000 (higher STRING confidence ->
+  # shorter) is a continuous metric, so the dip is not an artifact of the handful
+  # of distinct integer hop counts (Hartigan's dip assumes a continuous sample).
+  # Pairwise distances remain mutually dependent, so dip_p corroborates rather than
+  # strictly tests.
+  set.seed(seed)
+  lcc_nodes <- igraph::V(lcc)$name
+  dip_sample <- if (length(lcc_nodes) > 500L) sample(lcc_nodes, 500L) else lcc_nodes
+  edge_dist <- pmax(1 - igraph::E(lcc)$combined_score / 1000, .Machine$double.eps)
+  spd <- igraph::distances(lcc, v = dip_sample, to = dip_sample, weights = edge_dist)
+  spd <- spd[upper.tri(spd)]
+  dip <- dip_unimodality(spd[is.finite(spd)])
 
   # VISIBLE top-level reference = full partition restricted to clusters >= min_size (for Jaccard).
   # Key each reference cluster by its ORIGINAL split position (1..N), matching
@@ -108,10 +172,24 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
   list(
     per_cluster = per_cluster,
     partition = list(
-      validation_schema_version = "1.0",
+      validation_schema_version = "2.0",
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
       resolution_parameter = resolution,
       modularity = modularity, modularity_scope = "full_partition",
+      # The z-score/null/giant-component below are computed on the LARGEST
+      # CONNECTED COMPONENT; `modularity_lcc` is that LCC Q_obs so a consumer can
+      # reconcile the z with a modularity value (the headline `modularity` above is
+      # the full-partition Q, which differs when isolates/fragments are present).
+      modularity_lcc = mod_null$q_obs,
+      weight_channel = weight_channel,
+      modularity_combined_score = modularity_combined,
+      modularity_z = mod_null$z, modularity_p_empirical = mod_null$p_empirical,
+      modularity_null_mean = mod_null$q_null_mean, modularity_null_sd = mod_null$q_null_sd,
+      null_model = mod_null$null_model, n_null = mod_null$n_null,
+      giant_component = giant_component,
+      dip_statistic = dip$dip_statistic, dip_p = dip$p_value,
+      dip_interpretation = dip$interpretation, dip_scope = "weighted_shortest_path_sample",
+      separation_z = mod_null$z,
       n_clusters = n_clusters, n_dropped_below_min_size = n_dropped,
       partition_scope = "visible_top_level",
       resampling_scheme = "subsample", subsample_fraction = subsample_fraction,
@@ -133,6 +211,10 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     as.character(ref$cluster)
   )
   n_clusters <- length(ref_members)
+  # The actual HCPC nb.clust (data-driven k, before min_size dropping). Equals
+  # n_clusters when nothing is dropped (the production case). The curve anchors here.
+  data_driven_k <- attr(ref, "data_driven_k")
+  if (is.null(data_driven_k)) data_driven_k <- n_clusters
 
   # Entity IDs may live in an `entity_id` column or (the production matrix from
   # generate_phenotype_cluster_input()) in the rownames — support both so the
@@ -149,6 +231,19 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   coords <- mca$ind$coord
   rownames(coords) <- entity_ids
 
+  # #508 provenance: the active/excluded HPO term set (attached by
+  # generate_phenotype_cluster_input) + the Greenacre 1/Q ncp diagnostic. ncp stays
+  # at the empirically-stable denoising value of 8 for the actual clustering; the
+  # 1/Q recommendation and adjusted inertia are reported for transparency.
+  mca_prov <- attr(wide_phenotypes_df, "mca_provenance")
+  q_active <- ncol(wide_phenotypes_df) - length(quali_sup_var) - length(quanti_sup_var)
+  ncp_diag <- if (exists("phenotype_mca_ncp", mode = "function")) {
+    tryCatch(phenotype_mca_ncp(mca$eig[, "eigenvalue"], q_active),
+             error = function(e) NULL)
+  } else {
+    NULL
+  }
+
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
   n_assigned <- sum(keep)
@@ -158,22 +253,112 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   sil_mean   <- NA_real_
   sil_status <- "ok"
   k_curve    <- NULL
+  k_decision <- NULL
+  sil_band   <- NA_character_
+  sil_z <- NA_real_
+  sil_p <- NA_real_
+  dip_stat <- NA_real_
+  dip_p <- NA_real_
+  dip_interp <- NA_character_
+  shared_mod_z <- NA_real_
   per_sil  <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
   if (n_clusters < 2 || length(unique(memb_int)) < 2) {
     sil_status <- "undefined_lt2_clusters"                                  # silhouette undefined; NA with reason
   } else {
-    d <- stats::dist(coords[keep, , drop = FALSE])                          # assigned entities only
+    coords_keep <- coords[keep, , drop = FALSE]
+    d <- stats::dist(coords_keep)                                           # assigned entities only
     sil <- cluster::silhouette(memb_int, d)
     sil_mean <- mean(sil[, "sil_width"])
     agg <- tapply(sil[, "sil_width"], sil[, "cluster"], mean)
     per_sil <- stats::setNames(as.numeric(agg)[order(as.integer(names(agg)))], names(ref_members))
-    # supporting k-selection curve on the SAME Ward linkage HCPC uses (assigned entities only).
-    hc <- stats::hclust(d, method = "ward.D2")
-    ks <- 2:min(10L, n_assigned - 1L)
-    k_curve <- stats::setNames(
-      lapply(ks, function(k) mean(cluster::silhouette(stats::cutree(hc, k = k), d)[, "sil_width"])),
-      as.character(ks)
-    )
+
+    # #509: k-selection curves computed on the SAME HCPC procedure that produced
+    # the reported labels (not a plain Ward cut). Re-run HCPC(nb.clust = k) on the
+    # same MCA object with the production kk/consol config, restrict each partition
+    # to the assigned entities, and score silhouette on the MCA-coord distance -> by
+    # construction k_selection_curve[k] at the reported k equals mean_silhouette.
+    # A separate k_decision_curve reports the relative within-cluster inertia loss
+    # of the per-k re-runs -- an inertia-based diagnostic (NOT HCPC's own selector,
+    # which maximizes the Ward tree's between-cluster inertia-gain ratio) that makes
+    # explicit k was chosen by inertia, not by the silhouette curve. Because each k
+    # is an independent consolidated k-means (not a nested cut), the loss is not
+    # guaranteed monotone. (Wave 1 uses kk = 50; Task 10 flips kk to Inf in both
+    # gen_mca_clust_obj and here so the curve keeps matching the served partition.)
+    within_inertia <- function(cm, lab) {
+      sum(vapply(split(seq_len(nrow(cm)), lab), function(idx) {
+        if (length(idx) < 2L) return(0)
+        blk <- cm[idx, , drop = FALSE]
+        ctr <- colMeans(blk)
+        sum((blk - matrix(ctr, nrow(blk), ncol(blk), byrow = TRUE))^2)
+      }, numeric(1)))
+    }
+    # Candidate k grid = 2..10 plus the actual data-driven k (so the curve always
+    # contains an anchor point that reproduces the reported partition), capped by N.
+    ks <- sort(unique(c(2:min(10L, n_assigned - 1L),
+                        as.integer(data_driven_k))))
+    ks <- ks[ks >= 2L & ks <= (n_assigned - 1L)]
+    keep_names <- rownames(coords)[keep]
+    # Re-run the EXACT served procedure (gen_mca_clust_obj, which re-seeds
+    # internally and owns the kk/consol config) forcing each k, so the curve
+    # describes the reported partition. At the auto-selected k this reproduces the
+    # served labels -> k_selection_curve[k_selected] == mean_silhouette exactly.
+    per_k <- lapply(ks, function(k) {
+      cl_k <- tryCatch(
+        gen_mca_clust_obj(wide_phenotypes_df, min_size = min_size,
+                          quali_sup_var = quali_sup_var, quanti_sup_var = quanti_sup_var,
+                          cutpoint = k),
+        error = function(e) NULL
+      )
+      if (is.null(cl_k) || nrow(cl_k) == 0) return(list(sil = NA_real_, w = NA_real_))
+      members_k <- stats::setNames(
+        lapply(cl_k$identifiers, function(dd) as.character(dd$entity_id)),
+        as.character(cl_k$cluster)
+      )
+      e2c   <- stats::setNames(rep(names(members_k), lengths(members_k)), unlist(members_k))
+      ids_k <- intersect(keep_names, names(e2c))
+      if (length(ids_k) < 3L || length(unique(e2c[ids_k])) < 2L) {
+        return(list(sil = NA_real_, w = NA_real_))
+      }
+      lab <- as.integer(factor(e2c[ids_k]))
+      ck  <- coords[ids_k, , drop = FALSE]
+      list(sil = mean(cluster::silhouette(lab, stats::dist(ck))[, "sil_width"]),
+           w = within_inertia(ck, lab))
+    })
+    k_curve <- stats::setNames(lapply(per_k, function(x) x$sil), as.character(ks))
+    w_vals  <- vapply(per_k, function(x) x$w, numeric(1))
+    # relative within-cluster inertia loss across the per-k re-runs (an inertia
+    # diagnostic, not HCPC's between-cluster-gain selector); can be negative because
+    # the per-k consolidated partitions are independent, not nested.
+    rel_loss <- c(NA_real_, utils::head(w_vals, -1) / utils::tail(w_vals, -1) - 1)
+    k_decision <- stats::setNames(as.list(round(rel_loss, 4)), as.character(ks))
+
+    sil_band <- if (sil_mean <= 0.25) "no_substantial_structure_continuum"
+                else if (sil_mean <= 0.5) "weak_structure"
+                else if (sil_mean <= 0.7) "reasonable_structure" else "strong_structure"
+
+    # #511: unit-free, null-calibrated separation on the phenotype axis + the SAME
+    # modularity-z index via a mutual-kNN graph of the MCA coords, so both axes are
+    # comparable. Plus a representation-agnostic dip test on the distance vector.
+    sil_null_n <- as.integer(Sys.getenv("ANALYSIS_SILHOUETTE_NULL_N", "1000"))
+    mod_null_n <- as.integer(Sys.getenv("ANALYSIS_MODULARITY_NULL_N", "200"))
+    knn_k      <- as.integer(Sys.getenv("ANALYSIS_PHENOTYPE_KNN_K", "15"))
+    sz <- silhouette_null_zscore(coords_keep, memb_int, n_null = sil_null_n, seed = seed)
+    sil_z <- sz$z
+    sil_p <- sz$p_empirical
+    dp <- dip_unimodality(as.vector(d))
+    dip_stat <- dp$dip_statistic
+    dip_p <- dp$p_value
+    dip_interp <- dp$interpretation
+    rownames(coords_keep) <- keep_names
+    kg <- tryCatch(knn_similarity_graph(coords_keep, k = knn_k), error = function(e) NULL)
+    if (!is.null(kg) && igraph::ecount(kg) > 0L) {
+      smz <- tryCatch(
+        modularity_null_zscore(kg, memb_int, weights = igraph::E(kg)$weight,
+                               n_null = mod_null_n, seed = seed),
+        error = function(e) list(z = NA_real_)
+      )
+      shared_mod_z <- smz$z
+    }
   }
 
   # Subsample entities WITHOUT replacement; recompute MCA+HCPC; max-Jaccard per visible cluster.
@@ -209,10 +394,23 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   list(
     per_cluster = per_cluster,
     partition = list(
-      validation_schema_version = "1.0",
-      algorithm = "mca_hcpc", k = n_clusters,
-      k_selection_metric = "hcpc_relative_inertia_loss", k_selection_curve = k_curve,
+      validation_schema_version = "2.0",
+      algorithm = "mca_hcpc", k = n_clusters, k_selected = as.integer(data_driven_k),
+      hcpc_nb_clust = as.integer(data_driven_k),
+      # kk = Inf -> full Ward tree + real k-means consolidation actually runs (#509).
+      hcpc_kk = "Inf", consolidation = TRUE,
+      active_feature_set = mca_prov,
+      ncp_used = 8L,
+      ncp_recommended_1overq = if (!is.null(ncp_diag)) ncp_diag$ncp else NA_integer_,
+      adjusted_inertia = if (!is.null(ncp_diag)) ncp_diag$adjusted_inertia else NA_real_,
+      k_selection_metric = "hcpc_relative_inertia_loss",
+      k_selection_curve = k_curve, k_decision_curve = k_decision,
       mean_silhouette = sil_mean, silhouette_status = sil_status,
+      silhouette_interpretation = sil_band,
+      silhouette_z = sil_z, silhouette_p_empirical = sil_p, null_model = "label_permutation",
+      shared_modularity_z = shared_mod_z, separation_z = sil_z,
+      dip_statistic = dip_stat, dip_p = dip_p, dip_interpretation = dip_interp,
+      dip_scope = "mca_coord_distance",
       n_clusters = n_clusters, n_entities_assigned = n_assigned, n_entities_dropped = n_dropped,
       partition_scope = "visible_top_level",
       resampling_scheme = "subsample", subsample_fraction = subsample_fraction,

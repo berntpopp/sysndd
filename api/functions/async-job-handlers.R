@@ -192,6 +192,14 @@
     as.data.frame()
   row.names(phenotype_df) <- sysndd_db_phenotypes_wider$entity_id
 
+  # #508 MCA feature hygiene via the shared helper (same as
+  # generate_phenotype_cluster_input) so the interactive/durable clustering job
+  # produces the cleaned partition and can't diverge from the public snapshot.
+  phenotype_df <- phenotype_mca_prep_matrix(
+    phenotype_df,
+    hpo_lookup = dplyr::select(payload$phenotype_list_tbl, HPO_term, phenotype_id)
+  )
+
   phenotype_df
 }
 

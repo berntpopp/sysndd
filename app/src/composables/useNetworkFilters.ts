@@ -78,7 +78,10 @@ export interface NetworkFiltersState {
  * ```
  */
 export function useNetworkFilters(): NetworkFiltersState {
-  // Category filter level (accumulative)
+  // Category filter level (accumulative). Defaults to 'Definitive' (highest-
+  // confidence tier) to keep the dense network legible; the "X / Y genes" badge
+  // and its tooltip make the active filter explicit so the reduced count is clear
+  // rather than looking like missing genes.
   const categoryLevel = ref<CategoryFilter>('Definitive');
 
   // Selected clusters (used when showAllClusters is false)
@@ -98,6 +101,7 @@ export function useNetworkFilters(): NetworkFiltersState {
       case 'Moderate':
         return ['Definitive', 'Moderate'];
       case 'Limited':
+        // Refuted (4th tier) is intentionally excluded from the network view.
         return ['Definitive', 'Moderate', 'Limited'];
       default:
         return ['Definitive'];

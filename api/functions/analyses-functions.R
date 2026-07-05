@@ -50,10 +50,13 @@ get_string_db <- function(score_threshold = 400L) {
 #'   when NULL the table is collected from `non_alt_loci_set`.
 #' @return An igraph subgraph induced on the input genes' STRING nodes.
 #' @export
-build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_table = NULL) {
-  string_db <- get_string_db(score_threshold)
+build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_table = NULL,
+                                  channel = c("auto", "expdb", "combined")) {
+  channel <- match.arg(channel)
   if (!is.null(string_id_table)) {
-    id_tbl <- dplyr::filter(string_id_table, hgnc_id %in% hgnc_list)
+    # Parity with the pool branch: drop rows without a STRING id, else an NA id
+    # reaches graph_from_data_frame(vertices=...) and raises "NA vertex name".
+    id_tbl <- dplyr::filter(string_id_table, !is.na(STRING_id), hgnc_id %in% hgnc_list)
   } else {
     id_tbl <- pool %>%
       dplyr::tbl("non_alt_loci_set") %>%
@@ -63,9 +66,40 @@ build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_ta
       dplyr::filter(hgnc_id %in% hgnc_list)
   }
   id_df <- as.data.frame(id_tbl)
+
+  # PRIMARY (#510): text-mining-free graph re-combined from experimental + database
+  # only, so functional modularity is not contaminated by literature co-mention.
+  # The exp+db score is carried in the `combined_score` edge attribute so the
+  # weighted-Leiden / modularity plumbing is unchanged. Falls back to the STRINGdb
+  # combined graph (text-mining included) only when the compact exp+db file is
+  # absent, so a fresh checkout without the db-prep artifact still functions.
+  if (!identical(channel, "combined")) {
+    expdb <- tryCatch(
+      if (exists("string_expdb_subgraph", mode = "function")) {
+        string_expdb_subgraph(id_df$STRING_id, score_threshold)
+      } else {
+        NULL
+      },
+      error = function(e) {
+        warning(sprintf("[STRING] exp+db subgraph failed (%s); falling back to combined_score", conditionMessage(e)))
+        NULL
+      }
+    )
+    if (!is.null(expdb)) {
+      return(expdb)
+    }
+    if (identical(channel, "expdb")) {
+      stop("build_string_subgraph(channel='expdb'): exp+db edge file is unavailable", call. = FALSE)
+    }
+  }
+
+  message("[STRING] using combined_score graph (includes text-mining)")
+  string_db <- get_string_db(score_threshold)
   string_graph <- string_db$get_graph()
   genes_in_graph <- intersect(igraph::V(string_graph)$name, id_df$STRING_id)
-  igraph::induced_subgraph(string_graph, vids = which(igraph::V(string_graph)$name %in% genes_in_graph))
+  subgraph <- igraph::induced_subgraph(string_graph, vids = which(igraph::V(string_graph)$name %in% genes_in_graph))
+  attr(subgraph, "weight_channel") <- "combined_score"
+  subgraph
 }
 
 ## -------------------------------------------------------------------##

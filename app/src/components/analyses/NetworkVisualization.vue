@@ -5,15 +5,21 @@
       <header class="network-panel__header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="d-flex align-items-center flex-wrap">
-            <h2 class="mb-0 fw-bold me-2 network-panel__title">Protein-Protein Interaction Network</h2>
-            <!-- Visible / Total in network -->
+            <h2 class="mb-0 fw-bold me-2 network-panel__title">
+              Protein-Protein Interaction Network
+            </h2>
+            <!-- Visible / Total in network. When a filter hides some genes the
+                 badge turns amber + shows a funnel so the reduced count reads as
+                 "filtered", not "missing"; the tooltip (bound via the directive
+                 VALUE so it stays reactive to filter changes) names the active
+                 filter. -->
             <BBadge
               v-if="isInitialized && visibleNodeCount > 0"
-              v-b-tooltip.hover
-              variant="info"
+              v-b-tooltip.hover.bottom="geneCountTooltip"
+              :variant="isNetworkFiltered ? 'warning' : 'info'"
               class="me-1"
-              :title="networkCoverageTooltip"
             >
+              <i v-if="isNetworkFiltered" class="bi bi-funnel-fill me-1" aria-hidden="true" />
               {{ visibleNodeCount }} / {{ metadata?.node_count || 0 }} genes
             </BBadge>
             <BBadge
@@ -86,12 +92,21 @@
               </BDropdown>
 
               <!-- Cluster dropdown -->
-              <BDropdown size="sm" variant="outline-secondary" :text="clusterFilterLabel" :aria-label="`Filter by cluster: ${clusterFilterLabel}`">
+              <BDropdown
+                size="sm"
+                variant="outline-secondary"
+                :text="clusterFilterLabel"
+                :aria-label="`Filter by cluster: ${clusterFilterLabel}`"
+              >
                 <BDropdownItemButton :active="showAllClusters" @click="setShowAllClusters(true)">
                   <i class="bi bi-grid-3x3-gap me-2" />
                   All Clusters
                 </BDropdownItemButton>
                 <BDropdownDivider />
+                <div class="px-3 py-1 small text-muted cluster-dropdown-note">
+                  Cluster IDs are stable partition labels; small clusters (&lt; 10 genes) are
+                  omitted, so the numbers are not consecutive.
+                </div>
                 <div
                   v-for="cluster in legendClusters"
                   :key="cluster.id"
@@ -106,7 +121,11 @@
                     :aria-label="`View cluster ${cluster.id} only`"
                     @click="selectSingleCluster(cluster.id)"
                   >
-                    <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" aria-hidden="true" />
+                    <span
+                      class="legend-color me-2"
+                      :style="{ backgroundColor: cluster.color }"
+                      aria-hidden="true"
+                    />
                     <span class="cluster-label">Cluster {{ cluster.id }}</span>
                     <i
                       v-if="selectedClusters.has(cluster.id) && selectedClusters.size === 1"
@@ -140,7 +159,11 @@
           </div>
 
           <!-- Control buttons: aria-label required for icon-only buttons (button-name) -->
-          <div class="btn-group btn-group-sm mt-1 mt-md-0" role="group" aria-label="Network controls">
+          <div
+            class="btn-group btn-group-sm mt-1 mt-md-0"
+            role="group"
+            aria-label="Network controls"
+          >
             <BButton
               v-b-tooltip.hover
               variant="outline-secondary"
@@ -227,8 +250,8 @@
         <div v-if="isPreparing && !isLoading" class="preparing-container text-center py-4">
           <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
           <p class="text-muted mb-3">
-            This analysis is being prepared and will appear here shortly. This can take a
-            couple of minutes after a deploy or data update.
+            This analysis is being prepared and will appear here shortly. This can take a couple of
+            minutes after a deploy or data update.
           </p>
           <BButton variant="primary" @click="retryLoadNetwork">
             <i class="bi bi-arrow-clockwise me-1" />
@@ -296,7 +319,11 @@
               :aria-label="`View cluster ${cluster.id} only`"
               @click="selectSingleCluster(cluster.id)"
             >
-              <span class="legend-color" :style="{ backgroundColor: cluster.color }" aria-hidden="true" />
+              <span
+                class="legend-color"
+                :style="{ backgroundColor: cluster.color }"
+                aria-hidden="true"
+              />
               {{ cluster.id }}
             </button>
             <!-- Add button - appears on hover when not selected -->
@@ -449,13 +476,24 @@ const {
 } = useNetworkHighlight(cy);
 
 const legendClusters = computed(() => {
-  if (!metadata.value || !metadata.value.cluster_count) return [];
-
-  const count = Math.min(metadata.value.cluster_count, 10);
-  return Array.from({ length: count }, (_, i) => ({
-    id: i + 1,
-    color: getClusterColor(i + 1),
-  }));
+  // Build the cluster list/legend from the REAL distinct cluster IDs present in the
+  // network — not a fabricated `1..N` and not capped at 10 (the previous
+  // `Math.min(cluster_count, 10)` truncated the list and `id: i+1` invented IDs
+  // that never matched the sparse split-position IDs on the nodes, so selecting a
+  // cluster filtered nothing). IDs are coerced the same way `applyFilters` matches
+  // them (main cluster = integer part), sorted by member count desc so the largest
+  // clusters lead; colors cycle via getClusterColor when clusters exceed the palette.
+  const counts = new Map<number, number>();
+  for (const el of cytoscapeNodeElements.value) {
+    const raw = (el.data as { cluster?: number | string } | undefined)?.cluster;
+    if (raw === undefined || raw === null) continue;
+    const id = typeof raw === 'string' ? parseInt(raw.split('.')[0], 10) : raw;
+    if (!Number.isFinite(id)) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .map(([id]) => ({ id, color: getClusterColor(id) }));
 });
 
 const categoryOptions = [
@@ -486,6 +524,26 @@ const networkCoverageTooltip = computed(() => {
     return `${inNetwork} of ${total} NDD genes shown. Only genes with STRING protein-protein interaction data are included.`;
   }
   return `${inNetwork} genes with protein-protein interactions`;
+});
+
+// True when the active Category/Clusters filters hide some of the network's genes
+// (visible < total), so the count badge can flag itself as filtered.
+const isNetworkFiltered = computed(
+  () => visibleNodeCount.value > 0 && visibleNodeCount.value < (metadata.value?.node_count || 0)
+);
+
+// Filter-aware tooltip for the gene-count badge: when a filter is hiding genes it
+// names the active filter (so 1310 / 2154 reads as "filtered by Definitive", not
+// "missing genes"); otherwise it falls back to the STRING-coverage explanation.
+const geneCountTooltip = computed(() => {
+  if (!isNetworkFiltered.value) return networkCoverageTooltip.value;
+  const shown = visibleNodeCount.value;
+  const total = metadata.value?.node_count || 0;
+  const clusterPart =
+    !showAllClusters.value && selectedClusters.value.size > 0
+      ? `, ${clusterFilterLabel.value}`
+      : '';
+  return `Showing ${shown} of ${total} network genes. Active filter — ${categoryFilterLabel.value}${clusterPart}. Use the Category / Clusters dropdowns to show more.`;
 });
 
 const edgesFilteredTooltip = computed(() => {

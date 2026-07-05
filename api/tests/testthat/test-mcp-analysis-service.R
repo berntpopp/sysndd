@@ -742,7 +742,11 @@ test_that("phenotype clusters tool surfaces read-only validation + db_release", 
     records = tibble::tibble(cluster = "1", hgnc_id = "HGNC:1", entity_id = 1L, symbol = "A"),
     meta = list(snapshot = list(
       validation = list(partition_scope = "visible_top_level", mean_silhouette = 0.4,
-                        k = 3L, algorithm = "mca_hcpc"),
+                        k = 3L, algorithm = "mca_hcpc",
+                        separation_z = 3.1, silhouette_z = 3.1,
+                        silhouette_p_empirical = 0.012, null_model = "label_permutation",
+                        dip_statistic = 0.02, dip_p = 0.4,
+                        silhouette_interpretation = "no_substantial_structure_continuum"),
       db_release = list(version = "v3.2.0", commit = "abc1234")
     ))
   ), envir = .GlobalEnv)
@@ -757,4 +761,39 @@ test_that("phenotype clusters tool surfaces read-only validation + db_release", 
   expect_equal(result$meta$db_release$version, "v3.2.0")
   expect_equal(result$meta$data_classes$validation, "curated_derived_analysis")
   expect_equal(result$meta$data_classes$db_release, "operational_metadata")
+  # Additive null-calibrated separation diagnostics surface read-only as their own
+  # operational_metadata block (validation schema >= 2.0), never recomputed on MCP.
+  expect_equal(result$meta$separation_statistics$separation_z, 3.1)
+  expect_equal(result$meta$separation_statistics$silhouette_interpretation,
+               "no_substantial_structure_continuum")
+  expect_equal(result$meta$separation_statistics$null_model, "label_permutation")
+  expect_null(result$meta$separation_statistics$mean_silhouette)
+  expect_equal(result$meta$data_classes$separation_statistics, "operational_metadata")
+})
+
+test_that("phenotype clusters tool omits separation_statistics on pre-2.0 snapshots", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_status <- get0("mcp_analysis_repo_public_snapshot_status", envir = .GlobalEnv, ifnotfound = NULL)
+  old_reader <- get0("mcp_analysis_repo_get_snapshot_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", function(...) list(
+    records = tibble::tibble(cluster = "1", hgnc_id = "HGNC:1", entity_id = 1L, symbol = "A"),
+    meta = list(snapshot = list(
+      validation = list(partition_scope = "visible_top_level", mean_silhouette = 0.4,
+                        k = 3L, algorithm = "mca_hcpc"),
+      db_release = list(version = "v3.2.0", commit = "abc1234")
+    ))
+  ), envir = .GlobalEnv)
+  withr::defer({
+    if (!is.null(old_status)) assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    if (!is.null(old_reader)) assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", old_reader, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_phenotype_analysis_context(mode = "clusters", limit = 10L)
+
+  expect_null(result$meta$separation_statistics)
+  expect_null(result$meta$data_classes$separation_statistics)
+  expect_equal(result$meta$data_classes$validation, "curated_derived_analysis")
 })

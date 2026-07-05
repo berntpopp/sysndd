@@ -316,5 +316,61 @@ function(cluster_hash = NULL, cluster_number = NULL, req, res) {
   get_cluster_summary(cluster_hash, cluster_number, "phenotype", res, allow_generation = allow_gen)
 }
 
+
+#* Functional Clustering Reproducibility Bundle
+#*
+#* Read-only sibling of `/functional_clustering` (#512). Returns the inputs
+#* needed to INDEPENDENTLY recompute the served functional modularity: the
+#* largest-connected-component STRING edge list, the complete Leiden membership,
+#* the served modularity, params, and a SHA-256 reproducibility hash.
+#*
+#* # `Details`
+#* - DB-only read from the current public snapshot's reproducibility row.
+#* - Approved-public data only (the snapshot is built from approved public data).
+#* - The `bundle` is the decompressed, parsed JSON of the stored gzip blob.
+#*
+#* NOTE: These reproducibility routes live in this file (not a separate mounted
+#* sub-router) on purpose. Plumber cannot mount a second router at `/api/analysis`
+#* (a duplicate mount replaces the first) and a sub-router 404 does not fall
+#* through to other mounts, so the only way to serve the documented sibling path
+#* `/api/analysis/functional_clustering/reproducibility` is as a route inside the
+#* same analysis sub-router. The endpoint logic is kept thin (delegated to
+#* `analysis_reproducibility_endpoint()` in functions/analysis-reproducibility.R).
+#*
+#* @tag analysis
+#* @serializer json list(na="string", auto_unbox=TRUE)
+#*
+#* @response 200 OK. Returns { reproducibility_hash, kind, byte_size, snapshot_id, bundle }.
+#* @response 404 Not Found. No public snapshot or no reproducibility bundle yet.
+#*
+#* @get functional_clustering/reproducibility
+function(res) {
+  analysis_reproducibility_endpoint("functional_clusters", res)
+}
+
+
+#* Phenotype Clustering Reproducibility Bundle
+#*
+#* Read-only sibling of `/phenotype_clustering` (#512). Returns the inputs needed
+#* to INDEPENDENTLY recompute the served phenotype silhouette: the MCA coordinate
+#* matrix, the cluster membership, the served silhouette, params, and a SHA-256
+#* reproducibility hash.
+#*
+#* # `Details`
+#* - DB-only read from the current public snapshot's reproducibility row.
+#* - Approved-public data only.
+#* - See the functional sibling above for why these routes live in this file.
+#*
+#* @tag analysis
+#* @serializer json list(na="string", auto_unbox=TRUE)
+#*
+#* @response 200 OK. Returns { reproducibility_hash, kind, byte_size, snapshot_id, bundle }.
+#* @response 404 Not Found. No public snapshot or no reproducibility bundle yet.
+#*
+#* @get phenotype_clustering/reproducibility
+function(res) {
+  analysis_reproducibility_endpoint("phenotype_clusters", res)
+}
+
 ## Analyses endpoints
 ## -------------------------------------------------------------------##
