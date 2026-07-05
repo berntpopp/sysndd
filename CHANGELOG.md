@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-07-05
+
+Cluster-analysis statistical soundness & reproducibility (#508–#512), plus a deep multi-reviewer code-review pass and GeneNetworks cluster-display fixes.
+
+### Added
+
+- **Self-reproducing cluster snapshots (#512)**: two read-only endpoints, `GET /api/analysis/functional_clustering/reproducibility` and `.../phenotype_clustering/reproducibility`, publish the exact inputs (functional: full largest-connected-component edge list + complete membership; phenotype: MCA coordinates + assignment + params) plus a SHA-256 `reproducibility_hash`, so anyone can recompute the served modularity/silhouette. Stored as a gzipped canonical-JSON bundle (migration `041`).
+- **Unit-free, null-calibrated separation on both axes (#511)**: a common `separation_z` — functional = modularity z-score vs a degree-preserving configuration-model null; phenotype = silhouette z-score vs a label-permutation null — plus a dip test of unimodality as a corroborating continuum-vs-modular signal, and the same modularity-z index on a mutual-kNN graph of the MCA embedding.
+- **Text-mining-free functional clustering (#510)**: STRING weights are recombined from the experimental + database channels only (probabilistic-OR), dropping the co-mention channel that would let literature co-study restate "molecular" structure; giant-component (isolate/component) counts are reported.
+
+### Fixed
+
+- **Modularity null re-optimizes per replicate**: `modularity_null_zscore` now re-detects communities on each rewired null (the Guimerà/Sales-Pardo/Amaral configuration-model benchmark) instead of stranding the observed labels on the null, which had inflated `separation_z` by orders of magnitude; the observed graph is restricted to its largest connected component so observed and null share a substrate, and `modularity_lcc` is exposed to reconcile the z.
+- **Phenotype MCA hygiene & real consolidation (#508/#509)**: near-constant/root HPO terms are filtered out of the active MCA set and presence is recoded to explicit `{absent, present}`; HCPC runs with `kk = Inf` so k-means consolidation actually executes (FactoMineR ≥2.13 silently disables it for finite `kk`); the k-selection curve re-runs the served procedure per k. The prep is a single shared helper applied to both the served snapshot and the interactive clustering job so they cannot diverge.
+- **STRING exp+db edges are de-duplicated** (`simplify()`), so edge counts and the reproducibility export are the true undirected counts (partition unchanged); the functional dip test runs on continuous weighted distances, not integer hop counts.
+- **GeneNetworks cluster selector** shows all real clusters (not a fabricated top-10 that broke click-to-filter), explains the non-consecutive cluster IDs in-UI, and makes an active category/cluster filter visibly discernible (funnel badge + a reactive, filter-aware tooltip) so a reduced gene count reads as filtered, not missing.
+- Additional review follow-ups: mirai worker-pool sources the new analysis modules; the reproducibility endpoint gates on snapshot staleness; MCP no longer double-labels separation fields; all-NA character columns are no longer misclassified as HPO presence columns.
+
 ## [0.28.2] — 2026-07-04
 
 Hardening follow-ups to the v0.28.1 OMIM-NDD descendant expansion, from a deep code review.
