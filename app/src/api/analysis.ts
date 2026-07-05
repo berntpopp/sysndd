@@ -48,8 +48,7 @@ export function isSnapshotPreparingError(err: unknown): boolean {
   // "being prepared" state actually triggers against the real API (#440).
   const raw = problem.data?.code;
   const code = Array.isArray(raw) ? raw[0] : raw;
-  return typeof code === 'string'
-    && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
+  return typeof code === 'string' && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
 }
 
 // ---------------------------------------------------------------------------

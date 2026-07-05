@@ -9,12 +9,7 @@ import type { ClusterValidation } from '@/api/analysis';
 export type ClusterAnalysisType = 'functional_clusters' | 'phenotype_clusters';
 
 export type StabilityBandKey =
-  | 'highly_stable'
-  | 'stable'
-  | 'doubtful'
-  | 'weak'
-  | 'dissolved'
-  | 'na';
+  'highly_stable' | 'stable' | 'doubtful' | 'weak' | 'dissolved' | 'na';
 
 export interface StabilityBand {
   key: StabilityBandKey;
@@ -87,10 +82,7 @@ function humanizeToken(value: string | null): string | null {
 // Headline unit-free separation metric shared by both axes (validation schema
 // >= 2.0). Hidden entirely when `separation_z` is absent/non-finite so older
 // snapshots render unchanged. `pValue` is the axis-specific empirical p.
-function separationHeadline(
-  v: ClusterValidation,
-  pValue: number | null,
-): ValidationMetric | null {
+function separationHeadline(v: ClusterValidation, pValue: number | null): ValidationMetric | null {
   const z = toScalarNumber(v.separation_z);
   if (z == null) return null;
   const nullModel = humanizeToken(toScalarString(v.null_model));
@@ -135,7 +127,7 @@ function channelMetric(v: ClusterValidation): ValidationMetric | null {
   const clean = channel === 'experimental_database';
   return {
     label: 'STRING channel',
-    value: clean ? 'exp + database' : humanizeToken(channel) ?? channel,
+    value: clean ? 'exp + database' : (humanizeToken(channel) ?? channel),
     hint: clean ? 'text-mining excluded' : 'includes text-mining (fallback)',
   };
 }
@@ -151,7 +143,7 @@ function continuumMetric(v: ClusterValidation): ValidationMetric | null {
 }
 
 export function hasValidation(
-  validation: ClusterValidation | unknown[] | null | undefined,
+  validation: ClusterValidation | unknown[] | null | undefined
 ): boolean {
   if (!validation || Array.isArray(validation)) return false;
   return toScalarString((validation as ClusterValidation).algorithm) != null;
@@ -159,7 +151,7 @@ export function hasValidation(
 
 export function summarizeValidation(
   analysisType: ClusterAnalysisType,
-  validation: ClusterValidation | unknown[] | null | undefined,
+  validation: ClusterValidation | unknown[] | null | undefined
 ): ValidationMetric[] {
   if (!hasValidation(validation)) return [];
   const v = validation as ClusterValidation;
@@ -221,7 +213,7 @@ interface RawClusterRow {
 }
 
 export function perClusterStability(
-  clusters: RawClusterRow[] | null | undefined,
+  clusters: RawClusterRow[] | null | undefined
 ): ClusterStabilityRow[] {
   if (!Array.isArray(clusters)) return [];
   return clusters

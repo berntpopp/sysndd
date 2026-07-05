@@ -78,11 +78,11 @@ export interface NetworkFiltersState {
  * ```
  */
 export function useNetworkFilters(): NetworkFiltersState {
-  // Category filter level (accumulative). Default to the most inclusive level so
-  // the FULL network (Definitive + Moderate + Limited) renders on first paint —
-  // the previous 'Definitive' default silently hid ~40% of the genes (e.g. showed
-  // 1310 of 2154), which read as "missing genes". Narrow via the Category dropdown.
-  const categoryLevel = ref<CategoryFilter>('Limited');
+  // Category filter level (accumulative). Defaults to 'Definitive' (highest-
+  // confidence tier) to keep the dense network legible; the "X / Y genes" badge
+  // and its tooltip make the active filter explicit so the reduced count is clear
+  // rather than looking like missing genes.
+  const categoryLevel = ref<CategoryFilter>('Definitive');
 
   // Selected clusters (used when showAllClusters is false)
   const selectedClusters = ref<Set<number>>(new Set());
@@ -101,10 +101,8 @@ export function useNetworkFilters(): NetworkFiltersState {
       case 'Moderate':
         return ['Definitive', 'Moderate'];
       case 'Limited':
-        // Top / most-inclusive level = genuinely show-all: include the 4th-tier
-        // `Refuted` classification too, so the badge reads N/N and no gene (e.g.
-        // the single Refuted PLCD1) is silently hidden with no way to reveal it.
-        return ['Definitive', 'Moderate', 'Limited', 'Refuted'];
+        // Refuted (4th tier) is intentionally excluded from the network view.
+        return ['Definitive', 'Moderate', 'Limited'];
       default:
         return ['Definitive'];
     }
@@ -184,7 +182,7 @@ export function useNetworkFilters(): NetworkFiltersState {
    * Reset all filters to default values
    */
   function resetFilters(): void {
-    categoryLevel.value = 'Limited'; // show-all default (see initial categoryLevel above)
+    categoryLevel.value = 'Definitive';
     selectedClusters.value = new Set();
     showAllClusters.value = true;
   }
