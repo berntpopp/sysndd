@@ -78,8 +78,11 @@ export interface NetworkFiltersState {
  * ```
  */
 export function useNetworkFilters(): NetworkFiltersState {
-  // Category filter level (accumulative)
-  const categoryLevel = ref<CategoryFilter>('Definitive');
+  // Category filter level (accumulative). Default to the most inclusive level so
+  // the FULL network (Definitive + Moderate + Limited) renders on first paint —
+  // the previous 'Definitive' default silently hid ~40% of the genes (e.g. showed
+  // 1310 of 2154), which read as "missing genes". Narrow via the Category dropdown.
+  const categoryLevel = ref<CategoryFilter>('Limited');
 
   // Selected clusters (used when showAllClusters is false)
   const selectedClusters = ref<Set<number>>(new Set());
@@ -178,7 +181,7 @@ export function useNetworkFilters(): NetworkFiltersState {
    * Reset all filters to default values
    */
   function resetFilters(): void {
-    categoryLevel.value = 'Definitive';
+    categoryLevel.value = 'Limited'; // show-all default (see initial categoryLevel above)
     selectedClusters.value = new Set();
     showAllClusters.value = true;
   }
