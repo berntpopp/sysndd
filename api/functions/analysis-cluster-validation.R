@@ -197,22 +197,98 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   sil_mean   <- NA_real_
   sil_status <- "ok"
   k_curve    <- NULL
+  k_decision <- NULL
+  sil_band   <- NA_character_
+  sil_z <- NA_real_; sil_p <- NA_real_
+  dip_stat <- NA_real_; dip_p <- NA_real_; dip_interp <- NA_character_
+  shared_mod_z <- NA_real_
   per_sil  <- stats::setNames(rep(NA_real_, n_clusters), names(ref_members))
   if (n_clusters < 2 || length(unique(memb_int)) < 2) {
     sil_status <- "undefined_lt2_clusters"                                  # silhouette undefined; NA with reason
   } else {
-    d <- stats::dist(coords[keep, , drop = FALSE])                          # assigned entities only
+    coords_keep <- coords[keep, , drop = FALSE]
+    d <- stats::dist(coords_keep)                                           # assigned entities only
     sil <- cluster::silhouette(memb_int, d)
     sil_mean <- mean(sil[, "sil_width"])
     agg <- tapply(sil[, "sil_width"], sil[, "cluster"], mean)
     per_sil <- stats::setNames(as.numeric(agg)[order(as.integer(names(agg)))], names(ref_members))
-    # supporting k-selection curve on the SAME Ward linkage HCPC uses (assigned entities only).
-    hc <- stats::hclust(d, method = "ward.D2")
+
+    # #509: k-selection curves computed on the SAME HCPC procedure that produced
+    # the reported labels (not a plain Ward cut). Re-run HCPC(nb.clust = k) on the
+    # same MCA object with the production kk/consol config, restrict each partition
+    # to the assigned entities, and score silhouette on the MCA-coord distance -> by
+    # construction k_selection_curve[k] at the reported k equals mean_silhouette.
+    # A separate k_decision_curve reports the relative within-cluster inertia loss
+    # (the criterion HCPC actually uses to pick k) so it is explicit that k was NOT
+    # chosen by silhouette. (Wave 1 uses kk = 50; Task 10 flips kk to Inf in both
+    # gen_mca_clust_obj and here so the curve keeps matching the served partition.)
+    within_inertia <- function(cm, lab) {
+      sum(vapply(split(seq_len(nrow(cm)), lab), function(idx) {
+        if (length(idx) < 2L) return(0)
+        blk <- cm[idx, , drop = FALSE]
+        ctr <- colMeans(blk)
+        sum((blk - matrix(ctr, nrow(blk), ncol(blk), byrow = TRUE))^2)
+      }, numeric(1)))
+    }
     ks <- 2:min(10L, n_assigned - 1L)
-    k_curve <- stats::setNames(
-      lapply(ks, function(k) mean(cluster::silhouette(stats::cutree(hc, k = k), d)[, "sil_width"])),
-      as.character(ks)
-    )
+    keep_names <- rownames(coords)[keep]
+    # Re-run the EXACT served procedure (gen_mca_clust_obj, which re-seeds
+    # internally and owns the kk/consol config) forcing each k, so the curve
+    # describes the reported partition. At the auto-selected k this reproduces the
+    # served labels -> k_selection_curve[k_selected] == mean_silhouette exactly.
+    per_k <- lapply(ks, function(k) {
+      cl_k <- tryCatch(
+        gen_mca_clust_obj(wide_phenotypes_df, min_size = min_size,
+                          quali_sup_var = quali_sup_var, quanti_sup_var = quanti_sup_var,
+                          cutpoint = k),
+        error = function(e) NULL
+      )
+      if (is.null(cl_k) || nrow(cl_k) == 0) return(list(sil = NA_real_, w = NA_real_))
+      members_k <- stats::setNames(
+        lapply(cl_k$identifiers, function(dd) as.character(dd$entity_id)),
+        as.character(cl_k$cluster)
+      )
+      e2c   <- stats::setNames(rep(names(members_k), lengths(members_k)), unlist(members_k))
+      ids_k <- intersect(keep_names, names(e2c))
+      if (length(ids_k) < 3L || length(unique(e2c[ids_k])) < 2L) {
+        return(list(sil = NA_real_, w = NA_real_))
+      }
+      lab <- as.integer(factor(e2c[ids_k]))
+      ck  <- coords[ids_k, , drop = FALSE]
+      list(sil = mean(cluster::silhouette(lab, stats::dist(ck))[, "sil_width"]),
+           w = within_inertia(ck, lab))
+    })
+    k_curve <- stats::setNames(lapply(per_k, function(x) x$sil), as.character(ks))
+    w_vals  <- vapply(per_k, function(x) x$w, numeric(1))
+    # relative within-cluster inertia loss (the criterion HCPC uses to pick k), so
+    # it is explicit that k was chosen by inertia loss, not by the silhouette curve.
+    rel_loss <- c(NA_real_, utils::head(w_vals, -1) / utils::tail(w_vals, -1) - 1)
+    k_decision <- stats::setNames(as.list(round(rel_loss, 4)), as.character(ks))
+
+    sil_band <- if (sil_mean <= 0.25) "no_substantial_structure_continuum"
+                else if (sil_mean <= 0.5) "weak_structure"
+                else if (sil_mean <= 0.7) "reasonable_structure" else "strong_structure"
+
+    # #511: unit-free, null-calibrated separation on the phenotype axis + the SAME
+    # modularity-z index via a mutual-kNN graph of the MCA coords, so both axes are
+    # comparable. Plus a representation-agnostic dip test on the distance vector.
+    sil_null_n <- as.integer(Sys.getenv("ANALYSIS_SILHOUETTE_NULL_N", "1000"))
+    mod_null_n <- as.integer(Sys.getenv("ANALYSIS_MODULARITY_NULL_N", "200"))
+    knn_k      <- as.integer(Sys.getenv("ANALYSIS_PHENOTYPE_KNN_K", "15"))
+    sz <- silhouette_null_zscore(coords_keep, memb_int, n_null = sil_null_n, seed = seed)
+    sil_z <- sz$z; sil_p <- sz$p_empirical
+    dp <- dip_unimodality(as.vector(d))
+    dip_stat <- dp$dip_statistic; dip_p <- dp$p_value; dip_interp <- dp$interpretation
+    rownames(coords_keep) <- keep_names
+    kg <- tryCatch(knn_similarity_graph(coords_keep, k = knn_k), error = function(e) NULL)
+    if (!is.null(kg) && igraph::ecount(kg) > 0L) {
+      smz <- tryCatch(
+        modularity_null_zscore(kg, memb_int, weights = igraph::E(kg)$weight,
+                               n_null = mod_null_n, seed = seed),
+        error = function(e) list(z = NA_real_)
+      )
+      shared_mod_z <- smz$z
+    }
   }
 
   # Subsample entities WITHOUT replacement; recompute MCA+HCPC; max-Jaccard per visible cluster.
@@ -248,10 +324,20 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   list(
     per_cluster = per_cluster,
     partition = list(
-      validation_schema_version = "1.0",
-      algorithm = "mca_hcpc", k = n_clusters,
-      k_selection_metric = "hcpc_relative_inertia_loss", k_selection_curve = k_curve,
+      validation_schema_version = "2.0",
+      algorithm = "mca_hcpc", k = n_clusters, k_selected = n_clusters,
+      # Wave 1 keeps the production kk = 50 pre-clustering, under which FactoMineR
+      # 2.13 SILENTLY disables k-means consolidation (kk != Inf) -> report the truth.
+      # Task 10 flips kk to Inf so consolidation actually runs and this becomes TRUE.
+      hcpc_kk = "50", consolidation = FALSE,
+      k_selection_metric = "hcpc_relative_inertia_loss",
+      k_selection_curve = k_curve, k_decision_curve = k_decision,
       mean_silhouette = sil_mean, silhouette_status = sil_status,
+      silhouette_interpretation = sil_band,
+      silhouette_z = sil_z, silhouette_p_empirical = sil_p, null_model = "label_permutation",
+      shared_modularity_z = shared_mod_z, separation_z = sil_z,
+      dip_statistic = dip_stat, dip_p = dip_p, dip_interpretation = dip_interp,
+      dip_scope = "mca_coord_distance",
       n_clusters = n_clusters, n_entities_assigned = n_assigned, n_entities_dropped = n_dropped,
       partition_scope = "visible_top_level",
       resampling_scheme = "subsample", subsample_fraction = subsample_fraction,

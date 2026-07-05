@@ -57,7 +57,12 @@ gen_mca_clust_obj <- function(
     kk = 50, # Pre-partition into 50 clusters (was Inf - no pre-partitioning)
     mi = 3,
     max = 25,
-    consol = TRUE, # Consolidation still performed after kk partitioning
+    # NOTE (#509): FactoMineR >= 2.13 SILENTLY disables k-means consolidation when
+    # kk != Inf (`if ((kk != Inf) & (consol == TRUE)) { warning(...); consol <- FALSE }`),
+    # so with kk = 50 the reported partition is the kk-preclustered Ward cut WITHOUT
+    # consolidation. `consol = TRUE` is kept as intent; Task 10 flips kk to Inf so
+    # consolidation actually runs. Do not claim consolidation happens while kk = 50.
+    consol = TRUE,
     graph = FALSE
   )
 
