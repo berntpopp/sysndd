@@ -107,6 +107,7 @@ bootstrap_load_modules <- function() {
     "functions/genereviews-functions.R",
     "functions/analyses-functions.R",
     "functions/analysis-phenotype-functions.R",
+    "functions/analysis-null-models.R",
     "functions/analysis-cluster-validation.R",
     "functions/analysis-network-layout-functions.R",
     "functions/analysis-network-functions.R",
