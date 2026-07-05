@@ -155,6 +155,11 @@ RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
     R -e 'deps <- c("tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
 
+# diptest: optional CRAN dependency for the cluster-validation dip-of-unimodality
+# metric (#511). Installed explicitly (kept out of renv.lock so the cached restore
+# layer above is not busted). dip_unimodality() degrades to NA if it is ever absent.
+RUN R -e 'if (!requireNamespace("diptest", quietly = TRUE)) install.packages("diptest", repos = "https://cloud.r-project.org")'
+
 # Verify stringi loads correctly (links against correct ICU version)
 RUN R -e 'library(stringi); cat("stringi ICU:", stri_info()$ICU.version, "\n")'
 
