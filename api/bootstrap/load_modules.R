@@ -66,6 +66,7 @@ bootstrap_load_modules <- function() {
     "functions/analysis-snapshot-presets.R",
     "functions/analysis-snapshot-repository.R",
     "functions/analysis-snapshot-builder.R",
+    "functions/analysis-reproducibility.R",
     "functions/async-job-analysis-snapshot-handlers.R",
     "functions/async-job-network-layout-handlers.R",
     "functions/nddscore-import.R",

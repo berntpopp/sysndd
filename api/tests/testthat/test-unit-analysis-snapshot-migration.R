@@ -5,8 +5,26 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "040_rename_geisinger_to_ndd_genehub.sql")
+  expect_equal(EXPECTED_LATEST_MIGRATION, "041_add_analysis_reproducibility.sql")
   expect_equal(EXPECTED_MIGRATION_COUNT, 35L)
+})
+
+test_that("migration 041 adds the reproducibility bundle table", {
+  migration_path <- file.path(
+    get_api_dir(), "..", "db", "migrations",
+    "041_add_analysis_reproducibility.sql"
+  )
+  expect_true(file.exists(migration_path))
+  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
+
+  expect_match(sql, "CREATE TABLE IF NOT EXISTS `analysis_snapshot_reproducibility`", fixed = TRUE)
+  expect_match(sql, "bundle_gzip_json", fixed = TRUE)
+  expect_match(sql, "LONGBLOB", fixed = TRUE)
+  expect_match(sql, "reproducibility_hash", fixed = TRUE)
+  # FK must target the real manifest table (not a non-existent `analysis_snapshot`).
+  expect_match(sql, "REFERENCES `analysis_snapshot_manifest` (`snapshot_id`)", fixed = TRUE)
+  expect_match(sql, "ON DELETE CASCADE", fixed = TRUE)
+  expect_match(sql, "UNIQUE KEY `uq_repro_snapshot` (`snapshot_id`)", fixed = TRUE)
 })
 
 test_that("migration 037 adds validation + db release columns", {
