@@ -93,6 +93,18 @@ build_string_subgraph <- function(hgnc_list, score_threshold = 400, string_id_ta
     }
   }
 
+  # #514: when the exp+db channel was intended (auto) but its edge file is absent, the
+  # fall back to the text-mining combined_score graph is a DEFECT in production, not a
+  # benign default — surface it as an operator-visible warning (not just a message) so a
+  # methodology deploy that forgot the data-prep artifact is loud, not silent.
+  if (!identical(channel, "combined")) {
+    warning(
+      "[STRING] exp+db edge file unavailable (", string_expdb_edges_file(), "); functional ",
+      "clustering fell back to the combined_score graph which INCLUDES text-mining. Build the ",
+      "artifact via api/scripts/build-string-expdb.R to activate the text-mining-free channel (#510/#514).",
+      call. = FALSE
+    )
+  }
   message("[STRING] using combined_score graph (includes text-mining)")
   string_db <- get_string_db(score_threshold)
   string_graph <- string_db$get_graph()
@@ -144,7 +156,16 @@ gen_string_clust_obj <- function(
   enrichment = TRUE,
   algorithm = "leiden",
   string_id_table = NULL,
-  score_threshold = 400
+  score_threshold = 400,
+  # #514: folded into the memoise key so a methodology/data/channel change
+  # self-invalidates the disk cache. Call-time default (memoise hashes it);
+  # the body ignores it. Self-guarding so minimal/test envs without the
+  # fingerprint module degrade to a constant NULL key component instead of erroring.
+  .cache_fingerprint = if (exists("analysis_cache_fingerprint", mode = "function")) {
+    analysis_cache_fingerprint("string")
+  } else {
+    NULL
+  }
 ) {
   # Caching is handled by the memoise wrapper (gen_string_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
@@ -177,6 +198,11 @@ gen_string_clust_obj <- function(
   # validator (analysis-cluster-validation.R) clusters a byte-identical graph.
   # Reuse the already-collected id table (avoids a second non_alt_loci_set query).
   subgraph <- build_string_subgraph(hgnc_list, score_threshold, sysndd_db_string_id_table)
+  # #514: record the channel the SERVED membership was actually clustered on so the
+  # snapshot builder can expose it in provenance and refuse to publish when it
+  # disagrees with the validator's channel. Captured before subgraph is rm()'d below.
+  membership_weight_channel <- attr(subgraph, "weight_channel")
+  if (is.null(membership_weight_channel)) membership_weight_channel <- "combined_score"
 
   # Run clustering algorithm based on parameter
   # Leiden: 2-3x faster, good for large networks
@@ -226,12 +252,14 @@ gen_string_clust_obj <- function(
     # Clean up and return empty tibble with expected column structure
     rm(string_db, subgraph, cluster_result, clusters_list)
     gc(verbose = FALSE)
-    return(tibble(
+    empty <- tibble(
       cluster = integer(),
       cluster_size = integer(),
       identifiers = list(),
       hash_filter = character()
-    ))
+    )
+    attr(empty, "weight_channel") <- membership_weight_channel
+    return(empty)
   }
 
   clusters_tibble <- tibble(clusters_list) %>%
@@ -317,6 +345,10 @@ gen_string_clust_obj <- function(
   # Remove large intermediate objects to help gc()
   rm(string_db, subgraph, cluster_result, clusters_list)
   gc(verbose = FALSE)
+
+  # #514: channel provenance travels with the membership tibble (survives the RDS
+  # memoise round-trip), so the builder can expose it and gate on channel agreement.
+  attr(clusters_tibble, "weight_channel") <- membership_weight_channel
 
   # return result
   return(clusters_tibble)

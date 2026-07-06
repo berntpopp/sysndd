@@ -7,6 +7,10 @@ async_job_worker_runtime_paths <- function() {
   api_dir <- get_api_dir()
   c(
     file.path(api_dir, "functions", "async-job-progress.R"),
+    # .async_job_phenotype_matrix() calls phenotype_mca_prep_matrix() (#508 MCA hygiene);
+    # load it here so the durable phenotype-clustering handler test resolves it the way
+    # load_modules.R does in production (prep is sourced before async-job-handlers.R).
+    file.path(api_dir, "functions", "analysis-phenotype-mca-prep.R"),
     file.path(api_dir, "functions", "async-job-handlers.R"),
     file.path(api_dir, "functions", "async-job-worker.R"),
     file.path(api_dir, "functions", "job-progress.R")

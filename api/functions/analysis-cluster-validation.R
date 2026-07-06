@@ -171,6 +171,10 @@ validate_functional_clusters <- function(hgnc_list, score_threshold = 400, resol
   )
   list(
     per_cluster = per_cluster,
+    # #514: the reference partition members (STRING node ids) keyed by cluster_id, so
+    # the snapshot coherence gate can prove the served membership describes the SAME
+    # partition the validation scored — not merely the same cluster-id labels.
+    reference_members = lapply(ref_members, as.character),
     partition = list(
       validation_schema_version = "2.0",
       algorithm = "leiden", weighted = TRUE, n_iterations = -1L,
@@ -393,6 +397,9 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   )
   list(
     per_cluster = per_cluster,
+    # #514: reference partition members (entity ids) keyed by cluster_id for the
+    # snapshot coherence gate (same-partition proof, not just same labels).
+    reference_members = lapply(ref_members, as.character),
     partition = list(
       validation_schema_version = "2.0",
       algorithm = "mca_hcpc", k = n_clusters, k_selected = as.integer(data_driven_k),

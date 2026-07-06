@@ -312,6 +312,21 @@ function() {
       cache_version = Sys.getenv("CACHE_VERSION", "1"),
       r_version = paste(R.version$major, R.version$minor, sep = ".")
     ),
+    # #514: functional-clustering readiness. A missing exp+db artifact means functional
+    # clustering silently falls back to the text-mining combined_score graph, so operators
+    # can spot a methodology deploy that forgot the data-prep step at a glance.
+    analysis = list(
+      cluster_logic_version = tryCatch(CLUSTER_LOGIC_VERSION, error = function(e) NA_character_),
+      functional_weight_channels = tryCatch(
+        paste(string_weight_channels(), collapse = ","),
+        error = function(e) NA_character_
+      ),
+      expdb_edges_file = tryCatch(string_expdb_edges_file(), error = function(e) NA_character_),
+      expdb_edges_file_present = tryCatch(
+        isTRUE(file.exists(string_expdb_edges_file())),
+        error = function(e) NA
+      )
+    ),
     timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
   )
 }

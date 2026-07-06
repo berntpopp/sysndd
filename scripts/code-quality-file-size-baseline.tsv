@@ -22,7 +22,7 @@ api/services/re-review-service.R	929
 app/src/components/analyses/AnalyseGeneClusters.vue	1251
 app/src/components/analyses/AnalysesCurationUpset.vue	713
 app/src/components/analyses/AnalysesPhenotypeClusters.vue	701
-app/src/components/analyses/NetworkVisualization.vue	1268
+app/src/components/analyses/NetworkVisualization.vue	1326
 app/src/components/analyses/PublicationsNDDTable.vue	1011
 app/src/components/analyses/PubtatorNDDGenes.vue	900
 app/src/components/analyses/PubtatorNDDTable.vue	930

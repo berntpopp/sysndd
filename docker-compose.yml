@@ -456,6 +456,11 @@ services:
       - ./api/bootstrap:/app/bootstrap:ro
       - ./api/config:/app/config:ro
       - ./api/scripts:/app/scripts:ro
+      # #514: read-only data mount so the MCP cache-probe fingerprint
+      # (analysis_string_cache_fingerprint -> exp+db file size:mtime) matches the
+      # writer's. Without it MCP computes an "absent" fingerprint and its cache probes
+      # always MISS (safe — never stale — but zero hit rate on analysis cache reads).
+      - ./api/data:/app/data:ro
       - api_cache:/app/cache:ro
       - ./api/config.yml:/app/config.yml:ro
       - ./api/version_spec.json:/app/version_spec.json:ro
