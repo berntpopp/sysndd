@@ -16,6 +16,24 @@ library(dplyr)
 library(stringr)
 library(rlang)
 
+#' Lazy tbl of PRIMARY + APPROVED reviews only — the single public-read gate.
+#' Every public/anonymous review-derived read MUST source rows through this so
+#' the `is_primary = 1 AND review_approved = 1` predicate cannot drift (#3).
+#' Mirrors the MCP repo / SEO service / snapshot builder.
+#'
+#' @param pool Database connection pool.
+#' @param cols Optional character vector of columns to select.
+#' @return A lazy dbplyr tbl (not yet collected).
+#'
+#' @export
+primary_approved_reviews <- function(pool, cols = NULL) {
+  out <- pool %>%
+    dplyr::tbl("ndd_entity_review") %>%
+    dplyr::filter(is_primary == 1 & review_approved == 1)
+  if (!is.null(cols)) out <- out %>% dplyr::select(dplyr::all_of(cols))
+  out
+}
+
 #' Find review by ID
 #'
 #' @param review_id Integer review ID
