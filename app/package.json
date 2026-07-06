@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
-    "@unhead/vue": "^3.1.6",
+    "@unhead/vue": "^3.1.7",
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
     "@vueuse/core": "^14.3.0",
@@ -50,7 +50,7 @@
     "file-saver": "^2.0.5",
     "gsap": "^3.15.0",
     "html2canvas": "^1.4.1",
-    "markdown-it": "^14.2.0",
+    "markdown-it": "^14.3.0",
     "ngl": "^2.4.0",
     "pinia": "^3.0.4",
     "splitpanes": "^4.1.2",
