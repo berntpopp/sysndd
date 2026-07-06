@@ -33,6 +33,9 @@ Focused, cross-LLM skill guides live under `.agents/skills/<name>/SKILL.md`. Rea
 - `sysndd-analysis-snapshots` — clustering, the snapshot builder/validator, the survives-redeploy memoise cache, `CLUSTER_LOGIC_VERSION`, the coherence gate, LLM summaries, and the membership-change deploy runbook.
 - `sysndd-mcp-readonly` — the read-only MCP sidecar contract: approved-public-only reads, no writes/LLM-generation/external calls, `data_class` labels, and the schema-version contract.
 - `sysndd-security-bug-scan` — security + correctness review pass: authorization/role gates, SQL/expression injection, credential and secret handling, public/MCP data exposure, external-call DoS, error/info leakage, and the repo's R/Plumber footguns.
+- `sysndd-migrations-db` — DB migrations and SQL views: the startup migration runner + manifest (`EXPECTED_LATEST_MIGRATION`), advisory locks, `ndd_entity_view`/core-view mirroring, restore drift, and rollback-safe metadata refresh.
+- `sysndd-external-proxy` — outbound provider calls: `external_proxy_budget()`/`make_external_request()`, `memoise_external_success_only`, the per-request time ceiling, batch per-call resets, and cheap-route isolation.
+- `sysndd-frontend-integration` — Vue↔API boundary: typed clients only, Plumber array unwrap, problem+json error extraction, and the BVN dotted-key / tooltip-reactivity table traps.
 
 ## Verify Before Handoff
 
