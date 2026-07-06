@@ -11,7 +11,7 @@ source_api_file("functions/migration-runner.R", local = FALSE)
 
 test_that("manifest expects migration 042 as latest", {
   expect_equal(EXPECTED_LATEST_MIGRATION, "042_gate_connect_views_review_approved.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 39L)
+  expect_equal(EXPECTED_MIGRATION_COUNT, 40L)
 })
 
 test_that("migration manifest validates against db/migrations", {
