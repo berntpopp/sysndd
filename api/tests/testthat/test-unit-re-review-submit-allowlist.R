@@ -52,3 +52,11 @@ test_that("re_review_filter_submit_fields closes the validate_query_column any/a
   expect_error(re_review_filter_submit_fields("any"))
   expect_error(re_review_filter_submit_fields("all"))
 })
+
+test_that("re_review_filter_submit_fields rejects an empty field set (no malformed SQL)", {
+  skip_if_not(exists("re_review_filter_submit_fields"))
+  # A body carrying only re_review_entity_id leaves no updatable field -> the
+  # SET clause would be empty ("UPDATE ... SET  WHERE ...") and 500 with a
+  # driver error. Reject as a clean 400 instead (Codex LOW).
+  expect_error(re_review_filter_submit_fields(character(0)))
+})

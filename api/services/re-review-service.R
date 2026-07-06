@@ -20,6 +20,11 @@ re_review_submit_allowed_fields <- function() {
 #' which would otherwise let a field literally named "any"/"all" bypass the allowlist.
 re_review_filter_submit_fields <- function(field_names) {
   allowed <- re_review_submit_allowed_fields()
+  # An empty field set would build "UPDATE ... SET  WHERE ..." -> malformed SQL
+  # (a 500 leaking a driver error). Reject it as a clean 400 (Codex LOW).
+  if (length(field_names) == 0L) {
+    stop_for_bad_request("Re-review submit requires at least one updatable field.")
+  }
   bad <- setdiff(field_names, allowed)
   if (length(bad) > 0) {
     stop_for_bad_request(paste("Disallowed re-review submit field(s):", paste(bad, collapse = ", ")))
