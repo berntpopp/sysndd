@@ -216,10 +216,22 @@ post_db_hash <- function(
   # then sort it
   # check if the column name is in the allowed identifier list
   # then convert back to JSON and hash it
-  # '!!!' in arrange needed to evaluate the external variable as column name
   json_tibble <- as_tibble(json_data)
+
+  # SECURITY (#1): validate column tokens against the allowlist BEFORE any
+  # evaluation, and sort by a column REFERENCE (never parse the name as code).
+  # The old sort step called parse_exprs(colnames[1]) inside dplyr's arrange
+  # call, evaluating the first JSON key as an R expression via dplyr
+  # data-masking -> authenticated RCE.
+  # hash_validate_columns() raises `hash_column_validation_error` (rlang::abort),
+  # which errorHandler does NOT map -> wrap to a classed 400 (Codex review).
+  tryCatch(
+    hash_validate_columns(colnames(json_tibble), allowed_col_list),
+    hash_column_validation_error = function(e) stop_for_bad_request(conditionMessage(e))
+  )
+
   json_tibble <- json_tibble %>%
-    arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
+    dplyr::arrange(dplyr::across(dplyr::all_of(colnames(json_tibble)[1])))
 
   json_sort <- toJSON(json_tibble)
   ## -------------------------------------------------------------------##
@@ -248,9 +260,6 @@ post_db_hash <- function(
       data = json_sort_hash
     ))
   }
-
-  # validate columns using hash repository
-  hash_validate_columns(colnames(json_tibble), allowed_col_list)
 
   # check if hash exists using repository
   hash_already_exists <- hash_exists(json_sort_hash)
