@@ -192,10 +192,13 @@ gene_ndd_status_sql <- function() "
 "
 
 gene_pmids_sql <- function() "
-  SELECT DISTINCT REPLACE(publication_id, 'PMID:', '') AS pmid
-  FROM ndd_review_publication_join
-  WHERE entity_id IN (SELECT entity_id FROM ndd_entity_view WHERE hgnc_id = ?)
-    AND is_reviewed = 1
+  SELECT DISTINCT REPLACE(rpj.publication_id, 'PMID:', '') AS pmid
+  FROM ndd_review_publication_join rpj
+  JOIN ndd_entity_review er
+    ON rpj.review_id = er.review_id
+    AND er.is_primary = 1 AND er.review_approved = 1
+  WHERE rpj.entity_id IN (SELECT entity_id FROM ndd_entity_view WHERE hgnc_id = ?)
+    AND rpj.is_reviewed = 1
   ORDER BY pmid
 "
 
@@ -217,6 +220,9 @@ entity_review_sql <- function() "
 entity_hpo_sql <- function() "
   SELECT DISTINCT pc.phenotype_id AS id, pl.HPO_term AS label
   FROM ndd_review_phenotype_connect pc
+  JOIN ndd_entity_review er
+    ON pc.review_id = er.review_id
+    AND er.is_primary = 1 AND er.review_approved = 1
   JOIN phenotype_list pl ON pc.phenotype_id = pl.phenotype_id
   WHERE pc.entity_id = ? AND pc.is_active = 1
   ORDER BY pl.HPO_term
@@ -225,14 +231,20 @@ entity_hpo_sql <- function() "
 entity_variation_sql <- function() "
   SELECT DISTINCT vc.vario_id AS id, vl.vario_name AS label
   FROM ndd_review_variation_ontology_connect vc
+  JOIN ndd_entity_review er
+    ON vc.review_id = er.review_id
+    AND er.is_primary = 1 AND er.review_approved = 1
   JOIN variation_ontology_list vl ON vc.vario_id = vl.vario_id
   WHERE vc.entity_id = ? AND vc.is_active = 1
   ORDER BY vl.vario_name
 "
 
 entity_pmids_sql <- function() "
-  SELECT DISTINCT REPLACE(publication_id, 'PMID:', '') AS pmid
-  FROM ndd_review_publication_join
-  WHERE entity_id = ? AND is_reviewed = 1
+  SELECT DISTINCT REPLACE(rpj.publication_id, 'PMID:', '') AS pmid
+  FROM ndd_review_publication_join rpj
+  JOIN ndd_entity_review er
+    ON rpj.review_id = er.review_id
+    AND er.is_primary = 1 AND er.review_approved = 1
+  WHERE rpj.entity_id = ? AND rpj.is_reviewed = 1
   ORDER BY pmid
 "
