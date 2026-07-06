@@ -596,10 +596,13 @@ function(sysndd_id, current_review = TRUE) {
       filter(review_id %in% ndd_entity_review_list$review_id & is_active == 1) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_active
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only: gate active rows to primary + approved review_ids so it
+    # cannot leak unapproved curation (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     ndd_review_phenotype_conn_coll <- pool %>%
       tbl("ndd_review_phenotype_connect") %>%
-      filter(is_active == 1) %>%
+      filter(is_active == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -663,10 +666,12 @@ function(sysndd_id, current_review = TRUE) {
         & entity_id == sysndd_id & is_active == 1) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_active
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(is_active == 1 & entity_id == sysndd_id) %>%
+      filter(is_active == 1 & entity_id == sysndd_id & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -806,10 +811,12 @@ function(sysndd_id, current_review = TRUE) {
       filter(review_id %in% ndd_entity_review_list$review_id) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_reviewed
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     review_publication_join_coll <- pool %>%
       tbl("ndd_review_publication_join") %>%
-      filter(is_reviewed == 1) %>%
+      filter(is_reviewed == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 

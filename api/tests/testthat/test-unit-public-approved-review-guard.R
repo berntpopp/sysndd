@@ -20,3 +20,23 @@ test_that("primary_approved_reviews carries both predicates", {
   expect_true(grepl("is_primary", body))
   expect_true(grepl("review_approved", body))
 })
+
+test_that("the current_review=FALSE legacy branches gate on approved reviews", {
+  # The `current_review = FALSE` branches read the connect tables directly
+  # (is_active / is_reviewed). Being public, they must ALSO restrict to
+  # approved-primary review ids, or they leak unapproved curation (Codex
+  # re-review). Each of the three legacy branches must reference the gate.
+  src <- paste(readLines("../../endpoints/entity_endpoints.R", warn = FALSE), collapse = "\n")
+
+  # No connect-table read may filter is_active/is_reviewed without an
+  # approved-primary review gate on the same statement.
+  ungated_active <- grepl("filter\\(is_active == 1\\)\\s*%>%", src)
+  expect_false(ungated_active,
+    info = "a connect read filters is_active == 1 with no approved-review gate")
+  expect_false(grepl("filter\\(is_reviewed == 1\\)\\s*%>%", src),
+    info = "a publication read filters is_reviewed == 1 with no approved-review gate")
+
+  # Each of the 3 legacy branches pulls approved review ids.
+  n_gate <- length(gregexpr("approved_review_ids <- primary_approved_reviews", src)[[1]])
+  expect_gte(n_gate, 3)
+})
