@@ -119,7 +119,12 @@ with:
   # evaluation, and sort by a column REFERENCE (never parse the name as code).
   # The old arrange(!!!parse_exprs(colnames[1])) evaluated the first JSON key
   # as an R expression via dplyr data-masking -> authenticated RCE.
-  hash_validate_columns(colnames(json_tibble), allowed_col_list)
+  # hash_validate_columns() raises `hash_column_validation_error` (rlang::abort),
+  # which errorHandler does NOT map -> wrap to a classed 400 (Codex review).
+  tryCatch(
+    hash_validate_columns(colnames(json_tibble), allowed_col_list),
+    hash_column_validation_error = function(e) stop_for_bad_request(conditionMessage(e))
+  )
 
   json_tibble <- json_tibble %>%
     dplyr::arrange(dplyr::across(dplyr::all_of(colnames(json_tibble)[1])))
@@ -162,35 +167,31 @@ Claude-Session: https://claude.ai/code/session_01Nxo1e69TNWFWXxroYEuWNX"
 **Interfaces:**
 - Produces: `re_review_submit_allowed_fields()` → character vector of writable columns; `re_review_filter_submit_fields(field_names)` → validated character vector or `stop_for_bad_request` on any out-of-allowlist / non-identifier token.
 
-- [ ] **Step 1: Confirm the legitimate field set**
+- [ ] **Step 1: Confirm the legitimate field set (Codex-narrowed)**
 
-Run: `grep -rn "submit_json\|re_review_review_saved\|re_review_status_saved\|re_review_submitted" app/src api/services/re-review-service.R`
-Expected: identify exactly which columns the frontend submit sends. The allowlist is the intersection with the table's non-identity, non-approval columns: `re_review_review_saved`, `re_review_status_saved`, `re_review_submitted`, `status_id`, `review_id`, `re_review_batch`. It MUST exclude `re_review_entity_id` (PK/WHERE key), `entity_id`, `re_review_approved`, `approving_user_id` (approval is a Curator-only action — excluding them closes the self-approval mass-assignment). Adjust the vector below to the confirmed frontend set.
+Run: `grep -n "submit_json\|re_review_submitted" app/src/views/review/composables/useReviewActions.ts`
+Expected: the frontend `/re_review/submit` call sends **only `re_review_submitted`** (confirmed at `useReviewActions.ts:80-84`). The saved flags + `review_id`/`status_id` are written by the separate `review_update_re_review_status()` / `status_update_re_review_status()` paths, **not** the submit action. So the allowlist is the single column `re_review_submitted`; every other key (identity, approval, save-flags) is rejected. If a later grep shows the frontend legitimately sends more, widen the vector to exactly that set — never broader.
 
 - [ ] **Step 2: Write the failing test**
 
 `api/tests/testthat/test-unit-re-review-submit-allowlist.R`:
 
 ```r
-test_that("re_review_submit_allowed_fields excludes identity + approval columns", {
+test_that("re_review_submit_allowed_fields is the tight single-column set", {
   skip_if_not(exists("re_review_submit_allowed_fields"))
   allowed <- re_review_submit_allowed_fields()
-  expect_false("re_review_entity_id" %in% allowed)
-  expect_false("re_review_approved"  %in% allowed)
+  expect_setequal(allowed, "re_review_submitted")
+  expect_false("re_review_approved"  %in% allowed)  # no self-approval
   expect_false("approving_user_id"   %in% allowed)
-  expect_true("re_review_submitted"  %in% allowed)
+  expect_false("re_review_entity_id" %in% allowed)  # PK / WHERE key
 })
 
 test_that("re_review_filter_submit_fields rejects injection + out-of-allowlist keys", {
   skip_if_not(exists("re_review_filter_submit_fields"))
-  expect_error(
-    re_review_filter_submit_fields("re_review_submitted = SLEEP(5), x")
-  )
-  expect_error(re_review_filter_submit_fields("re_review_approved"))
-  expect_equal(
-    re_review_filter_submit_fields(c("re_review_submitted", "re_review_review_saved")),
-    c("re_review_submitted", "re_review_review_saved")
-  )
+  expect_error(re_review_filter_submit_fields("re_review_submitted = SLEEP(5), x"))
+  expect_error(re_review_filter_submit_fields("re_review_approved"))      # mass-assignment
+  expect_error(re_review_filter_submit_fields("re_review_review_saved"))  # wrong path
+  expect_equal(re_review_filter_submit_fields("re_review_submitted"), "re_review_submitted")
 })
 ```
 
@@ -203,11 +204,12 @@ Expected: FAIL — helpers not defined.
 
 ```r
 #' Columns the re-review submit endpoint is permitted to write.
-#' Excludes identity (PK/FK) and approval columns so a Reviewer cannot inject
-#' SQL identifiers or self-approve via mass assignment (#2).
+#' The frontend submit action sends only `re_review_submitted`; the save-flags
+#' and review/status IDs are written by review_update_re_review_status() /
+#' status_update_re_review_status(), NOT here. Restricting to this single column
+#' blocks SQL-identifier injection AND self-approval mass-assignment (#2, Codex).
 re_review_submit_allowed_fields <- function() {
-  c("re_review_review_saved", "re_review_status_saved",
-    "re_review_submitted", "re_review_batch", "status_id", "review_id")
+  c("re_review_submitted")
 }
 
 #' Validate + filter submitted field names to the allowlist. Fails loud.
@@ -396,6 +398,7 @@ test_that("user_update rejects unknown/injection field names", {
   if (length(bad) > 0) {
     stop_for_bad_request(paste("Disallowed user field(s):", paste(bad, collapse = ", ")))
   }
+  for (f in field_names) validate_query_column(f, allowed_user_cols)  # bare-ident backstop (Codex)
 ```
 
 (Keep the existing `set_clause`/`params` lines below, now operating on the validated `field_names`.)
@@ -447,27 +450,36 @@ Call it in `user_update_role(user_id, new_role, requesting_role, pool)` and `use
 
 **Files:** Modify `api/endpoints/publication_endpoints.R` (`/pubtator/search` ~126–148, `/pubtator/cache-status` ~680–687); optionally add wrappers to `api/functions/publication-endpoint-helpers.R`; Test `api/tests/testthat/test-unit-pubtator-public-route-guard.R` (create).
 
-- [ ] **Step 1: Gate cache-status (simple, high-value).** In `/pubtator/cache-status` handler, add as the first statement:
+- [ ] **Step 1: Gate cache-status AND budget-wrap its probe.** In `/pubtator/cache-status`, gate first, then bound the live probe (Codex: gating alone still lets an authenticated slow upstream hang a worker):
 
 ```r
   require_role(req, res, "Curator")   # SECURITY #6: operational cache probe, not public
+  ...
+  budget <- external_proxy_budget("pubtator")
+  old <- options(timeout = budget$max_seconds); on.exit(options(old), add = TRUE)
+  total_pages <- external_proxy_with_timing("pubtator", function() {
+    pubtator_v3_total_pages_from_query(query)
+  })
 ```
 
-- [ ] **Step 2: Bound `/pubtator/search`.** Wrap the two live calls so a slow upstream can't pin a worker and repeat hits are free. Add to `api/functions/publication-endpoint-helpers.R` (read `functions/external-proxy-functions.R` for exact `external_proxy_budget` / `external_proxy_with_timing` signatures first):
+- [ ] **Step 2: Bound `/pubtator/search`.** The **primary** DoS fix is the timeout bound + per-request ceiling; memoise is an optional optimization and — per Codex — `memoise_external_success_only(f, cache, source)` **requires an explicit `cache` backend** (2nd positional; see `external-proxy-alphafold.R:167` → `cache = cache_static`). Read `functions/external-proxy-functions.R` (`external_proxy_with_timing(source, expr_fn)` at :225) first, then add to `api/functions/publication-endpoint-helpers.R`:
 
 ```r
-# Public, budgeted + memoised PubTator search wrappers (#6). The raw
+# Public, budget-bounded PubTator search on the request path (#6). The raw
 # pubtator-client fetchers stay untouched for the worker/batch callers.
-pubtator_public_search <- memoise_external_success_only(function(query, page) {
+pubtator_public_search <- function(query, page) {
   budget <- external_proxy_budget("pubtator")
   old <- options(timeout = budget$max_seconds); on.exit(options(old), add = TRUE)
   external_proxy_with_timing("pubtator", function() {
     list(
-      pmids = pubtator_v3_pmids_from_request(query, page, 1L),
+      pmids       = pubtator_v3_pmids_from_request(query, page, 1L),
       total_pages = pubtator_v3_total_pages_from_query(query)
     )
   })
-}, source = "pubtator")
+}
+# OPTIONAL memoise (only if a cache backend is in scope):
+#   pubtator_public_search <- memoise_external_success_only(
+#     pubtator_public_search, cache = cache_static, source = "pubtator")
 ```
 
 Then in `/pubtator/search`, replace the two direct calls with `res_pt <- pubtator_public_search(query, current_page)` and read `res_pt$pmids` / `res_pt$total_pages`.
@@ -487,7 +499,7 @@ test_that("public pubtator routes are gated or budgeted", {
 
 ## Task 8: #7 — Public LLM summaries validated-only (MEDIUM)
 
-**Files:** Modify `api/functions/llm-endpoint-helpers.R:52`; Test `api/tests/testthat/test-unit-llm-public-validated-only.R` (create).
+**Files:** Modify `api/functions/llm-endpoint-helpers.R:52` + `api/functions/llm-cache-repository.R` (add `status` arg to `get_cached_summary`); Test `api/tests/testthat/test-unit-llm-public-validated-only.R` (create).
 
 - [ ] **Step 1: Failing static guard**
 
@@ -524,7 +536,7 @@ test_that("public cluster-summary path requires validated summaries", {
   # pending / miss -> being-prepared (unchanged 404 / generation branch below)
 ```
 
-(Read `functions/llm-cache-repository.R:get_cached_summary` to confirm it accepts a `status`/rejected filter; if not, add a minimal `require_validated`-style filter for the rejected lookup.)
+**Required (Codex-confirmed):** `get_cached_summary()` (`functions/llm-cache-repository.R:119-143`) has **no `status` arg** today, so the validated-only query will no longer return the `rejected` row. This task **must** add an optional `status = NULL` parameter to `get_cached_summary()` (when set, `AND validation_status = ?`) and use `status = "rejected"` for the rejected-card lookup above. Without this, rejected clusters would silently show "being prepared" again — re-introducing the #490 bug. Add a unit test for the new `status` filter on `get_cached_summary()`.
 
 - [ ] **Step 4:** Run → PASS. **Step 5:** Commit `fix(security): serve only validated LLM summaries on public path (#7)`.
 
@@ -553,7 +565,7 @@ can_read_full_job_result <- function(job_type, user_role = NULL) {
 
 ## Task 10: LOW-2 — Replace raw exception echoes with classed errors
 
-**Files:** `api/endpoints/about_endpoints.R:131,219`, `logging_endpoints.R:272`, `publication_endpoints.R:1088`, `user_endpoints.R:903`.
+**Files:** `api/endpoints/about_endpoints.R:131,219`, `logging_endpoints.R:272`, `publication_endpoints.R:1088`, `user_endpoints.R:903` **and the sibling bulk paths `user_endpoints.R:~1030-1044` + `~1106-1113`** (Codex Section B — `return(list(error = e$message))` / `return(list(error = result$error))` in bulk delete/role-assign).
 
 - [ ] **Step 1:** For each site, replace the pattern
 
@@ -596,14 +608,26 @@ so `errorHandler` renders a generic problem+json 500 and the internal detail onl
 
 **Files:** `api/core/security.R:93`.
 
-- [ ] **Step 1:** Replace `password_from_db == password_attempt` with a constant-time compare:
+- [ ] **Step 1:** Replace `password_from_db == password_attempt` with a constant-time compare. **Codex caught a bug in the first draft:** `sha256(a) == sha256(b)` yields a length-32 logical, and `isTRUE()` of that is **always FALSE** (would break legacy login + the upgrade). Reduce to a scalar with `all()`:
 
 ```r
-    isTRUE(sodium::sha256(charToRaw(as.character(password_from_db))) ==
-             sodium::sha256(charToRaw(as.character(password_attempt))))
+    isTRUE(all(
+      sodium::sha256(charToRaw(as.character(password_from_db))) ==
+        sodium::sha256(charToRaw(as.character(password_attempt)))
+    ))
 ```
 
-(digest-equality of equal-length hashes; still triggers the existing plaintext→Argon2id upgrade on success.)
+(equal-length 32-byte hash compare → data-independent; still triggers the existing plaintext→Argon2id upgrade on success.)
+
+- [ ] **Step 1b: Add a regression test** so the always-FALSE bug can't return:
+
+```r
+test_that("legacy plaintext verify returns TRUE on match, FALSE on mismatch", {
+  skip_if_not(exists("verify_password"))
+  expect_true(verify_password("secret123", "secret123"))   # plaintext row
+  expect_false(verify_password("secret123", "wrong"))
+})
+```
 
 - [ ] **Step 2:** Test both-match TRUE / mismatch FALSE. **Step 3:** Commit `fix(security): constant-time legacy password comparison (LOW)`.
 
@@ -641,6 +665,41 @@ and oxo-functions.R:24: `..."?fromId=", utils::URLencode(ontology_id, reserved =
 
 - [ ] **Step 3:** Guard: `test-unit-external-budget-guard.R` already scans `mondo-functions.R`; confirm it still passes. Add a one-line assert that `metadata-refresh.R` uses `base::get`. **Step 4:** Commit `fix(correctness): mondo download timeout + base::get in metadata-refresh (LOW)`. **Restart the worker** to make these live.
 
+## Task 14b: LOW-8 — Defense-in-depth allowlist for review_update (Codex Section B)
+
+**Files:** Modify `api/functions/review-repository.R:214–219` (`review_update`); Test `api/tests/testthat/test-unit-review-update-allowlist.R` (create).
+
+Codex found `review_update()` builds its `SET` clause from `names(updates)` with no allowlist — the same class as #2/#4. The **main** `/api/review/update` path is currently safe (`put_post_db_review` passes a fixed-column `sysnopsis_received` tibble), but `svc_review_update()` and the direct caller at `services/review-service.R:362` pass arbitrary `update_data`, so a future caller could reintroduce SQLi / mass-assignment. Harden the repository itself.
+
+- [ ] **Step 1: Failing test**
+
+```r
+test_that("review_update rejects unknown/injection column names", {
+  skip_if_not(exists("review_update"))
+  expect_error(review_update(1, list("synopsis = x, y" = "z")))  # injection key
+  expect_error(review_update(1, list(bogus_col = "x")))          # unknown col
+})
+```
+
+- [ ] **Step 2:** Run → FAIL.
+
+- [ ] **Step 3: Fix** — inside `review_update()`, before building `set_clause` (line ~217), validate against the writable `ndd_entity_review` columns. Confirm the real writable set by reading `db/migrations/000_initialize_base_schema.sql` for `ndd_entity_review`, then:
+
+```r
+    allowed_review_cols <- c("synopsis", "comment", "review_user_id",
+                             "is_primary", "review_approved", "approving_user_id")
+    col_names <- names(updates)
+    bad <- setdiff(col_names, allowed_review_cols)
+    if (length(bad) > 0) {
+      stop_for_bad_request(paste("Disallowed review field(s):", paste(bad, collapse = ", ")))
+    }
+    for (f in col_names) validate_query_column(f, allowed_review_cols)
+```
+
+(Adjust `allowed_review_cols` to the actual `ndd_entity_review` column list; keep `review_approved`/`approving_user_id` writable here because `review_approve()`/`review_update()` legitimately set them internally.)
+
+- [ ] **Step 4:** Run → PASS. **Step 5:** Commit `fix(security): defense-in-depth allowlist for review_update SET clause (Codex)`.
+
 ## Task 15: PR 2 — Codex high-effort review + verification gate
 
 - [ ] **Step 1:** `make lint-api` + `make test-api-fast` + `make test-api` → green.
@@ -651,8 +710,10 @@ and oxo-functions.R:24: `..."?fromId=", utils::URLencode(ontology_id, reserved =
 
 ## Self-Review
 
-**Spec coverage:** #1→T1, #2→T2, #3→T3, PR1 review→T4; #4→T5, #5→T6, #6→T7, #7→T8, LOW-1→T9, LOW-2→T10, LOW-3(F1/F2)→T11, LOW-4(F4)→T12, LOW-5→T13, LOW-6/LOW-7→T14, PR2 review→T15. All spec sections mapped.
+**Spec coverage:** #1→T1, #2→T2, #3→T3, PR1 review→T4; #4→T5, #5→T6, #6→T7, #7→T8, LOW-1→T9, LOW-2→T10, LOW-3(F1/F2)→T11, LOW-4(F4)→T12, LOW-5→T13, LOW-6/LOW-7→T14, LOW-8 review_update (Codex Section B)→T14b, PR2 review→T15. All spec sections mapped.
 
-**Placeholder scan:** No "TBD/TODO/implement later". Two deliberate read-then-apply steps (T2 confirm frontend field set; T8 confirm `get_cached_summary` rejected filter) carry the concrete before/after and a fallback instruction — bounded, not vague.
+**Codex high-review (2026-07-06) incorporated:** #1 error-class wrap to 400 (T1); #2 narrowed to `re_review_submitted` only (T2); #4 + `validate_query_column` (T5); #6 memoise `cache` arg + budget-wrap cache-status (T7); #7 `status` arg on `get_cached_summary` now required (T8); LOW-2 extended to bulk echo sites (T10); LOW-4 constant-time bug fixed with `all()` (T12); new LOW-8 review_update hardening (T14b). All Section A verdicts were SOUND/GAP-with-fix; no diagnosis was WRONG.
+
+**Placeholder scan:** No "TBD/TODO/implement later". Deliberate read-then-apply steps (T2 confirm frontend field set; T8 add `status` arg; T14b confirm `ndd_entity_review` columns) carry concrete before/after — bounded, not vague.
 
 **Type consistency:** `primary_approved_reviews(pool, cols)`, `re_review_filter_submit_fields()`, `assert_not_targeting_admin(requesting_role, target_current_roles)`, `can_read_full_job_result(job_type, user_role)`, `pubtator_public_search(query, page)` — names used consistently across their tasks. Commit messages consistent. Guard-test file names match the File Structure map.

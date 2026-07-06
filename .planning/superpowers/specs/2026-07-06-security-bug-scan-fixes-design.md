@@ -55,8 +55,13 @@ handled at PR close, not per commit.
 - **Fix (two independent barriers):**
   1. **Validate first.** Move `hash_validate_columns(colnames(json_tibble), allowed_col_list)`
      to immediately after `as_tibble(json_data)`, *before* the `arrange` and the
-     no-DB branch, so an unexpected column name is rejected (400, classed error)
-     before anything evaluates it.
+     no-DB branch, so an unexpected column name is rejected before anything
+     evaluates it. **Codex note:** `hash_validate_columns()` raises
+     `rlang::abort(class = "hash_column_validation_error")` — **not** a classed
+     `error_400`, so it would currently fall through to a generic 500. Wrap the
+     call in `tryCatch(..., hash_column_validation_error = \(e)
+     stop_for_bad_request(conditionMessage(e)))` so the rejection maps to a
+     clean 400 via `errorHandler`.
   2. **Remove the eval entirely.** Replace the `parse_exprs` sort with a
      non-eval column reference:
      `arrange(dplyr::across(dplyr::all_of(colnames(json_tibble)[1])))`.
@@ -86,15 +91,17 @@ handled at PR close, not per commit.
 - **Table columns:** `re_review_entity_id`(PK), `entity_id`, `re_review_batch`,
   `re_review_review_saved`, `re_review_status_saved`, `re_review_submitted`,
   `re_review_approved`, `approving_user_id`, `status_id`, `review_id`.
-- **Fix:** intersect `fields_to_update` with an **allowlist of the columns the
-  submit workflow legitimately writes** (a subset of the table's non-identity
-  columns — the exact set confirmed in the plan against the frontend re-review
-  submit payload + `services/re-review-service.R`; approval/identity columns
-  `re_review_approved`/`approving_user_id`/`re_review_entity_id`/`entity_id`
-  excluded). Reject any key outside the allowlist with `stop_for_bad_request`
-  (fail loud). Run each surviving key through `validate_query_column` as a
-  bare-identifier backstop. This closes injection **and** the self-approval
-  mass-assignment. Values remain `unname()`-bound (already correct).
+- **Fix (narrowed per Codex review):** the frontend `/re_review/submit` call
+  (`app/src/views/review/composables/useReviewActions.ts:80-84`) sends **only
+  `re_review_submitted`**; the saved flags and `review_id`/`status_id` are
+  written by the separate `review_update_re_review_status()` /
+  `status_update_re_review_status()` paths, **not** by the submit action. So the
+  allowlist is the single column `re_review_submitted` (identity + approval +
+  save-flag columns all excluded). Reject any other key with
+  `stop_for_bad_request` (fail loud); run the surviving key through
+  `validate_query_column` as a bare-identifier backstop. This closes injection
+  **and** the self-approval / mass-assignment surface with the tightest possible
+  set. Values remain `unname()`-bound (already correct).
 - **Guard test:** an injection key and an out-of-allowlist key (`re_review_approved`)
   are both rejected 400; a legitimate submit still updates. Extend/new
   `test-unit-re-review-submit-allowlist.R`.
@@ -176,15 +183,22 @@ handled at PR close, not per commit.
   and `:687` (`GET /pubtator/cache-status`); both call raw `jsonlite::fromJSON`
   fetchers in `functions/pubtator-client.R` (no budget, no memoise, bypassing
   the #344 per-request external-time ceiling).
-- **Fix (Fork B / recommended):**
-  - `/pubtator/search` (fixed internal query): route the two live calls through
-    `external_proxy_budget("pubtator")`-derived timeout **and** the per-request
-    ceiling wrapper (`external_proxy_with_timing("pubtator", …)`), and memoise
-    the fixed-query result with `memoise_external_success_only(source="pubtator")`
-    so repeat hits are free and a slow upstream can't pin a worker.
+- **Fix (Fork B / recommended, corrected per Codex review):**
+  - `/pubtator/search` (fixed internal query): the **primary** DoS fix is
+    bounding the per-call time — wrap both live calls in
+    `external_proxy_with_timing("pubtator", \() …)` (enforces the #344
+    per-request ceiling) and bound the base download timeout via
+    `options(timeout = external_proxy_budget("pubtator")$max_seconds)` with an
+    `on.exit(options(old))` restore. Memoise is an **optional** optimization:
+    `memoise_external_success_only(f, cache, source)` requires a `cache` backend
+    (2nd positional arg, e.g. `cache = cache_static` as in
+    `external-proxy-alphafold.R:167`) — pass it explicitly if memoising, else
+    skip memoise (the timeout bound alone closes the worker-exhaustion DoS).
   - `/pubtator/cache-status` (user-supplied `query`, operational): **gate to
-    `require_role("Curator")`** and budget-wrap the live `total_pages` probe.
-    This removes the unauthenticated, cache-defeating attack surface.
+    `require_role("Curator")`** **and** budget-wrap the live `total_pages` probe
+    the same way (Codex: gating alone still leaves an authenticated slow-upstream
+    hang; wrap the probe too). This removes the unauthenticated, cache-defeating
+    attack surface and bounds the remaining privileged call.
 - **Note:** the PubTator client stays raw for its worker/batch callers (it has
   its own pacing and is intentionally outside the budget-guard scan set); only
   the **public request path** is wrapped. Add a `test-unit`/route guard that the
@@ -203,6 +217,12 @@ handled at PR close, not per commit.
   card. The Curator+ on-demand generation branch is unchanged (it returns freshly
   generated `pending` to the privileged caller only). Matches the MCP default
   and the file's own comment at :66.
+- **Codex note (required, not optional):** `get_cached_summary()`
+  (`llm-cache-repository.R:119-143`) has **no `status` argument** today. Because
+  the validated-only query no longer returns the `rejected` row, the rejected
+  card needs its own lookup — so this fix **must** add an optional
+  `status`/rejected filter to `get_cached_summary()` and use it for the
+  rejected-card branch, not treat it as a "if needed" fallback.
 - **Guard test:** a `pending` cache row is not served on the public path; a
   `validated` row is; a `rejected` row still yields the rejected card.
 
@@ -213,18 +233,25 @@ handled at PR close, not per commit.
    `Administrator`; keep the public `PUBLIC_FULL_RESULT_JOB_TYPES` fast-path and
    Reviewer/Curator access only for review/curation job types.
 2. **Raw exception echo** (`about_endpoints.R:131,219`, `logging_endpoints.R:272`,
-   `publication_endpoints.R:1088`, `user_endpoints.R:903`) — replace
-   `return(list(error = e$message))` (`res$status <- 500`) with a classed
-   `stop_for_internal(<static message>)` and an internal `log_error(e$message)`;
-   let `errorHandler` render the client response so DB/driver detail never
-   crosses the boundary.
+   `publication_endpoints.R:1088`, `user_endpoints.R:903`, **and per Codex the
+   sibling bulk paths `user_endpoints.R:~1034` + `~1108`** which also
+   `return(list(error = e$message))` / `return(list(error = result$error))`) —
+   replace with a classed `stop_for_internal(<static message>)` and an internal
+   `log_error(e$message)`; let `errorHandler` render the client response so
+   DB/driver detail never crosses the boundary.
 3. **`core/logging_sanitizer.R`** — F1: redact/parse `QUERY_STRING` in
    `sanitize_request()` (currently retained raw). F2: match `SENSITIVE_FIELDS`
    by substring/pattern (`grepl("pass|token|secret|jwt|api_key|authorization|hash", …)`)
    so `access_token`/`refresh_token`/`password_hash` compounds are redacted.
    Extend the sanitizer's existing unit test.
 4. **`core/security.R:93`** — legacy plaintext compare uses `==`; replace with a
-   constant-time comparison (digest-based fixed-time compare) on the legacy path.
+   constant-time comparison on the legacy path. **Codex caught a bug in the
+   first-draft snippet:** `isTRUE(sodium::sha256(a) == sodium::sha256(b))`
+   compares two 32-byte raw vectors → a length-32 logical → `isTRUE()` is
+   **always FALSE**, which would break legacy plaintext login + the
+   plaintext→Argon2id upgrade. Correct form reduces to a scalar:
+   `isTRUE(all(sodium::sha256(charToRaw(as.character(a))) == sodium::sha256(charToRaw(as.character(b)))))`
+   (fixed 32-byte compare → data-independent).
 5. **`functions/hgnc-functions.R:17,45,79,171` + `functions/oxo-functions.R:24`**
    — wrap external URL path/query segments in `utils::URLencode(x, reserved = TRUE)`
    (as `hpo-functions.R` / `ols-functions.R` already do).
@@ -234,6 +261,17 @@ handled at PR close, not per commit.
 7. **`functions/metadata-refresh.R:38`** — `get("log_warn", mode="function")`
    hits the `config::get` mask (always errors → degrades to `warning()`); use
    `base::get("log_warn", mode = "function")`.
+8. **`functions/review-repository.R:217–219`** (new, Codex Section B) —
+   `review_update()` builds its `SET` clause from `names(updates)` without an
+   allowlist, exactly like the `user_update` #4 defect. The **main**
+   `/api/review/update` path is currently safe (`put_post_db_review` passes a
+   fixed-column `sysnopsis_received` tibble), but `svc_review_update()` /
+   direct callers pass arbitrary `update_data` (`services/review-service.R:104,
+   362`), so a future caller could reintroduce SQLi / mass-assignment.
+   Defense-in-depth: allowlist `review_update`'s columns (writable
+   `ndd_entity_review` fields — e.g. `synopsis, comment, review_user_id,
+   is_primary, review_approved` as appropriate) and reject others, mirroring the
+   `user_update` fix. Not currently exploitable via the endpoint → PR 2.
 
 ## 5. Codex high-effort review gate (Fork C)
 
