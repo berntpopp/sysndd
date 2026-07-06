@@ -405,10 +405,14 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       clusters <- gen_string_clust_obj_mem(gene_ids, algorithm = params$algorithm)
       n_res <- as.integer(Sys.getenv("ANALYSIS_CLUSTER_VALIDATION_RESAMPLES", "100"))
       val <- validate_functional_clusters(gene_ids, resolution = 1.0, n_resamples = n_res)
-      clusters <- dplyr::left_join(
-        dplyr::mutate(clusters, cluster_id = as.character(cluster)),   # type-align the join key
-        val$per_cluster, by = "cluster_id"
-      ) %>% dplyr::select(-cluster_id)
+      # #514: refuse to publish an incoherent snapshot (stale membership vs fresh
+      # validation, or a channel disagreement) BEFORE joining. Also carries the served
+      # membership channel forward as a `membership_weight_channel` attribute.
+      clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "functional")
+      # Additive provenance (partition_validation is excluded from payload_hash, so no
+      # cluster_hash churn): expose the channel the SERVED membership was clustered on
+      # alongside the validator's `weight_channel`.
+      val$partition$membership_weight_channel <- attr(clusters, "membership_weight_channel")
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
       # #512: additive self-reproducing bundle (LCC edge list + full membership +
       # served modularity). Best-effort; a NULL bundle never blocks the refresh.
@@ -427,10 +431,8 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         input_matrix,
         quali_sup_var = 1:1, quanti_sup_var = 2:4, n_resamples = n_res
       )
-      clusters <- dplyr::left_join(
-        dplyr::mutate(clusters, cluster_id = as.character(cluster)),
-        val$per_cluster, by = "cluster_id"
-      ) %>% dplyr::select(-cluster_id)
+      # #514: same coherence gate as the functional axis (phenotype has no channel).
+      clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "phenotype")
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
       # #512: additive bundle (MCA coords + membership + served silhouette).
       reproducibility <- analysis_snapshot_phenotype_reproducibility(

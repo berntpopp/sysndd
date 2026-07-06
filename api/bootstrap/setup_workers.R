@@ -90,6 +90,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/file-functions.R", local = FALSE)
     # Source the analysis functions (gen_string_clust_obj, gen_mca_clust_obj)
     source("/app/functions/analysis-string-channels.R", local = FALSE)
+    source("/app/functions/analysis-cache-fingerprint.R", local = FALSE)
     source("/app/functions/analyses-functions.R", local = FALSE)
     source("/app/functions/analysis-phenotype-mca-prep.R", local = FALSE)
     source("/app/functions/analysis-phenotype-functions.R", local = FALSE)

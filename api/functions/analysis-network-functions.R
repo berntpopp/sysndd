@@ -117,7 +117,16 @@ normalize_network_layout_positions <- function(layout_matrix, node_ids) {
 gen_network_edges <- function(
   cluster_type = "clusters",
   min_confidence = 400,
-  string_id_table = NULL
+  string_id_table = NULL,
+  # #514: folded into the memoise key so a methodology/data/channel change
+  # self-invalidates this cached network response (its membership comes from
+  # gen_string_clust_obj_mem, so it must invalidate on the same signal). Call-time
+  # default (memoise hashes it); the body ignores it. Self-guarding for minimal envs.
+  .cache_fingerprint = if (exists("analysis_cache_fingerprint", mode = "function")) {
+    analysis_cache_fingerprint("string")
+  } else {
+    NULL
+  }
 ) {
   # Version constants for cache invalidation
   string_version <- "11.5" # Must match STRINGdb$new version below

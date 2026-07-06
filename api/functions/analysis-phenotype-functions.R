@@ -20,7 +20,15 @@ gen_mca_clust_obj <- function(
   min_size = 10,
   quali_sup_var = 1:1,
   quanti_sup_var = 2:4,
-  cutpoint = -1
+  cutpoint = -1,
+  # #514: folded into the memoise key so an MCA-prep / prevalence-band / algorithm
+  # change self-invalidates the phenotype disk cache. Call-time default (memoise
+  # hashes it); the body ignores it. Self-guarding for minimal envs.
+  .cache_fingerprint = if (exists("analysis_cache_fingerprint", mode = "function")) {
+    analysis_cache_fingerprint("phenotype")
+  } else {
+    NULL
+  }
 ) {
   # Caching is handled by the memoise wrapper (gen_mca_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.

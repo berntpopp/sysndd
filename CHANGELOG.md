@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.1] — 2026-07-06
+
+Cluster-snapshot cache coherence & self-healing analysis deploys (#514) — a production follow-up to the v0.29.0 methodology deploy.
+
+### Fixed
+
+- **Cluster caches self-invalidate on a methodology change (#514).** After the v0.29.0 deploy, production served **stale, internally-incoherent** functional-cluster snapshots: the displayed **partition** was the pre-#510 text-mining clustering (a stale disk-cache hit) while the **validation metrics** in the same snapshot were the new text-mining-free (exp+db) computation, so real clusters showed `n/a` stability and prod ≠ a fresh checkout. Root cause: the memoise disk cache (on a named volume, survives redeploys) keyed only on call args, so an algorithm/graph change did not invalidate it. Each clustering function now folds a **call-time fingerprint** into its memoise key — `CLUSTER_LOGIC_VERSION` + STRING channel + exp+db file identity (functional) / MCA prevalence band (phenotype) — so a code, data, or channel change self-invalidates the relevant entries with **no manual `CACHE_VERSION` bump and no restart** (adding the exp+db artifact self-heals immediately).
+- **Snapshot integrity gate.** The builder now refuses to publish a clustering snapshot whose served membership and validation describe different partitions (or disagree on channel), keeping the prior public-ready snapshot and marking the new refresh failed (`ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE`, default on).
+- **Observable exp+db fallback.** `build_string_subgraph` now emits a `warning()` (not just a `message()`) when functional clustering silently falls back to the text-mining `combined_score` graph; the served snapshot exposes the membership channel next to the validation channel; and `GET /api/health` reports `analysis.expdb_edges_file_present` / `cluster_logic_version` / `functional_weight_channels`. The `mcp` service mounts `./api/data` read-only so its cache-probe fingerprint matches the writer's.
+- Synced the `NetworkVisualization.vue` file-size baseline to its merged (v0.29.0) size so `make code-quality-audit` is green.
+
 ## [0.29.0] — 2026-07-05
 
 Cluster-analysis statistical soundness & reproducibility (#508–#512), plus a deep multi-reviewer code-review pass and GeneNetworks cluster-display fixes.
