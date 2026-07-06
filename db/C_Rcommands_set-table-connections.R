@@ -680,7 +680,8 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_review_phe
         JOIN `ndd_entity_review` ON ((`ndd_review_phenotype_connect`.`review_id` = `ndd_entity_review`.`review_id`)))
     WHERE
         ((`ndd_review_phenotype_connect`.`is_active` = 1)
-            AND (`ndd_entity_review`.`is_primary` = 1));")
+            AND (`ndd_entity_review`.`is_primary` = 1)
+            AND (`ndd_entity_review`.`review_approved` = 1));")
 dbClearResult(rs)
 
 
@@ -703,7 +704,8 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_review_var
           ON (`ndd_review_variation_ontology_connect`.`review_id` = `ndd_entity_review`.`review_id`))
     WHERE
         (`ndd_review_variation_ontology_connect`.`is_active` = 1
-         AND `ndd_entity_review`.`is_primary` = 1);")
+         AND `ndd_entity_review`.`is_primary` = 1
+         AND `ndd_entity_review`.`review_approved` = 1);")
 dbClearResult(rs)
 
 
