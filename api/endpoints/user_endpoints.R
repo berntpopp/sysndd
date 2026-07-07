@@ -657,63 +657,18 @@ function(req, res) {
     error = function(e) list()
   )
   email_request <- body$email %||% ""
+
+  # Delegate to the best-effort helper: an SMTP failure must NOT surface as a
+  # 500 (mirrors the signup #470 + approval hardening), and the response must be
+  # identical whether or not the email matches an account (anti-enumeration).
+  # See process_password_reset_request() in functions/user-endpoint-helpers.R.
   user_table <- pool %>%
     tbl("user") %>%
     collect()
 
-  if (!is_valid_email(email_request)) {
-    res$status <- 400
-    return(list(error = "Invalid Parameter Value Error."))
-  } else if (!(email_request %in% user_table$email)) {
-    res$status <- 200
-    res <- "Request mail send!"
-  } else if ((email_request %in% user_table$email)) {
-    email_user <- str_to_lower(toString(email_request))
-    user_table <- user_table %>%
-      mutate(email_lower = str_to_lower(email)) %>%
-      filter(email_lower == email_user) %>%
-      mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-      select(user_id, user_name, hash, email)
-
-    user_id_from_email <- user_table$user_id
-    timestamp_request <- Sys.time()
-    timestamp_iat <- as.integer(timestamp_request)
-    timestamp_exp <- as.integer(timestamp_request) + dw$refresh
-    key <- charToRaw(if (is.list(dw$secret)) as.character(dw$secret[[1]]) else as.character(dw$secret))
-
-    # Update password reset timestamp
-    user_update(user_id_from_email[1], list(password_reset_date = as.character(timestamp_request)))
-
-    claim <- jwt_claim(
-      user_id = user_table$user_id,
-      user_name = user_table$user_name,
-      email = user_table$email,
-      hash = user_table$hash,
-      iat = timestamp_iat,
-      exp = timestamp_exp
-    )
-
-    jwt <- jwt_encode_hmac(claim, secret = key)
-    reset_url <- paste0(dw$base_url, "/PasswordReset/", jwt)
-
-    # Generate professional HTML email using template
-    email_html <- email_password_reset(
-      reset_url = reset_url,
-      user_name = user_table$user_name,
-      expiry_minutes = round(dw$refresh / 60)
-    )
-
-    res$status <- 200
-    res <- send_noreply_email(
-      email_body = email_html,
-      email_subject = "Reset Your SysNDD Password",
-      email_recipient = user_table$email,
-      html_content = TRUE
-    )
-  } else {
-    res$status <- 401
-    return(list(error = "Error or unauthorized."))
-  }
+  result <- process_password_reset_request(email_request, user_table, dw)
+  res$status <- result$status
+  return(result$body)
 }
 
 
