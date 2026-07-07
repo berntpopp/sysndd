@@ -14,7 +14,7 @@
 #'
 #' @export
 hgnc_id_from_prevsymbol <- function(symbol_input) {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/prev_symbol/", symbol_input))
+  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/prev_symbol/", utils::URLencode(symbol_input, reserved = TRUE)))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
 
@@ -42,7 +42,7 @@ hgnc_id_from_prevsymbol <- function(symbol_input) {
 #'
 #' @export
 hgnc_id_from_aliassymbol <- function(symbol_input) {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/alias_symbol/", symbol_input))
+  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/alias_symbol/", utils::URLencode(symbol_input, reserved = TRUE)))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
 
@@ -76,7 +76,7 @@ hgnc_id_from_symbol <- function(symbol_tibble) {
     mutate(symbol = toupper(symbol))
 
   # nolint start: line_length_linter
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(symbol_list_tibble$symbol, collapse = "+OR+")))
+  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(vapply(symbol_list_tibble$symbol, utils::URLencode, character(1), reserved = TRUE), collapse = "+OR+")))
   # nolint end
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
@@ -168,7 +168,7 @@ symbol_from_hgnc_id <- function(hgnc_id_tibble) {
     mutate(hgnc_id = as.integer(hgnc_id))
 
   # nolint start: line_length_linter
-  hgnc_id_request <- fromJSON(paste0("http://rest.genenames.org/search/hgnc_id/", str_c(hgnc_id_list_tibble$hgnc_id, collapse = "+OR+")))
+  hgnc_id_request <- fromJSON(paste0("http://rest.genenames.org/search/hgnc_id/", str_c(vapply(hgnc_id_list_tibble$hgnc_id, utils::URLencode, character(1), reserved = TRUE), collapse = "+OR+")))
   # nolint end
 
   hgnc_id_from_hgnc_id <- as_tibble(hgnc_id_request$response$docs)
