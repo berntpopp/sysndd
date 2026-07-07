@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.3] — 2026-07-07
+
+Security hardening — the MEDIUM + LOW follow-up to the v0.29.2 hotfix (defense-in-depth allowlists, authorization gaps, DoS bounding, and info-leak fixes), plus the adjacent paths a Codex high-effort review surfaced.
+
+### Security
+
+- **Allowlisted the `user_update` and `review_update` SET clauses (#4, LOW-8).** Both built their `UPDATE ... SET` from caller-supplied field names; restrict to writable columns (`setdiff` membership + `validate_query_column`) so injection / mass-assignment of non-updatable columns is rejected with a 400.
+- **A Curator can no longer modify Administrator accounts (#5).** All role-mutation paths (`change_role`, bulk role-assign, `user_update_role`) blocked *assigning* the Administrator role but never checked the *target's current* role, so a Curator could demote any Administrator. `assert_not_targeting_admin()` re-checks the target's current role server-side (403), and it also guards the `/user/approval` and `/user/bulk_approve` paths (a Curator could otherwise activate/delete a pending Administrator).
+- **Public PubTator calls are budget-bounded (#6).** `/pubtator/search` and `/pubtator/cache-status` made live PubTator calls with raw fetchers (internal retry-with-sleep, no budget), so a slow upstream could occupy a worker. Both now cap retries, derive their timeout from `external_proxy_budget('pubtator')`, enforce the per-request external-time ceiling, and surface a NULL upstream result as a degraded 503; `/pubtator/cache-status` is additionally gated to Curator+.
+- **Public LLM cluster summaries are validated-only (#7).** The public serve path served `pending` (un-judge-validated) summaries; it now serves only judge-validated summaries (a pending row reads as "being prepared"), while the terminal `rejected` card is preserved.
+- **Public phenotype-clustering jobs use approved input only (#3).** The public `/api/jobs/phenotype_clustering/submit` path built its review set on `is_primary` alone, so a public clustering job — and the per-cluster phenotype stats in its result — could be derived from unapproved curation. It now gates `review_approved = 1`, matching the served-snapshot path.
+- **Maintenance job results are Administrator-only (LOW-1).** Full `result_json` for the maintenance/external job types (backups, imports, refreshes — including `publication_date_backfill`, `pubtator_enrichment_refresh`, `pubtatornidd_nightly`) is now Administrator-only, kept in sync with `ASYNC_MAINTENANCE_JOB_TYPES`.
+- **Logging sanitizer hardened (LOW-3).** Sensitive field names are matched by substring (`access_token`, `refresh_token`, `password_hash`, `api_key`, …) and the raw request query string is never retained in logs.
+- **Constant-time legacy password comparison (LOW-4).** The legacy plaintext-verify path uses a fixed-length digest compare instead of `==`.
+- **URL-encode external URL segments (LOW-5).** HGNC / OxO fetchers URL-encode interpolated identifier segments.
+
+### Fixed
+
+- **MONDO SSSOM download timeout (LOW-6).** `download_mondo_sssom()` derives its timeout/retry from `external_proxy_budget('mondo')` (it previously had no request timeout).
+- **`metadata-refresh.R` masked-`get` (LOW-7).** Dispatch `log_warn` via `base::get` so the `config::get` mask does not silently degrade the warning.
+
 ## [0.29.2] — 2026-07-07
 
 Security hotfix — authenticated RCE, SQL injection, and public exposure of unapproved curation, plus the adjacent higher-severity paths a Codex high-effort review surfaced.
