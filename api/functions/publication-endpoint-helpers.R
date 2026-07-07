@@ -341,10 +341,17 @@ pubtator_public_search <- function(query, page, max_pages = 1L) {
   old_timeout <- options(timeout = budget$max_seconds)
   on.exit(options(old_timeout), add = TRUE)
   external_proxy_with_timing("pubtator", function() {
-    list(
-      pmids = pubtator_v3_pmids_from_request(query, page, max_pages),
-      total_pages = pubtator_v3_total_pages_from_query(query)
-    )
+    # Public path: cap retries to a single attempt so the raw client's internal
+    # retry-with-sleep loop cannot hold a worker past the budget (Codex #6). The
+    # fetchers return NULL on post-retry failure (not an error), so treat a NULL
+    # result as a degraded upstream rather than a 200 with empty data.
+    pmids <- pubtator_v3_pmids_from_request(query, page, max_pages, max_retries = 0)
+    total_pages <- pubtator_v3_total_pages_from_query(query)
+    if (is.null(pmids) || is.null(total_pages)) {
+      return(list(error = TRUE, status = 503L, source = "pubtator",
+                  message = "PubTator returned no result"))
+    }
+    list(pmids = pmids, total_pages = total_pages)
   })
 }
 
@@ -357,6 +364,11 @@ pubtator_public_total_pages <- function(query) {
   old_timeout <- options(timeout = budget$max_seconds)
   on.exit(options(old_timeout), add = TRUE)
   external_proxy_with_timing("pubtator", function() {
-    list(total_pages = pubtator_v3_total_pages_from_query(query))
+    total_pages <- pubtator_v3_total_pages_from_query(query)
+    if (is.null(total_pages)) {
+      return(list(error = TRUE, status = 503L, source = "pubtator",
+                  message = "PubTator returned no result"))
+    }
+    list(total_pages = total_pages)
   })
 }

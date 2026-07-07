@@ -30,4 +30,9 @@ test_that("pubtator public helpers derive their budget + enforce the request cei
   expect_true(grepl('external_proxy_with_timing("pubtator"', h, fixed = TRUE))
   # No hardcoded req_timeout / options(timeout = <literal>) — must derive from budget.
   expect_true(grepl("options(timeout = budget$max_seconds)", h, fixed = TRUE))
+  # The public search must cap the raw client's internal retry loop so it cannot
+  # hold a worker past the budget, and must treat NULL (post-retry failure) as a
+  # degraded 503, not a 200 with empty data (Codex PR-2 MEDIUM-1).
+  expect_true(grepl("max_retries = 0", h, fixed = TRUE))
+  expect_true(grepl("is.null(pmids)", h, fixed = TRUE))
 })
