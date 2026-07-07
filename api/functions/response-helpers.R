@@ -41,6 +41,23 @@ validate_query_column <- function(column, allowed_columns = NULL) {
 }
 
 
+#' Escape a value for safe interpolation into a single-quoted R string literal
+#' that is subsequently parsed by `rlang::parse_exprs()`.
+#'
+#' Filter/hash values reach `parse_exprs()` as pasted R source; an unescaped
+#' quote or backslash lets attacker-controlled data break out of the string
+#' literal into executable R / injected SQL (RCE). Backslash is escaped first so
+#' an escaped quote is not itself re-doubled. (#security filter-value injection)
+#'
+#' @param x A value (coerced to character) to embed inside single quotes.
+#' @return The value with backslashes and single quotes escaped.
+escape_r_string_literal <- function(x) {
+  x <- as.character(x)
+  x <- gsub("\\", "\\\\", x, fixed = TRUE)
+  gsub("'", "\\'", x, fixed = TRUE)
+}
+
+
 #' Columns a public list endpoint may sort/filter on, derived from the view.
 #'
 #' Queries the view via the global `pool` connection and returns its column
@@ -248,7 +265,10 @@ generate_filter_expressions <- function(
               sep = "\\,",
               extra = "merge"
             ) %>%
-            mutate(filter_value = str_remove_all(filter_value, "'|\\)"))
+            # SECURITY: strip quote / close-paren / backslash so a direct-path
+            # filter value cannot break out of the single-quoted string literal
+            # (or escape its closing quote) once pasted into parse_exprs().
+            mutate(filter_value = str_remove_all(filter_value, "'|\\)|\\\\"))
         },
         error = function(e) {
           stop(paste("Failed to parse filter expression:", e$message))
@@ -286,10 +306,26 @@ generate_filter_expressions <- function(
       if (filter_string_has_hash && hash_found) {
         table_hash_filter_value <- fromJSON(table_hash_filter$json_text)
 
+        # SECURITY (#CRITICAL): the stored hash column names AND values are
+        # attacker-controlled (POST /api/hash/create body) and are interpolated
+        # into R source that reaches parse_exprs() at the caller. Validate the
+        # column tokens as bare identifiers (a bare word cannot be a call) and
+        # escape the values for the single-quoted literal, so a stored value
+        # cannot break out into executable R / injected SQL (RCE).
+        hash_cols <- colnames(table_hash_filter_value)
+        for (hash_col in hash_cols) {
+          validate_query_column(hash_col, allowed_columns)
+        }
+        hash_values <- vapply(
+          as.list(table_hash_filter_value)[[1]],
+          escape_r_string_literal,
+          character(1)
+        )
+
         filter_list <- paste0(
-          colnames(table_hash_filter_value),
+          hash_cols,
           " %in% c('",
-          str_c(as.list(table_hash_filter_value)[[1]], collapse = "','"),
+          str_c(hash_values, collapse = "','"),
           "')"
         )
       } else if (filter_string_has_hash && !hash_found) {

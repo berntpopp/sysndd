@@ -34,6 +34,7 @@ function(req, res) {
 
   # Build parameterized UPDATE query dynamically
   fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
+  fields_to_update <- re_review_filter_submit_fields(fields_to_update) # SECURITY #2
   set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
   sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
 

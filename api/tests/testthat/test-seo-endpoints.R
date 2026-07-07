@@ -75,7 +75,10 @@ make_seo_env <- function() {
       ))
     }
 
-    if (grepl("ndd_entity_review", sql)) {
+    # Match the synopsis query specifically: the HPO/variation/pmid queries now
+    # also reference ndd_entity_review (approved-primary JOIN, #3-seo), so key on
+    # its unique "SELECT synopsis" projection instead of the shared table name.
+    if (grepl("SELECT synopsis", sql)) {
       return(tibble::tibble(synopsis = "Curated CHD8 association.", last_modified = "2026-05-09"))
     }
 

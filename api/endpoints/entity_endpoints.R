@@ -84,10 +84,7 @@ function(req,
   has_vario_filter <- isTRUE(vario_filter_result$has_vario_filter)
 
   # Get review data from database (lazy)
-  ndd_entity_review <- pool %>%
-    tbl("ndd_entity_review") %>%
-    filter(is_primary) %>%
-    dplyr::select(entity_id, synopsis)
+  ndd_entity_review <- primary_approved_reviews(pool, cols = c("entity_id", "synopsis"))
 
   ndd_entity_view_lazy <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -586,26 +583,26 @@ function(req, res) {
 #* @get /<sysndd_id>/phenotypes
 function(sysndd_id, current_review = TRUE) {
   if (current_review) {
-    # Get primary review for this entity
-    ndd_entity_review_collected <- pool %>%
-      tbl("ndd_entity_review") %>%
-      collect()
-
-    ndd_entity_review_list <- ndd_entity_review_collected %>%
-      filter(entity_id == sysndd_id & is_primary) %>%
+    # Get primary + approved review for this entity
+    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
+      dplyr::filter(entity_id == sysndd_id) %>%
       dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      arrange(review_date)
+      dplyr::arrange(review_date) %>%
+      dplyr::collect()
 
     # Get phenotype connections for the primary review
     ndd_review_phenotype_conn_coll <- pool %>%
       tbl("ndd_review_phenotype_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      filter(review_id %in% ndd_entity_review_list$review_id & is_active == 1) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_active
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only: gate active rows to primary + approved review_ids so it
+    # cannot leak unapproved curation (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     ndd_review_phenotype_conn_coll <- pool %>%
       tbl("ndd_review_phenotype_connect") %>%
-      filter(is_active == 1) %>%
+      filter(is_active == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -655,26 +652,26 @@ function(sysndd_id, current_review = TRUE) {
 #* @get /<sysndd_id>/variation
 function(sysndd_id, current_review = TRUE) {
   if (current_review) {
-    # Get primary review for this entity
-    ndd_entity_review_collected <- pool %>%
-      tbl("ndd_entity_review") %>%
-      collect()
-
-    ndd_entity_review_list <- ndd_entity_review_collected %>%
-      filter(entity_id == sysndd_id & is_primary) %>%
+    # Get primary + approved review for this entity
+    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
+      dplyr::filter(entity_id == sysndd_id) %>%
       dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      arrange(review_date)
+      dplyr::arrange(review_date) %>%
+      dplyr::collect()
 
     # Get variation connections for the primary review AND this specific entity
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id & entity_id == sysndd_id) %>%
+      filter(review_id %in% ndd_entity_review_list$review_id
+        & entity_id == sysndd_id & is_active == 1) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_active
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(is_active == 1 & entity_id == sysndd_id) %>%
+      filter(is_active == 1 & entity_id == sysndd_id & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -713,14 +710,11 @@ function(sysndd_id, current_review = TRUE) {
 #*
 #* @get /<sysndd_id>/review
 function(sysndd_id) {
-  ndd_entity_review_collected <- pool %>%
-    tbl("ndd_entity_review") %>%
-    collect()
-
-  ndd_entity_review_list <- ndd_entity_review_collected %>%
-    filter(entity_id == sysndd_id & is_primary) %>%
+  ndd_entity_review_list <- primary_approved_reviews(pool) %>%
+    dplyr::filter(entity_id == sysndd_id) %>%
     dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-    arrange(review_date)
+    dplyr::arrange(review_date) %>%
+    dplyr::collect()
 
   ndd_entity_review_list_joined <- tibble::as_tibble(sysndd_id) %>%
     dplyr::select(entity_id = value) %>%
@@ -762,7 +756,7 @@ function(sysndd_id) {
     collect()
 
   ndd_entity_status_list <- ndd_entity_status_collected %>%
-    filter(entity_id == sysndd_id & is_active) %>%
+    filter(entity_id == sysndd_id & is_active & status_approved == 1) %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     dplyr::select(
       status_id,
@@ -804,15 +798,12 @@ function(sysndd_id) {
 #* @get /<sysndd_id>/publications
 function(sysndd_id, current_review = TRUE) {
   if (current_review) {
-    # Get primary review for this entity
-    ndd_entity_review_collected <- pool %>%
-      tbl("ndd_entity_review") %>%
-      collect()
-
-    ndd_entity_review_list <- ndd_entity_review_collected %>%
-      filter(entity_id == sysndd_id & is_primary) %>%
+    # Get primary + approved review for this entity
+    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
+      dplyr::filter(entity_id == sysndd_id) %>%
       dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      arrange(review_date)
+      dplyr::arrange(review_date) %>%
+      dplyr::collect()
 
     # Get publication connections for the primary review
     review_publication_join_coll <- pool %>%
@@ -820,10 +811,12 @@ function(sysndd_id, current_review = TRUE) {
       filter(review_id %in% ndd_entity_review_list$review_id) %>%
       collect()
   } else {
-    # Legacy behavior: filter by is_reviewed
+    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+    # approved-only (#3, Codex re-review).
+    approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
     review_publication_join_coll <- pool %>%
       tbl("ndd_review_publication_join") %>%
-      filter(is_reviewed == 1) %>%
+      filter(is_reviewed == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 

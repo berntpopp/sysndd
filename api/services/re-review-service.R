@@ -4,6 +4,36 @@
 # Functions accept pool as parameter (dependency injection)
 # Handles batch creation, assignment, reassignment, and lifecycle
 
+#' Columns the re-review submit endpoint is permitted to write.
+#' The frontend submit action sends only `re_review_submitted`; the save-flags
+#' and review/status IDs are written by review_update_re_review_status() /
+#' status_update_re_review_status(), NOT here. Restricting to this single column
+#' blocks SQL-identifier injection AND self-approval mass-assignment (#2, Codex).
+re_review_submit_allowed_fields <- function() {
+  c("re_review_submitted")
+}
+
+#' Validate + filter submitted field names to the allowlist. Fails loud.
+#' setdiff() enforces membership explicitly, first: validate_query_column()
+#' alone is not enough, since it special-cases "any"/"all" as always-valid
+#' cross-column tokens (for generate_filter_expressions()/generate_sort_expressions())
+#' which would otherwise let a field literally named "any"/"all" bypass the allowlist.
+re_review_filter_submit_fields <- function(field_names) {
+  allowed <- re_review_submit_allowed_fields()
+  # An empty field set would build "UPDATE ... SET  WHERE ..." -> malformed SQL
+  # (a 500 leaking a driver error). Reject it as a clean 400 (Codex LOW).
+  if (length(field_names) == 0L) {
+    stop_for_bad_request("Re-review submit requires at least one updatable field.")
+  }
+  bad <- setdiff(field_names, allowed)
+  if (length(bad) > 0) {
+    stop_for_bad_request(paste("Disallowed re-review submit field(s):", paste(bad, collapse = ", ")))
+  }
+  for (f in field_names) validate_query_column(f, allowed) # bare-identifier backstop
+  field_names
+}
+
+
 #' Build dynamic WHERE clause from batch criteria
 #'
 #' Constructs a SQL WHERE clause from the provided criteria object.
