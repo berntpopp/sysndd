@@ -372,7 +372,20 @@ PUBLIC_FULL_RESULT_JOB_TYPES <- c("clustering", "phenotype_clustering")
 #' @param job_type Character job operation/type.
 #' @param user_role Character role from req$user_role, or NULL if anonymous.
 #' @return Logical.
+# Heavy/admin maintenance job results can carry operational detail (backup
+# paths, import diagnostics, upstream errors), so their full result_json is
+# Administrator-only even for otherwise-privileged Reviewer/Curator roles (LOW-1).
+ADMIN_ONLY_RESULT_JOB_TYPES <- c(
+  "backup_create", "backup_restore", "nddscore_import", "omim_update",
+  "hgnc_update", "comparisons_update", "ontology_update", "force_apply_ontology",
+  "publication_refresh", "pubtator_update", "disease_ontology_mapping_refresh"
+)
+
 can_read_full_job_result <- function(job_type, user_role = NULL) {
+  is_admin <- identical(user_role, "Administrator")
+  if (!is.null(job_type) && job_type %in% ADMIN_ONLY_RESULT_JOB_TYPES) {
+    return(is_admin)
+  }
   privileged <- !is.null(user_role) &&
     user_role %in% c("Reviewer", "Curator", "Administrator")
   if (privileged) {

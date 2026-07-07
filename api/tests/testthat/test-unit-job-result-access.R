@@ -8,11 +8,22 @@ test_that("anonymous may read full results only for public operations", {
   expect_false(can_read_full_job_result("hgnc_update", user_role = NULL))
 })
 
-test_that("Reviewer+ may read full results for any operation", {
-  expect_true(can_read_full_job_result("backup_create", user_role = "Reviewer"))
-  expect_true(can_read_full_job_result("backup_create", user_role = "Curator"))
+test_that("maintenance/admin job results are Administrator-only (LOW-1)", {
+  # Heavy/admin maintenance results (backups, imports, upstream errors) must be
+  # Administrator-only even for otherwise-privileged Reviewer/Curator roles.
+  expect_false(can_read_full_job_result("backup_create", user_role = "Reviewer"))
+  expect_false(can_read_full_job_result("backup_create", user_role = "Curator"))
+  expect_false(can_read_full_job_result("hgnc_update", user_role = "Curator"))
+  expect_true(can_read_full_job_result("backup_create", user_role = "Administrator"))
   expect_true(can_read_full_job_result("hgnc_update", user_role = "Administrator"))
   expect_false(can_read_full_job_result("backup_create", user_role = "Viewer"))
+})
+
+test_that("Reviewer+ may still read full results for non-maintenance operations", {
+  # Interactive/curation job types (not in ADMIN_ONLY_RESULT_JOB_TYPES) remain
+  # readable by Reviewer/Curator/Administrator.
+  expect_true(can_read_full_job_result("llm_generation", user_role = "Reviewer"))
+  expect_true(can_read_full_job_result("analysis_snapshot_refresh", user_role = "Curator"))
 })
 
 test_that("edge cases: null job_type and unknown roles", {
