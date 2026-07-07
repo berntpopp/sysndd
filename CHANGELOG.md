@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.2] — 2026-07-07
+
+Security hotfix — authenticated RCE, SQL injection, and public exposure of unapproved curation, plus the adjacent higher-severity paths a Codex high-effort review surfaced.
+
+### Security
+
+- **Closed an authenticated RCE in the hash-create endpoint (#1).** `post_db_hash()` sorted the request tibble with `arrange(!!!rlang::parse_exprs(colnames[1]))`, evaluating the first JSON body key as an R expression via dplyr data-masking — arbitrary code execution for any authenticated user. Column tokens are now validated against the allowlist **before** any evaluation, and the sort uses a column **reference** (`across(all_of(...))`) that can never be parsed as code.
+- **Closed an unauthenticated RCE/SQLi via filter and hash values.** `generate_filter_expressions()` pasted raw filter values — and attacker-stored hash values — into R source that reaches `parse_exprs()`, which public list endpoints then evaluate **in R** after `collect()`. Values are now escaped for the string-literal context (`escape_r_string_literal()`), stored hash column names are validated as bare identifiers, and the direct-path value strip also removes backslashes so a trailing backslash cannot escape the closing quote.
+- **Allowlisted the re-review submit SET clause (#2).** `PUT /api/re_review/submit` interpolated JSON body keys raw as SQL identifiers, allowing identifier injection and mass-assignment of `re_review_approved` / `approving_user_id`. The writable set is now restricted to `re_review_submitted` (explicit membership + bare-identifier backstop); an empty field set is rejected with a 400 instead of malformed SQL.
+- **Public reads are approved-only (#3).** The entity list and `/entity/<id>/{phenotypes,variation,review,publications}` (both `current_review` modes) gated reviews on `is_primary`/`is_active`/`is_reviewed` alone, leaking unapproved in-place review edits (`review_approved = 0, is_primary = 1`). All paths now source rows through a shared `primary_approved_reviews()` helper (`is_primary = 1 AND review_approved = 1`); `/status` adds `status_approved = 1`.
+- **SEO payloads expose approved-primary reviews only.** The public `/api/seo/*` HPO-term, variation-term, and PMID queries gated on `is_active`/`is_reviewed` alone; each now joins `ndd_entity_review` on the approved-primary review.
+- **Phenotype/variant connect views gate `review_approved` (migration 042).** `ndd_review_phenotype_connect_view` and `ndd_review_variant_connect_view` — consumed by the public phenotype/variant browse, count, and correlation endpoints and the entity-list vario filter — filtered `is_active + is_primary` but not `review_approved`. Migration 042 rebuilds both with the approved gate; the `C_Rcommands` mirror is updated in sync.
+
 ## [0.29.1] — 2026-07-06
 
 Cluster-snapshot cache coherence & self-healing analysis deploys (#514) — a production follow-up to the v0.29.0 methodology deploy.
