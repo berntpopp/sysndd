@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.5] — 2026-07-07
+
+Bugfix — a locked-out curator reported that "Reset Password" returned an error. Root-caused end-to-end against the dev stack.
+
+### Fixed
+
+- **Password reset no longer 500s when the email send fails (#-reset-smtp).** `POST /api/user/password/reset/request` called `send_noreply_email()` without a `tryCatch`, so a production SMTP failure (Strato) propagated as an opaque HTTP 500 — the error the user saw. Signup (#470) and admin approval already wrap their sends best-effort; the reset flow was the one email path never hardened (it works in dev only because dev uses Mailpit). The flow is extracted into a testable helper `process_password_reset_request()`: email delivery is now best-effort (a failure is logged loudly as `[password-reset] … delivery FAILED for user_id=N` and swallowed so the endpoint returns `200`), the response is identical whether or not the address matches an account (anti-enumeration), and two latent bugs are fixed — a case-sensitive lookup and a vector-valued JWT claim on a case-only email collision. Reset-token semantics are byte-identical, so the sibling `reset/change` endpoint still validates tokens. Guard: `api/tests/testthat/test-unit-password-reset-request.R`. Note: this stops the crash and makes SMTP failures observable; it does not itself repair a down mail relay.
+
 ## [0.29.4] — 2026-07-07
 
 Frontend dependency maintenance — grouped Dependabot updates (#518, #519).
