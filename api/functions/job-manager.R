@@ -373,17 +373,32 @@ PUBLIC_FULL_RESULT_JOB_TYPES <- c("clustering", "phenotype_clustering")
 #' @param user_role Character role from req$user_role, or NULL if anonymous.
 #' @return Logical.
 # Heavy/admin maintenance job results can carry operational detail (backup
-# paths, import diagnostics, upstream errors), so their full result_json is
-# Administrator-only even for otherwise-privileged Reviewer/Curator roles (LOW-1).
+# paths, import diagnostics, standing queries, corpus IDs, upstream errors), so
+# their full result_json is Administrator-only even for otherwise-privileged
+# Reviewer/Curator roles (LOW-1). This must mirror the canonical maintenance set
+# ASYNC_MAINTENANCE_JOB_TYPES (async-job-service.R); the static list is the
+# complete fallback for minimal/test envs where that constant is not sourced.
 ADMIN_ONLY_RESULT_JOB_TYPES <- c(
-  "backup_create", "backup_restore", "nddscore_import", "omim_update",
+  "publication_date_backfill", "publication_refresh", "pubtator_update",
+  "pubtator_enrichment_refresh", "pubtatornidd_nightly", "omim_update",
   "hgnc_update", "comparisons_update", "ontology_update", "force_apply_ontology",
-  "publication_refresh", "pubtator_update", "disease_ontology_mapping_refresh"
+  "disease_ontology_mapping_refresh", "nddscore_import", "backup_create",
+  "backup_restore"
 )
+
+# Reference the canonical maintenance set at CALL time so the two never drift
+# (async-job-service.R is sourced before job-manager.R), unioned with the static
+# fallback above for envs that source job-manager.R alone (tests).
+admin_only_result_job_types <- function() {
+  if (exists("ASYNC_MAINTENANCE_JOB_TYPES", mode = "character")) {
+    return(base::union(ADMIN_ONLY_RESULT_JOB_TYPES, ASYNC_MAINTENANCE_JOB_TYPES))
+  }
+  ADMIN_ONLY_RESULT_JOB_TYPES
+}
 
 can_read_full_job_result <- function(job_type, user_role = NULL) {
   is_admin <- identical(user_role, "Administrator")
-  if (!is.null(job_type) && job_type %in% ADMIN_ONLY_RESULT_JOB_TYPES) {
+  if (!is.null(job_type) && job_type %in% admin_only_result_job_types()) {
     return(is_admin)
   }
   privileged <- !is.null(user_role) &&

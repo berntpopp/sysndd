@@ -17,6 +17,13 @@ test_that("maintenance/admin job results are Administrator-only (LOW-1)", {
   expect_true(can_read_full_job_result("backup_create", user_role = "Administrator"))
   expect_true(can_read_full_job_result("hgnc_update", user_role = "Administrator"))
   expect_false(can_read_full_job_result("backup_create", user_role = "Viewer"))
+  # The full maintenance set is covered (Codex PR-2: 3 types were omitted).
+  for (jt in c("publication_date_backfill", "pubtator_enrichment_refresh",
+               "pubtatornidd_nightly", "comparisons_update", "nddscore_import")) {
+    expect_false(can_read_full_job_result(jt, user_role = "Curator"),
+                 info = paste("maintenance type must be admin-only:", jt))
+    expect_true(can_read_full_job_result(jt, user_role = "Administrator"))
+  }
 })
 
 test_that("Reviewer+ may still read full results for non-maintenance operations", {
