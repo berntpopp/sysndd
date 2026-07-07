@@ -58,3 +58,13 @@ test_that("admin ontology job submissions do not keep dead inline executors", {
     )
   )
 })
+
+test_that("metadata-refresh.R dispatches log_warn via base::get (config::get mask, LOW-7)", {
+  path <- file.path(get_api_dir(), "functions", "metadata-refresh.R")
+  src <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  # config::get masks base::get (no `mode` arg) in the loaded API/worker env, so
+  # a bare get(name, mode = "function") errors -> the warn silently degrades.
+  expect_match(src, 'base::get("log_warn", mode = "function")', fixed = TRUE)
+  # No bare get("log_warn", mode = ...) remains.
+  expect_false(grepl('[^:]get\\("log_warn", mode', src))
+})

@@ -71,8 +71,23 @@ download_mondo_sssom <- function(output_path = "data/mondo_mappings/",
 
   tryCatch(
     {
+      # Derive timeout/retry from the tunable mondo budget so a stalled upstream
+      # cannot hang the worker indefinitely (LOW-6; the old call had req_retry
+      # but no req_timeout). Mirrors download_mondo_sssom_full's generous
+      # batch defaults; never a hardcoded req_timeout literal.
+      budget <- external_proxy_budget(
+        "mondo",
+        default_timeout = 180,
+        default_max = 360,
+        default_tries = 3L
+      )
       response <- httr2::request(sssom_url) %>%
-        httr2::req_retry(max_tries = 3, backoff = ~2) %>%
+        httr2::req_timeout(budget$timeout_seconds) %>%
+        httr2::req_retry(
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
+          backoff = ~2
+        ) %>%
         httr2::req_error(is_error = ~FALSE) %>%
         httr2::req_perform()
 
