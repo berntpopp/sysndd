@@ -35,6 +35,7 @@ test_that("all three role-mutation paths use the admin-target guard", {
   # user-service.R: helper definition + calls in user_update_role and
   # user_bulk_assign_role => >= 3 references.
   expect_gte(length(gregexpr("assert_not_targeting_admin", us)[[1]]), 3)
-  # change_role endpoint (which calls user_update() directly) also guards.
-  expect_true(grepl("assert_not_targeting_admin", ue, fixed = TRUE))
+  # Every account-mutating endpoint that a Curator can reach guards admin
+  # targets: change_role, /user/approval, and bulk_approve (Codex PR-2 LOW-2).
+  expect_gte(length(gregexpr("assert_not_targeting_admin", ue)[[1]]), 3)
 })
