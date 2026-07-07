@@ -47,9 +47,11 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res,
     return(list(message = "cluster_number parameter is required"))
   }
 
-  # Fast path: check cache first
+  # Fast path (SECURITY #7): the public / cache-hit path serves ONLY validated
+  # summaries. A `pending` (not-yet-judged) row must read as "being prepared",
+  # never as a served summary, matching the MCP default (require_validated).
   cached <- tryCatch(
-    get_cached_summary(raw_hash, require_validated = FALSE),
+    get_cached_summary(raw_hash, require_validated = TRUE),
     error = function(e) {
       log_error("Cache lookup failed: {e$message}")
       NULL
@@ -57,24 +59,29 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res,
   )
 
   if (!is.null(cached) && nrow(cached) > 0) {
-    # A current REJECTED row is a TERMINAL serving state (#490): the judge
-    # deterministically rejected this cluster's summary, so it will never
-    # validate no matter how many times it is regenerated. Return HTTP 200 with
-    # an explicit "not available + why" payload instead of a bare 404, which the
-    # frontend could not distinguish from "still generating" (so the cluster was
-    # stuck showing "being prepared" forever). We do NOT auto-promote
-    # rejected -> validated; MCP / public analysis stay validated-only.
-    if (cached$validation_status[1] == "rejected") {
-      return(list(
-        cluster_type = cached$cluster_type[1],
-        cluster_number = as.integer(cluster_number),
-        validation_status = "rejected",
-        summary_available = FALSE,
-        reason = llm_summary_rejection_reason(cached),
-        generated = FALSE
-      ))
-    }
     return(format_summary_response(cached, cluster_number))
+  }
+
+  # A current REJECTED row is a TERMINAL serving state (#490): the judge
+  # deterministically rejected this cluster's summary, so it will never validate
+  # no matter how many times it is regenerated. Return HTTP 200 with an explicit
+  # "not available + why" payload instead of a bare 404, which the frontend could
+  # not distinguish from "still generating". The validated-only lookup above does
+  # not return it, so fetch it explicitly by status. We do NOT auto-promote
+  # rejected -> validated; MCP / public analysis stay validated-only.
+  rejected <- tryCatch(
+    get_cached_summary(raw_hash, require_validated = FALSE, status = "rejected"),
+    error = function(e) NULL
+  )
+  if (!is.null(rejected) && nrow(rejected) > 0) {
+    return(list(
+      cluster_type = rejected$cluster_type[1],
+      cluster_number = as.integer(cluster_number),
+      validation_status = "rejected",
+      summary_available = FALSE,
+      reason = llm_summary_rejection_reason(rejected),
+      generated = FALSE
+    ))
   }
 
   # Cache miss - attempt generation
