@@ -310,6 +310,13 @@ function(req, res, user_id, role_assigned = "Viewer") {
   user_id_role <- as.integer(user_id)
   role_assigned <- as.character(role_assigned)
 
+  # SECURITY (#5): this endpoint calls user_update() directly, so guard the
+  # admin-demotion shield here — a Curator must not modify a currently-
+  # Administrator target (re-checked server-side).
+  if (req$user_role != "Administrator") {
+    assert_not_targeting_admin(req$user_role, user_current_roles(user_id_role, pool))
+  }
+
   if (req$user_role == "Administrator") {
     # Admin can assign any role
     user_update(user_id_role, list(user_role = role_assigned))
