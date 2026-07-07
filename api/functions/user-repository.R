@@ -202,8 +202,23 @@ user_update <- function(user_id, updates) {
     return(0L)
   }
 
-  # Build SET clause dynamically
+  # SECURITY (#4): the SET clause is built from the caller-supplied field names,
+  # so restrict them to writable `user` columns before interpolation. Rejects
+  # SQL-identifier injection AND mass-assignment of non-updatable columns.
+  # (PK user_id, password/user_password_hash, and created_at are excluded.)
+  allowed_user_cols <- c(
+    "user_name", "email", "orcid", "abbreviation", "first_name", "family_name",
+    "user_role", "comment", "terms_agreed", "approved", "rereview_request",
+    "password_reset_date"
+  )
   field_names <- names(updates)
+  bad <- setdiff(field_names, allowed_user_cols)
+  if (length(bad) > 0) {
+    stop_for_bad_request(paste("Disallowed user field(s):", paste(bad, collapse = ", ")))
+  }
+  for (f in field_names) validate_query_column(f, allowed_user_cols)
+
+  # Build SET clause dynamically
   set_clause <- paste(paste0(field_names, " = ?"), collapse = ", ")
 
   sql <- paste0("UPDATE user SET ", set_clause, " WHERE user_id = ?")
