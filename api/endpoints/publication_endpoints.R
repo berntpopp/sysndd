@@ -131,9 +131,16 @@ function(req, res, current_page = 1) {
   max_pages <- 1
   current_page <- as.numeric(current_page)
 
-  pmids_data <- pubtator_v3_pmids_from_request(query, current_page, max_pages)
+  # SECURITY (#6): bound the live PubTator calls by the per-request external-time
+  # ceiling + base download timeout so a slow upstream cannot occupy a worker.
+  res_pt <- pubtator_public_search(query, current_page, max_pages)
+  if (isTRUE(res_pt$error)) {
+    res$status <- res_pt$status %||% 503L
+    return(list(error = "PubTator is temporarily unavailable.", source = "pubtator"))
+  }
+  pmids_data <- res_pt$pmids
   per_page <- 10
-  total_pages <- pubtator_v3_total_pages_from_query(query)
+  total_pages <- res_pt$total_pages
 
   response_data <- list(
     meta = list(
@@ -678,13 +685,23 @@ function(req, res) {
 #*
 #* @get /pubtator/cache-status
 function(req, res, query = "") {
+  # SECURITY (#6): this is an operational cache probe that takes a user-supplied
+  # query and makes a live, cache-defeating PubTator call. Gate it to Curator+
+  # (removes the unauthenticated abuse surface) and budget-wrap the probe.
+  require_role(req, res, "Curator")
+
   if (query == "") {
     res$status <- 400
     return(list(error = "Query parameter is required"))
   }
 
-  # Get total pages from PubTator API
-  total_pages <- pubtator_v3_total_pages_from_query(query)
+  # Get total pages from PubTator API (budget-bounded)
+  probe <- pubtator_public_total_pages(query)
+  if (isTRUE(probe$error)) {
+    res$status <- probe$status %||% 503L
+    return(list(error = "PubTator is temporarily unavailable.", source = "pubtator"))
+  }
+  total_pages <- probe$total_pages
 
   # Check cache
   q_hash <- generate_query_hash(query)

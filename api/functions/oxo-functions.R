@@ -21,7 +21,7 @@ require(stringr) # For string manipulation
 #'
 #' @export
 oxo_mapping_from_ontology_id <- function(ontology_id) {
-  url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", ontology_id)
+  url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", utils::URLencode(ontology_id, reserved = TRUE))
 
   # Exponential backoff retry strategy for intermittent OXO API failures
   # Handles Neo4j connection issues on OXO backend (internal server errors)

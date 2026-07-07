@@ -192,12 +192,40 @@ user_approve <- function(user_id, approving_user_id, approve, pool) {
 #' }
 #'
 #' @export
+#' A non-Administrator caller may not modify a currently-Administrator target
+#' (demotion shield; mirrors the user_bulk_delete admin protection). (#5)
+#'
+#' @param requesting_role Role of the caller.
+#' @param target_current_roles Character vector of the target user(s)' CURRENT roles.
+#' @return invisible(TRUE), or raises stop_for_unauthorized (403).
+assert_not_targeting_admin <- function(requesting_role, target_current_roles) {
+  if (!identical(requesting_role, "Administrator") &&
+        any(target_current_roles == "Administrator", na.rm = TRUE)) {
+    stop_for_unauthorized("Only an Administrator may modify Administrator accounts.")
+  }
+  invisible(TRUE)
+}
+
+#' Current role(s) of the given target user id(s), read via the pool.
+user_current_roles <- function(user_ids, pool) {
+  pool %>%
+    dplyr::tbl("user") %>%
+    dplyr::filter(user_id %in% !!user_ids) %>%
+    dplyr::pull(user_role)
+}
+
 user_update_role <- function(user_id, new_role, requesting_role, pool) {
   allowed_roles <- c("Administrator", "Curator", "Reviewer", "Viewer")
 
   # Validate new role
   if (!new_role %in% allowed_roles) {
     stop("Invalid role specified")
+  }
+
+  # SECURITY (#5): a non-Administrator may not modify a currently-Administrator
+  # target (demotion shield). Check the target's CURRENT role first.
+  if (!identical(requesting_role, "Administrator")) {
+    assert_not_targeting_admin(requesting_role, user_current_roles(user_id, pool))
   }
 
   # Check permissions
@@ -530,6 +558,12 @@ user_bulk_assign_role <- function(user_ids, new_role, requesting_role, pool) {
   # Check permissions
   if (requesting_role == "Curator" && new_role == "Administrator") {
     stop("Insufficient permissions to assign Administrator role")
+  }
+
+  # SECURITY (#5): a non-Administrator may not modify currently-Administrator
+  # targets (demotion shield).
+  if (!identical(requesting_role, "Administrator")) {
+    assert_not_targeting_admin(requesting_role, user_current_roles(user_ids, pool))
   }
 
   # Execute all role updates in a transaction

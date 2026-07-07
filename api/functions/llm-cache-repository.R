@@ -117,7 +117,8 @@ generate_cluster_hash <- function(identifiers, cluster_type = "functional") {
 #'
 #' @export
 get_cached_summary <- function(cluster_hash, require_validated = FALSE,
-                               prompt_version = LLM_SUMMARY_PROMPT_VERSION) {
+                               prompt_version = LLM_SUMMARY_PROMPT_VERSION,
+                               status = NULL) {
   log_debug("Looking up cached summary for hash: {substr(cluster_hash, 1, 16)}...")
 
   # Bind the prompt/code version into the lookup (#485). A summary cached by a
@@ -132,6 +133,16 @@ get_cached_summary <- function(cluster_hash, require_validated = FALSE,
        WHERE cluster_hash = ? AND is_current = TRUE AND validation_status = 'validated'
          AND prompt_version = ?",
       list(cluster_hash, prompt_version)
+    )
+  } else if (!is.null(status)) {
+    # Explicit status lookup (e.g. the terminal "rejected" card): the
+    # validated-only public path no longer returns non-validated rows, so a
+    # rejected row must be fetched by status. (#7)
+    result <- db_execute_query(
+      "SELECT * FROM llm_cluster_summary_cache
+       WHERE cluster_hash = ? AND is_current = TRUE AND validation_status = ?
+         AND prompt_version = ?",
+      list(cluster_hash, status, prompt_version)
     )
   } else {
     result <- db_execute_query(

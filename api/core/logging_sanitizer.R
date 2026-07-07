@@ -39,7 +39,11 @@ sanitize_object <- function(obj) {
   if (is.list(obj) && !is.null(names(obj))) {
     # Named list - check each field name
     sanitized <- lapply(names(obj), function(name) {
-      if (tolower(name) %in% tolower(SENSITIVE_FIELDS)) {
+      # Substring/pattern match so compound field names (access_token,
+      # refresh_token, password_hash, api_key, ...) are also redacted (LOW-3).
+      if (grepl("pass|token|secret|jwt|api_key|authorization|hash",
+                tolower(name)) ||
+            tolower(name) %in% tolower(SENSITIVE_FIELDS)) {
         "[REDACTED]"
       } else {
         sanitize_object(obj[[name]])
@@ -79,7 +83,13 @@ sanitize_request <- function(req) {
   req_safe <- list(
     PATH_INFO = req$PATH_INFO %||% NA_character_,
     REQUEST_METHOD = req$REQUEST_METHOD %||% NA_character_,
-    QUERY_STRING = req$QUERY_STRING %||% NA_character_,
+    # The query string can carry tokens/credentials in legacy transitional
+    # flows; never retain it raw in logs (LOW-3).
+    QUERY_STRING = if (is.null(req$QUERY_STRING) || req$QUERY_STRING == "") {
+      NA_character_
+    } else {
+      "[REDACTED]"
+    },
     REMOTE_ADDR = req$REMOTE_ADDR %||% NA_character_
   )
 

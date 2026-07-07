@@ -89,8 +89,15 @@ verify_password <- function(password_from_db, password_attempt) {
       }
     )
   } else {
-    # Plaintext password - direct comparison (legacy)
-    password_from_db == password_attempt
+    # Plaintext password - constant-time comparison (legacy path, LOW-4).
+    # Hash both sides to a fixed 32-byte digest and compare element-wise so the
+    # compare time does not leak how many leading characters matched. all()
+    # reduces the length-32 logical to a scalar (a bare `==` + isTRUE() on two
+    # raw vectors is length-32 and isTRUE() of that is always FALSE).
+    isTRUE(all(
+      sodium::sha256(charToRaw(as.character(password_from_db))) ==
+        sodium::sha256(charToRaw(as.character(password_attempt)))
+    ))
   }
 }
 

@@ -416,7 +416,22 @@ test_that("get_cluster_summary returns a terminal rejected payload (200), not a 
     summary_json = '{"summary":"x","llm_judge_reasoning":"over-broad, low specificity"}',
     stringsAsFactors = FALSE
   )
-  mockery::stub(get_cluster_summary, "get_cached_summary", function(...) rejected_row)
+  # The public serve path now looks up validated-only first (#7), then fetches
+  # the terminal rejected row explicitly by status. Mirror that: the validated
+  # lookup misses, the status="rejected" lookup returns the row.
+  mockery::stub(
+    get_cluster_summary, "get_cached_summary",
+    function(cluster_hash, require_validated = FALSE, prompt_version = NULL,
+             status = NULL) {
+      if (isTRUE(require_validated)) {
+        return(rejected_row[0, , drop = FALSE])
+      }
+      if (identical(status, "rejected")) {
+        return(rejected_row)
+      }
+      rejected_row[0, , drop = FALSE]
+    }
+  )
 
   result <- get_cluster_summary("abc123", "2", "phenotype", res)
 

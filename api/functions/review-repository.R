@@ -216,6 +216,20 @@ review_update <- function(review_id, updates) {
     )
   }
 
+  # SECURITY (defense-in-depth, LOW-8): the SET clause below is built from
+  # names(updates). The main /api/review/update path passes a fixed-column
+  # tibble (synopsis/comment), but svc_review_update() and direct callers pass
+  # arbitrary update_data, so restrict to writable ndd_entity_review columns
+  # before interpolation to prevent SQL-identifier injection / mass-assignment.
+  # entity_id / review_id / review_user_id are already stripped above.
+  allowed_review_cols <- c("synopsis", "comment", "is_primary",
+                           "review_approved", "approving_user_id", "review_date")
+  bad_cols <- setdiff(names(updates), allowed_review_cols)
+  if (length(bad_cols) > 0) {
+    stop_for_bad_request(paste("Disallowed review field(s):", paste(bad_cols, collapse = ", ")))
+  }
+  for (f in names(updates)) validate_query_column(f, allowed_review_cols)
+
   # Escape single quotes in synopsis if present
   if ("synopsis" %in% names(updates)) {
     synopsis <- updates$synopsis

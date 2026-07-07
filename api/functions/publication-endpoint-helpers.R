@@ -321,3 +321,54 @@ build_cursor_links <- function(pag_links, resource_path, sort, filter, fields,
       names_from = "type", values_from = "link"
     )
 }
+
+#' Public, budget-bounded PubTator search for the request path (#6).
+#'
+#' The two public pubtator GET routes make live PubTator calls with raw
+#' jsonlite::fromJSON fetchers (no budget, no memoise), so a slow upstream could
+#' occupy a worker. This wrapper bounds the base download timeout and enforces
+#' the #344 per-request external-time ceiling via external_proxy_with_timing().
+#' The raw pubtator-client fetchers stay untouched for the worker/batch callers
+#' (they have their own pacing and are intentionally outside the budget guard).
+#'
+#' @param query PubTator query string.
+#' @param page Page number to fetch.
+#' @param max_pages Max pages for the pmids request (default 1).
+#' @return A list with `pmids` and `total_pages` (plus timing metadata), or a
+#'   degraded `list(error = TRUE, status = 503L, ...)` on failure / ceiling.
+pubtator_public_search <- function(query, page, max_pages = 1L) {
+  budget <- external_proxy_budget("pubtator")
+  old_timeout <- options(timeout = budget$max_seconds)
+  on.exit(options(old_timeout), add = TRUE)
+  external_proxy_with_timing("pubtator", function() {
+    # Public path: cap retries to a single attempt so the raw client's internal
+    # retry-with-sleep loop cannot hold a worker past the budget (Codex #6). The
+    # fetchers return NULL on post-retry failure (not an error), so treat a NULL
+    # result as a degraded upstream rather than a 200 with empty data.
+    pmids <- pubtator_v3_pmids_from_request(query, page, max_pages, max_retries = 0)
+    total_pages <- pubtator_v3_total_pages_from_query(query)
+    if (is.null(pmids) || is.null(total_pages)) {
+      return(list(error = TRUE, status = 503L, source = "pubtator",
+                  message = "PubTator returned no result"))
+    }
+    list(pmids = pmids, total_pages = total_pages)
+  })
+}
+
+#' Public, budget-bounded PubTator total-pages probe for the cache-status route (#6).
+#'
+#' @param query PubTator query string.
+#' @return A list with `total_pages`, or a degraded 503-shaped list on failure.
+pubtator_public_total_pages <- function(query) {
+  budget <- external_proxy_budget("pubtator")
+  old_timeout <- options(timeout = budget$max_seconds)
+  on.exit(options(old_timeout), add = TRUE)
+  external_proxy_with_timing("pubtator", function() {
+    total_pages <- pubtator_v3_total_pages_from_query(query)
+    if (is.null(total_pages)) {
+      return(list(error = TRUE, status = 503L, source = "pubtator",
+                  message = "PubTator returned no result"))
+    }
+    list(total_pages = total_pages)
+  })
+}

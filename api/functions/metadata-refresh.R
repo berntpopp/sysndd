@@ -35,7 +35,7 @@ metadata_with_foreign_key_checks_disabled <- function(conn, work) {
 metadata_log_foreign_key_restore_failure <- function(message) {
   if (exists("log_warn", mode = "function")) {
     tryCatch(
-      get("log_warn", mode = "function")(message),
+      base::get("log_warn", mode = "function")(message),
       error = function(e) warning(message, call. = FALSE)
     )
   } else {

@@ -209,7 +209,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, approved, first_name, family_name, email) %>%
+    select(user_id, user_name, approved, first_name, family_name, email, user_role) %>%
     filter(user_id == user_id_approval) %>%
     collect()
 
@@ -217,6 +217,12 @@ function(req, res, user_id = 0, status_approval = FALSE) {
   if (nrow(user_table) == 0) {
     res$status <- 409
     return(list(error = "User account does not exist."))
+  }
+
+  # SECURITY (#5): a non-Administrator may not approve/reject (activate or
+  # delete) a currently-Administrator target account (demotion/takeover shield).
+  if (req$user_role != "Administrator") {
+    assert_not_targeting_admin(req$user_role, user_table$user_role)
   }
 
   # Early return: already approved
@@ -309,6 +315,13 @@ function(req, res, user_id, role_assigned = "Viewer") {
 
   user_id_role <- as.integer(user_id)
   role_assigned <- as.character(role_assigned)
+
+  # SECURITY (#5): this endpoint calls user_update() directly, so guard the
+  # admin-demotion shield here — a Curator must not modify a currently-
+  # Administrator target (re-checked server-side).
+  if (req$user_role != "Administrator") {
+    assert_not_targeting_admin(req$user_role, user_current_roles(user_id_role, pool))
+  }
 
   if (req$user_role == "Administrator") {
     # Admin can assign any role
@@ -971,6 +984,12 @@ function(req, res) {
 
   # Convert to integers
   user_ids <- as.integer(user_ids)
+
+  # SECURITY (#5): a non-Administrator may not bulk-approve currently-
+  # Administrator target accounts (takeover shield).
+  if (req$user_role != "Administrator") {
+    assert_not_targeting_admin(req$user_role, user_current_roles(user_ids, pool))
+  }
 
   # Call bulk approve service function
   result <- tryCatch(
