@@ -1,12 +1,12 @@
 api/endpoints/admin_endpoints.R	1084
 api/endpoints/backup_endpoints.R	630
 api/endpoints/entity_endpoints.R	848
-api/endpoints/jobs_endpoints.R	1011
+api/endpoints/jobs_endpoints.R	1016
 api/endpoints/llm_admin_endpoints.R	736
-api/endpoints/publication_endpoints.R	1141
+api/endpoints/publication_endpoints.R	1145
 api/endpoints/re_review_endpoints.R	857
 api/endpoints/statistics_endpoints.R	782
-api/endpoints/user_endpoints.R	1117
+api/endpoints/user_endpoints.R	1136
 api/functions/async-job-handlers.R	973
 api/functions/async-job-repository.R	638
 api/functions/endpoint-functions.R	693
@@ -18,7 +18,7 @@ api/functions/migration-runner.R	718
 api/functions/nddscore-import.R	854
 api/functions/omim-functions.R	971
 api/services/entity-service.R	1063
-api/services/re-review-service.R	954
+api/services/re-review-service.R	959
 app/src/components/analyses/AnalyseGeneClusters.vue	1251
 app/src/components/analyses/AnalysesCurationUpset.vue	713
 app/src/components/analyses/AnalysesPhenotypeClusters.vue	701
@@ -43,4 +43,4 @@ app/src/views/curate/ApproveReview.vue	841
 app/src/views/curate/ApproveUser.vue	842
 app/src/views/curate/ManageReReview.vue	1514
 app/src/views/pages/EntityView.vue	834
-db/C_Rcommands_set-table-connections.R	791
+db/C_Rcommands_set-table-connections.R	793

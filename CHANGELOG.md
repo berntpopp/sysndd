@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.4] — 2026-07-07
+
+Frontend dependency maintenance — grouped Dependabot updates (#518, #519).
+
+### Changed
+
+- **Production dependencies (#518).** `@unhead/vue` 3.1.6 → 3.1.7 and `markdown-it` 14.2.0 → 14.3.0.
+- **Dev dependencies (#519).** `@types/node` 26.0.1 → 26.1.0, `@vitest/coverage-v8` / `@vitest/ui` / `vitest` 4.1.9 → 4.1.10, `prettier` 3.9.3 → 3.9.4, `typescript-eslint` 8.62.0 → 8.62.1, and `vue-tsc` 3.3.5 → 3.3.6.
+
 ## [0.29.3] — 2026-07-07
 
 Security hardening — the MEDIUM + LOW follow-up to the v0.29.2 hotfix (defense-in-depth allowlists, authorization gaps, DoS bounding, and info-leak fixes), plus the adjacent paths a Codex high-effort review surfaced.
