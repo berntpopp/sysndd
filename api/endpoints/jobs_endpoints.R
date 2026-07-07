@@ -288,10 +288,15 @@ function(req, res) {
   ndd_entity_view_tbl <- pool %>%
     tbl("ndd_entity_view") %>%
     collect()
+  # SECURITY (#3, Codex PR-2): this is the PUBLIC phenotype-clustering submit
+  # path. Gate the review set on review_approved == 1 (not is_primary alone) so
+  # the clustering input — and the per-cluster phenotype stats it produces —
+  # cannot be derived from UNAPPROVED curation. Mirrors the served-snapshot path
+  # generate_phenotype_cluster_input().
   ndd_entity_review_tbl <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
-    filter(is_primary == 1) %>%
+    filter(is_primary == 1, review_approved == 1) %>%
     select(review_id)
   ndd_review_phenotype_connect_tbl <- pool %>%
     tbl("ndd_review_phenotype_connect") %>%
