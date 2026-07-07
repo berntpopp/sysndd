@@ -14,7 +14,10 @@
 #'
 #' @export
 hgnc_id_from_prevsymbol <- function(symbol_input) {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/prev_symbol/", utils::URLencode(symbol_input, reserved = TRUE)))
+  symbol_request <- fromJSON(paste0(
+    "http://rest.genenames.org/search/prev_symbol/",
+    utils::URLencode(symbol_input, reserved = TRUE)
+  ))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
 
@@ -42,7 +45,10 @@ hgnc_id_from_prevsymbol <- function(symbol_input) {
 #'
 #' @export
 hgnc_id_from_aliassymbol <- function(symbol_input) {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/alias_symbol/", utils::URLencode(symbol_input, reserved = TRUE)))
+  symbol_request <- fromJSON(paste0(
+    "http://rest.genenames.org/search/alias_symbol/",
+    utils::URLencode(symbol_input, reserved = TRUE)
+  ))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
 
