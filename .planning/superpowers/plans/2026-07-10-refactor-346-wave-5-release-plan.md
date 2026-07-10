@@ -227,8 +227,17 @@ Expected: clean `master` at `origin/master`; audits pass; version output is `0.2
 - [ ] **Step 5: Comment on and close #346**
 
 ```bash
-closure_prs=$(gh pr list --state merged --search '#346 in:title,body' --limit 100 \
-  --json number,title,url --jq '.[] | select(.title | test("Wave|wave|600 lines|v0.29.6")) | "- PR #\(.number): \(.url) — \(.title)"')
+test -f /tmp/sysndd-final-oversized.tsv
+inventory_output=$(cat /tmp/sysndd-final-oversized.tsv)
+audit_output=$(make code-quality-audit 2>&1)
+harness_output=$(bash scripts/tests/test-code-quality-audit.sh 2>&1)
+closure_prs=$(gh pr list --state merged --search '#346 in:body merged:>=2026-07-10' \
+  --limit 100 --json number,title,url \
+  --jq '.[] | "- PR #\(.number): \(.url) — \(.title)"')
+release_pr_number=$(gh pr list --state merged --search 'v0.29.6 in:title' --limit 1 \
+  --json number --jq '.[0].number')
+check_links=$(gh pr checks "$release_pr_number" --json name,state,link \
+  --jq '.[] | "- \(.name): \(.state) — \(.link)"')
 release_sha=$(git rev-parse HEAD)
 gh issue comment 346 --body "$(printf '%s\n' \
   'Completed and released in v0.29.6.' \
@@ -239,8 +248,22 @@ gh issue comment 346 --body "$(printf '%s\n' \
   '- Reviews: Claude Code adversarial plan/PR reviews and independent Codex security/correctness/code-quality reviews; all material findings resolved.' \
   "- Release commit: $release_sha" \
   '' \
+  'Independent oversized inventory:' \
+  '```text' \
+  "$inventory_output" \
+  '```' \
+  '' \
+  'Merged-master code-quality audit:' \
+  '```text' \
+  "$audit_output" \
+  "$harness_output" \
+  '```' \
+  '' \
   'Merged delivery PRs:' \
   "$closure_prs" \
+  '' \
+  'Release PR checks:' \
+  "$check_links" \
   '' \
   'Closing #346 as completed.')"
 gh issue close 346 --reason completed

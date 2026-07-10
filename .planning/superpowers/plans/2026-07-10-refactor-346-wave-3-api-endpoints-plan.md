@@ -4,7 +4,7 @@
 
 **Goal:** Reduce all nine oversized Plumber endpoint files below 600 lines while preserving every route, decorator, handler formal, authorization gate, response envelope, and mount position.
 
-**Architecture:** Do not split or remount routers. Endpoint files remain thin authorization/delegation shells; cohesive request processing moves to `svc_`-prefixed API-process services registered in `bootstrap/load_modules.R`. Endpoint-only services are never loaded by workers or MCP.
+**Architecture:** Do not split or remount routers. Endpoint files remain thin authorization/delegation shells; cohesive request processing moves to `svc_`-prefixed services registered in the shared `bootstrap/load_modules.R`. The standalone worker also calls that shared loader, so these services may be sourced but remain unused there: they are never registered as job handlers, called by worker execution, or exposed through MCP.
 
 **Tech Stack:** R, Plumber, testthat, DBI, httr2, SysNDD RFC 9457 helpers, Docker, OpenAPI verifier.
 
@@ -12,19 +12,39 @@
 
 ---
 
-Create Wave 3 only after the merged frontend waves are on master:
+Create each endpoint-domain branch only after its predecessor is merged, using freshly
+updated master and the branch names below:
 
 ```bash
 git switch master
 git pull --ff-only origin master
-git switch -c refactor/346-wave-3-api-endpoints
+git switch -c "$TASK_BRANCH"
 ```
+
+```text
+Task 1             refactor/346-w3-endpoint-contracts
+Task 2             refactor/346-w3-publication-endpoints
+Task 3             refactor/346-w3-user-endpoints
+Task 4             refactor/346-w3-admin-endpoints
+Task 5             refactor/346-w3-job-endpoints
+Task 6             refactor/346-w3-rereview-endpoints
+Task 7             refactor/346-w3-entity-endpoints
+Task 8             refactor/346-w3-statistics-endpoints
+Task 9 LLM         refactor/346-w3-llm-admin-endpoints
+Task 9 backup      refactor/346-w3-backup-endpoints
+```
+
+Each is a separately reviewed/merged PR. Domain agents never edit shared registration
+or pagination files; the integration owner applies those small changes inside the same
+domain PR after receiving the agent's ordered requirements. The size baseline remains
+unchanged until Task 10.
 
 ### Task 1: Characterize the endpoint and bootstrap contracts
 
 **Files:**
 - Create: `api/tests/testthat/test-unit-oversized-endpoint-contract.R`
 - Create: `api/tests/testthat/test-unit-endpoint-service-bootstrap.R`
+- Modify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-endpoint-error-handler.R`
 - Modify: `api/tests/testthat/test-pagination-contract.R`
 
@@ -56,6 +76,11 @@ verification-only, giving it one writer during parallel execution. In every File
 `Verify:` means read-only execution of the named test; the domain agent must not edit,
 stage, or commit that file.
 
+The same integration owner is the sole writer for `bootstrap/load_modules.R`. Each
+domain task returns its new service filenames and required dependency order; the owner
+applies those registrations after integrating the domain commit. `Verify:` on that file
+likewise forbids domain-agent edits.
+
 - [ ] **Step 4: Run the tests before production changes**
 
 ```bash
@@ -86,7 +111,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/endpoints/publication_endpoints.R` (target ≤410)
 - Modify: `api/tests/testthat/test-endpoint-publication.R`
 - Modify: `api/tests/testthat/test-unit-pubtator-public-route-guard.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Add service tests for PMID normalization, degraded 503, cursor/meta/data and XLSX,
   enrichment fallback sort echo, missing query 400, duplicate 409 + `Location`, capacity
@@ -114,7 +139,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/tests/testthat/test-endpoint-auth.R`
 - Modify: `api/tests/testthat/test-unit-role-admin-target-guard.R`
 - Modify: `api/tests/testthat/test-unit-user-approval.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test scalar JSON rejection, own/other contributions, admin-target shields, approval
   mail failure, reset anti-enumeration/JWT expiry/hash mismatch/success, profile email and
@@ -140,7 +165,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/tests/testthat/test-unit-metadata-refresh-patterns.R`
 - Modify: `api/tests/testthat/test-publication-refresh.R`
 - Modify: `api/tests/testthat/test-unit-publication-refresh-source.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test OpenAPI single enhancement, validation-before-submit, full result mode,
   404/409/410, stale CSV, async 202, HGNC transactional/FK behavior, NDDScore 409/202,
@@ -163,7 +188,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/endpoints/jobs_endpoints.R` (≤180)
 - Modify: `api/tests/testthat/test-unit-job-status-result-mode.R`
 - Modify: `api/tests/testthat/test-unit-phenotype-clustering-approved-guard.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test scalar algorithm/default genes, duplicate/cache-hit/capacity/new submit,
   approved-only phenotype inputs, credential-free hashes, maintenance headers, history
@@ -185,7 +210,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Create: `api/tests/testthat/test-unit-re-review-endpoint-services.R`
 - Modify: `api/endpoints/re_review_endpoints.R` (≤390)
 - Verify: `api/tests/testthat/test-pagination-contract.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test submit allowlisting/unnamed DB params, refusal errors, query predicates,
   assignment scoping, cursor envelope, legacy assignment array, email/insert behavior,
@@ -205,7 +230,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/endpoints/entity_endpoints.R` (≤335)
 - Modify: `api/tests/testthat/test-unit-public-approved-review-guard.R`
 - Modify: `api/tests/testthat/test-integration-entity-rename.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test compact/global query behavior, cursor/XLSX, publication preparation before
   transaction, no-write failure, normalization, server attribution, direct approval,
@@ -226,7 +251,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/endpoints/statistics_endpoints.R` (≤305)
 - Modify: `api/tests/testthat/test-endpoint-statistics.R`
 - Modify: `api/tests/testthat/test-unit-cheap-route-isolation.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] Test invalid aggregate/group 400, time-series shapes/counts, publication filters,
   leaderboard fields/meta, empty states, and exact role matrix.
@@ -247,7 +272,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Modify: `api/endpoints/backup_endpoints.R` (≤215)
 - Modify: `api/tests/testthat/test-endpoint-backup.R`
 - Verify: `api/tests/testthat/test-pagination-contract.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 
 - [ ] LLM tests cover model/pagination/cache/prompt validation, Gemini 503, snapshot 409,
   regeneration 202 + force forwarding, no clustering recomputation, and attribution.
@@ -259,7 +284,9 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - [ ] Run contract/bootstrap/LLM/backup/pagination tests, lint, and line counts. Commit
   each domain separately.
 
-### Task 10: Integrate and publish Wave 3
+### Task 10: Ratchet and publish Wave 3 integration
+
+After all endpoint-domain PRs merge, create `refactor/346-w3-ratchet` from fresh master.
 
 - [ ] Integration owner merges service registrations in dependency order and reruns all
   three shared guards plus `./scripts/verify-msw-against-openapi.sh`.
@@ -277,6 +304,6 @@ wc -l api/endpoints/{publication,user,admin,jobs,re_review,entity,statistics,llm
 
 - [ ] Run `make test-api` and `make ci-local`; DB tests must show real passes, not
   environment skips used as evidence.
-- [ ] Push `refactor/346-wave-3-api-endpoints`, open the thematic PR, obtain Claude and
+- [ ] Push `refactor/346-w3-ratchet`, open the focused ratchet PR, obtain Claude and
   Codex security/correctness/code-quality reviews, fix and re-review all material
   findings, wait for green Actions, and squash-merge.

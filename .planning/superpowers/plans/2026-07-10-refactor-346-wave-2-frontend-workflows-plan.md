@@ -12,15 +12,34 @@
 
 ---
 
-Wave 2 starts only after Wave 1 is merged, so it inherits Wave 0 and all current master
-changes. Tasks 2-10 additionally start after Task 1's `GenericTable` seam is committed
-and its consumer suite is green.
+Wave 2 starts only after Wave 1 is merged. Each domain below is a separate thematic PR;
+set `TASK_BRANCH` to the listed value and create it from freshly merged master:
 
 ```bash
 git switch master
 git pull --ff-only origin master
-git switch -c refactor/346-wave-2-frontend-workflows
+git switch -c "$TASK_BRANCH"
 ```
+
+```text
+Task 1             refactor/346-w2-generic-table
+Task 2 entities    refactor/346-w2-entities-table
+Task 2 genes       refactor/346-w2-genes-table
+Task 2 phenotypes  refactor/346-w2-phenotypes-table
+Task 3             refactor/346-w2-nddscore-table
+Task 4             refactor/346-w2-batch-criteria
+Task 5             refactor/346-w2-approval-modals
+Task 6 ontology    refactor/346-w2-manage-ontology
+Task 6 users       refactor/346-w2-manage-users
+Task 7             refactor/346-w2-approve-user
+Task 8             refactor/346-w2-approve-review
+Task 9             refactor/346-w2-manage-rereview
+Task 10            refactor/346-w2-entity-view
+```
+
+Task 1 merges before the table-family PRs. Every domain PR runs its exact targeted and
+full relevant checks, receives Claude and Codex review, resolves findings, and merges
+before any dependent branch is cut. Domain PRs do not edit the size baseline.
 
 ### Task 1: Decompose GenericTable’s details and sorting responsibilities
 
@@ -281,7 +300,9 @@ Expected: PASS; all six production modules below 600. Commit each domain separat
   require all production components below 600. Commit as
   `refactor(app): decompose entity view presentation (#346)`.
 
-### Task 11: Integrate and publish Wave 2
+### Task 11: Ratchet and publish Wave 2 integration
+
+After all domain PRs merge, create `refactor/346-w2-ratchet` from fresh master.
 
 - [ ] Regenerate the baseline once; prove every Wave 2 frontend row disappears and no
   value increases.
@@ -306,6 +327,6 @@ cd app && PLAYWRIGHT_BASE_URL=http://localhost:8088 \
 cd .. && make playwright-stack-down
 ```
 
-- [ ] Commit the downward baseline, push `refactor/346-wave-2-frontend-workflows`, open
-  the thematic PR, obtain Claude and Codex reviews, resolve/re-review all findings,
-  wait for green checks, and squash-merge.
+- [ ] Commit the downward baseline, push `refactor/346-w2-ratchet`, open the focused
+  ratchet PR, obtain Claude and Codex reviews, resolve/re-review all findings, wait for
+  green checks, and squash-merge.

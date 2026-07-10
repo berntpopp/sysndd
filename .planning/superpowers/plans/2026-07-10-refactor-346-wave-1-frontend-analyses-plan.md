@@ -12,13 +12,28 @@
 
 ---
 
-Before Task 1, create the wave branch only after Wave 0 is merged:
+Each numbered implementation task is its own thematic PR. Before starting a task,
+create its branch from freshly merged master using the names below:
 
 ```bash
 git switch master
 git pull --ff-only origin master
-git switch -c refactor/346-wave-1-frontend-analyses
+git switch -c "$TASK_BRANCH"
 ```
+
+```text
+Task 1  refactor/346-w1-functional-summary
+Task 2  refactor/346-w1-network-visualization
+Task 3  refactor/346-w1-publications-table
+Task 4  refactor/346-w1-pubtator-table
+Task 5  refactor/346-w1-pubtator-genes
+Task 6  refactor/346-w1-gene-structure-controls
+Task 7  refactor/346-w1-protein-lollipop-controls
+```
+
+After each task's targeted/full checks, push that branch, open a ready PR referencing
+#346, obtain Claude and Codex reviews, resolve findings, and merge before branching the
+next dependent task. The baseline remains unchanged in domain PRs.
 
 ### Task 1: Extract the functional-cluster summary panel
 
@@ -215,6 +230,7 @@ Expected: PASS; both production files are below 600 lines.
 **Files:**
 - Create: `app/src/components/analyses/usePubtatorPublicationTable.ts`
 - Create: `app/src/components/analyses/usePubtatorPublicationTable.spec.ts`
+- Create: `app/src/components/analyses/PubtatorNDDTable.spec.ts`
 - Modify: `app/src/components/analyses/PubtatorNDDTable.vue`
 
 - [ ] **Step 1: Add tests for request and cache behavior**
@@ -222,6 +238,9 @@ Expected: PASS; both production files are below 600 lines.
 Assert exact query parameters, stale-response rejection, all four cursor transitions,
 bounded annotated-publication parsing cache reuse, stable `actions`/`details` field
 merge, XLSX filename, and copied URL.
+
+The SFC characterization spec mounts `PubtatorNDDTable` through `GenericTable` and
+asserts its publication, action, and detail slots render with the expected row props.
 
 - [ ] **Step 2: Run the new spec before implementation**
 
@@ -241,7 +260,8 @@ logic is duplicated in the SFC.
 
 ```bash
 cd app
-npx vitest run src/components/analyses/usePubtatorPublicationTable.spec.ts
+npx vitest run src/components/analyses/usePubtatorPublicationTable.spec.ts \
+  src/components/analyses/PubtatorNDDTable.spec.ts
 npm run type-check
 npx eslint src/components/analyses/PubtatorNDDTable.vue \
   src/components/analyses/usePubtatorPublicationTable.ts
@@ -249,6 +269,7 @@ wc -l src/components/analyses/PubtatorNDDTable.vue \
   src/components/analyses/usePubtatorPublicationTable.ts
 cd ..
 git add app/src/components/analyses/PubtatorNDDTable.vue \
+  app/src/components/analyses/PubtatorNDDTable.spec.ts \
   app/src/components/analyses/usePubtatorPublicationTable*
 git commit -m "refactor(app): extract PubTator publication controller (#346)"
 ```
@@ -378,10 +399,10 @@ git commit -m "refactor(app): extract protein lollipop controls (#346)"
 
 Expected: PASS; every production file is below 600 lines.
 
-### Task 8: Integrate and publish Wave 1
+### Task 8: Ratchet and publish Wave 1 integration
 
-The branch therefore inherits the truthful 39-row baseline and green password-reset
-suite; do not prepare it from a pre-Wave-0 base.
+After Tasks 1-7 are merged, create `refactor/346-w1-ratchet` from fresh master. It
+inherits the truthful Wave 0 baseline and every reviewed Wave 1 extraction.
 
 - [ ] **Step 1: Rewrite the baseline once after all accepted tasks**
 
@@ -410,9 +431,9 @@ Expected: all commands pass.
 ```bash
 git add scripts/code-quality-file-size-baseline.tsv
 git commit -m "chore(quality): ratchet Wave 1 analysis file sizes (#346)"
-git push -u origin refactor/346-wave-1-frontend-analyses
-gh pr create --title "refactor(app): #346 frontend analyses under 600 lines" \
-  --body "Part of #346. Behavior-preserving analysis/visualization decomposition; see the committed Wave 1 plan for exact checks and before/after counts."
+git push -u origin refactor/346-w1-ratchet
+gh pr create --title "chore(quality): ratchet #346 Wave 1 analysis sizes" \
+  --body "Part of #346. Removes the merged Wave 1 analysis/visualization files from the downward-only size baseline after all domain PRs passed review and verification."
 ```
 
 Claude Code and Codex must independently review the complete PR; fix and re-review

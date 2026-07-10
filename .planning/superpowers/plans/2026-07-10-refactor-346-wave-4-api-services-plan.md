@@ -12,19 +12,45 @@
 
 ---
 
-Create Wave 4 only after Wave 3 is merged and master is current:
+Create each service-domain branch only after its predecessor is merged, using fresh
+master and the branch names below:
 
 ```bash
 git switch master
 git pull --ff-only origin master
-git switch -c refactor/346-wave-4-api-services
+git switch -c "$TASK_BRANCH"
 ```
+
+```text
+Task 1   refactor/346-w4-module-guards
+Task 2   refactor/346-w4-entity-services
+Task 3   refactor/346-w4-rereview-services
+Task 4   refactor/346-w4-async-handlers
+Task 5   refactor/346-w4-async-repository
+Task 6   refactor/346-w4-endpoint-functions
+Task 7   refactor/346-w4-llm-prompts
+Task 8   refactor/346-w4-migration-state
+Task 9   refactor/346-w4-nddscore-import
+Task 10  refactor/346-w4-omim-functions
+```
+
+Each task is its own reviewed/merged PR. Domain agents return runtime-registration
+requirements; the integration owner alone edits the four shared source lists inside the
+same domain PR. Domain PRs do not edit the size baseline.
 
 ### Task 1: Add module/source-order characterization
 
 **Files:**
 - Create: `api/tests/testthat/test-unit-api-module-registration.R`
+- Modify: `api/bootstrap/load_modules.R`
+- Modify: `api/bootstrap/setup_workers.R`
+- Modify: `api/start_async_worker.R`
+- Modify: `api/functions/async-job-worker.R`
 - Modify: `api/tests/testthat/test-unit-analysis-snapshot-worker-preload.R`
+
+The integration owner executing Task 1 is the sole writer for these four runtime source
+lists. Domain agents return ordered registration requirements and treat every `Verify:`
+entry as read-only: they must not edit, stage, or commit it.
 
 - [ ] Parse `bootstrap/load_modules.R` and assert exact-once, dependency-ordered entries
   for every module named in this plan. Assert service bindings remain prefixed and do
@@ -43,7 +69,7 @@ git switch -c refactor/346-wave-4-api-services
 - Create: `api/services/entity-creation-service.R` (target ≤380)
 - Create: `api/services/entity-rename-service.R` (target ≤310)
 - Modify: `api/services/entity-service.R` (target ≤460)
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-entity-service.R`
 - Modify: `api/tests/testthat/test-unit-entity-creation.R`
 - Modify: `api/tests/testthat/test-integration-entity-rename.R`
@@ -64,7 +90,7 @@ git switch -c refactor/346-wave-4-api-services
 **Files:**
 - Create: `api/services/re-review-selection-service.R` (≤420)
 - Modify: `api/services/re-review-service.R` (≤590)
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-re-review-service.R`
 - Modify: `api/tests/testthat/test-unit-re-review-submit-allowlist.R`
 
@@ -83,10 +109,10 @@ git switch -c refactor/346-wave-4-api-services
 - Create: `api/functions/async-job-provider-handlers.R` (≤460)
 - Create: `api/functions/async-job-maintenance-handlers.R` (≤260)
 - Modify: `api/functions/async-job-handlers.R` (≤380)
-- Modify: `api/functions/async-job-worker.R`
-- Modify: `api/start_async_worker.R`
-- Modify: `api/bootstrap/setup_workers.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/functions/async-job-worker.R`
+- Verify: `api/start_async_worker.R`
+- Verify: `api/bootstrap/setup_workers.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-async-job-handlers.R`
 - Modify: `api/tests/testthat/test-unit-async-job-worker.R`
 - Modify: `api/tests/testthat/test-unit-analysis-snapshot-worker-preload.R`
@@ -114,8 +140,8 @@ git switch -c refactor/346-wave-4-api-services
 **Files:**
 - Create: `api/functions/async-job-repository-helpers.R` (≤140)
 - Modify: `api/functions/async-job-repository.R` (≤560)
-- Modify: `api/bootstrap/load_modules.R`
-- Modify: `api/bootstrap/setup_workers.R`
+- Verify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/setup_workers.R`
 - Modify: `api/tests/testthat/test-unit-async-job-repository.R`
 
 - [ ] Add helper tests for base-get capture, selected columns, scalar/empty validation,
@@ -133,7 +159,7 @@ git switch -c refactor/346-wave-4-api-services
 - Create: `api/functions/phenotype-endpoint-functions.R` (≤190)
 - Create: `api/functions/panels-endpoint-functions.R` (≤285)
 - Modify: `api/functions/endpoint-functions.R` (≤320)
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-endpoint-functions.R`
 - Modify: `api/tests/testthat/test-unit-panels-endpoint.R`
 
@@ -150,7 +176,7 @@ git switch -c refactor/346-wave-4-api-services
 **Files:**
 - Create: `api/functions/llm-prompt-template-repository.R` (≤210)
 - Modify: `api/functions/llm-service.R` (≤490)
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Create: `api/tests/testthat/test-unit-llm-prompt-template-repository.R`
 - Modify: `api/tests/testthat/test-unit-llm-service-db-access.R`
 - Modify: `api/tests/testthat/test-unit-llm-service-model-resolution.R`
@@ -170,7 +196,7 @@ git switch -c refactor/346-wave-4-api-services
 **Files:**
 - Create: `api/functions/migration-state-repository.R` (≤350)
 - Modify: `api/functions/migration-runner.R` (≤450)
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-migration-runner.R`
 
 - [ ] Add exact source-order and state-repository tests for schema table creation,
@@ -188,8 +214,8 @@ git switch -c refactor/346-wave-4-api-services
 **Files:**
 - Create: `api/functions/nddscore-release-source.R` (≤470)
 - Modify: `api/functions/nddscore-import.R` (≤450)
-- Modify: `api/bootstrap/load_modules.R`
-- Modify: `api/bootstrap/setup_workers.R`
+- Verify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/setup_workers.R`
 - Modify: `api/tests/testthat/test-nddscore-import.R`
 - Modify: `api/tests/testthat/test-nddscore-job.R`
 
@@ -208,8 +234,8 @@ git switch -c refactor/346-wave-4-api-services
 - Create: `api/functions/omim-download-functions.R` (≤400)
 - Create: `api/functions/omim-parser-functions.R` (≤250)
 - Modify: `api/functions/omim-functions.R` (≤430)
-- Modify: `api/bootstrap/load_modules.R`
-- Modify: `api/bootstrap/setup_workers.R`
+- Verify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/setup_workers.R`
 - Modify: `api/tests/testthat/test-unit-omim-functions.R`
 
 - [ ] Add focused tests for credential redaction, TTL cache paths, download error classes,
@@ -223,7 +249,9 @@ git switch -c refactor/346-wave-4-api-services
 - [ ] Run full OMIM/comparisons/ontology tests, lint, and counts. Commit as
   `refactor(api): split OMIM acquisition and parsing (#346)`.
 
-### Task 11: Integrate and publish Wave 4
+### Task 11: Ratchet and publish Wave 4 integration
+
+After Tasks 1-10 merge, create `refactor/346-w4-ratchet` from fresh master.
 
 - [ ] Merge source-registration edits in the exact dependency order asserted by Task 1.
   Restart API, worker, and worker-maintenance before runtime smoke.
@@ -242,6 +270,6 @@ git diff --check
 
 - [ ] Independently inventory all API production files and require no non-exempt file
   above 600. Verify default and maintenance job smoke results and queue names.
-- [ ] Push `refactor/346-wave-4-api-services`, open the thematic PR, obtain Claude and
+- [ ] Push `refactor/346-w4-ratchet`, open the focused ratchet PR, obtain Claude and
   Codex security/correctness/code-quality reviews, fix and re-review all findings, wait
   for green checks, and squash-merge.

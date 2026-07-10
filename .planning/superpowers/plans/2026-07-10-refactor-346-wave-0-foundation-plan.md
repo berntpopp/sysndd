@@ -12,6 +12,14 @@
 
 ---
 
+Create the foundation branch from the master that contains this approved plan:
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-0-foundation
+```
+
 ### Task 0: Repair the existing 0.29.5 lockfile version drift
 
 **Files:**
