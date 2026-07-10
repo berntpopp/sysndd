@@ -512,287 +512,50 @@
 <script>
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
-import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
+import { useToast, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import UserApplicationMobileRows from './components/UserApplicationMobileRows.vue';
-// v11.0 closeout F2b: apiClient replaces `this.axios` + manual Bearer
-// header construction. The request interceptor reads
-// `useAuth().token.value` and injects `Authorization: Bearer <token>`
-// on every outbound call.
-import { apiClient } from '@/api/client';
+// Wave 2 Task 7 of #346: all queue/filter/pagination/modal/load/mutation
+// state, the queue table's static field config, and its display formatters
+// live in useUserApprovalQueue(), which uses the typed `@/api/user` clients
+// (apiClient's Bearer-header interceptor still applies underneath). This
+// view is a thin template-binding shell.
+import useUserApprovalQueue from './composables/useUserApprovalQueue';
 
 export default {
   name: 'ApproveUser',
-  components: {
-    AuthenticatedPageShell,
-    TableShell,
-    AriaLiveRegion,
-    UserApplicationMobileRows,
-  },
+  components: { AuthenticatedPageShell, TableShell, AriaLiveRegion, UserApplicationMobileRows },
   setup() {
     const { makeToast } = useToast();
-    const colorAndSymbols = useColorAndSymbols();
     const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
+    const uiStore = useUiStore();
+
+    const queue = useUserApprovalQueue({
+      onToast: makeToast,
+      onAnnounce: announce,
+      onScrollbarUpdate: () => uiStore.requestScrollbarUpdate(),
+    });
 
     return {
       makeToast,
-      ...colorAndSymbols,
       a11yMessage,
       a11yPoliteness,
       announce,
+      ...queue,
     };
-  },
-  data() {
-    return {
-      role_options: [],
-      items_UsersTable: [],
-      fields: [
-        {
-          key: 'user_name',
-          label: 'User',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'email',
-          label: 'Email',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'orcid',
-          label: 'ORCID',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'user_role',
-          label: 'Requested Role',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'created_at',
-          label: 'Applied',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'comment',
-          label: 'Comment',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'actions',
-          label: 'Actions',
-          class: 'text-center',
-        },
-      ],
-      totalRows: 0,
-      loadingUsersApprove: true,
-      selectedUser: {},
-      showReviewModal: false,
-      showApproveModal: false,
-      showRejectModal: false,
-      currentPage: 1,
-      perPage: 10,
-      pageOptions: [
-        { value: 5, text: '5' },
-        { value: 10, text: '10' },
-        { value: 25, text: '25' },
-        { value: 50, text: '50' },
-      ],
-      filter: '',
-      roleFilter: null,
-    };
-  },
-  computed: {
-    roleFilterOptions() {
-      const roles = [...new Set(this.items_UsersTable.map((item) => item.user_role))].filter(
-        Boolean
-      );
-      return [
-        { value: null, text: 'All Roles' },
-        ...roles.map((role) => ({ value: role, text: role })),
-      ];
-    },
-    filteredItems() {
-      let items = this.items_UsersTable;
-
-      // Filter by search text
-      if (this.filter) {
-        const searchTerm = this.filter.toLowerCase();
-        items = items.filter(
-          (item) =>
-            (item.user_name && item.user_name.toLowerCase().includes(searchTerm)) ||
-            (item.email && item.email.toLowerCase().includes(searchTerm)) ||
-            (item.first_name && item.first_name.toLowerCase().includes(searchTerm)) ||
-            (item.family_name && item.family_name.toLowerCase().includes(searchTerm))
-        );
-      }
-
-      // Filter by role
-      if (this.roleFilter) {
-        items = items.filter((item) => item.user_role === this.roleFilter);
-      }
-
-      return items;
-    },
-    paginatedItems() {
-      const start = Math.max(this.currentPage - 1, 0) * this.perPage;
-      return this.filteredItems.slice(start, start + this.perPage);
-    },
-  },
-  watch: {
-    filteredItems() {
-      this.totalRows = this.filteredItems.length;
-      this.currentPage = 1;
-    },
   },
   mounted() {
     this.loadRoleList();
     this.loadUserTableData();
   },
-  methods: {
-    async loadUserTableData() {
-      this.loadingUsersApprove = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table`;
-      try {
-        const response = await apiClient.raw.get(apiUrl);
-        const data = response.data;
-        let users = [];
-        if (Array.isArray(data)) {
-          users = data;
-        } else if (data?.data && Array.isArray(data.data)) {
-          users = data.data;
-        }
-        // Filter to show only unapproved (pending) users
-        this.items_UsersTable = users.filter((user) => !user.approved || user.approved === 0);
-        this.totalRows = this.items_UsersTable.length;
-
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.items_UsersTable = [];
-        this.totalRows = 0;
-      } finally {
-        this.loadingUsersApprove = false;
-      }
-    },
-    async loadRoleList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
-      try {
-        const response = await apiClient.raw.get(apiUrl);
-        const data = response.data;
-        this.role_options = Array.isArray(data)
-          ? data.map((item) => ({ value: item.role, text: item.role }))
-          : [];
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    formatDate(dateString) {
-      if (!dateString) return '—';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    },
-    getRoleBadgeVariant(role) {
-      const variants = {
-        Administrator: 'danger',
-        Curator: 'primary',
-        Reviewer: 'info',
-        Viewer: 'secondary',
-      };
-      return variants[role] || 'secondary';
-    },
-    getRoleIcon(role) {
-      const icons = {
-        Administrator: 'bi bi-shield-fill-check',
-        Curator: 'bi bi-pencil-fill',
-        Reviewer: 'bi bi-eye-fill',
-        Viewer: 'bi bi-person-fill',
-      };
-      return icons[role] || 'bi bi-person-fill';
-    },
-    approveUser(user) {
-      this.selectedUser = { ...user };
-      this.showApproveModal = true;
-    },
-    reviewUser(user) {
-      this.selectedUser = { ...user };
-      this.showReviewModal = true;
-    },
-    rejectUser(user) {
-      this.selectedUser = { ...user };
-      this.showRejectModal = true;
-    },
-    rejectFromModal() {
-      this.showReviewModal = false;
-      this.$nextTick(() => {
-        this.showRejectModal = true;
-      });
-    },
-    async confirmApprove() {
-      await this.handleUserApproval(this.selectedUser.user_id, true);
-      this.showApproveModal = false;
-    },
-    async handleApproveWithChanges() {
-      // First update the role if changed
-      if (this.selectedUser.user_role) {
-        await this.handleUserChangeRole(this.selectedUser.user_id, this.selectedUser.user_role);
-      }
-      // Then approve
-      await this.handleUserApproval(this.selectedUser.user_id, true);
-      this.showReviewModal = false;
-    },
-    async confirmReject() {
-      await this.handleUserApproval(this.selectedUser.user_id, false);
-      this.showRejectModal = false;
-    },
-    async handleUserApproval(userId, approved) {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${userId}&status_approval=${approved}`;
-
-      try {
-        await apiClient.raw.put(apiUrl, {});
-        const message = approved ? 'User approved successfully.' : 'User application rejected.';
-        this.makeToast(message, 'Success', approved ? 'success' : 'info');
-        this.announce(message);
-        this.loadUserTableData();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Error approving user', 'assertive');
-      }
-    },
-    async handleUserChangeRole(userId, userRole) {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/change_role?user_id=${userId}&role_assigned=${userRole}`;
-
-      try {
-        await apiClient.raw.put(apiUrl, {});
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-  },
 };
 </script>
 
 <style scoped>
+/* Compact action buttons + multi-line comment truncation + popover-trigger cursor. */
 .btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
-
-/* Multi-line text truncation with ellipsis */
+.btn-xs { padding: 0.25rem 0.4rem; font-size: 0.875rem; line-height: 0.5; border-radius: 0.2rem; }
 .text-truncate-multiline {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -801,42 +564,26 @@ export default {
   text-overflow: ellipsis;
   line-height: 1.4;
 }
-
-/* Cursor style for popover triggers */
-.text-popover-trigger {
-  cursor: help;
-  border-bottom: 1px dotted #6c757d;
-}
-
-.text-popover-trigger:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 2px;
-}
+.text-popover-trigger { cursor: help; border-bottom: 1px dotted #6c757d; }
+.text-popover-trigger:hover { background-color: rgba(0, 123, 255, 0.05); border-radius: 2px; }
 </style>
 
 <!-- Non-scoped styles for popovers (rendered outside component DOM) -->
 <style>
 /* Wide popover for comment text */
-.wide-popover {
-  max-width: 400px !important;
-}
-
+.wide-popover { max-width: 400px !important; }
 .wide-popover .popover-header {
   font-size: 0.85rem;
   font-weight: 600;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
 }
-
 .wide-popover .popover-body {
   max-height: 250px;
   overflow-y: auto;
   font-size: 0.85rem;
   line-height: 1.5;
 }
-
-.popover-text-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+.popover-text-content { white-space: pre-wrap; word-break: break-word; }
 </style>
+

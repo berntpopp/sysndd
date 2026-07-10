@@ -1,24 +1,32 @@
 // ApproveUser.spec.ts
 /**
- * v11.0 closeout F2b — spec for `views/curate/ApproveUser.vue`.
+ * Spec for `views/curate/ApproveUser.vue`.
  *
- * Four authed endpoints now route through `apiClient.raw.*`:
+ * Wave 2 Task 7 of #346 moved queue/filter/pagination/modal/load/mutation
+ * state into `useUserApprovalQueue()` (see `./composables/
+ * useUserApprovalQueue.spec.ts` for the composable's own thorough unit
+ * coverage of pending-only filtering, combined search/role filtering, page
+ * reset, the review->reject modal transition, toast/announcement behavior,
+ * and role-before-approval ordering). This file stays focused on proving
+ * the *view* wires the composable correctly end-to-end:
  *
  *   - GET /api/user/table        (`loadUserTableData`)
  *   - GET /api/user/role_list    (`loadRoleList`)
  *   - PUT /api/user/approval     (`handleUserApproval`)
  *   - PUT /api/user/change_role  (`handleUserChangeRole`)
  *
- * Every call previously stamped its own
- * `Authorization: Bearer ${localStorage.getItem('token')}` header — the
- * migration delegates that to the apiClient request interceptor. This
- * spec uses `primeAuth() + expectBearerHeader()` to prove the header is
- * still injected after the refactor.
+ * All four now route through the typed `@/api/user` clients (built on
+ * `apiClient`). This spec uses `primeAuth() + expectBearerHeader()` to
+ * prove the Bearer header the apiClient request interceptor injects is
+ * still present after the extraction, plus a handful of integration-level
+ * checks (filtering, modal transition, mutation ordering) exercised
+ * through the mounted component rather than the composable directly.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
 import { http, HttpResponse } from 'msw';
 
 import '@/plugins/axios';
@@ -33,7 +41,6 @@ const announceSpy = vi.fn();
 
 vi.mock('@/composables', () => ({
   useToast: () => ({ makeToast: makeToastSpy }),
-  useColorAndSymbols: () => ({}),
   useAriaLive: () => ({
     message: '',
     politeness: 'polite',
@@ -41,14 +48,62 @@ vi.mock('@/composables', () => ({
   }),
 }));
 
+interface ApproveUserRow {
+  user_id: number;
+  user_name: string;
+  email: string;
+  user_role: string;
+  approved: number;
+  first_name?: string;
+  family_name?: string;
+  created_at?: string;
+}
+
 interface ApproveUserVm {
   loadUserTableData: () => Promise<void>;
   loadRoleList: () => Promise<void>;
   handleUserApproval: (userId: number, approved: boolean) => Promise<void>;
   handleUserChangeRole: (userId: number, role: string) => Promise<void>;
-  items_UsersTable: unknown[];
+  reviewUser: (user: ApproveUserRow) => void;
+  rejectFromModal: () => void;
+  handleApproveWithChanges: () => Promise<void>;
+  items_UsersTable: ApproveUserRow[];
   role_options: unknown[];
+  filteredItems: ApproveUserRow[];
+  filter: string;
+  roleFilter: string | null;
+  currentPage: number;
+  totalRows: number;
+  selectedUser: Partial<ApproveUserRow>;
+  showReviewModal: boolean;
+  showRejectModal: boolean;
 }
+
+const ALICE: ApproveUserRow = {
+  user_id: 1,
+  user_name: 'alice',
+  email: 'alice@example.org',
+  user_role: 'Curator',
+  approved: 0,
+  first_name: 'Alice',
+  family_name: 'Anderson',
+};
+const BOB: ApproveUserRow = {
+  user_id: 2,
+  user_name: 'bob',
+  email: 'bob@example.org',
+  user_role: 'Reviewer',
+  approved: 0,
+  first_name: 'Bob',
+  family_name: 'Baxter',
+};
+const CARL_APPROVED: ApproveUserRow = {
+  user_id: 3,
+  user_name: 'carl',
+  email: 'carl@example.org',
+  user_role: 'Viewer',
+  approved: 1,
+};
 
 async function mountView() {
   setActivePinia(createPinia());
@@ -158,8 +213,9 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
     const wrapper = await mountView();
     await (wrapper.vm as unknown as ApproveUserVm).handleUserApproval(42, true);
     await flushPromises();
-    // A success announce fires on 2xx.
-    expect(announceSpy).toHaveBeenCalled();
+    // toast/announcement behavior: a success toast + a11y announce fire on 2xx.
+    expect(makeToastSpy).toHaveBeenCalledWith('User approved successfully.', 'Success', 'success');
+    expect(announceSpy).toHaveBeenCalledWith('User approved successfully.');
   });
 
   it('handleUserChangeRole() issues PUT /api/user/change_role with the Bearer header', async () => {
@@ -180,5 +236,97 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
     const wrapper = await mountView();
     await (wrapper.vm as unknown as ApproveUserVm).handleUserChangeRole(42, 'Curator');
     await flushPromises();
+  });
+
+  it('filters the loaded queue to pending users, then narrows by combined search + role', async () => {
+    primeAuth('filter-token');
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json([ALICE, BOB, CARL_APPROVED])),
+      http.get('/api/user/role_list', () => HttpResponse.json([]))
+    );
+
+    const wrapper = await mountView();
+    const vm = wrapper.vm as unknown as ApproveUserVm;
+
+    // Approved carl is dropped; only the two pending applications remain.
+    expect(vm.items_UsersTable.map((u) => u.user_name)).toEqual(['alice', 'bob']);
+
+    vm.filter = 'b';
+    vm.roleFilter = 'Reviewer';
+    await nextTick();
+    expect(vm.filteredItems.map((u) => u.user_name)).toEqual(['bob']);
+
+    vm.roleFilter = 'Curator';
+    await nextTick();
+    expect(vm.filteredItems).toEqual([]);
+  });
+
+  it('resets to page 1 when the filtered set changes shape (page reset)', async () => {
+    primeAuth('page-reset-token');
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json([ALICE, BOB])),
+      http.get('/api/user/role_list', () => HttpResponse.json([]))
+    );
+
+    const wrapper = await mountView();
+    const vm = wrapper.vm as unknown as ApproveUserVm;
+
+    vm.currentPage = 3;
+    expect(vm.currentPage).toBe(3);
+
+    vm.filter = 'alice';
+    await nextTick();
+    expect(vm.currentPage).toBe(1);
+    expect(vm.totalRows).toBe(1);
+  });
+
+  it('transitions from the review modal to the reject modal (review->reject)', async () => {
+    primeAuth('review-reject-token');
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json([ALICE])),
+      http.get('/api/user/role_list', () => HttpResponse.json([]))
+    );
+
+    const wrapper = await mountView();
+    const vm = wrapper.vm as unknown as ApproveUserVm;
+
+    vm.reviewUser(ALICE);
+    expect(vm.showReviewModal).toBe(true);
+    expect(vm.selectedUser.user_id).toBe(1);
+
+    vm.rejectFromModal();
+    expect(vm.showReviewModal).toBe(false);
+    expect(vm.showRejectModal).toBe(false);
+
+    await nextTick();
+    expect(vm.showRejectModal).toBe(true);
+  });
+
+  it('assigns the role BEFORE approving when a review is saved with a role change (ordering)', async () => {
+    primeAuth('ordering-token');
+    const callOrder: string[] = [];
+
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json([ALICE])),
+      http.get('/api/user/role_list', () => HttpResponse.json([])),
+      http.put('/api/user/change_role', () => {
+        callOrder.push('change_role');
+        return HttpResponse.json({ message: 'Role updated' });
+      }),
+      http.put('/api/user/approval', () => {
+        callOrder.push('approval');
+        return HttpResponse.json({ message: 'Approved' });
+      })
+    );
+
+    const wrapper = await mountView();
+    const vm = wrapper.vm as unknown as ApproveUserVm;
+
+    vm.reviewUser({ ...ALICE, user_role: 'Administrator' });
+    await vm.handleApproveWithChanges();
+    await flushPromises();
+
+    expect(callOrder).toEqual(['change_role', 'approval']);
+    expect(vm.showReviewModal).toBe(false);
   });
 });
