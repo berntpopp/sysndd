@@ -1,34 +1,17 @@
 // ManageUser.spec.ts
 /**
- * Phase C.C6 functional spec for `views/admin/ManageUser.vue` (1,732 LoC).
- *
- * Part of the v11.0 Phase C Tier B safety net — see `.planning/_archive/legacy-plans/v11.0/phase-c.md`
- * §3 Phase C.C6.  This file does NOT modify the source; it locks in the two
- * behaviours that E-series rewrites must preserve when the giant Options-API
- * view is refactored onto `useTableData` + `useAsyncJob`:
- *
- *   1. Happy path: editing a user's role issues `PUT /api/user/update` (the
- *      write route confirmed by reading `ManageUser.vue` around line 1558 —
- *      `` `${import.meta.env.VITE_API_URL}/api/user/update` ``) and triggers
- *      a re-fetch of `GET /api/user/table` so the permission matrix
- *      re-renders with fresh server data.
- *   2. Error path: when the backend returns the `userUpdateForbidden` 403
- *      (i.e. attempting to demote the last remaining Administrator), the UI
- *      surfaces a danger toast via `useToast().makeToast` AND the local
- *      `users` array retains the original role assignment — the view must
- *      not optimistically drop the admin role client-side.
- *
- * All `/api/user/*` traffic is routed through the Phase B.B1 MSW handler set
- * (`app/src/test-utils/mocks/handlers.ts`).  No new handlers are introduced;
- * the error branch is installed per-test via `server.use(...)` with the
- * `userUpdateForbidden` shape imported from `data/users.ts` so the 403 body
- * stays centralised.
- *
- * Locked `it.todo`: search/filter state persistence across role edits and
- * bulk-role assignments via `POST /api/user/bulk_assign_role`.  Picked up by
- * the downstream E-series rewrite of ManageUser (`useTableData` migration)
- * once the view exposes the filter state as a reactive ref instead of
- * Options-API data.
+ * Functional spec for `views/admin/ManageUser.vue`, now a thin shell over
+ * `views/admin/composables/useManageUserPage.ts` (#346 Wave 2 Task 6). Locks
+ * in: (1) editing a user's role issues `PUT /api/user/update` and re-fetches
+ * `GET /api/user/table`; (2) a `userUpdateForbidden` 403 (demoting the last
+ * Administrator) surfaces a danger toast without optimistically dropping the
+ * role client-side. All `/api/user/*` traffic runs through the shared MSW
+ * handler set (`test-utils/mocks/handlers.ts`); the 403 branch is installed
+ * per-test via `server.use(...)` with `userUpdateForbidden` from
+ * `data/users.ts`. Locked `it.todo`: filter-state persistence across role
+ * edits/bulk-role assignment, picked up once the view exposes filter state
+ * as a reactive ref (already true post-refactor, but the todo is left
+ * in place until dedicated coverage lands).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -42,31 +25,20 @@ import ManageUser from './ManageUser.vue';
 import { server } from '@/test-utils/mocks/server';
 import { bootstrapStubs } from '@/test-utils';
 import { userTableOk, userUpdateForbidden, type UserTableRow } from '@/test-utils/mocks/data/users';
-// v11.0 closeout F2b — apiClient helpers for the 9 new Bearer-header
-// tests below. The Phase C tests above stay on `localStorage.setItem`
-// seeding to keep their assertions stable; the new block uses the
-// composable abstraction (`primeAuth()`) so regressions in F1 plumbing
-// (useAuth / apiClient interceptor) surface here too.
+// apiClient helpers (Bearer-header tests below) — `primeAuth()` seeds the
+// composable so regressions in useAuth/apiClient interceptor surface here.
 import { primeAuth } from '@/test-utils/primeAuth';
 import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
 import { useAuth } from '@/composables/useAuth';
+import type { FilterPreset } from '@/composables/useFilterPresets';
 
-// -----------------------------------------------------------------------------
-// Toast spy — the view surfaces its error "banner" as a danger-variant toast.
-// We intercept the composable so the assertion is a function call check rather
-// than digging through the real Bootstrap-Vue-Next toast DOM.
-// -----------------------------------------------------------------------------
+// Toast spy — assert calls instead of digging through the toast DOM.
 const makeToastSpy = vi.fn();
 vi.mock('@/composables/useToast', () => ({
   default: () => ({ makeToast: makeToastSpy }),
 }));
 
-// -----------------------------------------------------------------------------
-// Router stub — ManageUser reads `this.$route` / `this.$router` transitively
-// (the 401 axios interceptor needs `router.currentRoute`).  A memory-history
-// router with a single `/ManageUser` route keeps the interceptor happy without
-// wiring the real app router.
-// -----------------------------------------------------------------------------
+// Router stub — the 401 axios interceptor needs `router.currentRoute`.
 function makeTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -77,12 +49,8 @@ function makeTestRouter() {
   });
 }
 
-// -----------------------------------------------------------------------------
-// Stubs for heavy child components — we only need the cells that carry the
-// user_role payload so assertions can prove the matrix re-rendered.  Stubbing
-// `GenericTable` avoids pulling in BTable's full implementation (which fights
-// with jsdom's layout engine in Vitest).
-// -----------------------------------------------------------------------------
+// Stub GenericTable to just the cells that carry user_role (avoids BTable
+// fighting jsdom's layout engine) so assertions can prove a re-render.
 const genericTableStub = {
   name: 'GenericTable',
   props: ['items', 'fields', 'sortBy'],
@@ -113,12 +81,8 @@ async function mountComponent() {
   const wrapper = mount(ManageUser, {
     global: {
       plugins: [router, pinia],
-      // Install the real axios instance as `this.axios` via `mocks` rather
-      // than `config.globalProperties`.  Options-API views read axios via
-      // `this.axios` (registered globally in `main.ts`), and the `mocks`
-      // channel bypasses the `ComponentCustomProperties` intersection type
-      // that is augmented by `vue-router` / `pinia` in the production build.
-      // The real axios instance still goes through MSW's `fetch` interceptor.
+      // `this.axios` via `mocks` (not `config.globalProperties`) bypasses the
+      // `ComponentCustomProperties` intersection type; still MSW-intercepted.
       mocks: {
         axios,
         $http: axios,
@@ -320,15 +284,10 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
   );
 });
 
-// ===========================================================================
-// v11.0 closeout F2b — apiClient Bearer header contract (9 new tests)
-// ===========================================================================
-// Nine authed call sites in ManageUser.vue were migrated from hand-built
-// `Authorization: Bearer ${localStorage.getItem('token')}` headers onto
-// `apiClient.raw.*`. Each test below pins one migrated call site with
-// `primeAuth() + expectBearerHeader()` so any regression in either this
-// view or the F1 plumbing (useAuth / apiClient interceptor) surfaces as
-// an observable test failure — not just an ESLint warning.
+// v11.0 closeout F2b — apiClient Bearer header contract (9 tests). Each
+// pins one authed call site with `primeAuth() + expectBearerHeader()` so a
+// regression in this view or the F1 plumbing (useAuth/apiClient interceptor)
+// surfaces as a test failure, not just an ESLint warning.
 describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_API_URL', '');
@@ -557,5 +516,82 @@ describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () 
     await vm.changeUserPassword();
     await flushPromises();
     expect(sawBearer).toBe(true);
+  });
+});
+
+// #346 Wave 2 Task 6 — useManageUserPage.ts page-composition contract: the
+// one-time preset seed, the 20-user select-all cap, the last-admin
+// bulk-delete guard, and every legacy alias name.
+describe('ManageUser view — page composition (#346 Wave 2 Task 6)', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_URL', '');
+    primeAuth('test-token');
+    makeToastSpy.mockClear();
+  });
+
+  afterEach(() => {
+    useAuth().logout();
+    vi.unstubAllEnvs();
+  });
+
+  it('seeds Pending/Curators presets once and stays idempotent on remount', async () => {
+    const w1 = await mountComponent();
+    const p1 = (w1.vm as unknown as { filterPresets: { presets: { value: FilterPreset[] } } })
+      .filterPresets.presets.value;
+    expect(p1.map((p) => p.name).sort()).toEqual(['Curators', 'Pending']);
+    w1.unmount();
+
+    // localStorage persists from w1 (only the outer beforeEach clears it), so
+    // a second mount (navigate-away-and-back) must not duplicate the seed.
+    const w2 = await mountComponent();
+    const p2 = (w2.vm as unknown as { filterPresets: { presets: { value: FilterPreset[] } } })
+      .filterPresets.presets.value;
+    expect(p2).toHaveLength(2);
+  });
+
+  it('caps select-all-on-page at 20 and warns how many were added', async () => {
+    const wrapper = await mountComponent();
+    const vm = wrapper.vm as unknown as {
+      users: UserTableRow[];
+      toggleSelectAllOnPage: () => void;
+      getSelectedArray: () => number[];
+    };
+    vm.users = Array.from({ length: 25 }, (_, i) => ({
+      ...(userTableOk.data as UserTableRow[])[0],
+      user_id: i + 1,
+    }));
+    await flushPromises();
+    vm.toggleSelectAllOnPage();
+    expect(vm.getSelectedArray()).toHaveLength(20);
+    expect(
+      makeToastSpy.mock.calls.some((c) => c[0] === 'Selection limited to 20 users. 20 users added.')
+    ).toBe(true);
+  });
+
+  it('blocks bulk delete when the selection contains the last Administrator', async () => {
+    const wrapper = await mountComponent();
+    const vm = wrapper.vm as unknown as {
+      users: UserTableRow[];
+      openBulkDelete: (ids: number[], allUsers: UserTableRow[]) => void;
+    };
+    // user_id 1 (alice_admin) is the fixture's sole Administrator.
+    expect(() => vm.openBulkDelete([1], vm.users)).toThrow(/admin/i);
+    expect(
+      makeToastSpy.mock.calls.some((c) => c[1] === 'Delete Blocked' && c[2] === 'danger')
+    ).toBe(true);
+  });
+
+  it('preserves every legacy alias exposed by the pre-refactor Options-API view', async () => {
+    const wrapper = await mountComponent();
+    const vm = wrapper.vm as unknown as Record<string, unknown>;
+    [
+      'confirmDeleteUser',
+      'updateUserData',
+      'confirmBulkApprove',
+      'confirmBulkRoleAssignment',
+      'confirmBulkDelete',
+      'changeUserPassword',
+      'makeToast',
+    ].forEach((name) => expect(typeof vm[name]).toBe('function'));
   });
 });

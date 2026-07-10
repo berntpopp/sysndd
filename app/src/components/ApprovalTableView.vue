@@ -17,8 +17,13 @@
     - the status-specific cell renderers (category / problematic / comment /
       status_date / status_user_name),
     - the row action buttons,
-    - the row-expansion card,
-    - the four modals (Approve / Dismiss / EditStatus / ApproveAll).
+    - the row-expansion card.
+
+  Wave 2 Task 5 (#346) moved the four modals (Approve / Dismiss / EditStatus /
+  ApproveAll) out to `@/components/review/StatusApprovalModals.vue` to bring
+  this file under the 600-line ceiling. This component still owns the
+  `showModal`/`hideModal` surface the parent calls — it now delegates to the
+  child via a template ref instead of reaching into its own `$refs`.
 
   The parent (`ApproveStatus.vue`) owns:
     - the HTTP layer (`loadStatusTableData`, `loadStatusInfo`, etc.),
@@ -27,7 +32,8 @@
 
   The parent reaches through this component via a template ref:
     `ref.value.showModal('approve-modal')` — so modal UI plumbing stays here
-    and domain logic stays in the parent.
+    (now one hop further, in `StatusApprovalModals.vue`) and domain logic
+    stays in the parent.
 -->
 <template>
   <div>
@@ -307,144 +313,35 @@
       </template>
     </ReviewTable>
 
-    <!-- Approve status modal -->
-    <BModal
-      :id="approveModalId"
-      :ref="approveModalId"
-      centered
-      ok-title="Approve"
-      ok-variant="success"
-      no-close-on-esc
-      no-close-on-backdrop
-      header-class="border-bottom-0 pb-0"
-      footer-class="border-top-0 pt-0"
-      header-close-label="Close"
-      @ok="$emit('approve-ok')"
-    >
-      <template #title>
-        <div class="d-flex align-items-center">
-          <i class="bi bi-check-circle-fill me-2 text-success" />
-          <span class="fw-semibold">Approve Status</span>
-        </div>
-      </template>
-
-      <div class="text-center py-3">
-        <div class="mb-3">
-          <i class="bi bi-question-circle text-primary" style="font-size: 2.5rem" />
-        </div>
-        <p class="mb-2">
-          You have finished checking this status for entity
-          <BBadge variant="primary" class="mx-1">
-            {{ approveTitle }}
-          </BBadge>
-        </p>
-        <p class="text-muted small">Click <strong>Approve</strong> to confirm and submit.</p>
-        <div v-if="approveHasDuplicates" class="alert alert-info small text-start mt-3 mb-0">
-          <i class="bi bi-info-circle me-1" />
-          Other pending statuses for this entity will be automatically dismissed.
-        </div>
-      </div>
-    </BModal>
-
-    <!-- Dismiss status modal -->
-    <BModal
-      :id="dismissModalId"
-      :ref="dismissModalId"
-      centered
-      ok-title="Dismiss"
-      ok-variant="danger"
-      no-close-on-esc
-      no-close-on-backdrop
-      header-class="border-bottom-0 pb-0"
-      footer-class="border-top-0 pt-0"
-      header-close-label="Close"
-      @ok="$emit('dismiss-ok')"
-    >
-      <template #title>
-        <div class="d-flex align-items-center">
-          <i class="bi bi-x-circle-fill me-2 text-danger" />
-          <span class="fw-semibold">Dismiss Status</span>
-        </div>
-      </template>
-      <div class="text-center py-3">
-        <div class="mb-3">
-          <i class="bi bi-x-circle text-danger" style="font-size: 2.5rem" />
-        </div>
-        <p class="mb-2">
-          Dismiss this pending status for entity
-          <BBadge variant="primary" class="mx-1">
-            {{ dismissTitle }}
-          </BBadge>
-          ?
-        </p>
-        <p class="text-muted small">
-          The status will be removed from the pending queue. This does not delete the record.
-        </p>
-      </div>
-    </BModal>
-
-    <!-- Edit status modal (status-specific EditStatusModal from E5) -->
-    <EditStatusModal
-      :ref="editModalId"
-      :modal-id="editModalId"
-      :loading="loadingEdit"
+    <StatusApprovalModals
+      ref="modalsRef"
+      :approve-title="approveTitle"
+      :dismiss-title="dismissTitle"
+      :approve-has-duplicates="approveHasDuplicates"
+      :loading-edit="loadingEdit"
       :status-info="statusInfo"
       :entity-info="entityInfo"
       :status-options="statusOptions"
+      :approve-all-selected="approveAllSelected"
+      :total-rows="totalRows"
       :user-icon="userIcon"
-      @ok="$emit('edit-ok')"
-      @hide="$emit('edit-hide', $event)"
+      :approve-modal-id="approveModalId"
+      :dismiss-modal-id="dismissModalId"
+      :edit-modal-id="editModalId"
+      :approve-all-modal-id="approveAllModalId"
+      @approve-ok="$emit('approve-ok')"
+      @dismiss-ok="$emit('dismiss-ok')"
+      @edit-ok="$emit('edit-ok')"
+      @edit-hide="$emit('edit-hide', $event)"
+      @approve-all-ok="$emit('approve-all-ok')"
+      @update:approve-all-selected="$emit('update:approveAllSelected', $event)"
       @update:status-info="$emit('update:statusInfo', $event)"
     />
-
-    <!-- Approve all modal -->
-    <BModal
-      :id="approveAllModalId"
-      :ref="approveAllModalId"
-      centered
-      ok-title="Approve All"
-      ok-variant="danger"
-      no-close-on-esc
-      no-close-on-backdrop
-      header-class="border-bottom-0 pb-0"
-      footer-class="border-top-0 pt-0"
-      header-close-label="Close"
-      @ok="$emit('approve-all-ok')"
-    >
-      <template #title>
-        <div class="d-flex align-items-center">
-          <i class="bi bi-exclamation-triangle-fill me-2 text-danger" />
-          <span class="fw-semibold">Approve All Statuses</span>
-        </div>
-      </template>
-      <div class="text-center py-3">
-        <div class="mb-3">
-          <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem" />
-        </div>
-        <p class="mb-2">
-          You are about to approve <strong>ALL</strong> {{ totalRows }} pending statuses.
-        </p>
-        <p class="text-muted small mb-3">
-          This action cannot be undone. Please confirm by toggling the switch below.
-        </p>
-        <div class="d-flex justify-content-center">
-          <BFormCheckbox
-            id="approveAllSwitch"
-            :model-value="approveAllSelected"
-            switch
-            size="lg"
-            @update:model-value="$emit('update:approveAllSelected', Boolean($event))"
-          >
-            <strong>{{ approveAllSelected ? 'Yes, approve all' : 'No, cancel' }}</strong>
-          </BFormCheckbox>
-        </div>
-      </div>
-    </BModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, getCurrentInstance, type PropType } from 'vue';
+import { computed, ref, watch, type PropType } from 'vue';
 import type { TableField } from '@/types/components';
 
 import ReviewTable from '@/components/review/ReviewTable.vue';
@@ -454,10 +351,11 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
-import EditStatusModal, {
-  type StatusInfoShape,
-  type EntityInfoShape,
-  type StatusOption,
+import StatusApprovalModals from '@/components/review/StatusApprovalModals.vue';
+import type {
+  StatusInfoShape,
+  EntityInfoShape,
+  StatusOption,
 } from '@/components/review/EditStatusModal.vue';
 
 import useApprovalTableData from '@/composables/review/useApprovalTableData';
@@ -605,18 +503,19 @@ const onFiltered = (filteredList: unknown[]): void => {
 // ---------------------------------------------------------------------------
 // Modal-ref helpers exposed to the parent.
 // `ApproveStatus.vue` calls `ref.value.showModal(id)` instead of poking into
-// `$refs` directly — keeps the modal plumbing scoped to this component.
+// `$refs` directly. Wave 2 Task 5 (#346) moved the actual modals to
+// `StatusApprovalModals.vue`, so this component now forwards through a
+// template ref to that child instead of resolving `$refs` itself.
 // ---------------------------------------------------------------------------
-const instance = getCurrentInstance();
+const modalsRef = ref<{
+  showModal: (id: string) => void;
+  hideModal: (id: string) => void;
+} | null>(null);
 const showModal = (id: string): void => {
-  const handle = (instance?.proxy as unknown as { $refs?: Record<string, unknown> } | undefined)
-    ?.$refs?.[id] as { show?: () => void } | undefined;
-  handle?.show?.();
+  modalsRef.value?.showModal(id);
 };
 const hideModal = (id: string): void => {
-  const handle = (instance?.proxy as unknown as { $refs?: Record<string, unknown> } | undefined)
-    ?.$refs?.[id] as { hide?: () => void } | undefined;
-  handle?.hide?.();
+  modalsRef.value?.hideModal(id);
 };
 
 // ---------------------------------------------------------------------------

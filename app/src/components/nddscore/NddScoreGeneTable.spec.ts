@@ -1,3 +1,11 @@
+// Mounted-component coverage for the NDDScore gene predictions table: DOM
+// filter controls, sort, pagination, gene-detail links, and warning
+// rendering. Load/URL/state/action logic lives in useNddScoreGeneTable.ts
+// (issue #346); useNddScoreGeneTable.spec.ts adds the characterization
+// coverage for that extraction (URL hydration, request-serial stale
+// rejection, full filter reset, HPO-load graceful degradation) that does not
+// need a full component mount.
+
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NddScoreGeneTable from './NddScoreGeneTable.vue';

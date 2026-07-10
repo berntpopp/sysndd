@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import GenericTable from './GenericTable.vue';
 
 const fields = [{ key: 'symbol', label: 'Gene', sortable: true }];
@@ -132,4 +132,81 @@ describe('GenericTable responsive mode', () => {
     expect(writeText).toHaveBeenCalledWith(synopsis);
     expect(button.text()).toContain('Copied');
   });
+
+  it('keeps the button in the copy state when the clipboard write fails', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ entity_id: 7, synopsis: 'Un-copyable clinical synopsis.' }],
+        fields,
+        fieldDetails: [{ key: 'synopsis', label: 'Clinical Synopsis' }],
+      },
+      global: {
+        stubs: {
+          BTable: bTableStub,
+          BCard: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    const button = wrapper.get('.generic-table-detail__copy-button');
+    await button.trigger('click');
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalled();
+    expect(button.text()).toContain('Copy');
+    expect(button.text()).not.toContain('Copied');
+  });
+
+  it('resets the copied state after the timeout and clears the timer on unmount', async () => {
+    vi.useFakeTimers();
+    const clearSpy = vi.spyOn(window, 'clearTimeout');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ entity_id: 9, synopsis: 'Timed clinical synopsis.' }],
+        fields,
+        fieldDetails: [{ key: 'synopsis', label: 'Clinical Synopsis' }],
+      },
+      global: {
+        stubs: {
+          BTable: bTableStub,
+          BCard: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    const button = wrapper.get('.generic-table-detail__copy-button');
+    await button.trigger('click');
+    await Promise.resolve();
+    expect(button.text()).toContain('Copied');
+
+    // Timer resets the label back to Copy.
+    vi.advanceTimersByTime(1600);
+    await wrapper.vm.$nextTick();
+    expect(button.text()).toContain('Copy');
+    expect(button.text()).not.toContain('Copied');
+
+    // Unmounting with a pending timer clears it (no leaked callback).
+    await button.trigger('click');
+    await Promise.resolve();
+    clearSpy.mockClear();
+    wrapper.unmount();
+    expect(clearSpy).toHaveBeenCalled();
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
