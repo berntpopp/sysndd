@@ -31,140 +31,21 @@
       :aria-label="`Protein domain lollipop plot for ${geneSymbol}`"
     />
 
-    <!-- Controls row: Coloring toggle (left) + Domain legend (center) + Export buttons (right) -->
-    <div
-      class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2"
-    >
-      <!-- Coloring mode toggle -->
-      <div class="btn-group btn-group-sm" role="group" aria-label="Variant coloring mode">
-        <button
-          type="button"
-          class="btn btn-xs"
-          :class="filterState.coloringMode === 'acmg' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="setColoringMode('acmg')"
-        >
-          Classification
-        </button>
-        <button
-          type="button"
-          class="btn btn-xs"
-          :class="filterState.coloringMode === 'effect' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="setColoringMode('effect')"
-        >
-          Effect
-        </button>
-      </div>
-
-      <!-- Domain legend (compact, inline) -->
-      <div
-        v-if="domainLegendItems.length > 0"
-        class="domain-legend d-flex flex-wrap justify-content-center gap-2"
-      >
-        <span v-for="item in domainLegendItems" :key="item.type" class="domain-legend-item">
-          <span class="domain-dot" :style="{ backgroundColor: item.color }" />
-          <span class="domain-label">{{ item.label }}</span>
-        </span>
-      </div>
-
-      <!-- Export buttons -->
-      <div class="export-buttons d-flex gap-1">
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-xs"
-          title="Download as SVG"
-          @click="downloadSVG"
-        >
-          <i class="bi bi-download" />
-          SVG
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-xs"
-          title="Download as PNG"
-          @click="downloadPNG"
-        >
-          <i class="bi bi-image" />
-          PNG
-        </button>
-      </div>
-    </div>
-
-    <!-- Filter rows: Pathogenicity (row 1) + Effect type (row 2) -->
-    <div class="filter-rows mt-1 px-2">
-      <!-- Row 1: Pathogenicity filters -->
-      <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
-        <span v-for="item in legendItems" :key="item.label" class="filter-group">
-          <button
-            type="button"
-            class="filter-chip"
-            :class="{ 'filter-chip--hidden': !item.visible }"
-            :aria-label="`Toggle ${item.label} variants`"
-            :aria-pressed="item.visible"
-            @click="toggleFilter(item.key)"
-          >
-            <span
-              class="filter-dot"
-              :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
-            />
-            <span class="filter-label">{{ item.label }}</span>
-            <span v-if="item.count > 0" class="filter-count">{{ item.count }}</span>
-          </button>
-          <button
-            type="button"
-            class="only-btn"
-            title="Show only this category"
-            @click="selectOnlyPathogenicity(item.key)"
-          >
-            only
-          </button>
-        </span>
-        <button
-          type="button"
-          class="all-btn"
-          title="Show all pathogenicity categories"
-          @click="selectAllPathogenicity"
-        >
-          all
-        </button>
-      </div>
-
-      <!-- Row 2: Effect type filters -->
-      <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1">
-        <span v-for="item in effectLegendItems" :key="item.key" class="filter-group">
-          <button
-            type="button"
-            class="filter-chip"
-            :class="{ 'filter-chip--hidden': !item.visible }"
-            :aria-label="`Toggle ${item.label} variants`"
-            :aria-pressed="item.visible"
-            @click="toggleEffectFilter(item.key)"
-          >
-            <span
-              class="filter-dot"
-              :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
-            />
-            <span class="filter-label">{{ item.label }}</span>
-            <span v-if="item.count > 0" class="filter-count">{{ item.count }}</span>
-          </button>
-          <button
-            type="button"
-            class="only-btn"
-            title="Show only this effect type"
-            @click="selectOnlyEffectType(item.key)"
-          >
-            only
-          </button>
-        </span>
-        <button
-          type="button"
-          class="all-btn"
-          title="Show all effect types"
-          @click="selectAllEffectTypes"
-        >
-          all
-        </button>
-      </div>
-    </div>
+    <ProteinLollipopControlsPanel
+      :coloring-mode="filterState.coloringMode"
+      :domain-legend-items="domainLegendItems"
+      :legend-items="legendItems"
+      :effect-legend-items="effectLegendItems"
+      @update:coloring-mode="setColoringMode"
+      @toggle-pathogenicity="toggleFilter"
+      @select-only-pathogenicity="selectOnlyPathogenicity"
+      @select-all-pathogenicity="selectAllPathogenicity"
+      @toggle-effect="toggleEffectFilter"
+      @select-only-effect="selectOnlyEffectType"
+      @select-all-effects="selectAllEffectTypes"
+      @download-svg="downloadSVG"
+      @download-png="downloadPNG"
+    />
   </div>
 </template>
 
@@ -180,6 +61,8 @@ import type {
   ColoringMode,
 } from '@/types';
 import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS } from '@/types/protein';
+import ProteinLollipopControlsPanel from './ProteinLollipopControlsPanel.vue';
+import { useProteinLollipopExport } from './useProteinLollipopExport';
 import {
   EFFECT_TYPE_ORDER,
   EFFECT_TYPE_LABELS,
@@ -247,6 +130,13 @@ const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
   margin: { top: 15, right: 20, bottom: 28, left: 40 },
   onVariantClick: (variant) => emit('variant-click', variant),
   onVariantHover: (variant) => emit('variant-hover', variant),
+});
+
+// DOM download mechanics (object-URL/anchor plumbing) for the export buttons
+const { downloadSVG, downloadPNG } = useProteinLollipopExport({
+  geneSymbol: () => props.geneSymbol,
+  exportSVG,
+  exportPNG,
 });
 
 /**
@@ -379,39 +269,6 @@ function selectAllEffectTypes(): void {
 }
 
 /**
- * Download SVG export
- */
-function downloadSVG(): void {
-  const svgString = exportSVG();
-  if (!svgString) return;
-
-  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${props.geneSymbol}_lollipop_plot.svg`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * Download PNG export
- */
-async function downloadPNG(): Promise<void> {
-  const dataUrl = await exportPNG(2);
-  if (!dataUrl) return;
-
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = `${props.geneSymbol}_lollipop_plot.png`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-/**
  * Reactive rendering: re-render when data or filter state changes
  */
 watchEffect(() => {
@@ -451,127 +308,6 @@ watch(
 .plot-container :deep(svg) {
   width: 100%;
   height: auto;
-}
-
-/* Controls row */
-.controls-row {
-  border-bottom: 1px solid #eee;
-  padding-bottom: 6px;
-}
-
-/* Extra small button size */
-.btn-xs {
-  padding: 3px 8px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-}
-
-/* Filter chips - compact toggle buttons */
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border: 1px solid #dee2e6;
-  border-radius: 12px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
-.filter-chip:hover {
-  border-color: #adb5bd;
-  background: #f8f9fa;
-}
-
-.filter-chip--hidden {
-  opacity: 0.4;
-  background: #f5f5f5;
-}
-
-.filter-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.filter-label {
-  white-space: nowrap;
-}
-
-.filter-count {
-  color: #6c757d;
-  font-size: 0.7rem;
-}
-
-.filter-separator {
-  color: #ccc;
-  margin: 0 4px;
-  font-size: 0.8rem;
-}
-
-/* Filter group with "only" button */
-.filter-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-}
-
-/* "only" and "all" buttons (gnomAD-style) */
-.only-btn,
-.all-btn {
-  padding: 1px 4px;
-  font-size: 0.65rem;
-  line-height: 1.2;
-  border: 1px solid #dee2e6;
-  border-radius: 3px;
-  background: #f8f9fa;
-  color: #6c757d;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.only-btn:hover,
-.all-btn:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
-  color: #495057;
-}
-
-.all-btn {
-  margin-left: 2px;
-}
-
-/* Domain legend items (compact, non-interactive) */
-.domain-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.domain-dot {
-  display: inline-block;
-  width: 12px;
-  height: 7px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.domain-label {
-  font-size: 0.7rem;
-  color: #6c757d;
-  white-space: nowrap;
-}
-
-/* Export buttons */
-.export-buttons .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
 }
 
 /* D3-created tooltip styling (scoped with :deep) */
