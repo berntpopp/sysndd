@@ -53,8 +53,10 @@ same domain PR after receiving the agent's ordered requirements. Every domain PR
 For `publication`, `user`, `admin`, `jobs`, `re_review`, `entity`, `statistics`,
 `llm_admin`, and `backup`, parse source in order and assert every HTTP method/path,
 handler formal/default order, `@tag`, `@serializer`, and `@accept` block. Include both
-ordered `GET <pmid>` declarations. Assert the current authorization matrix and that
-every nontrivial final shell delegates exactly once to a `svc_` function.
+ordered `GET <pmid>` declarations and assert the current authorization matrix. Do not
+assert future `svc_` delegation in this guard PR. Each domain PR adds a failing assertion
+that its own nontrivial shells delegate exactly once to the named `svc_` functions, then
+makes that assertion green during extraction.
 
 - [ ] **Step 2: Characterize mount/error behavior**
 
