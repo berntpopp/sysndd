@@ -52,7 +52,9 @@ public bindings begin `svc_`/`service_` and none collide with repository binding
 
 The integration owner also centralizes re-review and LLM-admin pagination envelope
 assertions in `test-pagination-contract.R`. Domain agents treat that shared file as
-verification-only, giving it one writer during parallel execution.
+verification-only, giving it one writer during parallel execution. In every Files list,
+`Verify:` means read-only execution of the named test; the domain agent must not edit,
+stage, or commit that file.
 
 - [ ] **Step 4: Run the tests before production changes**
 
@@ -169,7 +171,8 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - [ ] Move functional, phenotype, maintenance, history, and status handler bodies to the
   named services. Preserve anonymous executor closures inside submission services and
   keep `async_job_handler_registry` unchanged. Keep public vs Administrator gates in
-  shells.
+  shells. The codebase has no `ASYNC_JOB_HANDLERS` binding; do not introduce or search
+  for that obsolete/nonexistent name.
 - [ ] Do not add endpoint services to worker bootstrap. Run contract/bootstrap/job/
   approved-input tests, lint, and line counts. Commit as
   `refactor(api): extract job endpoint services (#346)`.
