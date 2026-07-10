@@ -12,8 +12,15 @@
 
 ---
 
-Wave 2 branches must start from merged Wave 0. Tasks 2-10 additionally start after
-Task 1's `GenericTable` seam is merged and its consumer suite is green.
+Wave 2 starts only after Wave 1 is merged, so it inherits Wave 0 and all current master
+changes. Tasks 2-10 additionally start after Task 1's `GenericTable` seam is committed
+and its consumer suite is green.
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-2-frontend-workflows
+```
 
 ### Task 1: Decompose GenericTable’s details and sorting responsibilities
 
@@ -34,10 +41,13 @@ Task 1's `GenericTable` seam is merged and its consumer suite is green.
   `GenericTableDetails.vue`; retain the outer `row-expansion` and
   `row-expansion-extra` slots in the parent.
 - [ ] Move the complete desktop `BTable` responsibility—including all current cell-slot
-  forwarding blocks, busy/empty/table attributes, details toggle, and sort events—to
-  `GenericDesktopTable.vue`. Forward each named consumer slot through the child without
-  renaming slot props. Keep mobile rows, pagination, toolbar, and row-expansion ownership
-  in `GenericTable.vue`; do not replace domain slots with a generic if/else renderer.
+  forwarding blocks, the `filter-controls`/`thead-top` slot, busy/empty/table attributes,
+  details-toggle wiring, and sort events—to `GenericDesktopTable.vue`. `GenericTable.vue`
+  becomes a thin wrapper that forwards all consumer slots/props/emits to the desktop
+  child and uses `GenericTableDetails.vue` for the row-expansion default. Mobile rows,
+  pagination, and surrounding toolbar chrome belong to parent consumer SFCs and remain
+  out of scope; do not add them to `GenericTable.vue`. Do not rename slot props or
+  replace domain slots with a generic if/else renderer.
 - [ ] Move local sort normalization and header/sorted handlers to the composable.
   Preserve every prop, emit, slot, responsive row, tooltip, and imperative behavior.
 - [ ] Verify:

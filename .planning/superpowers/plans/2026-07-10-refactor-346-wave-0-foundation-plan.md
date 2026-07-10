@@ -12,6 +12,32 @@
 
 ---
 
+### Task 0: Repair the existing 0.29.5 lockfile version drift
+
+**Files:**
+- Modify: `app/package-lock.json:3,9`
+
+- [ ] **Step 1: Align the npm lock root without changing dependencies**
+
+```bash
+cd app
+npm version 0.29.5 --no-git-tag-version --allow-same-version
+cd ..
+git diff -- app/package.json app/package-lock.json
+```
+
+Expected: `app/package.json` remains `0.29.5`; only the lockfile root `version` and
+`packages[""] .version` change from `0.29.4` to `0.29.5`; dependency resolutions do
+not change.
+
+- [ ] **Step 2: Verify and commit the lineage repair**
+
+```bash
+node -e "const p=require('./app/package.json'); const l=require('./app/package-lock.json'); if (p.version!==l.version||p.version!==l.packages[''].version) process.exit(1)"
+git add app/package-lock.json
+git commit -m "chore(app): align lockfile version with v0.29.5"
+```
+
 ### Task 1: Pin password-reset JWT calls to JOSE
 
 **Files:**
@@ -52,6 +78,26 @@ docker exec sysndd-api-1 Rscript -e \
 
 Expected: FAIL because `conflicted` reports `jwt_claim found in 2 packages`; the injected mailer has zero calls.
 
+Capture the actual caught condition in the PR evidence:
+
+```bash
+docker exec sysndd-api-1 Rscript -e \
+  "testthat::test_dir('/app/tests/testthat', filter='password-reset-request', reporter='location', stop_on_failure=TRUE)" \
+  2>&1 | tee /tmp/sysndd-password-reset-red.log
+rg 'jwt_claim found in 2 packages|Expected.*calls.*length 1' \
+  /tmp/sysndd-password-reset-red.log
+```
+
+Expected: the log shows the `httr2::jwt_claim`/`jose::jwt_claim` conflict caught by the
+best-effort reset handler and the zero-mailer-call assertion failure.
+
+- [ ] **Step 2a: Commit the red regression test before the fix**
+
+```bash
+git add api/tests/testthat/test-unit-password-reset-request.R
+git commit -m "test(api): reproduce password-reset JWT namespace conflict"
+```
+
 - [ ] **Step 3: Qualify the intended JWT implementation**
 
 In `process_password_reset_request()`, replace:
@@ -90,11 +136,10 @@ docker exec sysndd-api-1 Rscript -e \
 
 Expected: both commands PASS; the successful mailer is called exactly once even after `httr2` is attached.
 
-- [ ] **Step 5: Commit the focused CI repair**
+- [ ] **Step 5: Commit the focused CI repair separately**
 
 ```bash
-git add api/functions/user-endpoint-helpers.R \
-  api/tests/testthat/test-unit-password-reset-request.R
+git add api/functions/user-endpoint-helpers.R
 git commit -m "fix(api): qualify password-reset JOSE calls"
 ```
 
@@ -147,6 +192,21 @@ git diff -- scripts/code-quality-file-size-baseline.tsv
 
 Expected: exit 0; no new entry and no increased value. `AnalyseGeneClusters.vue` tightens from 1251 to 607; all other retained rows equal their current line counts.
 
+Also require exactly seven removals, zero additions, and zero increases. The regression
+test file is excluded by the audit's test policy, but must remain below 600 lines:
+
+```bash
+test "$(wc -l < api/tests/testthat/test-unit-password-reset-request.R)" -le 600
+awk -F '\t' '
+  NR == FNR { old[$1] = $2 + 0; next }
+  { current[$1] = $2 + 0; if (!($1 in old)) added++; if (($1 in old) && $2 + 0 > old[$1]) increased++ }
+  END {
+    for (path in old) if (!(path in current)) removed++
+    if (removed != 7 || added != 0 || increased != 0) exit 1
+  }
+' /tmp/sysndd-size-baseline.before.tsv scripts/code-quality-file-size-baseline.tsv
+```
+
 - [ ] **Step 4: Verify the ratchet and harness**
 
 ```bash
@@ -172,9 +232,10 @@ git commit -m "chore(quality): ratchet #346 baseline to current sizes"
 
 ```bash
 make pre-commit
+make test-api
 ```
 
-Expected: PASS. The previously failing password-reset suite path is green.
+Expected: PASS. The full R API suite—not only the filtered file—is green.
 
 - [ ] **Step 2: Push and open the PR**
 

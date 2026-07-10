@@ -12,6 +12,14 @@
 
 ---
 
+Create Wave 4 only after Wave 3 is merged and master is current:
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-4-api-services
+```
+
 ### Task 1: Add module/source-order characterization
 
 **Files:**
@@ -21,10 +29,11 @@
 - [ ] Parse `bootstrap/load_modules.R` and assert exact-once, dependency-ordered entries
   for every module named in this plan. Assert service bindings remain prefixed and do
   not collide with repository bindings.
-- [ ] Parse `start_async_worker.R` and `bootstrap/setup_workers.R`; assert extracted
-  handler files appear before `async-job-handlers.R`, async repository helpers appear
-  before the repository, NDDScore source before import, and OMIM download/parser before
-  the OMIM shell in every runtime that uses them.
+- [ ] Parse `start_async_worker.R`, `functions/async-job-worker.R`, and
+  `bootstrap/setup_workers.R`; assert extracted handler files appear before
+  `async-job-handlers.R`, async repository helpers appear before the repository,
+  NDDScore source before import, and OMIM download/parser before the OMIM shell in every
+  runtime that uses them.
 - [ ] Run both tests before adding modules; expected new-registration assertions fail.
 - [ ] Commit as `test(api): characterize module and worker source order (#346)`.
 
@@ -74,6 +83,7 @@
 - Create: `api/functions/async-job-provider-handlers.R` (≤460)
 - Create: `api/functions/async-job-maintenance-handlers.R` (≤260)
 - Modify: `api/functions/async-job-handlers.R` (≤380)
+- Modify: `api/functions/async-job-worker.R`
 - Modify: `api/start_async_worker.R`
 - Modify: `api/bootstrap/setup_workers.R`
 - Modify: `api/bootstrap/load_modules.R`
@@ -88,8 +98,11 @@
   module. Move backup create/restore and publication refresh/backfill to maintenance
   module. Keep common payload/progress/clustering helpers, passthrough factory, registry,
   and lookup in the shell.
-- [ ] Explicitly source extracted handlers before registry in API, worker, and mirai
-  bootstrap. Do not change job names, lane/priority helpers, handler payloads,
+- [ ] Explicitly source extracted handlers before registry in API, standalone worker,
+  `async-job-worker.R`'s guarded fallback chain, and mirai bootstrap. The guarded path
+  must source provider and maintenance modules before `async-job-handlers.R`, because
+  the registry binds handler functions eagerly. Do not change job names, lane/priority
+  helpers, handler payloads,
   cancellation, success hooks, or external budget resets.
 - [ ] Run handler/worker/preload/publication/NDDScore/PubTator/ontology tests, lint, and
   counts. Restart `worker` and `worker-maintenance`, submit one default-lane clustering

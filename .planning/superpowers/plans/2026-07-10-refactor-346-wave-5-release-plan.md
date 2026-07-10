@@ -12,12 +12,29 @@
 
 ---
 
+Create the release branch only after Wave 4 is merged:
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-5-release
+```
+
 ### Task 1: Prove the final oversized-file inventory
 
 **Files:**
 - Modify: `scripts/code-quality-file-size-baseline.tsv`
 
 - [ ] **Step 1: Generate an independent inventory**
+
+First prove the production-source exclusions did not change during the program:
+
+```bash
+git diff --exit-code b7b8ab05 -- scripts/code-quality-audit.sh
+```
+
+Expected: no diff. This pins Wave 5 to the exact pre-program `collect_counts()` roots,
+extensions, and exclusions instead of making the target easier by shrinking scope.
 
 ```bash
 find api app/src app/scripts db scripts -type f \
@@ -130,6 +147,20 @@ git diff -- app/package.json app/package-lock.json api/version_spec.json CHANGEL
 
 Expected: exit 0; the lockfile changes only its two root version fields.
 
+Verify the patch classification remains valid by proving public HTTP and frontend mock
+contracts did not drift:
+
+```bash
+./scripts/verify-msw-against-openapi.sh
+cd api && Rscript --no-init-file -e \
+  "testthat::test_file('tests/testthat/test-unit-oversized-endpoint-contract.R')"
+cd ..
+```
+
+Expected: PASS. The release PR records that no route, handler formal, auth gate,
+response contract, exported frontend route, or CLI interface changed, so `0.29.6` is a
+SemVer patch release despite the internal refactor volume.
+
 - [ ] **Step 5: Commit the release**
 
 ```bash
@@ -173,7 +204,7 @@ gh pr create \
     '- make ci-local' \
     '- Claude Code and Codex cumulative review' \
     '' \
-    'Closes #346.')"
+    'Part of #346.')"
 gh pr checks --watch
 gh pr merge --squash --delete-branch
 ```
@@ -215,5 +246,10 @@ gh issue comment 346 --body "$(printf '%s\n' \
 gh issue close 346 --reason completed
 gh issue view 346 --json state,closedAt,url
 ```
+
+The release PR deliberately says `Part of #346`, not `Closes #346`; this explicit
+evidence-comment-then-close sequence is the single closure mechanism. `release_sha` is
+the post-merge master SHA, and the raw audit output must be included in the comment or
+linked GitHub check rather than summarized without evidence.
 
 Expected: issue state `CLOSED` with a non-null `closedAt`.

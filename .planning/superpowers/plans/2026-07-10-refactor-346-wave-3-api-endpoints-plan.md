@@ -12,12 +12,21 @@
 
 ---
 
+Create Wave 3 only after the merged frontend waves are on master:
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-3-api-endpoints
+```
+
 ### Task 1: Characterize the endpoint and bootstrap contracts
 
 **Files:**
 - Create: `api/tests/testthat/test-unit-oversized-endpoint-contract.R`
 - Create: `api/tests/testthat/test-unit-endpoint-service-bootstrap.R`
 - Modify: `api/tests/testthat/test-unit-endpoint-error-handler.R`
+- Modify: `api/tests/testthat/test-pagination-contract.R`
 
 - [ ] **Step 1: Build a hard-coded route manifest test**
 
@@ -40,6 +49,10 @@ envelopes containing `type`, `title`, `status`, `detail`, and `instance` with
 Parse `service_files`; after implementation every new file must appear exactly once,
 after its domain dependency and before `bootstrap_mount_endpoints()` runs. Assert all
 public bindings begin `svc_`/`service_` and none collide with repository bindings.
+
+The integration owner also centralizes re-review and LLM-admin pagination envelope
+assertions in `test-pagination-contract.R`. Domain agents treat that shared file as
+verification-only, giving it one writer during parallel execution.
 
 - [ ] **Step 4: Run the tests before production changes**
 
@@ -155,7 +168,8 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
   clamp, result-mode 400/403/503/404/running behavior, and public summaries.
 - [ ] Move functional, phenotype, maintenance, history, and status handler bodies to the
   named services. Preserve anonymous executor closures inside submission services and
-  keep `ASYNC_JOB_HANDLERS` unchanged. Keep public vs Administrator gates in shells.
+  keep `async_job_handler_registry` unchanged. Keep public vs Administrator gates in
+  shells.
 - [ ] Do not add endpoint services to worker bootstrap. Run contract/bootstrap/job/
   approved-input tests, lint, and line counts. Commit as
   `refactor(api): extract job endpoint services (#346)`.
@@ -167,7 +181,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Create: `api/services/re-review-workflow-endpoint-service.R` (≤380)
 - Create: `api/tests/testthat/test-unit-re-review-endpoint-services.R`
 - Modify: `api/endpoints/re_review_endpoints.R` (≤390)
-- Modify: `api/tests/testthat/test-pagination-contract.R`
+- Verify: `api/tests/testthat/test-pagination-contract.R`
 - Modify: `api/bootstrap/load_modules.R`
 
 - [ ] Test submit allowlisting/unnamed DB params, refusal errors, query predicates,
@@ -229,7 +243,7 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - Create: `api/services/backup-endpoint-service.R` (≤450)
 - Modify: `api/endpoints/backup_endpoints.R` (≤215)
 - Modify: `api/tests/testthat/test-endpoint-backup.R`
-- Modify: `api/tests/testthat/test-pagination-contract.R`
+- Verify: `api/tests/testthat/test-pagination-contract.R`
 - Modify: `api/bootstrap/load_modules.R`
 
 - [ ] LLM tests cover model/pagination/cache/prompt validation, Gemini 503, snapshot 409,

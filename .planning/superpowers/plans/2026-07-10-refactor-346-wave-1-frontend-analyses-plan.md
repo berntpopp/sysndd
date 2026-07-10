@@ -12,6 +12,14 @@
 
 ---
 
+Before Task 1, create the wave branch only after Wave 0 is merged:
+
+```bash
+git switch master
+git pull --ff-only origin master
+git switch -c refactor/346-wave-1-frontend-analyses
+```
+
 ### Task 1: Extract the functional-cluster summary panel
 
 **Files:**
@@ -372,8 +380,8 @@ Expected: PASS; every production file is below 600 lines.
 
 ### Task 8: Integrate and publish Wave 1
 
-Wave 1 branches must start from merged Wave 0 so they inherit the truthful 39-row
-baseline and the green password-reset suite.
+The branch therefore inherits the truthful 39-row baseline and green password-reset
+suite; do not prepare it from a pre-Wave-0 base.
 
 - [ ] **Step 1: Rewrite the baseline once after all accepted tasks**
 
