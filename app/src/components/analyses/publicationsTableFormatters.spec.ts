@@ -95,4 +95,26 @@ describe('mergePublicationFields', () => {
     const merged = mergePublicationFields([{ key: 'Title', label: 'Title' }]);
     expect(merged.map((f) => f.key)).toEqual(['Title', 'details']);
   });
+
+  it('normalizes column order to the fixed visible order regardless of inbound order', () => {
+    // The live API returns fspec fields in query order (see
+    // generate_tibble_fspec's `arrange(factor(key, levels = fspecInput))`),
+    // which need not match the fixed visible-column order below. This locks
+    // down mergePublicationFields as always re-ordering to the canonical
+    // [publication_id, Title, Publication_date, Journal] sequence.
+    const outOfApiOrder: PublicationTableField[] = [
+      { key: 'publication_id', label: 'Publication ID' },
+      { key: 'Title', label: 'Title' },
+      { key: 'Journal', label: 'Journal' },
+      { key: 'Publication_date', label: 'Publication date' },
+    ];
+    const merged = mergePublicationFields(outOfApiOrder);
+    expect(merged.map((f) => f.key)).toEqual([
+      'publication_id',
+      'Title',
+      'Publication_date',
+      'Journal',
+      'details',
+    ]);
+  });
 });
