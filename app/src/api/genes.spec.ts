@@ -17,7 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { getGene, getGeneBySymbol, listGenes } from './genes';
+import { getGene, getGeneBySymbol, listGenes, listGenesXlsx } from './genes';
 import { getUniprotDomains } from './external';
 import { isApiError } from './client';
 import { server } from '@/test-utils/mocks/server';
@@ -197,6 +197,83 @@ describe('api/genes — typed helpers', () => {
 
       await listGenes({ filter: 'equals(symbol,GRIN2B)' });
       await listGenes({ filter: 'equals(symbol,GRIN2B)', compact: false });
+
+      expect(observedQueries).toHaveLength(2);
+      expect(observedQueries[0].has('compact')).toBe(false);
+      expect(observedQueries[1].has('compact')).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // listGenesXlsx
+  // ---------------------------------------------------------------------------
+
+  describe('listGenesXlsx', () => {
+    it('returns a Blob and forces format=xlsx', async () => {
+      let observedQuery: URLSearchParams | null = null;
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQuery = new URL(request.url).searchParams;
+          return new HttpResponse(new Uint8Array([0x50, 0x4b, 0x03, 0x04]), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          });
+        })
+      );
+
+      const blob = await listGenesXlsx({ sort: 'symbol' });
+      const q = observedQuery as unknown as URLSearchParams;
+      expect(q.get('format')).toBe('xlsx');
+      expect(q.get('sort')).toBe('symbol');
+      expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('forwards a gene-symbol page_after cursor as a string, not a number', async () => {
+      let observedQuery: URLSearchParams | null = null;
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQuery = new URL(request.url).searchParams;
+          return new HttpResponse(new Uint8Array([0x50, 0x4b]), { status: 200 });
+        })
+      );
+
+      await listGenesXlsx({ page_after: 'ABCA5', page_size: 'all' });
+
+      const q = observedQuery as unknown as URLSearchParams;
+      // Symbol cursors must round-trip verbatim — no Number() coercion.
+      expect(q.get('page_after')).toBe('ABCA5');
+      expect(q.get('page_size')).toBe('all');
+    });
+
+    it('forwards compact=true when requested, mirroring listGenes', async () => {
+      let observedQuery: URLSearchParams | null = null;
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQuery = new URL(request.url).searchParams;
+          return new HttpResponse(new Uint8Array([0x50, 0x4b]), { status: 200 });
+        })
+      );
+
+      await listGenesXlsx({ filter: 'equals(symbol,GRIN2B)', compact: true });
+
+      const q = observedQuery as unknown as URLSearchParams;
+      expect(q.get('compact')).toBe('true');
+      expect(q.get('filter')).toBe('equals(symbol,GRIN2B)');
+    });
+
+    it('omits compact entirely when params.compact is false or undefined', async () => {
+      const observedQueries: URLSearchParams[] = [];
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQueries.push(new URL(request.url).searchParams);
+          return new HttpResponse(new Uint8Array([0x50, 0x4b]), { status: 200 });
+        })
+      );
+
+      await listGenesXlsx({});
+      await listGenesXlsx({ compact: false });
 
       expect(observedQueries).toHaveLength(2);
       expect(observedQueries[0].has('compact')).toBe(false);

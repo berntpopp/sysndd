@@ -308,28 +308,20 @@
 </template>
 
 <script>
+// Thin shell: all gene-table state/loading/cursor/url-sync lives in the
+// useGenesTable composable; the static column/detail-field configuration
+// lives in geneTableConfig.ts.
+//
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-// Import Vue utilities
-import { ref, inject } from 'vue';
+import { defineComponent } from 'vue';
 
 // Import Bootstrap-Vue-Next components
 import { BTable, BCard } from 'bootstrap-vue-next';
-
-// Import composables
-import {
-  useToast,
-  useUrlParsing,
-  useColorAndSymbols,
-  useText,
-  useTableData,
-  useTableMethods,
-  useColumnTooltip,
-} from '@/composables';
 
 // Import the Table components
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
@@ -346,21 +338,11 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
-import { withReturnTo } from '@/utils/returnNavigation';
 
-// Import the Pinia store
-import { useUiStore } from '@/stores/ui';
-
-// Typed API client
-import { listGenes } from '@/api/genes';
-import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 import { normalizeSelectOptions } from '@/utils/selectOptions';
+import { useGenesTable } from './useGenesTable';
 
-// Module-level variables to track API calls across component remounts
-// This survives when Vue Router remounts the component on URL changes
-const genesRequestCoordinator = createTableRequestCoordinator();
-
-export default {
+export default defineComponent({
   name: 'TablesGenes',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {
@@ -402,348 +384,13 @@ export default {
     },
   },
   setup(props) {
-    // Independent composables
-    const { makeToast } = useToast();
-    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
-    const colorAndSymbols = useColorAndSymbols();
-    const text = useText();
-    const { getTooltipText } = useColumnTooltip();
-
-    // Table state composable
-    const tableData = useTableData({
-      pageSizeInput: props.pageSizeInput,
-      sortInput: props.sortInput,
-      pageAfterInput: props.pageAfterInput,
-    });
-
-    // Component-specific filter (defined here, not in composable)
-    const filter = ref({
-      any: { content: null, join_char: null, operator: 'contains' },
-      entity_id: { content: null, join_char: null, operator: 'contains' },
-      symbol: { content: null, join_char: null, operator: 'contains' },
-      disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-      disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-      hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-      hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-      ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-      category: { content: null, join_char: ',', operator: 'any' },
-      entities_count: { content: null, join_char: ',', operator: 'any' },
-    });
-
-    // Inject axios
-    const axios = inject('axios');
-
-    // Note: loadData is not passed here because it's defined in methods
-    // and will be available via this context when tableMethods.filtered() is called
-    const tableMethods = useTableMethods(tableData, {
-      filter,
-      filterObjToStr,
-      apiEndpoint: props.apiEndpoint,
-      axios,
-    });
-
-    // Destructure to exclude functions we override in methods
-
-    const {
-      filtered: _filtered,
-      handlePageChange: _handlePageChange,
-      handlePerPageChange: _handlePerPageChange,
-      handleSortByOrDescChange: _handleSortByOrDescChange,
-      ...restTableMethods
-    } = tableMethods;
-
-    // Return all needed properties
     return {
-      makeToast,
-      filterObjToStr,
-      filterStrToObj,
-      sortStringToVariables,
-      ...colorAndSymbols,
-      ...text,
-      ...tableData,
-      ...restTableMethods,
-      getTooltipText,
-      filter,
-      axios,
+      ...useGenesTable(props),
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,
     };
   },
-  data() {
-    return {
-      // Flag to prevent watchers from triggering during initialization
-      isInitializing: true,
-      // Debounce timer for loadData to prevent duplicate calls
-      loadDataDebounceTimer: null,
-      // Pagination state not in useTableData
-      totalPages: 0,
-      // ... data properties with a brief description for each
-      fields: [
-        {
-          key: 'symbol',
-          label: 'Gene Symbol',
-          sortable: true,
-          sortDirection: 'desc',
-          class: 'text-start',
-        },
-        {
-          key: 'category',
-          label: 'Category',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'hpo_mode_of_inheritance_term_name',
-          label: 'Inheritance',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'ndd_phenotype_word',
-          label: 'NDD',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'entities_count',
-          label: 'Entities count',
-        },
-        {
-          key: 'details',
-          label: 'Details',
-        },
-      ],
-      fields_details: [
-        {
-          key: 'entity_id',
-          label: 'Entity',
-          sortable: true,
-          sortDirection: 'desc',
-          class: 'text-start',
-        },
-        {
-          key: 'disease_ontology_name',
-          label: 'Disease',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'hpo_mode_of_inheritance_term_name',
-          label: 'Inheritance',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'category',
-          label: 'Category',
-          sortable: false,
-          class: 'text-start',
-        },
-        {
-          key: 'ndd_phenotype_word',
-          label: 'NDD',
-          sortable: false,
-          class: 'text-start',
-        },
-      ],
-    };
-  },
-  watch: {
-    // Watch for filter changes (deep required for Vue 3 behavior)
-    // Skip during initialization to prevent multiple API calls
-    filter: {
-      handler() {
-        if (this.isInitializing) return;
-        this.filtered();
-      },
-      deep: true,
-    },
-    // Watch for sortBy changes (deep watch for array)
-    // Skip during initialization to prevent multiple API calls
-    sortBy: {
-      handler() {
-        if (this.isInitializing) return;
-        this.handleSortByOrDescChange();
-      },
-      deep: true,
-    },
-  },
-  created() {
-    // Lifecycle hooks
-  },
-  mounted() {
-    // Transform input sort string to Bootstrap-Vue-Next array format
-    if (this.sortInput) {
-      const sort_object = this.sortStringToVariables(this.sortInput);
-      this.sortBy = sort_object.sortBy;
-      this.sort = this.sortInput; // Also set the sort string for API calls
-    }
-
-    // Initialize pagination from URL if provided
-    if (this.pageAfterInput && this.pageAfterInput !== '0' && this.pageAfterInput !== '') {
-      this.currentItemID = this.pageAfterInput;
-    }
-
-    // Transform input filter string to object and load data
-    // Use $nextTick to ensure Vue reactivity is fully initialized
-    this.$nextTick(() => {
-      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
-        // Parse URL filter string into filter object for proper UI state
-        this.filter = this.filterStrToObj(this.filterInput, this.filter);
-        // Also set filter_string so the API call uses the URL filter
-        this.filter_string = this.filterInput;
-      }
-      // Load data first while still in initializing state
-      this.loadData();
-      // Delay marking initialization complete to ensure watchers triggered
-      // by filter/sortBy changes above see isInitializing=true
-      this.$nextTick(() => {
-        this.isInitializing = false;
-      });
-    });
-  },
-  methods: {
-    withCurrentReturnTo(path) {
-      return withReturnTo(path);
-    },
-    // Update browser URL with current table state
-    // Uses history.replaceState instead of router.replace to prevent component remount
-    updateBrowserUrl() {
-      // Don't update URL during initialization - preserves URL params from navigation
-      if (this.isInitializing) return;
-
-      const searchParams = new URLSearchParams();
-
-      if (this.sort) {
-        searchParams.set('sort', this.sort);
-      }
-      if (this.filter_string) {
-        searchParams.set('filter', this.filter_string);
-      }
-      // Genes uses string IDs (gene symbols like "ABCA5"), not numeric IDs
-      // Check if currentItemID is set and not the initial state (0 or falsy)
-      if (this.currentItemID && this.currentItemID !== 0) {
-        searchParams.set('page_after', String(this.currentItemID));
-      }
-      searchParams.set('page_size', String(this.perPage));
-
-      // Use history.replaceState to update URL without triggering Vue Router navigation
-      // This prevents component remount which was causing duplicate API calls
-      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-      window.history.replaceState({ ...window.history.state }, '', newUrl);
-    },
-    // Override filtered to call loadData (URL is updated AFTER API success to prevent remount)
-    filtered() {
-      const filter_string_loc = this.filterObjToStr(this.filter);
-
-      if (filter_string_loc !== this.filter_string) {
-        this.filter_string = filter_string_loc;
-      }
-
-      // Note: updateBrowserUrl() is now called in doLoadData() AFTER API success
-      // This prevents component remount during the API call
-      this.loadData();
-    },
-    // Override handlePageChange to properly update currentItemID and call loadData
-    handlePageChange(value) {
-      if (value === 1) {
-        this.currentItemID = 0;
-      } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
-      } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
-      } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
-      }
-      this.filtered();
-    },
-    // Override handlePerPageChange to reset pagination and reload
-    handlePerPageChange(newPerPage) {
-      this.perPage = parseInt(newPerPage, 10);
-      this.currentItemID = 0;
-      this.filtered();
-    },
-    // Override handleSortByOrDescChange to call the component's filtered method
-    handleSortByOrDescChange() {
-      this.currentItemID = 0;
-      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
-      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : '';
-      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
-      const isDesc = sortOrder === 'desc';
-      // Build sort string for API: +column for asc, -column for desc
-      this.sort = (isDesc ? '-' : '+') + sortColumn;
-      this.filtered();
-    },
-    loadData() {
-      // Debounce to prevent duplicate calls from multiple triggers
-      if (this.loadDataDebounceTimer) {
-        clearTimeout(this.loadDataDebounceTimer);
-      }
-      this.loadDataDebounceTimer = setTimeout(() => {
-        this.loadDataDebounceTimer = null;
-        this.doLoadData();
-      }, 50);
-    },
-    async doLoadData() {
-      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-      const currentUrlParam = () =>
-        `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-
-      this.isBusy = true;
-
-      const result = await genesRequestCoordinator.request({
-        params: urlParam,
-        fetcher: () =>
-          listGenes({
-            sort: this.sort,
-            filter: this.filter_string,
-            page_after: String(this.currentItemID ?? ''),
-            page_size: String(this.perPage),
-          }),
-        apply: (data, source) => {
-          this.applyApiResponse(data);
-          if (source === 'network') {
-            // Update URL AFTER API success to prevent component remount during API call
-            this.updateBrowserUrl();
-          }
-        },
-        onError: (e) => {
-          this.makeToast(e, 'Error', 'danger');
-        },
-        isCurrent: (params) => currentUrlParam() === params,
-      });
-
-      if (result.handled) {
-        this.isBusy = false;
-        this.loading = false;
-      }
-    },
-    /**
-     * Apply API response data to component state.
-     * Extracted to allow reuse when skipping duplicate API calls.
-     * @param {Object} data - API response data
-     */
-    applyApiResponse(data) {
-      this.items = data.data;
-      this.totalRows = data.meta[0].totalItems;
-      // this solves an update issue in b-pagination component
-      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
-      this.$nextTick(() => {
-        this.currentPage = data.meta[0].currentPage;
-      });
-      this.totalPages = data.meta[0].totalPages;
-      this.prevItemID = data.meta[0].prevItemID;
-      this.currentItemID = data.meta[0].currentItemID;
-      this.nextItemID = data.meta[0].nextItemID;
-      this.lastItemID = data.meta[0].lastItemID;
-      this.executionTime = data.meta[0].executionTime;
-      this.fields = data.meta[0].fspec;
-
-      const uiStore = useUiStore();
-      uiStore.requestScrollbarUpdate();
-    },
-  },
-};
+});
 </script>
 
 <style scoped>

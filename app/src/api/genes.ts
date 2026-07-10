@@ -34,6 +34,8 @@ export type GeneLookupResponse = GeneApiData[];
 
 export type GeneInputType = 'hgnc' | 'symbol';
 
+export type GeneListFormat = 'json' | 'xlsx';
+
 export interface ListGenesParams {
   sort?: string;
   filter?: string;
@@ -49,6 +51,12 @@ export interface ListGenesParams {
    * the global fspec. See `api/endpoints/gene_endpoints.R`.
    */
   compact?: boolean;
+  /**
+   * The output format. `listGenes()` always requests the JSON envelope
+   * below; use `listGenesXlsx()` for the binary export path (which sets
+   * this to `'xlsx'` internally).
+   */
+  format?: GeneListFormat;
 }
 
 /**
@@ -120,4 +128,28 @@ export async function listGenes(
     ...config,
     params: { ...(config?.params as object | undefined), ...wireParams },
   });
+}
+
+/**
+ * GET /api/gene?format=xlsx
+ * Same handler as `listGenes`, but surfaces the XLSX byte stream as a `Blob`
+ * for download. Cursor params (`page_after`) are gene symbols and are
+ * forwarded as-is (strings), matching the JSON path — never coerced to a
+ * number.
+ */
+export async function listGenesXlsx(
+  params: Omit<ListGenesParams, 'format'> = {},
+  config?: AxiosRequestConfig
+): Promise<Blob> {
+  const { compact, ...rest } = params;
+  const wireParams: Record<string, unknown> = { ...rest };
+  if (compact) {
+    wireParams.compact = 'true';
+  }
+  const response = await apiClient.raw.get<Blob>('/api/gene', {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...wireParams, format: 'xlsx' },
+    responseType: 'blob',
+  });
+  return response.data;
 }
