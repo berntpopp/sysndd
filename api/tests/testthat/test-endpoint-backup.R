@@ -166,6 +166,10 @@ make_backup_sandbox <- function(role = "Administrator") {
   # Real shared filename validator (path-traversal / extension policy).
   env$is_valid_backup_filename <- .backup_functions_env$is_valid_backup_filename
 
+  # Handlers now delegate to svc_backup_* (#346 Wave 3 Task 9); source the
+  # real service into this env so its free variables resolve to the stubs above.
+  source_api_file("services/backup-endpoint-service.R", local = FALSE, envir = env)
+
   env
 }
 
