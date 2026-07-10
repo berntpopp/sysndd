@@ -16,17 +16,4 @@ api/functions/nddscore-import.R	854
 api/functions/omim-functions.R	971
 api/services/entity-service.R	1063
 api/services/re-review-service.R	959
-app/src/components/ApprovalTableView.vue	689
-app/src/components/forms/BatchCriteriaForm.vue	747
-app/src/components/nddscore/NddScoreGeneTable.vue	822
-app/src/components/small/GenericTable.vue	926
-app/src/components/tables/TablesEntities.vue	936
-app/src/components/tables/TablesGenes.vue	775
-app/src/components/tables/TablesPhenotypes.vue	887
-app/src/views/admin/ManageOntology.vue	712
-app/src/views/admin/ManageUser.vue	611
-app/src/views/curate/ApproveReview.vue	841
-app/src/views/curate/ApproveUser.vue	842
-app/src/views/curate/ManageReReview.vue	1514
-app/src/views/pages/EntityView.vue	810
 db/C_Rcommands_set-table-connections.R	793
