@@ -34,6 +34,14 @@ admin_body_blob_exact <- function(decorator) {
   paste(src[dec_idx:(after - 1L)], collapse = "\n")
 }
 
+# The heavy blocked-job lookup/validation this used to inline was extracted to
+# services/admin-ontology-endpoint-service.R (#346 Wave 3); source-level
+# assertions about that logic now read the service file instead.
+admin_ontology_service_blob <- function() {
+  path <- file.path(get_api_dir(), "services", "admin-ontology-endpoint-service.R")
+  paste(readLines(path, warn = FALSE), collapse = "\n")
+}
+
 expect_admin_guard <- function(body_blob) {
   expect_match(body_blob, "require_role\\(")
   expect_match(body_blob, "Administrator")
@@ -65,16 +73,25 @@ test_that("force_apply_ontology validates blocked_job_id before job submission",
 
 # Source-level (no DB) so it always runs, including in CI without a test DB.
 test_that("force_apply_ontology reads the blocked job in full mode", {
-  body <- admin_body_blob("^#\\*\\s+@put\\s+force_apply_ontology\\s*$")
   # #470 review A1: the handler inspects blocked_job$result to confirm the job
   # was "blocked", but get_job_status() omits the parsed result in summary mode.
   # Without result_mode = "full" the blocked check returns 409 every time, so
   # Force Apply could never resolve a block. Lock the full-mode lookup in place.
+  # This logic lives in svc_admin_force_apply_ontology_prepare() (#346 Wave 3);
+  # test-unit-admin-endpoint-services.R exercises its behavior directly (the
+  # job_status_fn is called with result_mode="full", and the "was not blocked"
+  # 409 branch), this test is the source-level regression guard that the code
+  # itself still exists.
+  service_body <- admin_ontology_service_blob()
   expect_match(
-    body,
-    "get_job_status\\(\\s*blocked_job_id\\s*,\\s*result_mode\\s*=\\s*[\"']full[\"']"
+    service_body,
+    "job_status_fn\\(\\s*blocked_job_id\\s*,\\s*result_mode\\s*=\\s*[\"']full[\"']"
   )
-  expect_match(body, "Referenced job was not blocked")
+  expect_match(service_body, "Referenced job was not blocked")
+
+  # The endpoint shell must still delegate to that service function.
+  endpoint_body <- admin_body_blob("^#\\*\\s+@put\\s+force_apply_ontology\\s*$")
+  expect_match(endpoint_body, "svc_admin_force_apply_ontology_prepare\\(")
 })
 
 test_that("NDDScore admin routes keep Administrator guard and async job boundary", {

@@ -163,62 +163,67 @@ test_that("publications stats queries return non-negative counts", {
 })
 
 # ============================================================================
-# Rate Limiting Logic Tests (design verification)
+# Rate Limiting / Executor Logic Tests (design verification)
 # ============================================================================
+#
+# `create_job()` (functions/job-manager.R) is a durable-job compatibility
+# facade: it always routes through async_job_service_submit() and never
+# references its `executor_fn` formal. The inline `executor_fn` this endpoint
+# used to pass here (PubMed fetch + UPDATE + Sys.sleep(0.35)) was therefore
+# dead code -- unreachable, and already diverged from the live implementation
+# (missing the publication_date_source column write; see
+# test-unit-publication-refresh-source.R). It was removed from
+# admin_endpoints.R (#346 Wave 3, admin-publication-refresh-endpoint-service.R
+# extraction). The real, currently-executed handler is
+# `.async_job_run_publication_refresh()` in functions/async-job-handlers.R
+# (registered in async_job_handler_registry) -- these checks now target that
+# file instead of the (removed) dead copy.
 
-test_that("refresh uses 350ms delay for NCBI rate limiting", {
-  # This is a design verification test
-  # The actual Sys.sleep(0.35) is in the executor_fn in admin_endpoints.R
-  # We verify the code includes proper rate limiting by checking the file
-
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
-  rate_limit_line <- grep("Sys\\.sleep\\(0\\.35\\)", admin_code, value = TRUE)
+test_that("the durable publication_refresh handler uses a 350ms NCBI rate-limit delay", {
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
+  rate_limit_line <- grep("Sys\\.sleep\\(0\\.35\\)", handler_code, value = TRUE)
 
   expect_true(
     length(rate_limit_line) > 0,
-    info = "Executor should include Sys.sleep(0.35) for rate limiting"
+    info = ".async_job_run_publication_refresh should include Sys.sleep(0.35) for rate limiting"
   )
 })
 
-test_that("refresh sources required functions in daemon", {
-  # Verify that executor_fn sources required files
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+test_that("the durable publication_refresh handler creates its own database connection", {
+  # Worker-executed code is sourced once at worker startup (AGENTS.md); it no
+  # longer needs to self-source per-job like the old mirai executor_fn did,
+  # but it still opens/closes its own DB connection (mirrors
+  # .async_job_run_publication_date_backfill's payload$db_config pattern).
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
 
   expect_true(
-    any(grepl('source\\("functions/publication-functions\\.R"\\)', admin_code)),
-    info = "Executor should source publication-functions.R"
+    any(grepl("DBI::dbConnect", handler_code)),
+    info = ".async_job_run_publication_refresh should create a database connection"
   )
   expect_true(
-    any(grepl('source\\("functions/job-progress\\.R"\\)', admin_code)),
-    info = "Executor should source job-progress.R"
-  )
-  expect_true(
-    any(grepl('source\\("functions/db-helpers\\.R"\\)', admin_code)),
-    info = "Executor should source db-helpers.R"
-  )
-})
-
-test_that("refresh creates database connection in daemon", {
-  # Verify that executor_fn creates its own database connection
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
-
-  expect_true(
-    any(grepl("DBI::dbConnect", admin_code)),
-    info = "Executor should create database connection"
-  )
-  expect_true(
-    any(grepl("DBI::dbDisconnect", admin_code)),
-    info = "Executor should disconnect database on exit"
+    any(grepl("DBI::dbDisconnect", handler_code)),
+    info = ".async_job_run_publication_refresh should disconnect on exit"
   )
 })
 
-test_that("refresh uses create_progress_reporter", {
-  # Verify progress reporting is implemented
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+test_that("the durable publication_refresh handler reports progress", {
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
 
   expect_true(
-    any(grepl("create_progress_reporter", admin_code)),
-    info = "Executor should use create_progress_reporter"
+    any(grepl("\\.async_job_progress_reporter", handler_code)),
+    info = ".async_job_run_publication_refresh should report progress"
+  )
+})
+
+test_that("publication_refresh is registered in the durable async job handler registry", {
+  handler_code <- paste(
+    readLines(file.path(api_dir, "functions", "async-job-handlers.R")), collapse = "\n"
+  )
+
+  expect_match(
+    handler_code,
+    "publication_refresh\\s*=\\s*list\\([^)]*run\\s*=\\s*\\.async_job_run_publication_refresh",
+    perl = TRUE
   )
 })
 
@@ -347,39 +352,47 @@ test_that("publications/stats filtered_count with future date equals total", {
 # ============================================================================
 # Refresh Endpoint Date Filter Tests (design verification)
 # ============================================================================
+#
+# The not_updated_since / all-corpus / duplicate / capacity resolution logic
+# moved to services/admin-publication-refresh-endpoint-service.R (#346 Wave
+# 3); test-unit-admin-endpoint-services.R exercises it behaviorally
+# (invalid/empty/no-match/duplicate/capacity/success). These remain as
+# source-level regression guards that the concepts still exist, now pointed
+# at the service file. The endpoint's roxygen doc for POST /publications/
+# refresh still documents not_updated_since for API consumers/Swagger.
 
-test_that("refresh endpoint accepts not_updated_since parameter", {
+publication_refresh_service_code <- function() {
+  readLines(
+    file.path(api_dir, "services", "admin-publication-refresh-endpoint-service.R")
+  )
+}
+
+test_that("refresh endpoint documents the not_updated_since parameter", {
   admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
 
   expect_true(
     any(grepl("not_updated_since", admin_code)),
-    info = "Endpoint should accept not_updated_since parameter"
+    info = "Endpoint roxygen docs should mention not_updated_since"
   )
 })
 
-test_that("refresh endpoint handles date filter query", {
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
-
+test_that("publication refresh service handles the date filter query", {
   expect_true(
-    any(grepl("WHERE update_date <", admin_code)),
-    info = "Endpoint should query publications by update_date"
+    any(grepl("WHERE update_date <", publication_refresh_service_code())),
+    info = "Service should query publications by update_date"
   )
 })
 
-test_that("refresh endpoint validates date format", {
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
-
+test_that("publication refresh service validates date format", {
   expect_true(
-    any(grepl("as\\.Date", admin_code)),
-    info = "Endpoint should validate date format with as.Date"
+    any(grepl("as\\.Date", publication_refresh_service_code())),
+    info = "Service should validate date format with as.Date"
   )
 })
 
-test_that("refresh endpoint returns message when no publications match filter", {
-  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
-
+test_that("publication refresh service returns message when no publications match filter", {
   expect_true(
-    any(grepl("No publications need refreshing", admin_code)),
-    info = "Endpoint should handle case when no publications match filter"
+    any(grepl("No publications need refreshing", publication_refresh_service_code())),
+    info = "Service should handle case when no publications match filter"
   )
 })
