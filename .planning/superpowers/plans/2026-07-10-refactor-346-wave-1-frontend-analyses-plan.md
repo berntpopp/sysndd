@@ -33,7 +33,9 @@ Task 7  refactor/346-w1-protein-lollipop-controls
 
 After each task's targeted/full checks, push that branch, open a ready PR referencing
 #346, obtain Claude and Codex reviews, resolve findings, and merge before branching the
-next dependent task. The baseline remains unchanged in domain PRs.
+next dependent task. Before each PR is reviewed, the integration owner runs
+`--write-baseline`, proves no entry increased, and includes that task's downward
+baseline change in the same PR; domain agents never edit the shared baseline.
 
 ### Task 1: Extract the functional-cluster summary panel
 
@@ -399,19 +401,20 @@ git commit -m "refactor(app): extract protein lollipop controls (#346)"
 
 Expected: PASS; every production file is below 600 lines.
 
-### Task 8: Ratchet and publish Wave 1 integration
+### Task 8: Verify merged Wave 1 integration
 
-After Tasks 1-7 are merged, create `refactor/346-w1-ratchet` from fresh master. It
-inherits the truthful Wave 0 baseline and every reviewed Wave 1 extraction.
+After Tasks 1-7 are merged, pull fresh master. It contains every reviewed extraction and
+each corresponding downward baseline update.
 
 - [ ] **Step 1: Rewrite the baseline once after all accepted tasks**
 
 ```bash
 bash scripts/code-quality-audit.sh --write-baseline
-git diff -- scripts/code-quality-file-size-baseline.tsv
+git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv
 ```
 
-Expected: every Wave 1 target disappears; no entry increases.
+Expected: `git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv` is clean,
+every Wave 1 target is already absent, and no entry increased in its domain PR.
 
 - [ ] **Step 2: Run the full frontend gate**
 
@@ -424,18 +427,4 @@ make pre-commit
 git diff --check
 ```
 
-Expected: all commands pass.
-
-- [ ] **Step 3: Commit, publish, review, and merge**
-
-```bash
-git add scripts/code-quality-file-size-baseline.tsv
-git commit -m "chore(quality): ratchet Wave 1 analysis file sizes (#346)"
-git push -u origin refactor/346-w1-ratchet
-gh pr create --title "chore(quality): ratchet #346 Wave 1 analysis sizes" \
-  --body "Part of #346. Removes the merged Wave 1 analysis/visualization files from the downward-only size baseline after all domain PRs passed review and verification."
-```
-
-Claude Code and Codex must independently review the complete PR; fix and re-review
-every material finding, wait for green checks, then merge with `gh pr merge --squash
---delete-branch`.
+Expected: all commands pass on merged master; no additional ratchet PR is necessary.

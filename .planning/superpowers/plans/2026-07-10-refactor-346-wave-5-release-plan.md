@@ -236,8 +236,8 @@ closure_prs=$(gh pr list --state merged --search '#346 in:body merged:>=2026-07-
   --jq '.[] | "- PR #\(.number): \(.url) — \(.title)"')
 release_pr_number=$(gh pr list --state merged --search 'v0.29.6 in:title' --limit 1 \
   --json number --jq '.[0].number')
-check_links=$(gh pr checks "$release_pr_number" --json name,state,link \
-  --jq '.[] | "- \(.name): \(.state) — \(.link)"')
+check_links=$(gh pr view "$release_pr_number" --json statusCheckRollup \
+  --jq '.statusCheckRollup[] | "- \(.name): \(.conclusion // .status) — \(.detailsUrl // .url // "")"')
 release_sha=$(git rev-parse HEAD)
 gh issue comment 346 --body "$(printf '%s\n' \
   'Completed and released in v0.29.6.' \

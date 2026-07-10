@@ -34,17 +34,17 @@ Task 9 LLM         refactor/346-w3-llm-admin-endpoints
 Task 9 backup      refactor/346-w3-backup-endpoints
 ```
 
-Each is a separately reviewed/merged PR. Domain agents never edit shared registration
-or pagination files; the integration owner applies those small changes inside the same
-domain PR after receiving the agent's ordered requirements. The size baseline remains
-unchanged until Task 10.
+Each is a separately reviewed/merged PR. Domain agents never edit shared registration,
+pagination, or baseline files; the integration owner applies those changes inside the
+same domain PR after receiving the agent's ordered requirements. Every domain PR runs
+`--write-baseline` and lowers/removes its own endpoint entry before review.
 
 ### Task 1: Characterize the endpoint and bootstrap contracts
 
 **Files:**
 - Create: `api/tests/testthat/test-unit-oversized-endpoint-contract.R`
 - Create: `api/tests/testthat/test-unit-endpoint-service-bootstrap.R`
-- Modify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/load_modules.R`
 - Modify: `api/tests/testthat/test-unit-endpoint-error-handler.R`
 - Modify: `api/tests/testthat/test-pagination-contract.R`
 
@@ -66,9 +66,10 @@ envelopes containing `type`, `title`, `status`, `detail`, and `instance` with
 
 - [ ] **Step 3: Characterize service registration**
 
-Parse `service_files`; after implementation every new file must appear exactly once,
-after its domain dependency and before `bootstrap_mount_endpoints()` runs. Assert all
-public bindings begin `svc_`/`service_` and none collide with repository bindings.
+Parse `service_files`; assert every currently registered service appears exactly once in
+dependency order and all public bindings begin `svc_`/`service_` without repository
+collisions. Each later domain PR first adds a failing assertion for its own new service
+files, then adds the registration and makes that assertion green.
 
 The integration owner also centralizes re-review and LLM-admin pagination envelope
 assertions in `test-pagination-contract.R`. Domain agents treat that shared file as
@@ -90,8 +91,8 @@ Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-endpoin
 Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-endpoint-error-handler.R')"
 ```
 
-Expected: current route/error assertions pass; future-service/delegation assertions
-fail until modules exist.
+Expected: all assertions for the current tree pass. No assertion for a future module is
+merged red; each domain extends the manifest in its own red→green cycle.
 
 - [ ] **Step 5: Commit the guards**
 
@@ -198,8 +199,10 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
   keep `async_job_handler_registry` unchanged. Keep public vs Administrator gates in
   shells. The codebase has no `ASYNC_JOB_HANDLERS` binding; do not introduce or search
   for that obsolete/nonexistent name.
-- [ ] Do not add endpoint services to worker bootstrap. Run contract/bootstrap/job/
-  approved-input tests, lint, and line counts. Commit as
+- [ ] Do not add endpoint services to worker-specific source lists or handler
+  registration. They may still be sourced by the shared loader; no worker handler or
+  execution path may call them. Run contract/bootstrap/job/approved-input tests, lint,
+  and line counts. Commit as
   `refactor(api): extract job endpoint services (#346)`.
 
 ### Task 6: Thin re_review_endpoints.R
@@ -284,13 +287,19 @@ git commit -m "test(api): characterize oversized endpoint contracts (#346)"
 - [ ] Run contract/bootstrap/LLM/backup/pagination tests, lint, and line counts. Commit
   each domain separately.
 
-### Task 10: Ratchet and publish Wave 3 integration
+### Task 10: Verify merged Wave 3 integration
 
-After all endpoint-domain PRs merge, create `refactor/346-w3-ratchet` from fresh master.
+After all endpoint-domain PRs merge, pull fresh master.
 
 - [ ] Integration owner merges service registrations in dependency order and reruns all
   three shared guards plus `./scripts/verify-msw-against-openapi.sh`.
-- [ ] Rewrite baseline once; all nine endpoint rows disappear and no value increases.
+- [ ] Run `--write-baseline` and require a clean `git diff --exit-code`; all nine
+  endpoint rows were removed by their domain PRs and no value increased.
+
+```bash
+bash scripts/code-quality-audit.sh --write-baseline
+git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv
+```
 - [ ] Run:
 
 ```bash
@@ -304,6 +313,4 @@ wc -l api/endpoints/{publication,user,admin,jobs,re_review,entity,statistics,llm
 
 - [ ] Run `make test-api` and `make ci-local`; DB tests must show real passes, not
   environment skips used as evidence.
-- [ ] Push `refactor/346-w3-ratchet`, open the focused ratchet PR, obtain Claude and
-  Codex security/correctness/code-quality reviews, fix and re-review all material
-  findings, wait for green Actions, and squash-merge.
+- [ ] Record the merged-state results; no extra ratchet PR is necessary.

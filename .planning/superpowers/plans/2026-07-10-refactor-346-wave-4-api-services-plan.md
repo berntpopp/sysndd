@@ -35,32 +35,36 @@ Task 10  refactor/346-w4-omim-functions
 ```
 
 Each task is its own reviewed/merged PR. Domain agents return runtime-registration
-requirements; the integration owner alone edits the four shared source lists inside the
-same domain PR. Domain PRs do not edit the size baseline.
+requirements; the integration owner alone edits the shared source lists and baseline
+inside the same domain PR. Every domain PR lowers/removes its own baseline entry before
+review.
 
 ### Task 1: Add module/source-order characterization
 
 **Files:**
 - Create: `api/tests/testthat/test-unit-api-module-registration.R`
-- Modify: `api/bootstrap/load_modules.R`
-- Modify: `api/bootstrap/setup_workers.R`
-- Modify: `api/start_async_worker.R`
-- Modify: `api/functions/async-job-worker.R`
+- Verify: `api/bootstrap/load_modules.R`
+- Verify: `api/bootstrap/setup_workers.R`
+- Verify: `api/start_async_worker.R`
+- Verify: `api/functions/async-job-worker.R`
 - Modify: `api/tests/testthat/test-unit-analysis-snapshot-worker-preload.R`
 
 The integration owner executing Task 1 is the sole writer for these four runtime source
 lists. Domain agents return ordered registration requirements and treat every `Verify:`
 entry as read-only: they must not edit, stage, or commit it.
 
-- [ ] Parse `bootstrap/load_modules.R` and assert exact-once, dependency-ordered entries
-  for every module named in this plan. Assert service bindings remain prefixed and do
-  not collide with repository bindings.
+- [ ] Parse `bootstrap/load_modules.R` and assert current modules are exact-once and
+  dependency-ordered. Assert service bindings remain prefixed and do not collide with
+  repository bindings. Each later domain PR adds its own missing-module assertion red,
+  then registers the module and makes it green before merge.
 - [ ] Parse `start_async_worker.R`, `functions/async-job-worker.R`, and
   `bootstrap/setup_workers.R`; assert extracted handler files appear before
   `async-job-handlers.R`, async repository helpers appear before the repository,
   NDDScore source before import, and OMIM download/parser before the OMIM shell in every
-  runtime that uses them.
-- [ ] Run both tests before adding modules; expected new-registration assertions fail.
+  runtime that currently uses them. Each worker-affecting domain extends this manifest
+  in its own red→green cycle.
+- [ ] Run both tests against current master; all current-state assertions pass. Never
+  merge a guard PR containing assertions for modules that do not exist yet.
 - [ ] Commit as `test(api): characterize module and worker source order (#346)`.
 
 ### Task 2: Split entity creation and rename services
@@ -249,13 +253,19 @@ entry as read-only: they must not edit, stage, or commit it.
 - [ ] Run full OMIM/comparisons/ontology tests, lint, and counts. Commit as
   `refactor(api): split OMIM acquisition and parsing (#346)`.
 
-### Task 11: Ratchet and publish Wave 4 integration
+### Task 11: Verify merged Wave 4 integration
 
-After Tasks 1-10 merge, create `refactor/346-w4-ratchet` from fresh master.
+After Tasks 1-10 merge, pull fresh master.
 
 - [ ] Merge source-registration edits in the exact dependency order asserted by Task 1.
   Restart API, worker, and worker-maintenance before runtime smoke.
-- [ ] Regenerate baseline once; every Wave 4 row disappears and no value increases.
+- [ ] Regenerate baseline and require `git diff --exit-code`; every Wave 4 row was
+  removed in its domain PR and no value increased.
+
+```bash
+bash scripts/code-quality-audit.sh --write-baseline
+git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv
+```
 - [ ] Run targeted files named above plus:
 
 ```bash
@@ -270,6 +280,4 @@ git diff --check
 
 - [ ] Independently inventory all API production files and require no non-exempt file
   above 600. Verify default and maintenance job smoke results and queue names.
-- [ ] Push `refactor/346-w4-ratchet`, open the focused ratchet PR, obtain Claude and
-  Codex security/correctness/code-quality reviews, fix and re-review all findings, wait
-  for green checks, and squash-merge.
+- [ ] Record the merged-state results; no extra ratchet PR is necessary.

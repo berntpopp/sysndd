@@ -39,7 +39,9 @@ Task 10            refactor/346-w2-entity-view
 
 Task 1 merges before the table-family PRs. Every domain PR runs its exact targeted and
 full relevant checks, receives Claude and Codex review, resolves findings, and merges
-before any dependent branch is cut. Domain PRs do not edit the size baseline.
+before any dependent branch is cut. Before review, the integration owner regenerates
+the baseline, proves no entry increased, and includes the task's downward baseline
+change in that same domain PR; domain agents do not edit the shared file.
 
 ### Task 1: Decompose GenericTable’s details and sorting responsibilities
 
@@ -300,12 +302,18 @@ Expected: PASS; all six production modules below 600. Commit each domain separat
   require all production components below 600. Commit as
   `refactor(app): decompose entity view presentation (#346)`.
 
-### Task 11: Ratchet and publish Wave 2 integration
+### Task 11: Verify merged Wave 2 integration
 
-After all domain PRs merge, create `refactor/346-w2-ratchet` from fresh master.
+After all domain PRs merge, pull fresh master and verify its already-ratcheted state.
 
 - [ ] Regenerate the baseline once; prove every Wave 2 frontend row disappears and no
   value increases.
+
+```bash
+bash scripts/code-quality-audit.sh --write-baseline
+git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv
+```
+
 - [ ] Run:
 
 ```bash
@@ -327,6 +335,5 @@ cd app && PLAYWRIGHT_BASE_URL=http://localhost:8088 \
 cd .. && make playwright-stack-down
 ```
 
-- [ ] Commit the downward baseline, push `refactor/346-w2-ratchet`, open the focused
-  ratchet PR, obtain Claude and Codex reviews, resolve/re-review all findings, wait for
-  green checks, and squash-merge.
+- [ ] Require `git diff --exit-code -- scripts/code-quality-file-size-baseline.tsv` after
+  `--write-baseline`; every Wave 2 row must already have been removed in its domain PR.

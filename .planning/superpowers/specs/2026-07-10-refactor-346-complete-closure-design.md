@@ -176,7 +176,8 @@ Use the least expensive capable worker for each role:
 
 Implementation agents work in isolated branches/worktrees or disjoint file scopes.
 They must not edit the shared baseline independently; the integration owner rewrites
-it after each accepted wave. Each task receives its exact file ownership, invariants,
+it after each accepted domain task and includes the downward change in that task's PR.
+Each task receives its exact file ownership, invariants,
 targeted tests, and expected line-count outcome. A separate spec reviewer checks
 behavioral scope before a code-quality reviewer examines maintainability.
 
