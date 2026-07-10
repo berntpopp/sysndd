@@ -1,8 +1,16 @@
 // TablesEntities.spec.ts
 /**
- * WP-F closeout — verifies that the row-expansion slot in TablesEntities.vue
- * renders LinkedOntologies and triggers a disease-mappings fetch when a row is
- * expanded.
+ * WP-F closeout: verifies the row-expansion slot renders LinkedOntologies and
+ * triggers a disease-mappings fetch on row expand.
+ *
+ * #346 Wave 2 Task 2 (entities domain): useEntitiesTable domain-contract
+ * coverage — URL-derived initial state, the request-coordinator stale-
+ * response guard, cursor-pagination transitions, the fspec -> fields merge,
+ * disableUrlSync, return links, and the Excel-export filename. Composable
+ * methods are exercised via the mounted SFC's `vm` with a real (unmocked,
+ * module-level) request coordinator; tests that fire a request use a
+ * distinct `pageSizeInput` so cache keys never collide across `it()` blocks
+ * (mirrors usePublicationsTable.spec.ts / TablesLogs.spec.ts).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,16 +18,13 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { ref, computed } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import { http, HttpResponse } from 'msw';
 
 import '@/plugins/axios';
 import axios from '@/plugins/axios';
-import { server } from '@/test-utils/mocks/server';
+import type { EntityListResponse } from '@/api/entity';
+import type { UseEntitiesTableProps } from './useEntitiesTable';
 
-// ---------------------------------------------------------------------------
 // Module mocks
-// ---------------------------------------------------------------------------
-
 const makeToastSpy = vi.fn();
 
 vi.mock('@/composables', async () => {
@@ -33,12 +38,18 @@ vi.mock('@/composables', async () => {
     useColorAndSymbols: () => ({}),
     useText: () => ({ truncate: (s: string) => s }),
     useColumnTooltip: () => ({ getTooltipText: () => '' }),
-    useTableData: () => ({
+    // Respects `pageSizeInput` (unlike the earlier fixed stub) so tests below
+    // can drive distinct request-coordinator cache keys via the SFC's
+    // `page-size-input` prop; every other field mirrors the real
+    // `useTableData()` initial defaults closely enough for this table's
+    // needs (the composable's onMounted() re-derives `sort`/`currentItemID`
+    // from props directly, so only `perPage` needs to be prop-derived here).
+    useTableData: (options: { pageSizeInput?: number } = {}) => ({
       items: ref([]),
       loading: ref(false),
       downloading: ref(false),
       currentPage: ref(1),
-      perPage: ref(10),
+      perPage: ref(Number(options.pageSizeInput) || 10),
       totalRows: ref(0),
       sort: ref('+entity_id'),
       sortBy: ref([]),
@@ -51,17 +62,6 @@ vi.mock('@/composables', async () => {
       pageOptions: ref([10]),
       isBusy: ref(false),
       totalPages: computed(() => 0),
-      applyApiResponse: vi.fn(),
-    }),
-    useTableMethods: () => ({
-      filtered: vi.fn(),
-      handlePageChange: vi.fn(),
-      handlePerPageChange: vi.fn(),
-      handleSortByOrDescChange: vi.fn(),
-      removeFilters: vi.fn(),
-      removeSearch: vi.fn(),
-      requestExcel: vi.fn(),
-      copyLinkToClipboard: vi.fn(),
     }),
   };
 });
@@ -71,38 +71,15 @@ vi.mock('@/api/disease-mappings', () => ({
   getEntityMappings: (...args: unknown[]) => getEntityMappingsSpy(...args),
 }));
 
+const listEntitiesMock = vi.hoisted(() => vi.fn());
+const listEntitiesXlsxMock = vi.hoisted(() => vi.fn());
+
 vi.mock('@/api/entity', () => ({
-  listEntities: vi.fn().mockResolvedValue({
-    data: [],
-    meta: [
-      {
-        totalItems: 0,
-        currentPage: 1,
-        totalPages: 1,
-        prevItemID: 0,
-        currentItemID: 0,
-        nextItemID: 0,
-        lastItemID: 0,
-        executionTime: 1,
-        fspec: [
-          { key: 'entity_id', label: 'Entity', sortable: true, class: 'text-start' },
-          { key: 'details', label: 'Details' },
-        ],
-      },
-    ],
-  }),
+  listEntities: listEntitiesMock,
+  listEntitiesXlsx: listEntitiesXlsxMock,
 }));
 
-vi.mock('@/utils/tableRequestCoordinator', () => ({
-  createTableRequestCoordinator: () => ({
-    request: vi.fn().mockResolvedValue({ handled: true }),
-  }),
-}));
-
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
-
 function makeRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -129,13 +106,61 @@ const mockMappingResponse = {
   },
 };
 
-async function mountTable() {
+const DEFAULT_FSPEC = [
+  { key: 'entity_id', label: 'Entity', sortable: true, class: 'text-start' },
+  { key: 'details', label: 'Details' },
+];
+
+/** Builds a canonical `/api/entity` list envelope; mirrors the real API shape. */
+function makeListResponse(
+  data: Array<Record<string, unknown>>,
+  metaOverrides: Record<string, unknown> = {},
+  fspec: Array<Record<string, unknown>> = DEFAULT_FSPEC
+): EntityListResponse {
+  return {
+    links: [],
+    data: data as EntityListResponse['data'],
+    meta: [
+      {
+        totalItems: data.length,
+        currentPage: 1,
+        totalPages: 1,
+        prevItemID: 0,
+        currentItemID: 0,
+        nextItemID: 0,
+        lastItemID: 0,
+        executionTime: 1,
+        fspec,
+        ...metaOverrides,
+      },
+    ],
+  };
+}
+
+/** Shared entity-row fixture for the row-expansion tests below. */
+function makeEntityRow(overrides: Record<string, unknown> = {}) {
+  return {
+    entity_id: 57,
+    symbol: 'ARID1B',
+    hgnc_id: 'HGNC:18040',
+    disease_ontology_name: 'Coffin-Siris syndrome 1',
+    disease_ontology_id_version: 'OMIM:135900_2024-01-01',
+    hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+    hpo_mode_of_inheritance_term: 'HP:0000006',
+    category: 'Definitive',
+    ndd_phenotype_word: 'Yes',
+    ...overrides,
+  };
+}
+
+async function mountTable(props: UseEntitiesTableProps = {}) {
   setActivePinia(createPinia());
   const router = makeRouter();
   await router.push('/');
   await router.isReady();
 
   const wrapper = mount((await import('./TablesEntities.vue')).default, {
+    props,
     global: {
       plugins: [router],
       provide: { axios },
@@ -208,14 +233,14 @@ async function mountTable() {
   return wrapper;
 }
 
-// ---------------------------------------------------------------------------
 // Tests
-// ---------------------------------------------------------------------------
-
 beforeEach(() => {
   makeToastSpy.mockClear();
   getEntityMappingsSpy.mockReset();
   getEntityMappingsSpy.mockResolvedValue(mockMappingResponse);
+  listEntitiesMock.mockReset();
+  listEntitiesMock.mockResolvedValue(makeListResponse([]));
+  listEntitiesXlsxMock.mockReset();
   vi.stubEnv('VITE_API_URL', '');
 });
 
@@ -236,20 +261,11 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
     // Set items directly on the component instance (bypassing API loading)
     const vm = wrapper.vm as { items: unknown[] };
     vm.items = [
-      {
-        entity_id: 57,
-        symbol: 'ARID1B',
-        hgnc_id: 'HGNC:18040',
-        disease_ontology_name: 'Coffin-Siris syndrome 1',
-        disease_ontology_id_version: 'OMIM:135900_2024-01-01',
-        hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
-        hpo_mode_of_inheritance_term: 'HP:0000006',
-        category: 'Definitive',
-        ndd_phenotype_word: 'Yes',
+      makeEntityRow({
         entry_date: '2024-02-10',
         last_update: '2026-02-10',
         synopsis: 'Developmental delay with speech involvement.',
-      },
+      }),
     ];
     await flushPromises();
 
@@ -265,19 +281,7 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
       items: unknown[];
       fetchEntityMappings: (id: unknown) => Promise<void>;
     };
-    vm.items = [
-      {
-        entity_id: 57,
-        symbol: 'ARID1B',
-        hgnc_id: 'HGNC:18040',
-        disease_ontology_name: 'Coffin-Siris syndrome 1',
-        disease_ontology_id_version: 'OMIM:135900_2024-01-01',
-        hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
-        hpo_mode_of_inheritance_term: 'HP:0000006',
-        category: 'Definitive',
-        ndd_phenotype_word: 'Yes',
-      },
-    ];
+    vm.items = [makeEntityRow()];
     await flushPromises();
 
     // Directly call the exposed fetchEntityMappings function (as @vue:mounted would)
@@ -327,17 +331,13 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
 
     // Inject an item — the stub renders the slot immediately for each item
     vm.items = [
-      {
+      makeEntityRow({
         entity_id: 99,
         symbol: 'TEST',
         hgnc_id: 'HGNC:99999',
         disease_ontology_name: 'Test Disease',
         disease_ontology_id_version: 'OMIM:999999_2024-01-01',
-        hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
-        hpo_mode_of_inheritance_term: 'HP:0000006',
-        category: 'Definitive',
-        ndd_phenotype_word: 'Yes',
-      },
+      }),
     ];
     await flushPromises();
 
@@ -347,29 +347,227 @@ describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// MSW: default entity-list handler so doLoadData (if it runs) doesn't error
-// ---------------------------------------------------------------------------
+// #346 Wave 2 Task 2 — useEntitiesTable domain contract coverage
+interface EntitiesVm {
+  sort: string;
+  isInitializing: boolean;
+  currentItemID: number;
+  totalPages: number;
+  currentPage: number;
+  prevItemID: number;
+  nextItemID: number;
+  lastItemID: number;
+  items: unknown[];
+  fields: Array<{ key: string; label: string }>;
+  loadDataDebounceTimer: ReturnType<typeof setTimeout> | null;
+  doLoadData: () => Promise<void>;
+  handlePageChange: (value: number) => void;
+  applyApiResponse: (data: EntityListResponse) => void;
+  requestExcel: () => Promise<void>;
+  withCurrentReturnTo: (path: string) => string;
+}
 
-beforeEach(() => {
-  server.use(
-    http.get('/api/entity', () =>
-      HttpResponse.json({
-        data: [],
-        meta: [
-          {
-            totalItems: 0,
-            currentPage: 1,
-            totalPages: 1,
-            prevItemID: 0,
-            currentItemID: 0,
-            nextItemID: 0,
-            lastItemID: 0,
-            executionTime: 1,
-            fspec: [],
-          },
-        ],
-      })
-    )
+function clearPendingDebounce(vm: EntitiesVm) {
+  if (vm.loadDataDebounceTimer) {
+    clearTimeout(vm.loadDataDebounceTimer);
+    vm.loadDataDebounceTimer = null;
+  }
+}
+
+describe('initial load — URL-derived state', () => {
+  it('applies URL-derived filter, sort, and cursor state before firing the single initial request', async () => {
+    const wrapper = await mountTable({
+      sortInput: '-symbol',
+      filterInput: 'contains(symbol,ARID)',
+      pageAfterInput: '42',
+      pageSizeInput: 71,
+    });
+
+    expect(listEntitiesMock).toHaveBeenCalledTimes(1);
+    expect(listEntitiesMock).toHaveBeenCalledWith({
+      sort: '-symbol',
+      filter: 'contains(symbol,ARID)',
+      page_after: 42,
+      page_size: '71',
+      compact: false,
+    });
+
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    clearPendingDebounce(vm);
+  });
+});
+
+describe('request coordinator — stale response guard', () => {
+  it('discards an older in-flight response once a newer request has superseded it', async () => {
+    const resolvers: Array<(value: EntityListResponse) => void> = [];
+    listEntitiesMock.mockImplementation(
+      () =>
+        new Promise<EntityListResponse>((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const wrapper = await mountTable({ pageSizeInput: 72 });
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    expect(listEntitiesMock).toHaveBeenCalledTimes(1); // request A in flight
+
+    // Move state on to a different query, then fire request B directly while
+    // A is still unresolved.
+    vm.sort = '-symbol';
+    const requestB = vm.doLoadData();
+    expect(listEntitiesMock).toHaveBeenCalledTimes(2);
+
+    // Resolve the OLDER request A first: its data must be discarded because
+    // isCurrent() now reflects request B's params.
+    resolvers[0](makeListResponse([{ entity_id: 'OLD' }]));
+    await flushPromises();
+    expect(vm.items).toEqual([]);
+
+    // Resolve the newer request B; its data must win.
+    resolvers[1](makeListResponse([{ entity_id: 'NEW' }]));
+    await requestB;
+    expect(vm.items).toEqual([{ entity_id: 'NEW' }]);
+
+    clearPendingDebounce(vm);
+  });
+});
+
+describe('handlePageChange — cursor transitions', () => {
+  it('resolves each pagination branch to the matching cursor id', async () => {
+    const wrapper = await mountTable({ pageSizeInput: 73 });
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    clearPendingDebounce(vm);
+
+    vm.currentItemID = 999;
+    vm.handlePageChange(1); // value === 1 -> first page, cursor resets to 0
+    expect(vm.currentItemID).toBe(0);
+
+    vm.totalPages = 5;
+    vm.currentPage = 2;
+    vm.lastItemID = 500;
+    vm.handlePageChange(5); // value === totalPages -> jump to lastItemID
+    expect(vm.currentItemID).toBe(500);
+
+    vm.currentPage = 2;
+    vm.nextItemID = 300;
+    vm.handlePageChange(3); // value > currentPage -> advance to nextItemID
+    expect(vm.currentItemID).toBe(300);
+
+    vm.currentPage = 3;
+    vm.prevItemID = 100;
+    vm.handlePageChange(2); // value < currentPage -> go back to prevItemID
+    expect(vm.currentItemID).toBe(100);
+
+    clearPendingDebounce(vm);
+  });
+});
+
+describe('applyApiResponse — fspec merge', () => {
+  it('applies short-label overrides for known keys and passes through unmapped keys unchanged', async () => {
+    const wrapper = await mountTable({ pageSizeInput: 74 });
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    clearPendingDebounce(vm);
+
+    vm.applyApiResponse(
+      makeListResponse([], {}, [
+        { key: 'entity_id', label: 'Entity identifier', sortable: true },
+        { key: 'symbol', label: 'Gene symbol', sortable: true },
+        { key: 'disease_ontology_name', label: 'Disease name', sortable: true },
+        { key: 'hpo_mode_of_inheritance_term_name', label: 'Mode of inheritance', sortable: true },
+        { key: 'ndd_phenotype_word', label: 'NDD phenotype', sortable: true },
+        { key: 'details', label: 'Details' },
+      ])
+    );
+
+    const byKey = Object.fromEntries(vm.fields.map((f) => [f.key, f.label]));
+    expect(byKey.entity_id).toBe('Entity');
+    expect(byKey.disease_ontology_name).toBe('Disease');
+    expect(byKey.hpo_mode_of_inheritance_term_name).toBe('Inheritance');
+    expect(byKey.ndd_phenotype_word).toBe('NDD');
+    // Unmapped keys pass through the server label unchanged.
+    expect(byKey.symbol).toBe('Gene symbol');
+    expect(byKey.details).toBe('Details');
+  });
+});
+
+describe('updateBrowserUrl — disableUrlSync (embedded/URL-disabled mode)', () => {
+  // A mount-triggered load races isInitializing=false against a
+  // synchronously-resolved mock response (unlike a real HTTP round trip).
+  // Mirroring TablesLogs.spec.ts, drive a fresh doLoadData() with
+  // isInitializing forced false and `sort` changed so the coordinator takes
+  // its network path rather than the recent-response cache path (which
+  // intentionally skips updateBrowserUrl).
+  it.each([
+    [true, 75, false],
+    [false, 76, true],
+  ])(
+    'disableUrlSync=%s -> history.replaceState called=%s after a successful load',
+    async (disableUrlSync, pageSizeInput, expectCalled) => {
+      const wrapper = await mountTable({ disableUrlSync, pageSizeInput });
+      const vm = wrapper.vm as unknown as EntitiesVm;
+      clearPendingDebounce(vm);
+      vm.isInitializing = false;
+      vm.sort = '-symbol';
+
+      const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+      await vm.doLoadData();
+      await flushPromises();
+
+      expect(replaceStateSpy.mock.calls.length > 0).toBe(expectCalled);
+      replaceStateSpy.mockRestore();
+    }
   );
+});
+
+describe('withCurrentReturnTo — return links', () => {
+  it.each([
+    ['/Entities?filter=x', '/Entities/57?returnTo=%2FEntities%3Ffilter%3Dx', 77],
+    ['/SomeOtherPage', '/Entities/57', 78],
+  ])('from location %s -> %s', async (locationPath, expected, pageSizeInput) => {
+    window.history.pushState({}, '', locationPath);
+
+    const wrapper = await mountTable({ pageSizeInput: pageSizeInput as number });
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    clearPendingDebounce(vm);
+
+    expect(vm.withCurrentReturnTo('/Entities/57')).toBe(expected);
+  });
+});
+
+describe('requestExcel — XLSX filename', () => {
+  it('calls listEntitiesXlsx with page_size "all" and downloads sysndd_entity_table.xlsx', async () => {
+    const blob = new Blob(['x'], { type: 'application/octet-stream' });
+    listEntitiesXlsxMock.mockResolvedValue(blob);
+    const createObjectURL = vi.fn().mockReturnValue('blob:mock-entities');
+    window.URL.createObjectURL = createObjectURL;
+    window.URL.revokeObjectURL = vi.fn();
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild');
+
+    const wrapper = await mountTable({
+      pageSizeInput: 79,
+      sortInput: '-symbol',
+      filterInput: 'contains(symbol,ARID)',
+    });
+    const vm = wrapper.vm as unknown as EntitiesVm;
+    clearPendingDebounce(vm);
+
+    await vm.requestExcel();
+
+    expect(listEntitiesXlsxMock).toHaveBeenCalledWith({
+      sort: '-symbol',
+      filter: 'contains(symbol,ARID)',
+      page_after: 0,
+      page_size: 'all',
+    });
+    expect(createObjectURL).toHaveBeenCalled();
+
+    const anchorCall = appendChildSpy.mock.calls.find(
+      ([node]) => (node as HTMLElement).tagName === 'A'
+    );
+    expect(anchorCall).toBeDefined();
+    const anchor = anchorCall![0] as HTMLAnchorElement;
+    expect(anchor.getAttribute('download')).toBe('sysndd_entity_table.xlsx');
+
+    appendChildSpy.mockRestore();
+  });
 });
