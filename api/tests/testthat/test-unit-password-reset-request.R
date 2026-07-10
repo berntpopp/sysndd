@@ -109,6 +109,33 @@ test_that("known email + working SMTP invokes the mailer once with the reset sub
   expect_equal(calls[[1]]$to, "Nuria.Braemswig@ukmuenster.de")
 })
 
+test_that("known email bypasses ambiguous unqualified JWT bindings", {
+  ambiguous_jwt_env <- new.env(parent = environment(process_password_reset_request))
+  ambiguous_jwt_env$jwt_claim <- function(...) {
+    stop("namespace-ambiguity sentinel: jwt_claim")
+  }
+  ambiguous_jwt_env$jwt_encode_hmac <- function(...) {
+    stop("namespace-ambiguity sentinel: jwt_encode_hmac")
+  }
+  reset_request <- process_password_reset_request
+  environment(reset_request) <- ambiguous_jwt_env
+
+  calls <- list()
+
+  res <- reset_request(
+    "nuria.braemswig@ukmuenster.de", fake_users, fake_dw,
+    send_email = function(email_body, email_subject, email_recipient, ...) {
+      calls[[length(calls) + 1L]] <<- list(to = email_recipient)
+      "sent"
+    },
+    update_reset_date = noop_update
+  )
+
+  expect_equal(res$status, 200L)
+  expect_length(calls, 1L)
+  expect_equal(calls[[1]]$to, "Nuria.Braemswig@ukmuenster.de")
+})
+
 test_that("the found + unknown + send-failed responses are byte-identical (anti-enumeration)", {
   unknown <- process_password_reset_request(
     "nobody@example.test", fake_users, fake_dw,

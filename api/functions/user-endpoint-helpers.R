@@ -114,7 +114,7 @@ process_password_reset_request <- function(
 
       update_reset_date(matched$user_id, ts)
 
-      claim <- jwt_claim(
+      claim <- jose::jwt_claim(
         user_id = matched$user_id,
         user_name = matched$user_name,
         email = matched$email,
@@ -122,7 +122,7 @@ process_password_reset_request <- function(
         iat = as.integer(ts),
         exp = as.integer(ts) + dw$refresh
       )
-      jwt <- jwt_encode_hmac(claim, secret = key)
+      jwt <- jose::jwt_encode_hmac(claim, secret = key)
       reset_url <- paste0(dw$base_url, "/PasswordReset/", jwt)
 
       email_html <- email_password_reset(
