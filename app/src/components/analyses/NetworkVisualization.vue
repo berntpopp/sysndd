@@ -1,238 +1,44 @@
 <!-- src/components/analyses/NetworkVisualization.vue -->
+<!--
+  Thin shell for the protein-protein interaction network. All Cytoscape lifecycle
+  state lives in the single controller composable (useNetworkVisualizationController);
+  this SFC only binds the container ref, renders the canvas / loading / error /
+  tooltip chrome, and wires the stateless Controls + Legend children to the
+  controller. Decomposed from a 1326-line SFC (#346) without changing behavior.
+-->
 <template>
   <div class="network-visualization">
     <section class="network-panel">
-      <header class="network-panel__header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="d-flex align-items-center flex-wrap">
-            <h2 class="mb-0 fw-bold me-2 network-panel__title">
-              Protein-Protein Interaction Network
-            </h2>
-            <!-- Visible / Total in network. When a filter hides some genes the
-                 badge turns amber + shows a funnel so the reduced count reads as
-                 "filtered", not "missing"; the tooltip (bound via the directive
-                 VALUE so it stays reactive to filter changes) names the active
-                 filter. -->
-            <BBadge
-              v-if="isInitialized && visibleNodeCount > 0"
-              v-b-tooltip.hover.bottom="geneCountTooltip"
-              :variant="isNetworkFiltered ? 'warning' : 'info'"
-              class="me-1"
-            >
-              <i v-if="isNetworkFiltered" class="bi bi-funnel-fill me-1" aria-hidden="true" />
-              {{ visibleNodeCount }} / {{ metadata?.node_count || 0 }} genes
-            </BBadge>
-            <BBadge
-              v-else-if="metadata"
-              v-b-tooltip.hover
-              variant="info"
-              class="me-1"
-              :title="networkCoverageTooltip"
-            >
-              {{ metadata.node_count }} genes
-            </BBadge>
-            <!-- Edges with cap warning -->
-            <BBadge
-              v-if="isInitialized && visibleEdgeCount > 0"
-              v-b-tooltip.hover
-              variant="secondary"
-              class="me-1"
-              :title="edgesFilteredTooltip"
-            >
-              {{ visibleEdgeCount }} / {{ metadata?.edge_count || 0 }} interactions
-            </BBadge>
-            <BBadge
-              v-else-if="metadata"
-              v-b-tooltip.hover
-              variant="secondary"
-              class="me-1"
-              :title="edgesFilteredTooltip"
-            >
-              {{ metadata.edge_count }} interactions
-            </BBadge>
-            <!-- Warning if edges capped -->
-            <BBadge
-              v-if="metadata?.edges_filtered"
-              v-b-tooltip.hover
-              variant="warning"
-              class="me-1"
-              title="Edges limited to 10,000 for performance. High confidence edges prioritized."
-            >
-              <i class="bi bi-exclamation-triangle-fill" />
-            </BBadge>
-
-            <!-- Filter controls -->
-            <div class="d-flex align-items-center gap-2 ms-3">
-              <!-- Category dropdown with counts -->
-              <BDropdown
-                size="sm"
-                :variant="hasCategoryData ? 'outline-secondary' : 'outline-warning'"
-                :text="categoryFilterLabel"
-                :disabled="!hasCategoryData"
-                :aria-label="`Filter by category: ${categoryFilterLabel}`"
-              >
-                <template v-if="!hasCategoryData">
-                  <BDropdownItemButton disabled>
-                    <small class="text-muted">
-                      Category data not available.<br />
-                      Server cache needs refresh.
-                    </small>
-                  </BDropdownItemButton>
-                </template>
-                <template v-else>
-                  <BDropdownItemButton
-                    v-for="opt in categoryOptionsWithCounts"
-                    :key="opt.value"
-                    :active="categoryLevel === opt.value"
-                    @click="setCategoryLevel(opt.value)"
-                  >
-                    {{ opt.label }} <small class="text-muted">({{ opt.count }})</small>
-                  </BDropdownItemButton>
-                </template>
-              </BDropdown>
-
-              <!-- Cluster dropdown -->
-              <BDropdown
-                size="sm"
-                variant="outline-secondary"
-                :text="clusterFilterLabel"
-                :aria-label="`Filter by cluster: ${clusterFilterLabel}`"
-              >
-                <BDropdownItemButton :active="showAllClusters" @click="setShowAllClusters(true)">
-                  <i class="bi bi-grid-3x3-gap me-2" />
-                  All Clusters
-                </BDropdownItemButton>
-                <BDropdownDivider />
-                <div class="px-3 py-1 small text-muted cluster-dropdown-note">
-                  Cluster IDs are stable partition labels; small clusters (&lt; 10 genes) are
-                  omitted, so the numbers are not consecutive.
-                </div>
-                <div
-                  v-for="cluster in legendClusters"
-                  :key="cluster.id"
-                  class="cluster-dropdown-item px-3 py-2"
-                  :class="{ 'cluster-dropdown-item--selected': selectedClusters.has(cluster.id) }"
-                >
-                  <!-- Main clickable area - single select -->
-                  <button
-                    type="button"
-                    class="cluster-dropdown-main"
-                    :title="`View Cluster ${cluster.id} only`"
-                    :aria-label="`View cluster ${cluster.id} only`"
-                    @click="selectSingleCluster(cluster.id)"
-                  >
-                    <span
-                      class="legend-color me-2"
-                      :style="{ backgroundColor: cluster.color }"
-                      aria-hidden="true"
-                    />
-                    <span class="cluster-label">Cluster {{ cluster.id }}</span>
-                    <i
-                      v-if="selectedClusters.has(cluster.id) && selectedClusters.size === 1"
-                      class="bi bi-check-lg text-primary ms-auto"
-                    />
-                  </button>
-                  <!-- Add/Remove button for multi-select -->
-                  <button
-                    v-if="!selectedClusters.has(cluster.id)"
-                    type="button"
-                    class="cluster-dropdown-action cluster-dropdown-action--add"
-                    title="Add to selection"
-                    :aria-label="`Add cluster ${cluster.id} to selection`"
-                    @click.stop="addClusterToSelection(cluster.id)"
-                  >
-                    <i class="bi bi-plus-lg" aria-hidden="true" />
-                  </button>
-                  <button
-                    v-else
-                    type="button"
-                    class="cluster-dropdown-action cluster-dropdown-action--remove"
-                    title="Remove from selection"
-                    :aria-label="`Remove cluster ${cluster.id} from selection`"
-                    @click.stop="removeClusterFromSelection(cluster.id)"
-                  >
-                    <i class="bi bi-x-lg" aria-hidden="true" />
-                  </button>
-                </div>
-              </BDropdown>
-            </div>
-          </div>
-
-          <!-- Control buttons: aria-label required for icon-only buttons (button-name) -->
-          <div
-            class="btn-group btn-group-sm mt-1 mt-md-0"
-            role="group"
-            aria-label="Network controls"
-          >
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-secondary"
-              size="sm"
-              title="Fit to screen"
-              aria-label="Fit network to screen"
-              :disabled="!isInitialized"
-              @click="handleFitToScreen"
-            >
-              <i class="bi bi-arrows-fullscreen" aria-hidden="true" />
-            </BButton>
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-secondary"
-              size="sm"
-              title="Reset layout"
-              aria-label="Reset network layout"
-              :disabled="!isInitialized || isCytoscapeLoading"
-              @click="handleResetLayout"
-            >
-              <i class="bi bi-arrow-clockwise" aria-hidden="true" />
-            </BButton>
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-secondary"
-              size="sm"
-              title="Zoom in"
-              aria-label="Zoom in"
-              :disabled="!isInitialized"
-              @click="handleZoomIn"
-            >
-              <i class="bi bi-zoom-in" aria-hidden="true" />
-            </BButton>
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-secondary"
-              size="sm"
-              title="Zoom out"
-              aria-label="Zoom out"
-              :disabled="!isInitialized"
-              @click="handleZoomOut"
-            >
-              <i class="bi bi-zoom-out" aria-hidden="true" />
-            </BButton>
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-primary"
-              size="sm"
-              title="Export as PNG"
-              aria-label="Export network as PNG image"
-              :disabled="!isInitialized"
-              @click="handleExportPNG"
-            >
-              <i class="bi bi-image" aria-hidden="true" />
-            </BButton>
-            <BButton
-              v-b-tooltip.hover
-              variant="outline-primary"
-              size="sm"
-              title="Export as SVG"
-              aria-label="Export network as SVG image"
-              :disabled="!isInitialized"
-              @click="handleExportSVG"
-            >
-              <i class="bi bi-file-earmark-image" aria-hidden="true" />
-            </BButton>
-          </div>
-        </div>
-      </header>
+      <NetworkVisualizationControls
+        :is-initialized="isInitialized"
+        :is-cytoscape-loading="isCytoscapeLoading"
+        :metadata="metadata"
+        :visible-node-count="visibleNodeCount"
+        :visible-edge-count="visibleEdgeCount"
+        :is-network-filtered="isNetworkFiltered"
+        :gene-count-tooltip="geneCountTooltip"
+        :network-coverage-tooltip="networkCoverageTooltip"
+        :edges-filtered-tooltip="edgesFilteredTooltip"
+        :has-category-data="hasCategoryData"
+        :category-filter-label="categoryFilterLabel"
+        :category-options-with-counts="categoryOptionsWithCounts"
+        :category-level="categoryLevel"
+        :cluster-filter-label="clusterFilterLabel"
+        :show-all-clusters="showAllClusters"
+        :legend-clusters="legendClusters"
+        :selected-clusters="selectedClusters"
+        @set-category-level="setCategoryLevel"
+        @set-show-all-clusters="setShowAllClusters"
+        @select-single-cluster="selectSingleCluster"
+        @add-cluster="addClusterToSelection"
+        @remove-cluster="removeClusterFromSelection"
+        @fit-to-screen="handleFitToScreen"
+        @reset-layout="handleResetLayout"
+        @zoom-in="handleZoomIn"
+        @zoom-out="handleZoomOut"
+        @export-png="handleExportPNG"
+        @export-svg="handleExportSVG"
+      />
 
       <!-- Network container -->
       <div class="network-container">
@@ -299,92 +105,25 @@
       </div>
 
       <!-- Network legend - interactive cluster pills -->
-      <div v-if="legendClusters.length > 0" class="network-legend p-2 border-top">
-        <small class="text-muted me-2">Clusters:</small>
-        <div class="legend-pills">
-          <div
-            v-for="cluster in legendClusters"
-            :key="cluster.id"
-            class="legend-pill"
-            :class="{
-              'legend-pill--selected': selectedClusters.has(cluster.id) && !showAllClusters,
-              'legend-pill--all': showAllClusters,
-            }"
-          >
-            <!-- Main pill - click to single select -->
-            <button
-              type="button"
-              class="legend-pill-main"
-              :title="`View Cluster ${cluster.id}`"
-              :aria-label="`View cluster ${cluster.id} only`"
-              @click="selectSingleCluster(cluster.id)"
-            >
-              <span
-                class="legend-color"
-                :style="{ backgroundColor: cluster.color }"
-                aria-hidden="true"
-              />
-              {{ cluster.id }}
-            </button>
-            <!-- Add button - appears on hover when not selected -->
-            <button
-              v-if="!selectedClusters.has(cluster.id) || showAllClusters"
-              type="button"
-              class="legend-pill-add"
-              title="Add to selection"
-              :aria-label="`Add cluster ${cluster.id} to selection`"
-              @click.stop="addClusterToSelection(cluster.id)"
-            >
-              <i class="bi bi-plus" aria-hidden="true" />
-            </button>
-            <!-- Remove button - shown when selected in multi-select mode -->
-            <button
-              v-else-if="selectedClusters.size > 1"
-              type="button"
-              class="legend-pill-remove"
-              title="Remove from selection"
-              :aria-label="`Remove cluster ${cluster.id} from selection`"
-              @click.stop="removeClusterFromSelection(cluster.id)"
-            >
-              <i class="bi bi-x" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <NetworkVisualizationLegend
+        :clusters="legendClusters"
+        :selected-clusters="selectedClusters"
+        :show-all-clusters="showAllClusters"
+        @select-single-cluster="selectSingleCluster"
+        @add-cluster="addClusterToSelection"
+        @remove-cluster="removeClusterFromSelection"
+      />
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
-import {
-  BButton,
-  BBadge,
-  BSpinner,
-  BDropdown,
-  BDropdownItemButton,
-  BDropdownDivider,
-} from 'bootstrap-vue-next';
-import {
-  useCytoscape,
-  useNetworkData,
-  useNetworkFilters,
-  useFilterSync,
-  useWildcardSearch,
-  useNetworkHighlight,
-} from '@/composables';
-import type { CategoryFilter } from '@/composables';
-import { useNetworkTooltip } from '@/composables/useNetworkTooltip';
-import { getClusterColor } from '@/utils/clusterColors';
-import {
-  addNetworkCluster,
-  removeNetworkCluster,
-  selectSingleNetworkCluster,
-  showAllNetworkClusters,
-} from './networkSelection';
+import { BButton, BSpinner } from 'bootstrap-vue-next';
+import NetworkVisualizationControls from './NetworkVisualizationControls.vue';
+import NetworkVisualizationLegend from './NetworkVisualizationLegend.vue';
+import { useNetworkVisualizationController } from './useNetworkVisualizationController';
 
-// Emits
+// Emits (unchanged public surface).
 const emit = defineEmits<{
   (e: 'cluster-selected', hgncId: string): void;
   (e: 'clusters-changed', clusters: number[], showAll: boolean): void;
@@ -393,558 +132,53 @@ const emit = defineEmits<{
   (e: 'network-ready'): void;
 }>();
 
-// Router
-const router = useRouter();
-
-// Template refs
-const cytoscapeContainer = ref<HTMLElement | null>(null);
-
-// Network data composable
+// The single owner of Cytoscape lifecycle state; the shell only binds its
+// returned values to the template and children.
 const {
+  cytoscapeContainer,
   isLoading,
   error,
   isPreparing,
   metadata,
-  fetchNetworkData,
-  cytoscapeElements,
-  cytoscapeInitialElements,
-  cytoscapeNodeElements,
-} = useNetworkData();
-
-const {
+  isInitialized,
+  isCytoscapeLoading,
+  tooltipVisible,
+  tooltipPosition,
+  tooltipData,
+  visibleNodeCount,
+  visibleEdgeCount,
+  isNetworkFiltered,
+  geneCountTooltip,
+  networkCoverageTooltip,
+  edgesFilteredTooltip,
+  hasCategoryData,
+  categoryFilterLabel,
+  categoryOptionsWithCounts,
+  clusterFilterLabel,
+  legendClusters,
   categoryLevel,
   selectedClusters,
   showAllClusters,
-  applyFilters,
-  getVisibleNodeCount,
-  getVisibleEdgeCount,
-} = useNetworkFilters();
-
-const { filterState } = useFilterSync();
-
-const { pattern: searchPattern, regex: searchRegex, matches: searchMatches } = useWildcardSearch();
-
-const searchMatchCount = ref(0);
-
-const visibleNodeCount = ref(0);
-const visibleEdgeCount = ref(0);
-const fullGraphMounted = ref(false);
-const initialEdgesMounted = ref(false);
-const initialEdgeHydrationQueued = ref(false);
-
-const {
-  cy,
-  isInitialized,
-  isLoading: isCytoscapeLoading,
-  initializeCytoscape,
-  updateElements,
-  fitToScreen,
-  resetLayout,
-  zoomIn,
-  zoomOut,
-  exportPNG,
-  exportSVG,
-} = useCytoscape({
-  container: cytoscapeContainer,
-  onNodeClick: (nodeId: string) => {
-    router.push({ name: 'Gene', params: { id: nodeId } });
-    emit('cluster-selected', nodeId);
-  },
-  onClusterClick: (clusterId: number) => {
-    selectSingleCluster(clusterId);
-  },
-  onBackgroundClick: () => {
-    setShowAllClusters(true);
-  },
-  onLayoutReady: () => {
-    if (hydrateInitialEdgesIfNeeded()) return;
-    emit('network-ready');
-  },
-});
-
-const { tooltipVisible, tooltipPosition, tooltipData, setupTooltipHandlers } = useNetworkTooltip(
-  cy,
-  cytoscapeContainer
-);
-
-const {
-  highlightState,
-  setupNetworkListeners: setupHighlightListeners,
+  setCategoryLevel,
+  setShowAllClusters,
+  selectSingleCluster,
+  addClusterToSelection,
+  removeClusterFromSelection,
+  handleFitToScreen,
+  handleResetLayout,
+  handleZoomIn,
+  handleZoomOut,
+  handleExportPNG,
+  handleExportSVG,
+  retryLoadNetwork,
   highlightNodeFromTable,
-  clearHighlights,
   isRowHighlighted,
-} = useNetworkHighlight(cy);
+  clearHighlights,
+  searchMatchCount,
+  selectCluster,
+} = useNetworkVisualizationController(emit);
 
-const legendClusters = computed(() => {
-  // Build the cluster list/legend from the REAL distinct cluster IDs present in the
-  // network — not a fabricated `1..N` and not capped at 10 (the previous
-  // `Math.min(cluster_count, 10)` truncated the list and `id: i+1` invented IDs
-  // that never matched the sparse split-position IDs on the nodes, so selecting a
-  // cluster filtered nothing). IDs are coerced the same way `applyFilters` matches
-  // them (main cluster = integer part), sorted by member count desc so the largest
-  // clusters lead; colors cycle via getClusterColor when clusters exceed the palette.
-  const counts = new Map<number, number>();
-  for (const el of cytoscapeNodeElements.value) {
-    const raw = (el.data as { cluster?: number | string } | undefined)?.cluster;
-    if (raw === undefined || raw === null) continue;
-    const id = typeof raw === 'string' ? parseInt(raw.split('.')[0], 10) : raw;
-    if (!Number.isFinite(id)) continue;
-    counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
-    .map(([id]) => ({ id, color: getClusterColor(id) }));
-});
-
-const categoryOptions = [
-  { value: 'Definitive' as CategoryFilter, label: 'Definitive only' },
-  { value: 'Moderate' as CategoryFilter, label: '+ Moderate' },
-  { value: 'Limited' as CategoryFilter, label: '+ Limited' },
-];
-
-const categoryFilterLabel = computed(() => {
-  const opt = categoryOptions.find((o) => o.value === categoryLevel.value);
-  return `Category: ${opt?.label || categoryLevel.value}`;
-});
-
-const clusterFilterLabel = computed(() => {
-  if (showAllClusters.value) {
-    return 'Clusters: All';
-  }
-  const count = selectedClusters.value.size;
-  return count === 0 ? 'Clusters: None' : `Clusters: ${count} selected`;
-});
-
-const networkCoverageTooltip = computed(() => {
-  if (!metadata.value) return '';
-  const total = metadata.value.total_ndd_genes || 0;
-  const inNetwork = metadata.value.node_count || 0;
-  const _withString = metadata.value.genes_with_string || 0;
-  if (total && inNetwork < total) {
-    return `${inNetwork} of ${total} NDD genes shown. Only genes with STRING protein-protein interaction data are included.`;
-  }
-  return `${inNetwork} genes with protein-protein interactions`;
-});
-
-// True when the active Category/Clusters filters hide some of the network's genes
-// (visible < total), so the count badge can flag itself as filtered.
-const isNetworkFiltered = computed(
-  () => visibleNodeCount.value > 0 && visibleNodeCount.value < (metadata.value?.node_count || 0)
-);
-
-// Filter-aware tooltip for the gene-count badge: when a filter is hiding genes it
-// names the active filter (so 1310 / 2154 reads as "filtered by Definitive", not
-// "missing genes"); otherwise it falls back to the STRING-coverage explanation.
-const geneCountTooltip = computed(() => {
-  if (!isNetworkFiltered.value) return networkCoverageTooltip.value;
-  const shown = visibleNodeCount.value;
-  const total = metadata.value?.node_count || 0;
-  const clusterPart =
-    !showAllClusters.value && selectedClusters.value.size > 0
-      ? `, ${clusterFilterLabel.value}`
-      : '';
-  return `Showing ${shown} of ${total} network genes. Active filter — ${categoryFilterLabel.value}${clusterPart}. Use the Category / Clusters dropdowns to show more.`;
-});
-
-const edgesFilteredTooltip = computed(() => {
-  if (!metadata.value) return '';
-  if (metadata.value.edges_filtered && metadata.value.total_edges) {
-    return `Showing ${metadata.value.edge_count} of ${metadata.value.total_edges} total edges. Limited to 10,000 for performance (high confidence prioritized).`;
-  }
-  return `${metadata.value.edge_count} protein-protein interactions`;
-});
-
-const hasCategoryData = computed(() => {
-  if (metadata.value?.category_counts) {
-    const counts = metadata.value.category_counts;
-    return (counts.Definitive || 0) + (counts.Moderate || 0) + (counts.Limited || 0) > 0;
-  }
-  const cyInstance = cy();
-  if (cyInstance) {
-    const firstNode = cyInstance.nodes().first();
-    if (firstNode && firstNode.length > 0) {
-      const cat = firstNode.data('category');
-      return cat && cat !== 'Unknown';
-    }
-  }
-  return false;
-});
-
-const categoryOptionsWithCounts = computed(() => {
-  const counts = metadata.value?.category_counts || {};
-  const defCount = counts.Definitive || 0;
-  const modCount = counts.Moderate || 0;
-  const limCount = counts.Limited || 0;
-
-  return [
-    {
-      value: 'Definitive' as CategoryFilter,
-      label: 'Definitive only',
-      count: defCount,
-    },
-    {
-      value: 'Moderate' as CategoryFilter,
-      label: '+ Moderate',
-      count: defCount + modCount,
-    },
-    {
-      value: 'Limited' as CategoryFilter,
-      label: '+ Limited',
-      count: defCount + modCount + limCount,
-    },
-  ];
-});
-
-// Apply filters and update visible counts
-function handleApplyFilters() {
-  const cyInstance = cy();
-  if (!cyInstance) return;
-
-  // Always apply filters - the applyFilters function handles both category and cluster
-  // Category filtering is skipped internally when nodes don't have category data
-  applyFilters(cyInstance);
-
-  visibleNodeCount.value = getVisibleNodeCount(cyInstance);
-  visibleEdgeCount.value = getVisibleEdgeCount(cyInstance);
-
-  // Re-apply search highlighting after filters
-  updateSearchHighlighting();
-}
-
-function mountInitialGraphElements() {
-  if (cytoscapeInitialElements.value.length === 0) return;
-  updateElements(cytoscapeInitialElements.value);
-  initialEdgesMounted.value = true;
-  fullGraphMounted.value = false;
-  handleApplyFilters();
-}
-
-function mountNodeGraphElements() {
-  if (cytoscapeNodeElements.value.length === 0) return;
-  updateElements(cytoscapeNodeElements.value);
-  initialEdgesMounted.value = false;
-  initialEdgeHydrationQueued.value = false;
-  fullGraphMounted.value = false;
-  handleApplyFilters();
-}
-
-function hydrateInitialEdgesIfNeeded(): boolean {
-  if (
-    initialEdgesMounted.value ||
-    initialEdgeHydrationQueued.value ||
-    cytoscapeInitialElements.value.length <= cytoscapeNodeElements.value.length
-  ) {
-    return false;
-  }
-
-  initialEdgeHydrationQueued.value = true;
-  const hydrate = () => {
-    mountInitialGraphElements();
-    initialEdgeHydrationQueued.value = false;
-  };
-
-  const requestIdle =
-    typeof window.requestIdleCallback === 'function'
-      ? window.requestIdleCallback.bind(window)
-      : null;
-  if (requestIdle) {
-    requestIdle(hydrate, { timeout: 700 });
-  } else {
-    globalThis.setTimeout(hydrate, 100);
-  }
-  return true;
-}
-
-function mountFullGraphIfNeeded() {
-  if (fullGraphMounted.value || cytoscapeElements.value.length === 0) return;
-  updateElements(cytoscapeElements.value);
-  initialEdgesMounted.value = true;
-  initialEdgeHydrationQueued.value = false;
-  fullGraphMounted.value = true;
-  handleApplyFilters();
-  nextTick(() => {
-    setupTooltipHandlers();
-  });
-}
-
-/**
- * Update search highlighting on network nodes
- * Applies search-match and search-no-match classes based on wildcard pattern
- * Also pans/zooms to focus on matching nodes for better UX
- */
-function updateSearchHighlighting() {
-  const cyInstance = cy();
-  if (!cyInstance) return;
-
-  const hasPattern = searchRegex.value !== null;
-  let matchCount = 0;
-  const matchingNodes = cyInstance.collection();
-
-  // Remove existing search classes
-  cyInstance.nodes().removeClass('search-match search-no-match');
-
-  if (hasPattern) {
-    cyInstance.nodes().forEach((node) => {
-      // Skip cluster parent nodes
-      if (node.data('isClusterParent')) return;
-
-      const symbol = node.data('symbol');
-      const isMatch = searchMatches(symbol);
-
-      if (isMatch) {
-        node.addClass('search-match');
-        matchingNodes.merge(node);
-        matchCount += 1;
-      } else {
-        node.addClass('search-no-match');
-      }
-    });
-
-    // Focus on matching nodes with gentle animation (don't zoom in too hard)
-    if (matchingNodes.length > 0) {
-      // Calculate the bounding box of matching nodes
-      const bb = matchingNodes.boundingBox();
-      const padding = 150; // More padding for gentler zoom
-
-      // Get viewport dimensions
-      const containerWidth = cyInstance.width();
-      const containerHeight = cyInstance.height();
-
-      // Calculate zoom level that would fit the nodes
-      const zoomX = containerWidth / (bb.w + padding * 2);
-      const zoomY = containerHeight / (bb.h + padding * 2);
-      let targetZoom = Math.min(zoomX, zoomY);
-
-      // Limit max zoom to prevent zooming in too hard (max 1.5x)
-      const maxZoom = 1.5;
-      targetZoom = Math.min(targetZoom, maxZoom);
-
-      // Calculate center of matching nodes
-      const centerX = (bb.x1 + bb.x2) / 2;
-      const centerY = (bb.y1 + bb.y2) / 2;
-
-      // First pan to center, then zoom
-      cyInstance.animate({
-        pan: {
-          x: containerWidth / 2 - centerX * targetZoom,
-          y: containerHeight / 2 - centerY * targetZoom,
-        },
-        zoom: targetZoom,
-        duration: 400,
-        easing: 'ease-out-cubic',
-      });
-    }
-  }
-
-  // Update match count and emit for parent component
-  searchMatchCount.value = matchCount;
-  emit('search-match-count', matchCount);
-}
-
-// Category level change handler
-function setCategoryLevel(level: CategoryFilter) {
-  categoryLevel.value = level;
-  if (level !== 'Definitive') {
-    mountFullGraphIfNeeded();
-  }
-  handleApplyFilters();
-}
-
-function selectSingleCluster(clusterId: number) {
-  const nextSelection = selectSingleNetworkCluster(clusterId);
-  showAllClusters.value = nextSelection.showAllClusters;
-  selectedClusters.value = nextSelection.selectedClusters;
-  handleApplyFilters();
-  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
-}
-
-function addClusterToSelection(clusterId: number) {
-  const nextSelection = addNetworkCluster(selectedClusters.value, clusterId);
-  showAllClusters.value = nextSelection.showAllClusters;
-  selectedClusters.value = nextSelection.selectedClusters;
-  handleApplyFilters();
-  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
-}
-
-function removeClusterFromSelection(clusterId: number) {
-  const nextSelection = removeNetworkCluster(selectedClusters.value, clusterId);
-  showAllClusters.value = nextSelection.showAllClusters;
-  selectedClusters.value = nextSelection.selectedClusters;
-
-  handleApplyFilters();
-  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
-}
-
-function setShowAllClusters(value: boolean) {
-  const nextSelection = showAllNetworkClusters(value, selectedClusters.value);
-  showAllClusters.value = nextSelection.showAllClusters;
-  selectedClusters.value = nextSelection.selectedClusters;
-  handleApplyFilters();
-
-  // Emit cluster selection change for table sync
-  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
-}
-
-// Control handlers
-function handleFitToScreen() {
-  fitToScreen();
-}
-
-function handleResetLayout() {
-  resetLayout();
-}
-
-function handleZoomIn() {
-  zoomIn();
-}
-
-function handleZoomOut() {
-  zoomOut();
-}
-
-function handleExportPNG() {
-  const dataUrl = exportPNG();
-  if (dataUrl) {
-    const link = document.createElement('a');
-    link.download = 'network.png';
-    link.href = dataUrl;
-    link.click();
-  }
-}
-
-function handleExportSVG() {
-  const svgString = exportSVG();
-  if (svgString) {
-    const blob = new Blob([svgString], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = 'network.svg';
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-}
-
-// Resize observer to refit graph when container resizes
-let resizeObserver: ResizeObserver | null = null;
-
-// Watch for search pattern changes from URL state (filterState.search)
-watch(
-  () => filterState.value.search,
-  (newPattern) => {
-    searchPattern.value = newPattern;
-    if (isInitialized.value) {
-      updateSearchHighlighting();
-    }
-  },
-  { immediate: true }
-);
-
-// Emit node hover events for bidirectional table highlighting
-watch(
-  () => highlightState.value.hoveredNodeId,
-  (nodeId) => {
-    emit('node-hover', nodeId);
-  }
-);
-
-// Initialize on mount
-onMounted(async () => {
-  // Fetch network data
-  await fetchNetworkData();
-
-  // Wait for DOM update
-  await nextTick();
-
-  if (cytoscapeNodeElements.value.length > 0) {
-    initializeCytoscape(cytoscapeNodeElements.value);
-    initialEdgesMounted.value = false;
-    fullGraphMounted.value = false;
-    handleApplyFilters();
-  } else {
-    initializeCytoscape();
-  }
-
-  // Setup tooltip handlers after a brief delay to ensure cy is ready
-  await nextTick();
-  setupTooltipHandlers();
-
-  // Setup network highlight listeners for bidirectional hover
-  setupHighlightListeners();
-
-  // Apply initial filters (defaults to Definitive only)
-  await nextTick();
-  handleApplyFilters();
-
-  // Setup resize observer to refit graph when container is resized
-  if (cytoscapeContainer.value) {
-    resizeObserver = new ResizeObserver(() => {
-      const cyInstance = cy();
-      if (cyInstance && isInitialized.value) {
-        // Use fitToScreen which handles resize, fit, and manual centering
-        fitToScreen();
-      }
-    });
-    resizeObserver.observe(cytoscapeContainer.value);
-  }
-});
-
-// Cleanup resize observer on unmount
-import { onBeforeUnmount } from 'vue';
-onBeforeUnmount(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
-});
-
-// Watch for element changes and update the graph
-watch(cytoscapeNodeElements, (newElements) => {
-  if (isInitialized.value && newElements.length > 0) {
-    updateElements(newElements);
-    initialEdgesMounted.value = false;
-    initialEdgeHydrationQueued.value = false;
-    fullGraphMounted.value = false;
-    // Re-setup tooltip handlers and apply filters after elements update
-    nextTick(() => {
-      setupTooltipHandlers();
-      handleApplyFilters();
-    });
-  }
-});
-
-/**
- * Retry loading network data after an error
- */
-const retryLoadNetwork = async () => {
-  await fetchNetworkData();
-  await nextTick();
-  if (!isInitialized.value) {
-    initializeCytoscape(cytoscapeNodeElements.value);
-    initialEdgesMounted.value = false;
-    fullGraphMounted.value = false;
-    setupTooltipHandlers();
-    handleApplyFilters();
-  } else if (cytoscapeNodeElements.value.length > 0) {
-    mountNodeGraphElements();
-    setupTooltipHandlers();
-    handleApplyFilters();
-  }
-};
-
-/**
- * Select a specific cluster programmatically (for parent component sync)
- * Used when parent auto-selects first cluster on initial load
- */
-function selectCluster(clusterId: number) {
-  const nextSelection = selectSingleNetworkCluster(clusterId);
-  showAllClusters.value = nextSelection.showAllClusters;
-  selectedClusters.value = nextSelection.selectedClusters;
-  handleApplyFilters();
-  // Don't emit clusters-changed here - parent already knows the state
-}
-
-// Expose methods for parent component (bidirectional highlighting)
+// Expose methods for the parent component (bidirectional highlighting + sync).
 defineExpose({
   highlightNodeFromTable,
   isRowHighlighted,
@@ -965,17 +199,6 @@ defineExpose({
   border: 1px solid var(--border-subtle, #e2e8f0);
   border-radius: var(--radius-md, 6px);
   background: #fff;
-}
-
-.network-panel__header {
-  padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid var(--border-subtle, #e6ebf2);
-}
-
-/* Promoted from h6 to h2 (heading-order); keep the compact panel-title size. */
-.network-panel__title {
-  font-size: 1rem;
-  color: var(--neutral-900, #212121);
 }
 
 .network-container {
@@ -1067,260 +290,5 @@ defineExpose({
 .tooltip-details {
   font-size: 12px;
   line-height: 1.4;
-}
-
-.network-legend {
-  background-color: #f8f9fa;
-  font-size: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-/* ============================================
-   Cluster Selection UI - Polished Design
-   ============================================ */
-
-/* Legend pills container */
-.legend-pills {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  align-items: center;
-}
-
-/* Individual cluster pill */
-.legend-pill {
-  display: inline-flex;
-  align-items: center;
-  position: relative;
-  border-radius: 20px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  overflow: hidden;
-}
-
-.legend-pill:hover {
-  border-color: #adb5bd;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* Main clickable area of pill */
-.legend-pill-main {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  font-size: 12px;
-  font-weight: 600;
-  color: #495057;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.legend-pill-main:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.legend-pill-main:focus-visible {
-  outline: 2px solid var(--medical-blue-700, #0d47a1);
-  outline-offset: 1px;
-}
-
-.legend-pill-main:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Add button (+ icon) - appears on hover */
-.legend-pill-add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 0;
-  padding: 0;
-  font-size: 11px;
-  color: #198754;
-  background: transparent;
-  border: none;
-  border-left: 1px solid transparent;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
-
-.legend-pill:hover .legend-pill-add {
-  width: 24px;
-  padding: 0.25rem 0.375rem;
-  border-left-color: #e9ecef;
-}
-
-.legend-pill-add:hover {
-  background-color: rgba(25, 135, 84, 0.1);
-  color: #146c43;
-}
-
-/* Remove button (x icon) - shown when selected */
-.legend-pill-remove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  padding: 0.25rem 0.375rem;
-  font-size: 11px;
-  color: #6c757d;
-  background: transparent;
-  border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.legend-pill-remove:hover {
-  background-color: rgba(220, 53, 69, 0.15);
-  color: #dc3545;
-}
-
-/* Selected pill state — uses medical-blue-700 token, no gradient per quiet-chip rule */
-@media (prefers-reduced-motion: no-preference) {
-  .legend-pill {
-    transition: all 0.2s ease;
-  }
-}
-
-.legend-pill--selected {
-  background-color: var(--medical-blue-700, #0d47a1);
-  border-color: var(--medical-blue-700, #0d47a1);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
-}
-
-.legend-pill--selected .legend-pill-main {
-  color: white;
-}
-
-.legend-pill--selected .legend-pill-main:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.legend-pill--selected .legend-color {
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
-}
-
-/* All clusters mode - subtle equal highlight */
-.legend-pill--all {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-}
-
-/* Cluster color indicator */
-.legend-color {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 0.375rem;
-  border: 1.5px solid rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
-}
-
-/* ============================================
-   Dropdown Cluster Items - Polished Design
-   ============================================ */
-
-.cluster-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 4px;
-  margin: 0.125rem 0.5rem;
-  transition: background-color 0.15s ease;
-}
-
-.cluster-dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.cluster-dropdown-item--selected {
-  background-color: #e7f1ff;
-}
-
-.cluster-dropdown-item--selected:hover {
-  background-color: #d0e3ff;
-}
-
-/* Main clickable area in dropdown */
-.cluster-dropdown-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  font-size: 13px;
-  color: #212529;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.cluster-dropdown-main:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.cluster-dropdown-main:focus-visible {
-  outline: 2px solid var(--medical-blue-700, #0d47a1);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.cluster-dropdown-main:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
-}
-
-.cluster-dropdown-main .cluster-label {
-  font-weight: 500;
-}
-
-/* Action buttons in dropdown */
-.cluster-dropdown-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 14px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.cluster-dropdown-action--add {
-  color: #198754;
-}
-
-.cluster-dropdown-action--add:hover {
-  background-color: #d1e7dd;
-  border-color: #a3cfbb;
-  color: #146c43;
-}
-
-.cluster-dropdown-action--remove {
-  color: #6c757d;
-}
-
-.cluster-dropdown-action--remove:hover {
-  background-color: #f8d7da;
-  border-color: #f1aeb5;
-  color: #dc3545;
-}
-
-/* Button group styling */
-.btn-group-sm > .btn {
-  padding: 0.25rem 0.4rem;
 }
 </style>
