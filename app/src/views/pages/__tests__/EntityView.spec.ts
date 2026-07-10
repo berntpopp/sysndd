@@ -37,6 +37,13 @@ import { bootstrapStubs } from '@/test-utils';
 import { useCacheStore } from '@/stores/cacheStore';
 import EntityView from '../EntityView.vue';
 import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
+import EntityViewHero, { type EntityHeroModel } from '../components/EntityViewHero.vue';
+import ClinicalSynopsisCard, {
+  type ClinicalSynopsisModel,
+} from '../components/ClinicalSynopsisCard.vue';
+import EntityEvidenceGrid, {
+  type EntityEvidenceModel,
+} from '../components/EntityEvidenceGrid.vue';
 
 function makeRouter(path: string) {
   const router = createRouter({
@@ -790,6 +797,281 @@ describe('EntityView (v11.3 W3)', () => {
     expect(heroRow.text()).not.toMatch(/\bMONDO MONDO:/);
     // Also assert no element carrying the old pill pattern exists anywhere.
     expect(w.find('.entity-meta-pill').text()).not.toMatch(/\bMONDO MONDO:/);
+
+    w.unmount();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #346 W2 decomposition: child-contract tests for the three presentation
+// components extracted from EntityView.vue. Each is mounted in isolation with
+// a hand-built display model — no composables, no MSW handlers — pinning the
+// prop contract independently of the parent's fetch orchestration.
+// -----------------------------------------------------------------------------
+
+const routerLinkStub = {
+  props: ['to'],
+  template: "<a :href=\"typeof to === 'string' ? to : '#'\"><slot /></a>",
+};
+
+function makeHeroModel(overrides: Partial<EntityHeroModel> = {}): EntityHeroModel {
+  return {
+    entityIdStr: '57',
+    backToResults: null,
+    loading: false,
+    empty: false,
+    error: null,
+    hasRecord: true,
+    geneSymbol: 'ARID1B',
+    hgncId: 'HGNC:18040',
+    geneLink: '/Genes/HGNC:18040',
+    inheritanceName: 'Autosomal dominant inheritance',
+    inheritanceTerm: 'HP:0000006',
+    diseaseName: 'Coffin-Siris syndrome 1',
+    diseaseOntologyId: 'OMIM:135900',
+    diseaseLink: '/Ontology/OMIM:135900',
+    categoryLabel: 'Definitive',
+    diseaseSourceId: 'OMIM:135900',
+    diseaseSourceUrl: 'https://www.omim.org/entry/135900',
+    nddStatus: 'Yes',
+    entryDate: '2014-03-04 00:00:00',
+    lastUpdate: '2026-02-10 12:29:49',
+    ...overrides,
+  };
+}
+
+function mountHero(model: EntityHeroModel) {
+  return mount(EntityViewHero, {
+    props: { model },
+    global: { stubs: { ...heavyChildStubs, RouterLink: routerLinkStub } },
+  });
+}
+
+describe('EntityViewHero (#346 child contract)', () => {
+  it('renders the loading skeleton while the hero resource is loading', () => {
+    const w = mountHero(makeHeroModel({ loading: true, hasRecord: false }));
+    expect(w.find('[data-testid="section-card-skeleton"]').exists()).toBe(true);
+    expect(w.find('[data-testid="entity-hero"]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('renders the SectionCard error state with the hero error message', () => {
+    const w = mountHero(makeHeroModel({ error: 'Network error', hasRecord: false }));
+    const errorBlock = w.get('[data-testid="section-card-error"]');
+    expect(errorBlock.text()).toContain('Network error');
+    w.unmount();
+  });
+
+  it('renders nothing when the hero resource resolves empty', () => {
+    const w = mountHero(makeHeroModel({ empty: true, hasRecord: false }));
+    expect(w.find('[data-testid="section-card-content"]').exists()).toBe(false);
+    expect(w.find('[data-testid="section-card-skeleton"]').exists()).toBe(false);
+    expect(w.find('[data-testid="entity-hero"]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('renders the Gene / Inheritance / Disease unit, classification, and freshness pills from the model', () => {
+    const w = mountHero(makeHeroModel());
+    const unit = w.get('[data-testid="entity-unit"]');
+    const labels = unit.findAll('[data-testid="entity-unit-label"]').map((n) => n.text());
+    expect(labels).toEqual(['Gene', 'Inheritance', 'Disease']);
+    expect(w.text()).toContain('Definitive');
+    expect(w.get('[data-testid="entity-entry-date"]').text()).toContain('Entered 2014-03-04');
+    expect(w.get('[data-testid="entity-last-update"]').text()).toContain(
+      'Last updated 2026-02-10'
+    );
+    w.unmount();
+  });
+
+  it('builds the OMIM source link from an OMIM disease source id', () => {
+    const w = mountHero(
+      makeHeroModel({
+        diseaseSourceId: 'OMIM:135900',
+        diseaseSourceUrl: 'https://www.omim.org/entry/135900',
+      })
+    );
+    const link = w.get('.entity-meta-pill a');
+    expect(link.attributes('href')).toBe('https://www.omim.org/entry/135900');
+    expect(link.text()).toBe('OMIM:135900');
+    w.unmount();
+  });
+
+  it('builds the MONDO OBO purl source link from a MONDO disease source id', () => {
+    const w = mountHero(
+      makeHeroModel({
+        diseaseSourceId: 'MONDO:0032745',
+        diseaseSourceUrl: 'http://purl.obolibrary.org/obo/MONDO_0032745',
+      })
+    );
+    const link = w.get('.entity-meta-pill a');
+    expect(link.attributes('href')).toBe('http://purl.obolibrary.org/obo/MONDO_0032745');
+    w.unmount();
+  });
+
+  it('renders "Back to results" only when backToResults is set', () => {
+    const withBack = mountHero(makeHeroModel({ backToResults: '/Entities?page=2' }));
+    expect(withBack.find('a.btn-outline-secondary').exists()).toBe(true);
+    withBack.unmount();
+
+    const withoutBack = mountHero(makeHeroModel({ backToResults: null }));
+    expect(withoutBack.find('a.btn-outline-secondary').exists()).toBe(false);
+    withoutBack.unmount();
+  });
+});
+
+function makeSynopsisModel(overrides: Partial<ClinicalSynopsisModel> = {}): ClinicalSynopsisModel {
+  return {
+    loading: false,
+    error: null,
+    reviewDate: '2025-02-12 11:14:21',
+    synopsisText: 'De novo truncating variants with developmental delay.',
+    copyButtonLabel: 'Copy',
+    ...overrides,
+  };
+}
+
+function mountSynopsis(model: ClinicalSynopsisModel) {
+  return mount(ClinicalSynopsisCard, {
+    props: { model },
+    global: { stubs: heavyChildStubs },
+  });
+}
+
+describe('ClinicalSynopsisCard (#346 child contract)', () => {
+  it('renders the loading skeleton while the review resource is loading', () => {
+    const w = mountSynopsis(makeSynopsisModel({ loading: true }));
+    expect(w.find('[data-testid="section-card-skeleton"]').exists()).toBe(true);
+    expect(w.find('[data-testid="clinical-synopsis-panel"]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('renders the SectionCard error state with the review error message', () => {
+    const w = mountSynopsis(makeSynopsisModel({ error: 'Failed to load review' }));
+    expect(w.get('[data-testid="section-card-error"]').text()).toContain('Failed to load review');
+    w.unmount();
+  });
+
+  it('renders the synopsis text and reviewed-date, and emits copy on button click', async () => {
+    const w = mountSynopsis(makeSynopsisModel());
+    expect(w.get('[data-testid="clinical-synopsis-panel"]').text()).toContain(
+      'De novo truncating variants'
+    );
+    expect(w.get('[data-testid="clinical-synopsis-header"]').text()).toContain(
+      'Last reviewed 2025-02-12 11:14:21'
+    );
+    const button = w.get('[data-testid="copy-synopsis-button"]');
+    expect((button.element as HTMLButtonElement).disabled).toBe(false);
+    await button.trigger('click');
+    expect(w.emitted('copy')).toHaveLength(1);
+    w.unmount();
+  });
+
+  it('shows the empty-state message and disables copy when synopsis text is empty', () => {
+    const w = mountSynopsis(makeSynopsisModel({ synopsisText: '' }));
+    expect(w.get('[data-testid="clinical-synopsis-panel"]').text()).toContain(
+      'No clinical synopsis available.'
+    );
+    const button = w.get('[data-testid="copy-synopsis-button"]');
+    expect((button.element as HTMLButtonElement).disabled).toBe(true);
+    w.unmount();
+  });
+});
+
+function makeEvidenceModel(overrides: Partial<EntityEvidenceModel> = {}): EntityEvidenceModel {
+  return {
+    publications: { loading: false, error: null, additionalRefs: [], geneReviews: [] },
+    phenotypes: { loading: false, error: null, list: [] },
+    variation: { loading: false, error: null, list: [] },
+    ...overrides,
+  };
+}
+
+function mountGrid(model: EntityEvidenceModel) {
+  return mount(EntityEvidenceGrid, {
+    props: { model },
+    global: { stubs: heavyChildStubs },
+  });
+}
+
+describe('EntityEvidenceGrid (#346 child contract)', () => {
+  it('renders loading skeletons for all four evidence cards', () => {
+    const w = mountGrid(
+      makeEvidenceModel({
+        publications: { loading: true, error: null, additionalRefs: [], geneReviews: [] },
+        phenotypes: { loading: true, error: null, list: [] },
+        variation: { loading: true, error: null, list: [] },
+      })
+    );
+    expect(w.findAll('[data-testid="section-card-skeleton"]')).toHaveLength(4);
+    w.unmount();
+  });
+
+  it('renders the SectionCard error state for each of the three resources', () => {
+    const w = mountGrid(
+      makeEvidenceModel({
+        publications: { loading: false, error: 'pubs failed', additionalRefs: [], geneReviews: [] },
+        phenotypes: { loading: false, error: 'pheno failed', list: [] },
+        variation: { loading: false, error: 'vario failed', list: [] },
+      })
+    );
+    // Publications + Gene Reviews share the publications resource state, so
+    // the same error message renders on both cards.
+    const errors = w.findAll('[data-testid="section-card-error"]').map((n) => n.text());
+    expect(errors.filter((t) => t.includes('pubs failed'))).toHaveLength(2);
+    expect(errors.some((t) => t.includes('pheno failed'))).toBe(true);
+    expect(errors.some((t) => t.includes('vario failed'))).toBe(true);
+    w.unmount();
+  });
+
+  it('shows the empty-state message for each of the four evidence cards when no items are linked', () => {
+    const w = mountGrid(makeEvidenceModel());
+    expect(w.text()).toContain('No publications linked.');
+    expect(w.text()).toContain('No GeneReviews linked.');
+    expect(w.text()).toContain('No phenotype terms linked.');
+    expect(w.text()).toContain('No variation ontology terms linked.');
+    w.unmount();
+  });
+
+  it('renders publication, gene-review, phenotype, and variation chips with correct links, tooltips, and aria-labels', () => {
+    const w = mountGrid(
+      makeEvidenceModel({
+        publications: {
+          loading: false,
+          error: null,
+          additionalRefs: [
+            { publication_id: 'PMID:22405089', publication_type: 'additional_references' },
+          ],
+          geneReviews: [{ publication_id: 'PMID:23556151', publication_type: 'gene_review' }],
+        },
+        phenotypes: {
+          loading: false,
+          error: null,
+          list: [{ phenotype_id: 'HP:0001250', HPO_term: 'Seizures', modifier_id: 5 }],
+        },
+        variation: {
+          loading: false,
+          error: null,
+          list: [{ vario_id: 'VariO:0133', vario_name: 'protein truncation', modifier_id: 3 }],
+        },
+      })
+    );
+
+    const pubChip = w.get('[data-testid="publication-chip-PMID:22405089"]');
+    expect(pubChip.attributes('href')).toBe('https://pubmed.ncbi.nlm.nih.gov/22405089');
+    expect(pubChip.attributes('data-tooltip')).toBe('Original Article');
+    expect(pubChip.attributes('aria-label')).toBe('Original Article PMID:22405089');
+
+    const reviewChip = w.get('[data-testid="publication-chip-PMID:23556151"]');
+    expect(reviewChip.attributes('data-tooltip')).toBe('GeneReview Article');
+
+    const phenoChip = w.get('[data-testid="phenotype-chip-HP:0001250"]');
+    expect(phenoChip.classes()).toContain('entity-chip--absent');
+    expect(phenoChip.attributes('href')).toBe('https://hpo.jax.org/browse/term/HP:0001250');
+    expect(phenoChip.attributes('data-tooltip')).toBe('absent | HP:0001250');
+
+    const varioChip = w.get('[data-testid="variation-chip-VariO:0133"]');
+    expect(varioChip.classes()).toContain('entity-chip--variable');
+    expect(varioChip.attributes('href')).toContain('ebi.ac.uk/ols4');
 
     w.unmount();
   });
