@@ -184,92 +184,19 @@
         </div>
       </BContainer>
 
-      <!-- Reassign Modal -->
-      <BModal
-        v-model="reassignModalShow"
-        title="Reassign Batch"
-        ok-title="Reassign"
-        cancel-title="Cancel"
-        header-close-label="Close"
-        @ok="handleBatchReassignment"
-      >
-        <BFormGroup label="Select new user:" label-for="reassign-user-select">
-          <BFormSelect
-            id="reassign-user-select"
-            v-model="reassignNewUserId"
-            :options="user_options"
-            aria-label="Select user to reassign batch to"
-          />
-        </BFormGroup>
-        <small class="text-muted">
-          This will reassign batch {{ reassignBatchId }} to the selected user.
-        </small>
-      </BModal>
-
-      <!-- Recalculate Modal (RRV-05) -->
-      <BModal
-        v-model="recalculateModalShow"
-        title="Recalculate Batch Contents"
-        size="lg"
-        ok-title="Recalculate"
-        cancel-title="Cancel"
-        header-close-label="Close"
-        :ok-disabled="isRecalculating"
-        @ok="handleBatchRecalculation"
-      >
-        <BAlert variant="info" show class="mb-3">
-          <i class="bi bi-info-circle me-1" />
-          This will replace the current entities in batch {{ recalculateBatchId }} with entities
-          matching the new criteria. Only unassigned batches can be recalculated.
-        </BAlert>
-
-        <!-- Date Range -->
-        <BFormGroup label="Review Date Range" class="mb-3">
-          <div class="d-flex gap-2">
-            <BFormInput
-              v-model="recalculateCriteria.date_range.start"
-              type="date"
-              :disabled="isRecalculating"
-              aria-label="Start date for review date range"
-            />
-            <span class="align-self-center">to</span>
-            <BFormInput
-              v-model="recalculateCriteria.date_range.end"
-              type="date"
-              :disabled="isRecalculating"
-              aria-label="End date for review date range"
-            />
-          </div>
-        </BFormGroup>
-
-        <!-- Status Filter -->
-        <BFormGroup label="Status Category" class="mb-3">
-          <BFormSelect
-            v-model="recalculateCriteria.status_filter"
-            :options="status_options"
-            :disabled="isRecalculating"
-            aria-label="Filter by entity status category"
-          >
-            <template #first>
-              <option :value="null">-- Any status --</option>
-            </template>
-          </BFormSelect>
-        </BFormGroup>
-
-        <!-- Batch Size -->
-        <BFormGroup label="Batch Size" class="mb-3">
-          <BFormInput
-            v-model.number="recalculateCriteria.batch_size"
-            type="number"
-            min="1"
-            max="100"
-            :disabled="isRecalculating"
-            aria-label="Maximum number of entities in recalculated batch"
-          />
-        </BFormGroup>
-
-        <BSpinner v-if="isRecalculating" class="me-2" small />
-      </BModal>
+      <ReReviewBatchDialogs
+        v-model:reassign-show="reassignModalShow"
+        v-model:reassign-new-user-id="reassignNewUserId"
+        v-model:recalculate-show="recalculateModalShow"
+        v-model:recalculate-criteria="recalculateCriteria"
+        :reassign-batch-id="reassignBatchId"
+        :user-options="user_options"
+        :recalculate-batch-id="recalculateBatchId"
+        :status-options="status_options"
+        :is-recalculating="isRecalculating"
+        @reassign="handleBatchReassignment"
+        @recalculate="handleBatchRecalculation"
+      />
 
       <!-- AriaLiveRegion for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
@@ -286,6 +213,7 @@ import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
 import ManualEntityAssignmentPanel from '@/views/curate/components/ManualEntityAssignmentPanel.vue';
 import ReReviewAssignmentTable from '@/views/curate/components/ReReviewAssignmentTable.vue';
+import ReReviewBatchDialogs from '@/views/curate/components/ReReviewBatchDialogs.vue';
 import RefusedReReviewPanel from '@/views/curate/components/RefusedReReviewPanel.vue';
 import {
   reReviewEntitySelectFields,
@@ -302,6 +230,7 @@ export default {
     IconLegend,
     ManualEntityAssignmentPanel,
     ReReviewAssignmentTable,
+    ReReviewBatchDialogs,
     RefusedReReviewPanel,
   },
   setup() {
