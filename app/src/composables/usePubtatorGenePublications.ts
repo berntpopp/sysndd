@@ -14,6 +14,7 @@
 import { ref } from 'vue';
 import axios from 'axios';
 import { listPubtatorTable } from '@/api/publication';
+import type useToast from '@/composables/useToast';
 
 export interface PubtatorPublicationData {
   search_id?: number;
@@ -27,7 +28,9 @@ export interface PubtatorPublicationData {
   text_hl?: string;
 }
 
-type MakeToast = (message: unknown, title?: string | null, variant?: string | null) => void;
+// Derive from the real useToast signature (accepts ToastVariant, not bare
+// string) so consumers can pass useToast().makeToast under strict type-check.
+type MakeToast = ReturnType<typeof useToast>['makeToast'];
 
 export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
   const { makeToast } = options;
