@@ -1,103 +1,24 @@
 <!-- src/components/forms/BatchCriteriaForm.vue -->
 <!--
-  Re-Review Batch Creation Form
-  Expert UX design with:
-  - Entity search with autocomplete and chip display
-  - Help icons with tooltips explaining each field
-  - Clean 2-column layout with clear visual hierarchy
-  - Accessible form controls with proper ARIA attributes
+  Re-Review Batch Creation Form. The entity search/picker UI lives in
+  BatchCriteriaEntityPicker.vue; option loading, entity-search debounce,
+  and the gene-filter picker are orchestrated by useBatchCriteriaOptions.ts
+  (#346, Wave 2 Task 4). This file keeps useBatchForm, the form schema,
+  validation, and the component's public emits.
 -->
 <template>
   <BForm class="batch-criteria-form" @submit.prevent="onSubmit">
     <div class="batch-form-grid batch-form-grid--top">
-      <section
-        class="batch-form-panel batch-form-panel--wide"
-        aria-labelledby="batch-entities-title"
-      >
-        <div class="batch-form-panel__header">
-          <h3 id="batch-entities-title">Scope</h3>
-          <p>Add exact entities, or define a criteria-based batch.</p>
-        </div>
-        <!-- Entity Search Section -->
-        <div class="batch-field">
-          <div class="d-flex align-items-center mb-1">
-            <label for="entity-search" class="small fw-semibold mb-0"> Search Entities </label>
-            <i id="help-search-entities" class="bi bi-question-circle text-muted ms-1" />
-            <BTooltip target="help-search-entities" placement="right" triggers="hover">
-              Search by entity ID, gene symbol, or disease name. Selected entities are added
-              directly to the batch.
-            </BTooltip>
-          </div>
-          <div class="position-relative">
-            <BFormInput
-              id="entity-search"
-              v-model="entitySearchQuery"
-              type="search"
-              size="sm"
-              placeholder="Type to search (ID, gene, disease)..."
-              :disabled="isLoading"
-              autocomplete="off"
-              @input="onEntitySearch"
-              @keydown.enter.prevent
-            />
-            <BSpinner
-              v-if="isEntitySearching"
-              small
-              class="position-absolute"
-              style="right: 10px; top: 50%; transform: translateY(-50%)"
-            />
-          </div>
-          <!-- Search Results Dropdown -->
-          <BListGroup
-            v-if="entitySearchResults.length > 0"
-            class="position-absolute shadow-sm entity-search-results"
-          >
-            <BListGroupItem
-              v-for="entity in entitySearchResults"
-              :key="entity.entity_id"
-              button
-              class="py-2 px-3"
-              :disabled="formData.entity_list.some((e) => e.entity_id === entity.entity_id)"
-              @click="selectEntity(entity)"
-            >
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <span class="fw-bold text-primary">{{ entity.entity_id }}</span>
-                  <small class="text-muted ms-2">{{ entity.symbol }}</small>
-                </div>
-                <BBadge
-                  v-if="formData.entity_list.some((e) => e.entity_id === entity.entity_id)"
-                  variant="secondary"
-                >
-                  Added
-                </BBadge>
-              </div>
-              <small class="text-muted d-block text-truncate">
-                {{ entity.disease_ontology_name }}
-              </small>
-            </BListGroupItem>
-          </BListGroup>
-          <!-- Selected Entities as Chips -->
-          <div v-if="formData.entity_list.length > 0" class="mt-2">
-            <span v-for="entity in formData.entity_list" :key="entity.entity_id">
-              <BFormTag
-                :id="`tag-entity-${entity.entity_id}`"
-                variant="primary"
-                class="me-1 mb-1"
-                @remove="removeEntity(entity.entity_id)"
-              >
-                {{ entity.entity_id }}
-              </BFormTag>
-              <BTooltip :target="`tag-entity-${entity.entity_id}`" placement="top" triggers="hover">
-                {{ entity.symbol }}: {{ entity.disease_ontology_name }}
-              </BTooltip>
-            </span>
-          </div>
-          <small v-if="formData.entity_list.length > 0" class="batch-field-hint is-success">
-            <i class="bi bi-check-circle me-1" />{{ formData.entity_list.length }} entities selected
-          </small>
-        </div>
-      </section>
+      <BatchCriteriaEntityPicker
+        v-model="entitySearchQuery"
+        :results="entitySearchResults"
+        :is-searching="isEntitySearching"
+        :is-loading="isLoading"
+        :selected-entities="formData.entity_list"
+        @search="onEntitySearch"
+        @select-entity="selectEntity"
+        @remove-entity="removeEntity"
+      />
 
       <section class="batch-form-panel" aria-labelledby="batch-settings-title">
         <div class="batch-form-panel__header">
@@ -405,8 +326,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
 import { useBatchForm } from '@/composables/useBatchForm';
+import BatchCriteriaEntityPicker from './BatchCriteriaEntityPicker.vue';
+import useBatchCriteriaOptions from './useBatchCriteriaOptions';
 
 const emit = defineEmits<{
   (e: 'batch-created'): void;
@@ -442,54 +364,25 @@ const {
   resetForm,
 } = useBatchForm();
 
-const geneSearchQuery = ref('');
-
-const selectedGeneOptions = computed(() =>
-  geneOptions.value.filter((gene) => formData.gene_list.includes(gene.value))
-);
-
-const filteredGeneOptions = computed(() => {
-  const query = geneSearchQuery.value.trim().toLowerCase();
-  if (query.length < 1) return [];
-
-  return geneOptions.value
-    .filter(
-      (gene) => !formData.gene_list.includes(gene.value) && gene.text.toLowerCase().includes(query)
-    )
-    .slice(0, 8);
+// Option loading, entity-search debounce, and the gene-filter picker are
+// orchestrated by useBatchCriteriaOptions.ts (#346, Wave 2 Task 4) over
+// the pieces of useBatchForm's return value above.
+const {
+  geneSearchQuery,
+  selectedGeneOptions,
+  filteredGeneOptions,
+  addGene,
+  removeGene,
+  onEntitySearch,
+  selectEntity,
+} = useBatchCriteriaOptions({
+  formData,
+  geneOptions,
+  entitySearchQuery,
+  searchEntities,
+  addEntity,
+  loadOptions,
 });
-
-const addGene = (geneId: number) => {
-  if (!formData.gene_list.includes(geneId)) {
-    formData.gene_list.push(geneId);
-  }
-  geneSearchQuery.value = '';
-};
-
-const removeGene = (geneId: number) => {
-  formData.gene_list = formData.gene_list.filter((id) => id !== geneId);
-};
-
-onMounted(() => {
-  loadOptions();
-});
-
-// Debounced entity search
-let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-const onEntitySearch = () => {
-  if (searchTimeout) clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    searchEntities(entitySearchQuery.value);
-  }, 300);
-};
-
-const selectEntity = (entity: {
-  entity_id: number;
-  symbol: string;
-  disease_ontology_name: string;
-}) => {
-  addEntity(entity as Parameters<typeof addEntity>[0]);
-};
 
 const onPreview = () => {
   handlePreview();
@@ -513,14 +406,12 @@ const onReset = () => {
   gap: 0.8rem;
   min-width: 0;
 }
-
 .batch-form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.85fr);
   gap: 0.8rem;
   align-items: start;
 }
-
 .batch-form-panel {
   min-width: 0;
   padding: 0.8rem;
@@ -528,18 +419,15 @@ const onReset = () => {
   border-radius: 8px;
   background: #fff;
 }
-
 .batch-form-panel--filters,
 .batch-form-panel--actions {
   background: #f8fafc;
 }
-
 .batch-form-panel__header {
   margin-bottom: 0.7rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e6ebf2;
 }
-
 .batch-form-panel__header h3 {
   margin: 0;
   color: #172033;
@@ -547,26 +435,13 @@ const onReset = () => {
   font-weight: 700;
   line-height: 1.25;
 }
-
 .batch-form-panel__header p {
   margin: 0.15rem 0 0;
   color: #526070;
   font-size: 0.78rem;
 }
-
 .batch-field {
   margin-bottom: 0;
-}
-
-.batch-field-hint {
-  display: inline-flex;
-  align-items: center;
-  margin-top: 0.35rem;
-  font-size: 0.78rem;
-}
-
-.batch-field-hint.is-success {
-  color: #16734c;
 }
 
 .batch-details-grid {
@@ -574,7 +449,6 @@ const onReset = () => {
   grid-template-columns: minmax(0, 1fr) minmax(5rem, 0.35fr);
   gap: 0.65rem;
 }
-
 .batch-details-grid > :first-child,
 .batch-details-grid > :last-child {
   grid-column: 1 / -1;
@@ -586,11 +460,9 @@ const onReset = () => {
   gap: 0.7rem;
   align-items: start;
 }
-
 .gene-picker {
   position: relative;
 }
-
 .gene-picker__results {
   position: absolute;
   z-index: 1060;
@@ -604,7 +476,6 @@ const onReset = () => {
   background: #fff;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
-
 .gene-picker__option {
   display: block;
   width: 100%;
@@ -616,7 +487,6 @@ const onReset = () => {
   font-size: 0.84rem;
   text-align: left;
 }
-
 .gene-picker__option:hover,
 .gene-picker__option:focus-visible {
   background: #eef6ff;
@@ -629,7 +499,6 @@ const onReset = () => {
   gap: 0.35rem;
   margin-top: 0.45rem;
 }
-
 .batch-chip {
   border-radius: 999px;
 }
@@ -646,7 +515,6 @@ const onReset = () => {
   border-radius: 8px;
   background: #fff;
 }
-
 .batch-summary small {
   display: block;
   margin-bottom: 0.25rem;
@@ -661,7 +529,6 @@ const onReset = () => {
   gap: 0.5rem;
   justify-content: flex-end;
 }
-
 .batch-action-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -673,46 +540,30 @@ const onReset = () => {
 .batch-criteria-form :deep(label) {
   color: #172033;
 }
-
 .batch-criteria-form :deep(.form-control),
 .batch-criteria-form :deep(.form-select),
 .batch-criteria-form :deep(.input-group-text) {
   border-color: #cfd7e3;
   border-radius: 6px;
 }
-
 .batch-criteria-form :deep(.input-group .form-control),
 .batch-criteria-form :deep(.input-group .form-select),
 .batch-criteria-form :deep(.input-group .input-group-text) {
   border-radius: 0;
 }
-
 .batch-criteria-form :deep(.input-group > :first-child) {
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
 }
-
 .batch-criteria-form :deep(.input-group > :last-child) {
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;
-}
-
-/* Entity search results dropdown */
-.entity-search-results {
-  z-index: 1050;
-  max-height: 200px;
-  overflow-y: auto;
-  width: 100%;
-  border: 1px solid #cfd7e3;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
 }
 
 /* Compact table styling */
 .compact-table {
   font-size: 0.85rem;
 }
-
 .compact-table th,
 .compact-table td {
   padding: 0.35rem 0.5rem;
@@ -728,18 +579,15 @@ const onReset = () => {
   .batch-form-grid {
     grid-template-columns: 1fr;
   }
-
   .batch-details-grid,
   .batch-filters-grid,
   .batch-action-grid {
     grid-template-columns: 1fr;
   }
-
   .batch-details-grid > :first-child,
   .batch-details-grid > :last-child {
     grid-column: auto;
   }
-
   .batch-actions {
     justify-content: flex-start;
   }
