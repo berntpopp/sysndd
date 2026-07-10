@@ -516,6 +516,7 @@
 </template>
 
 <script>
+import { onMounted } from 'vue';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { useToast, useAriaLive } from '@/composables';
 import BatchCriteriaForm from '@/components/forms/BatchCriteriaForm.vue';
@@ -527,26 +528,12 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import ManualEntityAssignmentPanel from '@/views/curate/components/ManualEntityAssignmentPanel.vue';
 import RefusedReReviewPanel from '@/views/curate/components/RefusedReReviewPanel.vue';
-import { filterReReviewBatches, sortReReviewBatches } from '@/views/curate/utils/reReviewFilters';
 import {
   reReviewTableFields,
   reReviewEntitySelectFields,
   reReviewLegendItems,
 } from '@/views/curate/reReviewTableConfig';
-import {
-  assignReReviewBatch,
-  assignReReviewEntities,
-  getAssignmentTable,
-  listAvailableReReviewEntities,
-  recalculateReReviewBatch,
-  reassignReReviewBatch,
-  unassignReReviewBatch,
-} from '@/api/re_review';
-import { listUsersByRole } from '@/api/user';
-import { listStatusCategories } from '@/api/list';
-
-// Import the Pinia store
-import { useUiStore } from '@/stores/ui';
+import { useManageReReview } from '@/views/curate/composables/useManageReReview';
 
 export default {
   name: 'ManageReReview',
@@ -565,396 +552,25 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
-    return { makeToast, a11yMessage, a11yPoliteness, announce };
-  },
-  data() {
+
+    const controller = useManageReReview({
+      onToast: makeToast,
+      announce,
+    });
+
+    // Fire the four mount loaders concurrently (matches the original mounted()).
+    onMounted(controller.initialize);
+
     return {
-      filter: null,
-      userFilter: null,
-      assignmentFilter: null,
-      activeBatchMode: null,
-      loadingReReviewManagment: false,
-      user_options: [],
-      user_id_assignment: 0,
-      items_ReReviewTable: [],
-      sortBy: [{ key: 'user_name', order: 'asc' }],
+      ...controller,
+      // static display config (read-only)
       fields_ReReviewTable: reReviewTableFields,
-      currentPage: 1,
-      perPage: 25,
-      totalRows: 0,
-      pageOptions: [10, 25, 50, 100],
-
-      // Gene-specific assignment (RRV-06)
-      availableEntities: [],
-      availableEntityTotal: 0,
-      selectedEntityIds: [],
-      manualEntityFilter: null,
-      entityAssignUserId: null,
-      entityAssignBatchName: '',
-      isLoadingEntities: false,
-      isAssigningEntities: false,
-
-      // Gene-atomic batch boundary hint (issue #29)
-      // Set by previewBatch() from batch_preview's boundary_gene field.
-      // Non-null when the preview soft-LIMIT engaged and a gene was partially included.
-      previewBoundaryGene: null,
-      previewGeneCount: 0,
-      previewEntityCount: 0,
       entitySelectFields: reReviewEntitySelectFields,
-
-      // Reassignment
-      reassignModalShow: false,
-      reassignBatchId: null,
-      reassignNewUserId: null,
-
-      // Recalculation (RRV-05)
-      recalculateModalShow: false,
-      recalculateBatchId: null,
-      recalculateCriteria: {
-        date_range: { start: null, end: null },
-        gene_list: [],
-        status_filter: null,
-        batch_size: 20,
-      },
-      isRecalculating: false,
-
-      // Status options for recalculate modal
-      status_options: [],
-
-      // Icon legend items for ManageReReview
       legendItems: reReviewLegendItems,
+      // a11y
+      a11yMessage,
+      a11yPoliteness,
     };
-  },
-  computed: {
-    assignedBatchCount() {
-      return this.items_ReReviewTable.filter((item) => item.user_id).length;
-    },
-    unassignedBatchCount() {
-      return this.items_ReReviewTable.filter((item) => !item.user_id).length;
-    },
-    // Gene-atomic boundary alert computed properties (issue #29)
-    boundaryGeneAlertVisible() {
-      return Boolean(this.previewBoundaryGene);
-    },
-    boundaryGeneAlertMessage() {
-      if (!this.previewBoundaryGene) return '';
-      return (
-        `Batch is gene-atomic: to keep gene ${this.previewBoundaryGene} together, ` +
-        `the available-entity list holds ${this.previewEntityCount} entities across ` +
-        `${this.previewGeneCount} gene(s). The last gene was extended past the ` +
-        `batch_size cap to avoid splitting it. Tighten criteria or increase ` +
-        `batch size to avoid the overflow.`
-      );
-    },
-
-    // Filter options derived from loaded data
-    userFilterOptions() {
-      const uniqueUsers = [
-        ...new Set(
-          this.items_ReReviewTable.filter((item) => item.user_name).map((item) => item.user_name)
-        ),
-      ];
-      return uniqueUsers.map((name) => ({ value: name, text: name }));
-    },
-    assignmentFilterOptions() {
-      return [
-        { value: 'assigned', text: 'Assigned' },
-        { value: 'unassigned', text: 'Unassigned' },
-      ];
-    },
-    // Filtered items based on all filters
-    filteredItems() {
-      return filterReReviewBatches(this.items_ReReviewTable, {
-        text: this.filter,
-        userName: this.userFilter,
-        assignment: this.assignmentFilter,
-      });
-    },
-    sortedItems() {
-      return sortReReviewBatches(this.filteredItems, this.sortBy);
-    },
-    paginatedItems() {
-      const start = (this.currentPage - 1) * this.perPage;
-      return this.sortedItems.slice(start, start + this.perPage);
-    },
-  },
-  watch: {
-    filteredItems(newItems) {
-      this.totalRows = newItems.length;
-    },
-  },
-  mounted() {
-    this.loadUserList();
-    this.loadReReviewTableData();
-    this.loadAvailableEntities();
-    this.loadStatusOptions();
-  },
-  methods: {
-    async loadUserList() {
-      try {
-        const data = await listUsersByRole({ roles: 'Curator,Reviewer' });
-        this.user_options = Array.isArray(data)
-          ? data.map((item) => ({
-              value: item.user_id,
-              text: item.user_name,
-              role: item.user_role,
-            }))
-          : [];
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.user_options = [];
-      }
-    },
-    async loadReReviewTableData() {
-      this.loadingReReviewManagment = true;
-      try {
-        const data = await getAssignmentTable();
-        if (Array.isArray(data)) {
-          this.items_ReReviewTable = data;
-          this.totalRows = data.length;
-        } else if (data?.data && Array.isArray(data.data)) {
-          this.items_ReReviewTable = data.data;
-          this.totalRows = data.meta?.[0]?.totalItems || data.data.length;
-        } else {
-          console.error('Unexpected re-review table response format:', data);
-          this.items_ReReviewTable = [];
-          this.totalRows = 0;
-        }
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.items_ReReviewTable = [];
-        this.totalRows = 0;
-      } finally {
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
-        this.loadingReReviewManagment = false;
-      }
-    },
-    async handleNewBatchAssignment() {
-      try {
-        await assignReReviewBatch({ user_id: this.user_id_assignment });
-        this.makeToast('New batch assigned successfully.', 'Success', 'success');
-        this.announce('New batch assigned successfully');
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to assign batch', 'assertive');
-      }
-      this.loadReReviewTableData();
-    },
-    // Apply filters and reset pagination
-    applyFilters() {
-      this.currentPage = 1;
-    },
-    handlePageChange(page) {
-      this.currentPage = page;
-    },
-    handlePerPageChange(perPage) {
-      this.perPage = perPage;
-      this.currentPage = 1;
-    },
-    async handleBatchUnAssignment(batch_id) {
-      try {
-        await unassignReReviewBatch({ re_review_batch: batch_id });
-        this.makeToast('Batch unassigned successfully.', 'Success', 'success');
-        this.announce('Batch unassigned successfully');
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to unassign batch', 'assertive');
-      }
-      this.loadReReviewTableData();
-    },
-    onFiltered(filteredItems) {
-      this.totalRows = filteredItems.length;
-      this.currentPage = 1;
-    },
-    handleSortUpdate({ sortBy, sortDesc }) {
-      this.sortBy = [{ key: sortBy, order: sortDesc ? 'desc' : 'asc' }];
-      this.currentPage = 1;
-    },
-
-    // Batch creation callback
-    onBatchCreated() {
-      // Refresh the assignment table after new batch is created
-      this.loadReReviewTableData();
-      this.loadAvailableEntities();
-      this.makeToast('Batch created and table refreshed', 'Success', 'success');
-      this.announce('Batch created successfully');
-    },
-
-    // Load available entities for manual assignment (RRV-06)
-    async loadAvailableEntities() {
-      this.isLoadingEntities = true;
-
-      try {
-        const responseData = await listAvailableReReviewEntities({
-          q: this.manualEntityFilter || '',
-          page: 1,
-          page_size: 100,
-        });
-        this.availableEntities = responseData.data || [];
-        const total = responseData.meta?.total;
-        this.availableEntityTotal = Array.isArray(total)
-          ? (total[0] ?? this.availableEntities.length)
-          : (total ?? this.availableEntities.length);
-        this.previewBoundaryGene = null;
-        this.previewGeneCount = 0;
-        this.previewEntityCount = 0;
-      } catch (_e) {
-        this.makeToast('Failed to load available entities', 'Error', 'danger');
-      } finally {
-        this.isLoadingEntities = false;
-      }
-    },
-
-    toggleEntitySelection(entityId) {
-      if (this.selectedEntityIds.includes(entityId)) {
-        this.selectedEntityIds = this.selectedEntityIds.filter((id) => id !== entityId);
-        return;
-      }
-      this.selectedEntityIds = [...this.selectedEntityIds, entityId];
-    },
-    clearManualSelection() {
-      this.selectedEntityIds = [];
-    },
-
-    // Assign selected entities to user (RRV-06)
-    async handleEntityAssignment() {
-      if (this.selectedEntityIds.length === 0) {
-        this.makeToast('Please select at least one entity', 'Validation', 'warning');
-        return;
-      }
-      if (!this.entityAssignUserId) {
-        this.makeToast('Please select a user', 'Validation', 'warning');
-        return;
-      }
-
-      this.isAssigningEntities = true;
-
-      try {
-        const responseData = await assignReReviewEntities({
-          entity_ids: this.selectedEntityIds,
-          user_id: this.entityAssignUserId,
-          batch_name: this.entityAssignBatchName || null,
-        });
-
-        const result = responseData.entry;
-        const message =
-          result?.batch_id != null && result?.entity_count != null
-            ? `Created batch ${result.batch_id} with ${result.entity_count} entities`
-            : 'Created assignment batch, but the batch summary was unavailable';
-        this.makeToast(message, 'Success', 'success');
-        this.announce(message);
-
-        // Reset and refresh
-        this.selectedEntityIds = [];
-        this.entityAssignUserId = null;
-        this.entityAssignBatchName = '';
-        this.loadReReviewTableData();
-        this.loadAvailableEntities();
-      } catch (e) {
-        this.makeToast(e.response?.data?.message || 'Assignment failed', 'Error', 'danger');
-        this.announce('Failed to assign entities', 'assertive');
-      } finally {
-        this.isAssigningEntities = false;
-      }
-    },
-
-    // Reassignment methods
-    openReassignModal(item) {
-      this.reassignBatchId = item.re_review_batch;
-      this.reassignNewUserId = item.user_id; // Pre-select current user
-      this.reassignModalShow = true;
-    },
-
-    async handleBatchReassignment() {
-      if (!this.reassignNewUserId) {
-        this.makeToast('Please select a user', 'Validation', 'warning');
-        return;
-      }
-
-      try {
-        await reassignReReviewBatch({
-          re_review_batch: this.reassignBatchId,
-          user_id: this.reassignNewUserId,
-        });
-        this.makeToast('Batch reassigned successfully', 'Success', 'success');
-        this.announce('Batch reassigned successfully');
-        this.reassignModalShow = false;
-        this.loadReReviewTableData();
-      } catch (e) {
-        this.makeToast(e.response?.data?.message || 'Reassignment failed', 'Error', 'danger');
-        this.announce('Failed to reassign batch', 'assertive');
-      }
-    },
-
-    // Recalculation methods (RRV-05)
-    openRecalculateModal(item) {
-      this.recalculateBatchId = item.re_review_batch;
-      // Reset criteria to defaults
-      this.recalculateCriteria = {
-        date_range: { start: null, end: null },
-        gene_list: [],
-        status_filter: null,
-        batch_size: 20,
-      };
-      this.recalculateModalShow = true;
-    },
-
-    async handleBatchRecalculation() {
-      this.isRecalculating = true;
-
-      try {
-        // Build criteria payload
-        const payload = {
-          re_review_batch: this.recalculateBatchId,
-          batch_size: this.recalculateCriteria.batch_size,
-        };
-
-        if (this.recalculateCriteria.date_range.start && this.recalculateCriteria.date_range.end) {
-          payload.date_range = this.recalculateCriteria.date_range;
-        }
-
-        if (this.recalculateCriteria.status_filter !== null) {
-          payload.status_filter = this.recalculateCriteria.status_filter;
-        }
-
-        const responseData = await recalculateReReviewBatch(payload);
-
-        const result = responseData.entry;
-        const message =
-          result?.batch_id != null && result?.entity_count != null
-            ? `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`
-            : 'Batch recalculated, but the batch summary was unavailable';
-        this.makeToast(message, 'Success', 'success');
-        this.announce(message);
-        this.recalculateModalShow = false;
-        this.loadReReviewTableData();
-        this.loadAvailableEntities();
-      } catch (e) {
-        const message = e.response?.data?.message || 'Recalculation failed';
-        this.makeToast(message, 'Error', 'danger');
-        this.announce('Failed to recalculate batch', 'assertive');
-      } finally {
-        this.isRecalculating = false;
-      }
-    },
-
-    // Load status options for recalculate modal
-    async loadStatusOptions() {
-      try {
-        const responseData = await listStatusCategories();
-        // Handle paginated response format
-        const data = responseData?.data || responseData;
-        this.status_options = Array.isArray(data)
-          ? data.map((item) => ({
-              value: item.category_id,
-              text: item.category,
-            }))
-          : [];
-      } catch (_e) {
-        this.status_options = [];
-      }
-    },
   },
 };
 </script>
