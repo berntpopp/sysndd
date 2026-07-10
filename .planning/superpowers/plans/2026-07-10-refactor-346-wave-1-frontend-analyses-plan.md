@@ -329,8 +329,8 @@ Expected: PASS; both production files are below 600 lines.
 ### Task 7: Extract protein-lollipop controls and export actions
 
 **Files:**
-- Create: `app/src/components/gene/ProteinLollipopControls.vue`
-- Create: `app/src/components/gene/ProteinLollipopControls.spec.ts`
+- Create: `app/src/components/gene/ProteinLollipopControlsPanel.vue`
+- Create: `app/src/components/gene/ProteinLollipopControlsPanel.spec.ts`
 - Create: `app/src/components/gene/useProteinLollipopExport.ts`
 - Create: `app/src/components/gene/useProteinLollipopExport.spec.ts`
 - Modify: `app/src/components/gene/ProteinDomainLollipopPlot.vue`
@@ -351,19 +351,19 @@ legend computation, render watches, and variant emits in the parent.
 
 ```bash
 cd app
-npx vitest run src/components/gene/ProteinLollipopControls.spec.ts \
+npx vitest run src/components/gene/ProteinLollipopControlsPanel.spec.ts \
   src/components/gene/useProteinLollipopExport.spec.ts \
   src/components/gene/proteinLollipopControls.spec.ts
 npm run type-check
 npx eslint src/components/gene/ProteinDomainLollipopPlot.vue \
-  src/components/gene/ProteinLollipopControls.vue \
+  src/components/gene/ProteinLollipopControlsPanel.vue \
   src/components/gene/useProteinLollipopExport.ts
 wc -l src/components/gene/ProteinDomainLollipopPlot.vue \
-  src/components/gene/ProteinLollipopControls.vue \
+  src/components/gene/ProteinLollipopControlsPanel.vue \
   src/components/gene/useProteinLollipopExport.ts
 cd ..
 git add app/src/components/gene/ProteinDomainLollipopPlot.vue \
-  app/src/components/gene/ProteinLollipopControls* \
+  app/src/components/gene/ProteinLollipopControlsPanel* \
   app/src/components/gene/useProteinLollipopExport*
 git commit -m "refactor(app): extract protein lollipop controls (#346)"
 ```
@@ -371,6 +371,9 @@ git commit -m "refactor(app): extract protein lollipop controls (#346)"
 Expected: PASS; every production file is below 600 lines.
 
 ### Task 8: Integrate and publish Wave 1
+
+Wave 1 branches must start from merged Wave 0 so they inherit the truthful 39-row
+baseline and the green password-reset suite.
 
 - [ ] **Step 1: Rewrite the baseline once after all accepted tasks**
 

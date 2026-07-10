@@ -12,10 +12,14 @@
 
 ---
 
+Wave 2 branches must start from merged Wave 0. Tasks 2-10 additionally start after
+Task 1's `GenericTable` seam is merged and its consumer suite is green.
+
 ### Task 1: Decompose GenericTable’s details and sorting responsibilities
 
 **Files:**
 - Create: `app/src/components/small/GenericTableDetails.vue`
+- Create: `app/src/components/small/GenericDesktopTable.vue`
 - Create: `app/src/components/small/useGenericTableSorting.ts`
 - Create: `app/src/components/small/useGenericTableSorting.spec.ts`
 - Modify: `app/src/components/small/GenericTable.vue`
@@ -29,6 +33,11 @@
 - [ ] Move only fallback row details and clipboard lifecycle to
   `GenericTableDetails.vue`; retain the outer `row-expansion` and
   `row-expansion-extra` slots in the parent.
+- [ ] Move the complete desktop `BTable` responsibility—including all current cell-slot
+  forwarding blocks, busy/empty/table attributes, details toggle, and sort events—to
+  `GenericDesktopTable.vue`. Forward each named consumer slot through the child without
+  renaming slot props. Keep mobile rows, pagination, toolbar, and row-expansion ownership
+  in `GenericTable.vue`; do not replace domain slots with a generic if/else renderer.
 - [ ] Move local sort normalization and header/sorted handlers to the composable.
   Preserve every prop, emit, slot, responsive row, tooltip, and imperative behavior.
 - [ ] Verify:
@@ -36,12 +45,21 @@
 ```bash
 cd app
 npx vitest run src/components/small/useGenericTableSorting.spec.ts \
-  src/components/small/GenericTable.spec.ts
+  src/components/small/GenericTable.spec.ts \
+  src/components/analyses/PublicationsNDDTable.spec.ts \
+  src/components/analyses/PubtatorNDDTable.spec.ts \
+  src/components/analyses/PubtatorNDDGenes.spec.ts \
+  src/components/tables/TablesEntities.spec.ts \
+  src/components/tables/TablesPhenotypes.spec.ts \
+  src/components/nddscore/NddScoreGeneTable.spec.ts \
+  src/views/curate/ApproveReview.spec.ts
 npm run type-check
 npx eslint src/components/small/GenericTable.vue \
+  src/components/small/GenericDesktopTable.vue \
   src/components/small/GenericTableDetails.vue \
   src/components/small/useGenericTableSorting.ts
 wc -l src/components/small/GenericTable.vue \
+  src/components/small/GenericDesktopTable.vue \
   src/components/small/GenericTableDetails.vue \
   src/components/small/useGenericTableSorting.ts
 ```
@@ -61,7 +79,7 @@ Expected: PASS and every production file below 600. Commit as
 - Create: `app/src/components/tables/TablesGenes.spec.ts`
 - Modify: `app/src/components/tables/TablesGenes.vue`
 - Modify: `app/src/api/genes.ts`
-- Create: `app/src/api/genes.spec.ts`
+- Modify: `app/src/api/genes.spec.ts`
 - Create: `app/src/components/tables/usePhenotypeEntitiesTable.ts`
 - Modify: `app/src/components/tables/TablesPhenotypes.vue`
 - Modify: `app/src/components/tables/TablesPhenotypes.spec.ts`
@@ -70,12 +88,17 @@ Expected: PASS and every production file below 600. Commit as
   stale-response rejection, cursor transitions, API `fspec` merge, URL-disabled mode,
   return links, and XLSX filenames. Preserve the entity mapping one-fetch-per-entity
   contract and phenotype in-place filter identity.
-- [ ] Add typed `listGenesXlsx(params, config): Promise<Blob>` using
+- [ ] Use the existing typed `listEntities`/`listEntitiesXlsx` from `api/entity.ts`
+  and `browsePhenotypeEntities`/`browsePhenotypeEntitiesXlsx` from
+  `api/phenotype.ts`. Add typed `listGenesXlsx(params, config): Promise<Blob>` using
   `format='xlsx'` and `responseType='blob'`; prove symbol cursors remain strings and
   filename remains `sysndd_gene_table.xlsx`.
 - [ ] Move each domain’s field/filter/detail configuration to its own config module
   and its URL/request/response/pagination orchestration to its own composable. Remove
-  injected Axios from genes/phenotypes; retain existing entity/publication typed clients.
+  injected Axios from entities, genes, and phenotypes; none of the migrated controllers
+  may call or pass an Axios instance to `useTableMethods`. Leave `useTableMethods.ts`
+  intact for unrelated legacy consumers and prove these SFCs use typed `app/src/api/*`
+  functions only.
 - [ ] Verify:
 
 ```bash
@@ -83,7 +106,7 @@ cd app
 npx vitest run src/components/tables/TablesEntities.spec.ts \
   src/components/tables/TablesGenes.spec.ts \
   src/components/tables/TablesPhenotypes.spec.ts \
-  src/api/genes.spec.ts
+  src/api/entity.spec.ts src/api/genes.spec.ts src/api/phenotype.spec.ts
 npm run type-check
 npm run type-check:strict
 npx eslint src/components/tables/TablesEntities.vue \
@@ -231,15 +254,19 @@ Expected: PASS; all six production modules below 600. Commit each domain separat
 
 **Files:**
 - Create: `app/src/views/pages/components/EntityViewHero.vue`
-- Create: `app/src/views/pages/components/EntityViewResources.vue`
+- Create: `app/src/views/pages/components/ClinicalSynopsisCard.vue`
+- Create: `app/src/views/pages/components/EntityEvidenceGrid.vue`
 - Modify: `app/src/views/pages/EntityView.vue`
 - Modify: `app/src/views/pages/__tests__/EntityView.spec.ts`
 
-- [ ] Add child-contract assertions for hero metadata/source links/copy action and
-  resource loading/error/empty/data states.
-- [ ] Move complete hero template/styles and resource-card grid template/styles to the
-  children. Keep all seven resource composables, parallel fetching, route redirect,
-  `useHead`, and copy implementation in the parent and pass normalized display props.
+- [ ] Add child-contract assertions for hero metadata/source links, synopsis copy and
+  loading/error/empty/data states, and the publications/gene-reviews/phenotypes/variation
+  evidence-grid states.
+- [ ] Move the hero template/styles to `EntityViewHero`, synopsis presentation to
+  `ClinicalSynopsisCard`, and the four chip-grid resources to `EntityEvidenceGrid`.
+  Keep all seven resource composables, parallel fetching, route redirect, `useHead`, and
+  copy implementation in the parent. Each child receives one focused display model and
+  focused action emits instead of a wide collection of independent state props.
 - [ ] Run the existing comprehensive spec plus new child cases, type-check, lint, and
   require all production components below 600. Commit as
   `refactor(app): decompose entity view presentation (#346)`.
