@@ -43,66 +43,18 @@
       <!-- RIGHT PANE (Table) -->
       <Pane :size="100 - leftPaneSize" :min-size="25">
         <div class="pane-content">
-          <!-- LLM Summary Card (above table) - only shown for single cluster selection -->
-          <LlmSummaryCard
-            v-if="currentSummary && !summaryLoading && !summaryRejected && !showAllClustersInTable"
-            :summary="currentSummary.summary_json"
-            :model-name="
-              Array.isArray(currentSummary.model_name)
-                ? currentSummary.model_name[0]
-                : currentSummary.model_name
-            "
-            :created-at="
-              Array.isArray(currentSummary.created_at)
-                ? currentSummary.created_at[0]
-                : currentSummary.created_at
-            "
-            :validation-status="
-              Array.isArray(currentSummary.validation_status)
-                ? currentSummary.validation_status[0]
-                : currentSummary.validation_status
-            "
-            :cluster-number="Number(activeParentCluster)"
+          <!-- AI summary card/cue block (above table) -->
+          <FunctionalClusterSummaryPanel
+            :current-summary="currentSummary"
+            :summary-loading="summaryLoading"
+            :summary-rejected="summaryRejected"
+            :summary-rejection-reason="summaryRejectionReason"
+            :show-all-clusters-in-table="showAllClustersInTable"
+            :show-all-clusters-summary-cue="showAllClustersSummaryCue"
+            :first-available-cluster="firstAvailableCluster"
+            :active-parent-cluster="activeParentCluster"
+            @select-cluster="selectDefaultClusterForSummary"
           />
-          <BCard
-            v-else-if="summaryRejected && !summaryLoading && !showAllClustersInTable"
-            class="my-3 mx-2"
-            border-variant="warning"
-            data-testid="ai-summary-unavailable"
-          >
-            <div class="d-flex align-items-start">
-              <i class="bi bi-shield-exclamation text-warning fs-4 me-2" aria-hidden="true" />
-              <div>
-                <p class="fw-semibold mb-1">AI summary could not be validated for this cluster</p>
-                <p class="text-muted small mb-0">
-                  The automated reviewer could not validate an AI-generated summary for this
-                  cluster, so none is shown.
-                  <span v-if="summaryRejectionReason"> Reason: {{ summaryRejectionReason }}</span>
-                </p>
-              </div>
-            </div>
-          </BCard>
-          <div v-else-if="summaryLoading && !showAllClustersInTable" class="mb-3">
-            <BSpinner small class="me-2" />
-            <span class="text-muted">Loading AI summary...</span>
-          </div>
-          <div v-else-if="showAllClustersSummaryCue" class="cluster-summary-cue" role="status">
-            <div class="cluster-summary-cue__text">
-              <i class="bi bi-stars" aria-hidden="true" />
-              <span>Select one cluster to view its AI summary and focused enrichment table.</span>
-            </div>
-            <BButton
-              v-if="firstAvailableCluster !== null"
-              size="sm"
-              variant="outline-primary"
-              class="cluster-summary-cue__action"
-              :aria-label="`View cluster ${firstAvailableCluster} summary`"
-              @click="selectDefaultClusterForSummary"
-            >
-              View cluster {{ firstAvailableCluster }}
-            </BButton>
-          </div>
-          <!-- No placeholder when summary doesn't exist -->
 
           <FunctionalClusterTablePanel
             v-model:gene-search-pattern="geneSearchPattern"
@@ -144,9 +96,7 @@ import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import FunctionalClusterTablePanel from '@/components/analyses/FunctionalClusterTablePanel.vue';
-
-// Import LLM Summary Card for AI-generated cluster summaries
-import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
+import FunctionalClusterSummaryPanel from '@/components/analyses/FunctionalClusterSummaryPanel.vue';
 
 // Import Splitpanes for resizable layout
 import { Splitpanes, Pane } from 'splitpanes';
@@ -166,10 +116,10 @@ export default {
     AnalysisPanel,
     ClusterValidationCard,
     FunctionalClusterTablePanel,
+    FunctionalClusterSummaryPanel,
     InlineHelpBadge,
     TermSearch,
     NetworkVisualization,
-    LlmSummaryCard,
     Splitpanes,
     Pane,
   },
@@ -433,9 +383,14 @@ export default {
       console.log('Gene selected from network:', hgncId);
     },
 
-    selectDefaultClusterForSummary() {
-      if (this.firstAvailableCluster === null) return;
-      this.$refs.networkVisualization?.selectSingleCluster?.(this.firstAvailableCluster);
+    /**
+     * Handle the `select-cluster` emit from FunctionalClusterSummaryPanel's
+     * "select a cluster" cue button. Cluster selection stays owned here
+     * (network-ref dispatch); the child only reports the user's intent.
+     */
+    selectDefaultClusterForSummary(clusterId) {
+      if (clusterId === null || clusterId === undefined) return;
+      this.$refs.networkVisualization?.selectSingleCluster?.(clusterId);
     },
 
     /**
@@ -538,45 +493,6 @@ export default {
   padding: 12px;
   height: 100%;
   overflow: auto;
-}
-
-.cluster-summary-cue {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: var(--radius-md, 6px);
-  background: var(--medical-blue-50, #e3f2fd);
-  color: var(--neutral-900, #212121);
-  font-size: 0.875rem;
-}
-
-.cluster-summary-cue__text {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.cluster-summary-cue__text .bi {
-  color: var(--medical-blue-700, #0d47a1);
-}
-
-.cluster-summary-cue__action {
-  flex: 0 0 auto;
-  /* Ensure the outline button text clears AA on the cue background. */
-  color: var(--medical-blue-700, #0d47a1);
-  border-color: var(--medical-blue-700, #0d47a1);
-}
-
-@media (max-width: 767.98px) {
-  .cluster-summary-cue {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
 
 /* Override splitpanes default theme for better visibility */
