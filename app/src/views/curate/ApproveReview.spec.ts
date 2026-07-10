@@ -45,6 +45,7 @@ import axios from 'axios';
 import { bootstrapStubs } from '@/test-utils';
 import { server } from '@/test-utils/mocks/server';
 import { reviewByIdOk, reviewApproveByIdOk } from '@/test-utils/mocks/data/reviews';
+import { statusByIdOk } from '@/test-utils/mocks/data/statuses';
 // v11.0 closeout F2a: Bearer-header assertion helpers added alongside the
 // pre-existing C1 behaviour. `primeAuth` seeds `useAuth` so the apiClient
 // request interceptor injects the token on every outbound axios call;
@@ -570,6 +571,159 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
     if (auditRole.exists()) {
       expect(auditRole.text()).toContain('Administrator');
     }
+
+    wrapper.unmount();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Dirty-modal guard (Wave 2 Task 8, #346) — hiding a modal with unsaved
+  // changes must call `event.preventDefault()` and stage a discard
+  // confirmation instead of closing silently; confirming discard then hides
+  // the underlying modal. A clean modal (no changes) must NOT prevent the
+  // default close.
+  //
+  // The underlying modal's `hide()` is observed via `modalHideSpies` (keyed
+  // by the modal-id prop, populated by the stubbed `BModal`'s `mounted()`
+  // hook — see `makeStubs()` above) rather than a hand-rolled `$refs`
+  // object: `EditReviewModal`/`EditStatusModal` re-bind their real `ref`
+  // template attribute on every re-render, so a manually-assigned `$refs`
+  // stand-in gets clobbered by the next patch.
+  // ---------------------------------------------------------------------------
+  it('dirty-modal guard: hiding the review modal with unsaved changes prevents the default close and stages a discard confirmation', async () => {
+    const { wrapper } = await mountView();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any;
+
+    await vm.loadReviewInfo(reviewByIdOk.review_id);
+    await flushPromises();
+
+    // Dirty the loaded form so hasReviewChanges flips true.
+    vm.review_info.synopsis = `${vm.review_info.synopsis || ''} — edited`;
+    expect(vm.hasReviewChanges).toBe(true);
+
+    const hideEvent = { preventDefault: vi.fn() };
+    vm.onReviewModalHide(hideEvent);
+
+    expect(hideEvent.preventDefault).toHaveBeenCalledTimes(1);
+    expect(vm.pendingDiscardTarget).toBe('review');
+    // The modal must stay open — the confirm-discard dialog owns the next step.
+    const reviewModalHide = modalHideSpies.get('review-modal');
+    expect(reviewModalHide).not.toHaveBeenCalled();
+
+    // Confirming discard hides the underlying modal.
+    vm.onConfirmDiscard();
+    expect(reviewModalHide).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+  });
+
+  it('dirty-modal guard: hiding the status modal with unsaved changes prevents the default close and stages a discard confirmation', async () => {
+    const { wrapper } = await mountView();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any;
+
+    await vm.loadStatusInfo(statusByIdOk.status_id);
+    await flushPromises();
+
+    vm.status_info.comment = 'flagged for a second look';
+    expect(vm.hasStatusChanges).toBe(true);
+
+    const hideEvent = { preventDefault: vi.fn() };
+    vm.onStatusModalHide(hideEvent);
+
+    expect(hideEvent.preventDefault).toHaveBeenCalledTimes(1);
+    expect(vm.pendingDiscardTarget).toBe('status');
+    const statusModalHide = modalHideSpies.get('status-modal');
+    expect(statusModalHide).not.toHaveBeenCalled();
+
+    vm.onConfirmDiscard();
+    expect(statusModalHide).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+  });
+
+  it('clean-modal hide: hiding the review modal with no unsaved changes does not prevent the default close', async () => {
+    const { wrapper } = await mountView();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any;
+
+    await vm.loadReviewInfo(reviewByIdOk.review_id);
+    await flushPromises();
+    expect(vm.hasReviewChanges).toBe(false);
+
+    const hideEvent = { preventDefault: vi.fn() };
+    vm.onReviewModalHide(hideEvent);
+
+    expect(hideEvent.preventDefault).not.toHaveBeenCalled();
+    expect(vm.pendingDiscardTarget).toBeNull();
+
+    wrapper.unmount();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Status submit: update-vs-create branch (Wave 2 Task 8, #346) — an
+  // unapproved status (status_approved=0) goes through the update endpoint;
+  // an approved status (status_approved=1) goes through the create endpoint.
+  // Assertions target the dispatched request (method + URL + body shape),
+  // not the mocked response: the B1 `handlers.ts` fixtures check top-level
+  // fields (e.g. `body.status_id`) while the real payload nests them under
+  // `status_json` (matching the live API contract), a pre-existing fixture
+  // drift outside this task's scope — see the C1 spec's own note on the
+  // review-detail fixture shape above.
+  // ---------------------------------------------------------------------------
+  it('submitStatusChange: an unapproved status (status_approved=0) PUTs /api/status/update', async () => {
+    const { wrapper, routedAxios } = await mountView();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any;
+
+    await vm.loadStatusInfo(statusByIdOk.status_id);
+    await flushPromises();
+    expect(vm.status_info.status_approved).toBe(0);
+
+    vm.status_info.comment = 'needs another pass';
+    expect(vm.hasStatusChanges).toBe(true);
+
+    await vm.submitStatusChange();
+    await flushPromises();
+
+    const updateCall = routedAxios.put.mock.calls.find((c) =>
+      (c[0] as string).endsWith('/api/status/update')
+    );
+    expect(updateCall).toBeTruthy();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateBody = updateCall?.[1] as any;
+    expect(updateBody?.status_json?.status_id).toBe(statusByIdOk.status_id);
+    expect(routedAxios.post).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+  });
+
+  it('submitStatusChange: an approved status (status_approved=1) POSTs /api/status/create', async () => {
+    const { wrapper, routedAxios } = await mountView();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any;
+
+    await vm.loadStatusInfo(statusByIdOk.status_id);
+    await flushPromises();
+
+    vm.status_info.status_approved = 1;
+    vm.status_info.comment = 'approved with a follow-up note';
+    expect(vm.hasStatusChanges).toBe(true);
+
+    await vm.submitStatusChange();
+    await flushPromises();
+
+    const createCall = routedAxios.post.mock.calls.find((c) =>
+      (c[0] as string).endsWith('/api/status/create')
+    );
+    expect(createCall).toBeTruthy();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const createBody = createCall?.[1] as any;
+    expect(createBody?.status_json?.entity_id).toBe(statusByIdOk.entity_id);
+    const updateCallAfter = routedAxios.put.mock.calls.find((c) =>
+      (c[0] as string).endsWith('/api/status/update')
+    );
+    expect(updateCallAfter).toBeFalsy();
 
     wrapper.unmount();
   });
