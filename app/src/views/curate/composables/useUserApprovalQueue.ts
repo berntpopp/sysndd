@@ -259,7 +259,10 @@ export function useUserApprovalQueue(options: UseUserApprovalQueueOptions = {}) 
       const message = approved ? 'User approved successfully.' : 'User application rejected.';
       onToast?.(message, 'Success', approved ? 'success' : 'info');
       onAnnounce?.(message);
-      await loadUserTableData();
+      // Fire-and-forget the reload to preserve the pre-refactor behavior: the
+      // approval modal closes immediately rather than waiting for the table
+      // reload to resolve. `void` marks the intentional floating promise.
+      void loadUserTableData();
     } catch (e) {
       onToast?.(e, 'Error', 'danger');
       onAnnounce?.('Error approving user', 'assertive');
