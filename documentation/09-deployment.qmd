@@ -63,10 +63,13 @@ docker exec sysndd-api-1 Rscript /app/scripts/scrub-job-payload-credentials.R
 
 Rotation is the primary mitigation for any credential that leaked before this
 change — the scrub cannot rewrite old backup files. The scrub also runs after
-every restore (an old dump can re-import credential-bearing rows); its outcome
-is surfaced in the restore job's `result_json` (`post_restore_scrub`). Set
-`ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP=false` only to disable the startup scrub
-(default on). The remaining durable job families (publication/hgnc/ontology/
+every restore (an old dump can re-import credential-bearing rows). Its outcome
+is logged at WARN in the worker log — the **reliable** signal, since a *full*
+restore replaces `async_jobs` and can drop the restore job's own row (so the
+`result_json.post_restore_scrub` field is best-effort; this is the restore-
+fencing limitation tracked separately as S3). The next API-startup scrub is an
+idempotent backstop. Set `ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP=false` only to
+disable the startup scrub (default on). The remaining durable job families (publication/hgnc/ontology/
 comparisons/omim/provider/pubtator/llm-batch) still carry `db_config` in payload
 and are migrated to the same resolver in a follow-up (S2b).
 

@@ -9,16 +9,19 @@
 # async_job_worker_db_config(); a NEW leak breaks the assertion.
 #
 # The guard is a heuristic — it detects the direct `X = <var>$password` /
-# `X = <var>[["password"]]` marshaling forms and a `db_config = dw` bypass, not
-# arbitrary indirection. The STRONG guarantees are the exact-string assertions
-# on the (fixed) backup path below. Static, host-runnable.
+# `X = <var>[["password"]]` / `X = <var>[['password']]` marshaling forms and a
+# `db_config = dw` bypass. It does NOT track arbitrary indirection (e.g.
+# `cfg <- dw; db_config = cfg`, or `password = cfg$secret`); catching those
+# needs parsed R expressions and is out of proportion for a regression guard.
+# The STRONG guarantees are the exact-string assertions on the (fixed) backup
+# path below plus the frozen offender set. Static, host-runnable.
 
 library(testthat)
 
-# "password = <var>$password" or "password = <var>[[\"password\"]]" (and db_password).
+# "password = <var>$password" or "password = <var>[['password']]" (either quote), and db_password.
 .cred_pattern <- paste0(
   "(password|db_password)[[:space:]]*=[[:space:]]*[A-Za-z_][A-Za-z0-9_.]*",
-  "(\\$|\\[\\[\")(password|db_password)"
+  "(\\$|\\[\\[[\"'])(password|db_password)"
 )
 
 .scan_files <- function() {

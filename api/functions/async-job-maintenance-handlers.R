@@ -89,11 +89,16 @@
   }
 
   # A restored dump may re-import credential-bearing async_jobs rows (#535 H5);
-  # scrub them before reporting completion. The restore itself succeeded, so a
-  # scrub failure must NOT fail the job — but it must be observable (logged at
-  # WARN and surfaced in the result), not silently swallowed. Retry once on a
-  # fresh runtime-config connection since the restore may have invalidated the
-  # pool.
+  # scrub them before reporting completion. The scrub RUNS regardless of the
+  # job's eventual status, so the credentials are redacted either way; the next
+  # API-startup scrub is an additional idempotent backstop. The restore itself
+  # succeeded, so a scrub failure must NOT fail the job — it is logged at WARN
+  # (the worker log survives the restore) and also surfaced in the result.
+  # NOTE: a *full* restore replaces async_jobs, deleting this job's own row, so
+  # result_json (incl. post_restore_scrub) may be lost when the worker's
+  # completion UPDATE finds 0 rows (the restore-fencing limitation tracked as
+  # S3). The WARN log is therefore the reliable signal. Retry once on a fresh
+  # runtime-config connection since the restore may have invalidated the pool.
   scrub_outcome <- tryCatch(
     {
       async_job_scrub_payload_credentials()
@@ -103,7 +108,7 @@
       tryCatch(
         {
           con <- async_job_db_connect()
-          on.exit(DBI::dbDisconnect(con), add = TRUE)
+          on.exit(tryCatch(DBI::dbDisconnect(con), error = function(e) NULL), add = TRUE)
           async_job_scrub_payload_credentials(conn = con)
           "ok"
         },
