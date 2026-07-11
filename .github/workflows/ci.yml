@@ -472,6 +472,18 @@ jobs:
       - name: Build production bundle
         run: npm run build:docker
 
+      - name: Assert no source maps or bundle report ship (#535)
+        working-directory: app
+        run: |
+          maps=$(find dist -name '*.map' 2>/dev/null || true)
+          if [ -n "$maps" ]; then
+            echo "::error::Production build emitted source maps:"; echo "$maps"; exit 1
+          fi
+          if [ -f dist/stats.html ]; then
+            echo "::error::Production build emitted dist/stats.html"; exit 1
+          fi
+          echo "OK: dist contains no *.map and no stats.html"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:

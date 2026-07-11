@@ -434,12 +434,13 @@ db-restore-latest: check-docker ## [docker] Restore newest DB dump from sysndd_m
 		(printf "$(RED)✗ sysndd_mysql container not running. Run 'make dev' first.$(RESET)\n" && exit 1)
 	@LATEST=$$(docker run --rm -v sysndd_mysql_backup:/data alpine sh -c \
 		'ls -t /data/*.sysndd_db.sql.gz 2>/dev/null | head -1'); \
-		[ -n "$$LATEST" ] || \
-		(printf "$(RED)✗ No backups found in sysndd_mysql_backup volume$(RESET)\n" && exit 1); \
+		[ -n "$$LATEST" ] || { printf "$(RED)✗ No backups found in sysndd_mysql_backup volume$(RESET)\n"; exit 1; }; \
 		printf "  Using: $$LATEST\n"; \
-		docker run --rm -v sysndd_mysql_backup:/data alpine sh -c "gzip -dc $$LATEST" | \
-			docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
-			grep -vE "Using a password|SUPER or SET_ANY_DEFINER" >&2 || true
+		docker run --rm -v sysndd_mysql_backup:/data alpine sh -c "gzip -dc $$LATEST" \
+			| docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+			2> >(grep -vE "Using a password|SUPER or SET_ANY_DEFINER" >&2 || true); \
+		docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE" -e "SELECT COUNT(*) FROM non_alt_loci_set"' >/dev/null 2>&1 \
+			|| { printf "$(RED)✗ Restore readiness probe failed (core table missing after restore)$(RESET)\n"; exit 1; }
 	@printf "$(GREEN)✓ Backup restored$(RESET)\n"
 	@$(MAKE) db-views-rebuild
 
@@ -453,9 +454,9 @@ content = open("db/C_Rcommands_set-table-connections.R").read(); \
 matches = re.findall(r"dbSendQuery\(sysndd_db,\s*\"(CREATE OR REPLACE VIEW[^\"]*?)\"\)", content, re.DOTALL); \
 [print(m.strip() + ";") for m in matches]; \
 sys.stderr.write(f"-- Extracted {len(matches)} view definitions\n")' > /tmp/sysndd-views.sql 2>&1
-	@cat /tmp/sysndd-views.sql | docker exec -i sysndd_mysql sh -c \
-		'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
-		grep -vE "Using a password" >&2 || true
+	@docker exec -i sysndd_mysql sh -c \
+		'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' < /tmp/sysndd-views.sql \
+		2> >(grep -vE "Using a password" >&2 || true)
 	@rm -f /tmp/sysndd-views.sql
 	@printf "$(GREEN)✓ Views rebuilt$(RESET)\n"
 	@$(MAKE) cache-clear

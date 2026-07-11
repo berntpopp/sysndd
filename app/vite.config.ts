@@ -140,13 +140,19 @@ export function createViteConfig(mode: string): UserConfig {
           ],
         },
       }),
-      visualizer({
-        filename: './dist/stats.html',
-        open: process.env.ANALYZE === 'true',
-        gzipSize: true,
-        brotliSize: true,
-        template: 'treemap',
-      }) as unknown as PluginOption,
+      // #535: only emit the bundle-analyzer report when explicitly analyzing,
+      // so normal/production builds never write a public dist/stats.html.
+      ...(process.env.ANALYZE === 'true'
+        ? [
+            visualizer({
+              filename: './dist/stats.html',
+              open: true,
+              gzipSize: true,
+              brotliSize: true,
+              template: 'treemap',
+            }) as unknown as PluginOption,
+          ]
+        : []),
     ],
 
     resolve: {
@@ -212,7 +218,7 @@ export function createViteConfig(mode: string): UserConfig {
 
     build: {
       outDir: 'dist',
-      sourcemap: 'hidden', // Security: no public source maps
+      sourcemap: false, // #535: no production source maps emitted (no upload step consumes them)
       chunkSizeWarningLimit: 500, // Warn on chunks > 500KB (bootstrap is close at 300KB raw)
       rollupOptions: {
         output: {
