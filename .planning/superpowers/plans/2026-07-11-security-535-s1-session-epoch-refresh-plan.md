@@ -2,59 +2,62 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make JWT refresh reflect current account state — a demoted/deactivated user (or any user whose session epoch was bumped) cannot refresh stale privileges, and a refreshed token carries the role loaded from the database.
+**Goal:** Make JWT refresh reflect current account state — a demoted/deactivated/epoch-bumped user cannot refresh stale privileges; a refresh either mints a token whose role/claims come from the DB, or is rejected (forcing re-login).
 
-**Architecture:** Add a `session_epoch` integer to the `user` table. Tokens carry the epoch as a `sepoch` claim. `auth_refresh()` stops trusting the presented token: it loads the current user by id from the DB pool, requires `approved == 1`, requires the token's `sepoch` to equal the user's current `session_epoch`, and mints the new token with role + fields taken from the DB row. Any admin action that changes privilege or account state (`user_role`/`approved` via `user_update`, password via `user_update_password`, plus bulk paths and delete) increments `session_epoch`, immediately invalidating outstanding refresh capability. Backend + one additive migration only — no frontend change (the SPA keeps its single-token model; `/api/auth/refresh` still takes the token from the `Authorization` header and returns a bare token string).
+**Architecture:** Add a `session_epoch` integer to the `user` table. Every issued JWT carries the epoch as a `sepoch` claim. `auth_refresh()` stops trusting the presented token: it loads the current user by id from the DB, requires `approved == 1`, requires `sepoch == user.session_epoch`, and mints the new token from the DB row. Any privilege/state mutation increments `session_epoch` **in the same SQL statement and transaction** as the mutation (atomic — no separate bump), so a concurrent refresh reads either the whole old row (old epoch, still refreshable) or the whole new row (new epoch, old token rejected). The refresh DB read is the linearization point.
 
-**Tech Stack:** R / Plumber, MySQL, testthat. `jose` JWT. `dplyr`/`dbplyr` DB access. Migration runner applies `db/migrations/*.sql` at startup with a manifest guard.
+**Design choice (make explicit):** on a privilege/state change the epoch increments, so an outstanding token's `sepoch` no longer matches → **refresh is REJECTED and the user must re-login** (not silently downgraded). This is stronger than "mint the new role on refresh" and fully satisfies the acceptance criterion ("Demoted/deactivated users cannot refresh stale privileges"). Minting role/claims from the DB is defense-in-depth for any hypothetical mutation path that does not bump the epoch. Backend + one additive migration only — **no frontend change** (the SPA keeps its single-token model; `/api/auth/refresh` still reads the token from the `Authorization` header and returns a bare token string).
+
+**Tech Stack:** R / Plumber, MySQL, testthat. `jose` JWT. dplyr/dbplyr DB access (namespace verbs — masking hazard). Migration runner with a manifest guard.
 
 ## Global Constraints
 
-- Keep every touched file **< 600 lines** (`make code-quality-audit`). `auth-service.R` (224 lines) and `user-repository.R` have headroom.
-- Additive migration only; **no** change to existing tables/columns. Idempotent DDL (restore-drift safe, matching migrations 039/042).
-- After the migration, bump BOTH `EXPECTED_LATEST_MIGRATION` and `EXPECTED_MIGRATION_COUNT` in `api/functions/migration-manifest.R:5-6` and the two guard tests that assert the latest migration name (`test-unit-analysis-snapshot-migration.R:8`, `test-unit-core-views-manifest.R:13`). A stale manifest is a **fatal startup error** by design — do not weaken it.
-- Worker parity: no worker-executed code changes here, but `auth-service.R` is sourced by the API at startup — an API restart picks it up (bind-mounted).
-- Auth secrets stay out of query strings (CLAUDE.md). `/api/auth/refresh` already reads the token from the `Authorization` header — keep it there; do **not** move the token to a query param.
-- Tests that load a user run against the test DB in-container: `docker cp` the test file into `sysndd-api-1:/app/tests/testthat/` then `docker exec sysndd-api-1 Rscript -e "testthat::test_file(...)"`, or `make test-api-fast`. `with_test_db_transaction()` auto-rolls-back and `skip_if_no_test_db()` skips on DB-less hosts.
+- Keep every touched file **< 600 lines** (`make code-quality-audit`).
+- Additive migration only; **no** change to existing tables/columns. Idempotent DDL (restore-drift safe).
+- Bump `EXPECTED_LATEST_MIGRATION` **and** `EXPECTED_MIGRATION_COUNT` (`migration-manifest.R:5-6`) **and all four stale guard assertions** (Codex MEDIUM-9): `test-unit-core-views-manifest.R` name `:13`, count `:14`, `res$latest` `:21`; `test-unit-analysis-snapshot-migration.R` name `:8`, count `:9`. A stale manifest is a **fatal startup error** by design — do not weaken it.
+- **Namespace all dplyr/dbplyr verbs** in `auth_refresh` (`dplyr::tbl`, `dplyr::filter(.data$user_id == !!uid)`, `dplyr::rename`, `dplyr::collect`) — the loaded env masks dplyr verbs (biomaRt/STRINGdb). `%||%`, `stop_for_bad_request`, `stop_for_unauthorized` are already in `auth-service.R` scope.
+- Auth token stays in the `Authorization` header (never a query string). `/api/auth/refresh` already does this — keep it.
+- Tests run against the test DB in-container. `with_test_db_transaction` exposes the txn connection via `getOption(".test_db_con")`; pass **that connection as the `pool` argument** to `auth_refresh`/`auth_generate_token` so insert + read + refresh share one rolled-back connection. Seed users with **parameterized SQL using real columns** (`email`, not `user_email` — `user_create()` is broken, Codex BLOCKER-3). Build a test config `cfg <- list(secret = get_test_config("secret"), token_expiry = 3600)`.
 
 ---
 
-### Task 1: Migration — add `user.session_epoch` and bump the manifest
+### Task 1: Migration — add `user.session_epoch` and bump ALL manifest assertions
 
 **Files:**
 - Create: `db/migrations/043_add_user_session_epoch.sql`
 - Modify: `api/functions/migration-manifest.R:5-6`
-- Modify: `api/tests/testthat/test-unit-analysis-snapshot-migration.R:8`, `api/tests/testthat/test-unit-core-views-manifest.R:13`
+- Modify: `api/tests/testthat/test-unit-core-views-manifest.R` (`:13,:14,:21`), `api/tests/testthat/test-unit-analysis-snapshot-migration.R` (`:8,:9`)
 
-**Interfaces:**
-- Produces: a `session_epoch INT NOT NULL DEFAULT 0` column on `user`, and a manifest whose latest migration is `043_add_user_session_epoch.sql` (count 41).
+- [ ] **Step 1: Update ALL four guard assertions to expect 043 / count 41 (write failing expectations first)**
 
-- [ ] **Step 1: Update the manifest guard tests to expect 043 (write the failing expectation first)**
-
-In `api/tests/testthat/test-unit-analysis-snapshot-migration.R:8` and
-`api/tests/testthat/test-unit-core-views-manifest.R:13`, change the expected string:
-
+`test-unit-core-views-manifest.R`:
 ```r
-expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")
+  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")   # :13
+  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)                                 # :14
+  ...
+  expect_identical(res$latest, "043_add_user_session_epoch.sql")              # :21
+```
+`test-unit-analysis-snapshot-migration.R`:
+```r
+  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")   # :8
+  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)                                 # :9
 ```
 
-- [ ] **Step 2: Run one guard test to verify it FAILS**
+- [ ] **Step 2: Run to verify FAIL**
 
 Run: `docker cp api/tests/testthat/test-unit-core-views-manifest.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-core-views-manifest.R')"`
-Expected: FAIL — manifest still says `042_...`.
+Expected: FAIL (manifest still 042/40).
 
 - [ ] **Step 3: Write the migration**
 
 Create `db/migrations/043_add_user_session_epoch.sql`:
-
 ```sql
 -- Migration 043: add user.session_epoch for revocable, role-current token refresh (#535 P0-2)
 --
--- Every issued JWT carries the user's session_epoch as a `sepoch` claim. auth_refresh()
--- rejects a token whose sepoch != the user's current session_epoch, so bumping the epoch
--- (on demotion, deactivation, admin edit, password change, delete) immediately revokes
--- outstanding refresh capability. Additive, idempotent (restore-drift safe).
-
+-- Every issued JWT carries the user's session_epoch as a `sepoch` claim. auth_refresh() rejects a
+-- token whose sepoch != the user's current session_epoch. Privilege/state mutations increment the
+-- epoch in the same statement, so demotion/deactivation/password-change/role-change immediately
+-- revoke outstanding refresh capability. Additive, idempotent (restore-drift safe).
 SET @col_exists := (
   SELECT COUNT(*) FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'session_epoch'
@@ -66,147 +69,133 @@ PREPARE stmt FROM @ddl;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 ```
+(Default `0`; existing sessions keep working until first bump — see §Compatibility. Do NOT initialize existing users to 1 unless the operator wants a forced logout of all pre-deploy sessions.)
 
 - [ ] **Step 4: Bump the manifest constants**
 
 `api/functions/migration-manifest.R:5-6`:
-
 ```r
 EXPECTED_LATEST_MIGRATION <- "043_add_user_session_epoch.sql"
 EXPECTED_MIGRATION_COUNT <- 41L
 ```
 
-- [ ] **Step 5: Apply the migration and verify the column + guard tests pass**
+- [ ] **Step 5: Apply + verify column and guard tests**
 
-Run: `docker exec sysndd-api-1 Rscript -e "source('/app/start_sysndd_api.R')"` is heavy; instead restart the API container so the startup runner applies 043, then verify:
 ```bash
-docker compose restart api
+docker compose restart api   # startup runner applies 043
 docker exec sysndd-api-1 Rscript -e "library(DBI); con <- DBI::dbConnect(RMariaDB::MariaDB(), group='sysndd_db'); print(DBI::dbGetQuery(con, \"SHOW COLUMNS FROM user LIKE 'session_epoch'\"))"
-docker cp api/tests/testthat/test-unit-core-views-manifest.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-core-views-manifest.R')"
+docker cp api/tests/testthat/test-unit-core-views-manifest.R sysndd-api-1:/app/tests/testthat/ && docker cp api/tests/testthat/test-unit-analysis-snapshot-migration.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-core-views-manifest.R'); testthat::test_file('/app/tests/testthat/test-unit-analysis-snapshot-migration.R')"
 ```
-Expected: the column exists; the manifest guard test PASSES. (If the container's DB group differs, use the repo's documented connect recipe.)
+Expected: column present; both guard files PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add db/migrations/043_add_user_session_epoch.sql api/functions/migration-manifest.R api/tests/testthat/test-unit-analysis-snapshot-migration.R api/tests/testthat/test-unit-core-views-manifest.R
+git add db/migrations/043_add_user_session_epoch.sql api/functions/migration-manifest.R api/tests/testthat/test-unit-core-views-manifest.R api/tests/testthat/test-unit-analysis-snapshot-migration.R
 git commit -m "feat(db): add user.session_epoch for revocable token refresh (#535 P0-2)"
 ```
 
 ---
 
-### Task 2: Repository — `user_bump_session_epoch()` and wire it into privilege mutations
+### Task 2: Increment `session_epoch` atomically inside every privilege/state mutation
 
 **Files:**
-- Modify: `api/functions/user-repository.R` (add helper; call inside `user_update()` and `user_update_password()`)
-- Modify: `api/services/user-bulk-endpoint-service.R` (bulk role/approve/delete paths that bypass `user_update`)
+- Modify: `api/functions/user-repository.R` (`user_update()` `:194`, `user_update_password()` `:252`)
+- Modify: `api/services/user-service.R` (bulk role UPDATE `~:576`, bulk approval UPDATE `~:400`)
 - Test: `api/tests/testthat/test-unit-user-session-epoch.R` (new)
 
 **Interfaces:**
-- Produces: `user_bump_session_epoch(user_id)` → integer affected rows; increments `session_epoch` by 1 for one user. Called automatically by `user_update()` when the update touches `user_role` or `approved`, and by `user_update_password()`.
+- Produces: every SQL statement that changes `user_role`, `approved`, or `password` also sets `session_epoch = session_epoch + 1` in the **same statement** (atomic; no separate helper). Bulk delete needs no bump (a missing user is rejected by `auth_refresh`).
 
-- [ ] **Step 1: Write the failing test for the helper and the auto-bump**
+- [ ] **Step 1: Write the failing tests (parameterized SQL fixtures — real `email` column)**
 
 Create `api/tests/testthat/test-unit-user-session-epoch.R`:
-
 ```r
 library(testthat)
 
-test_that("user_bump_session_epoch increments the user's epoch by 1", {
+.seed_user <- function(con, role = "Viewer", approved = 0L) {
+  DBI::dbExecute(con,
+    "INSERT INTO user (user_name, email, password, user_role, approved, session_epoch) VALUES (?,?,?,?,?,0)",
+    params = list(paste0("epoch_", as.integer(runif(1, 1, 1e8))), paste0("e", as.integer(runif(1,1,1e8)), "@t.local"), "x", role, approved))
+  DBI::dbGetQuery(con, "SELECT LAST_INSERT_ID() AS id")$id[1]
+}
+.epoch <- function(con, uid) DBI::dbGetQuery(con, "SELECT session_epoch FROM user WHERE user_id = ?", params = list(uid))$session_epoch[1]
+
+test_that("user_update on user_role bumps epoch atomically (single statement)", {
   with_test_db_transaction({
-    # insert a throwaway user; user_create signature per user-repository.R
-    uid <- user_create(list(user_name = "epoch_tester", user_email = "epoch@test.local",
-                            user_password_hash = "x", user_role = "Viewer"))
-    before <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    user_bump_session_epoch(uid)
-    after <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    expect_equal(as.numeric(after$session_epoch[1]) - as.numeric(before$session_epoch[1]), 1)
+    con <- getOption(".test_db_con")
+    uid <- .seed_user(con, role = "Reviewer")
+    before <- .epoch(con, uid)
+    # user_update uses the global db helper; point it at the txn connection for the test
+    withr::with_options(list(.test_db_con = con), user_update(uid, list(user_role = "Viewer")))
+    expect_equal(.epoch(con, uid) - before, 1)
   })
 })
 
-test_that("user_update on user_role auto-bumps the epoch", {
+test_that("user_update on approved bumps epoch", {
   with_test_db_transaction({
-    uid <- user_create(list(user_name = "epoch_role", user_email = "role@test.local",
-                            user_password_hash = "x", user_role = "Reviewer"))
-    before <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    user_update(uid, list(user_role = "Viewer"))
-    after <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    expect_gt(as.numeric(after$session_epoch[1]), as.numeric(before$session_epoch[1]))
+    con <- getOption(".test_db_con")
+    uid <- .seed_user(con, approved = 1L)
+    before <- .epoch(con, uid)
+    withr::with_options(list(.test_db_con = con), user_update(uid, list(approved = 0)))
+    expect_equal(.epoch(con, uid) - before, 1)
   })
 })
 
-test_that("user_update on a non-privilege field does NOT bump the epoch", {
+test_that("user_update on a non-privilege field does NOT bump epoch", {
   with_test_db_transaction({
-    uid <- user_create(list(user_name = "epoch_name", user_email = "name@test.local",
-                            user_password_hash = "x", user_role = "Viewer"))
-    before <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    user_update(uid, list(abbreviation = "EN"))
-    after <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect()
-    expect_equal(as.numeric(after$session_epoch[1]), as.numeric(before$session_epoch[1]))
+    con <- getOption(".test_db_con")
+    uid <- .seed_user(con)
+    before <- .epoch(con, uid)
+    withr::with_options(list(.test_db_con = con), user_update(uid, list(abbreviation = "EN")))
+    expect_equal(.epoch(con, uid), before)
+  })
+})
+
+test_that("user_update_password bumps epoch", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con")
+    uid <- .seed_user(con)
+    before <- .epoch(con, uid)
+    withr::with_options(list(.test_db_con = con), user_update_password(uid, "newhash"))
+    expect_equal(.epoch(con, uid) - before, 1)
   })
 })
 ```
-
-Note: if `user_create`'s exact field names differ, grep `api/functions/user-repository.R` for the `user_create` signature (Task 2 reads it) and match it — do not invent fields.
+Note: `user_update`/`user_update_password` resolve their connection through `db_execute_statement`. Confirm `db_execute_statement` honors `getOption(".test_db_con")` in test mode; if it does not (it uses the app pool), the fixtures must instead assert against the **app pool** with an explicit cleanup `withr::defer(DBI::dbExecute(pool, "DELETE FROM user WHERE user_id = ?", params=list(uid)))`. Grep `api/functions/database-functions.R` for `db_execute_statement` to confirm the connection source before finalizing, and use whichever keeps the test isolated.
 
 - [ ] **Step 2: Run to verify FAIL**
 
 Run: `docker cp api/tests/testthat/test-unit-user-session-epoch.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-user-session-epoch.R')"`
-Expected: FAIL — `user_bump_session_epoch` undefined; `user_update` does not bump.
+Expected: FAIL — mutations do not yet bump.
 
-- [ ] **Step 3: Add the helper to `user-repository.R`**
+- [ ] **Step 3: Fold the increment into `user_update()`'s SET clause**
 
-Add near `user_update` in `api/functions/user-repository.R`:
-
+In `api/functions/user-repository.R`, `user_update()` — after `set_clause` is built, before the `sql <- paste0(...)`:
 ```r
-#' Increment a user's session epoch (revokes outstanding refresh capability).
-#'
-#' Every issued JWT carries the user's session_epoch as a `sepoch` claim; a
-#' refresh whose sepoch != the current epoch is rejected (see auth_refresh).
-#' Call this whenever a privilege- or account-state change must invalidate a
-#' user's outstanding sessions.
-#'
-#' @param user_id Integer user ID.
-#' @return Integer affected-row count.
-user_bump_session_epoch <- function(user_id) {
-  db_execute_statement(
-    "UPDATE user SET session_epoch = session_epoch + 1 WHERE user_id = ?",
-    list(user_id)
-  )
-}
-```
-
-- [ ] **Step 4: Auto-bump inside `user_update()` and `user_update_password()`**
-
-In `user_update()`, immediately before the final `db_execute_statement(sql, as.list(params))` return,
-capture the result and bump when a privilege/state field changed:
-
-```r
-  affected <- db_execute_statement(sql, as.list(params))
+  set_clause <- paste(paste0(field_names, " = ?"), collapse = ", ")
+  # #535 P0-2: privilege/state change atomically revokes outstanding sessions.
   if (any(c("user_role", "approved") %in% field_names)) {
-    user_bump_session_epoch(user_id)
+    set_clause <- paste0(set_clause, ", session_epoch = session_epoch + 1")
   }
-  affected
-}
+  sql <- paste0("UPDATE user SET ", set_clause, " WHERE user_id = ?")
 ```
+(`session_epoch = session_epoch + 1` is a fixed literal — no new `?` placeholder, `params` unchanged. It is not caller-supplied, so it bypasses the field allowlist safely.)
 
-In `user_update_password()`, after its `UPDATE user SET password = ...` executes, add:
+- [ ] **Step 4: Fold the increment into `user_update_password()`**
 
+Change its statement to:
 ```r
-  user_bump_session_epoch(user_id)
+  sql <- "UPDATE user SET password = ?, session_epoch = session_epoch + 1 WHERE user_id = ?"
 ```
-(place it after the password `db_execute_statement(...)` call, before returning its result).
 
-- [ ] **Step 5: Cover bulk paths that bypass `user_update`**
+- [ ] **Step 5: Fold the increment into the bulk mutations in `user-service.R`**
 
-Run: `grep -nE 'user_bulk_assign_role|user_bulk_approve|UPDATE .*user|user_update\(|user_delete' api/services/user-bulk-endpoint-service.R api/functions/user-repository.R`
-For any bulk role-change / approve / delete path that issues its own `UPDATE user`/delete **without**
-going through `user_update`, add a `user_bump_session_epoch(<uid>)` for each affected user id
-(vectorize with `lapply(user_ids, user_bump_session_epoch)`). If bulk paths route through
-`user_update`, no extra call is needed (the auto-bump covers them) — document which case held in the
-commit message.
+- Bulk role change UPDATE (`~:576`): `UPDATE user SET user_role = ?, session_epoch = session_epoch + 1 WHERE user_id = ?` (still inside `db_with_transaction(txn_conn)` — atomic).
+- Bulk approval UPDATE (`~:400`): append `, session_epoch = session_epoch + 1` to the existing `UPDATE user SET ...` statement. **Caveat (Codex BLOCKER-2):** that statement writes `account_status`/`approving_user_id`, which the base schema does not have (`approved` is the real column). Run `grep -rn account_status db/migrations/*.sql` first: if a migration added `account_status`, add the epoch clause to that statement as-is; if not, the statement is a **pre-existing bug** independent of S1 — add the epoch clause anyway (harmless), and record a follow-up item "fix bulk-approval account_status→approved schema mismatch". Do NOT expand this P0 PR to rewrite bulk approval.
+- Bulk delete: no change (a deleted user's refresh is rejected because the row is gone).
 
-- [ ] **Step 6: Run the epoch tests to verify PASS**
+- [ ] **Step 6: Run epoch tests + bulk verification to PASS**
 
 Run: `docker cp api/tests/testthat/test-unit-user-session-epoch.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-user-session-epoch.R')"`
 Expected: PASS.
@@ -214,96 +203,121 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add api/functions/user-repository.R api/services/user-bulk-endpoint-service.R api/tests/testthat/test-unit-user-session-epoch.R
-git commit -m "feat(auth): bump user.session_epoch on privilege/state changes (#535 P0-2)"
+git add api/functions/user-repository.R api/services/user-service.R api/tests/testthat/test-unit-user-session-epoch.R
+git commit -m "feat(auth): atomically bump user.session_epoch on privilege/state mutations (#535 P0-2)"
 ```
 
 ---
 
-### Task 3: Auth service — carry `sepoch` in tokens and make `auth_refresh` DB-backed and role-current
+### Task 3: Carry `sepoch` in tokens; make `auth_refresh` DB-backed, role-current, epoch-revocable
 
 **Files:**
-- Modify: `api/services/auth-service.R` (`auth_generate_token` `:175-199`, `auth_refresh` `:140-164`)
+- Modify: `api/services/auth-service.R` (`auth_generate_token` `:175`, `auth_refresh` `:140`)
 - Test: `api/tests/testthat/test-unit-auth-refresh-epoch.R` (new)
 
 **Interfaces:**
-- Consumes: `user_bump_session_epoch()` (Task 2), `auth_validate_token()`, `auth_generate_token()`, `pool`, `dw` (config).
-- Produces: `auth_generate_token(user, config)` tokens include `sepoch = user$session_epoch %||% 0`; `auth_refresh(refresh_token, pool, config)` loads the current user, enforces `approved == 1` and `sepoch` match, and mints role/fields from the DB row.
+- Consumes: `auth_validate_token()`, `auth_generate_token()`, a `pool`/connection and `config` with `$secret`.
+- Produces: tokens include `sepoch = user$session_epoch %||% 0`; `auth_refresh(refresh_token, pool, config)` (signature UNCHANGED — the existing `test-unit-auth-service.R:217` signature test stays green) loads the current user, enforces `approved == 1` + `sepoch` match, mints from the DB row.
 
-- [ ] **Step 1: Write the failing integration tests**
+- [ ] **Step 1: Write failing integration tests (con-as-pool pattern; real fixtures)**
 
 Create `api/tests/testthat/test-unit-auth-refresh-epoch.R`:
-
 ```r
 library(testthat)
 
-# Uses the fully-loaded API env (auth-service.R sourced). Runs against the test DB.
-test_that("auth_refresh rejects a token whose sepoch is stale (revoked session)", {
+.cfg <- function() list(secret = get_test_config("secret"), token_expiry = 3600L)
+.seed <- function(con, role = "Curator", approved = 1L) {
+  DBI::dbExecute(con,
+    "INSERT INTO user (user_name, email, password, user_role, approved, session_epoch) VALUES (?,?,?,?,?,0)",
+    params = list(paste0("ar_", as.integer(runif(1,1,1e8))), paste0("ar", as.integer(runif(1,1,1e8)), "@t.local"), "x", role, approved))
+  DBI::dbGetQuery(con, "SELECT LAST_INSERT_ID() AS id")$id[1]
+}
+.mint <- function(con, uid, cfg) {
+  u <- con %>% dplyr::tbl("user") %>% dplyr::filter(.data$user_id == !!uid) %>%
+    dplyr::rename(user_created = created_at) %>% dplyr::collect()
+  auth_generate_token(u[1, ], cfg)$access_token
+}
+
+test_that("token carries sepoch and normal refresh succeeds with DB-derived claims", {
   with_test_db_transaction({
-    uid <- user_create(list(user_name = "refresh_epoch", user_email = "re@test.local",
-                            user_password_hash = "x", user_role = "Curator"))
-    user_update(uid, list(approved = 1))  # bumps epoch to >=1
-    user <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>%
-      dplyr::rename(user_created = created_at) %>% collect()
-    user <- user[1, ]
-    token <- auth_generate_token(user, dw)$access_token
-    # Simulate a privilege change AFTER the token was minted:
-    user_bump_session_epoch(uid)
-    expect_error(auth_refresh(token, pool, dw), regexp = "revoked|not active|Invalid|unauthor",
-                 ignore.case = TRUE)
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Curator")
+    tok <- .mint(con, uid, cfg)
+    claims0 <- auth_validate_token(tok, cfg); expect_equal(as.numeric(claims0$sepoch), 0)
+    newtok <- auth_refresh(tok, con, cfg)
+    claims <- auth_validate_token(newtok, cfg)
+    expect_equal(claims$user_role, "Curator")
+    expect_equal(as.numeric(claims$sepoch), .epoch <- DBI::dbGetQuery(con, "SELECT session_epoch FROM user WHERE user_id=?", params=list(uid))$session_epoch[1])
   })
 })
 
-test_that("auth_refresh rejects a deactivated user", {
+test_that("refresh mints the CURRENT DB role (role-current) — isolate by changing role WITHOUT bumping epoch", {
   with_test_db_transaction({
-    uid <- user_create(list(user_name = "refresh_deact", user_email = "de@test.local",
-                            user_password_hash = "x", user_role = "Reviewer"))
-    user_update(uid, list(approved = 1))
-    user <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>%
-      dplyr::rename(user_created = created_at) %>% collect()
-    token <- auth_generate_token(user[1, ], dw)$access_token
-    user_update(uid, list(approved = 0))  # deactivate (also bumps epoch)
-    expect_error(auth_refresh(token, pool, dw), regexp = "not active|revoked|unauthor",
-                 ignore.case = TRUE)
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Administrator")
+    tok <- .mint(con, uid, cfg)              # token role = Administrator, sepoch = 0
+    # raw update: change role but keep epoch 0 so the token still validates
+    DBI::dbExecute(con, "UPDATE user SET user_role = 'Viewer' WHERE user_id = ?", params = list(uid))
+    newtok <- auth_refresh(tok, con, cfg)
+    expect_equal(auth_validate_token(newtok, cfg)$user_role, "Viewer")  # minted from DB, not the token
   })
 })
 
-test_that("auth_refresh mints the CURRENT role from the DB (role-current)", {
+test_that("refresh REJECTED after a real demotion (epoch bump via user_update)", {
   with_test_db_transaction({
-    uid <- user_create(list(user_name = "refresh_role", user_email = "rr@test.local",
-                            user_password_hash = "x", user_role = "Administrator"))
-    user_update(uid, list(approved = 1))
-    user <- pool %>% tbl("user") %>% filter(user_id == !!uid) %>%
-      dplyr::rename(user_created = created_at) %>% collect()
-    token <- auth_generate_token(user[1, ], dw)$access_token
-    new_token <- auth_refresh(token, pool, dw)
-    claims <- auth_validate_token(new_token, dw)
-    expect_equal(claims$user_role, "Administrator")
-    expect_equal(as.numeric(claims$sepoch),
-                 as.numeric((pool %>% tbl("user") %>% filter(user_id == !!uid) %>% collect())$session_epoch[1]))
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Curator")
+    tok <- .mint(con, uid, cfg)
+    withr::with_options(list(.test_db_con = con), user_update(uid, list(user_role = "Viewer")))  # bumps epoch
+    expect_error(auth_refresh(tok, con, cfg), regexp = "revoked|unauthor", ignore.case = TRUE)
+  })
+})
+
+test_that("refresh REJECTED for a deactivated user", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Reviewer", approved = 1L)
+    tok <- .mint(con, uid, cfg)
+    withr::with_options(list(.test_db_con = con), user_update(uid, list(approved = 0)))
+    expect_error(auth_refresh(tok, con, cfg), regexp = "not active|revoked|unauthor", ignore.case = TRUE)
+  })
+})
+
+test_that("refresh REJECTED after a password change (epoch bump)", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con); tok <- .mint(con, uid, cfg)
+    withr::with_options(list(.test_db_con = con), user_update_password(uid, "newhash"))
+    expect_error(auth_refresh(tok, con, cfg), regexp = "revoked|unauthor", ignore.case = TRUE)
+  })
+})
+
+test_that("refresh REJECTED for a deleted user", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con); tok <- .mint(con, uid, cfg)
+    DBI::dbExecute(con, "DELETE FROM user WHERE user_id = ?", params = list(uid))
+    expect_error(auth_refresh(tok, con, cfg), regexp = "no longer exists|unauthor", ignore.case = TRUE)
   })
 })
 ```
+(If `user_update`/`user_update_password` do not honor `.test_db_con`, mutate directly with `DBI::dbExecute(con, "UPDATE user SET user_role='Viewer', session_epoch = session_epoch + 1 WHERE user_id=?", ...)` to simulate the atomic bump — the point of these tests is `auth_refresh`'s reaction to a bumped epoch, not re-testing Task 2.)
 
 - [ ] **Step 2: Run to verify FAIL**
 
 Run: `docker cp api/tests/testthat/test-unit-auth-refresh-epoch.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-auth-refresh-epoch.R')"`
-Expected: FAIL — `sepoch` not in claims; `auth_refresh` does not load the DB / check epoch.
+Expected: FAIL — no `sepoch` claim; `auth_refresh` doesn't load DB / check epoch.
 
 - [ ] **Step 3: Add the `sepoch` claim to `auth_generate_token`**
 
-In `api/services/auth-service.R`, inside `jose::jwt_claim(...)` (`:179`), add:
-
+In `jose::jwt_claim(...)` (`:179`), add after `orcid = user$orcid,`:
 ```r
-    orcid = user$orcid,
     sepoch = user$session_epoch %||% 0,
-    iat = as.numeric(Sys.time()),
 ```
 
-- [ ] **Step 4: Rewrite `auth_refresh` to be DB-backed, role-current, and epoch-checked**
+- [ ] **Step 4: Rewrite `auth_refresh` (DB-backed, role-current, epoch-checked; namespaced dplyr)**
 
 Replace the body of `auth_refresh` (`:140-164`) with:
-
 ```r
 auth_refresh <- function(refresh_token, pool, config) {
   if (missing(refresh_token) || is.null(refresh_token) || nchar(refresh_token) == 0) {
@@ -318,13 +332,19 @@ auth_refresh <- function(refresh_token, pool, config) {
     stop_for_unauthorized("Refresh token has expired")
   }
 
+  # Validate the subject id before querying.
+  uid <- suppressWarnings(as.integer(claims$user_id))
+  if (length(uid) != 1L || is.na(uid) || uid <= 0L) {
+    stop_for_unauthorized("Invalid refresh token")
+  }
+
   # Load CURRENT account state — never trust the presented token's claims.
-  uid <- as.integer(claims$user_id)
+  # Namespace dplyr verbs: the loaded runtime masks them (biomaRt/STRINGdb).
   user <- pool %>%
-    tbl("user") %>%
-    filter(user_id == !!uid) %>%
+    dplyr::tbl("user") %>%
+    dplyr::filter(.data$user_id == !!uid) %>%
     dplyr::rename(user_created = created_at) %>%
-    collect()
+    dplyr::collect()
   if (nrow(user) == 0) {
     stop_for_unauthorized("User no longer exists")
   }
@@ -333,26 +353,23 @@ auth_refresh <- function(refresh_token, pool, config) {
     stop_for_unauthorized("Account is not active")
   }
 
-  # Revocation gate: the token's epoch must match the user's current epoch.
+  # Revocation gate: token epoch must match the user's current epoch.
   token_epoch <- as.numeric(claims$sepoch %||% 0)
   current_epoch <- as.numeric(user$session_epoch %||% 0)
   if (token_epoch != current_epoch) {
     stop_for_unauthorized("Session has been revoked. Please sign in again.")
   }
 
-  # Mint a fresh token with role + claim fields taken from the DB row.
   token <- auth_generate_token(user, config)
   logger::log_info("Token refreshed", user_id = user$user_id)
   token$access_token
 }
 ```
 
-Verify `stop_for_bad_request`/`stop_for_unauthorized` and `%||%` are already used in this file (they are — `auth_signin` uses them). Keep `filter`/`tbl`/`collect` unqualified to match `auth_signin`'s style in the same file.
-
-- [ ] **Step 5: Run the refresh tests to verify PASS**
+- [ ] **Step 5: Run refresh tests to PASS**
 
 Run: `docker compose restart api && docker cp api/tests/testthat/test-unit-auth-refresh-epoch.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-auth-refresh-epoch.R')"`
-Expected: PASS. (Restart so the API sources the new `auth-service.R`.)
+Expected: PASS. Also re-run the existing suite: `docker cp api/tests/testthat/test-unit-auth-service.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-auth-service.R')"` — the `sepoch` claim is additive, and the `auth_refresh`/`auth_generate_token` signatures are unchanged, so it stays green (fix any assertion that encoded the old "does not use the DB" behavior).
 
 - [ ] **Step 6: Commit**
 
@@ -363,35 +380,32 @@ git commit -m "fix(security): make token refresh DB-backed, role-current, epoch-
 
 ---
 
-### Task 4: Regression sweep, live verification, and gate
+### Task 4: Regression sweep, live verification, docs, gate
 
-**Files:** none (verification); update docs if refresh semantics are documented.
+- [ ] **Step 1: Ensure no existing test asserts the old stale-claims refresh behavior**
 
-- [ ] **Step 1: Ensure no existing auth test asserts the OLD stale-claims behavior**
-
-Run: `grep -rnE 'auth_refresh|does not use the DB|refresh' api/tests/testthat/test-endpoint-auth.R api/tests/testthat/*auth* 2>/dev/null`
-If any test asserts that `auth_refresh` ignores the pool / reissues old claims, update it to the new contract (a comment in the old code said it "explicitly does not use the DB pool"; any test encoding that must be inverted).
+Run: `grep -rnE 'auth_refresh|does not use the DB|reissue|same.*token|refresh' api/tests/testthat/test-unit-auth-service.R api/tests/testthat/test-endpoint-auth.R api/tests/testthat/test-integration-auth.R`
+Fix any assertion that requires `auth_refresh` to ignore the pool / reuse old claims. Confirm the `auth_refresh has correct signature` test (`test-unit-auth-service.R:217`) still passes (signature unchanged).
 
 - [ ] **Step 2: File-size + full API gate**
 
 Run: `make code-quality-audit && make test-api-fast`
-Expected: PASS; the three new test files run (not skipped) against the dev DB, migration 043 applied, manifest guard green.
+Expected: PASS; migration 043 applied, all guard + new tests run.
 
 - [ ] **Step 3: Live end-to-end refresh check (fully-loaded env)**
 
 With the dev stack up and a Curator/Admin account:
-- Sign in (`POST /api/auth/authenticate`), capture the token.
-- `GET /api/auth/refresh` with `Authorization: Bearer <token>` → **200**, a new token whose decoded `user_role` matches the DB and `sepoch` matches the user's current epoch.
-- As an admin, demote that user (`PUT /api/user/change_role`), then retry refresh with the OLD token → **401** ("Session has been revoked").
-- Deactivate a user (`PUT /api/user/approval` unapprove), retry refresh → **401**.
+- Sign in (`POST /api/auth/authenticate`), capture the token; `GET /api/auth/refresh` with `Authorization: Bearer <token>` → **200**, decoded token `user_role` matches the DB, `sepoch` matches the user's epoch.
+- Admin demote that user (`PUT /api/user/change_role`), retry refresh with the OLD token → **401** ("Session has been revoked").
+- Deactivate (`PUT /api/user/approval` unapprove), retry → **401**.
 
 - [ ] **Step 4: Docs**
 
-If `documentation/08-development.qmd` or `09-deployment.qmd` documents the refresh flow or token lifetime, note: refresh now loads current account state and enforces `session_epoch`; demotion/deactivation/password-change immediately revoke refresh. Note the residual (§S1 residual risk): the current access token remains valid until `config$token_expiry` (3600s); immediate access-token revocation (epoch check in `require_auth`) and distinct rotating tokens are the deferred S1b follow-up.
+In `documentation/09-deployment.qmd` (and `08-development.qmd` if it documents auth): refresh now loads current account state and enforces `session_epoch`; demotion/deactivation/password-change/role-change immediately revoke refresh (force re-login). Document the residuals: (a) the current **access** token remains valid until `config$token_expiry` (3600s) — immediate access revocation (epoch check in `require_auth`) is deferred; (b) a **legacy pre-deploy token** (no `sepoch`, epoch 0) is refreshable until its own expiry unless the operator initializes existing users to epoch 1 at deploy; (c) distinct rotating refresh tokens (theft resistance) are the deferred **S1b** follow-up.
 
 ## Self-Review
 
-- **Spec coverage (S1 §5):** epoch column (Task 1), tokens carry epoch (Task 3.3), refresh loads current user + role + approved + epoch (Task 3.4), revoke-on-change via bump (Task 2), no frontend change (verified — header-carried token, bare-string response), tests for demotion/deactivation/role-current/normal (Task 3) + bump coverage (Task 2). Residual documented (Task 4.4).
-- **Placeholder scan:** none — migration, helper, and auth_refresh bodies are complete. The two adaptive steps (2.1 `user_create` fields, 2.5 bulk paths) include explicit grep-and-match instructions, not vague TODOs.
-- **Type/name consistency:** `user_bump_session_epoch(user_id)` used identically in repository + tests; `sepoch` claim name consistent across `auth_generate_token`/`auth_refresh`/tests; `session_epoch` column name consistent across migration/repository/auth-service.
-- **Compat:** legacy tokens (no `sepoch`) → `%||% 0`; refresh works while user epoch is 0, correctly rejects once epoch > 0. Additive migration; manifest bumped with guard tests.
+- **Spec coverage (S1 §5):** epoch column + full manifest bump (Task 1, Codex MEDIUM-9), atomic in-statement epoch increment on role/approved/password + bulk (Task 2, Codex BLOCKER-2/HIGH-4), DB-backed role-current epoch-checked refresh with namespaced dplyr + id validation (Task 3, Codex MEDIUM-8), tests for normal/role-current-isolated/demotion/deactivation/password/deleted-user (Task 3, Codex HIGH-7) with working fixtures (Codex BLOCKER-3), residuals documented (Task 4, Codex LOW-11).
+- **Design choice documented:** privilege change → reject refresh (force re-login); mint-from-DB is defense-in-depth; role-current isolated by a raw non-epoch-bumping DB update.
+- **Placeholder scan:** none — migration, mutation edits, and `auth_refresh` body are complete. The two adaptive points (db_execute_statement connection source; bulk-approval `account_status`) have explicit grep-and-decide instructions.
+- **Type/name consistency:** `session_epoch` / `sepoch` used identically across migration, mutations, `auth_generate_token`, `auth_refresh`, and tests. `auth_refresh(refresh_token, pool, config)` signature unchanged (keeps `test-unit-auth-service.R:217` green).

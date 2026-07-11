@@ -258,9 +258,37 @@ production secrets or deployment topology that must not be changed autonomously 
 - **S4 Docker-socket proxy + removing writable prod mounts** — production Compose topology; the
   build-side items (source maps, `stats.html`, nginx denies) are safe and can be pulled forward.
 
-## 9. Non-goals
+## 9. Plan-stage Codex corrections folded (2026-07-11)
+
+The plan-stage Codex adversarial review found real, plan-breaking issues, all folded into the plans:
+- **S0:** obsolete *signature* assertions (`expect_match(sig_line, "^function\\(review_id_requested\\)")`
+  at `test-endpoint-review.R:612,652,695,735`; `status:183`) and per-route `expect_false(require_role)`
+  permission blocks must all be inverted; behavioral denial tests must cover **all seven** gated routes
+  with a deny-before-query sentinel + Reviewer positive control; the approval-queue consumers are
+  **Curator+** (not Reviewer/Curator/Admin) but still send the Bearer token, so Reviewer+ gating is safe.
+- **S1:** the epoch increment must be **atomic in the mutation SQL statement** (not a separate post-commit
+  bump) to close a refresh/revocation race; the real bulk SQL lives in `user-service.R` (not the
+  delegating `user-bulk-endpoint-service.R`); `user_create()` is **broken** (inserts `user_email`, column
+  is `email`) so test fixtures must use parameterized SQL; namespace all dplyr verbs in `auth_refresh`
+  and validate the decoded user id; bump **all four** migration-guard assertions (name + count 40→41 +
+  `res$latest`). Design choice made explicit: a privilege change bumps the epoch → refresh is **rejected**
+  (force re-login), not silently downgraded.
+
+## 10. Scope narrowing (Codex HIGH-5)
+
+The anonymous, **approval-gated** `/api/entity/<id>/review` and `.../status` routes return the *approved*
+primary review/status `comment` (`entity-read-endpoint-service.R:333,354`). These do **not** leak drafts
+or curator identities, but whether an approved `comment` is public editorial content or private workflow
+metadata is a distinct product decision. It is recorded as program follow-up **S8-c: "classify approved
+review/status comment visibility"** and is **out of S0 scope**. The earlier "entity family wholly untouched
+/ safe" wording is narrowed to: *the entity family's draft/identity exposure is already closed; approved
+comment visibility is a separate, tracked question.*
+
+## 11. Non-goals
 
 - No refactor beyond what each fix requires (YAGNI). Performance cleanups adjacent to the P0 code
   (whole-table collects in review detail) are deferred to S7.
-- No change to the public entity/gene data surface, which the audit confirms is already
-  approved-gated.
+- No change to the public entity/gene *draft* surface (already approval-gated). The approved-comment
+  visibility question is deferred to S8-c (§10), not resolved here.
+- The pre-existing bulk-approval `account_status`/`approving_user_id` schema mismatch is noted but **not**
+  fixed in this P0 PR (tracked separately).
