@@ -185,6 +185,82 @@ get_backup_metadata <- function(backup_dir = "/backup") {
 #' result <- execute_mysqldump(db_config, "/backup/manual.sql")
 #' }
 #'
+# ---- Credential-safe MySQL CLI invocation (#535 P1-1) --------------------
+# The DB password must never appear in process argv (visible via `ps`) or in a
+# `system()` shell string (logged). It is written to a per-invocation MySQL
+# option file created fail-closed at mode 0600 and passed via
+# `--defaults-extra-file` (which must be the FIRST CLI option).
+
+#' Escape a value for a MySQL option-file double-quoted string.
+#' MySQL/MariaDB `[client]` values recognise `\"` and `\\`; quoting also
+#' protects `#`, spaces, and `;`.
+.backup_optfile_escape <- function(x) {
+  gsub('(["\\\\])', "\\\\\\1", as.character(x))
+}
+
+#' MySQL `[client]` option-file body carrying ONLY the password (host/user/port
+#' stay on the non-secret CLI).
+.backup_option_file_content <- function(db_config) {
+  paste0("[client]\n", 'password="', .backup_optfile_escape(db_config$password), '"\n')
+}
+
+#' Write the option-file body to a mode-0600 tempfile, FAIL-CLOSED: the umask is
+#' tightened, the file is created empty, chmod'd 0600, and its mode is verified
+#' to carry no group/other bits BEFORE the secret is written. Caller unlinks
+#' (use on.exit). Aborts (and unlinks) rather than ever writing a secret to a
+#' file whose permissions are not proven 0600.
+.backup_write_option_file <- function(db_config) {
+  old_umask <- Sys.umask("0077")
+  on.exit(Sys.umask(old_umask), add = TRUE)
+
+  path <- tempfile(pattern = "mysql_opt_", fileext = ".cnf")
+  if (!isTRUE(file.create(path))) {
+    stop("Could not create backup option file", call. = FALSE)
+  }
+  Sys.chmod(path, mode = "0600", use_umask = FALSE)
+  mode <- file.info(path)$mode
+  if (is.na(mode) ||
+      bitwAnd(as.integer(mode), as.integer(as.octmode("077"))) != 0L) {
+    unlink(path)
+    stop("Backup option file has unsafe permissions; refusing to write secret", call. = FALSE)
+  }
+  writeLines(.backup_option_file_content(db_config), path)
+  path
+}
+
+#' mysqldump args using an option file; `--defaults-extra-file` MUST be first.
+.backup_mysqldump_args <- function(db_config, option_file) {
+  c(
+    paste0("--defaults-extra-file=", option_file),
+    "-h", db_config$host,
+    "-P", as.character(as.integer(db_config$port)),
+    "-u", db_config$user,
+    "--single-transaction",
+    "--routines",
+    "--triggers",
+    "--quick",
+    db_config$dbname
+  )
+}
+
+#' Restore shell command using an option file; no password on the CLI. Every
+#' shell token (option file, host, user, dbname, restore file) is shQuote'd.
+.backup_restore_command <- function(db_config, option_file, restore_file, is_gzipped) {
+  base <- sprintf(
+    "mysql --defaults-extra-file=%s -h %s -P %s -u %s %s",
+    shQuote(option_file),
+    shQuote(db_config$host),
+    as.character(as.integer(db_config$port)),
+    shQuote(db_config$user),
+    shQuote(db_config$dbname)
+  )
+  if (is_gzipped) {
+    sprintf("gunzip -c %s | %s", shQuote(restore_file), base)
+  } else {
+    sprintf("%s < %s", base, shQuote(restore_file))
+  }
+}
+
 #' @export
 execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
                                compress = TRUE, create_latest_link = TRUE) {
@@ -203,18 +279,10 @@ execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
   current_step <- current_step + 1
   report("connecting", "Preparing database connection...", current_step, total_steps)
 
-  # Build arguments safely (no shell interpolation)
-  args <- c(
-    "-h", db_config$host,
-    "-P", as.character(db_config$port),
-    "-u", db_config$user,
-    paste0("-p", db_config$password),
-    "--single-transaction",
-    "--routines",
-    "--triggers",
-    "--quick",
-    db_config$dbname
-  )
+  # Password is passed via a mode-0600 option file, never argv (#535 P1-1).
+  option_file <- .backup_write_option_file(db_config)
+  on.exit(unlink(option_file), add = TRUE)
+  args <- .backup_mysqldump_args(db_config, option_file)
 
   # Step 2: Execute mysqldump
   current_step <- current_step + 1
@@ -416,30 +484,11 @@ execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
                  basename(restore_file), file_size / 1024 / 1024),
          2, 3)
 
-  # Build mysql command based on file extension
-  if (is_gzipped) {
-    # Gzipped backup: decompress on the fly
-    restore_cmd <- sprintf(
-      "gunzip -c '%s' | mysql -h %s -P %s -u %s -p'%s' %s",
-      restore_file,
-      db_config$host,
-      as.character(db_config$port),
-      db_config$user,
-      db_config$password,
-      db_config$dbname
-    )
-  } else {
-    # Plain SQL file: direct mysql redirect
-    restore_cmd <- sprintf(
-      "mysql -h %s -P %s -u %s -p'%s' %s < '%s'",
-      db_config$host,
-      as.character(db_config$port),
-      db_config$user,
-      db_config$password,
-      db_config$dbname,
-      restore_file
-    )
-  }
+  # Password is passed via a mode-0600 option file, never the shell command
+  # string (#535 P1-1). Every shell token is shQuote'd.
+  option_file <- .backup_write_option_file(db_config)
+  on.exit(unlink(option_file), add = TRUE)
+  restore_cmd <- .backup_restore_command(db_config, option_file, restore_file, is_gzipped)
 
   # Execute restore command
   result <- system(restore_cmd, intern = FALSE, ignore.stderr = FALSE)
