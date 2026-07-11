@@ -446,6 +446,16 @@ The frontend nginx config (`app/docker/nginx/security-headers.conf`) emits the f
 
 The Playwright spec `app/tests/e2e/security-headers.spec.ts` is the regression net for the directive shape; any future loosening must red-line that spec before merge.
 
+### Frontend build hardening (#535)
+
+Production builds ship **no source maps and no bundle-analyzer report**:
+
+- `app/vite.config.ts` sets `build.sourcemap = false` (there is no source-map upload step, so emitting them was pure leak surface; this also disables the generated service-worker maps), and only includes `rollup-plugin-visualizer` when `ANALYZE=true`. To regenerate the bundle report locally: `cd app && ANALYZE=true npm run build` (writes `dist/stats.html`).
+- The **active** nginx config `app/docker/nginx/local.conf` (the one `app/Dockerfile` copies to `default.conf`; `prod.conf` is legacy) returns `404` for any `*.map` and for `/stats.html`, and the nginx image build strips any residual such files — defense in depth if the build config ever regresses.
+- CI asserts `app/dist` contains no `*.map` and no `stats.html` after the production build.
+
+`make db-restore-latest` (and its chained `db-views-rebuild`) now **fail closed**: a failed `gzip`/`mysql`/view-replay aborts the target (the previous `| grep … || true` masked failures despite the Makefile's global `pipefail`), stderr noise is filtered via process substitution, and a core-table readiness probe gates the success report.
+
 ### Vite upgrade maintenance
 
 After bumping Vite, NGL, markdown-it, or any other vendor that may add or remove inline `<script>` content, regenerate the CSP `script-src` hashes:

@@ -6,7 +6,9 @@
 
 **Architecture:** Vite stops emitting `.map` files (`sourcemap: false` — there is no source-map upload step, so `hidden` maps are pure leak surface) and only includes the `rollup-plugin-visualizer` when `ANALYZE=true` (so normal/prod builds never write `dist/stats.html`). nginx gains defense-in-depth `return 404` for `*.map` and `/stats.html` in case an artifact ever slips into `dist`. The nginx image build strips any residual maps/stats after copying `dist`. The Makefile restore recipe filters `mysql` stderr noise via process substitution (not an in-pipeline `grep … || true` that defeats `pipefail`) and adds a post-restore readiness probe.
 
-**Tech Stack:** Vite 5 / Rollup, `rollup-plugin-visualizer`, nginx, GNU Make (bash `.ONESHELL`, `-eu -o pipefail`).
+**Tech Stack:** Vite 7 / Rollup, `rollup-plugin-visualizer`, nginx, GNU Make (bash `.ONESHELL`, `-eu -o pipefail`).
+
+> **Codex plan-review corrections folded (2026-07-11):** the active production nginx config is **`app/docker/nginx/local.conf`** (`app/Dockerfile:59` copies it to `default.conf`); `prod.conf` is legacy/unwired — so the deny blocks go in **local.conf** (mirrored in prod.conf). Both deny blocks `include /etc/nginx/security-headers.conf`. `make db-restore-latest` chains `db-views-rebuild`, whose own `| grep … || true` mask is fixed the same way. A CI step asserts `dist` ships no `*.map`/`stats.html`. The readiness probe queries a core table (`non_alt_loci_set`), not a bare `SELECT 1`.
 
 ## Global Constraints
 
