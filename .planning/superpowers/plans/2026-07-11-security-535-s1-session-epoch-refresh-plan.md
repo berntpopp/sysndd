@@ -105,7 +105,9 @@ git commit -m "feat(db): add user.session_epoch for revocable token refresh (#53
 - Test: `api/tests/testthat/test-unit-user-session-epoch.R` (new)
 
 **Interfaces:**
-- Produces: every SQL statement that changes `user_role`, `approved`, or `password` also sets `session_epoch = session_epoch + 1` in the **same statement** (atomic; no separate helper). Bulk delete needs no bump (a missing user is rejected by `auth_refresh`).
+- Produces: every SQL statement that changes `user_role`, `approved`, or `password` also sets `session_epoch = session_epoch + 1` in the **same statement** (atomic; no separate helper). Bulk delete needs no bump (a missing user is rejected by `auth_refresh`). `user_update`/`user_update_password` gain an optional trailing `conn = NULL` forwarded to `db_execute_statement(..., conn = conn)` so tests can drive them on the rolled-back test transaction (backward compatible — existing callers pass args positionally, and `db_execute_statement` already accepts `conn`).
+
+**Connection reality (verified):** `db_execute_statement(sql, params, conn = NULL)` uses the **global app pool** when `conn` is NULL; `with_test_db_transaction`'s connection (`getOption(".test_db_con")`) is NOT consulted. So the tests here pass `conn = con` explicitly; `auth_refresh` (Task 3) already takes `pool` as an argument, so the same `con` is passed there.
 
 - [ ] **Step 1: Write the failing tests (parameterized SQL fixtures — real `email` column)**
 
@@ -126,8 +128,7 @@ test_that("user_update on user_role bumps epoch atomically (single statement)", 
     con <- getOption(".test_db_con")
     uid <- .seed_user(con, role = "Reviewer")
     before <- .epoch(con, uid)
-    # user_update uses the global db helper; point it at the txn connection for the test
-    withr::with_options(list(.test_db_con = con), user_update(uid, list(user_role = "Viewer")))
+    user_update(uid, list(user_role = "Viewer"), conn = con)   # conn = the rolled-back txn
     expect_equal(.epoch(con, uid) - before, 1)
   })
 })
@@ -137,7 +138,7 @@ test_that("user_update on approved bumps epoch", {
     con <- getOption(".test_db_con")
     uid <- .seed_user(con, approved = 1L)
     before <- .epoch(con, uid)
-    withr::with_options(list(.test_db_con = con), user_update(uid, list(approved = 0)))
+    user_update(uid, list(approved = 0), conn = con)
     expect_equal(.epoch(con, uid) - before, 1)
   })
 })
@@ -147,7 +148,7 @@ test_that("user_update on a non-privilege field does NOT bump epoch", {
     con <- getOption(".test_db_con")
     uid <- .seed_user(con)
     before <- .epoch(con, uid)
-    withr::with_options(list(.test_db_con = con), user_update(uid, list(abbreviation = "EN")))
+    user_update(uid, list(abbreviation = "EN"), conn = con)
     expect_equal(.epoch(con, uid), before)
   })
 })
@@ -157,21 +158,25 @@ test_that("user_update_password bumps epoch", {
     con <- getOption(".test_db_con")
     uid <- .seed_user(con)
     before <- .epoch(con, uid)
-    withr::with_options(list(.test_db_con = con), user_update_password(uid, "newhash"))
+    user_update_password(uid, "newhash", conn = con)
     expect_equal(.epoch(con, uid) - before, 1)
   })
 })
 ```
-Note: `user_update`/`user_update_password` resolve their connection through `db_execute_statement`. Confirm `db_execute_statement` honors `getOption(".test_db_con")` in test mode; if it does not (it uses the app pool), the fixtures must instead assert against the **app pool** with an explicit cleanup `withr::defer(DBI::dbExecute(pool, "DELETE FROM user WHERE user_id = ?", params=list(uid)))`. Grep `api/functions/database-functions.R` for `db_execute_statement` to confirm the connection source before finalizing, and use whichever keeps the test isolated.
+These pass `conn = con` so the seed, mutation, and assertion all run on the single rolled-back transaction connection (Step 3/4 add the `conn` parameter). `db_execute_query`/`db_execute_statement` in `.seed_user`/`.epoch` also accept `conn` — call them as `db_execute_query(sql, params, conn = con)` if you route the fixture through the repo helpers instead of raw `DBI::dbExecute(con, ...)`.
 
 - [ ] **Step 2: Run to verify FAIL**
 
 Run: `docker cp api/tests/testthat/test-unit-user-session-epoch.R sysndd-api-1:/app/tests/testthat/ && docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-unit-user-session-epoch.R')"`
 Expected: FAIL — mutations do not yet bump.
 
-- [ ] **Step 3: Fold the increment into `user_update()`'s SET clause**
+- [ ] **Step 3: Add `conn` forwarding + fold the increment into `user_update()`'s SET clause**
 
-In `api/functions/user-repository.R`, `user_update()` — after `set_clause` is built, before the `sql <- paste0(...)`:
+In `api/functions/user-repository.R`, change the `user_update` signature to accept an optional connection:
+```r
+user_update <- function(user_id, updates, conn = NULL) {
+```
+After `set_clause` is built, before the `sql <- paste0(...)`:
 ```r
   set_clause <- paste(paste0(field_names, " = ?"), collapse = ", ")
   # #535 P0-2: privilege/state change atomically revokes outstanding sessions.
@@ -180,14 +185,19 @@ In `api/functions/user-repository.R`, `user_update()` — after `set_clause` is 
   }
   sql <- paste0("UPDATE user SET ", set_clause, " WHERE user_id = ?")
 ```
-(`session_epoch = session_epoch + 1` is a fixed literal — no new `?` placeholder, `params` unchanged. It is not caller-supplied, so it bypasses the field allowlist safely.)
+And forward the connection in the final call:
+```r
+  db_execute_statement(sql, as.list(params), conn = conn)
+```
+(`session_epoch = session_epoch + 1` is a fixed literal — no new `?` placeholder, `params` unchanged, and not caller-supplied, so it bypasses the field allowlist safely. `conn` defaults `NULL` → the existing global-pool behavior, so no caller changes.)
 
-- [ ] **Step 4: Fold the increment into `user_update_password()`**
+- [ ] **Step 4: Add `conn` forwarding + fold the increment into `user_update_password()`**
 
-Change its statement to:
+Change the signature to `user_update_password <- function(user_id, password_hash, conn = NULL) {`, the statement to:
 ```r
   sql <- "UPDATE user SET password = ?, session_epoch = session_epoch + 1 WHERE user_id = ?"
 ```
+and forward: `db_execute_statement(sql, list(password_hash, user_id), conn = conn)` (match the existing param order/shape).
 
 - [ ] **Step 5: Fold the increment into the bulk mutations in `user-service.R`**
 
@@ -268,7 +278,7 @@ test_that("refresh REJECTED after a real demotion (epoch bump via user_update)",
     con <- getOption(".test_db_con"); cfg <- .cfg()
     uid <- .seed(con, role = "Curator")
     tok <- .mint(con, uid, cfg)
-    withr::with_options(list(.test_db_con = con), user_update(uid, list(user_role = "Viewer")))  # bumps epoch
+    user_update(uid, list(user_role = "Viewer"), conn = con)   # bumps epoch atomically
     expect_error(auth_refresh(tok, con, cfg), regexp = "revoked|unauthor", ignore.case = TRUE)
   })
 })
@@ -278,7 +288,7 @@ test_that("refresh REJECTED for a deactivated user", {
     con <- getOption(".test_db_con"); cfg <- .cfg()
     uid <- .seed(con, role = "Reviewer", approved = 1L)
     tok <- .mint(con, uid, cfg)
-    withr::with_options(list(.test_db_con = con), user_update(uid, list(approved = 0)))
+    user_update(uid, list(approved = 0), conn = con)
     expect_error(auth_refresh(tok, con, cfg), regexp = "not active|revoked|unauthor", ignore.case = TRUE)
   })
 })
@@ -287,7 +297,7 @@ test_that("refresh REJECTED after a password change (epoch bump)", {
   with_test_db_transaction({
     con <- getOption(".test_db_con"); cfg <- .cfg()
     uid <- .seed(con); tok <- .mint(con, uid, cfg)
-    withr::with_options(list(.test_db_con = con), user_update_password(uid, "newhash"))
+    user_update_password(uid, "newhash", conn = con)
     expect_error(auth_refresh(tok, con, cfg), regexp = "revoked|unauthor", ignore.case = TRUE)
   })
 })
@@ -301,7 +311,7 @@ test_that("refresh REJECTED for a deleted user", {
   })
 })
 ```
-(If `user_update`/`user_update_password` do not honor `.test_db_con`, mutate directly with `DBI::dbExecute(con, "UPDATE user SET user_role='Viewer', session_epoch = session_epoch + 1 WHERE user_id=?", ...)` to simulate the atomic bump — the point of these tests is `auth_refresh`'s reaction to a bumped epoch, not re-testing Task 2.)
+(These pass `conn = con` (Task 2 added the parameter), so the mutation and `auth_refresh`'s DB read share the one rolled-back connection. Equivalent fallback if needed: mutate directly with `DBI::dbExecute(con, "UPDATE user SET user_role='Viewer', session_epoch = session_epoch + 1 WHERE user_id=?", params=list(uid))` — the point of these tests is `auth_refresh`'s reaction to a bumped epoch, not re-testing Task 2.)
 
 - [ ] **Step 2: Run to verify FAIL**
 
