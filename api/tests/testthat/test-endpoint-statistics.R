@@ -1,22 +1,36 @@
 # tests/testthat/test-endpoint-statistics.R
 #
 # Phase C unit C7 (read-only batch) — route-surface and handler-shape tests
-# for api/endpoints/statistics_endpoints.R.
+# for the PUBLIC routes of api/endpoints/statistics_endpoints.R (no
+# require_role() gate): /category_count, /news, /entities_over_time, and
+# /publication_stats.
 #
 # Scope rule (plan §3 Phase C.C7 exit criterion #5, LOCKED): one test_that()
-# block per HTTP method per route. `statistics_endpoints.R` exposes ten @get
-# routes, so this file has 20 test_that blocks (happy path + empty/auth path
-# per route).
+# block per HTTP method per route.
 #
 # Testing strategy matches test-endpoint-search.R and test-endpoint-list.R:
 # parse the endpoint file, extract each handler body, and assert the body
 # references the expected backing table + response shape. Wrapped in
 # with_test_db_transaction() so future handler invocations stay transactional.
+#
+# #346 Wave 3 Task 8 extracted every handler body into
+# api/services/statistics-public-endpoint-service.R (public routes, covered
+# here) and api/services/statistics-admin-endpoint-service.R
+# (Administrator-gated routes, covered by the sibling
+# test-endpoint-statistics-admin.R — split out to keep both files under the
+# repo's 600-line file-size ceiling, mirroring the production public/admin
+# service split); the endpoint shells now only keep the decorator, formals,
+# and a one-line delegation call. Each route's "happy path" test below now
+# asserts the delegation call AND reads the backing-table/response-shape
+# assertions from the extracted svc_statistics_* function's own source via
+# read_service_source() — the route-surface/formals assertions stay pointed
+# at the shell.
 
 library(testthat)
 
 # -----------------------------------------------------------------------------
-# Shared helpers (duplicated by design — see test-endpoint-search.R header).
+# Shared helpers (duplicated from test-endpoint-statistics-admin.R by design —
+# see test-endpoint-search.R header for the repo-wide rationale).
 # -----------------------------------------------------------------------------
 
 extract_plumber_handler <- function(file_path, decorator_regex, envir) {
@@ -50,6 +64,30 @@ extract_plumber_handler <- function(file_path, decorator_regex, envir) {
 
 stats_file_path <- function() {
   file.path(get_api_dir(), "endpoints", "statistics_endpoints.R")
+}
+
+stats_public_service_path <- function() {
+  file.path(get_api_dir(), "services", "statistics-public-endpoint-service.R")
+}
+
+# Read the deparsed source text of a single top-level `fn_name <- function(...) {...}`
+# definition out of a service file (mirrors extract_plumber_handler()'s
+# parse-then-locate approach, scoped to one named function instead of one
+# decorator so a match can't spuriously come from a sibling svc_ function in
+# the same file). Falls back to the whole-file text when fn_name is omitted.
+read_service_source <- function(file_path, fn_name = NULL) {
+  if (is.null(fn_name)) {
+    return(paste(readLines(file_path, warn = FALSE), collapse = "\n"))
+  }
+
+  parsed <- parse(file = file_path, keep.source = TRUE)
+  for (expr in as.list(parsed)) {
+    if (is.call(expr) && identical(expr[[1]], as.name("<-")) &&
+        length(expr) >= 3 && identical(as.character(expr[[2]]), fn_name)) {
+      return(paste(deparse(expr[[3]]), collapse = "\n"))
+    }
+  }
+  stop("Service function not found: ", fn_name, " in ", file_path)
 }
 
 make_stats_sandbox <- function() {
@@ -93,8 +131,12 @@ test_that("GET /category_count — happy path: decorator + handler surface", {
     expect_true("type" %in% formals_names)
 
     body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "generate_stat_tibble_mem",
-                 info = "category_count must delegate to generate_stat_tibble_mem")
+    expect_match(body_txt, "svc_statistics_category_count",
+                 info = "category_count must delegate to svc_statistics_category_count")
+
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_category_count")
+    expect_match(service_txt, "generate_stat_tibble_mem",
+                 info = "svc_statistics_category_count must delegate to generate_stat_tibble_mem")
   })
 })
 
@@ -140,8 +182,12 @@ test_that("GET /news — happy path: decorator + handler surface", {
     expect_true("n" %in% formals_names)
 
     body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "generate_gene_news_tibble_mem",
-                 info = "news must delegate to generate_gene_news_tibble_mem")
+    expect_match(body_txt, "svc_statistics_gene_news",
+                 info = "news must delegate to svc_statistics_gene_news")
+
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_gene_news")
+    expect_match(service_txt, "generate_gene_news_tibble_mem",
+                 info = "svc_statistics_gene_news must delegate to generate_gene_news_tibble_mem")
   })
 })
 
@@ -187,10 +233,14 @@ test_that("GET /entities_over_time — happy path: decorator + handler surface",
     expect_true("filter" %in% formals_names)
 
     body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "ndd_entity_view",
-                 info = "entities_over_time must read from ndd_entity_view")
-    expect_match(body_txt, "summarize_by_time",
-                 info = "entities_over_time must aggregate via summarize_by_time")
+    expect_match(body_txt, "svc_statistics_entities_over_time",
+                 info = "entities_over_time must delegate to svc_statistics_entities_over_time")
+
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_entities_over_time")
+    expect_match(service_txt, "ndd_entity_view",
+                 info = "svc_statistics_entities_over_time must read from ndd_entity_view")
+    expect_match(service_txt, "summarize_by_time",
+                 info = "svc_statistics_entities_over_time must aggregate via summarize_by_time")
   })
 })
 
@@ -202,209 +252,19 @@ test_that("GET /entities_over_time — empty/400 path: aggregate/group validatio
       decorator_regex = "^#\\*\\s+@get\\s+/entities_over_time\\s*$",
       envir = env
     )
-    body_txt <- handler_body_text(handler)
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_entities_over_time")
 
     # 400 guard: aggregate must be in {entity_id, symbol}, group must be in
     # {category, inheritance_filter, inheritance_multiple}. Plus the
     # aggregate=entity_id + group=inheritance_multiple combo is rejected.
-    expect_match(body_txt, "res\\$status\\s*<-\\s*400",
-                 info = "entities_over_time must set 400 on invalid aggregate/group")
-    expect_match(body_txt, "\"entity_id\"",
+    expect_match(service_txt, "res\\$status\\s*<-\\s*400",
+                 info = "svc_statistics_entities_over_time must set 400 on invalid aggregate/group")
+    expect_match(service_txt, "\"entity_id\"",
                  info = "aggregate allowlist includes entity_id")
-    expect_match(body_txt, "\"symbol\"",
+    expect_match(service_txt, "\"symbol\"",
                  info = "aggregate allowlist includes symbol")
-    expect_match(body_txt, "inheritance_multiple",
-                 info = "entities_over_time must special-case inheritance_multiple")
-  })
-})
-
-# =============================================================================
-# Route 4/10 — @get /updates  (ndd_entity, Administrator-gated)
-# =============================================================================
-
-test_that("GET /updates — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/updates\\s*$", src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /updates`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updates\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "ndd_entity",
-                 info = "updates must read from ndd_entity")
-    expect_match(body_txt, "total_new_entities",
-                 info = "updates must return total_new_entities in list shape")
-  })
-})
-
-test_that("GET /updates — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updates\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "updates must gate on require_role(..., \"Administrator\")")
-  })
-})
-
-# =============================================================================
-# Route 5/10 — @get /rereview
-# =============================================================================
-
-test_that("GET /rereview — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/rereview\\s*$", src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /rereview`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/rereview\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "re_review_entity_connect",
-                 info = "rereview must read from re_review_entity_connect")
-    expect_match(body_txt, "total_rereviews",
-                 info = "rereview must return total_rereviews")
-  })
-})
-
-test_that("GET /rereview — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/rereview\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "rereview must gate on require_role(..., \"Administrator\")")
-  })
-})
-
-# =============================================================================
-# Route 6/10 — @get /updated_reviews
-# =============================================================================
-
-test_that("GET /updated_reviews — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/updated_reviews\\s*$",
-                       src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /updated_reviews`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updated_reviews\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "ndd_entity_review",
-                 info = "updated_reviews must read from ndd_entity_review")
-    expect_match(body_txt, "total_updated_reviews",
-                 info = "updated_reviews must return total_updated_reviews")
-  })
-})
-
-test_that("GET /updated_reviews — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updated_reviews\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "updated_reviews must gate on require_role(..., \"Administrator\")")
-  })
-})
-
-# =============================================================================
-# Route 7/10 — @get /updated_statuses
-# =============================================================================
-
-test_that("GET /updated_statuses — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/updated_statuses\\s*$",
-                       src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /updated_statuses`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updated_statuses\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "ndd_entity_status",
-                 info = "updated_statuses must read from ndd_entity_status")
-    expect_match(body_txt, "total_updated_statuses",
-                 info = "updated_statuses must return total_updated_statuses")
-  })
-})
-
-test_that("GET /updated_statuses — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/updated_statuses\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "updated_statuses must gate on require_role(..., \"Administrator\")")
+    expect_match(service_txt, "inheritance_multiple",
+                 info = "svc_statistics_entities_over_time must special-case inheritance_multiple")
   })
 })
 
@@ -438,10 +298,14 @@ test_that("GET /publication_stats — happy path: decorator + handler surface", 
     expect_true("min_keyword_count" %in% formals_names)
 
     body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "publication",
-                 info = "publication_stats must read from publication table")
-    expect_match(body_txt, "stats_list",
-                 info = "publication_stats must build stats_list response")
+    expect_match(body_txt, "svc_statistics_publication_stats",
+                 info = "publication_stats must delegate to svc_statistics_publication_stats")
+
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_publication_stats")
+    expect_match(service_txt, "publication",
+                 info = "svc_statistics_publication_stats must read from publication table")
+    expect_match(service_txt, "stats_list",
+                 info = "svc_statistics_publication_stats must build stats_list response")
   })
 })
 
@@ -453,117 +317,15 @@ test_that("GET /publication_stats — empty-result path: min-count thresholds + 
       decorator_regex = "^#\\*\\s+@get\\s+/publication_stats\\s*$",
       envir = env
     )
-    body_txt <- handler_body_text(handler)
+    service_txt <- read_service_source(stats_public_service_path(), "svc_statistics_publication_stats")
 
     # Empty / low-count path: threshold filters drop rows below the min
-    # counts; handler still sets res$status <- 200 and returns stats_list.
-    expect_match(body_txt, "min_journal_count",
-                 info = "publication_stats must honour min_journal_count threshold")
-    expect_match(body_txt, "min_keyword_count",
-                 info = "publication_stats must honour min_keyword_count threshold")
-    expect_match(body_txt, "res\\$status\\s*<-\\s*200",
-                 info = "publication_stats must set res$status <- 200 on empty results")
-  })
-})
-
-# =============================================================================
-# Route 9/10 — @get /contributor_leaderboard
-# =============================================================================
-
-test_that("GET /contributor_leaderboard — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/contributor_leaderboard\\s*$",
-                       src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /contributor_leaderboard`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/contributor_leaderboard\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("top" %in% formals_names)
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-    expect_true("scope" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "ndd_entity_status",
-                 info = "contributor_leaderboard must join on ndd_entity_status")
-    expect_match(body_txt, "status_user_id",
-                 info = "contributor_leaderboard must aggregate on status_user_id")
-  })
-})
-
-test_that("GET /contributor_leaderboard — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/contributor_leaderboard\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "contributor_leaderboard must gate on require_role(..., \"Administrator\")")
-  })
-})
-
-# =============================================================================
-# Route 10/10 — @get /rereview_leaderboard
-# =============================================================================
-
-test_that("GET /rereview_leaderboard — happy path: decorator + handler surface", {
-  with_test_db_transaction({
-    src <- readLines(stats_file_path(), warn = FALSE)
-    decorators <- grep("^#\\*\\s+@get\\s+/rereview_leaderboard\\s*$",
-                       src, value = TRUE)
-    expect_true(
-      length(decorators) >= 1,
-      info = "statistics_endpoints.R must expose `#* @get /rereview_leaderboard`."
-    )
-
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/rereview_leaderboard\\s*$",
-      envir = env
-    )
-    expect_true(is.function(handler))
-
-    formals_names <- names(formals(handler))
-    expect_true("top" %in% formals_names)
-    expect_true("start_date" %in% formals_names)
-    expect_true("end_date" %in% formals_names)
-    expect_true("scope" %in% formals_names)
-
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "re_review_entity_connect",
-                 info = "rereview_leaderboard must read from re_review_entity_connect")
-    expect_match(body_txt, "re_review_assignment",
-                 info = "rereview_leaderboard must join on re_review_assignment")
-    expect_match(body_txt, "submitted_count",
-                 info = "rereview_leaderboard must surface submitted_count aggregate")
-  })
-})
-
-test_that("GET /rereview_leaderboard — permission path: require_role Administrator", {
-  with_test_db_transaction({
-    env <- make_stats_sandbox()
-    handler <- extract_plumber_handler(
-      stats_file_path(),
-      decorator_regex = "^#\\*\\s+@get\\s+/rereview_leaderboard\\s*$",
-      envir = env
-    )
-    body_txt <- handler_body_text(handler)
-    expect_match(body_txt, "require_role\\([^)]*\"Administrator\"",
-                 info = "rereview_leaderboard must gate on require_role(..., \"Administrator\")")
+    # counts; service still sets res$status <- 200 and returns stats_list.
+    expect_match(service_txt, "min_journal_count",
+                 info = "svc_statistics_publication_stats must honour min_journal_count threshold")
+    expect_match(service_txt, "min_keyword_count",
+                 info = "svc_statistics_publication_stats must honour min_keyword_count threshold")
+    expect_match(service_txt, "res\\$status\\s*<-\\s*200",
+                 info = "svc_statistics_publication_stats must set res$status <- 200 on empty results")
   })
 })

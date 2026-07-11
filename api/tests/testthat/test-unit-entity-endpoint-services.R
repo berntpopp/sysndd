@@ -447,6 +447,24 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
   with_test_db_transaction({
     con <- getOption(".test_db_con")
 
+    # The default local/PR test DB (sysndd_db_test) starts empty; mirrors the
+    # repo convention (test-integration-entity-rename.R, test-unit-metadata-refresh.R,
+    # helper-publication-dates.R::skip_if_missing_publication_backfill_schema())
+    # of skipping gracefully rather than erroring when the schema isn't loaded.
+    required_tables <- c(
+      "user", "non_alt_loci_set", "mode_of_inheritance_list",
+      "disease_ontology_set", "ndd_entity"
+    )
+    missing_tables <- required_tables[!vapply(
+      required_tables, DBI::dbExistsTable, logical(1), conn = con
+    )]
+    if (length(missing_tables) > 0) {
+      skip(paste(
+        "Test database schema is not initialized; missing table(s):",
+        paste(missing_tables, collapse = ", ")
+      ))
+    }
+
     DBI::dbExecute(con, "INSERT IGNORE INTO `user` (user_id, user_name) VALUES (1, 'svc-entity-endpoint-test')") # nolint: line_length_linter
     hgnc_id <- paste0("HGNC:", sample(9000000:9999999, 1))
     moi_term <- paste0("HP:", sample(9000000:9999999, 1))
@@ -513,6 +531,11 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
 
 test_that("svc_entity_review and svc_entity_status run against the real pool for a non-existent entity", {
   skip_if_no_test_db()
+  # svc_entity_review() -> primary_approved_reviews() calls dplyr::tbl() against
+  # a real DBI connection, which needs the {dbplyr} backend package; it is a
+  # declared renv dependency (present in the container) but not always
+  # installed on a host test runner, so skip gracefully rather than erroring.
+  skip_if_not_installed("dbplyr")
 
   with_test_db_transaction({
     con <- getOption(".test_db_con")

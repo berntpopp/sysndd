@@ -499,6 +499,18 @@ test_that("svc_re_review_approve 404s a nonexistent re_review_entity_id against 
   # svc_re_review_approve mutates `res$status` directly (reference-semantics
   # Plumber response idiom, see file header) — an environment reproduces
   # that here since plain R lists have value semantics.
+  #
+  # svc_re_review_approve() calls dplyr::tbl() against a real DBI connection,
+  # which needs the {dbplyr} backend package; it is a declared renv dependency
+  # (present in the container) but not always installed on a host test
+  # runner, so skip gracefully rather than erroring (mirrors the table-
+  # presence skip immediately below, which the original author already
+  # anticipated in the file-header comment above this section but scoped to
+  # "RMariaDB or dbplyr missing" implying with_test_db_transaction() would
+  # itself skip first — that assumption doesn't hold on a host with a live
+  # DB connection but no {dbplyr}).
+  skip_if_not_installed("dbplyr")
+
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
     if (!DBI::dbExistsTable(conn, "re_review_entity_connect")) {

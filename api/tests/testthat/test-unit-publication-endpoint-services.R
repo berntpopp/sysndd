@@ -29,6 +29,14 @@ if (!exists("dw")) {
   dw <- list(api_base_url = "http://localhost/api")
 }
 
+# `serializers` (format -> plumber serializer) is a global initialized in
+# bootstrap/init_globals.R; svc_publication_list() looks it up by bare name
+# to set res$serializer. Stub the "json" entry so the DB-gated cursor-shape
+# test below can call the service directly without booting the full API.
+if (!exists("serializers")) {
+  serializers <- list(json = plumber::serializer_json())
+}
+
 # --- dependency sourcing (pure/pagination helpers the services call) --------
 source_api_file("functions/logging-functions.R", local = FALSE)
 source_api_file("functions/pubtator-parser.R", local = FALSE)
@@ -463,10 +471,14 @@ test_that("clear-cache sets a 500 status and returns the error when the connecti
 
 # =============================================================================
 # DB-gated end-to-end coverage (skip_if_no_test_db; verified centrally in the
-# container per the task brief).
+# container per the task brief). Each of these calls dplyr::tbl() against a
+# real DBI connection, which needs the {dbplyr} backend package; it is a
+# declared renv dependency (present in the container) but not always
+# installed on a host test runner, so skip gracefully rather than erroring.
 # =============================================================================
 
 test_that("svc_publication_get_by_pmid reads a real row by normalized PMID", {
+  skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
     out <- svc_publication_get_by_pmid("not-a-real-pmid-999999999", pool_obj = con)
@@ -476,6 +488,7 @@ test_that("svc_publication_get_by_pmid reads a real row by normalized PMID", {
 })
 
 test_that("svc_publication_list returns a cursor envelope against the real schema", {
+  skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
     out <- svc_publication_list(list(), fake_res(), pool_obj = con)
@@ -484,6 +497,7 @@ test_that("svc_publication_list returns a cursor envelope against the real schem
 })
 
 test_that("svc_publication_pubtator_table returns a cursor envelope against the real schema", {
+  skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
     out <- svc_publication_pubtator_table(list(), fake_res(), pool_obj = con)
