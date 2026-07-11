@@ -117,6 +117,9 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/metadata-refresh.R", local = FALSE)
     # Source durable async-job repository for worker-side lease/progress operations
     source("/app/functions/async-job-repository.R", local = FALSE)
+    # Runtime DB-credential resolver (#535 P1-1): handlers resolve creds from
+    # runtime `dw`, never from the job payload.
+    source("/app/functions/async-job-db-config.R", local = FALSE)
     # Source durable async-job runtime helpers before the compatibility shim
     source("/app/functions/async-job-progress.R", local = FALSE)
     source("/app/functions/async-job-network-layout-handlers.R", local = FALSE)
