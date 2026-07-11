@@ -17,7 +17,24 @@ source_api_file("services/auth-service.R", local = FALSE)
 
 .cfg <- function() list(secret = get_test_config("secret"), token_expiry = 3600L)
 
+.require_user_schema <- function(con) {
+  # Skip (not fail) where the test DB isn't fully migrated (e.g. CI's empty
+  # sysndd_test). Mirrors the repo dbExistsTable skip pattern.
+  if (!DBI::dbExistsTable(con, "user")) {
+    testthat::skip("`user` table not on test DB (schema/migrations not applied)")
+  }
+  need <- c("user_id", "user_name", "email", "password", "user_role",
+            "approved", "session_epoch", "created_at")
+  missing <- setdiff(need, DBI::dbListFields(con, "user"))
+  if (length(missing) > 0) {
+    testthat::skip(paste0("`user` table missing columns (",
+                          paste(missing, collapse = ", "),
+                          ") — migrations not applied on test DB"))
+  }
+}
+
 .seed <- function(con, role = "Curator", approved = 1L) {
+  .require_user_schema(con)
   suffix <- as.integer(runif(1, 1, 1e8))
   uid <- 900000000L + suffix
   DBI::dbExecute(

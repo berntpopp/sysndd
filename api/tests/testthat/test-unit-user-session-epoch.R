@@ -17,7 +17,26 @@ source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/response-helpers.R", local = FALSE)  # validate_query_column
 source_api_file("functions/user-repository.R", local = FALSE)
 
+.require_user_schema <- function(con) {
+  # Skip (not fail) where the test DB isn't fully migrated — e.g. CI runs the
+  # fast lane against an EMPTY `sysndd_test`. Mirrors the repo's dbExistsTable
+  # skip pattern (test-integration-mondo-index.R). Runs + passes only where the
+  # `user` schema (incl. migration 043's session_epoch) is present.
+  if (!DBI::dbExistsTable(con, "user")) {
+    testthat::skip("`user` table not on test DB (schema/migrations not applied)")
+  }
+  need <- c("user_id", "user_name", "email", "password", "user_role",
+            "approved", "session_epoch", "created_at")
+  missing <- setdiff(need, DBI::dbListFields(con, "user"))
+  if (length(missing) > 0) {
+    testthat::skip(paste0("`user` table missing columns (",
+                          paste(missing, collapse = ", "),
+                          ") — migrations not applied on test DB"))
+  }
+}
+
 .seed_user_epoch <- function(con, role = "Viewer", approved = 0L) {
+  .require_user_schema(con)
   # Explicit high user_id (rolled back after each test) — the test `user` table
   # has no AUTO_INCREMENT and is referenced by FKs, so we pick an id well above
   # any real row instead of relying on LAST_INSERT_ID().
