@@ -44,6 +44,15 @@ source_api_file("services/auth-service.R", local = FALSE)
   auth_generate_token(u[1, ], cfg)$access_token
 }
 
+# Mint a legacy token WITHOUT a sepoch claim (simulates a pre-#535 token).
+.mint_legacy <- function(uid, cfg, role = "Curator") {
+  claim <- jose::jwt_claim(
+    user_id = uid, user_name = "legacy", email = "l@t.local", user_role = role,
+    iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + 3600
+  )
+  jose::jwt_encode_hmac(claim, secret = charToRaw(cfg$secret))
+}
+
 test_that("token carries sepoch and a normal refresh succeeds with DB-derived claims", {
   with_test_db_transaction({
     con <- getOption(".test_db_con"); cfg <- .cfg()
@@ -107,5 +116,28 @@ test_that("refresh is REJECTED for a deleted user", {
     DBI::dbExecute(con, "DELETE FROM user WHERE user_id = ?", params = list(uid))
     expect_error(auth_refresh(tok, con, cfg), regexp = "no longer exists|unauthor",
                  ignore.case = TRUE)
+  })
+})
+
+test_that("refresh is REJECTED for a legacy token with no sepoch claim (no indefinite renewal)", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Curator")
+    legacy <- .mint_legacy(uid, cfg)
+    expect_null(auth_validate_token(legacy, cfg)$sepoch)  # confirm it has no sepoch
+    expect_error(auth_refresh(legacy, con, cfg),
+                 regexp = "predates|revocation|unauthor", ignore.case = TRUE)
+  })
+})
+
+test_that("refresh is REJECTED for a token whose epoch no longer matches (stale)", {
+  with_test_db_transaction({
+    con <- getOption(".test_db_con"); cfg <- .cfg()
+    uid <- .seed(con, role = "Curator")
+    tok <- .mint(con, uid, cfg)                         # sepoch = 0
+    # bump epoch out from under the token WITHOUT other changes
+    DBI::dbExecute(con, "UPDATE user SET session_epoch = session_epoch + 5 WHERE user_id = ?",
+                   params = list(uid))
+    expect_error(auth_refresh(tok, con, cfg), regexp = "revoked|unauthor", ignore.case = TRUE)
   })
 })

@@ -151,42 +151,73 @@ auth_refresh <- function(refresh_token, pool, config) {
     stop_for_unauthorized("Refresh token has expired")
   }
 
+  # #535 P0-2: a token that predates session-epoch support carries no `sepoch`.
+  # Reject it rather than treating it as epoch 0 — otherwise a pre-deploy
+  # (possibly compromised) token could be refreshed into a fresh epoch-0 token
+  # and renewed indefinitely. This forces exactly one post-deploy sign-in.
+  if (is.null(claims$sepoch) || length(claims$sepoch) != 1L) {
+    stop_for_unauthorized("Session predates revocation support. Please sign in again.")
+  }
+  token_epoch <- suppressWarnings(as.numeric(claims$sepoch))
+  if (is.na(token_epoch)) {
+    stop_for_unauthorized("Invalid refresh token")
+  }
+
   # Validate the subject id before querying.
   uid <- suppressWarnings(as.integer(claims$user_id))
   if (length(uid) != 1L || is.na(uid) || uid <= 0L) {
     stop_for_unauthorized("Invalid refresh token")
   }
 
-  # #535 P0-2: load CURRENT account state from the DB — never trust the
-  # presented token's claims. dplyr verbs are namespaced because the loaded
-  # runtime masks them (biomaRt/STRINGdb).
-  user <- pool %>%
-    dplyr::tbl("user") %>%
-    dplyr::filter(.data$user_id == !!uid) %>%
-    dplyr::rename(user_created = created_at) %>%
-    dplyr::collect()
-  if (nrow(user) == 0) {
-    stop_for_unauthorized("User no longer exists")
-  }
-  user <- user[1, ]
-  if (is.null(user$approved) || user$approved != 1) {
-    stop_for_unauthorized("Account is not active")
+  # #535 P0-2: read CURRENT account state, verify it, and sign the new token
+  # under a single row lock (`SELECT ... FOR UPDATE`) so the read-check-sign is
+  # serialized against any concurrent privilege/state mutation. Without the
+  # lock a refresh could read the pre-demotion row and then sign a stale-role
+  # token after the demotion commits (TOCTOU). Never trust the token's claims.
+  issue <- function(conn) {
+    user <- DBI::dbGetQuery(
+      conn,
+      "SELECT user_id, user_name, email, user_role, session_epoch,
+              created_at AS user_created, abbreviation, orcid, approved
+         FROM user WHERE user_id = ? FOR UPDATE",
+      params = list(uid)
+    )
+    if (nrow(user) == 0) {
+      stop_for_unauthorized("User no longer exists")
+    }
+    if (is.null(user$approved[1]) || is.na(user$approved[1]) || user$approved[1] != 1) {
+      stop_for_unauthorized("Account is not active")
+    }
+    current_epoch <- suppressWarnings(as.numeric(user$session_epoch[1]))
+    if (is.na(current_epoch) || token_epoch != current_epoch) {
+      stop_for_unauthorized("Session has been revoked. Please sign in again.")
+    }
+    # Mint with role + claim fields taken from the DB row (not the token).
+    auth_generate_token(user[1, ], config)$access_token
   }
 
-  # Revocation gate: the token's epoch must match the user's current epoch.
-  token_epoch <- as.numeric(claims$sepoch %||% 0)
-  current_epoch <- as.numeric(user$session_epoch %||% 0)
-  if (token_epoch != current_epoch) {
-    stop_for_unauthorized("Session has been revoked. Please sign in again.")
+  if (inherits(pool, "Pool")) {
+    # API path: hold the lock across signing in an explicit transaction.
+    conn <- pool::poolCheckout(pool)
+    on.exit(pool::poolReturn(conn), add = TRUE)
+    DBI::dbBegin(conn)
+    access_token <- tryCatch(
+      issue(conn),
+      error = function(e) {
+        try(DBI::dbRollback(conn), silent = TRUE)
+        stop(e)
+      }
+    )
+    DBI::dbCommit(conn)
+  } else {
+    # Test/direct-connection path: the caller already owns the transaction.
+    access_token <- issue(pool)
   }
 
-  # Mint a fresh token with role + claim fields taken from the DB row.
-  token <- auth_generate_token(user, config)
-
-  logger::log_info("Token refreshed", user_id = user$user_id)
+  logger::log_info("Token refreshed", user_id = uid)
 
   # Return just the access token (string format for backward compatibility)
-  token$access_token
+  access_token
 }
 
 
