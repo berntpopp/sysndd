@@ -39,6 +39,7 @@ export function createViteConfig(mode: string): UserConfig {
           // by code the home page does not execute.
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
           globIgnores: [
+            '**/stats.html', // #535: analyzer report is never precached (and is stripped/404'd in prod)
             '**/ngl-*.js', // ~1.3 MB — 3D structure viewer (gene detail only)
             '**/exceljs*.js', // ~0.9 MB — spreadsheet export (downloads only)
             '**/ApiView-*.{js,css}', // ~1.5 MB — Swagger UI (API docs page only)

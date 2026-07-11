@@ -437,8 +437,9 @@ db-restore-latest: check-docker ## [docker] Restore newest DB dump from sysndd_m
 		[ -n "$$LATEST" ] || { printf "$(RED)✗ No backups found in sysndd_mysql_backup volume$(RESET)\n"; exit 1; }; \
 		printf "  Using: $$LATEST\n"; \
 		docker run --rm -v sysndd_mysql_backup:/data alpine sh -c "gzip -dc $$LATEST" \
+			| sed -E 's#/\*![0-9]{5} DEFINER=[^*]*\*/##g' \
 			| docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
-			2> >(grep -vE "Using a password|SUPER or SET_ANY_DEFINER" >&2 || true); \
+			2> >(grep -vE "Using a password" >&2 || true); \
 		docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE" -e "SELECT COUNT(*) FROM non_alt_loci_set"' >/dev/null 2>&1 \
 			|| { printf "$(RED)✗ Restore readiness probe failed (core table missing after restore)$(RESET)\n"; exit 1; }
 	@printf "$(GREEN)✓ Backup restored$(RESET)\n"
@@ -454,6 +455,9 @@ content = open("db/C_Rcommands_set-table-connections.R").read(); \
 matches = re.findall(r"dbSendQuery\(sysndd_db,\s*\"(CREATE OR REPLACE VIEW[^\"]*?)\"\)", content, re.DOTALL); \
 [print(m.strip() + ";") for m in matches]; \
 sys.stderr.write(f"-- Extracted {len(matches)} view definitions\n")' > /tmp/sysndd-views.sql 2>&1
+	@grep -q "CREATE OR REPLACE VIEW" /tmp/sysndd-views.sql || { \
+		printf "$(RED)✗ No view definitions extracted from C_Rcommands (regex/source drift?)$(RESET)\n"; \
+		rm -f /tmp/sysndd-views.sql; exit 1; }
 	@docker exec -i sysndd_mysql sh -c \
 		'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' < /tmp/sysndd-views.sql \
 		2> >(grep -vE "Using a password" >&2 || true)

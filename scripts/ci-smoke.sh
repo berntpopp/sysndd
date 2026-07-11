@@ -145,12 +145,22 @@ if printf '%s' "$SPA_HEADERS" | grep -Eiq "^server:[[:space:]]*nginx/[0-9]"; the
   missing=1
 fi
 
+# #535: source maps and the bundle-analyzer report must never be served — they
+# must 404 (via the nginx deny locations), NOT fall through to the SPA and 200.
+for deny_path in "/stats.html" "/assets/probe.js.map"; do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Host: $HEALTH_HOST_HEADER" "http://localhost${deny_path}" 2>/dev/null || echo "000")
+  if [ "$code" != "404" ]; then
+    fail "expected 404 for ${deny_path} (got ${code}) — nginx map/stats deny regressed"
+    missing=1
+  fi
+done
+
 if [ "$missing" -ne 0 ]; then
-  fail "security-header assertion failed. Received headers:"
+  fail "security-header / deny-path assertion failed. Received headers:"
   printf '%s\n' "$SPA_HEADERS" >&2
   dump_context
   exit 3
 fi
 
-log "all security headers present, nginx version not leaked"
+log "all security headers present, nginx version not leaked, maps/stats denied"
 exit 0
