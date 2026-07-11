@@ -25,6 +25,8 @@
 #*
 #* @get /
 function(req, res, filter_status_approved = FALSE) {
+  require_role(req, res, "Reviewer")
+
   filter_status_approved <- as.logical(filter_status_approved)
 
   entity_status_categories_coll <- pool %>%
@@ -166,7 +168,9 @@ function(req, res, filter_status_approved = FALSE) {
 #* @response 200 OK. Returns the status data.
 #*
 #* @get /<status_id_requested>
-function(status_id_requested) {
+function(req, res, status_id_requested) {
+  require_role(req, res, "Reviewer")
+
   status_id_requested <- URLdecode(status_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -225,6 +229,8 @@ function(status_id_requested) {
 #*
 #* @response 200 OK. Returns paginated status categories.
 #*
+#* Public: returns only the status-category vocabulary (ndd_entity_status_categories_list);
+#* no draft rows, curator identities, or approval state. Consumed by public entity-create option loaders.
 #* @get _list
 function(page_after = 0, page_size = "all") {
   status_list_collected <- pool %>%

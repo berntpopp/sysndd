@@ -153,16 +153,16 @@ test_that("GET / status list: validation — filter_status_approved coerced via 
   })
 })
 
-test_that("GET / status list: permission — public read (no require_role)", {
+test_that("GET / status list: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- status_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(
-      grepl("require_role\\(", body_blob),
-      info = "GET /status is a public list endpoint; no require_role() guard expected."
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
     )
   })
 })
@@ -180,7 +180,7 @@ test_that("GET /<status_id_requested>: happy path — parameterised signature", 
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(status_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, status_id_requested\\)")
   })
 })
 
@@ -194,14 +194,17 @@ test_that("GET /<status_id_requested>: validation — URLdecodes + splits on com
   })
 })
 
-test_that("GET /<status_id_requested>: permission — public read (no require_role)", {
+test_that("GET /<status_id_requested>: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- status_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
