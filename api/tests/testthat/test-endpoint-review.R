@@ -848,3 +848,40 @@ test_that("PUT /approve/<review_id>: permission — non-Curator role blocked wit
     expect_false(svc_called)
   })
 })
+
+
+# =============================================================================
+# Behavioral deny-before-query: every gated GET route must reject an
+# anonymous / insufficient-role caller BEFORE touching the database, so no
+# draft rows or curator identities can leak. A sentinel `pool` (whose use as a
+# dbplyr source would error) proves the handler stops at `require_role`.
+# =============================================================================
+
+test_that("review GET routes: anonymous/insufficient role is denied BEFORE any DB access (403)", {
+  with_test_db_transaction({
+    deny <- function(req, res, min_role) {
+      res$status <- 403L
+      stop("forbidden")
+    }
+    # decorator -> (id-arg?) for each gated GET route
+    routes <- list(
+      list(dec = "^#\\*\\s+@get\\s+/\\s*$",                                   args = list()),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>\\s*$",              args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/phenotypes\\s*$",   args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/variation\\s*$",    args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/publications\\s*$", args = list(review_id_requested = "1"))
+    )
+    for (r in routes) {
+      env <- new.env(parent = globalenv())
+      env$require_role <- deny
+      # sentinel: any dbplyr use errors, so a green test proves deny-before-query
+      env$pool <- structure(list(), class = "SENTINEL_DB")
+      handler <- extract_review_handler(r$dec, env)
+      res <- new.env()
+      res$status <- 200L
+      call_args <- c(list(req = list(), res = res), r$args)
+      expect_error(do.call(handler, call_args), "forbidden", info = r$dec)
+      expect_equal(res$status, 403L)
+    }
+  })
+})

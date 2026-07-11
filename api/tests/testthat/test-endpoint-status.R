@@ -607,3 +607,38 @@ test_that("PUT /approve/<status_id>: permission — non-Curator role blocked wit
     expect_false(svc_called)
   })
 })
+
+
+# =============================================================================
+# Behavioral deny-before-query: the gated status GET routes (list + detail,
+# NOT `_list`, which is public vocabulary by design) must reject an anonymous /
+# insufficient-role caller BEFORE touching the database, so no draft rows or
+# curator identities can leak. A sentinel `pool` (whose use as a dbplyr source
+# would error) proves the handler stops at `require_role`.
+# =============================================================================
+
+test_that("status GET routes: anonymous/insufficient role is denied BEFORE any DB access (403)", {
+  with_test_db_transaction({
+    deny <- function(req, res, min_role) {
+      res$status <- 403L
+      stop("forbidden")
+    }
+    # decorator -> (id-arg?) for each gated GET route (NOT `_list`, which is public)
+    routes <- list(
+      list(dec = "^#\\*\\s+@get\\s+/\\s*$",                        args = list()),
+      list(dec = "^#\\*\\s+@get\\s+/<status_id_requested>\\s*$",   args = list(status_id_requested = "1"))
+    )
+    for (r in routes) {
+      env <- new.env(parent = globalenv())
+      env$require_role <- deny
+      # sentinel: any dbplyr use errors, so a green test proves deny-before-query
+      env$pool <- structure(list(), class = "SENTINEL_DB")
+      handler <- extract_status_handler(r$dec, env)
+      res <- new.env()
+      res$status <- 200L
+      call_args <- c(list(req = list(), res = res), r$args)
+      expect_error(do.call(handler, call_args), "forbidden", info = r$dec)
+      expect_equal(res$status, 403L)
+    }
+  })
+})
