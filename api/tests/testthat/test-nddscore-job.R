@@ -1,6 +1,13 @@
 library(testthat)
 library(DBI)
 
+# nddscore-release-source.R MUST be sourced explicitly first (absolute path via
+# source_api_file()) — nddscore-import.R only guard-sources it via relative
+# paths, which do not reliably resolve under a full test_dir() run. This test
+# file also calls nddscore_extract_and_verify/parse_release_json/load_tsvs
+# directly (see nddscore_test_fixture() below), all defined in the release
+# source module (#346 split).
+source_api_file("functions/nddscore-release-source.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("functions/nddscore-import.R", local = FALSE, envir = .GlobalEnv)
 
 nddscore_test_fixture <- function() {
@@ -251,6 +258,11 @@ test_that("nddscore_run_import re-imports a previously failed inactive release_i
 })
 
 test_that("nddscore_import async handler is registered", {
+  # #346 Wave 4: the registry list() eagerly binds .async_job_run_nddscore_import
+  # by bare symbol, so the provider module (where it now lives) must be sourced
+  # before async-job-handlers.R.
+  source_api_file("functions/async-job-provider-handlers.R", local = FALSE, envir = .GlobalEnv)
+  source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE, envir = .GlobalEnv)
   source_api_file("functions/async-job-handlers.R", local = FALSE, envir = .GlobalEnv)
 
   entry <- async_job_get_handler("nddscore_import")

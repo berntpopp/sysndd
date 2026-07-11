@@ -1,6 +1,10 @@
 # tests/testthat/test-re-review-service.R
 #
-# Unit tests for re-review-service.R — gene-atomic batching (issue #29)
+# Unit tests for re-review-selection-service.R — gene-atomic batching (issue #29)
+#
+# select_matching_entities()/batch_preview()/available_entities() moved out of
+# re-review-service.R into re-review-selection-service.R (#346 Wave 4); this
+# file was split accordingly and now sources only the selection module.
 #
 # Strategy: temporarily replace db_execute_query in the global environment
 # using withr::with_bindings so we can drive the select_matching_entities()
@@ -11,11 +15,11 @@
 # Source into .GlobalEnv so that lexical scoping works when we replace
 # db_execute_query in .GlobalEnv during tests.
 source_api_file("functions/db-helpers.R", local = FALSE, envir = .GlobalEnv)
-# logger package is used by re-review-service.R via logger::log_info etc.
+# logger package is used by re-review-selection-service.R via logger::log_info etc.
 if (!requireNamespace("logger", quietly = TRUE)) {
   stop("logger package not available — cannot run re-review-service tests")
 }
-source_api_file("services/re-review-service.R", local = FALSE, envir = .GlobalEnv)
+source_api_file("services/re-review-selection-service.R", local = FALSE, envir = .GlobalEnv)
 
 # ---------------------------------------------------------------------------
 # Helpers — synthetic entity data frames returned by the mocked DB queries

@@ -113,6 +113,12 @@ test_that("dry_run reports targets without writing", {
 
 test_that("publication_date_backfill handler is registered", {
   source_api_file("functions/async-job-force-apply-payload.R", local = FALSE)
+  # #346 Wave 4: the registry list() eagerly binds
+  # .async_job_run_publication_date_backfill by bare symbol; it now lives in
+  # the maintenance module, which (along with the provider module) must be
+  # sourced before async-job-handlers.R.
+  source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
+  source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE)
   source_api_file("functions/async-job-handlers.R", local = FALSE)
   expect_true("publication_date_backfill" %in% names(async_job_handler_registry))
 })

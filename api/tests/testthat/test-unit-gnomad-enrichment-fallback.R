@@ -115,7 +115,9 @@ describe(".async_job_hgnc_write_db result shape", {
   # trade-off for not standing up a DB. End-to-end behaviour is exercised by
   # the smoke test (Task 13 of the gnomAD chrX/Y/M fallback plan).
   it("includes gnomad_fallback_recovered/unresolved keys", {
-    source_api_file("functions/async-job-handlers.R", local = FALSE)
+    # #346 Wave 4: .async_job_hgnc_write_db / .async_job_run_hgnc_update moved
+    # to the provider module.
+    source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
     body_text <- paste(deparse(body(.async_job_hgnc_write_db)), collapse = "\n")
     expect_match(body_text, "gnomad_fallback_recovered")
     expect_match(body_text, "gnomad_fallback_unresolved")
@@ -124,7 +126,9 @@ describe(".async_job_hgnc_write_db result shape", {
   })
 
   it(".async_job_run_hgnc_update returns the metrics in its result list", {
-    source_api_file("functions/async-job-handlers.R", local = FALSE)
+    # #346 Wave 4: .async_job_hgnc_write_db / .async_job_run_hgnc_update moved
+    # to the provider module.
+    source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
     body_text <- paste(deparse(body(.async_job_run_hgnc_update)), collapse = "\n")
     expect_match(body_text, "gnomad_fallback_recovered = write_result\\$gnomad_fallback_recovered")
     expect_match(body_text, "gnomad_fallback_unresolved = write_result\\$gnomad_fallback_unresolved")

@@ -11,6 +11,11 @@ async_job_worker_runtime_paths <- function() {
     # load it here so the durable phenotype-clustering handler test resolves it the way
     # load_modules.R does in production (prep is sourced before async-job-handlers.R).
     file.path(api_dir, "functions", "analysis-phenotype-mca-prep.R"),
+    # #346 Wave 4: async_job_handler_registry binds provider/maintenance handler
+    # functions by bare symbol inside an eagerly-evaluated list(), so both
+    # extracted modules must be sourced before async-job-handlers.R here too.
+    file.path(api_dir, "functions", "async-job-provider-handlers.R"),
+    file.path(api_dir, "functions", "async-job-maintenance-handlers.R"),
     file.path(api_dir, "functions", "async-job-handlers.R"),
     file.path(api_dir, "functions", "async-job-worker.R"),
     file.path(api_dir, "functions", "job-progress.R")

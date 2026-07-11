@@ -29,6 +29,22 @@ tryCatch({
   message("Warning: Could not load file-functions.R: ", e$message)
 })
 
+# Source the extracted download + parser modules directly (via the absolute
+# api_dir path) BEFORE any test sources omim-functions.R. omim-functions.R
+# guard-sources these two modules itself, but only via relative paths
+# ("functions/..." or "/app/functions/...") that resolve for the real API/
+# worker bootstrap (cwd = api/ or /app in the container) — not for a test
+# process whose working directory is tests/testthat/. Pre-sourcing here means
+# the guard's exists() check is already TRUE by the time each per-test
+# source(file.path(api_dir, "functions", "omim-functions.R")) call runs, so
+# every download_*/parse_* function is defined regardless of test cwd.
+tryCatch({
+  source(file.path(api_dir, "functions", "omim-download-functions.R"))
+  source(file.path(api_dir, "functions", "omim-parser-functions.R"))
+}, error = function(e) {
+  message("Warning: Could not load omim-download/parser-functions.R: ", e$message)
+})
+
 # =============================================================================
 # parse_mim2gene() tests
 # =============================================================================
@@ -916,6 +932,183 @@ test_that("download_mim2gene uses check_file_age_days (not check_file_age)", {
     fn_args <- names(formals(download_mim2gene))
     expect_true("max_age_days" %in% fn_args)
     expect_false("max_age_months" %in% fn_args)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+# =============================================================================
+# Wave 4 Task 10 (#346) split-focused tests: credential redaction, TTL
+# force-bypass, download error classes, a parser edge case, and a
+# cross-module (download-module-free) validation/build equivalence check.
+# =============================================================================
+
+test_that("get_omim_download_key never emits the key via message/warning", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_envvar(c(OMIM_DOWNLOAD_KEY = "super-secret-key-42"), {
+      msgs <- testthat::capture_messages(result <- get_omim_download_key())
+      warns <- testthat::capture_warnings(get_omim_download_key())
+
+      # The key is the (expected) return value...
+      expect_equal(result, "super-secret-key-42")
+      # ...but must never appear in emitted message()/warning() output.
+      expect_false(any(grepl("super-secret-key-42", msgs, fixed = TRUE)))
+      expect_false(any(grepl("super-secret-key-42", warns, fixed = TRUE)))
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("download_genemap2 HTTP-failure error never leaks the OMIM_DOWNLOAD_KEY", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    testthat::local_mocked_bindings(
+      req_perform = function(req, ...) httr2::response(status_code = 403),
+      .package = "httr2"
+    )
+
+    withr::with_tempdir({
+      temp_path <- paste0(tempdir(), "/")
+      withr::with_envvar(c(OMIM_DOWNLOAD_KEY = "leak-canary-key"), {
+        err <- tryCatch({
+          download_genemap2(output_path = temp_path, force = TRUE)
+          NULL
+        }, error = function(e) e)
+
+        expect_false(is.null(err))
+        expect_match(conditionMessage(err), "HTTP 403")
+        expect_false(grepl("leak-canary-key", conditionMessage(err), fixed = TRUE))
+      })
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("download_genemap2 force=TRUE bypasses a fresh TTL cache and re-downloads", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    testthat::local_mocked_bindings(
+      req_perform = function(req, ...) {
+        httr2::response(status_code = 200, body = charToRaw("fresh network content"))
+      },
+      .package = "httr2"
+    )
+
+    withr::with_tempdir({
+      temp_path <- paste0(tempdir(), "/")
+      current_date <- format(Sys.Date(), "%Y-%m-%d")
+      cached_file <- paste0(temp_path, "genemap2.", current_date, ".txt")
+      writeLines("stale-looking but fresh-dated cached content", cached_file)
+
+      withr::with_envvar(c(OMIM_DOWNLOAD_KEY = "test_key"), {
+        # Without force, the fresh (today-dated) cache file short-circuits
+        # the network call entirely (TTL cache path).
+        cached_result <- download_genemap2(output_path = temp_path)
+        expect_equal(readLines(cached_result), "stale-looking but fresh-dated cached content")
+
+        # With force=TRUE the same fresh cache is bypassed and the mocked
+        # network response overwrites it.
+        forced_result <- download_genemap2(output_path = temp_path, force = TRUE)
+        expect_equal(forced_result, cached_file)
+        expect_equal(readLines(forced_result), "fresh network content")
+      })
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("download_mim2gene propagates an httr2 timeout abort unchanged (retry/timeout preserved)", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    testthat::local_mocked_bindings(
+      req_perform = function(req, ...) {
+        rlang::abort(
+          "Request failed [timeout]: exceeded timeout of 30s",
+          class = "httr2_timeout"
+        )
+      },
+      .package = "httr2"
+    )
+
+    withr::with_tempdir({
+      temp_path <- paste0(tempdir(), "/")
+      err <- tryCatch({
+        download_mim2gene(output_path = temp_path, force = TRUE)
+        NULL
+      }, error = function(e) e)
+
+      expect_false(is.null(err))
+      expect_true(inherits(err, "httr2_timeout"))
+      expect_match(conditionMessage(err), "timeout", ignore.case = TRUE)
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_mim2gene returns an empty (not erroring) tibble for a header/comment-only file", {
+  mock_data <- "# MIM Number\tMIM Entry Type\tEntrez Gene ID\tApproved Gene Symbol\tEnsembl Gene ID
+# Generated: 2026-02-07
+# No data rows below this point"
+
+  withr::with_tempfile("mim_file", {
+    writeLines(mock_data, mim_file)
+
+    tryCatch({
+      source(file.path(api_dir, "functions", "omim-functions.R"))
+
+      result <- parse_mim2gene(mim_file, include_moved_removed = TRUE)
+
+      expect_true(is.data.frame(result))
+      expect_equal(nrow(result), 0)
+      expect_true(all(c("mim_number", "mim_entry_type", "gene_symbol", "is_deprecated") %in%
+                         names(result)))
+    }, error = function(e) {
+      skip(paste("omim-functions.R requires additional dependencies:", e$message))
+    })
+  }, fileext = ".txt")
+})
+
+test_that("parse_genemap2 -> build_omim_from_genemap2 -> validate_omim_data compose validly post-split", {
+  # Cross-module equivalence check: the parser module's real output feeds
+  # the shell module's build + validate functions with no adapter code,
+  # confirming the WP #346 split did not change the download/parser/shell
+  # composition contract.
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    genemap2_parsed <- parse_genemap2(fixture_path)
+
+    hgnc_list <- tibble(
+      symbol = unique(genemap2_parsed$Approved_Symbol),
+      hgnc_id = paste0("HGNC:", seq_along(unique(genemap2_parsed$Approved_Symbol)))
+    )
+    moi_list <- tibble(
+      hpo_mode_of_inheritance_term_name = c(
+        "Autosomal dominant inheritance",
+        "Autosomal recessive inheritance"
+      ),
+      hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007")
+    )
+
+    built <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+    validation <- validate_omim_data(built)
+
+    expect_true(is.data.frame(built))
+    expect_gt(nrow(built), 0)
+    expect_true(validation$valid)
+    expect_equal(validation$message, sprintf("Validation passed: %d entries", nrow(built)))
   }, error = function(e) {
     skip(paste("omim-functions.R requires additional dependencies:", e$message))
   })

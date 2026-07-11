@@ -2,13 +2,18 @@
 # Unit tests for panels endpoint column alias and filtering logic
 #
 # These tests validate the max_category handling in generate_panels_list
-# without requiring database access.
+# (functions/panels-endpoint-functions.R, split out of endpoint-functions.R
+# in #346 Wave 4 Task 6) without requiring database access, plus a
+# direct-behavior block (approved views, empty/meta shape, injection-
+# rejecting identifiers) that runs for real against a test DB and skips
+# on host (no RMariaDB).
 
 library(testthat)
 library(dplyr)
 library(tibble)
 library(stringr)
 library(rlang)
+library(DBI)
 
 # Source helper functions
 api_dir <- if (basename(getwd()) == "api") {
@@ -20,6 +25,13 @@ api_dir <- if (basename(getwd()) == "api") {
 }
 
 source(file.path(api_dir, "functions", "helper-functions.R"))
+# validate_query_column() (used by generate_sort_expressions/
+# generate_filter_expressions) signals rejection via stop_for_bad_request().
+source(file.path(api_dir, "core", "errors.R"))
+
+# Direct-source the panels module (helper-functions.R above already provides
+# its response-helpers.R/data-helpers.R transitive dependencies).
+source(file.path(api_dir, "functions", "panels-endpoint-functions.R"))
 
 # =============================================================================
 # Test max_category column replacement logic
@@ -240,4 +252,235 @@ test_that("category concatenation without max_category replacement shows mixed c
   gene1_result <- result %>% filter(symbol == "GENE1")
   expect_equal(nrow(gene1_result), 1)
   expect_match(gene1_result$category, "Definitive; Moderate|Moderate; Definitive")
+})
+
+# =============================================================================
+# generate_panels_list moved to the panels module (#346 Wave 4 Task 6)
+# =============================================================================
+
+test_that("generate_panels_list lives in panels-endpoint-functions.R, not endpoint-functions.R", { # nolint: line_length_linter
+  panels_code <- readLines(
+    file.path(api_dir, "functions", "panels-endpoint-functions.R")
+  )
+  endpoint_code <- readLines(file.path(api_dir, "functions", "endpoint-functions.R"))
+
+  expect_true(any(grepl("^generate_panels_list\\s*<-\\s*function", panels_code)))
+  expect_false(any(grepl("^generate_panels_list\\s*<-\\s*function", endpoint_code)))
+})
+
+test_that("panels module sources ndd_entity_view, not raw entity/status tables", {
+  # generate_panels_list must keep reading through the approved,
+  # active-entity ndd_entity_view (which inner-joins
+  # ndd_entity_status_approved_view) rather than querying ndd_entity /
+  # ndd_entity_status directly, or an unapproved/inactive entity could leak
+  # into the public panels/browse and panels BED-export endpoints.
+  panels_code <- readLines(
+    file.path(api_dir, "functions", "panels-endpoint-functions.R")
+  )
+  panels_text <- paste(panels_code, collapse = " ")
+
+  expect_match(panels_text, "tbl\\(\"ndd_entity_view\"\\)")
+  expect_false(grepl("tbl\\(\"ndd_entity\"\\)", panels_text))
+  expect_false(grepl("tbl\\(\"ndd_entity_status\"\\)", panels_text))
+})
+
+# =============================================================================
+# Injection-rejecting identifiers (panels domain)
+# =============================================================================
+
+test_that("panels sort rejects a non-bare-identifier column token", {
+  expect_error(
+    generate_sort_expressions("symbol); DROP TABLE non_alt_loci_set;--",
+      unique_id = "symbol"
+    ),
+    regexp = "column|not allowed|invalid", ignore.case = TRUE
+  )
+})
+
+test_that("panels filter rejects an injected column token", {
+  expect_error(
+    suppressWarnings(
+      generate_filter_expressions("equals(hgnc_id=1;DROP TABLE x,HGNC:1)")
+    ),
+    regexp = "column|not allowed|invalid|pieces", ignore.case = TRUE
+  )
+})
+
+# =============================================================================
+# Direct behavior against a real test DB (approved views, empty/meta shape)
+# =============================================================================
+# Skips on host (no RMariaDB / no test DB). Runs for real inside the API/
+# worker container against sysndd_db_test, exercising generate_panels_list()
+# end to end.
+
+.panels_direct_test_ids <- list(
+  hgnc = "HGNC:99951",
+  moi = "HP:9950001",
+  ontology = "OMIM:995001"
+)
+
+.panels_direct_cleanup <- function(conn) {
+  ids <- .panels_direct_test_ids
+  entity_ids <- DBI::dbGetQuery(
+    conn,
+    sprintf("SELECT entity_id FROM ndd_entity WHERE hgnc_id = '%s'", ids$hgnc)
+  )$entity_id
+  if (length(entity_ids) > 0) {
+    id_list <- paste(entity_ids, collapse = ",")
+    DBI::dbExecute(conn, sprintf("DELETE FROM ndd_entity_status WHERE entity_id IN (%s)", id_list)) # nolint: line_length_linter
+    DBI::dbExecute(conn, sprintf("DELETE FROM ndd_entity_review WHERE entity_id IN (%s)", id_list)) # nolint: line_length_linter
+    DBI::dbExecute(conn, sprintf("DELETE FROM ndd_entity WHERE entity_id IN (%s)", id_list))
+  }
+  DBI::dbExecute(conn, sprintf(
+    "DELETE FROM disease_ontology_set WHERE disease_ontology_id_version = '%s'", ids$ontology
+  ))
+  DBI::dbExecute(conn, sprintf(
+    "DELETE FROM mode_of_inheritance_list WHERE hpo_mode_of_inheritance_term = '%s'", ids$moi
+  ))
+  DBI::dbExecute(conn, sprintf("DELETE FROM non_alt_loci_set WHERE hgnc_id = '%s'", ids$hgnc))
+  invisible(TRUE)
+}
+
+.panels_direct_insert_and_id <- function(conn, sql, id_column) {
+  DBI::dbExecute(conn, sql)
+  DBI::dbGetQuery(conn, sprintf("SELECT LAST_INSERT_ID() AS %s", id_column))[[id_column]][[1]]
+}
+
+#' Seed one entity with an APPROVED status (Definitive / Autosomal dominant,
+#' visible in ndd_entity_view) so generate_panels_list()'s default filter
+#' picks it up.
+.panels_direct_seed <- function(conn) {
+  ids <- .panels_direct_test_ids
+
+  DBI::dbExecute(conn, "INSERT IGNORE INTO `user` (user_id, user_name) VALUES (1, 'sysndd_panels_split_test')") # nolint: line_length_linter
+  DBI::dbExecute(conn, sprintf(
+    "INSERT INTO non_alt_loci_set (hgnc_id, symbol, name) VALUES ('%s', 'SYSNDDPANELTEST', 'split test gene')", # nolint: line_length_linter
+    ids$hgnc
+  ))
+  DBI::dbExecute(conn, sprintf(
+    paste0(
+      "INSERT INTO mode_of_inheritance_list ",
+      "(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name, ",
+      "inheritance_filter, inheritance_short_text, is_active, sort) ",
+      "VALUES ('%s', 'split test autosomal dominant', 'Autosomal dominant', 'AD', 1, 9950001)"
+    ),
+    ids$moi
+  ))
+  DBI::dbExecute(conn, sprintf(
+    paste0(
+      "INSERT INTO disease_ontology_set ",
+      "(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, ",
+      "disease_ontology_source, disease_ontology_is_specific, hgnc_id, ",
+      "hpo_mode_of_inheritance_term, is_active) ",
+      "VALUES ('%s', '995001', 'split test panels ontology', 'OMIM', 1, '%s', '%s', 1)"
+    ),
+    ids$ontology, ids$hgnc, ids$moi
+  ))
+
+  entity_id <- .panels_direct_insert_and_id(
+    conn,
+    sprintf(
+      paste0(
+        "INSERT INTO ndd_entity ",
+        "(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ",
+        "ndd_phenotype, entry_user_id, is_active) VALUES ('%s', '%s', '%s', 1, 1, 1)"
+      ),
+      ids$hgnc, ids$moi, ids$ontology
+    ),
+    "entity_id"
+  )
+  # category_id = 1 -> "Definitive" (ndd_entity_status_categories_list, base seed)
+  DBI::dbExecute(conn, sprintf(
+    paste0(
+      "INSERT INTO ndd_entity_status ",
+      "(entity_id, category_id, is_active, status_user_id, status_approved, ",
+      "approving_user_id, problematic, comment) VALUES (%d, 1, 1, 1, 1, 1, 0, 'test')"
+    ),
+    entity_id
+  ))
+  .panels_direct_insert_and_id(
+    conn,
+    sprintf(
+      paste0(
+        "INSERT INTO ndd_entity_review ",
+        "(entity_id, synopsis, is_primary, review_user_id, review_approved, ",
+        "approving_user_id, comment) ",
+        "VALUES (%d, 'approved split test synopsis', 1, 1, 1, 1, 'approved')"
+      ),
+      entity_id
+    ),
+    "review_id"
+  )
+
+  entity_id
+}
+
+test_that("generate_panels_list: approved views, empty/meta shape, real DB", {
+  skip_if_no_test_db()
+
+  con <- get_test_db_connection()
+  withr::defer(DBI::dbDisconnect(con))
+
+  required_tables <- c(
+    "ndd_entity_view", "ndd_entity", "ndd_entity_review", "ndd_entity_status",
+    "non_alt_loci_set", "mode_of_inheritance_list", "disease_ontology_set",
+    "ndd_entity_status_categories_list"
+  )
+  missing_tables <- required_tables[!vapply(
+    required_tables, function(t) DBI::dbExistsTable(con, t), logical(1)
+  )]
+  if (length(missing_tables) > 0) {
+    skip(paste("Missing table(s):", paste(missing_tables, collapse = ", ")))
+  }
+
+  .panels_direct_cleanup(con)
+  withr::defer(.panels_direct_cleanup(con))
+  .panels_direct_seed(con)
+
+  test_pool <- pool::dbPool(
+    RMariaDB::MariaDB(),
+    dbname = get_test_config("dbname"),
+    host = get_test_config("host"),
+    user = get_test_config("user"),
+    password = get_test_config("password"),
+    port = as.integer(get_test_config("port"))
+  )
+  withr::defer(pool::poolClose(test_pool))
+
+  old_pool <- if (exists("pool", envir = .GlobalEnv)) get("pool", envir = .GlobalEnv) else NULL
+  old_dw <- if (exists("dw", envir = .GlobalEnv)) get("dw", envir = .GlobalEnv) else NULL
+  assign("pool", test_pool, envir = .GlobalEnv)
+  assign("dw", list(api_base_url = "http://localhost:7778"), envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_pool)) rm(pool, envir = .GlobalEnv) else assign("pool", old_pool, envir = .GlobalEnv) # nolint: line_length_linter
+    if (is.null(old_dw)) rm(dw, envir = .GlobalEnv) else assign("dw", old_dw, envir = .GlobalEnv)
+  })
+
+  # --- approved views + default filter/sort: the seeded gene is visible ---
+  result <- generate_panels_list(
+    filter = paste0(
+      "equals(category,'Definitive'),equals(hgnc_id,'", .panels_direct_test_ids$hgnc, "')"
+    )
+  )
+
+  expect_true(is.list(result))
+  expect_true(all(c("links", "meta", "fields", "data") %in% names(result)))
+  expect_s3_class(result$data, "tbl_df")
+  expect_equal(nrow(result$data), 1L)
+  expect_equal(result$data$symbol[[1]], "SYSNDDPANELTEST")
+  expect_equal(result$data$category[[1]], "Definitive")
+
+  # --- meta shape ---
+  expect_true(all(c("sort", "filter", "fields", "executionTime") %in% names(result$meta)))
+
+  # --- empty behavior: a filter matching nothing still returns valid shape ---
+  empty_result <- generate_panels_list(filter = "equals(hgnc_id,'HGNC:00000000')")
+  expect_equal(nrow(empty_result$data), 0L)
+  expect_equal(empty_result$meta$totalItems, 0L)
+
+  # --- injection-rejecting identifiers, exercised through the real function ---
+  expect_error(
+    generate_panels_list(sort = "symbol);DROP TABLE non_alt_loci_set;--"),
+    regexp = "column|not allowed|invalid", ignore.case = TRUE
+  )
 })

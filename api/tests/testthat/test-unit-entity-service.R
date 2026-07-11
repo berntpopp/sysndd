@@ -1,5 +1,6 @@
 # tests/testthat/test-unit-entity-service.R
-# Unit tests for entity-service.R
+# Unit tests for entity-service.R, entity-creation-service.R, and
+# entity-rename-service.R (split #346, Wave 4 Task 2).
 #
 # Verifies:
 # 1. Service functions use svc_entity_ prefix (no naming collision with repository)
@@ -12,9 +13,6 @@ library(tibble)
 # Source the error helpers (needed by entity-service.R)
 source_api_file("core/errors.R", local = FALSE)
 
-# Source the entity service
-source_api_file("services/entity-service.R", local = FALSE)
-
 # Source db-helpers (needed for db_with_transaction)
 source_api_file("functions/db-helpers.R", local = FALSE)
 
@@ -25,6 +23,13 @@ source_api_file("functions/status-repository.R", local = FALSE)
 source_api_file("functions/phenotype-repository.R", local = FALSE)
 source_api_file("functions/ontology-repository.R", local = FALSE)
 source_api_file("functions/publication-repository.R", local = FALSE)
+
+# Source the entity service split (production order: entity-service.R first
+# because svc_entity_create_full/svc_entity_rename_full call
+# svc_entity_validate/svc_entity_check_duplicate defined there).
+source_api_file("services/entity-service.R", local = FALSE)
+source_api_file("services/entity-creation-service.R", local = FALSE)
+source_api_file("services/entity-rename-service.R", local = FALSE)
 
 # =============================================================================
 # Service Function Naming Tests

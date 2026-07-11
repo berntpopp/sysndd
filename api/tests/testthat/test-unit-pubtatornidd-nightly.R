@@ -84,6 +84,11 @@ test_that("nightly try_lock returns FALSE when the lock is held elsewhere", {
 })
 
 test_that("pubtatornidd_nightly job type is registered in the handler registry", {
+  # #346 Wave 4: the registry list() eagerly binds
+  # .async_job_run_pubtatornidd_nightly by bare symbol, so the provider module
+  # (where it now lives) must be sourced before async-job-handlers.R.
+  source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
+  source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE)
   source_api_file("functions/async-job-handlers.R", local = FALSE)
   entry <- async_job_handler_registry[["pubtatornidd_nightly"]]
   expect_false(is.null(entry))
