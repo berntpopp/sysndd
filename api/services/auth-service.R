@@ -197,20 +197,19 @@ auth_refresh <- function(refresh_token, pool, config) {
   }
 
   if (inherits(pool, "Pool")) {
-    # API path: hold the lock across signing in an explicit transaction.
+    # API path: hold the FOR UPDATE lock across signing in one transaction.
+    # dbWithTransaction commits on success and rolls back on ANY error —
+    # including a failure of the commit itself or an interrupt escaping
+    # issue() — so the connection is never returned to the pool with an open
+    # transaction / row lock.
     conn <- pool::poolCheckout(pool)
     on.exit(pool::poolReturn(conn), add = TRUE)
-    DBI::dbBegin(conn)
-    access_token <- tryCatch(
-      issue(conn),
-      error = function(e) {
-        try(DBI::dbRollback(conn), silent = TRUE)
-        stop(e)
-      }
-    )
-    DBI::dbCommit(conn)
+    access_token <- DBI::dbWithTransaction(conn, issue(conn))
   } else {
-    # Test/direct-connection path: the caller already owns the transaction.
+    # Test / direct-connection path ONLY: the caller already owns the
+    # transaction (e.g. with_test_db_transaction). Production always passes a
+    # pool::Pool, so the FOR UPDATE lock is always inside an explicit
+    # transaction and is held through signing.
     access_token <- issue(pool)
   }
 
