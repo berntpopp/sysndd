@@ -539,6 +539,10 @@ test_that("svc_entity_review and svc_entity_status run against the real pool for
 
   with_test_db_transaction({
     con <- getOption(".test_db_con")
+    if (!DBI::dbExistsTable(con, "ndd_entity_review") ||
+        !DBI::dbExistsTable(con, "ndd_entity_status_categories_list")) {
+      testthat::skip("entity review/status tables not present in this test DB")
+    }
 
     review_row <- svc_entity_review(-999999L, con)
     expect_equal(nrow(review_row), 1L)

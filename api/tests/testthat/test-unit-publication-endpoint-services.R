@@ -481,6 +481,9 @@ test_that("svc_publication_get_by_pmid reads a real row by normalized PMID", {
   skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
+    if (!DBI::dbExistsTable(con, "publication")) {
+      testthat::skip("publication table not present in this test DB")
+    }
     out <- svc_publication_get_by_pmid("not-a-real-pmid-999999999", pool_obj = con)
     expect_s3_class(out, "data.frame")
     expect_equal(nrow(out), 0)
@@ -491,6 +494,9 @@ test_that("svc_publication_list returns a cursor envelope against the real schem
   skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
+    if (!DBI::dbExistsTable(con, "publication")) {
+      testthat::skip("publication table not present in this test DB")
+    }
     out <- svc_publication_list(list(), fake_res(), pool_obj = con)
     expect_true(all(c("links", "meta", "data") %in% names(out)))
   })
@@ -500,6 +506,9 @@ test_that("svc_publication_pubtator_table returns a cursor envelope against the 
   skip_if_not_installed("dbplyr")
   with_test_db_transaction({
     con <- getOption(".test_db_con")
+    if (!DBI::dbExistsTable(con, "pubtator_search_cache")) {
+      testthat::skip("pubtator_search_cache table not present in this test DB")
+    }
     out <- svc_publication_pubtator_table(list(), fake_res(), pool_obj = con)
     expect_true(all(c("links", "meta", "data") %in% names(out)))
   })
