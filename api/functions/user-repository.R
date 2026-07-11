@@ -191,7 +191,7 @@ user_create <- function(user_data) {
 #' }
 #'
 #' @export
-user_update <- function(user_id, updates) {
+user_update <- function(user_id, updates, conn = NULL) {
   # Remove password fields if present (force use of user_update_password)
   updates$user_password_hash <- NULL
   updates$password <- NULL
@@ -221,12 +221,20 @@ user_update <- function(user_id, updates) {
   # Build SET clause dynamically
   set_clause <- paste(paste0(field_names, " = ?"), collapse = ", ")
 
+  # SECURITY (#535 P0-2): a privilege/state change must atomically revoke the
+  # user's outstanding refresh capability. Fold the session-epoch increment into
+  # the SAME statement (a fixed literal, no placeholder, not caller-supplied) so
+  # a concurrent refresh reads either the whole old row or the whole new row.
+  if (any(c("user_role", "approved") %in% field_names)) {
+    set_clause <- paste0(set_clause, ", session_epoch = session_epoch + 1")
+  }
+
   sql <- paste0("UPDATE user SET ", set_clause, " WHERE user_id = ?")
 
   # Parameters: field values + user_id
   params <- c(unname(updates), user_id)
 
-  db_execute_statement(sql, as.list(params))
+  db_execute_statement(sql, as.list(params), conn = conn)
 }
 
 #' Update user password
@@ -249,11 +257,13 @@ user_update <- function(user_id, updates) {
 #' }
 #'
 #' @export
-user_update_password <- function(user_id, password_hash) {
+user_update_password <- function(user_id, password_hash, conn = NULL) {
   # Parameter sanitization in db_execute_statement will redact the hash (>50 chars)
-  sql <- "UPDATE user SET password = ? WHERE user_id = ?"
+  # #535 P0-2: a password change atomically revokes outstanding refresh capability
+  # (session_epoch bump folded into the same statement).
+  sql <- "UPDATE user SET password = ?, session_epoch = session_epoch + 1 WHERE user_id = ?"
 
-  db_execute_statement(sql, list(password_hash, user_id))
+  db_execute_statement(sql, list(password_hash, user_id), conn = conn)
 }
 
 #' Check if user email exists

@@ -232,7 +232,7 @@ user_update_role <- function(user_id, new_role, requesting_role, pool) {
   if (requesting_role == "Administrator") {
     # Admin can assign any role
     db_execute_statement(
-      "UPDATE user SET user_role = ? WHERE user_id = ?",
+      "UPDATE user SET user_role = ?, session_epoch = session_epoch + 1 WHERE user_id = ?",
       list(new_role, user_id)
     )
 
@@ -241,7 +241,7 @@ user_update_role <- function(user_id, new_role, requesting_role, pool) {
   } else if (requesting_role == "Curator" && new_role != "Administrator") {
     # Curator can assign Curator, Reviewer, or Viewer
     db_execute_statement(
-      "UPDATE user SET user_role = ? WHERE user_id = ?",
+      "UPDATE user SET user_role = ?, session_epoch = session_epoch + 1 WHERE user_id = ?",
       list(new_role, user_id)
     )
 
@@ -394,7 +394,10 @@ user_bulk_approve <- function(user_ids, approving_user_id, pool) {
       stop(paste("User account(s) already active:", paste(already_active, collapse = ", ")))
     }
 
-    # Batch UPDATE: set all users to active in one statement
+    # Batch UPDATE: set all users to active in one statement.
+    # NOTE (#535 P0-2): no session_epoch bump here — this writes the nonexistent
+    # `account_status` column (pre-existing bug, real column is `approved`); the
+    # active single-approval path (user_update(approved=1)) already bumps atomically.
     db_execute_statement(
       sprintf(
         "UPDATE user SET account_status = 'active', approving_user_id = ?
@@ -573,7 +576,7 @@ user_bulk_assign_role <- function(user_ids, new_role, requesting_role, pool) {
     for (user_id in user_ids) {
       # Update user role
       rows_affected <- db_execute_statement(
-        "UPDATE user SET user_role = ? WHERE user_id = ?",
+        "UPDATE user SET user_role = ?, session_epoch = session_epoch + 1 WHERE user_id = ?",
         list(new_role, user_id),
         conn = txn_conn
       )
