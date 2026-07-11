@@ -51,13 +51,19 @@ refresh flow. This audit (post-#521) and a fresh re-read of current `master` con
 findings remain open. There are currently **no open PRs or branches** targeting #535.
 
 **Frontend consumption (load-bearing for the P0-1 design):** the `/api/review` and `/api/status`
-**list** endpoints have *no* current frontend consumer (`listReviews`/`listStatus` are unused
-outside `api/review.ts`/`api/status.ts`). The detail/subresource routes are consumed only by
-**authenticated curation/review** composables — `useReviewForm.ts`, `useReviewData.ts`,
-`useStatusForm.ts`. Public approved curation data reaches the browser through the already
+**list** endpoints *are* consumed — by the **authenticated approval queues**
+`ApproveReview.vue` (via `useApproveReviewController.ts:246`, `getAxios().get('/api/review')`) and
+`ApproveStatus.vue:126` (`ax().get('/api/status')`). Both use raw axios calls (which is why a
+typed-client grep for `listReviews`/`listStatus` misses them), but crucially `ax()`/`getAxios()`
+resolve to **`apiClient.raw`** — the *same* authenticated singleton whose request interceptor injects
+the `Bearer` token on every call — and both views are **router-gated** to
+Administrator/Curator/Reviewer (`createAuthGuard([...])`). The per-id detail/subresource routes are
+consumed only by authenticated curation/review composables (`useReviewForm.ts`, `useReviewData.ts`,
+`useStatusForm.ts`). Public approved curation data reaches the browser through the already
 approved-gated `/api/entity/*` family (e.g. `GET /api/entity/<id>/review`, a *different* endpoint).
-This means these two endpoint families are **curation surfaces**, and gating them behind Reviewer+
-does not break any known public page.
+**Conclusion:** these two families are curation surfaces whose only consumers are authenticated
+Reviewer+ views sending a Bearer token, so gating the routes at Reviewer+ is safe and needs **no**
+frontend change.
 
 ## 3. Program decomposition (sequenced slices)
 
@@ -104,6 +110,14 @@ Routes to gate at **Reviewer+**:
   Curator/Reviewer; add the guard if any is missing (the audit did not flag them, but the plan must
   confirm rather than assume).
 
+**Handler-signature constraint (spec-stage Codex finding, verified).** The list handlers already
+take `function(req, res, ...)`, but every detail/subresource handler is currently
+`function(review_id_requested)` / `function(status_id_requested)` — **no `req`/`res` params**. Adding
+`require_role(req, res, "Reviewer")` therefore requires first widening each signature to
+`function(req, res, <id>)`. Plumber binds `req`/`res` and path params by name, so this is safe, but
+omitting it throws `object 'req' not found` at runtime. The plan must change all five signatures
+(`review` `<id>`, `.../phenotypes`, `.../variation`, `.../publications`; `status` `<id>`).
+
 Routes that may stay public (verify in plan):
 - `GET /api/status/_list` returns only the status *category* vocabulary
   (`ndd_entity_status_categories_list`), no curation rows or identities. Keep public **only if**
@@ -139,53 +153,77 @@ A refresh operation reflects the **current** account state: a deactivated or dem
 mint fresh privileges, refresh tokens are distinct from access tokens, rotate on use, and can be
 revoked.
 
-### Design
-1. **Distinct tokens.** `auth_generate_token()` mints two different JWTs:
-   - *access token*: short `exp` (`config$token_expiry`, default 3600s), `typ="access"`, carries the
-     role claims as today.
-   - *refresh token*: longer `exp` (new `config$refresh_token_expiry`, default e.g. 30 days),
-     `typ="refresh"`, carries `user_id` + a server-generated **`jti`** and **nothing role-bearing**
-     that a stale copy could trust.
-2. **Server-side revocation store.** New migration `db/migrations/043_add_refresh_tokens.sql` (next
-   after the current latest `042_gate_connect_views_review_approved.sql`; bump
-   `EXPECTED_LATEST_MIGRATION` + the two manifest guard tests) adds a
-   `refresh_token` table: `jti` (PK, indexed), `user_id`, `issued_at`, `expires_at`, `revoked_at`
-   (nullable), `rotated_to_jti` (nullable, for reuse detection), `user_agent`/`ip` optional. On
-   sign-in, insert the issued `jti`.
-3. **Refresh flow (`auth_refresh`)** now:
-   - Decode + signature-verify the refresh JWT; require `typ="refresh"`.
-   - Look up its `jti` in `refresh_token`. Reject if missing, `revoked_at` set, or expired.
-   - **Reuse detection:** if the `jti` was already rotated (`rotated_to_jti` set), treat as replay —
-     revoke the whole chain for that user and reject.
-   - **Load current user by `user_id` from the DB.** Require `approved == 1` (active). Mint the new
-     access token's role **from the DB row**, not the token.
-   - **Rotate:** mark the old `jti` `revoked_at`/`rotated_to_jti`, issue a new refresh `jti`, return
-     new access + new refresh token.
-4. **Revoke on account change.** When a user is demoted, deactivated, or deleted (admin user
-   endpoints), revoke all their outstanding refresh `jti`s. Deactivation/demotion then prevents any
-   further refresh immediately.
-5. **Frontend coordination.** The auth store must store and send the refresh token to
-   `/api/auth/refresh`, accept the rotated refresh token in the response, and replace it. Today the
-   endpoint returns only a string access token; the response shape becomes
-   `{ access_token, refresh_token, token_type, expires_in }`. Keep a transitional path so an
-   in-flight legacy session degrades gracefully (forces re-login rather than 500).
+### Design refinement (from code investigation)
+The audit's literal prescription — distinct rotating refresh tokens with a `jti` revocation store —
+is a large change with real frontend risk: today the SPA stores **one** token, `/api/auth/refresh`
+is a **`GET`** that returns a bare token string, and `refresh()` is a **proactive, user-initiated
+session extension** (`LogoutCountdownBadge.vue`, `IconPairDropdownMenu.vue`), *not* an on-401
+auto-retry. The actual vulnerability is narrower and sharper: **a demoted/deactivated user can
+refresh stale privileges indefinitely because refresh never re-checks the DB.** That precise hole is
+closed by a **session-epoch** mechanism that is backend + one-column-migration only, needs **zero
+frontend changes**, and is far lower risk. S1 does that now; the token-distinctness/rotation
+defense-in-depth becomes **S1b** (its own human-reviewed PR).
 
-### Tests
-- Refresh after **demotion** → new access token carries the *new* (lower) role.
-- Refresh after **deactivation** → rejected.
-- **Replay:** using a rotated (old) refresh token → rejected and chain revoked.
-- **Rotation:** each refresh returns a new refresh `jti`; old one no longer works.
-- **Expiry:** expired refresh token rejected; expired access token still refreshable within refresh
-  window.
-- **Distinctness:** access token ≠ refresh token; access token cannot be used at `/refresh` (`typ`
-  mismatch) and refresh token cannot authenticate a normal protected route.
+### S1 (implement now) — session-epoch role-current, revocable refresh
+1. **Epoch column.** Migration `db/migrations/043_add_user_session_epoch.sql` (next after
+   `042_...`; bump `EXPECTED_LATEST_MIGRATION` + the two manifest guard tests
+   `test-unit-analysis-snapshot-migration.R`, `test-unit-core-views-manifest.R`) adds
+   `user.session_epoch INT NOT NULL DEFAULT 0`. Additive, no FK/collation traps.
+2. **Tokens carry the epoch.** `auth_generate_token()` adds a `sepoch` claim = the user's current
+   `session_epoch`. (Access and refresh remain the same token in S1 — distinctness is S1b.)
+3. **Refresh becomes DB-backed and role-current.** `auth_refresh(refresh_token, pool, config)` now:
+   decode + verify signature and `exp` → **load the user by `user_id` from `pool`** → require
+   `approved == 1` → require the token's `sepoch == user.session_epoch` → mint a **new token with
+   `user_role` and all claim fields taken from the DB row** (not the old token) and the current
+   `sepoch`. Any failure → `stop_for_unauthorized` (frontend proactively logs out). This closes the
+   exact finding: a demoted user's refreshed token carries the *new* role; a deactivated or
+   epoch-bumped user cannot refresh at all.
+4. **Revoke on account change** via one helper `user_bump_session_epoch(pool, user_id)`:
+   `UPDATE user SET session_epoch = session_epoch + 1 WHERE user_id = ?`. Call it from every admin
+   privilege/state change that must invalidate outstanding sessions — `change_role`,
+   `approval` (unapprove/deactivate), `update`, `delete`/`bulk_delete`/`bulk_approve`, and password
+   change/reset. Any incremented epoch immediately blocks refresh for that user.
+5. **No frontend change.** The SPA keeps its single-token model; `/api/auth/refresh` keeps returning
+   a bare token string. Only the *server-side* behavior changes. (Frontend role display can lag until
+   next login if an admin self-demotes and self-refreshes — cosmetic, not the vulnerability, and the
+   server enforces the real role on every request.)
+
+### S1 residual risk (documented, not left silent)
+- The epoch is checked **at refresh**, not on every authenticated request. A demoted user's *current
+  access token* stays valid until it expires (`config$token_expiry`, 3600s). The acceptance
+  criterion is specifically about *refresh* ("Demoted/deactivated users cannot refresh stale
+  privileges"), which S1 fully satisfies; refresh is blocked immediately. Adding the `sepoch` check
+  to `require_auth` would make access revocation immediate too, at the cost of a DB lookup per
+  *authenticated* request (anonymous GETs — the bulk of traffic — are unaffected). This is a
+  deliberate S1b/optional decision, flagged for the plan-stage Codex review and human input, not
+  silently dropped.
+- Access token == refresh token in S1, so a leaked token remains refreshable until an epoch bump.
+  S1b (distinct `typ`-scoped tokens, longer refresh expiry, `jti` rotation + reuse detection, and
+  the frontend two-token handling + moving `/refresh` to a POST body per the auth-body-only rule)
+  addresses token theft. It is intentionally a separate, human-reviewed PR.
+
+### S1 tests
+- Refresh after **demotion** (`change_role` bumps epoch) → refresh **rejected** (epoch mismatch);
+  and a *new* login yields a token with the new role. (If we instead keep the token valid across a
+  role *promotion*, assert the minted role equals the DB role.)
+- Refresh after **deactivation** (`approved → 0` + epoch bump) → rejected.
+- Refresh after **password change** (epoch bump) → old sessions rejected.
+- **Normal refresh** for an unchanged active user → succeeds and the minted token's role/fields come
+  from the DB row.
+- **DB-load path:** `auth_refresh` reads the pool (regression against the current "explicitly does
+  not use the DB pool" behavior). Guard that a token for a now-deleted user is rejected.
+- Migration guard tests updated; `session_epoch` present after migrate.
 
 ### Migration & compatibility
-- The migration is additive (new table); `EXPECTED_LATEST_MIGRATION` and the manifest count update
-  per the migrations skill. No change to existing tables.
-- Existing access tokens keep working until they expire (they still decode). Only the refresh
-  contract changes. Frontend and API ship together (S1 is one PR spanning both), so the response
-  shape change is coordinated.
+- Additive column only; existing tokens keep decoding. Pre-migration tokens have no `sepoch` claim —
+  `auth_refresh` treats a missing `sepoch` as epoch `0` (matching the column default), so existing
+  sessions refresh normally the first time and pick up the claim thereafter. A user whose epoch has
+  already been bumped (>0) correctly rejects a legacy no-`sepoch` token.
+
+### S1b (deferred, separate human-reviewed PR)
+Distinct access/refresh tokens (`typ` claim, longer refresh `exp`), a `refresh_token` revocation
+table with rotation + reuse detection, frontend two-token storage, and `/api/auth/refresh` moved to
+a POST JSON body. Tracked as the defense-in-depth follow-up to S1.
 
 ## 6. Architecture & isolation
 
