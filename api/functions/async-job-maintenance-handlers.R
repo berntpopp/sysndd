@@ -88,6 +88,17 @@
     )
   }
 
+  # A restored dump may re-import credential-bearing async_jobs rows (#535 H5);
+  # scrub them before reporting completion. Best-effort — never fails a
+  # successful restore.
+  tryCatch(
+    async_job_scrub_payload_credentials(),
+    error = function(e) {
+      message(sprintf("[backup-restore] post-restore credential scrub skipped: %s",
+                      conditionMessage(e)))
+    }
+  )
+
   progress("complete", "Restore completed successfully", 4, 4)
 
   list(

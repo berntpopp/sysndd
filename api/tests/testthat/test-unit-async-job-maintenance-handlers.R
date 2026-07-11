@@ -20,6 +20,8 @@ make_handler_sandbox <- function() {
   env$async_job_worker_db_config <- function(...) {
     list(dbname = "d", host = "h", user = "u", password = "RUNTIME_PW", port = 3306L)
   }
+  # Post-restore scrub touches the DB; stub it to a no-op in unit tests.
+  env$async_job_scrub_payload_credentials <- function(...) 0L
   env
 }
 

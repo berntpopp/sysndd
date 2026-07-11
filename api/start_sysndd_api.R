@@ -151,6 +151,14 @@ tryCatch(
 )
 
 ## -------------------------------------------------------------------##
+# 9b') Scrub any DB credential older code persisted into terminal backup job
+#      payloads (#535 P1-1). Idempotent, backup+terminal scoped, env-gated
+#      (ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP), never crashes boot. Operator
+#      credential rotation remains the primary mitigation.
+## -------------------------------------------------------------------##
+async_job_scrub_payload_credentials_on_startup()
+
+## -------------------------------------------------------------------##
 # 9c) Bootstrap public analysis snapshots if missing (#420): a fresh deploy
 #     gets the analysis_snapshot_* tables populated so /GeneNetworks and
 #     /PhenotypeClusters heal automatically instead of 503 snapshot_missing.
