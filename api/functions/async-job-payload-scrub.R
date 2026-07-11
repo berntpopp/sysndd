@@ -10,9 +10,12 @@
 #   - job_type IN ('backup_create','backup_restore') only -> other durable
 #     families still READ payload$db_config$password until S2b migrates them, so
 #     scrubbing their rows would break queued/retryable jobs.
-#   - status IN ('completed','failed','cancelled') (TERMINAL) only -> keeps the
-#     generated active_request_hash column (NULL for terminal rows) and its
-#     unique index untouched.
+#   - status IN ('completed','failed','cancelled') AND active_request_hash IS
+#     NULL (TERMINAL, non-retryable) only. active_request_hash is a generated
+#     column that stays non-NULL for retryable-failed rows; two such rows
+#     differing only by password would redact to the same recomputed hash and
+#     violate UNIQUE (job_type, active_request_hash), rolling back the scrub.
+#     Requiring it NULL scrubs only rows that cannot interact with that index.
 # Idempotent: rows already carrying the sentinel are skipped.
 #
 # Runs best-effort at API startup, after a successful restore (old dumps
@@ -34,6 +37,7 @@ async_job_payload_scrub_statement <- function(sentinel = ASYNC_JOB_PAYLOAD_SCRUB
       "    request_payload_json = JSON_SET(request_payload_json, '$.db_config.password', '%s')\n",
       "WHERE job_type IN ('backup_create','backup_restore')\n",
       "  AND status IN ('completed','failed','cancelled')\n",
+      "  AND active_request_hash IS NULL\n",
       "  AND JSON_EXTRACT(request_payload_json, '$.db_config.password') IS NOT NULL\n",
       "  AND JSON_UNQUOTE(JSON_EXTRACT(request_payload_json, '$.db_config.password')) <> '%s'"
     ),

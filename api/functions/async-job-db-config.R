@@ -48,11 +48,30 @@ async_job_worker_db_config <- function(runtime_config = NULL) {
     }
   }
 
-  port_int <- suppressWarnings(as.integer(out$port))
-  if (length(port_int) != 1L || is.na(port_int) || port_int <= 0L) {
-    stop("async_job_worker_db_config(): 'port' is not a positive integer", call. = FALSE)
+  port_num <- suppressWarnings(as.numeric(out$port))
+  if (length(port_num) != 1L || is.na(port_num) ||
+      port_num != trunc(port_num) || port_num < 1 || port_num > 65535) {
+    stop("async_job_worker_db_config(): 'port' must be an integer in 1..65535", call. = FALSE)
   }
-  out$port <- port_int
+  out$port <- as.integer(port_num)
 
   out
+}
+
+#' Open a fresh DBI connection from the resolved runtime credentials.
+#'
+#' Lives here (with the resolver) so handlers never inline a
+#' `password = <cfg>$password` connection call — the credential-in-payload guard
+#' excludes this module.
+#'
+#' @param runtime_config Optional injected config (for tests); NULL -> worker `dw`.
+#' @return A live `DBIConnection`; the caller is responsible for disconnecting.
+#' @export
+async_job_db_connect <- function(runtime_config = NULL) {
+  cfg <- async_job_worker_db_config(runtime_config = runtime_config)
+  DBI::dbConnect(
+    RMariaDB::MariaDB(),
+    dbname = cfg$dbname, host = cfg$host, user = cfg$user,
+    password = cfg$password, port = cfg$port
+  )
 }

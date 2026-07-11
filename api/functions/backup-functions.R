@@ -224,7 +224,16 @@ get_backup_metadata <- function(backup_dir = "/backup") {
     unlink(path)
     stop("Backup option file has unsafe permissions; refusing to write secret", call. = FALSE)
   }
-  writeLines(.backup_option_file_content(db_config), path)
+  # If the write partially completes then throws, remove the (possibly
+  # partial-secret) file before propagating — the caller's on.exit(unlink) is
+  # not yet installed at this point.
+  tryCatch(
+    writeLines(.backup_option_file_content(db_config), path),
+    error = function(e) {
+      unlink(path)
+      stop(e)
+    }
+  )
   path
 }
 
@@ -330,14 +339,23 @@ execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
     ))
   }
 
-  tryCatch({
+  # NB: a `return()` inside the error handler returns from the handler, NOT from
+  # execute_mysqldump — so a partially-written-then-failed dump would otherwise
+  # fall through and be reported as a valid backup. Signal via a flag and abort.
+  write_ok <- tryCatch({
     writeLines(result, output_file)
+    TRUE
   }, error = function(e) {
+    unlink(output_file)
+    logger::log_error("Failed to write backup file: {e$message}")
+    FALSE
+  })
+  if (!isTRUE(write_ok)) {
     return(list(
       success = FALSE,
-      error = sprintf("Failed to write backup file: %s", e$message)
+      error = "Failed to write backup file"
     ))
-  })
+  }
 
   # Check if dump file was created and has content
   if (!file.exists(output_file)) {

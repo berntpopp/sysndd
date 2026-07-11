@@ -70,6 +70,55 @@ test_that("the real MySQL client parses the escaped option file (integration)", 
   ))
   status <- attr(out, "status") %||% 0
   # The client must accept our escaping (exit 0) and surface a password option.
+  # (--print-defaults masks the value on MariaDB, so exact decoding is proven by
+  # the real-auth test below where CREATE USER is permitted.)
   expect_equal(status, 0)
   expect_true(any(grepl("--password", out, fixed = TRUE)))
+})
+
+test_that("real client AUTHENTICATES with a special-character password from the option file", {
+  skip_if_no_test_db()
+  client <- Sys.which("mysql")
+  if (!nzchar(client)) client <- Sys.which("mariadb")
+  skip_if(!nzchar(client), "no mysql/mariadb client on PATH")
+
+  tcfg <- get_test_config()
+  admin <- get_test_db_connection()
+  withr::defer(DBI::dbDisconnect(admin))
+
+  uname <- "s2_optfile_probe"
+  pw <- 'p@ss #w"rd'  # '#', space and '"' (no backslash — covered by the exact-body unit test)
+
+  # Requires CREATE USER; skip cleanly if the test principal lacks it.
+  created <- tryCatch({
+    DBI::dbExecute(admin, sprintf("DROP USER IF EXISTS '%s'@'%%'", uname))
+    DBI::dbExecute(admin, sprintf("CREATE USER '%s'@'%%' IDENTIFIED BY 'p@ss #w\"rd'", uname))
+    TRUE
+  }, error = function(e) FALSE)
+  skip_if(!created, "test principal cannot CREATE USER")
+  withr::defer(tryCatch(DBI::dbExecute(admin, sprintf("DROP USER IF EXISTS '%s'@'%%'", uname)),
+                        error = function(e) NULL))
+
+  path <- .backup_write_option_file(list(password = pw))
+  withr::defer(unlink(path))
+
+  auth <- suppressWarnings(system2(
+    client,
+    c(paste0("--defaults-extra-file=", path),
+      "-h", tcfg$host, "-P", as.character(tcfg$port), "-u", uname, "-e", "SELECT 1"),
+    stdout = TRUE, stderr = TRUE
+  ))
+  # Exact-password auth must succeed: the option file's decoded password is correct.
+  expect_equal(attr(auth, "status") %||% 0, 0)
+
+  # Negative control: a tampered option file (extra char) must FAIL to auth.
+  bad <- .backup_write_option_file(list(password = paste0(pw, "X")))
+  withr::defer(unlink(bad))
+  auth_bad <- suppressWarnings(system2(
+    client,
+    c(paste0("--defaults-extra-file=", bad),
+      "-h", tcfg$host, "-P", as.character(tcfg$port), "-u", uname, "-e", "SELECT 1"),
+    stdout = TRUE, stderr = TRUE
+  ))
+  expect_false(identical(attr(auth_bad, "status") %||% 0, 0L))
 })

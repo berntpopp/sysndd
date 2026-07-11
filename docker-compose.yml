@@ -147,6 +147,7 @@ services:
       - ./api/services:/app/services
       - ./api/bootstrap:/app/bootstrap
       - ./api/config:/app/config
+      - ./api/scripts:/app/scripts:ro
       - ./api/layout/gene-network-fcose-layout.mjs:/app/layout/gene-network-fcose-layout.mjs:ro
       - ./api/layout/package.json:/app/layout/package.json:ro
       - ./api/layout/package-lock.json:/app/layout/package-lock.json:ro
@@ -267,6 +268,7 @@ services:
       - ./api/services:/app/services
       - ./api/bootstrap:/app/bootstrap
       - ./api/config:/app/config
+      - ./api/scripts:/app/scripts:ro
       - ./api/layout/gene-network-fcose-layout.mjs:/app/layout/gene-network-fcose-layout.mjs:ro
       - ./api/layout/package.json:/app/layout/package.json:ro
       - ./api/layout/package-lock.json:/app/layout/package-lock.json:ro
@@ -372,6 +374,7 @@ services:
       - ./api/services:/app/services
       - ./api/bootstrap:/app/bootstrap
       - ./api/config:/app/config
+      - ./api/scripts:/app/scripts:ro
       - ./api/layout/gene-network-fcose-layout.mjs:/app/layout/gene-network-fcose-layout.mjs:ro
       - ./api/layout/package.json:/app/layout/package.json:ro
       - ./api/layout/package-lock.json:/app/layout/package-lock.json:ro

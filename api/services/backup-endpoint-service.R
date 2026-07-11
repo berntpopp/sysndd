@@ -11,10 +11,12 @@
 # functions/job-manager.R (create_job, check_duplicate_job),
 # functions/job-progress.R (create_progress_reporter), and
 # functions/backup-functions.R (list_backup_files, get_backup_metadata,
-# is_valid_backup_filename, execute_mysqldump, execute_restore). Not used
-# by the async worker: none of these are registered job handlers; the
-# `executor_fn` closures below run inside the legacy mirai create_job()
-# daemon and source() their own dependencies, unchanged from before.
+# is_valid_backup_filename). These svc_ functions only SUBMIT durable jobs:
+# create_job() ignores executor_fn and enqueues a durable async job that the
+# worker executes via the registered handlers .async_job_run_backup_create /
+# .async_job_run_backup_restore (functions/async-job-maintenance-handlers.R).
+# The job payload carries NO DB credential (#535 P1-1); the worker resolves it
+# at run time via async_job_worker_db_config().
 
 #' Shared 202/503 response shaping for the /create and /restore job
 #' submissions, which differ only in the create_job() operation/params.
@@ -123,7 +125,7 @@ svc_backup_list <- function(req, res, page = 1, sort = "newest", limit = NULL, o
 }
 
 # ---- Backup Creation: POST /create ----
-# Submits a mirai `backup_create` job via create_job(); 409 when a backup is
+# Submits a durable `backup_create` job via create_job(); 409 when a backup is
 # already in progress, 503 when job capacity is exceeded.
 svc_backup_create <- function(req, res) {
   dup_check <- check_duplicate_job("backup_create", list())

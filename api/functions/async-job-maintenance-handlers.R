@@ -89,13 +89,31 @@
   }
 
   # A restored dump may re-import credential-bearing async_jobs rows (#535 H5);
-  # scrub them before reporting completion. Best-effort — never fails a
-  # successful restore.
-  tryCatch(
-    async_job_scrub_payload_credentials(),
-    error = function(e) {
-      message(sprintf("[backup-restore] post-restore credential scrub skipped: %s",
-                      conditionMessage(e)))
+  # scrub them before reporting completion. The restore itself succeeded, so a
+  # scrub failure must NOT fail the job — but it must be observable (logged at
+  # WARN and surfaced in the result), not silently swallowed. Retry once on a
+  # fresh runtime-config connection since the restore may have invalidated the
+  # pool.
+  scrub_outcome <- tryCatch(
+    {
+      async_job_scrub_payload_credentials()
+      "ok"
+    },
+    error = function(e1) {
+      tryCatch(
+        {
+          con <- async_job_db_connect()
+          on.exit(DBI::dbDisconnect(con), add = TRUE)
+          async_job_scrub_payload_credentials(conn = con)
+          "ok"
+        },
+        error = function(e2) {
+          logger::log_warn(
+            "[backup-restore] post-restore credential scrub FAILED after retry: {conditionMessage(e2)}"
+          )
+          paste0("failed: ", conditionMessage(e2))
+        }
+      )
     }
   )
 
@@ -104,7 +122,8 @@
   list(
     status = "completed",
     pre_restore_backup = basename(pre_result$file),
-    restored_from = basename(payload$restore_file)
+    restored_from = basename(payload$restore_file),
+    post_restore_scrub = scrub_outcome
   )
 }
 
