@@ -1,8 +1,14 @@
 # api/endpoints/entity_endpoints.R
 #
-# This file contains all Entity-related endpoints, extracted from the original
-# sysndd_plumber.R. It follows the Google R Style Guide conventions where possible
-# (e.g., two-space indentation, meaningful function names, etc.).
+# All Entity-related endpoints. Bodies delegate to
+# services/entity-read-endpoint-service.R (list/detail reads) and
+# services/entity-submission-endpoint-service.R (create/deactivate
+# orchestration) as of #346 Wave 3. `/rename` keeps calling the pre-existing
+# svc_entity_rename_full() (services/entity-service.R) unchanged. `/create`'s
+# publication-preparation-before-transaction block and the legacy
+# current_review = FALSE approved-review gate computations stay inline on
+# purpose — see entity-submission-endpoint-service.R's header comment and
+# test-unit-public-approved-review-guard.R.
 
 ## -------------------------------------------------------------------##
 ## Entity endpoints
@@ -10,22 +16,8 @@
 
 #* Get a Cursor Pagination Object of All Entities
 #*
-#* This endpoint returns a cursor pagination object of all entities based on the
-#* data in the database.
-#*
-#* # `Details`
-#* This is a plumber endpoint function that retrieves paginated data from a
-#* database table and returns it as a JSON response. The function takes input
-#* parameters for sorting, filtering, and field selection, and uses cursor
-#* pagination to generate links to previous and next pages.
-#* It retrieves data from two tables in the database, filters and sorts the data
-#* based on input parameters, selects fields for inclusion in the response, and
-#* generates pagination information and fields specifications.
-#* The function adds meta and link information to the response and computes
-#* execution time before returning the paginated data as a list.
-#*
-#* # `Return`
-#* A cursor pagination object containing a list of entities.
+#* Returns a cursor-paginated list of entities with sort/filter/field
+#* selection, cursor pagination links, and field specifications.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -36,10 +28,9 @@
 #* @param page_after:str Cursor after which entries are shown.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields to generate field specification for.
-#* @param compact:bool When true, push the filter to SQL where possible and
-#*   skip the global-fspec computation (only the filtered-set fspec is
-#*   returned; count == count_filtered). Use for embedded callers that don't
-#*   render the filter dropdowns (Genes / Entities detail pages). Default false.
+#* @param compact:bool When true, push the filter to SQL and skip the
+#*   global-fspec computation (count == count_filtered). For embedded callers
+#*   that don't render filter dropdowns. Default false.
 #*
 #* @response 200 OK. A cursor pagination object with links, meta and data (entity objects).
 #* @response 500 Internal server error.
@@ -55,174 +46,14 @@ function(req,
          fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details", # nolint: line_length_linter
          format = "json",
          compact = "false") {
-  # Set serializers
   res$serializer <- serializers[[format]]
 
-
-  # Start time calculation
-  start_time <- Sys.time()
-
-  # Plumber returns scalars as length-1 character vectors; coerce to a real bool.
-  is_compact <- isTRUE(tolower(as.character(compact[[1]])) %in% c("true", "1", "yes"))
-
-  # Derive allowlist from ndd_entity_view; returns NULL on transient DB error
-  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
-  entity_allowed_cols <- allowed_columns_for_view("ndd_entity_view")
-
-  # Generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id",
-    allowed_columns = entity_allowed_cols)
-
-  # Extract vario_id filter (handled separately due to join table)
-  vario_filter_result <- extract_vario_filter(filter)
-
-  # Generate filter expression for non-vario filters
-  filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario,
-    allowed_columns = entity_allowed_cols)
-
-  has_text_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
-  has_vario_filter <- isTRUE(vario_filter_result$has_vario_filter)
-
-  # Get review data from database (lazy)
-  ndd_entity_review <- primary_approved_reviews(pool, cols = c("entity_id", "synopsis"))
-
-  ndd_entity_view_lazy <- pool %>%
-    tbl("ndd_entity_view") %>%
-    left_join(ndd_entity_review, by = c("entity_id"))
-
-  # Fast path: when compact mode AND a text filter is present AND no vario
-  # join is required, push the filter expression to SQL via dbplyr. With the
-  # `equals` op now emitting `column == 'value'` (response-helpers.R), this
-  # translates to `WHERE column = 'value'` — indexable and ~20x faster than
-  # the legacy REGEXP path on our schema. Falls back to the in-R filter loop
-  # if dbplyr can't translate the expression.
-  fast_path_filtered <- NULL
-  if (is_compact && has_text_filter && !has_vario_filter) {
-    fast_path_filtered <- tryCatch(
-      ndd_entity_view_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        collect(),
-      error = function(e) {
-        message(sprintf(
-          "[entity-list] SQL filter pushdown failed (%s); falling back to in-R filter",
-          conditionMessage(e)
-        ))
-        NULL
-      }
-    )
-  }
-
-  if (!is.null(fast_path_filtered)) {
-    # The filtered set is small; reuse it for both the response data and
-    # the (filtered-only) fspec — no global view collect.
-    ndd_entity_view <- fast_path_filtered
-    sysndd_db_disease_table <- fast_path_filtered %>%
-      arrange(!!!rlang::parse_exprs(sort_exprs))
-  } else {
-    # Default path: collect the full view, then filter/sort in R. Used by the
-    # main /Entities table where the global fspec drives the filter-dropdown
-    # facet counts and by any caller that did not opt into compact mode.
-    ndd_entity_view <- ndd_entity_view_lazy %>% collect()
-
-    if (has_vario_filter) {
-      matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
-      ndd_entity_view <- ndd_entity_view %>%
-        filter(entity_id %in% matching_entity_ids)
-    }
-
-    sysndd_db_disease_table <- ndd_entity_view %>%
-      arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
-  }
-
-  # Select fields from table based on input
-  sysndd_db_disease_table <- select_tibble_fields(
-    sysndd_db_disease_table,
-    fields,
-    "entity_id"
+  entities_list <- svc_entity_list_query(
+    sort = sort, filter = filter, fields = fields,
+    page_after = page_after, page_size = page_size,
+    fspec = fspec, compact = compact, pool = pool
   )
 
-  # Use the helper generate_cursor_pag_inf to generate cursor pagination
-  # information from a tibble
-  disease_table_pagination_info <- generate_cursor_pag_inf(
-    sysndd_db_disease_table,
-    page_size,
-    page_after,
-    "entity_id"
-  )
-
-  # In compact mode the filtered set IS the working set, so global counts and
-  # filtered counts coincide — compute fspec once and reuse the count column.
-  # In default mode keep the global+filtered split so the dropdowns can show
-  # "X of Y" totals when the user is filtering interactively.
-  sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(
-    sysndd_db_disease_table,
-    fspec
-  )
-  if (is_compact) {
-    disease_table_fspec <- sysndd_db_disease_table_fspec
-    disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
-      dplyr::mutate(count_filtered = count)
-  } else {
-    disease_table_fspec <- generate_tibble_fspec_mem(
-      ndd_entity_view,
-      fspec
-    )
-    # Global `count` + filtered `count_filtered`, joined by key.
-    disease_table_fspec <- fspec_merge_filtered_counts(
-      disease_table_fspec,
-      sysndd_db_disease_table_fspec
-    )
-  }
-
-  # Compute execution time
-  end_time <- Sys.time()
-  execution_time <- as.character(
-    paste0(round(end_time - start_time, 2), " secs")
-  )
-
-  # Add columns to the meta information from generate_cursor_pag_inf
-  meta <- disease_table_pagination_info$meta %>%
-    add_column(
-      tibble::as_tibble(list(
-        "sort" = sort,
-        "filter" = filter,
-        "fields" = fields,
-        "fspec" = disease_table_fspec,
-        "executionTime" = execution_time
-      ))
-    )
-
-  # Add host, port, and other information to links
-  links <- disease_table_pagination_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "?sort=",
-          sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        link == "null" ~ "null"
-      )
-    ) %>%
-    pivot_wider(
-      id_cols = everything(),
-      names_from = "type",
-      values_from = "link"
-    )
-
-  # Generate object to return
-  entities_list <- list(
-    links = links,
-    meta = meta,
-    data = disease_table_pagination_info$data
-  )
-
-  # If xlsx requested, compute this and return
   if (format == "xlsx") {
     creation_date <- strftime(
       as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
@@ -230,9 +61,7 @@ function(req,
     )
     base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
       str_replace_all("_api_", "")
-    filename <- file.path(
-      paste0(base_filename, "_", creation_date, ".xlsx")
-    )
+    filename <- file.path(paste0(base_filename, "_", creation_date, ".xlsx"))
 
     bin <- generate_xlsx_bin(entities_list, base_filename)
     as_attachment(bin, filename)
@@ -241,24 +70,10 @@ function(req,
   }
 }
 
-
 #* Create New Entity
 #*
-#* This endpoint allows for the creation of a new entity,
-#* including entity details, review, and status.
-#* It also provides options for direct approval,
-#* review of literature, synopsis, phenotypes, and variation ontology.
-#*
-#* # `Details`
-#* The function checks for user rights, and if valid,
-#* proceeds to create a new entity. Subsequent checks are performed
-#* to review the entity and create status. The function also handles
-#* different scenarios like empty publications, phenotypes, and
-#* variation ontology.
-#*
-#* # `Return`
-#* A list with status and message of the operation or an
-#* error message if user has no write access.
+#* Creates a new entity with review, status, publications, phenotypes, and
+#* variation ontology. Supports direct approval for Curator+ callers.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -269,39 +84,11 @@ function(req,
 function(req, res, direct_approval = FALSE) {
   require_role(req, res, "Curator")
 
-  direct_approval <- as.logical(direct_approval)
   create_data <- req$argsBody$create_json
-  user_id <- req$user_id
 
-  # --- Data preparation (no DB writes, external API calls happen here) ---
-
-  # Prepare entity data
-  entity_data <- create_data$entity
-  entity_data$entry_user_id <- user_id
-
-  # Prepare review data
-  review_data <- list(
-    synopsis = if (length(create_data$review$synopsis) > 0) {
-      create_data$review$synopsis[[1]]
-    } else {
-      NA
-    },
-    review_user_id = user_id,
-    comment = create_data$review$comment
-  )
-
-  # Prepare status data
-  status_data <- list(
-    category_id = create_data$status$category_id,
-    status_user_id = user_id,
-    problematic = if (!is.null(create_data$status$problematic)) {
-      create_data$status$problematic
-    } else {
-      0
-    }
-  )
-
-  # Prepare publications (includes external GeneReviews API call)
+  # Prepare publications (includes external GeneReviews API call). Insert
+  # publications into the reference table BEFORE the atomic transaction so a
+  # publication failure writes nothing and the whole request fails fast.
   publications <- NULL
   if (length(compact(create_data$review$literature)) > 0) {
     publications <- bind_rows(
@@ -359,103 +146,25 @@ function(req, res, direct_approval = FALSE) {
     }
   }
 
-  # Prepare phenotypes
-  phenotypes <- NULL
-  if (length(compact(create_data$review$phenotypes)) > 0) {
-    phenotypes_raw <- tibble::as_tibble(create_data$review$phenotypes)
-    if ("value" %in% colnames(phenotypes_raw)) {
-      phenotypes <- phenotypes_raw %>%
-        mutate(
-          phenotype_id = sapply(value, function(x) {
-            parts <- strsplit(as.character(x), "-")[[1]]
-            if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
-          }),
-          modifier_id = sapply(value, function(x) {
-            parts <- strsplit(as.character(x), "-")[[1]]
-            if (length(parts) >= 1) parts[1] else NA
-          })
-        ) %>%
-        dplyr::select(phenotype_id, modifier_id)
-    } else if (all(c("phenotype_id", "modifier_id") %in% colnames(phenotypes_raw))) {
-      phenotypes <- phenotypes_raw
-    }
-  }
-
-  # Prepare variation ontology
-  variation_ontology <- NULL
-  if (length(compact(create_data$review$variation_ontology)) > 0) {
-    vario_raw <- tibble::as_tibble(create_data$review$variation_ontology)
-    if ("value" %in% colnames(vario_raw)) {
-      variation_ontology <- vario_raw %>%
-        mutate(
-          vario_id = sapply(value, function(x) {
-            parts <- strsplit(as.character(x), "-")[[1]]
-            if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
-          }),
-          modifier_id = sapply(value, function(x) {
-            parts <- strsplit(as.character(x), "-")[[1]]
-            if (length(parts) >= 1) parts[1] else NA
-          })
-        ) %>%
-        dplyr::select(vario_id, modifier_id)
-    } else if (all(c("vario_id", "modifier_id") %in% colnames(vario_raw))) {
-      variation_ontology <- vario_raw
-    }
-  }
-
-  # --- Transactional creation (all-or-nothing via service layer) ---
-
-  result <- svc_entity_create_full(
-    entity_data = entity_data,
-    review_data = review_data,
-    status_data = status_data,
+  result <- svc_entity_create_finalize(
+    create_data = create_data,
     publications = publications,
-    phenotypes = phenotypes,
-    variation_ontology = variation_ontology,
-    direct_approval = direct_approval,
-    approving_user_id = if (direct_approval) user_id else NULL,
+    direct_approval = as.logical(direct_approval),
+    user_id = req$user_id,
     pool = pool
   )
 
-  # Map service result to HTTP response
-  if (result$status == 200) {
-    res$status <- 201L
-    # Invalidate cached statistics after successful entity creation
-    if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
-    if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
-  } else {
-    res$status <- result$status
-  }
-
-  return(result)
+  res$status <- if (result$status == 200) 201L else result$status
+  result
 }
-
 
 #* Renames an entity by updating its disease ontology ID version.
 #*
-#* # `Details`
-#* This endpoint function renames the disease ontology of a entity.
-#* It checks user role and replaces the disease_ontology_id_version
-#* in the ndd_entity table. It deactivates the old entity_id and sets
-#* the replacement using put_db_entity_deactivation. It copies all review
-#* information from the old entity to the new one, posts new status for
-#* the posted entity, and computes a response based on the status of the requests.
-#* If successful, the function returns the new entity_id, otherwise,
-#* it returns an error message.
-#*
-#* # `Input`
-#* A JSON object with the following properties:
-#* - entity_id: (integer) The ID of the entity to be renamed.
-#* - hgnc_id: (string) The HGNC ID of the entity.
-#* - hpo_mode_of_inheritance_term: (string) The HPO term for mode of inheritance of the entity.
-#* - ndd_phenotype: (string) The non-disease phenotype of the entity.
-#* - disease_ontology_id_version: (string) The new version of the disease ontology ID of the entity.
-#*
-#* # `Return`
-#* A JSON object with the following properties:
-#* - status: (integer) The HTTP status code of the response.
-#* - message: (string) A message describing the outcome of the operation.
-#* - entry: (list) A list containing the updated entity ID and other metadata.
+#* Renames the disease ontology of an entity (Curator+): deactivates the old
+#* entity_id (replaced_by the new one) and copies review/status forward onto
+#* a newly created entity_id via svc_entity_rename_full(). rename_json is
+#* `list(entity = list(entity_id, hgnc_id, hpo_mode_of_inheritance_term,
+#* ndd_phenotype, disease_ontology_id_version))`.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -476,22 +185,10 @@ function(req, res) {
   result
 }
 
-
 #* Deactivate Entity
 #*
-#* This endpoint allows for the deactivation of an existing entity.
-#* The function checks user rights and proceeds with the deactivation
-#* only if the user role is either Administrator or Curator.
-#* The deactivation process includes updating the 'is_active' and 'replaced_by'
-#* fields in the database.
-#*
-#* # `Details`
-#* The function only allows deactivation of an entity, any other
-#* changes to the entity will result in a 'Bad Request' response.
-#*
-#* # `Return`
-#* A list with status and message of the operation or an error
-#* message if user has no write access or if the request is invalid.
+#* Deactivates an existing entity (Curator+). Only mutation of is_active/
+#* replaced_by is allowed; any other field change is rejected as Bad Request.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -505,70 +202,21 @@ function(req, res) {
 function(req, res) {
   require_role(req, res, "Curator")
 
-  deactivate_user_id <- req$user_id
-  deactivate_data <- req$argsBody$deactivate_json
+  result <- svc_entity_deactivate_request(
+    deactivate_data = req$argsBody$deactivate_json,
+    deactivate_user_id = req$user_id,
+    pool = pool
+  )
 
-  ndd_entity_original <- pool %>%
-    tbl("ndd_entity") %>%
-    collect() %>%
-    filter(entity_id == deactivate_data$entity$entity_id)
-
-  incoming_is_active <- as.integer(deactivate_data$entity$is_active)
-  incoming_replaced_by <- deactivate_data$entity$replaced_by
-  if (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL") {
-    incoming_replaced_by <- NA_integer_
-  }
-
-  ndd_entity_replaced <- ndd_entity_original %>%
-    mutate(is_active = incoming_is_active) %>%
-    mutate(replaced_by = incoming_replaced_by)
-
-  if (
-    deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-      deactivate_data$entity$hpo_mode_of_inheritance_term ==
-        ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-      deactivate_data$entity$ndd_phenotype ==
-        ndd_entity_replaced$ndd_phenotype &&
-      deactivate_data$entity$is_active != ndd_entity_original$is_active
-  ) {
-    response_new_entity <- put_db_entity_deactivation(
-      deactivate_data$entity$entity_id,
-      ndd_entity_replaced$replaced_by
-    )
-
-    # Invalidate cached statistics after successful entity deactivation
-    if (response_new_entity$status == 200) {
-      if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
-      if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
-    }
-
-    res$status <- response_new_entity$status
-    return(list(
-      status = response_new_entity$status,
-      message = response_new_entity$message
-    ))
-  } else {
-    res$status <- 400
-    return(list(
-      error = "This endpoint only allows deactivating an entity."
-    ))
-  }
+  res$status <- result$http_status
+  result$body
 }
 
 
 #* Get Phenotypes for Entity
 #*
-#* This endpoint retrieves phenotypes associated with a given entity_id.
-#* By default, it returns phenotypes from the currently active review only.
-#*
-#* # `Details`
-#* The function joins active entities with phenotype connections from the
-#* currently active review (is_primary = 1) and matches with the phenotype
-#* list to get complete phenotype information.
-#*
-#* # `Return`
-#* A dataframe containing entity_id, phenotype_id, HPO_term, modifier_id,
-#* review_id, review_date, and is_primary for each phenotype.
+#* Retrieves phenotypes for entity_id. Defaults to the currently active
+#* (primary + approved) review only.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -582,62 +230,23 @@ function(req, res) {
 #*
 #* @get /<sysndd_id>/phenotypes
 function(sysndd_id, current_review = TRUE) {
+  # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+  # approved-only: gate to primary + approved review_ids so it cannot leak
+  # unapproved curation (#3, Codex re-review).
   if (current_review) {
-    # Get primary + approved review for this entity
-    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
-      dplyr::filter(entity_id == sysndd_id) %>%
-      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      dplyr::arrange(review_date) %>%
-      dplyr::collect()
-
-    # Get phenotype connections for the primary review
-    ndd_review_phenotype_conn_coll <- pool %>%
-      tbl("ndd_review_phenotype_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id & is_active == 1) %>%
-      collect()
+    approved_review_ids <- NULL
   } else {
-    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
-    # approved-only: gate active rows to primary + approved review_ids so it
-    # cannot leak unapproved curation (#3, Codex re-review).
     approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
-    ndd_review_phenotype_conn_coll <- pool %>%
-      tbl("ndd_review_phenotype_connect") %>%
-      filter(is_active == 1 & review_id %in% approved_review_ids) %>%
-      collect()
   }
 
-  phenotype_list_collected <- pool %>%
-    tbl("phenotype_list") %>%
-    collect()
-
-  ndd_entity_active <- pool %>%
-    tbl("ndd_entity_view") %>%
-    dplyr::select(entity_id) %>%
-    collect()
-
-  phenotype_list <- ndd_entity_active %>%
-    left_join(ndd_review_phenotype_conn_coll, by = c("entity_id")) %>%
-    filter(entity_id == sysndd_id) %>%
-    inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
-    dplyr::select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
-    arrange(phenotype_id) %>%
-    unique()
+  svc_entity_phenotypes(sysndd_id, current_review, approved_review_ids, pool)
 }
 
 
 #* Get Variation Ontology for Entity
 #*
-#* This endpoint retrieves variation ontology terms associated with a given
-#* entity_id. By default, it returns variations from the currently active review only.
-#*
-#* # `Details`
-#* The function collects variation ontology connections from the currently
-#* active review (is_primary = 1), filters for the given entity_id, and joins
-#* with the variation ontology list to get complete information.
-#*
-#* # `Return`
-#* A dataframe containing entity_id, vario_id, vario_name, modifier_id,
-#* review_id, review_date, and is_primary for each variation ontology term.
+#* Retrieves variation ontology terms for entity_id. Defaults to the
+#* currently active (primary + approved) review only.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -651,57 +260,21 @@ function(sysndd_id, current_review = TRUE) {
 #*
 #* @get /<sysndd_id>/variation
 function(sysndd_id, current_review = TRUE) {
+  # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+  # approved-only (#3, Codex re-review).
   if (current_review) {
-    # Get primary + approved review for this entity
-    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
-      dplyr::filter(entity_id == sysndd_id) %>%
-      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      dplyr::arrange(review_date) %>%
-      dplyr::collect()
-
-    # Get variation connections for the primary review AND this specific entity
-    ndd_review_variation_conn_coll <- pool %>%
-      tbl("ndd_review_variation_ontology_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id
-        & entity_id == sysndd_id & is_active == 1) %>%
-      collect()
+    approved_review_ids <- NULL
   } else {
-    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
-    # approved-only (#3, Codex re-review).
     approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
-    ndd_review_variation_conn_coll <- pool %>%
-      tbl("ndd_review_variation_ontology_connect") %>%
-      filter(is_active == 1 & entity_id == sysndd_id & review_id %in% approved_review_ids) %>%
-      collect()
   }
 
-  variation_list_collected <- pool %>%
-    tbl("variation_ontology_list") %>%
-    collect()
-
-  variation_list <- ndd_review_variation_conn_coll %>%
-    inner_join(variation_list_collected, by = c("vario_id")) %>%
-    dplyr::select(entity_id, vario_id, vario_name, modifier_id) %>%
-    arrange(vario_id) %>%
-    unique()
+  svc_entity_variation(sysndd_id, current_review, approved_review_ids, pool)
 }
 
 
 #* Get Clinical Synopsis for Entity
 #*
-#* This endpoint retrieves all clinical synopsis associated with a
-#* given entity_id. The function fetches data from the database, performs
-#* necessary filtering to produce the list of clinical synopsis.
-#*
-#* # `Details`
-#* The function collects the review data from the database, filters for
-#* the given entity_id and primary reviews, and selects necessary columns. The
-#* result is then joined with the provided entity_id to provide a complete list.
-#*
-#* # `Return`
-#* A dataframe containing entity_id, review_id, synopsis,
-#* review_date, and comment for each clinical synopsis associated
-#* with the entity_id.
+#* Retrieves the clinical synopsis (primary + approved review) for entity_id.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -710,35 +283,13 @@ function(sysndd_id, current_review = TRUE) {
 #*
 #* @get /<sysndd_id>/review
 function(sysndd_id) {
-  ndd_entity_review_list <- primary_approved_reviews(pool) %>%
-    dplyr::filter(entity_id == sysndd_id) %>%
-    dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-    dplyr::arrange(review_date) %>%
-    dplyr::collect()
-
-  ndd_entity_review_list_joined <- tibble::as_tibble(sysndd_id) %>%
-    dplyr::select(entity_id = value) %>%
-    mutate(entity_id = as.integer(entity_id)) %>%
-    left_join(ndd_entity_review_list, by = c("entity_id"))
+  svc_entity_review(sysndd_id, pool)
 }
 
 
 #* Get Entity Status
 #*
-#* This endpoint retrieves the status for a given entity_id. The
-#* function collects the status data from the database, performs necessary
-#* filtering, and joins with the status categories list.
-#*
-#* # `Details`
-#* The function fetches status data and status categories from the
-#* database, filters for the given entity_id and active status, joins with the
-#* categories list, and selects relevant columns. The result is then ordered
-#* by status date.
-#*
-#* # `Return`
-#* A dataframe containing status_id, entity_id, category, category_id,
-#* status_date, comment, and problematic fields for the status associated with
-#* the entity_id.
+#* Retrieves the active + approved status for entity_id.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -747,43 +298,14 @@ function(sysndd_id) {
 #*
 #* @get /<sysndd_id>/status
 function(sysndd_id) {
-  ndd_entity_status_collected <- pool %>%
-    tbl("ndd_entity_status") %>%
-    collect()
-
-  entity_status_categories_coll <- pool %>%
-    tbl("ndd_entity_status_categories_list") %>%
-    collect()
-
-  ndd_entity_status_list <- ndd_entity_status_collected %>%
-    filter(entity_id == sysndd_id & is_active & status_approved == 1) %>%
-    inner_join(entity_status_categories_coll, by = c("category_id")) %>%
-    dplyr::select(
-      status_id,
-      entity_id,
-      category,
-      category_id,
-      status_date,
-      comment,
-      problematic
-    ) %>%
-    arrange(status_date)
+  svc_entity_status(sysndd_id, pool)
 }
 
 
 #* Get Entity Publications
 #*
-#* This endpoint retrieves publications associated with a given entity_id.
-#* By default, it returns publications from the currently active review only.
-#*
-#* # `Details`
-#* The function fetches publication data from the currently active review
-#* (is_primary = 1), filters for the given entity_id, and selects relevant
-#* columns with review metadata.
-#*
-#* # `Return`
-#* A dataframe containing entity_id, publication_id, publication_type,
-#* is_reviewed, review_id, review_date, and is_primary for each publication.
+#* Retrieves publications for entity_id. Defaults to the currently active
+#* (primary + approved) review only.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
@@ -797,40 +319,15 @@ function(sysndd_id) {
 #*
 #* @get /<sysndd_id>/publications
 function(sysndd_id, current_review = TRUE) {
+  # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
+  # approved-only (#3, Codex re-review).
   if (current_review) {
-    # Get primary + approved review for this entity
-    ndd_entity_review_list <- primary_approved_reviews(pool) %>%
-      dplyr::filter(entity_id == sysndd_id) %>%
-      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
-      dplyr::arrange(review_date) %>%
-      dplyr::collect()
-
-    # Get publication connections for the primary review
-    review_publication_join_coll <- pool %>%
-      tbl("ndd_review_publication_join") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id) %>%
-      collect()
+    approved_review_ids <- NULL
   } else {
-    # Legacy "all reviews" mode is still a PUBLIC read, so it must stay
-    # approved-only (#3, Codex re-review).
     approved_review_ids <- primary_approved_reviews(pool) %>% dplyr::pull(review_id)
-    review_publication_join_coll <- pool %>%
-      tbl("ndd_review_publication_join") %>%
-      filter(is_reviewed == 1 & review_id %in% approved_review_ids) %>%
-      collect()
   }
 
-  ndd_entity_active <- pool %>%
-    tbl("ndd_entity_view") %>%
-    dplyr::select(entity_id) %>%
-    collect()
-
-  ndd_entity_publication_list <- ndd_entity_active %>%
-    left_join(review_publication_join_coll, by = c("entity_id")) %>%
-    filter(entity_id == sysndd_id) %>%
-    dplyr::select(entity_id, publication_id, publication_type, is_reviewed) %>%
-    arrange(publication_id) %>%
-    unique()
+  svc_entity_publications(sysndd_id, current_review, approved_review_ids, pool)
 }
 
 ## Entity endpoints
