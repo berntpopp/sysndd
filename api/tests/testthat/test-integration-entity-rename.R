@@ -20,7 +20,11 @@ source_api_file("functions/ontology-repository.R", local = FALSE)
 source_api_file("functions/publication-repository.R", local = FALSE)
 source_api_file("functions/publication-functions.R", local = FALSE)
 source_api_file("core/errors.R", local = FALSE)
+# Production order: entity-service.R before entity-rename-service.R —
+# svc_entity_rename_full (moved out in #346, Wave 4 Task 2) calls
+# svc_entity_check_duplicate defined in entity-service.R.
 source_api_file("services/entity-service.R", local = FALSE)
+source_api_file("services/entity-rename-service.R", local = FALSE)
 
 TEST_HGNC <- "HGNC:99901"
 TEST_MOI <- "HP:9000001"
