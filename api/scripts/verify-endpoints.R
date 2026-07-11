@@ -104,7 +104,6 @@ verify_endpoint <- function(path, expected_status = 200, description = "") {
 public_endpoints <- list(
   list(path = "/api/entity/", desc = "Entity root"),
   list(path = "/api/gene/", desc = "Gene root"),
-  list(path = "/api/status/", desc = "Status list"),
   list(path = "/api/status/_list", desc = "Status categories"),
   list(path = "/api/ontology/variant", desc = "Variant ontology"),
   list(path = "/api/phenotype/count", desc = "Phenotype count"),
@@ -117,7 +116,6 @@ public_endpoints <- list(
   list(path = "/api/analysis/functional_clustering", desc = "Functional clustering"),
   list(path = "/api/variant/count", desc = "Variant count"),
   list(path = "/api/publication/", desc = "Publication root"),
-  list(path = "/api/review/", desc = "Review root"),
   list(path = "/api/admin/api_version", desc = "Admin API version")
 )
 
@@ -126,6 +124,9 @@ protected_endpoints <- list(
   list(path = "/api/user/list", desc = "User list"),
   list(path = "/api/user/table", desc = "User table"),
   list(path = "/api/re_review/table", desc = "Re-review table"),
+  # #535 P0-1: review/status draft-exposing list routes are now Reviewer+ (were public).
+  list(path = "/api/status/", desc = "Status list (Reviewer+; drafts/identities)"),
+  list(path = "/api/review/", desc = "Review root (Reviewer+; drafts/identities)"),
   list(path = "/api/logs/", desc = "Logs root")
 )
 

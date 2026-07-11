@@ -261,6 +261,21 @@ test_that("GET _list status: permission — public read (no require_role)", {
   })
 })
 
+test_that("GET _list status: route precedence — declared BEFORE dynamic /<status_id_requested>", {
+  # #535 P0-1 regression guard: plumber matches routes in declaration order.
+  # The static `_list` route MUST be declared before the dynamic detail route,
+  # otherwise `/status/_list` is captured by the (now Reviewer+-gated) detail
+  # handler and the public vocabulary endpoint 403s. This locks the ordering
+  # that keeps `_list` publicly reachable.
+  src <- status_source()
+  list_idx <- grep("^#\\*\\s+@get\\s+_list\\s*$", src)[[1L]]
+  detail_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
+  expect_lt(
+    list_idx, detail_idx,
+    label = "The `_list` route decorator must appear before `/<status_id_requested>`"
+  )
+})
+
 
 # =============================================================================
 # POST /create -- create status (shared handler with PUT /update)
