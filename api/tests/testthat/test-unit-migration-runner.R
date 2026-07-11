@@ -20,10 +20,119 @@ library(testthat)
 library(withr)
 library(fs)
 
-# Source the migration runner (suppress logger messages during tests)
+# Source in the production load order (#346 Wave 4 split):
+#   migration-manifest.R -> migration-state-repository.R -> migration-runner.R
+# migration-runner.R also guard-sources migration-state-repository.R itself
+# (self-locating via the active source() frame, so it works regardless of
+# working directory), but sourcing it explicitly here too keeps this test's
+# source order authoritative and independent of that guard.
+# (suppress logger messages during tests)
 suppressMessages({
-  source(file.path(api_dir, "functions/migration-runner.R"), local = TRUE)
   source(file.path(api_dir, "functions/migration-manifest.R"), local = TRUE)
+  source(file.path(api_dir, "functions/migration-state-repository.R"), local = TRUE)
+  source(file.path(api_dir, "functions/migration-runner.R"), local = TRUE)
+})
+
+# ============================================================================
+# Source-order tests (#346 Wave 4: state repository split)
+# ============================================================================
+# migration-runner.R used to define every migration function directly; the
+# state-persistence functions (schema table creation, manifest file listing,
+# applied-row reads, rename reconciliation, record insertion) now live in the
+# sibling functions/migration-state-repository.R. These tests assert that the
+# manifest -> state repository -> runner load order above leaves every
+# expected symbol defined, so the split cannot silently drop or shadow a
+# function moved out of migration-runner.R.
+
+describe("module load order: manifest -> state repository -> runner", {
+  it("defines the manifest validator and constants", {
+    expect_true(exists("validate_migration_manifest", mode = "function"))
+    expect_true(exists("EXPECTED_LATEST_MIGRATION"))
+  })
+
+  it("defines all five state-repository functions plus the rename map", {
+    expect_true(exists("ensure_schema_version_table", mode = "function"))
+    expect_true(exists("list_migration_files", mode = "function"))
+    expect_true(exists("get_applied_migrations", mode = "function"))
+    expect_true(exists("reconcile_schema_version_renames", mode = "function"))
+    expect_true(exists("record_migration", mode = "function"))
+    expect_true(exists("MIGRATION_RENAMES"))
+    expect_true(is.list(MIGRATION_RENAMES))
+  })
+
+  it("defines all runner-owned functions (lock, splitter, pending, run_migrations)", {
+    expect_true(exists("acquire_migration_lock", mode = "function"))
+    expect_true(exists("release_migration_lock", mode = "function"))
+    expect_true(exists("split_sql_statements", mode = "function"))
+    expect_true(exists("split_sql_with_custom_delimiter", mode = "function"))
+    expect_true(exists("execute_migration", mode = "function"))
+    expect_true(exists("get_pending_migrations", mode = "function"))
+    expect_true(exists("run_migrations", mode = "function"))
+  })
+})
+
+# ============================================================================
+# ensure_schema_version_table() Tests (DB-gated)
+# ============================================================================
+
+describe("ensure_schema_version_table", {
+  it("creates the schema_version table idempotently against a real DB", {
+    skip_if_no_test_db()
+    conn <- get_test_db_connection()
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+    expect_no_error(ensure_schema_version_table(conn))
+    expect_true(DBI::dbExistsTable(conn, "schema_version"))
+
+    # CREATE TABLE IF NOT EXISTS: calling again is a no-op, not an error.
+    expect_no_error(ensure_schema_version_table(conn))
+    expect_true(DBI::dbExistsTable(conn, "schema_version"))
+  })
+})
+
+# ============================================================================
+# get_applied_migrations() Tests (DB-gated)
+# ============================================================================
+
+describe("get_applied_migrations", {
+  it("returns a character vector against a real schema_version table", {
+    skip_if_no_test_db()
+    conn <- get_test_db_connection()
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+    ensure_schema_version_table(conn)
+    if (!DBI::dbExistsTable(conn, "schema_version")) {
+      testthat::skip("schema_version table not present in this test DB")
+    }
+
+    result <- get_applied_migrations(conn)
+    expect_true(is.character(result))
+  })
+})
+
+# ============================================================================
+# record_migration() Tests (DB-gated, rolled back)
+# ============================================================================
+
+describe("record_migration", {
+  it("inserts a row that get_applied_migrations then reports", {
+    skip_if_no_test_db()
+    with_test_db_transaction({
+      con <- getOption(".test_db_con")
+      ensure_schema_version_table(con)
+      if (!DBI::dbExistsTable(con, "schema_version")) {
+        testthat::skip("schema_version table not present in this test DB")
+      }
+
+      fake_filename <- paste0(
+        "999999_test_migration_state_repo_", as.integer(Sys.time()), ".sql"
+      )
+      expect_no_error(record_migration(fake_filename, con))
+
+      applied <- get_applied_migrations(con)
+      expect_true(fake_filename %in% applied)
+    })
+  })
 })
 
 # ============================================================================
