@@ -13,7 +13,32 @@ async_job_repository_path <- function() {
   file.path(get_api_dir(), "functions", "async-job-repository.R")
 }
 
+async_job_repository_helpers_path <- function() {
+  override <- Sys.getenv("ASYNC_JOB_REPOSITORY_HELPERS_PATH", "")
+  if (nzchar(override)) {
+    return(override)
+  }
+
+  file.path(get_api_dir(), "functions", "async-job-repository-helpers.R")
+}
+
+ensure_async_job_repository_helpers_loaded <- function() {
+  helpers_path <- async_job_repository_helpers_path()
+  if (!file.exists(helpers_path)) {
+    stop("async-job repository helpers file is missing: ", helpers_path)
+  }
+
+  source(helpers_path, local = FALSE)
+  invisible(helpers_path)
+}
+
 ensure_async_job_repository_loaded <- function() {
+  # Direct-source tests load the helper explicitly (with an absolute,
+  # cwd-independent path) before the repository, so the repository's own
+  # relative-path guard-source never needs to trigger under testthat's
+  # per-file working directory.
+  ensure_async_job_repository_helpers_loaded()
+
   repo_path <- async_job_repository_path()
   if (!file.exists(repo_path)) {
     stop("async-job repository file is missing: ", repo_path)
@@ -23,9 +48,9 @@ ensure_async_job_repository_loaded <- function() {
   invisible(repo_path)
 }
 
-test_that("async job repository loads correctly when config masks base::get", {
-  repo_path <- async_job_repository_path()
-  expect_true(file.exists(repo_path))
+test_that("async job repository helpers load correctly when config masks base::get", {
+  helpers_path <- async_job_repository_helpers_path()
+  expect_true(file.exists(helpers_path))
 
   local({
     db_execute_query <- function(...) NULL
@@ -37,12 +62,72 @@ test_that("async job repository loads correctly when config masks base::get", {
     }
 
     env <- new.env(parent = environment())
-    sys.source(repo_path, envir = env)
+    sys.source(helpers_path, envir = env)
 
     expect_true(is.function(env$db_execute_query))
     expect_true(is.function(env$db_execute_statement))
     expect_true(is.function(env$db_with_transaction))
   })
+})
+
+test_that("async job repository helper builds the expected SELECT clause and base columns", {
+  ensure_async_job_repository_helpers_loaded()
+
+  expect_true("job_id" %in% ASYNC_JOB_BASE_COLUMNS)
+  expect_false("result_json" %in% ASYNC_JOB_BASE_COLUMNS)
+
+  without_result <- .async_job_select_clause(FALSE)
+  with_result <- .async_job_select_clause(TRUE)
+
+  expect_false(grepl("result_json", without_result, fixed = TRUE))
+  expect_true(grepl("result_json", with_result, fixed = TRUE))
+  expect_equal(.async_job_build_select(FALSE), paste("SELECT", without_result))
+  expect_equal(.async_job_build_select(TRUE), paste("SELECT", with_result))
+})
+
+test_that("async job repository helper scalar/empty-result primitives validate as documented", {
+  ensure_async_job_repository_helpers_loaded()
+
+  expect_equal(.async_job_scalar(NULL, "fallback"), "fallback")
+  expect_equal(.async_job_scalar(character(0), "fallback"), "fallback")
+  expect_equal(.async_job_scalar(c("a", "b")), "a")
+  expect_equal(.async_job_scalar(5L), 5L)
+
+  empty <- .async_job_empty_result()
+  expect_s3_class(empty, "tbl_df")
+  expect_equal(nrow(empty), 0L)
+
+  expect_error(
+    .async_job_require_fields(list(job_id = "x"), c("job_id", "job_type")),
+    class = "async_job_validation_error"
+  )
+  expect_silent(
+    .async_job_require_fields(list(job_id = "x", job_type = "y"), c("job_id", "job_type"))
+  )
+})
+
+test_that("async job repository helper normalizes claim-queue arguments defensively", {
+  ensure_async_job_repository_helpers_loaded()
+
+  expect_equal(.async_job_normalize_queues(NULL), "default")
+  expect_equal(.async_job_normalize_queues(""), "default")
+  expect_equal(.async_job_normalize_queues(c("", "maintenance", "")), "maintenance")
+  expect_equal(.async_job_normalize_queues(c("default", "maintenance")), c("default", "maintenance"))
+})
+
+test_that("async job repository helper normalizes named and unnamed bind params identically", {
+  ensure_async_job_repository_helpers_loaded()
+
+  named_params <- list(job_id = "job-1", status = "queued")
+  unnamed_params <- list("job-1", "queued")
+
+  normalized_named <- .async_job_normalize_params(named_params)
+  normalized_unnamed <- .async_job_normalize_params(unnamed_params)
+
+  expect_null(names(normalized_named))
+  expect_null(names(normalized_unnamed))
+  expect_equal(normalized_named, normalized_unnamed)
+  expect_equal(normalized_named, list("job-1", "queued"))
 })
 
 ensure_async_job_schema <- function() {

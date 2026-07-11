@@ -3,97 +3,22 @@
 # Durable repository for async job state and lifecycle events.
 # This layer performs DB access only; higher-level services own request
 # validation, handler dispatch, and event policy.
-
-library(DBI)
-library(tibble)
-library(logger)
-library(rlang)
-
+#
+# Shared primitives (library loads, db-helpers fallback, captured base::get
+# bindings, ASYNC_JOB_BASE_COLUMNS, SELECT builders, and the validation/
+# scalar/empty/queue/param-normalization helpers) live in the sibling
+# async-job-repository-helpers.R (#346 ceiling extraction). It is not
+# separately listed in the bootstrap loaders; this guard loads it, right
+# before this file's own functions, on first source of this file.
 if (!exists("db_execute_query", mode = "function") ||
-    !exists("db_execute_statement", mode = "function") ||
-    !exists("db_with_transaction", mode = "function")) {
-  helper_candidates <- c(
-    "functions/db-helpers.R",
-    "/app/functions/db-helpers.R"
-  )
-
-  for (helper_path in helper_candidates) {
-    if (file.exists(helper_path)) {
-      source(helper_path, local = TRUE)
+    !exists(".async_job_build_select", mode = "function")) {
+  for (.p in c("functions/async-job-repository-helpers.R",
+               "/app/functions/async-job-repository-helpers.R")) {
+    if (file.exists(.p)) {
+      source(.p, local = TRUE)
       break
     }
   }
-}
-
-db_execute_query <- base::get("db_execute_query", mode = "function", inherits = TRUE)
-db_execute_statement <- base::get("db_execute_statement", mode = "function", inherits = TRUE)
-db_with_transaction <- base::get("db_with_transaction", mode = "function", inherits = TRUE)
-
-ASYNC_JOB_BASE_COLUMNS <- c(
-  "job_id",
-  "job_type",
-  "queue_name",
-  "priority",
-  "status",
-  "request_hash",
-  "request_payload_json",
-  "submitted_by",
-  "submitted_at",
-  "scheduled_at",
-  "started_at",
-  "completed_at",
-  "claimed_by_worker",
-  "claim_token",
-  "worker_hostname",
-  "worker_pid",
-  "last_heartbeat_at",
-  "claim_expires_at",
-  "attempt_count",
-  "max_attempts",
-  "next_attempt_at",
-  "progress_pct",
-  "progress_message",
-  "last_error_code",
-  "last_error_message",
-  "cancelled_by",
-  "updated_at"
-)
-
-.async_job_select_clause <- function(include_result = FALSE) {
-  columns <- ASYNC_JOB_BASE_COLUMNS
-  if (isTRUE(include_result)) {
-    columns <- c(columns, "result_json")
-  }
-  paste(columns, collapse = ", ")
-}
-
-.async_job_build_select <- function(include_result = FALSE) {
-  paste("SELECT", .async_job_select_clause(include_result))
-}
-
-.async_job_require_fields <- function(job, required) {
-  missing <- required[vapply(required, function(field) {
-    !field %in% names(job) || is.null(job[[field]]) || (length(job[[field]]) == 1 && is.na(job[[field]]))
-  }, logical(1))]
-
-  if (length(missing) > 0) {
-    abort(
-      message = paste("Missing required async job fields:", paste(missing, collapse = ", ")),
-      class = "async_job_validation_error",
-      missing_fields = missing
-    )
-  }
-}
-
-.async_job_scalar <- function(value, default = NULL) {
-  if (is.null(value) || length(value) == 0) {
-    return(default)
-  }
-  value[[1]]
-}
-
-.async_job_empty_result <- function() {
-  tibble::tibble()
 }
 
 #' Create a durable async job row
@@ -167,7 +92,7 @@ async_job_repository_create <- function(job, conn = NULL) {
     ")"
   )
 
-  params <- unname(insert_values)
+  params <- .async_job_normalize_params(insert_values)
 
   tryCatch(
     {
@@ -264,11 +189,7 @@ async_job_repository_claim_next <- function(
   queues = "default",
   conn = NULL
 ) {
-  queue_values <- as.character(queues %||% "default")
-  queue_values <- queue_values[nzchar(queue_values)]
-  if (length(queue_values) == 0) {
-    queue_values <- "default"
-  }
+  queue_values <- .async_job_normalize_queues(queues)
 
   placeholders <- paste(rep("?", length(queue_values)), collapse = ", ")
 
