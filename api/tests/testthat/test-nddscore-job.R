@@ -258,6 +258,11 @@ test_that("nddscore_run_import re-imports a previously failed inactive release_i
 })
 
 test_that("nddscore_import async handler is registered", {
+  # #346 Wave 4: the registry list() eagerly binds .async_job_run_nddscore_import
+  # by bare symbol, so the provider module (where it now lives) must be sourced
+  # before async-job-handlers.R.
+  source_api_file("functions/async-job-provider-handlers.R", local = FALSE, envir = .GlobalEnv)
+  source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE, envir = .GlobalEnv)
   source_api_file("functions/async-job-handlers.R", local = FALSE, envir = .GlobalEnv)
 
   entry <- async_job_get_handler("nddscore_import")

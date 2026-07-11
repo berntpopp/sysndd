@@ -2,7 +2,11 @@ library(testthat)
 
 metadata_refresh_runtime_files <- c(
   "endpoints/admin_endpoints.R",
-  "functions/async-job-handlers.R"
+  "functions/async-job-handlers.R",
+  # #346 Wave 4: the OMIM/HGNC write-path handlers that used to live in
+  # async-job-handlers.R moved to the provider module; keep the guard
+  # covering wherever this code actually lives.
+  "functions/async-job-provider-handlers.R"
 )
 
 find_executable_metadata_truncates <- function(relative_path) {

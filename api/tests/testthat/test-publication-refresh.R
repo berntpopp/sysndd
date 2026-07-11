@@ -178,9 +178,14 @@ test_that("publications stats queries return non-negative counts", {
 # `.async_job_run_publication_refresh()` in functions/async-job-handlers.R
 # (registered in async_job_handler_registry) -- these checks now target that
 # file instead of the (removed) dead copy.
+#
+# #346 Wave 4: .async_job_run_publication_refresh moved to
+# functions/async-job-maintenance-handlers.R (the registry list, cancel_mode,
+# and after_success stay in async-job-handlers.R); the body-text checks below
+# now target that file.
 
 test_that("the durable publication_refresh handler uses a 350ms NCBI rate-limit delay", {
-  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-maintenance-handlers.R"))
   rate_limit_line <- grep("Sys\\.sleep\\(0\\.35\\)", handler_code, value = TRUE)
 
   expect_true(
@@ -194,7 +199,7 @@ test_that("the durable publication_refresh handler creates its own database conn
   # longer needs to self-source per-job like the old mirai executor_fn did,
   # but it still opens/closes its own DB connection (mirrors
   # .async_job_run_publication_date_backfill's payload$db_config pattern).
-  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-maintenance-handlers.R"))
 
   expect_true(
     any(grepl("DBI::dbConnect", handler_code)),
@@ -207,7 +212,7 @@ test_that("the durable publication_refresh handler creates its own database conn
 })
 
 test_that("the durable publication_refresh handler reports progress", {
-  handler_code <- readLines(file.path(api_dir, "functions", "async-job-handlers.R"))
+  handler_code <- readLines(file.path(api_dir, "functions", "async-job-maintenance-handlers.R"))
 
   expect_true(
     any(grepl("\\.async_job_progress_reporter", handler_code)),

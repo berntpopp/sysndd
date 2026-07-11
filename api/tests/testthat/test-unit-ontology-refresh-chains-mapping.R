@@ -7,10 +7,17 @@
 
 library(testthat)
 
-source_api_file("functions/async-job-handlers.R", local = FALSE)
 # .async_job_omim_db_write was extracted to async-job-omim-apply.R (#470); source
 # it so handler_body(.async_job_omim_db_write) below still resolves.
 source_api_file("functions/async-job-omim-apply.R", local = FALSE)
+# #346 Wave 4: .async_job_run_force_apply_ontology and
+# .async_job_chain_ontology_mapping_refresh now live in
+# async-job-provider-handlers.R; the shell's registry list() also eagerly
+# binds provider/maintenance handlers by bare symbol, so both extracted
+# modules must be sourced before async-job-handlers.R.
+source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
+source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE)
+source_api_file("functions/async-job-handlers.R", local = FALSE)
 
 handler_body <- function(fn) paste(deparse(body(fn)), collapse = "\n")
 

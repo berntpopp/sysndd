@@ -1,8 +1,14 @@
 library(testthat)
 
 source_api_file("functions/async-job-force-apply-payload.R", local = FALSE)
-source_api_file("functions/async-job-handlers.R", local = FALSE)
 source_api_file("functions/async-job-omim-apply.R", local = FALSE)
+# The eagerly-built async_job_handler_registry list() references provider and
+# maintenance handler functions by bare symbol (#346 Wave 4 split), so both
+# extracted modules must be sourced BEFORE async-job-handlers.R or the list()
+# construction fails with "object '...' not found".
+source_api_file("functions/async-job-provider-handlers.R", local = FALSE)
+source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE)
+source_api_file("functions/async-job-handlers.R", local = FALSE)
 
 handler_body <- function(fn) {
   paste(deparse(body(fn)), collapse = "\n")
@@ -132,4 +138,125 @@ test_that(".async_job_force_apply_critical_versions handles the simplifyVector d
 test_that(".async_job_force_apply_critical_versions handles empty / null input", {
   expect_equal(.async_job_force_apply_critical_versions(list()), character(0))
   expect_equal(.async_job_force_apply_critical_versions(NULL), character(0))
+})
+
+# ---------------------------------------------------------------------------
+# #346 Wave 4 registry regression: the handler-family split (provider vs.
+# maintenance vs. shell) must not change the registered job-type set, which
+# handler function backs each job type, its cancel_mode, or its after_success
+# hook. Bare-symbol entries are asserted by identity (proves the shell's
+# registry list binds the SAME function object the extracted module defines,
+# not a re-implemented/forward-declared copy); wrapper-closure entries
+# (network_layout_prewarm, analysis_snapshot_refresh, and the passthrough
+# factory job types) are asserted by callable shape only, since they are
+# intentionally not bare symbols.
+# ---------------------------------------------------------------------------
+
+test_that("async_job_handler_registry has the exact expected job-type set", {
+  expected_job_types <- c(
+    "clustering", "phenotype_clustering", "ontology_update", "hgnc_update",
+    "comparisons_update", "pubtator_update", "pubtator_enrichment_refresh",
+    "pubtatornidd_nightly", "disease_ontology_mapping_refresh", "nddscore_import",
+    "llm_generation", "network_layout_prewarm", "analysis_snapshot_refresh",
+    "backup_create", "backup_restore", "omim_update", "force_apply_ontology",
+    "publication_refresh", "publication_date_backfill"
+  )
+
+  expect_equal(sort(names(async_job_handler_registry)), sort(expected_job_types))
+})
+
+test_that("registry entries bind the exact expected handler function by identity", {
+  bare_symbol_handlers <- list(
+    clustering = .async_job_run_clustering,
+    phenotype_clustering = .async_job_run_phenotype_clustering,
+    ontology_update = .async_job_run_ontology_update,
+    hgnc_update = .async_job_run_hgnc_update,
+    pubtator_update = .async_job_run_pubtator,
+    pubtator_enrichment_refresh = .async_job_run_pubtator_enrichment,
+    pubtatornidd_nightly = .async_job_run_pubtatornidd_nightly,
+    disease_ontology_mapping_refresh = .async_job_run_disease_ontology_mapping_refresh,
+    nddscore_import = .async_job_run_nddscore_import,
+    backup_create = .async_job_run_backup_create,
+    backup_restore = .async_job_run_backup_restore,
+    omim_update = .async_job_run_omim_update,
+    force_apply_ontology = .async_job_run_force_apply_ontology,
+    publication_refresh = .async_job_run_publication_refresh,
+    publication_date_backfill = .async_job_run_publication_date_backfill
+  )
+
+  for (job_type in names(bare_symbol_handlers)) {
+    expect_identical(
+      async_job_handler_registry[[job_type]]$run,
+      bare_symbol_handlers[[job_type]],
+      info = job_type
+    )
+  }
+
+  # Wrapper-closure / passthrough-factory job types: callable, not bare-symbol.
+  for (job_type in c(
+    "comparisons_update", "llm_generation", "network_layout_prewarm", "analysis_snapshot_refresh"
+  )) {
+    expect_true(is.function(async_job_handler_registry[[job_type]]$run), info = job_type)
+  }
+})
+
+test_that("registry entries have the exact expected cancel_mode", {
+  expected_cancel_modes <- c(
+    clustering = "best_effort",
+    phenotype_clustering = "best_effort",
+    ontology_update = "non_interruptible",
+    hgnc_update = "non_interruptible",
+    comparisons_update = "non_interruptible",
+    pubtator_update = "best_effort",
+    pubtator_enrichment_refresh = "best_effort",
+    pubtatornidd_nightly = "non_interruptible",
+    disease_ontology_mapping_refresh = "non_interruptible",
+    nddscore_import = "non_interruptible",
+    llm_generation = "best_effort",
+    network_layout_prewarm = "best_effort",
+    analysis_snapshot_refresh = "best_effort",
+    backup_create = "non_interruptible",
+    backup_restore = "non_interruptible",
+    omim_update = "non_interruptible",
+    force_apply_ontology = "non_interruptible",
+    publication_refresh = "best_effort",
+    publication_date_backfill = "non_interruptible"
+  )
+
+  for (job_type in names(expected_cancel_modes)) {
+    expect_identical(
+      async_job_handler_registry[[job_type]]$cancel_mode,
+      unname(expected_cancel_modes[job_type]),
+      info = job_type
+    )
+  }
+})
+
+test_that("registry entries have the exact expected after_success hook", {
+  noop_job_types <- c(
+    "ontology_update", "hgnc_update", "comparisons_update", "pubtator_update",
+    "pubtator_enrichment_refresh", "pubtatornidd_nightly",
+    "disease_ontology_mapping_refresh", "nddscore_import", "llm_generation",
+    "network_layout_prewarm", "analysis_snapshot_refresh", "backup_create",
+    "backup_restore", "omim_update", "force_apply_ontology", "publication_refresh",
+    "publication_date_backfill"
+  )
+
+  for (job_type in noop_job_types) {
+    expect_identical(
+      async_job_handler_registry[[job_type]]$after_success,
+      .async_job_after_success_noop,
+      info = job_type
+    )
+  }
+
+  # clustering / phenotype_clustering chain LLM generation via a custom closure,
+  # not the noop.
+  for (job_type in c("clustering", "phenotype_clustering")) {
+    expect_true(is.function(async_job_handler_registry[[job_type]]$after_success), info = job_type)
+    expect_false(
+      identical(async_job_handler_registry[[job_type]]$after_success, .async_job_after_success_noop),
+      info = job_type
+    )
+  }
 })
