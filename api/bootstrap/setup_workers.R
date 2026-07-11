@@ -127,6 +127,8 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/async-job-analysis-snapshot-handlers.R", local = FALSE)
     source("/app/functions/async-job-omim-apply.R", local = FALSE)
     source("/app/functions/async-job-force-apply-payload.R", local = FALSE)
+    source("/app/functions/async-job-provider-handlers.R", local = FALSE)
+    source("/app/functions/async-job-maintenance-handlers.R", local = FALSE)
     source("/app/functions/async-job-handlers.R", local = FALSE)
     source("/app/functions/async-job-worker.R", local = FALSE)
     # Source transitional progress shim for legacy mirai async code paths

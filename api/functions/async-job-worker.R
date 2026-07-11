@@ -48,6 +48,30 @@ if (!exists("async_job_get_handler", mode = "function")) {
     }
   }
 
+  provider_handler_candidates <- c(
+    "functions/async-job-provider-handlers.R",
+    "/app/functions/async-job-provider-handlers.R"
+  )
+
+  for (path in provider_handler_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
+  maintenance_handler_candidates <- c(
+    "functions/async-job-maintenance-handlers.R",
+    "/app/functions/async-job-maintenance-handlers.R"
+  )
+
+  for (path in maintenance_handler_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
   handler_candidates <- c(
     "functions/async-job-handlers.R",
     "/app/functions/async-job-handlers.R"

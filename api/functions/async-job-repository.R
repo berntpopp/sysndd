@@ -12,8 +12,23 @@
 # before this file's own functions, on first source of this file.
 if (!exists("db_execute_query", mode = "function") ||
     !exists(".async_job_build_select", mode = "function")) {
-  for (.p in c("functions/async-job-repository-helpers.R",
-               "/app/functions/async-job-repository-helpers.R")) {
+  # Resolve this file's own directory from the active source() frame so the
+  # sibling loads regardless of cwd (testthat runs from tests/testthat/, where
+  # the bare cwd-relative candidates below do not resolve).
+  .self_dir <- NULL
+  for (.i in seq_len(sys.nframe())) {
+    .of <- sys.frame(.i)$ofile
+    if (!is.null(.of)) {
+      .self_dir <- dirname(.of)
+      break
+    }
+  }
+  .candidates <- c(
+    if (!is.null(.self_dir)) file.path(.self_dir, "async-job-repository-helpers.R"),
+    "functions/async-job-repository-helpers.R",
+    "/app/functions/async-job-repository-helpers.R"
+  )
+  for (.p in .candidates) {
     if (file.exists(.p)) {
       source(.p, local = TRUE)
       break
