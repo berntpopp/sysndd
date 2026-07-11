@@ -35,6 +35,10 @@ if (!requireNamespace("logger", quietly = TRUE)) {
   stop("logger package not available — cannot run re-review endpoint service tests")
 }
 
+# re-review-selection-service.R must be sourced before re-review-service.R:
+# svc_re_review_submit() below calls re_review_filter_submit_fields()
+# (moved to the selection module in #346 Wave 4) directly, unmocked.
+source_api_file("services/re-review-selection-service.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("services/re-review-service.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("services/re-review-refusal-service.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("services/re-review-query-endpoint-service.R", local = FALSE, envir = .GlobalEnv)

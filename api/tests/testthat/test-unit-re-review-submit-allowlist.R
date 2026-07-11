@@ -24,7 +24,10 @@ source_api_file("functions/response-helpers.R", local = FALSE)
 if (!requireNamespace("logger", quietly = TRUE)) {
   stop("logger package not available — cannot run re-review-service tests")
 }
-source_api_file("services/re-review-service.R", local = FALSE)
+# re_review_submit_allowed_fields()/re_review_filter_submit_fields() moved to
+# re-review-selection-service.R (#346 Wave 4) alongside the other selection
+# logic (criteria/parameter builders, matching, preview, available entities).
+source_api_file("services/re-review-selection-service.R", local = FALSE)
 
 test_that("re_review_submit_allowed_fields is the tight single-column set", {
   skip_if_not(exists("re_review_submit_allowed_fields"))
