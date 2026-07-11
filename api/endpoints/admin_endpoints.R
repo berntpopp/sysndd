@@ -117,7 +117,7 @@ function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
   }
 
   prepared <- svc_admin_force_apply_ontology_prepare(
-    req, res, blocked_job_id, assigned_user_id, pool
+    req, res, blocked_job_id, assigned_user_id, pool, dw
   )
   if (!is.null(prepared$early_return)) {
     return(prepared$early_return)

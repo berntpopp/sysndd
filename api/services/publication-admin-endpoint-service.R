@@ -307,7 +307,6 @@ svc_publication_pubtator_update <- function(req, res, query,
 #' @export
 svc_publication_pubtator_update_submit <- function(req, res, query, max_pages, clear_old, q_hash,
                                                      submit_fn = create_job) {
-  log_info("PubTator async update submitted: query='{query}', max_pages={max_pages}, clear_old={clear_old}")
   db_config <- list(
     db_host = dw$host,
     db_port = dw$port,

@@ -96,7 +96,7 @@ svc_admin_ontology_update_async <- function(req, res, pool, dw,
 #'   `create_job(operation = "force_apply_ontology", params = ...)`).
 #' @export
 svc_admin_force_apply_ontology_prepare <- function(req, res, blocked_job_id, assigned_user_id,
-                                                     pool, job_status_fn = get_job_status) {
+                                                     pool, dw, job_status_fn = get_job_status) {
   assigned_user_id <- if (!is.null(assigned_user_id) && assigned_user_id != "") {
     as.integer(assigned_user_id)
   } else {
@@ -174,7 +174,8 @@ svc_admin_force_apply_ontology_prepare <- function(req, res, blocked_job_id, ass
       critical_entities_raw = job_result$critical_entities,
       disease_ontology_set_current = disease_ontology_set_current,
       ndd_entity_view = ndd_entity_view,
-      requesting_user_id = requesting_user_id
+      requesting_user_id = requesting_user_id,
+      db_config = .svc_admin_ontology_db_config(dw)
     )
   )
 }

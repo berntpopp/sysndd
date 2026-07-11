@@ -328,6 +328,10 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
   max_pages <- as.integer(max_pages)
   clear_old <- as.logical(clear_old)
 
+  # Logged before the duplicate check (pre-refactor placement) so every submit
+  # attempt is recorded, including ones short-circuited as duplicates.
+  log_info("PubTator async update submitted: query='{query}', max_pages={max_pages}, clear_old={clear_old}")
+
   # Duplicate-job short-circuit stays in the shell (auditable at the routing
   # layer); job creation/response-shaping is delegated below.
   q_hash <- generate_query_hash(query)
