@@ -119,14 +119,28 @@ svc_llm_admin_cache_stats <- function() {
   get_cache_statistics()
 }
 
+#' Coerce a query param to a length-1 integer, normalizing an omitted (NULL)
+#' or otherwise non-scalar value to `NA_integer_`.
+#'
+#' `as.integer(NULL)` is a length-0 `integer(0)`, which would poison the
+#' downstream `is.na(x) || x < 1L` short-circuit (`||` on a length-0 operand
+#' errors, 500ing the endpoint before the limit/offset fallback runs, #532).
+#' Mapping any non-length-1 result to `NA_integer_` lets the existing is.na()
+#' fallback logic treat an omitted page/per_page identically to a blank "".
+#' @keywords internal
+.svc_llm_admin_coerce_int <- function(x) {
+  v <- suppressWarnings(as.integer(x))
+  if (length(v) != 1L) NA_integer_ else v
+}
+
 #' Resolve the legacy page/per_page pagination contract (D5 limit/offset
 #' aliases). Shared by the cache-summaries and generation-logs listings.
 #' @keywords internal
 .svc_llm_admin_resolve_pagination <- function(page, per_page, limit, offset) {
-  page_val     <- suppressWarnings(as.integer(page))
-  per_page_val <- suppressWarnings(as.integer(per_page))
-  limit_val    <- suppressWarnings(as.integer(limit))
-  offset_val   <- suppressWarnings(as.integer(offset))
+  page_val     <- .svc_llm_admin_coerce_int(page)
+  per_page_val <- .svc_llm_admin_coerce_int(per_page)
+  limit_val    <- .svc_llm_admin_coerce_int(limit)
+  offset_val   <- .svc_llm_admin_coerce_int(offset)
 
   if (is.na(per_page_val) || per_page_val < 1L) {
     per_page_val <- if (!is.na(limit_val) && limit_val >= 1L) min(limit_val, 500L) else 50L

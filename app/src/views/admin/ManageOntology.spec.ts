@@ -11,7 +11,10 @@
  *   - active-filter chips (`hasActiveFilters`/`activeFilters`) reflect the
  *     current filter state (status/terms/search labels)
  *   - cursor pagination transitions (first page -> 0, next -> nextItemID,
- *     prev -> prevItemID, last -> lastItemID) via handlePageChange
+ *     prev -> prevItemID, last -> lastItemID) via handlePageChange, carrying
+ *     the RAW string VariO cursor (e.g. "VariO:0026") to the wire — #531 — and
+ *     applyApiResponse preserving those string cursors instead of Number()-
+ *     coercing them to 0
  *   - a stale (superseded) response never overwrites newer table state
  *   - editOntology() deep-copies the row (no shared reference) and
  *     updateOntologyData() PUTs `{ ontology_details }` via the typed
@@ -81,9 +84,11 @@ interface OntologyVm {
   totalPages: number;
   currentPage: number;
   currentItemID: number | string;
-  prevItemID: number | null;
-  nextItemID: number | null;
-  lastItemID: number | null;
+  // VariO cursor IDs are strings (e.g. "VariO:0026"), not numbers.
+  prevItemID: number | string | null;
+  nextItemID: number | string | null;
+  lastItemID: number | string | null;
+  applyApiResponse: (data: unknown) => void;
   sort: string;
 }
 
@@ -251,7 +256,9 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
   // -------------------------------------------------------------------------
 
   it('hasActiveFilters/activeFilters reflect the current filter state', async () => {
-    server.use(http.get('/api/ontology/variant/table', () => HttpResponse.json(ontologyListPayload())));
+    server.use(
+      http.get('/api/ontology/variant/table', () => HttpResponse.json(ontologyListPayload()))
+    );
 
     const wrapper = await mountView();
     const vm = wrapper.vm as unknown as OntologyVm;
@@ -321,17 +328,15 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
   // Cursor-pagination transitions
   // -------------------------------------------------------------------------
 
-  it('handlePageChange always converges the cursor to 0 (first/next/prev/last all funnel through filtered()\'s reset)', async () => {
-    // NOTE (behavior-preservation, not introduced by this refactor):
-    // handlePageChange() assigns the direction-appropriate cursor
-    // (0/nextItemID/prevItemID/lastItemID) and then calls filtered(),
-    // which — mirroring the pre-extraction ManageOntology.vue byte-for-byte
-    // — unconditionally resets currentItemID back to 0 before loadData().
-    // So the *net* observable cursor after handlePageChange (and the
-    // page_after sent on the wire) is always 0, regardless of which page
-    // was requested. This spec asserts the actual current contract; fixing
-    // the underlying reset-on-every-filtered-call quirk is out of scope
-    // for a behavior-preserving extraction.
+  it('handlePageChange sends the direction-appropriate STRING VariO cursor (first→0, next/prev/last→raw cursor) — #531', async () => {
+    // #531: ManageOntology paginates on string VariO cursors (e.g.
+    // "VariO:0026"), NOT numbers. Two coupled defects previously pinned it to
+    // page 1: (1) handlePageChange() routed through filtered(), whose
+    // unconditional currentItemID=0 reset (retained for real filter/sort/
+    // per-page changes) clobbered the cursor; (2) the cursor was coerced with
+    // Number(), so every VariO string became NaN → 0. Both are fixed:
+    // handlePageChange loads directly with the RAW cursor. Real VariO ID
+    // strings are used here on purpose — numeric fixtures would mask defect (2).
     let lastPageAfter: string | null = null;
     server.use(
       http.get('/api/ontology/variant/table', ({ request }) => {
@@ -343,43 +348,105 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     const wrapper = await mountView();
     const vm = wrapper.vm as unknown as OntologyVm;
 
-    // Re-seed currentPage/totalPages/cursor refs immediately before each
-    // call so no scenario's branch selection can leak into the next.
-    const scenarios: Array<{ label: string; targetPage: number }> = [
-      { label: 'first page (value === 1)', targetPage: 1 },
-      { label: 'next page (value > currentPage)', targetPage: 3 },
-      { label: 'previous page (value < currentPage)', targetPage: 1 },
-      { label: 'last page (value === totalPages)', targetPage: 4 },
+    // Each scenario exercises a DISTINCT branch of handlePageChange; re-seed
+    // the cursor/page refs immediately before each call so no scenario's
+    // branch selection can leak into the next. The cursor assertion is
+    // synchronous: handlePageChange() runs to completion in one call stack
+    // and loadData() only *schedules* the debounced fetch, so this captures
+    // the computed cursor BEFORE any network response could reset it —
+    // directly proving both the reset-clobber and the Number() coercion are
+    // gone (a coerced VariO string would read back as 0, not the raw id).
+    const scenarios: Array<{
+      label: string;
+      currentPage: number;
+      totalPages: number;
+      targetPage: number;
+      expected: number | string;
+    }> = [
+      {
+        label: 'first page (value === 1)',
+        currentPage: 3,
+        totalPages: 5,
+        targetPage: 1,
+        expected: 0,
+      },
+      {
+        label: 'next page (value > currentPage)',
+        currentPage: 2,
+        totalPages: 5,
+        targetPage: 3,
+        expected: 'VariO:0026',
+      },
+      {
+        label: 'previous page (value < currentPage)',
+        currentPage: 3,
+        totalPages: 5,
+        targetPage: 2,
+        expected: 'VariO:0005',
+      },
+      {
+        label: 'last page (value === totalPages)',
+        currentPage: 2,
+        totalPages: 5,
+        targetPage: 5,
+        expected: 'VariO:0491',
+      },
     ];
 
-    for (const { label, targetPage } of scenarios) {
-      vm.currentPage = 2;
-      vm.totalPages = 4;
-      vm.nextItemID = 30;
-      vm.prevItemID = 5;
-      vm.lastItemID = 99;
+    for (const { label, currentPage, totalPages, targetPage, expected } of scenarios) {
+      vm.currentPage = currentPage;
+      vm.totalPages = totalPages;
+      vm.nextItemID = 'VariO:0026';
+      vm.prevItemID = 'VariO:0005';
+      vm.lastItemID = 'VariO:0491';
 
       vm.handlePageChange(targetPage);
-      // Whichever branch fires, filtered()'s unconditional reset means the
-      // net observable cursor always converges on 0 (see NOTE above). This
-      // is asserted synchronously (handlePageChange -> filtered() runs
-      // entirely within the same call stack) rather than via a fresh
-      // network round trip per scenario: every scenario here produces
-      // identical request params (page_after=0, same sort/filter/page_size),
-      // so the module-level request coordinator's short recent-response
-      // cache legitimately serves the earlier response for later scenarios
-      // instead of re-hitting the network — that dedup is itself a tested,
-      // intentional behaviour (see the stale-response spec above), not
-      // something to work around here.
-      expect(vm.currentItemID, label).toBe(0);
+      expect(vm.currentItemID, label).toBe(expected);
     }
 
-    // Settle whichever reload is left in flight (debounced 50ms) so no
-    // timer leaks into the next test, and confirm the cursor actually on
-    // the wire is 0.
+    // End-to-end: only the final scenario's debounced load survives the loop
+    // (each handlePageChange resets the debounce timer). Let it fire and
+    // confirm the real "last page" VariO cursor actually went out on the wire
+    // as page_after — not the old always-0.
     await new Promise((resolve) => setTimeout(resolve, 75));
     await flushPromises();
-    expect(lastPageAfter).toBe('0');
+    expect(lastPageAfter).toBe('VariO:0491');
+  });
+
+  it('applyApiResponse preserves string VariO cursors (does not Number()-coerce them to 0) — #531', async () => {
+    // The applyApiResponse() half of the same fix: the API returns keyset
+    // cursors as VariO ID strings. Number("VariO:0026") is NaN → 0, so the old
+    // `Number(meta.x) || 0` collapsed every cursor to 0 and the next page
+    // request went out with page_after=0 (page 1). cursorOrZero keeps the raw
+    // string; only null/"null" collapse to the page-1 sentinel 0.
+    server.use(
+      http.get('/api/ontology/variant/table', () => HttpResponse.json(ontologyListPayload()))
+    );
+    const wrapper = await mountView();
+    const vm = wrapper.vm as unknown as OntologyVm;
+
+    vm.applyApiResponse({
+      data: [DEFAULT_ROW],
+      meta: [
+        {
+          totalItems: 495,
+          currentPage: 2,
+          totalPages: 20,
+          prevItemID: null,
+          currentItemID: 'VariO:0026',
+          nextItemID: 'VariO:0051',
+          lastItemID: 'VariO:0491',
+          executionTime: 10,
+        },
+      ],
+      links: [],
+    });
+
+    expect(vm.currentItemID).toBe('VariO:0026');
+    expect(vm.nextItemID).toBe('VariO:0051');
+    expect(vm.lastItemID).toBe('VariO:0491');
+    // A null cursor (no previous page) collapses to the page-1 sentinel 0.
+    expect(vm.prevItemID).toBe(0);
   });
 
   // -------------------------------------------------------------------------

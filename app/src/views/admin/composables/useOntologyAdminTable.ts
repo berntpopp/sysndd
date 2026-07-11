@@ -76,9 +76,6 @@ export function useOntologyAdminTable() {
   const {
     currentPage,
     currentItemID,
-    prevItemID,
-    nextItemID,
-    lastItemID,
     executionTime,
     perPage,
     sortBy,
@@ -87,6 +84,14 @@ export function useOntologyAdminTable() {
     isBusy,
     totalRows,
   } = tableData;
+  // VariO cursor IDs are strings (e.g. "VariO:0026"), not numbers —
+  // useTableData's generic prevItemID/nextItemID/lastItemID types are narrower
+  // (`number | null`), so widen locally rather than coerce with Number()
+  // (which would map every VariO cursor to NaN → 0 and pin the table to page 1,
+  // #531). Mirrors usePublicationsTable's PMID-cursor handling.
+  const prevItemID = tableData.prevItemID as unknown as Ref<string | number>;
+  const nextItemID = tableData.nextItemID as unknown as Ref<string | number>;
+  const lastItemID = tableData.lastItemID as unknown as Ref<string | number>;
 
   // Component-specific filter shape.
   const filter = ref<OntologyFilter>(createEmptyOntologyFilter());
@@ -161,8 +166,13 @@ export function useOntologyAdminTable() {
     if (filter_string.value) {
       searchParams.set('filter', filter_string.value);
     }
-    if (Number(currentItemID.value) > 0) {
-      searchParams.set('page_after', String(currentItemID.value));
+    // Emit page_after for any meaningful cursor — string VariO IDs included
+    // (Number(cursor) > 0 would drop them, leaving the URL un-bookmarkable and
+    // failing to reflect the current page, #531). 0 / "0" / null are the
+    // page-1 sentinel and are omitted.
+    const cursor = currentItemID.value;
+    if (cursor != null && cursor !== 0 && cursor !== '0' && cursor !== '') {
+      searchParams.set('page_after', String(cursor));
     }
     searchParams.set('page_size', String(perPage.value));
 
@@ -185,13 +195,19 @@ export function useOntologyAdminTable() {
     if (value === 1) {
       currentItemID.value = 0;
     } else if (value === totalPages.value) {
-      currentItemID.value = Number(lastItemID.value) || 0;
+      currentItemID.value = lastItemID.value;
     } else if (value > currentPage.value) {
-      currentItemID.value = Number(nextItemID.value) || 0;
+      currentItemID.value = nextItemID.value;
     } else if (value < currentPage.value) {
-      currentItemID.value = Number(prevItemID.value) || 0;
+      currentItemID.value = prevItemID.value;
     }
-    filtered();
+    // Load directly with the cursor computed above — do NOT route through
+    // filtered(), whose unconditional `currentItemID = 0` reset (kept for real
+    // filter/sort/per-page changes) would clobber the cursor back to 0 and pin
+    // every next/prev/last request to page_after=0, i.e. always page 1 (#531).
+    // The filter is unchanged on a page change, so filter_string is already in
+    // sync and needs no recompute.
+    loadData();
   }
 
   // Handle per-page change events.
@@ -291,10 +307,16 @@ export function useOntologyAdminTable() {
       currentPage.value = meta.currentPage;
     });
     totalPages.value = meta.totalPages;
-    prevItemID.value = Number(meta.prevItemID) || 0;
-    currentItemID.value = Number(meta.currentItemID) || 0;
-    nextItemID.value = Number(meta.nextItemID) || 0;
-    lastItemID.value = Number(meta.lastItemID) || 0;
+    // VariO cursor IDs are strings like "VariO:0026" — store them as-is so the
+    // cursor survives to the next page request. Only null/undefined/"null"
+    // collapse to the page-1 sentinel 0 (Number() would map every string to
+    // 0, #531). Mirrors usePublicationsTable's cursorOrZero.
+    const cursorOrZero = (v: unknown): string | number =>
+      v === 'null' ? 0 : (v as string | number) || 0;
+    prevItemID.value = cursorOrZero(meta.prevItemID);
+    currentItemID.value = cursorOrZero(meta.currentItemID);
+    nextItemID.value = cursorOrZero(meta.nextItemID);
+    lastItemID.value = cursorOrZero(meta.lastItemID);
     executionTime.value = meta.executionTime;
 
     const uiStore = useUiStore();
@@ -320,7 +342,8 @@ export function useOntologyAdminTable() {
   async function updateOntologyData(): Promise<void> {
     try {
       const data = await updateVariantOntology({
-        ontology_details: ontologyToEdit.value as unknown as UpdateVariantOntologyRequest['ontology_details'],
+        ontology_details:
+          ontologyToEdit.value as unknown as UpdateVariantOntologyRequest['ontology_details'],
       });
       makeToast(data.message, 'Success', 'success');
       // Update the ontology in the local state.
@@ -371,7 +394,10 @@ export function useOntologyAdminTable() {
       filter_string.value = urlParams.get('filter') as string;
     }
     if (urlParams.get('page_after')) {
-      currentItemID.value = parseInt(urlParams.get('page_after') as string, 10) || 0;
+      // Keep the raw cursor: VariO IDs are strings, so parseInt() would map a
+      // bookmarked "VariO:0026" to NaN → 0 and reset to page 1 (#531). The API
+      // accepts a numeric page_after ("5") as a string just as well.
+      currentItemID.value = urlParams.get('page_after') as string;
     }
     if (urlParams.get('page_size')) {
       perPage.value = parseInt(urlParams.get('page_size') as string, 10) || 25;
@@ -388,6 +414,12 @@ export function useOntologyAdminTable() {
   return {
     // tableData passthrough (spread for template/vm access parity)
     ...tableData,
+    // Re-export the string-widened cursor refs so the exposed type matches the
+    // runtime value (VariO IDs are strings) — same underlying refs as the
+    // spread above, only the type surface is widened. Mirrors usePublicationsTable.
+    prevItemID,
+    nextItemID,
+    lastItemID,
     filterObjToStr,
     filterStrToObj,
     sortStringToVariables,
