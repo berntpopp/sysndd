@@ -24,9 +24,23 @@ require(tidyverse)
 # (which `source()` only this file) still get every OMIM function. Checked
 # with exists(..., mode = "function") — unlike base::get(), exists() is not
 # masked by the config package in the fully-loaded API/worker environment.
+# Resolve this file's own directory from the active source() frame so the
+# siblings load regardless of cwd (testthat runs from tests/testthat/, where the
+# bare cwd-relative candidates below do not resolve).
+.omim_self_dir <- NULL
+for (.omim_i in seq_len(sys.nframe())) {
+  .omim_of <- sys.frame(.omim_i)$ofile
+  if (!is.null(.omim_of)) {
+    .omim_self_dir <- dirname(.omim_of)
+    break
+  }
+}
+
 if (!exists("download_genemap2", mode = "function")) {
-  for (.omim_download_path in c("functions/omim-download-functions.R",
-                                 "/app/functions/omim-download-functions.R")) {
+  for (.omim_download_path in c(
+    if (!is.null(.omim_self_dir)) file.path(.omim_self_dir, "omim-download-functions.R"),
+    "functions/omim-download-functions.R",
+    "/app/functions/omim-download-functions.R")) {
     if (file.exists(.omim_download_path)) {
       source(.omim_download_path, local = FALSE)
       break
@@ -35,8 +49,10 @@ if (!exists("download_genemap2", mode = "function")) {
 }
 
 if (!exists("parse_genemap2", mode = "function")) {
-  for (.omim_parser_path in c("functions/omim-parser-functions.R",
-                               "/app/functions/omim-parser-functions.R")) {
+  for (.omim_parser_path in c(
+    if (!is.null(.omim_self_dir)) file.path(.omim_self_dir, "omim-parser-functions.R"),
+    "functions/omim-parser-functions.R",
+    "/app/functions/omim-parser-functions.R")) {
     if (file.exists(.omim_parser_path)) {
       source(.omim_parser_path, local = FALSE)
       break
