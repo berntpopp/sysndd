@@ -211,7 +211,34 @@ bootstrap_load_modules <- function() {
     "services/mcp-tool-resources.R",
     "services/mcp-tools.R",
     "services/mcp-tool-analysis-registry.R",
-    "services/mcp-tool-registry.R"
+    "services/mcp-tool-registry.R",
+    # --- #346 Wave 3: endpoint-delegation services (svc_-prefixed). These are
+    # sourced by the API and the durable worker via this shared loader, but are
+    # never registered as job handlers or called by worker execution. They only
+    # depend on functions/* and the domain services above, so they are appended
+    # last (definition order is irrelevant; none call each other at source time).
+    "services/publication-query-endpoint-service.R",
+    "services/publication-admin-endpoint-service.R",
+    "services/user-read-endpoint-service.R",
+    "services/user-account-endpoint-service.R",
+    "services/user-password-profile-endpoint-service.R",
+    "services/user-bulk-endpoint-service.R",
+    "services/admin-ontology-endpoint-service.R",
+    "services/admin-diagnostics-endpoint-service.R",
+    "services/admin-nddscore-endpoint-service.R",
+    "services/admin-publication-refresh-endpoint-service.R",
+    "services/job-functional-submission-service.R",
+    "services/job-phenotype-submission-service.R",
+    "services/job-maintenance-submission-service.R",
+    "services/job-query-endpoint-service.R",
+    "services/re-review-query-endpoint-service.R",
+    "services/re-review-workflow-endpoint-service.R",
+    "services/entity-read-endpoint-service.R",
+    "services/entity-submission-endpoint-service.R",
+    "services/statistics-public-endpoint-service.R",
+    "services/statistics-admin-endpoint-service.R",
+    "services/llm-admin-endpoint-service.R",
+    "services/backup-endpoint-service.R"
   )
 
   for (path in function_files) .bootstrap_source(path)
