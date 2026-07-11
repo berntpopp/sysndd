@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 // Deferred-promise mock so we can force out-of-order resolution deterministically.
 const fetchSearchInfo = vi.fn();
@@ -15,7 +15,18 @@ function deferred<T>() {
 }
 
 describe('useSearchSuggestions request ownership (#535 P2-3)', () => {
-  beforeEach(() => fetchSearchInfo.mockReset());
+  beforeEach(() => {
+    // Fake timers so the composable's 300 ms debounce watcher cannot leave
+    // stray timers that fire unmocked fetches after a test.
+    vi.useFakeTimers();
+    fetchSearchInfo.mockReset();
+    // Default fallback so any stray call resolves harmlessly.
+    fetchSearchInfo.mockResolvedValue([{}]);
+  });
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
 
   it('ignores an out-of-order stale response (type "a" then "ab", "a" resolves last)', async () => {
     const dA = deferred<[Record<string, Array<{ link: string }>>]>();
@@ -49,5 +60,6 @@ describe('useSearchSuggestions request ownership (#535 P2-3)', () => {
     await pA;
 
     expect(s.suggestions.value).toEqual([]);
+    expect(s.isLoading.value).toBe(false); // clear must not leave a stuck spinner
   });
 });

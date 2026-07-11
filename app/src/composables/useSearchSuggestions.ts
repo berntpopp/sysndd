@@ -68,7 +68,10 @@ export function useSearchSuggestions(debounceMs = 300): UseSearchSuggestionsRetu
 
   function clearSuggestions(): void {
     // Invalidate any pending request so its late response cannot apply.
+    // Clearing bumps the generation, so the in-flight request's `finally` guard
+    // will no longer own the loading flag — reset it here to avoid a stuck spinner.
     requestGeneration += 1;
+    isLoading.value = false;
     suggestions.value = [];
     searchObject = {};
   }

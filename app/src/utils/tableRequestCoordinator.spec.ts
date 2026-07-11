@@ -157,16 +157,22 @@ describe('createTableRequestCoordinator', () => {
     dA.resolve('stale');
     await rA;
 
-    // A 4th request for A must SHARE A2's in-flight promise (no new fetch).
+    // A 4th request for A must SHARE A2's in-flight promise (no new fetch). Use a
+    // settled sentinel fetcher so a regression (new fetch) fails fast, not hangs.
     const applied4: string[] = [];
-    const r4 = coord.request({ params: 'A', fetcher: () => { fetchCalls.push('A4'); return deferred<string>().promise; }, apply: (d) => applied4.push(d), onError: () => {}, isCurrent: (p) => p === current });
+    const r4 = coord.request({ params: 'A', fetcher: () => { fetchCalls.push('A4'); return Promise.resolve('A4-unexpected'); }, apply: (d) => applied4.push(d), onError: () => {}, isCurrent: (p) => p === current });
 
     dB.resolve('bstale'); // superseded B; resolve so its awaited request settles
     dA2.resolve('fresh');
-    await Promise.all([rA2, rB, r4]);
+    const [r4result] = await Promise.all([r4, rA2, rB]);
 
     expect(fetchCalls).toEqual(['A', 'B', 'A2']); // no 'A4' — the 4th shared A2's slot
+    expect(r4result.source).toBe('shared');
     expect(applied4).toEqual(['fresh']);
+
+    // Recent-cache branch returns A2's data after it settled.
+    const r5 = await coord.request({ params: 'A', fetcher: () => Promise.resolve('unused'), apply: () => {}, onError: () => {}, isCurrent: () => true, now: () => 1 });
+    expect(r5.source).toBe('cache');
   });
 
   it('error out-of-order: a superseded rejected request does not call onError', async () => {
