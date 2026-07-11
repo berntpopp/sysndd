@@ -14,9 +14,12 @@
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
+  # Resolve DB credentials from runtime config, not the job payload (#535 P1-1).
+  db_config <- async_job_worker_db_config()
+
   output_path <- file.path(payload$backup_dir, payload$backup_filename)
   result <- execute_mysqldump(
-    payload$db_config,
+    db_config,
     output_path,
     progress_fn = progress,
     compress = TRUE,
@@ -38,12 +41,15 @@
 .async_job_run_backup_restore <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
+  # Resolve DB credentials from runtime config, not the job payload (#535 P1-1).
+  db_config <- async_job_worker_db_config()
+
   progress("pre_backup", "Creating pre-restore safety backup...", 1, 4)
   pre_restore_filename <- sprintf("pre-restore_%s.sql", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"))
   pre_restore_path <- file.path(payload$backup_dir, pre_restore_filename)
 
   pre_result <- execute_mysqldump(
-    payload$db_config,
+    db_config,
     pre_restore_path,
     progress_fn = NULL,
     compress = TRUE,
@@ -65,7 +71,7 @@
   progress("restoring", sprintf("Restoring from %s...", basename(payload$restore_file)), 3, 4)
 
   restore_result <- execute_restore(
-    payload$db_config,
+    db_config,
     payload$restore_file,
     progress_fn = NULL
   )
