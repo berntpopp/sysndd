@@ -9,16 +9,16 @@
 source_api_file("functions/migration-manifest.R", local = FALSE)
 source_api_file("functions/migration-runner.R", local = FALSE)
 
-test_that("manifest expects migration 042 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "042_gate_connect_views_review_approved.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 40L)
+test_that("manifest expects migration 043 as latest", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(get_api_dir(), "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "042_gate_connect_views_review_approved.sql")
+  expect_identical(res$latest, "043_add_user_session_epoch.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {

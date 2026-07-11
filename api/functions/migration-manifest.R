@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "042_gate_connect_views_review_approved.sql"
-EXPECTED_MIGRATION_COUNT <- 40L
+EXPECTED_LATEST_MIGRATION <- "043_add_user_session_epoch.sql"
+EXPECTED_MIGRATION_COUNT <- 41L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

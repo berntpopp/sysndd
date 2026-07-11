@@ -5,8 +5,8 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "042_gate_connect_views_review_approved.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 40L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)
 })
 
 test_that("migration 041 adds the reproducibility bundle table", {
