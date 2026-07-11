@@ -32,6 +32,8 @@
 #*
 #* @get /
 function(req, res, filter_review_approved = FALSE) {
+  require_role(req, res, "Reviewer")
+
   # Ensure logical
   filter_review_approved <- as.logical(filter_review_approved)
 
@@ -383,7 +385,9 @@ function(req, res, re_review = FALSE, direct_approval = FALSE) {
 #* @response 200 OK. Returns the review data.
 #*
 #* @get /<review_id_requested>
-function(review_id_requested) {
+function(req, res, review_id_requested) {
+  require_role(req, res, "Reviewer")
+
   review_id_requested <- URLdecode(review_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -437,7 +441,9 @@ function(review_id_requested) {
 #* @response 200 OK. Returns a list of phenotypes.
 #*
 #* @get /<review_id_requested>/phenotypes
-function(review_id_requested) {
+function(req, res, review_id_requested) {
+  require_role(req, res, "Reviewer")
+
   review_id_requested <- URLdecode(review_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -479,7 +485,9 @@ function(review_id_requested) {
 #* @response 200 OK. Returns the list of variant ontology terms.
 #*
 #* @get /<review_id_requested>/variation
-function(review_id_requested) {
+function(req, res, review_id_requested) {
+  require_role(req, res, "Reviewer")
+
   review_id_requested <- URLdecode(review_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -521,7 +529,9 @@ function(review_id_requested) {
 #* @response 200 OK. Returns the publications.
 #*
 #* @get /<review_id_requested>/publications
-function(review_id_requested) {
+function(req, res, review_id_requested) {
+  require_role(req, res, "Reviewer")
+
   review_id_requested <- URLdecode(review_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
