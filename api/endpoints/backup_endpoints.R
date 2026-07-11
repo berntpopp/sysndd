@@ -3,9 +3,16 @@
 # Backup management API endpoints.
 # Provides listing, creation, and restore of database backups.
 #
-# Note: All required modules (db-helpers.R, middleware.R, backup-functions.R)
-# are sourced by start_sysndd_api.R before endpoints are loaded.
-# Functions are available in the global environment.
+# Note: All required modules (db-helpers.R, middleware.R, backup-functions.R,
+# services/backup-endpoint-service.R) are sourced by start_sysndd_api.R
+# before endpoints are loaded. Functions are available in the global
+# environment.
+#
+# This file is intentionally a thin authorization/delegation shell (#346
+# Wave 3 Task 9): every route keeps its decorators, formals, and the
+# Administrator role gate, then delegates the full handler body to the
+# matching `svc_backup_*` function in
+# api/services/backup-endpoint-service.R.
 
 ## -------------------------------------------------------------------##
 ## Backup List Endpoint
@@ -51,91 +58,7 @@ function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Pagination: support both page-based (legacy) and limit/offset (new).
-  # Coerce via suppressWarnings so non-numeric inputs degrade to NA, then
-  # fall back to defaults. Clamp to reasonable bounds to prevent invalid
-  # slicing.
-  page_size <- 20L
-  limit_raw  <- suppressWarnings(as.integer(limit))
-  offset_raw <- suppressWarnings(as.integer(offset))
-
-  if (!is.null(limit) && !is.na(limit_raw) && limit_raw >= 1L) {
-    limit     <- min(limit_raw, 500L)
-    offset    <- if (!is.null(offset) && !is.na(offset_raw) && offset_raw >= 0L) offset_raw else 0L
-    page_size <- limit
-  } else {
-    page <- suppressWarnings(as.integer(page))
-    if (is.na(page) || page < 1L) page <- 1L
-    limit  <- page_size
-    offset <- (page - 1L) * page_size
-  }
-
-  # Validate sort parameter
-  if (!sort %in% c("newest", "oldest")) {
-    res$status <- 400
-    return(list(
-      error = "INVALID_SORT_PARAMETER",
-      message = "Sort parameter must be 'newest' or 'oldest'",
-      valid_values = c("newest", "oldest")
-    ))
-  }
-
-  # Get backup list from business logic
-  tryCatch(
-    {
-      backups <- list_backup_files("/backup")
-
-      # Apply sort order
-      if (sort == "oldest") {
-        backups <- dplyr::arrange(backups, created_at)
-      }
-
-      # Inline pagination (no external helper dependency)
-      total <- nrow(backups)
-      if (total == 0) {
-        data <- backups
-      } else {
-        start_idx <- offset + 1L
-        end_idx   <- min(offset + limit, total)
-        data <- if (start_idx > total) backups[0, ] else dplyr::slice(backups, start_idx:end_idx)
-      }
-      # Preserve active query params (sort) when building links.next so that
-      # following the link keeps the caller on the same sort order.
-      next_offset <- offset + limit
-      next_link   <- if (next_offset < total) {
-        paste0("?limit=", limit, "&offset=", next_offset, "&sort=", sort)
-      } else {
-        NULL
-      }
-
-      # Get directory metadata
-      dir_meta <- get_backup_metadata("/backup")
-
-      # Return paginated response.
-      # Top-level legacy fields (total/page/page_size) are preserved for
-      # backward compatibility with existing callers. `links` and `limit`/
-      # `offset` are added for the new pagination contract.
-      list(
-        data      = data,
-        total     = total,
-        page      = floor(offset / page_size) + 1L,
-        page_size = page_size,
-        limit     = limit,
-        offset    = offset,
-        links     = list("next" = next_link),
-        meta      = dir_meta
-      )
-    },
-    error = function(e) {
-      logger::log_error("Failed to list backups: {e$message}")
-      res$status <- 500
-      list(
-        error = "BACKUP_LIST_FAILED",
-        message = "Failed to retrieve backup list",
-        details = e$message
-      )
-    }
-  )
+  svc_backup_list(req, res, page = page, sort = sort, limit = limit, offset = offset)
 }
 
 
@@ -169,84 +92,7 @@ function(req, res) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Check for duplicate job
-  dup_check <- check_duplicate_job("backup_create", list())
-  if (dup_check$duplicate) {
-    res$status <- 409
-    return(list(
-      error = "BACKUP_IN_PROGRESS",
-      message = "A backup operation is already running",
-      existing_job_id = dup_check$existing_job_id
-    ))
-  }
-
-  # Database config for daemon
-  db_config <- list(
-    dbname = dw$dbname,
-    host = dw$host,
-    user = dw$user,
-    password = dw$password,
-    port = dw$port
-  )
-
-  # Generate backup filename with manual prefix and timestamp
-  backup_filename <- sprintf("manual_%s.sql", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"))
-
-  result <- create_job(
-    operation = "backup_create",
-    params = list(
-      db_config = db_config,
-      backup_dir = "/backup",
-      backup_filename = backup_filename
-    ),
-    timeout_ms = 600000, # 10 minutes per CONTEXT.md
-    executor_fn = function(params) {
-      # Source required modules in daemon
-      source("/app/functions/backup-functions.R", local = FALSE)
-      source("/app/functions/job-progress.R", local = FALSE)
-
-      # Create progress reporter using injected job_id
-      progress <- create_progress_reporter(params$.__job_id__)
-
-      output_path <- file.path(params$backup_dir, params$backup_filename)
-      result <- execute_mysqldump(
-        params$db_config,
-        output_path,
-        progress_fn = progress,
-        compress = TRUE,
-        create_latest_link = TRUE
-      )
-
-      if (!result$success) {
-        stop(paste("Backup failed:", result$error))
-      }
-
-      list(
-        status = "completed",
-        filename = basename(result$file),
-        size_bytes = result$size_bytes,
-        compressed = result$compressed
-      )
-    }
-  )
-
-  # Handle capacity exceeded
-  if (!is.null(result$error)) {
-    res$status <- 503
-    res$setHeader("Retry-After", as.character(result$retry_after))
-    return(result)
-  }
-
-  res$status <- 202
-  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
-  res$setHeader("Retry-After", "5")
-
-  list(
-    job_id = result$job_id,
-    status = "accepted",
-    estimated_seconds = 120,
-    status_url = paste0("/api/jobs/", result$job_id, "/status")
-  )
+  svc_backup_create(req, res)
 }
 
 
@@ -286,154 +132,7 @@ function(req, res) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Extract and validate filename from request body
-  filename <- req$argsBody$filename
-  if (is.null(filename) || filename == "") {
-    res$status <- 400
-    return(list(
-      error = "MISSING_FILENAME",
-      message = "Backup filename is required in request body"
-    ))
-  }
-
-  # Path-traversal + extension guard (parity with /download and /delete)
-  if (!is_valid_backup_filename(filename)) {
-    res$status <- 400
-    return(list(
-      error = "INVALID_FILENAME",
-      message = "Filename contains invalid characters or has an unsupported extension"
-    ))
-  }
-
-  # Validate file exists
-  backup_path <- file.path("/backup", filename)
-  if (!file.exists(backup_path)) {
-    res$status <- 404
-    return(list(
-      error = "BACKUP_NOT_FOUND",
-      message = sprintf("Backup file '%s' not found", filename)
-    ))
-  }
-
-  # Check for duplicate restore job
-  dup_check <- check_duplicate_job("backup_restore", list(filename = filename))
-  if (dup_check$duplicate) {
-    res$status <- 409
-    return(list(
-      error = "RESTORE_IN_PROGRESS",
-      message = "A restore operation is already running for this backup",
-      existing_job_id = dup_check$existing_job_id
-    ))
-  }
-
-  # Database config for daemon
-  db_config <- list(
-    dbname = dw$dbname,
-    host = dw$host,
-    user = dw$user,
-    password = dw$password,
-    port = dw$port
-  )
-
-  result <- create_job(
-    operation = "backup_restore",
-    params = list(
-      db_config = db_config,
-      restore_file = backup_path,
-      backup_dir = "/backup"
-    ),
-    timeout_ms = 600000, # 10 minutes per CONTEXT.md
-    executor_fn = function(params) {
-      # Source required modules in daemon
-      source("/app/functions/backup-functions.R", local = FALSE)
-      source("/app/functions/job-progress.R", local = FALSE)
-
-      # Create progress reporter using injected job_id
-      progress <- create_progress_reporter(params$.__job_id__)
-
-      # Step 1: Create pre-restore safety backup (BKUP-05)
-      progress("pre_backup", "Creating pre-restore safety backup...", 1, 4)
-
-      pre_restore_filename <- sprintf(
-        "pre-restore_%s.sql",
-        format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
-      )
-      pre_restore_path <- file.path(params$backup_dir, pre_restore_filename)
-
-      # Use simplified progress for pre-restore (don't nest progress reporters)
-      pre_result <- execute_mysqldump(
-        params$db_config,
-        pre_restore_path,
-        progress_fn = NULL, # Skip nested progress
-        compress = TRUE,
-        create_latest_link = FALSE # Don't update latest for pre-restore backups
-      )
-
-      if (!pre_result$success) {
-        stop(paste(
-          "Pre-restore backup failed - cannot proceed with restore:",
-          pre_result$error
-        ))
-      }
-
-      progress(
-        "pre_backup_done",
-        sprintf(
-          "Pre-restore backup created (%.1f MB)",
-          pre_result$size_bytes / 1024 / 1024
-        ),
-        2, 4
-      )
-
-      # Step 2: Execute restore from specified file
-      progress(
-        "restoring",
-        sprintf("Restoring from %s...", basename(params$restore_file)),
-        3, 4
-      )
-
-      restore_result <- execute_restore(
-        params$db_config,
-        params$restore_file,
-        progress_fn = NULL # Skip nested progress
-      )
-
-      if (!restore_result$success) {
-        stop(paste(
-          "Restore failed:",
-          restore_result$error,
-          "- pre-restore backup available at:",
-          basename(pre_result$file)
-        ))
-      }
-
-      progress("complete", "Restore completed successfully", 4, 4)
-
-      list(
-        status = "completed",
-        pre_restore_backup = basename(pre_result$file),
-        restored_from = basename(params$restore_file)
-      )
-    }
-  )
-
-  # Handle capacity exceeded
-  if (!is.null(result$error)) {
-    res$status <- 503
-    res$setHeader("Retry-After", as.character(result$retry_after))
-    return(result)
-  }
-
-  res$status <- 202
-  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
-  res$setHeader("Retry-After", "5")
-
-  list(
-    job_id = result$job_id,
-    status = "accepted",
-    estimated_seconds = 120,
-    status_url = paste0("/api/jobs/", result$job_id, "/status")
-  )
+  svc_backup_restore(req, res)
 }
 
 
@@ -465,60 +164,7 @@ function(req, res, filename) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  if (!is_valid_backup_filename(filename)) {
-    res$status <- 400
-    res$serializer <- serializer_json()
-    return(list(
-      error = "INVALID_FILENAME",
-      message = "Filename contains invalid characters or has an unsupported extension"
-    ))
-  }
-
-  # Build full path and check existence
-  backup_path <- file.path("/backup", filename)
-  if (!file.exists(backup_path)) {
-    res$status <- 404
-    res$serializer <- serializer_json()
-    return(list(
-      error = "BACKUP_NOT_FOUND",
-      message = sprintf("Backup file '%s' not found", filename)
-    ))
-  }
-
-  # Get file info
-  file_info <- file.info(backup_path)
-  file_size <- file_info$size
-
-  # Determine content type based on extension
-  if (grepl("\\.gz$", filename)) {
-    content_type <- "application/gzip"
-  } else {
-    content_type <- "application/sql"
-  }
-
-  # Set response headers
-  res$setHeader("Content-Type", content_type)
-  res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', filename))
-  res$setHeader("Content-Length", as.character(file_size))
-
-  # Read file as binary and return raw bytes
-  tryCatch(
-    {
-      con <- file(backup_path, "rb")
-      on.exit(close(con))
-      readBin(con, "raw", n = file_size)
-    },
-    error = function(e) {
-      logger::log_error("Failed to read backup file: {e$message}")
-      res$status <- 500
-      res$serializer <- serializer_json()
-      list(
-        error = "FILE_READ_FAILED",
-        message = "Failed to read backup file",
-        details = e$message
-      )
-    }
-  )
+  svc_backup_download(req, res, filename)
 }
 
 
@@ -554,77 +200,5 @@ function(req, res, filename) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  if (!is_valid_backup_filename(filename)) {
-    res$status <- 400
-    res$serializer <- serializer_json()
-    return(list(
-      error = "INVALID_FILENAME",
-      message = "Filename contains invalid characters or has an unsupported extension"
-    ))
-  }
-
-  # Prevent deletion of symlinks (like latest.*.sql.gz)
-  if (grepl("^latest\\.", filename)) {
-    res$status <- 400
-    return(list(
-      error = "CANNOT_DELETE_SYMLINK",
-      message = "Cannot delete 'latest' symlink files"
-    ))
-  }
-
-  # Extract and validate confirmation from request body
-  confirm <- req$argsBody$confirm
-  if (is.null(confirm) || confirm != "DELETE") {
-    res$status <- 400
-    return(list(
-      error = "CONFIRMATION_REQUIRED",
-      message = "Must provide confirm: 'DELETE' in request body to delete backup"
-    ))
-  }
-
-  # Build full path and check existence
-  backup_path <- file.path("/backup", filename)
-  if (!file.exists(backup_path)) {
-    res$status <- 404
-    return(list(
-      error = "BACKUP_NOT_FOUND",
-      message = sprintf("Backup file '%s' not found", filename)
-    ))
-  }
-
-  # Get file info before deletion for response
-  file_info <- file.info(backup_path)
-  file_size <- file_info$size
-
-  # Attempt to delete the file
-  tryCatch(
-    {
-      success <- file.remove(backup_path)
-      if (!success) {
-        res$status <- 500
-        return(list(
-          error = "DELETE_FAILED",
-          message = "Failed to delete backup file"
-        ))
-      }
-
-      logger::log_info("Backup file deleted: {filename} ({file_size} bytes)")
-
-      list(
-        success = TRUE,
-        message = sprintf("Backup file '%s' deleted successfully", filename),
-        deleted_file = filename,
-        deleted_size_bytes = file_size
-      )
-    },
-    error = function(e) {
-      logger::log_error("Failed to delete backup file: {e$message}")
-      res$status <- 500
-      list(
-        error = "DELETE_FAILED",
-        message = "Failed to delete backup file",
-        details = e$message
-      )
-    }
-  )
+  svc_backup_delete(req, res, filename)
 }

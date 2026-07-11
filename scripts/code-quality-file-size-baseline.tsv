@@ -1,12 +1,3 @@
-api/endpoints/admin_endpoints.R	1083
-api/endpoints/backup_endpoints.R	630
-api/endpoints/entity_endpoints.R	837
-api/endpoints/jobs_endpoints.R	1016
-api/endpoints/llm_admin_endpoints.R	652
-api/endpoints/publication_endpoints.R	1145
-api/endpoints/re_review_endpoints.R	857
-api/endpoints/statistics_endpoints.R	782
-api/endpoints/user_endpoints.R	1091
 api/functions/async-job-handlers.R	973
 api/functions/async-job-repository.R	638
 api/functions/endpoint-functions.R	693

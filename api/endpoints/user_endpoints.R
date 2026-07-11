@@ -1,23 +1,24 @@
 # api/endpoints/user_endpoints.R
 #
-# This file contains all user-related endpoints, extracted from the
-# original sysndd_plumber.R. It follows the Google R Style Guide
-# conventions where possible.
-
-# Note: All required modules (security.R, middleware.R, user-repository.R)
-# are sourced by start_sysndd_api.R before endpoints are loaded.
-# Functions are available in the global environment.
+# User-related endpoints, extracted from the original sysndd_plumber.R.
+# Functions (security.R, middleware.R, user-repository.R, services/*) are
+# sourced by start_sysndd_api.R before endpoints are loaded and are available
+# in the global environment.
+#
+# Thin authorization/delegation shell (#346): every `require_role()` gate and
+# the admin-target shield (`assert_not_targeting_admin()`, #5) live here;
+# request processing has moved to the `svc_`-prefixed functions in
+# services/user-read-endpoint-service.R, services/user-account-endpoint-service.R,
+# services/user-password-profile-endpoint-service.R, and
+# services/user-bulk-endpoint-service.R.
 
 ## -------------------------------------------------------------------##
 ## User endpoint section
 ## -------------------------------------------------------------------##
 
 #* Retrieves a summary table of users based on role permissions.
-#*
-#* # `Details`
 #* Admins see all users; Curators see only unapproved users; others are forbidden.
 #* Supports server-side filtering, sorting, and cursor pagination.
-#*
 #* @tag user
 #* @serializer json list(na="null")
 #* @param filter Filter string (e.g., "user_name:contains:john")
@@ -29,381 +30,93 @@
 function(req, res, filter = "", sort = "+user_id", page_after = 0,
          page_size = "all",
          fspec = "user_id,user_name,email,user_role,approved,abbreviation,first_name,family_name,comment,created_at") {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
-  # Start time tracking
-  start_time <- Sys.time()
-
-  # Generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "user_id")
-
-  # Generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
-
-  # Retrieve base user data
-  if (req$user_role == "Administrator") {
-    user_table <- pool %>%
-      tbl("user") %>%
-      select(
-        user_id,
-        user_name,
-        email,
-        orcid,
-        abbreviation,
-        first_name,
-        family_name,
-        comment,
-        terms_agreed,
-        created_at,
-        user_role,
-        approved
-      ) %>%
-      collect()
-  } else {
-    # Curator sees only unapproved users
-    user_table <- pool %>%
-      tbl("user") %>%
-      select(
-        user_id,
-        user_name,
-        email,
-        orcid,
-        abbreviation,
-        first_name,
-        family_name,
-        comment,
-        terms_agreed,
-        created_at,
-        user_role,
-        approved
-      ) %>%
-      filter(approved == 0) %>%
-      collect()
-  }
-
-  # Apply filtering and sorting (if filter expression is not empty)
-  if (filter_exprs != "") {
-    user_table <- user_table %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
-  }
-
-  user_table <- user_table %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs))
-
-  # Apply pagination
-  pagination_info <- generate_cursor_pag_inf_safe(
-    user_table,
-    page_size,
-    page_after,
-    "user_id"
-  )
-
-  # Calculate execution time
-  end_time <- Sys.time()
-  execution_time <- as.character(
-    paste0(round(end_time - start_time, 2), " secs")
-  )
-
-  # Build field specification metadata
-  fspec_fields <- strsplit(fspec, ",")[[1]]
-  fspec_parsed <- lapply(fspec_fields, function(field) {
-    field <- trimws(field)
-    # Define field labels
-    label <- switch(field,
-      user_id = "ID",
-      user_name = "Username",
-      email = "E-mail",
-      user_role = "Role",
-      approved = "Approved",
-      abbreviation = "Abbreviation",
-      first_name = "First Name",
-      family_name = "Family Name",
-      comment = "Comment",
-      created_at = "Created",
-      orcid = "ORCID",
-      terms_agreed = "Terms Agreed",
-      field # default: use field name as label
-    )
-    list(
-      key = field,
-      label = label,
-      sortable = TRUE,
-      filterable = TRUE,
-      class = "text-start"
-    )
-  })
-
-  # Add execution time and fspec to meta
-  meta <- pagination_info$meta %>%
-    add_column(tibble::as_tibble(list(
-      fspec = list(fspec_parsed),
-      executionTime = execution_time
-    )))
-
-  list(
-    links = pagination_info$links,
-    meta = meta,
-    data = pagination_info$data
-  )
+  svc_user_table_list(req, filter, sort, page_after, page_size, fspec)
 }
 
-
 #* Retrieves count statistics of all contributions for a specified user.
-#*
-#* # `Details`
 #* Users can view their own contributions. Reviewer/Curator/Admin can view any user.
-#*
 #* @tag user
 #* @serializer json list(na="string")
 #* @get <user_id>/contributions
 function(req, res, user_id) {
-  # Allow users to view their own contributions, or require Reviewer role for others
   if (as.integer(user_id) != req$user_id) {
     require_role(req, res, "Reviewer")
   }
 
-  user_requested <- user_id
-
-  active_user_reviews <- pool %>%
-    tbl("ndd_entity_review") %>%
-    filter(is_primary == 1) %>%
-    filter(review_user_id == user_requested) %>%
-    select(review_id) %>%
-    collect() %>%
-    tally() %>%
-    select(active_reviews = n)
-
-  active_user_status <- pool %>%
-    tbl("ndd_entity_status") %>%
-    filter(is_active == 1) %>%
-    filter(status_user_id == user_requested) %>%
-    select(status_id) %>%
-    collect() %>%
-    tally() %>%
-    select(active_status = n)
-
-  list(
-    user_id = user_requested,
-    active_status = active_user_status$active_status,
-    active_reviews = active_user_reviews$active_reviews
-  )
+  svc_user_contributions(user_id)
 }
 
-
 #* Manages the approval status of a user application.
-#*
-#* # `Details`
 #* Only Admin/Curator. If approved, sets user as approved=1, generates a password,
 #* sends mail, etc. If unapproved, removes user from DB.
-#*
 #* @tag user
 #* @serializer json list(na="string")
 #* @put approval
 function(req, res, user_id = 0, status_approval = FALSE) {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
   user_id_approval <- as.integer(user_id)
   status_approval <- as.logical(status_approval)
 
-  user_table <- pool %>%
-    tbl("user") %>%
-    select(user_id, user_name, approved, first_name, family_name, email, user_role) %>%
-    filter(user_id == user_id_approval) %>%
-    collect()
+  user_table <- svc_user_fetch_for_approval(user_id_approval)
 
-  # Early return: user doesn't exist
   if (nrow(user_table) == 0) {
     res$status <- 409
     return(list(error = "User account does not exist."))
   }
 
-  # SECURITY (#5): a non-Administrator may not approve/reject (activate or
-  # delete) a currently-Administrator target account (demotion/takeover shield).
+  # SECURITY (#5): non-Administrator may not approve/reject a currently-Administrator target.
   if (req$user_role != "Administrator") {
     assert_not_targeting_admin(req$user_role, user_table$user_role)
   }
 
-  # Early return: already approved
- if (as.logical(user_table$approved[1])) {
-    res$status <- 409
-    return(list(error = "User account already active."))
-  }
-
-  # Handle rejection (simpler path first)
-  if (!status_approval) {
-    db_execute_statement(
-      "DELETE FROM user WHERE user_id = ?",
-      list(user_id_approval)
-    )
-    log_info("User rejected and deleted: user_id={user_id_approval}, by={req$user_id}")
-    return(list(message = "User application rejected.", user_id = user_id_approval))
-  }
-
-  # Handle approval
-  user_password <- random_password()
-  user_initials <- generate_initials(
-    user_table$first_name,
-    user_table$family_name
-  )
-
-  # Hash password with Argon2id before storing
-  hashed_password <- hash_password(user_password)
-
-  # Update user approval status, password, and abbreviation
-  user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
-  user_update_password(user_id_approval, hashed_password)
-
-  log_info("User approved: user_id={user_id_approval}, user_name={user_table$user_name}, by={req$user_id}")
-
-  # Generate and send email with error handling
-  email_result <- tryCatch({
-    email_html <- email_account_approved(
-      user_name = user_table$user_name,
-      temp_password = user_password,
-      login_url = paste0(dw$base_url, "/Login")
-    )
-
-    send_noreply_email(
-      email_body = email_html,
-      email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
-      email_recipient = user_table$email,
-      email_blind_copy = "curator@sysndd.org",
-      html_content = TRUE
-    )
-
-    list(success = TRUE)
-  }, error = function(e) {
-    log_error("Email send failed for user_id={user_id_approval}: {e$message}")
-    list(success = FALSE, error = e$message)
-  })
-
-  # Return response with email status
-  if (email_result$success) {
-    return(list(
-      message = "User approved successfully.",
-      user_id = user_id_approval,
-      user_name = user_table$user_name,
-      email_sent = TRUE
-    ))
-  } else {
-    # User is approved but email failed - alert curator
-    res$status <- 200
-    return(list(
-      message = "User approved but email delivery failed. Please contact user manually.",
-      user_id = user_id_approval,
-      user_name = user_table$user_name,
-      email = user_table$email,
-      email_sent = FALSE,
-      email_error = email_result$error
-    ))
-  }
+  svc_user_approval_apply(req, res, user_table, user_id_approval, status_approval)
 }
 
-
 #* Allows administrators to change the roles of users.
-#*
-#* # `Details`
 #* If admin, can set any role. If curator, can only set certain roles.
-#*
 #* @tag user
 #* @put change_role
 function(req, res, user_id, role_assigned = "Viewer") {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
   user_id_role <- as.integer(user_id)
   role_assigned <- as.character(role_assigned)
 
-  # SECURITY (#5): this endpoint calls user_update() directly, so guard the
-  # admin-demotion shield here — a Curator must not modify a currently-
-  # Administrator target (re-checked server-side).
+  # SECURITY (#5): non-Administrator may not modify a currently-Administrator target.
   if (req$user_role != "Administrator") {
     assert_not_targeting_admin(req$user_role, user_current_roles(user_id_role, pool))
   }
 
-  if (req$user_role == "Administrator") {
-    # Admin can assign any role
-    user_update(user_id_role, list(user_role = role_assigned))
-  } else if (role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
-    # Curator can assign non-Administrator roles
-    user_update(user_id_role, list(user_role = role_assigned))
-  } else {
-    res$status <- 403
-    return(list(error = "Insufficient rights. Curators cannot assign Administrator role."))
-  }
+  svc_user_change_role(req, res, user_id_role, role_assigned)
 }
 
-
 #* Retrieves a list of all available user roles.
-#*
-#* # `Details`
 #* Admin can see all roles, Curator sees all except "Administrator".
-#*
 #* @tag user
 #* @get role_list
 function(req, res) {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
-  if (req$user_role == "Administrator") {
-    role_list <- tibble::as_tibble(user_status_allowed) %>%
-      select(role = value)
-    role_list
-  } else {
-    # Curator sees all except Administrator
-    role_list <- tibble::as_tibble(user_status_allowed) %>%
-      select(role = value) %>%
-      filter(role != "Administrator")
-    role_list
-  }
+  svc_user_role_list(req)
 }
 
-
 #* Retrieves a list of users based on their roles.
-#*
-#* # `Details`
 #* Admin/Curator can filter users by roles.
-#*
 #* @tag user
 #* @get list
 function(req, res, roles = "Viewer") {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
-  roles_list <- str_trim(str_split(str_squish(roles), ",")[[1]])
-  roles_allowed_check <- all(roles_list %in% user_status_allowed)
-
-  if (!roles_allowed_check) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(
-      auto_unbox = TRUE,
-      list(
-        status = 400,
-        message = "Some submitted roles are not in the allowed roles list."
-      )
-    )
-    return(res)
-  }
-
-  user_table_roles <- pool %>%
-    tbl("user") %>%
-    filter(approved == 1) %>%
-    filter(user_role %in% roles_list) %>%
-    select(user_id, user_name, user_role) %>%
-    collect()
-  user_table_roles
+  svc_user_list_by_roles(res, roles)
 }
 
-
 #* Allows a user or an administrator to change the user's password.
-#*
-#* # `Details`
 #* Validates old password, checks new password complexity, updates DB.
 #* Password input is accepted only via a JSON request body so secrets never
 #* appear in URLs or access logs.
-#*
 #* @tag user
 #* @put password/update
 function(req, res) {
@@ -458,634 +171,115 @@ function(req, res) {
     return(list(error = "`old_pass`, `new_pass_1`, and `new_pass_2` must each be scalar strings."))
   }
 
-  user_id_pass_change <- body$user_id_pass_change
-  old_pass <- body$old_pass
-  new_pass_1 <- body$new_pass_1
-  new_pass_2 <- body$new_pass_2
-
-  user <- req$user_id
-  user_id_pass_change <- as.integer(user_id_pass_change)
-
-  # Get user info including password for verification
-  user_table <- pool %>%
-    tbl("user") %>%
-    select(
-      user_id,
-      user_name,
-      password,
-      approved,
-      first_name,
-      family_name,
-      email
-    ) %>%
-    filter(user_id == user_id_pass_change) %>%
-    collect()
-
-  user_id_pass_change_exists <- as.logical(length(user_table$user_id))
-  user_id_pass_change_approved <- as.logical(user_table$approved[1])
-  # Use verify_password to support both plaintext and hashed passwords
-  old_pass_match <- verify_password(user_table$password[1], old_pass)
-  new_pass_match_and_valid <- new_password_valid(new_pass_1, new_pass_2, old_pass)
-
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (
-    (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-      !user_id_pass_change_exists &&
-      (old_pass_match || req$user_role %in% c("Administrator")) &&
-      new_pass_match_and_valid
-  ) {
-    res$status <- 409
-    return(list(error = "User account does not exist."))
-  } else if (
-    (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-      user_id_pass_change_exists && !user_id_pass_change_approved &&
-      (old_pass_match || req$user_role %in% c("Administrator")) &&
-      new_pass_match_and_valid
-  ) {
-    res$status <- 409
-    return(list(error = "User account not approved."))
-  } else if (
-    (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-      (!(old_pass_match || req$user_role %in% c("Administrator")) ||
-        !new_pass_match_and_valid)
-  ) {
-    res$status <- 409
-    return(list(error = "Password input problem."))
-  } else if (
-    (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-      user_id_pass_change_exists &&
-      user_id_pass_change_approved &&
-      (old_pass_match || req$user_role %in% c("Administrator")) &&
-      new_pass_match_and_valid
-  ) {
-    # Hash new password with Argon2id before storing
-    hashed_new_password <- hash_password(new_pass_1)
-    user_update_password(user_id_pass_change, hashed_new_password)
-
-    res$status <- 201
-    return(list(message = "Password successfully changed."))
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  svc_user_password_update(req, res, body)
 }
 
-
 #* Update User Profile (Self-Service)
-#*
-#* Allows authenticated users to update their own email and ORCID.
-#* This is a self-service endpoint - users can only modify their own profile.
-#*
-#* # `Details`
-#* Validates email format and ORCID format (if provided).
-#* ORCID must match pattern: 0000-0000-0000-000X (where X is digit or X).
-#* Email changes require re-verification in production (not implemented yet).
-#*
-#* # `Return`
-#* Success message with updated fields, or error if validation fails.
-#*
+#* Allows authenticated users to update their own email and ORCID (self-service
+#* only). Validates email format and ORCID format (0000-0000-0000-000X).
 #* @tag user
 #* @serializer json list(na="string")
-#*
 #* @response 200 OK. Profile updated successfully.
 #* @response 400 Bad Request. Invalid email or ORCID format.
 #* @response 401 Unauthorized. Not authenticated.
-#*
 #* @put profile
 function(req, res) {
-  user_id <- req$user_id
-
-  if (length(user_id) == 0 || is.null(user_id)) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  }
-
-  # Parse JSON body
-  body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
-  )
-
-  new_email <- body$email
-  new_orcid <- body$orcid
-
-  # Track what will be updated
-
-  updates <- list()
-  updated_fields <- c()
-
-
-  # Validate and prepare email update
-  if (!is.null(new_email) && nchar(trimws(new_email)) > 0) {
-    new_email <- trimws(new_email)
-    if (!is_valid_email(new_email)) {
-      res$status <- 400
-      return(list(error = "Invalid email format."))
-    }
-
-    # Check if email is already taken by another user
-    existing_email <- pool %>%
-      tbl("user") %>%
-      filter(email == new_email, user_id != !!user_id) %>%
-      collect()
-
-    if (nrow(existing_email) > 0) {
-      res$status <- 400
-      return(list(error = "Email address is already in use by another account."))
-    }
-
-    updates$email <- new_email
-    updated_fields <- c(updated_fields, "email")
-  }
-
-  # Validate and prepare ORCID update
-  if (!is.null(new_orcid)) {
-    new_orcid <- trimws(new_orcid)
-
-    # Allow empty string to clear ORCID
-    if (nchar(new_orcid) == 0) {
-      updates$orcid <- ""
-      updated_fields <- c(updated_fields, "orcid")
-    } else {
-      # ORCID format: 0000-0000-0000-000X (last char can be digit or X)
-      # Using [0-9] instead of \d for R compatibility
-      orcid_pattern <- "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"
-      if (!grepl(orcid_pattern, new_orcid, ignore.case = TRUE)) {
-        res$status <- 400
-        return(list(
-          error = "Invalid ORCID format. Expected: 0000-0000-0000-000X"
-        ))
-      }
-      # Normalize: uppercase X
-      updates$orcid <- toupper(new_orcid)
-      updated_fields <- c(updated_fields, "orcid")
-    }
-  }
-
-  # Check if there's anything to update
-  if (length(updates) == 0) {
-    res$status <- 400
-    return(list(error = "No valid fields provided for update."))
-  }
-
-  # Perform update using existing repository function
-  user_update(user_id, updates)
-
-  res$status <- 200
-  return(list(
-    message = "Profile updated successfully.",
-    updated_fields = updated_fields
-  ))
+  svc_user_profile_update(req, res)
 }
 
-
 #* Allows a user to request a password reset by email.
-#*
-#* # `Details`
 #* If the email is valid and exists in the DB, generates a reset token
 #* and sends email with reset URL. Uses POST with JSON body per OWASP guidelines
 #* to avoid exposing email in URL/logs.
-#*
 #* @tag user
 #* @post password/reset/request
 function(req, res) {
-  # Parse email from JSON body (OWASP: sensitive data should not be in URLs)
-  body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
-  )
-  email_request <- body$email %||% ""
-
-  # Delegate to the best-effort helper: an SMTP failure must NOT surface as a
-  # 500 (mirrors the signup #470 + approval hardening), and the response must be
-  # identical whether or not the email matches an account (anti-enumeration).
-  # See process_password_reset_request() in functions/user-endpoint-helpers.R.
-  user_table <- pool %>%
-    tbl("user") %>%
-    collect()
-
-  result <- process_password_reset_request(email_request, user_table, dw)
-  res$status <- result$status
-  return(result$body)
+  svc_user_password_reset_request(req, res)
 }
 
-
 #* Does password reset
-#*
-#* # `Details`
 #* This endpoint is called with a Bearer token that includes a
 #* password_reset_date-based JWT. If valid and not expired, updates the password.
 #* Uses POST with JSON body per OWASP guidelines - passwords must NEVER be in URLs.
-#*
 #* @tag user
 #* @post password/reset/change
 function(req, res) {
-  # Parse passwords from JSON body (OWASP: passwords MUST NOT be in URLs)
-  body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
-  )
-  new_pass_1 <- body$password %||% ""
-  new_pass_2 <- body$password_confirm %||% ""
-  jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-  key <- charToRaw(dw$secret)
-
-  user_jwt <- jwt_decode_hmac(jwt, secret = key)
-  user_jwt$token_expired <- (user_jwt$exp < as.numeric(Sys.time()))
-
-  if (is.null(jwt) || user_jwt$token_expired) {
-    res$status <- 401
-    return(list(error = "Reset token expired."))
-  } else {
-    user_table <- pool %>%
-      tbl("user") %>%
-      collect() %>%
-      filter(user_id == user_jwt$user_id) %>%
-      mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-      mutate(reset_posix = as.POSIXct(password_reset_date, tz = "UTC")) %>%
-      mutate(timestamp_iat = as.integer(reset_posix)) %>%
-      select(user_id, user_name, hash, email, timestamp_iat)
-
-    # Check user was found
-    if (nrow(user_table) == 0) {
-      res$status <- 404
-      return(list(error = "User not found."))
-    }
-
-    # Validate JWT claims against database values (instead of comparing JWT strings)
-    # This properly handles jti/nbf fields that are auto-generated
-    # Use first() to extract scalar values from tibble columns
-    # Allow 2-second tolerance on iat to handle datetime rounding when storing/retrieving
-    iat_tolerance <- abs(user_jwt$iat - user_table$timestamp_iat[[1]]) <= 2
-
-    jwt_claims_valid <- (user_jwt$user_id == user_table$user_id[[1]]) &&
-      (user_jwt$user_name == user_table$user_name[[1]]) &&
-      (user_jwt$email == user_table$email[[1]]) &&
-      (user_jwt$hash == user_table$hash[[1]]) &&
-      iat_tolerance
-
-    new_pass_match_and_valid <- new_password_valid(new_pass_1, new_pass_2)
-
-    if (jwt_claims_valid && new_pass_match_and_valid) {
-      # Hash new password with Argon2id before storing
-      hashed_new_password <- hash_password(new_pass_1)
-      user_update_password(user_jwt$user_id, hashed_new_password)
-      # Clear password_reset_date using direct SQL (NULL params don't work well with DBI)
-      db_execute_statement(
-        "UPDATE user SET password_reset_date = NULL WHERE user_id = ?",
-        list(user_jwt$user_id)
-      )
-
-      res$status <- 201
-      return(list(message = "Password successfully changed."))
-    } else {
-      res$status <- 409
-      return(list(error = "Password or JWT input problem."))
-    }
-  }
+  svc_user_password_reset_change(req, res)
 }
 
-
 #* Deletes a user from the system.
-#*
-#* # `Details`
 #* Admin only. Checks if user exists, deletes them, logs operation.
-#*
 #* @tag user
 #* @serializer json list(na="string")
 #* @delete delete
 function(req, res, user_id) {
-  # Require Administrator role
   require_role(req, res, "Administrator")
 
-  user_id <- as.integer(user_id)
-
-  if (!is.numeric(user_id) || user_id <= 0) {
-    res$status <- 400
-    return(list(error = "Invalid user_id provided."))
-  }
-
-  # Check if user exists
-  exist_result <- db_execute_query(
-    "SELECT COUNT(*) as count FROM user WHERE user_id = ?",
-    list(user_id)
-  )
-
-  if (exist_result$count == 0) {
-    res$status <- 404
-    return(list(error = "User not found."))
-  }
-
-  # Delete user
-  delete_result <- tryCatch(
-    {
-      db_execute_statement(
-        "DELETE FROM user WHERE user_id = ?",
-        list(user_id)
-      )
-    },
-    error = function(e) {
-      NULL
-    }
-  )
-
-  if (is.null(delete_result)) {
-    res$status <- 500
-    return(list(error = "Failed to delete user."))
-  }
-
-  list(message = "User successfully deleted.")
+  svc_user_delete(res, user_id)
 }
 
-
 #* Updates the details of an existing user and handles approval process.
-#*
-#* # `Details`
 #* Admin can modify user attributes. If approved, checks for existing password
 #* else generates one and sends email.
-#*
 #* @tag user
 #* @serializer json list(na="string")
 #* @accept json
 #* @put update
 function(req, res) {
-  # Require Administrator role
   require_role(req, res, "Administrator")
 
-  user_details <- req$argsBody$user_details
-
-  if (is.null(user_details$user_id)) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-      status = 400,
-      message = "The user_id field is required."
-    ))
-    return(res)
-  }
-
-  if (!is.null(user_details$approved)) {
-    approved <- user_details$approved
-    if (approved %in% c(TRUE, "TRUE", "1", 1)) {
-      user_details$approved <- 1
-    } else if (approved %in% c(FALSE, "FALSE", "0", 0)) {
-      user_details$approved <- 0
-    } else {
-      res$status <- 400
-      res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-        status = 400,
-        message = "Invalid value for approved field."
-      ))
-      return(res)
-    }
-
-    if (user_details$approved == 1) {
-      if (is.null(user_details$abbreviation) || user_details$abbreviation == "") {
-        res$status <- 400
-        res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-          status = 400,
-          message = "Abbreviation must be set for approval."
-        ))
-        return(res)
-      }
-    }
-  }
-
-  # Build updates list for user_update
-  fields_to_update <- names(user_details)[names(user_details) != "user_id"]
-  updates <- user_details[fields_to_update]
-
-  result <- tryCatch(
-    {
-      user_update(user_details$user_id, updates)
-      TRUE
-    },
-    error = function(e) {
-      list(error = e$message)
-    }
-  )
-
-  if (is.list(result) && !is.null(result$error)) {
-    res$status <- 500
-    return(list(error = paste("Failed to update user details:", result$error)))
-  }
-
-  if (!is.null(user_details$approved) && user_details$approved == 1) {
-    user_table <- pool %>%
-      tbl("user") %>%
-      collect() %>%
-      filter(user_id == user_details$user_id) %>%
-      select(first_name, family_name, email, password)
-
-    if (nrow(user_table) > 0) {
-      if (is.null(user_table$password) || user_table$password == "") {
-        user_password <- random_password()
-        user_initials <- generate_initials(user_table$first_name, user_table$family_name)
-
-        # Hash password with Argon2id before storing
-        hashed_password <- hash_password(user_password)
-        user_update_password(user_details$user_id, hashed_password)
-        user_update(user_details$user_id, list(abbreviation = user_initials))
-
-        # Generate professional HTML email using template
-        email_html <- email_account_approved(
-          user_name = paste(user_table$first_name, user_table$family_name),
-          temp_password = user_password,
-          login_url = paste0(dw$base_url, "/Login")
-        )
-
-        send_noreply_email(
-          email_body = email_html,
-          email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
-          email_recipient = user_table$email,
-          email_blind_copy = "curator@sysndd.org",
-          html_content = TRUE
-        )
-      }
-    }
-  }
-
-  list(message = "User details updated successfully.")
+  svc_user_update_details(req, res)
 }
 
-
 #* Bulk approve multiple users
-#*
-#* # `Details`
 #* Approves multiple users in a single atomic transaction.
 #* Requires Curator role or higher. Max 20 users per request.
-#*
 #* @tag user
 #* @serializer json list(na="null")
 #* @accept json
 #* @post bulk_approve
 function(req, res) {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
-  user_ids <- req$argsBody$user_ids
+  user_ids <- as.integer(req$argsBody$user_ids)
 
-  # Validate input
-  if (is.null(user_ids) || length(user_ids) == 0) {
-    res$status <- 400
-    return(list(error = "user_ids array is required and cannot be empty"))
-  }
-
-  if (length(user_ids) > 20) {
-    res$status <- 400
-    return(list(error = "Cannot process more than 20 users at once"))
-  }
-
-  # Convert to integers
-  user_ids <- as.integer(user_ids)
-
-  # SECURITY (#5): a non-Administrator may not bulk-approve currently-
-  # Administrator target accounts (takeover shield).
+  # SECURITY (#5): non-Administrator may not bulk-approve currently-Administrator targets.
   if (req$user_role != "Administrator") {
     assert_not_targeting_admin(req$user_role, user_current_roles(user_ids, pool))
   }
 
-  # Call bulk approve service function
-  result <- tryCatch(
-    {
-      user_bulk_approve(user_ids, req$user_id, pool)
-    },
-    error = function(e) {
-      list(error = e$message)
-    }
-  )
-
-  if (!is.null(result$error)) {
-    res$status <- 409
-    return(list(error = result$error))
-  }
-
-  list(processed = result$processed, message = result$message)
+  svc_user_bulk_approve(req, res, user_ids)
 }
 
-
 #* Bulk delete multiple users
-#*
-#* # `Details`
 #* Deletes multiple users in a single atomic transaction.
 #* Requires Administrator role. Max 20 users per request.
 #* Rejects requests containing admin users.
-#*
 #* @tag user
 #* @serializer json list(na="null")
 #* @accept json
 #* @post bulk_delete
 function(req, res) {
-  # Require Administrator role
   require_role(req, res, "Administrator")
 
-  user_ids <- req$argsBody$user_ids
+  user_ids <- as.integer(req$argsBody$user_ids)
 
-  # Validate input
-  if (is.null(user_ids) || length(user_ids) == 0) {
-    res$status <- 400
-    return(list(error = "user_ids array is required and cannot be empty"))
-  }
-
-  if (length(user_ids) > 20) {
-    res$status <- 400
-    return(list(error = "Cannot process more than 20 users at once"))
-  }
-
-  # Convert to integers
-  user_ids <- as.integer(user_ids)
-
-  # Call bulk delete service function
-  result <- tryCatch(
-    {
-      user_bulk_delete(user_ids, req$user_id, pool)
-    },
-    error = function(e) {
-      # Check if error is about admin users
-      if (grepl("Cannot delete: selection contains admin users", e$message)) {
-        res$status <- 403
-        return(list(error = e$message))
-      }
-      list(error = e$message)
-    }
-  )
-
-  if (!is.null(result$error)) {
-    if (res$status != 403) {
-      res$status <- 409
-    }
-    return(list(error = result$error))
-  }
-
-  list(processed = result$processed, message = result$message)
+  svc_user_bulk_delete(req, res, user_ids)
 }
 
-
 #* Bulk assign role to multiple users
-#*
-#* # `Details`
 #* Assigns a role to multiple users in a single atomic transaction.
 #* Requires Curator role or higher. Max 20 users per request.
 #* Curators cannot assign Administrator role.
-#*
 #* @tag user
 #* @serializer json list(na="null")
 #* @accept json
 #* @post bulk_assign_role
 function(req, res) {
-  # Require Curator role or higher
   require_role(req, res, "Curator")
 
-  user_ids <- req$argsBody$user_ids
+  user_ids <- as.integer(req$argsBody$user_ids)
   role <- req$argsBody$role
 
-  # Validate input
-  if (is.null(user_ids) || length(user_ids) == 0) {
-    res$status <- 400
-    return(list(error = "user_ids array is required and cannot be empty"))
-  }
-
-  if (is.null(role) || role == "") {
-    res$status <- 400
-    return(list(error = "role field is required"))
-  }
-
-  if (length(user_ids) > 20) {
-    res$status <- 400
-    return(list(error = "Cannot process more than 20 users at once"))
-  }
-
-  # Validate role
-  allowed_roles <- c("Administrator", "Curator", "Reviewer", "Viewer")
-  if (!role %in% allowed_roles) {
-    res$status <- 400
-    return(list(error = "Invalid role specified"))
-  }
-
-  # Check if Curator trying to assign Administrator role
-  if (req$user_role == "Curator" && role == "Administrator") {
-    res$status <- 403
-    return(list(error = "Insufficient permissions to assign Administrator role"))
-  }
-
-  # Convert to integers
-  user_ids <- as.integer(user_ids)
-
-  # Call bulk assign role service function
-  result <- tryCatch(
-    {
-      user_bulk_assign_role(user_ids, role, req$user_role, pool)
-    },
-    error = function(e) {
-      list(error = e$message)
-    }
-  )
-
-  if (!is.null(result$error)) {
-    res$status <- 409
-    return(list(error = result$error))
-  }
-
-  list(processed = result$processed, message = result$message)
+  svc_user_bulk_assign_role(req, res, user_ids, role)
 }

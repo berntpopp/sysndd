@@ -3,6 +3,14 @@
 # This file contains all Re-review-related endpoints, extracted from
 # the original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
+#
+# Route decorators/formals and the Reviewer/Curator role gates stay
+# route-local here (behavior-preserving, #346). Handler bodies delegate to
+# services/re-review-query-endpoint-service.R (read-only handlers) and
+# services/re-review-workflow-endpoint-service.R (lifecycle/batch/
+# assignment/recalculation handlers), which in turn call the pre-existing
+# domain services in services/re-review-service.R and
+# services/re-review-refusal-service.R.
 
 # Note: db-helpers.R is sourced by start_sysndd_api.R before endpoints are loaded
 # Functions like db_execute_statement are available in the global environment
@@ -14,13 +22,7 @@
 #* Submit a Re-Review Entry
 #*
 #* Allows users with roles (Administrator, Curator, Reviewer) to submit a
-#* re-review entry in the DB.
-#*
-#* # `Details`
-#* Updates the re_review_entity_connect table accordingly.
-#*
-#* # `Return`
-#* If successful, returns success message or updated entry. Otherwise, an error.
+#* re-review entry in the DB. Updates the re_review_entity_connect table.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -29,32 +31,13 @@
 function(req, res) {
   require_role(req, res, "Reviewer")
 
-  submit_user_id <- req$user_id
-  submit_data <- req$argsBody$submit_json
-
-  # Build parameterized UPDATE query dynamically
-  fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
-  fields_to_update <- re_review_filter_submit_fields(fields_to_update) # SECURITY #2
-  set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
-  sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
-
-  # Parameters: field values + re_review_entity_id
-  # IMPORTANT: Must unname for anonymous (?) placeholders
-  params <- unname(c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id)))
-
-  db_execute_statement(sql, params)
+  svc_re_review_submit(req$argsBody$submit_json)
 }
-
 
 #* Unsubmit a Re-Review Entry
 #*
-#* Allows (Administrator, Curator) to revert a re-review entry to un-submitted.
-#*
-#* # `Details`
-#* Sets re_review_submitted = 0 in the DB for that re_review_entity_id.
-#*
-#* # `Return`
-#* If successful, a success message. Otherwise, an error.
+#* Allows (Administrator, Curator) to revert a re-review entry to
+#* un-submitted. Sets re_review_submitted = 0 for that re_review_entity_id.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -63,15 +46,8 @@ function(req, res) {
 function(req, res, re_review_id) {
   require_role(req, res, "Curator")
 
-  submit_user_id <- req$user_id
-  re_review_id <- as.integer(re_review_id)
-
-  db_execute_statement(
-    "UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ?",
-    list(re_review_id)
-  )
+  svc_re_review_unsubmit(re_review_id)
 }
-
 
 #* Refuse / decline a Re-Review Entry (needs specialist)
 #*
@@ -88,22 +64,8 @@ function(req, res, re_review_id) {
 function(req, res, re_review_id) {
   require_role(req, res, "Reviewer")
 
-  re_review_id <- as.integer(re_review_id)
-  if (is.na(re_review_id)) {
-    stop_for_bad_request("re_review_id must be an integer")
-  }
-
-  result <- refuse_re_review_entity(
-    re_review_entity_id = re_review_id,
-    user_id = req$user_id,
-    reason = req$argsBody$reason,
-    pool = pool
-  )
-  stop_for_rereview_result_error(result)
-
-  list(message = result$message, entry = result$entry)
+  svc_re_review_refuse(re_review_id, req$user_id, req$argsBody$reason)
 }
-
 
 #* Clear a Re-Review refusal (curator triage)
 #*
@@ -117,27 +79,13 @@ function(req, res, re_review_id) {
 function(req, res, re_review_id) {
   require_role(req, res, "Curator")
 
-  re_review_id <- as.integer(re_review_id)
-  if (is.na(re_review_id)) {
-    stop_for_bad_request("re_review_id must be an integer")
-  }
-
-  result <- clear_re_review_refusal(re_review_entity_id = re_review_id, pool = pool)
-  stop_for_rereview_result_error(result)
-
-  list(message = result$message, entry = result$entry)
+  svc_re_review_refuse_clear(re_review_id)
 }
-
 
 #* Approve a Re-Review Entry
 #*
-#* Allows (Administrator, Curator) to approve a re-review entry.
-#*
-#* # `Details`
-#* Depending on status_ok and review_ok, updates DB fields.
-#*
-#* # `Return`
-#* Success message or error.
+#* Allows (Administrator, Curator) to approve a re-review entry. Depending
+#* on status_ok and review_ok, updates DB fields.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -150,51 +98,18 @@ function(req, res, re_review_id) {
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   require_role(req, res, "Curator")
 
-  status_ok <- as.logical(status_ok)
-  review_ok <- as.logical(review_ok)
-  re_review_id <- as.integer(re_review_id)
-
-  re_review_entity_connect_data <- pool %>%
-    tbl("re_review_entity_connect") %>%
-    filter(re_review_entity_id == re_review_id) %>%
-    collect()
-
-  if (nrow(re_review_entity_connect_data) == 0) {
-    res$status <- 404L
-    return(list(error = "Re-review record not found"))
-  }
-
-  # Delegate to repository functions (which now auto-sync re_review_approved)
-  status_approve(
-    re_review_entity_connect_data$status_id,
-    req$user_id,
-    approved = status_ok
-  )
-  review_approve(
-    re_review_entity_connect_data$review_id,
-    req$user_id,
-    approved = review_ok
-  )
-
-  list(message = "Re-review approved successfully")
+  svc_re_review_approve(re_review_id, status_ok, review_ok, req$user_id, res, pool)
 }
-
 
 #* Get Re-Review Overview Table
 #*
-#* Returns the re-review overview table for the authenticated user.
-#*
-#* # `Details`
-#* The function filters the re-review data based on the provided `filter`,
-#* `curate`, and `refused` parameters. Admin/Curators can see curated or
-#* uncurated sets. Reviewers see only unsubmitted, non-refused sets assigned to
-#* them. When `refused = TRUE` (Curator+), the table lists items a re-reviewer
-#* declined for specialist attention (issue #54) — these are excluded from both
-#* the reviewer queue and the curator approve queue.
+#* Returns the re-review overview table for the authenticated user, filtered
+#* by `filter`/`curate`/`refused`. Admin/Curators can see curated or
+#* uncurated sets. Reviewers see only unsubmitted, non-refused sets assigned
+#* to them. When `refused = TRUE` (Curator+), the table lists items a
+#* re-reviewer declined for specialist attention (issue #54) — these are
+#* excluded from both the reviewer queue and the curator approve queue.
 #* Supports cursor pagination for large re-review lists.
-#*
-#* # `Return`
-#* Returns a re-review overview table if successful, or an error message.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -224,157 +139,15 @@ function(req,
     require_role(req, res, "Reviewer")
   }
 
-  filter_exprs <- generate_filter_expressions(filter)
-  user <- req$user_id
-
-  re_review_entity_connect <- pool %>%
-    tbl("re_review_entity_connect") %>%
-    filter(re_review_approved == 0) %>%
-    {
-      if (refused) {
-        # Curator surface: refused / needs-specialist items only.
-        filter(., re_review_refused == 1)
-      } else if (curate) {
-        filter(., re_review_submitted == 1, re_review_refused == 0)
-      } else {
-        # Reviewer queue: hide refused items so they leave the active queue.
-        filter(., re_review_submitted == 0, re_review_refused == 0)
-      }
-    }
-
-  re_review_assignment <- pool %>%
-    tbl("re_review_assignment") %>%
-    {
-      if (!curate && !refused) {
-        filter(., user_id == user)
-      } else {
-        .
-      }
-    }
-
-  ndd_entity_view <- pool %>%
-    tbl("ndd_entity_view")
-
-  ndd_entity_status_category <- pool %>%
-    tbl("ndd_entity_status") %>%
-    select(status_id, category_id)
-
-  ndd_entity_status_categories_list <- pool %>%
-    tbl("ndd_entity_status_categories_list")
-
-  user_table <- pool %>%
-    tbl("user") %>%
-    select(user_id, user_name, user_role)
-
-  review_user_collected <- pool %>%
-    tbl("ndd_entity_review") %>%
-    left_join(user_table, by = c("review_user_id" = "user_id")) %>%
-    select(
-      review_id,
-      review_date,
-      review_user_id,
-      review_user_name = user_name,
-      review_user_role = user_role,
-      review_approving_user_id = approving_user_id
-    )
-
-  status_user_collected <- pool %>%
-    tbl("ndd_entity_status") %>%
-    left_join(user_table, by = c("status_user_id" = "user_id")) %>%
-    select(
-      status_id,
-      status_date,
-      status_user_id,
-      status_user_name = user_name,
-      status_user_role = user_role,
-      status_approving_user_id = approving_user_id
-    )
-
-  # Build the lazy joined query, then push the user filter to SQL when one is
-  # provided so we don't collect the full 6-table join just to drop most rows
-  # in R. Falls back to the legacy collect-then-filter path on translation
-  # errors. No fspec contract on this endpoint, so unconditional pushdown is safe.
-  refused_user_collected <- pool %>%
-    tbl("user") %>%
-    select(
-      re_review_refused_user_id = user_id,
-      re_review_refused_user_name = user_name
-    )
-
-  re_review_user_list_lazy <- re_review_entity_connect %>%
-    inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-    select(
-      re_review_entity_id,
-      entity_id,
-      re_review_review_saved,
-      re_review_status_saved,
-      re_review_submitted,
-      re_review_approved,
-      re_review_refused,
-      re_review_refusal_comment,
-      re_review_refused_user_id,
-      re_review_refused_date,
-      status_id,
-      review_id
-    ) %>%
-    left_join(refused_user_collected, by = c("re_review_refused_user_id")) %>%
-    inner_join(ndd_entity_view, by = c("entity_id")) %>%
-    select(-category_id, -category) %>%
-    inner_join(ndd_entity_status_category, by = c("status_id")) %>%
-    inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
-    inner_join(review_user_collected, by = c("review_id")) %>%
-    inner_join(status_user_collected, by = c("status_id"))
-
-  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
-  re_review_user_list <- if (has_filter) {
-    tryCatch(
-      re_review_user_list_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        collect() %>%
-        arrange(re_review_entity_id),
-      error = function(e) {
-        message(sprintf(
-          "[re-review-table] SQL filter pushdown failed (%s); falling back",
-          conditionMessage(e)
-        ))
-        re_review_user_list_lazy %>%
-          collect() %>%
-          arrange(re_review_entity_id) %>%
-          filter(!!!rlang::parse_exprs(filter_exprs))
-      }
-    )
-  } else {
-    re_review_user_list_lazy %>%
-      collect() %>%
-      arrange(re_review_entity_id)
-  }
-
-  # Apply pagination
-  pagination_info <- generate_cursor_pag_inf_safe(
-    re_review_user_list,
-    page_size,
-    page_after,
-    "re_review_entity_id"
-  )
-
-  list(
-    links = pagination_info$links,
-    meta = pagination_info$meta,
-    data = pagination_info$data
-  )
+  re_review_user_list <- svc_re_review_table_query(filter, curate, refused, req$user_id, pool)
+  svc_re_review_paginate(re_review_user_list, page_size, page_after)
 }
-
 
 #* Request New Re-Review Batch
 #*
-#* Allows the authenticated user to request a new batch of entities for re-review
-#* by emailing curators.
-#*
-#* # `Details`
-#* Sends an email to curators with the user info.
-#*
-#* # `Return`
-#* 200 OK if email successfully sent, else error.
+#* Allows the authenticated user to request a new batch of entities for
+#* re-review by emailing curators with the user info. 200 OK if the email
+#* was sent, else error.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -383,50 +156,15 @@ function(req,
 function(req, res) {
   require_role(req, res, "Reviewer")
 
-  user <- req$user_id
-
-  user_table <- pool %>%
-    tbl("user") %>%
-    collect()
-
-  user_info <- user_table %>%
-    filter(user_id == user) %>%
-    select(user_id, user_name, email, orcid)
-
-  curator_mail <- user_table %>%
-    filter(user_role == "Curator") %>%
-    pull(email)
-
-  # Generate professional HTML email using template
-  email_html <- email_rereview_request(
-    user_info = list(
-      user_name = user_info$user_name,
-      email = user_info$email,
-      orcid = user_info$orcid %||% ""
-    )
-  )
-
-  res_mail <- send_noreply_email(
-    email_body = email_html,
-    email_subject = "SysNDD Re-Review Batch Request Submitted",
-    email_recipient = user_info$email,
-    email_blind_copy = curator_mail,
-    html_content = TRUE
-  )
-  res_mail
+  svc_re_review_batch_apply(req$user_id, pool)
 }
-
 
 #* Assign New Re-Review Batch
 #*
-#* Allows Admin/Curator to assign a new batch of entities for re-review
-#* to a specified user.
-#*
-#* # `Details`
-#* Computes the next batch, inserts into re_review_assignment table.
-#*
-#* # `Return`
-#* Success if assigned, or error if user doesn’t exist.
+#* Allows Admin/Curator to assign a new batch of entities for re-review to a
+#* specified user. Computes the next batch, inserts into
+#* re_review_assignment table. Success if assigned, or error if user
+#* doesn’t exist.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -437,96 +175,13 @@ function(req, res) {
 function(req, res, user_id) {
   require_role(req, res, "Curator")
 
-  user_id_assign <- as.integer(user_id)
-
-  # Get assignee user info for email
-
-  user_info <- pool %>%
-    tbl("user") %>%
-    select(user_id, user_name, email, approved) %>%
-    filter(user_id == user_id_assign) %>%
-    collect()
-
-  user_id_assign_exists <- as.logical(length(user_info$user_id))
-
-  if (!user_id_assign_exists) {
-    res$status <- 409
-    return(list(error = "User account does not exist."))
-  }
-
-  # Find next available batch
-  re_review_assignment <- pool %>%
-    tbl("re_review_assignment") %>%
-    select(re_review_batch)
-
-  re_review_entity_connect <- pool %>%
-    tbl("re_review_entity_connect") %>%
-    select(re_review_batch) %>%
-    anti_join(re_review_assignment, by = c("re_review_batch")) %>%
-    collect() %>%
-    unique() %>%
-    summarize(re_review_batch = min(re_review_batch))
-
-  re_review_batch_next <- re_review_entity_connect$re_review_batch
-
-  if (is.na(re_review_batch_next)) {
-    res$status <- 409
-    return(list(error = "No available batches to assign."))
-  }
-
-  # Get entity count for the batch
-  entity_count <- pool %>%
-    tbl("re_review_entity_connect") %>%
-    filter(re_review_batch == re_review_batch_next) %>%
-    summarize(n = n()) %>%
-    collect() %>%
-    pull(n)
-
-  # Insert assignment
-  db_execute_statement(
-    "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
-    list(user_id_assign, re_review_batch_next)
-  )
-
-  # Send notification email to assignee
-  email_html <- email_batch_assigned(
-    user_info = list(
-      user_name = user_info$user_name,
-      email = user_info$email
-    ),
-    batch_info = list(
-      batch_number = re_review_batch_next,
-      entity_count = entity_count
-    ),
-    review_url = paste0(dw$base_url, "/ReReview")
-  )
-
-  send_noreply_email(
-    email_body = email_html,
-    email_subject = "SysNDD Re-Review Batch Assigned",
-    email_recipient = user_info$email,
-    email_blind_copy = "curator@sysndd.org",
-    html_content = TRUE
-  )
-
-  list(
-    message = "Batch assigned successfully.",
-    batch_number = re_review_batch_next,
-    entity_count = entity_count
-  )
+  svc_re_review_batch_assign(as.integer(user_id), res, pool)
 }
-
 
 #* Unassign Re-Review Batch
 #*
 #* Allows Admin/Curator to unassign a re-review batch based on the provided
-#* re_review_batch.
-#*
-#* # `Details`
-#* Removes the assignment from re_review_assignment table.
-#*
-#* # `Return`
-#* If successful, unassigns the batch. Otherwise, error.
+#* re_review_batch. Removes the assignment from re_review_assignment table.
 #*
 #* @tag re_review
 #* @serializer json list(na="string")
@@ -537,30 +192,8 @@ function(req, res, user_id) {
 function(req, res, re_review_batch) {
   require_role(req, res, "Curator")
 
-  user <- req$user_id
-  re_review_batch_unassign <- as.integer(re_review_batch)
-
-  re_review_assignment_table <- pool %>%
-    tbl("re_review_assignment") %>%
-    select(re_review_batch) %>%
-    filter(re_review_batch == re_review_batch_unassign) %>%
-    collect()
-
-  re_review_batch_unassign_ex <- as.logical(
-    length(re_review_assignment_table$re_review_batch)
-  )
-
-  if (!re_review_batch_unassign_ex) {
-    res$status <- 409
-    return(list(error = "Batch does not exist."))
-  }
-
-  db_execute_statement(
-    "DELETE FROM re_review_assignment WHERE re_review_batch = ?",
-    list(re_review_batch_unassign)
-  )
+  svc_re_review_batch_unassign(re_review_batch, res, pool)
 }
-
 
 #* Get Re-Review Assignment Table
 #*
@@ -580,52 +213,11 @@ function(req, res, re_review_batch) {
 function(req, res, limit = 50, offset = 0) {
   require_role(req, res, "Curator")
 
-  user <- req$user_id
-
-  re_review_entity_connect_table <- pool %>%
-    tbl("re_review_entity_connect") %>%
-    select(
-      re_review_batch,
-      re_review_review_saved,
-      re_review_status_saved,
-      re_review_submitted,
-      re_review_approved
-    ) %>%
-    group_by(re_review_batch) %>%
-    collect() %>%
-    mutate(entity_count = 1) %>%
-    summarize_at(vars(re_review_review_saved:entity_count), sum)
-
-  re_review_assignment_table <- pool %>%
-    tbl("re_review_assignment")
-
-  user_table <- pool %>%
-    tbl("user") %>%
-    select(user_id, user_name)
-
-  re_review_assign_table_user <- re_review_assignment_table %>%
-    left_join(user_table, by = c("user_id")) %>%
-    collect() %>%
-    left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
-    select(
-      assignment_id,
-      user_id,
-      user_name,
-      re_review_batch,
-      re_review_review_saved,
-      re_review_status_saved,
-      re_review_submitted,
-      re_review_approved,
-      entity_count
-    ) %>%
-    arrange(user_id)
-
   # Preserve legacy response shape (ManageReReview.vue reads response.data
   # directly as an array via Array.isArray(data)). limit/offset remain in
   # the signature for the pagination contract.
-  re_review_assign_table_user
+  svc_re_review_assignment_table_endpoint(pool)
 }
-
 
 ## -------------------------------------------------------------------##
 ## Re-review Batch Management Endpoints (Dynamic)
@@ -643,22 +235,7 @@ function(req, res, limit = 50, offset = 0) {
 function(req, res) {
   require_role(req, res, "Curator")
 
-  # Parse request body
-  body <- req$argsBody
-
-  # Extract criteria
-  criteria <- list(
-    date_range = body$date_range, # list(start="YYYY-MM-DD", end="YYYY-MM-DD")
-    gene_list = body$gene_list, # array of hgnc_id integers
-    status_filter = body$status_filter, # category_id integer
-    disease_id = body$disease_id, # disease ontology id string
-    batch_size = body$batch_size %||% 20L
-  )
-
-  assigned_user_id <- body$assigned_user_id # optional
-  batch_name <- body$batch_name # optional
-
-  result <- batch_create(criteria, assigned_user_id, batch_name, pool)
+  result <- svc_re_review_batch_create(req$argsBody, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -666,7 +243,6 @@ function(req, res) {
 
   result
 }
-
 
 #* Preview matching entities for batch criteria
 #*
@@ -680,17 +256,7 @@ function(req, res) {
 function(req, res) {
   require_role(req, res, "Curator")
 
-  body <- req$argsBody
-
-  criteria <- list(
-    date_range = body$date_range,
-    gene_list = body$gene_list,
-    status_filter = body$status_filter,
-    disease_id = body$disease_id,
-    batch_size = body$batch_size %||% 20L
-  )
-
-  result <- batch_preview(criteria, criteria$batch_size, pool)
+  result <- svc_re_review_batch_preview(req$argsBody, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -698,7 +264,6 @@ function(req, res) {
 
   result
 }
-
 
 #* List entities available for manual re-review assignment
 #*
@@ -717,7 +282,7 @@ function(req, res) {
 function(req, res, q = "", page = 1L, page_size = 25L) {
   require_role(req, res, "Curator")
 
-  result <- available_entities(q, page, page_size, pool)
+  result <- svc_re_review_entities_available(q, page, page_size, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -725,7 +290,6 @@ function(req, res, q = "", page = 1L, page_size = 25L) {
 
   result
 }
-
 
 #* Reassign Re-Review Batch to different user
 #*
@@ -742,10 +306,7 @@ function(req, res, q = "", page = 1L, page_size = 25L) {
 function(req, res, re_review_batch, user_id) {
   require_role(req, res, "Curator")
 
-  batch_id <- as.integer(re_review_batch)
-  new_user_id <- as.integer(user_id)
-
-  result <- batch_reassign(batch_id, new_user_id, pool)
+  result <- svc_re_review_batch_reassign(re_review_batch, user_id, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -753,7 +314,6 @@ function(req, res, re_review_batch, user_id) {
 
   result
 }
-
 
 #* Archive (soft delete) a Re-Review Batch
 #*
@@ -769,9 +329,7 @@ function(req, res, re_review_batch, user_id) {
 function(req, res, re_review_batch) {
   require_role(req, res, "Curator")
 
-  batch_id <- as.integer(re_review_batch)
-
-  result <- batch_archive(batch_id, pool)
+  result <- svc_re_review_batch_archive(re_review_batch, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -779,7 +337,6 @@ function(req, res, re_review_batch) {
 
   result
 }
-
 
 #* Assign specific entities/genes to a user for re-review
 #*
@@ -793,23 +350,7 @@ function(req, res, re_review_batch) {
 function(req, res) {
   require_role(req, res, "Curator")
 
-  body <- req$argsBody
-
-  entity_ids <- body$entity_ids # array of entity_id integers (required)
-  user_id <- body$user_id # user to assign to (required)
-  batch_name <- body$batch_name # optional custom batch name
-
-  if (is.null(entity_ids) || length(entity_ids) == 0) {
-    res$status <- 400L
-    return(list(status = 400L, message = "entity_ids is required and must not be empty"))
-  }
-
-  if (is.null(user_id)) {
-    res$status <- 400L
-    return(list(status = 400L, message = "user_id is required"))
-  }
-
-  result <- entity_assign(as.integer(entity_ids), as.integer(user_id), batch_name, pool)
+  result <- svc_re_review_entities_assign(req$argsBody, pool)
 
   if (result$status != 200) {
     res$status <- result$status
@@ -817,7 +358,6 @@ function(req, res) {
 
   result
 }
-
 
 #* Recalculate batch entity membership based on updated criteria
 #*
@@ -831,23 +371,7 @@ function(req, res) {
 function(req, res) {
   require_role(req, res, "Curator")
 
-  body <- req$argsBody
-
-  batch_id <- body$re_review_batch
-  criteria <- list(
-    date_range = body$date_range,
-    gene_list = body$gene_list,
-    status_filter = body$status_filter,
-    disease_id = body$disease_id,
-    batch_size = body$batch_size %||% 20L
-  )
-
-  if (is.null(batch_id)) {
-    res$status <- 400L
-    return(list(status = 400L, message = "re_review_batch is required"))
-  }
-
-  result <- batch_recalculate(as.integer(batch_id), criteria, pool)
+  result <- svc_re_review_batch_recalculate(req$argsBody, pool)
 
   if (result$status != 200) {
     res$status <- result$status
