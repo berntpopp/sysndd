@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.6] — 2026-07-11
+
+Maintainability — completed the #346 file-size ratchet program. Every non-exempt handwritten source file is now at or below the 600-line soft ceiling; the only file that remains larger is the documented DB-bootstrap exception (`db/C_Rcommands_set-table-connections.R`), which is intentionally allowlisted. This is a behavior-preserving architecture refactor: no route, response, prop/emit, auth, schema, job, queue, or analysis behavior changed.
+
+### Changed
+
+- **#346 closed — 38 oversized source files brought under 600 lines across four thematic PRs (#526–#529).** Cohesive responsibilities were extracted into focused child components, composables, `svc_`-prefixed services, and function modules, leaving the original files as thin composition/delegation shells.
+  - **Wave 1 (#526) — frontend analyses/visualization (7 files):** `NetworkVisualization` (1326→294) split into a single Cytoscape-lifecycle controller + stateless control/legend components + pure presentation helpers; `PublicationsNDDTable`, `PubtatorNDDTable`, `PubtatorNDDGenes` extracted request/state controllers; `AnalyseGeneClusters`, `GeneStructurePlotWithVariants`, `ProteinDomainLollipopPlot` extracted panels/controls.
+  - **Wave 2 (#527) — frontend curation/tables/admin (13 files):** `GenericTable` (926→115) decomposed with a byte-identical public slot/prop/emit surface; `ManageReReview` (1514→517), `TablesEntities/Genes/Phenotypes`, `NddScoreGeneTable`, `ApproveUser/ApproveReview`, `ManageOntology/ManageUser`, `EntityView`, `ApprovalTableView`, `BatchCriteriaForm` extracted controllers/config/child components; the three data tables dropped injected Axios for the typed API clients.
+  - **Wave 3 (#528) — API Plumber endpoints (9 files, 8093→2725 lines):** handler bodies moved into `svc_`-prefixed endpoint services with byte-identical decorators, formals, `require_role()` gates, and response envelopes.
+  - **Wave 4 (#529) — API services/functions/workers (9 files):** `entity-service`, `re-review-service`, `async-job-handlers`, `async-job-repository`, `omim-functions`, `nddscore-import`, `migration-runner`, `endpoint-functions`, `llm-service` split into cohesive modules registered in the runtime source lists; durable async handlers verified via live job smoke (default + maintenance lanes) after the split.
+- **Size baseline `scripts/code-quality-file-size-baseline.tsv` now contains only the documented DB-bootstrap exception.**
+
 ## [0.29.5] — 2026-07-07
 
 Bugfix — a locked-out curator reported that "Reset Password" returned an error. Root-caused end-to-end against the dev stack.
