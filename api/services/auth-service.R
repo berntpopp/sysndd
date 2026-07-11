@@ -142,19 +142,45 @@ auth_refresh <- function(refresh_token, pool, config) {
     stop_for_bad_request("refresh_token is required")
   }
 
-  # Validate current token
-  user <- auth_validate_token(refresh_token, config)
-
-  if (is.null(user)) {
+  # Validate signature + decode the presented token.
+  claims <- auth_validate_token(refresh_token, config)
+  if (is.null(claims)) {
     stop_for_unauthorized("Invalid refresh token")
   }
-
-  # Check expiration
-  if (user$exp < as.numeric(Sys.time())) {
+  if (is.null(claims$exp) || claims$exp < as.numeric(Sys.time())) {
     stop_for_unauthorized("Refresh token has expired")
   }
 
-  # Generate new token with same user claims
+  # Validate the subject id before querying.
+  uid <- suppressWarnings(as.integer(claims$user_id))
+  if (length(uid) != 1L || is.na(uid) || uid <= 0L) {
+    stop_for_unauthorized("Invalid refresh token")
+  }
+
+  # #535 P0-2: load CURRENT account state from the DB — never trust the
+  # presented token's claims. dplyr verbs are namespaced because the loaded
+  # runtime masks them (biomaRt/STRINGdb).
+  user <- pool %>%
+    dplyr::tbl("user") %>%
+    dplyr::filter(.data$user_id == !!uid) %>%
+    dplyr::rename(user_created = created_at) %>%
+    dplyr::collect()
+  if (nrow(user) == 0) {
+    stop_for_unauthorized("User no longer exists")
+  }
+  user <- user[1, ]
+  if (is.null(user$approved) || user$approved != 1) {
+    stop_for_unauthorized("Account is not active")
+  }
+
+  # Revocation gate: the token's epoch must match the user's current epoch.
+  token_epoch <- as.numeric(claims$sepoch %||% 0)
+  current_epoch <- as.numeric(user$session_epoch %||% 0)
+  if (token_epoch != current_epoch) {
+    stop_for_unauthorized("Session has been revoked. Please sign in again.")
+  }
+
+  # Mint a fresh token with role + claim fields taken from the DB row.
   token <- auth_generate_token(user, config)
 
   logger::log_info("Token refreshed", user_id = user$user_id)
@@ -184,6 +210,9 @@ auth_generate_token <- function(user, config) {
     user_created = user$user_created,
     abbreviation = user$abbreviation,
     orcid = user$orcid,
+    # #535 P0-2: bind the token to the user's current session epoch so a later
+    # privilege/state change (which increments session_epoch) invalidates refresh.
+    sepoch = user$session_epoch %||% 0,
     iat = as.numeric(Sys.time()),
     exp = as.numeric(Sys.time()) + (config$token_expiry %||% 3600)
   )
