@@ -185,18 +185,15 @@ test_that("cache_stats delegates to get_cache_statistics()", {
 # GET /cache/summaries, GET /logs — legacy pagination contract
 # =============================================================================
 
-# NOTE on the calls below: every call supplies BOTH `page` and `per_page`
-# (even if only as ""), never omitting one entirely. `as.integer(NULL)`
-# (an omitted formal) yields a length-0 integer(0), and this pre-existing
-# resolver does `is.na(per_page_val) || ...` / `is.na(page_val) || ...`
-# unconditionally on that value BEFORE it ever looks at the limit/offset
-# alias — so a length-0 operand crashes `||`/`&&` ("argument is of length
-# zero") regardless of whether a valid limit/offset was also supplied. This
-# is pre-existing behaviour carried over verbatim from the pre-refactor
-# inline handler (identical logic), not something introduced here; see the
-# dedicated regression test below that documents it explicitly. The real
-# frontend never hits it because it always sends page+per_page together
-# (app/src/components/llm/LlmCacheManager.vue, LlmLogViewer.vue).
+# NOTE on the calls below: `.svc_llm_admin_resolve_pagination()` must tolerate
+# `page`/`per_page` being OMITTED entirely (arriving NULL), not just present-
+# but-blank (""). `as.integer(NULL)` yields a length-0 `integer(0)`, which
+# previously poisoned the `is.na(per_page_val) || ...` / `is.na(page_val) || ...`
+# short-circuit and 500'd the endpoint BEFORE the limit/offset alias fallback
+# could run (#532). The resolver now normalizes any non-length-1 coercion to
+# `NA_integer_`, so an omitted page/per_page falls through to the limit/offset
+# alias exactly like a present-but-blank "" does. See the dedicated
+# limit/offset-only regression test below.
 
 test_that("cache_summaries treats \"\" filters as NULL with the frontend's real page=1/per_page=50 call shape", {
   env <- build_llm_admin_service_env()
@@ -275,18 +272,33 @@ test_that("generation_logs applies the same pagination contract and \"\" -> NULL
   })
 })
 
-test_that("KNOWN PRE-EXISTING BUG: omitting page/per_page while relying only on limit/offset crashes", {
-  # Regression-documentation, not a desired behaviour: `.svc_llm_admin_resolve_pagination()`
-  # checks `is.na(per_page_val)` / `is.na(page_val)` unconditionally before ever
-  # consulting the limit/offset alias, and `as.integer(NULL)` (an omitted
-  # formal) is length-0, so `||`/`&&` errors ("argument is of length zero")
-  # instead of falling back to the alias. This carries over byte-for-byte from
-  # the pre-refactor inline handler (same is.na()||... logic), so it is
-  # preserved here rather than silently fixed (out of scope for this
-  # behavior-preserving extraction) — flagged for a follow-up issue.
+test_that("cache_summaries/generation_logs derive pagination from limit/offset when page/per_page are OMITTED (NULL) — #532", {
+  # #532: page/per_page omitted entirely arrive as NULL; `as.integer(NULL)` is
+  # length-0 `integer(0)`, which used to crash `is.na(...) || ...` and 500 the
+  # endpoint BEFORE the limit/offset fallback ran. The exact production repro is
+  # `GET /api/llm/cache/summaries?limit=10&offset=0` (Administrator). The resolver
+  # must now fall through to the limit/offset alias instead of erroring.
   env <- build_llm_admin_service_env()
-  expect_error(env$svc_llm_admin_cache_summaries(limit = "10", offset = "25"))
-  expect_error(env$svc_llm_admin_generation_logs(limit = "10", offset = "25"))
+
+  # The exact repro: ?limit=10&offset=0 with page/per_page omitted -> 200, page 1.
+  s0 <- env$svc_llm_admin_cache_summaries(limit = "10", offset = "0")
+  expect_equal(s0$per_page, 10L)
+  expect_equal(s0$page, 1L)
+
+  # A non-zero offset rounds DOWN to the nearest page boundary: floor(25/10)+1 = 3.
+  s <- env$svc_llm_admin_cache_summaries(limit = "10", offset = "25")
+  expect_equal(s$per_page, 10L)
+  expect_equal(s$page, 3L)
+
+  l <- env$svc_llm_admin_generation_logs(limit = "10", offset = "25")
+  expect_equal(l$per_page, 10L)
+  expect_equal(l$page, 3L)
+
+  # With NOTHING supplied at all (every alias omitted -> NULL) the resolver still
+  # returns the documented defaults instead of crashing.
+  d <- env$svc_llm_admin_cache_summaries()
+  expect_equal(d$page, 1L)
+  expect_equal(d$per_page, 50L)
 })
 
 # =============================================================================
