@@ -141,14 +141,35 @@ generate_cursor_pag_inf <- function(
       filter(!!sym(pagination_identifier) == page_after)
   )$row
 
+  # Page 1 sends a sentinel page_after (0) that matches no row; anchor it at
+  # row 0 so the row-window and cursor math below are the same on every page.
   if (length(page_after_row) == 0) {
     page_after_row <- 0
+  }
+
+  # nextItemID is the id of the LAST row shown on this page (row
+  # page_after_row + page_size), so the client's subsequent `page_after=<id>`
+  # request — filtered strictly greater-than that id below — resumes exactly
+  # after it. It is a null (empty) cursor on the final page, i.e. when the last
+  # shown row is the overall last row (page_after_row + page_size >= total).
+  #
+  # This single rule is applied identically to the first and every subsequent
+  # page. It removes the historical first-page off-by-one (which used
+  # + page_size + 1 and pointed one row PAST the last shown row, so row
+  # page_size + 1 was skipped on the page 1 -> page 2 transition) WITHOUT
+  # introducing a phantom trailing empty page when the total is an exact
+  # multiple of page_size (the >= total guard yields a null next on the last
+  # page). `filter(row_number() == 0)` deterministically returns an empty,
+  # correctly-typed vector (row numbers start at 1), which the link/meta
+  # builders below already treat as "no next page".
+  page_after_row_end <- page_after_row + page_size
+  if (page_after_row_end < pagination_tibble_rows) {
     page_after_row_next <- (pagination_tibble %>%
-                              filter(row_number() == page_after_row + page_size + 1) %>%
+                              filter(row_number() == page_after_row_end) %>%
                               dplyr::select(!!sym(pagination_identifier)))[[1]]
   } else {
     page_after_row_next <- (pagination_tibble %>%
-                              filter(row_number() == page_after_row + page_size) %>%
+                              filter(row_number() == 0) %>%
                               dplyr::select(!!sym(pagination_identifier)))[[1]]
   }
 

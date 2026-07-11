@@ -465,6 +465,113 @@ test_that("generate_cursor_pag_inf returns correct structure", {
   expect_true("data" %in% names(result))
 })
 
+# -----------------------------------------------------------------------------
+# Regression: the first-page cursor must not skip a row (#cursor-off-by-one).
+#
+# `nextItemID` on page 1 must be the LAST row actually shown on the page, so the
+# client's subsequent `page_after=<id>` (strictly greater-than) filter resumes
+# exactly after it. The historical bug set page-1 nextItemID to row
+# (page_size + 1) — one row PAST the last shown row — so that row appeared on
+# neither page 1 nor page 2 (verified live: VariO:0026 / HP:0002270 were lost).
+# The corrected rule is unified across first and subsequent pages, and returns
+# a null next cursor on the final page so an exact-multiple total does not
+# produce a phantom trailing empty page.
+# -----------------------------------------------------------------------------
+
+test_that("generate_cursor_pag_inf page-1 nextItemID is the last shown row, not page_size + 1", {
+  full <- tibble(
+    entity_id = sprintf("row_%04d", seq_len(50)),
+    value = seq_len(50)
+  )
+
+  res <- generate_cursor_pag_inf(
+    full,
+    page_size = 25,
+    page_after = 0,
+    pagination_identifier = "entity_id"
+  )
+
+  # Page 1 shows rows 1..25; the last shown row is row_0025.
+  expect_equal(res$data$entity_id[[nrow(res$data)]], "row_0025")
+  # The next cursor must point at that last shown row (was "row_0026").
+  expect_identical(res$meta$nextItemID[[1]], "row_0025")
+})
+
+# Walk every page from page 1 following `nextItemID` until it is null, then
+# assert the concatenation of all pages equals the full ordered id set exactly:
+# no gaps, no duplicates, correct count, expected page count (no phantom extra
+# page), a null final next cursor, and no empty page. Covered sizes: a
+# non-divisor (25 over 123), an exact divisor (25 over 100), page_size == total
+# (single full page), and page_size > total. Both a string cursor column
+# (VariO/HP/PMID-style tables from #531) and the default numeric cursor column
+# (entity_id, the majority of endpoints) are exercised: the page-1 sentinel
+# page_after = 0 matches no row in either encoding (string ids never equal 0;
+# numeric ids start at 1), so the first-page anchoring is covered for both.
+cursor_pag_walk_cases <- list(
+  list(n = 123L, ps = 25L, kind = "string"),
+  list(n = 100L, ps = 25L, kind = "string"),
+  list(n = 25L, ps = 25L, kind = "string"),
+  list(n = 10L, ps = 25L, kind = "string"),
+  list(n = 123L, ps = 25L, kind = "numeric"),
+  list(n = 100L, ps = 25L, kind = "numeric")
+)
+
+for (.cursor_case in cursor_pag_walk_cases) {
+  local({
+    case <- .cursor_case
+    test_that(sprintf(
+      "generate_cursor_pag_inf walks every row exactly once (n=%d, page_size=%d, %s ids)",
+      case$n, case$ps, case$kind
+    ), {
+      full <- tibble(
+        entity_id = if (identical(case$kind, "numeric")) {
+          seq_len(case$n)
+        } else {
+          sprintf("row_%04d", seq_len(case$n))
+        },
+        value = seq_len(case$n)
+      )
+
+      pages <- list()
+      page_after <- 0
+      repeat {
+        res <- generate_cursor_pag_inf(
+          full,
+          page_size = case$ps,
+          page_after = page_after,
+          pagination_identifier = "entity_id"
+        )
+        pages[[length(pages) + 1L]] <- res
+        nxt <- res$meta$nextItemID[[1]]
+        if (identical(nxt, "null")) {
+          break
+        }
+        page_after <- nxt
+        if (length(pages) > case$n + 5L) {
+          fail("pagination did not terminate (runaway next cursor)")
+          break
+        }
+      }
+
+      collected <- unlist(lapply(pages, function(p) p$data$entity_id))
+
+      # Union of every page equals the full ordered id set: no gaps, no dupes.
+      expect_equal(collected, full$entity_id)
+      expect_equal(length(collected), case$n)
+      expect_false(any(duplicated(collected)))
+
+      # Exactly the expected number of pages (no phantom extra page) and the
+      # final page terminates with a null next cursor.
+      expect_equal(length(pages), ceiling(case$n / case$ps))
+      expect_identical(pages[[length(pages)]]$meta$nextItemID[[1]], "null")
+
+      # No empty page: a phantom next cursor would surface as a trailing page
+      # with zero rows.
+      expect_true(all(vapply(pages, function(p) nrow(p$data) > 0L, logical(1))))
+    })
+  })
+}
+
 
 # =============================================================================
 # generate_tibble_fspec() tests
