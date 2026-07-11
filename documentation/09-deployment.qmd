@@ -30,6 +30,42 @@ equivalent deployment-specific config injection mechanism. Never re-add
 `COPY config.yml config.yml` to `api/Dockerfile`; local credentials can otherwise
 be baked into image layers.
 
+### Backup credential handling (#535 P1-1)
+
+Database backup/restore jobs never carry the DB password in the durable job
+payload, in process argv, or in a shell command string:
+
+- `svc_backup_create`/`svc_backup_restore` submit **credential-free** params; the
+  durable handlers resolve the credential at run time from the worker's `dw`
+  config via `async_job_worker_db_config()`.
+- `execute_mysqldump`/`execute_restore` pass the password to the MySQL CLIs
+  through a per-invocation **mode-0600 `--defaults-extra-file`** (created
+  fail-closed), never `-p<password>` argv or an interpolated `system()` shell
+  string.
+- Historical terminal backup payloads (and their password-derived
+  `request_hash`) are redacted idempotently by
+  `async_job_scrub_payload_credentials()`, which runs best-effort at API startup,
+  after every restore, and via the operator script.
+
+**Mandatory operator steps after deploying this change** (prior backups, logs,
+and payloads may already contain the password, so the code fix alone is not
+sufficient):
+
+```bash
+# 1. Redact historical backup job payloads (idempotent; also runs at startup):
+docker exec sysndd-api-1 Rscript /app/scripts/scrub-job-payload-credentials.R
+
+# 2. ROTATE the DB password, update the deployed .env / secret, then restart:
+docker compose up -d --force-recreate api worker worker-maintenance
+```
+
+Rotation is the primary mitigation for any credential that leaked before this
+change — the scrub cannot rewrite old backup files. Set
+`ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP=false` only to disable the startup scrub
+(default on). The remaining durable job families (publication/hgnc/ontology/
+comparisons/omim/provider/pubtator/llm-batch) still carry `db_config` in payload
+and are migrated to the same resolver in a follow-up (S2b).
+
 ### `MIRAI_WORKERS`
 
 Controls background worker count for long-running jobs.
