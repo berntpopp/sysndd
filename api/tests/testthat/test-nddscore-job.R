@@ -1,6 +1,13 @@
 library(testthat)
 library(DBI)
 
+# nddscore-release-source.R MUST be sourced explicitly first (absolute path via
+# source_api_file()) — nddscore-import.R only guard-sources it via relative
+# paths, which do not reliably resolve under a full test_dir() run. This test
+# file also calls nddscore_extract_and_verify/parse_release_json/load_tsvs
+# directly (see nddscore_test_fixture() below), all defined in the release
+# source module (#346 split).
+source_api_file("functions/nddscore-release-source.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("functions/nddscore-import.R", local = FALSE, envir = .GlobalEnv)
 
 nddscore_test_fixture <- function() {

@@ -1,4 +1,7 @@
-source_api_file("functions/nddscore-import.R", local = FALSE)
+# Acquisition/parser/validation functions live in nddscore-release-source.R
+# (extracted from nddscore-import.R, #346); this file tests them
+# independently of the DB-write helpers and import orchestrator.
+source_api_file("functions/nddscore-release-source.R", local = FALSE)
 
 fixture_archive <- function(name = "nddscore_fixture_release.tar.gz") {
   fixture_dir <- file.path(
