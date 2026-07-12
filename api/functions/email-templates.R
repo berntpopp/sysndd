@@ -142,8 +142,10 @@ email_wrapper <- function(content, preheader = "") {
 #' @param expiry_minutes Token expiry time in minutes (default 60)
 #' @return Complete HTML email string
 email_password_reset <- function(reset_url, user_name = NULL, expiry_minutes = 60) {
+  # Drive the greeting off the escaped scalar (email_escape coerces NULL/NA/empty/
+  # non-scalar to ""), so nchar() is never called on NA or a length>1 vector.
   user_name_e <- email_escape(user_name)
-  greeting <- if (!is.null(user_name) && nchar(user_name) > 0) {
+  greeting <- if (nzchar(user_name_e)) {
     glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,</p>')
   } else {
     glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello,</p>')
@@ -438,9 +440,10 @@ email_batch_assigned <- function(user_info, batch_info, review_url = "https://sy
 #' @return Complete HTML email string
 email_notification <- function(subject_text, body_content, user_name = NULL) {
   # subject_text and body_content are developer/system-controlled (body_content is
-  # deliberately HTML); only the user-controlled user_name is escaped.
+  # deliberately HTML); only the user-controlled user_name is escaped. Drive the
+  # greeting off the escaped scalar so nchar() never sees NA or a length>1 vector.
   user_name_e <- email_escape(user_name)
-  greeting <- if (!is.null(user_name) && nchar(user_name) > 0) {
+  greeting <- if (nzchar(user_name_e)) {
     glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,</p>')
   } else {
     ""

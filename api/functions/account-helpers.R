@@ -12,17 +12,14 @@
 #' Generate a random password
 #'
 #' @description
-#' This function generates a random password of length 12
-#' by selecting characters from a vector of possible characters
-#' that includes digits, lowercase letters, uppercase letters,
-#' exclamation mark, and dollar sign. The steps are as follows:
-#' 1. Create a vector named 'possible_characters' containing digits, lowercase
-#'    letters, uppercase letters, exclamation mark, and dollar sign.
-#' 2. Use the 'sample()' function to randomly select 12 characters from the
-#'    'possible_characters' vector and 'paste()' to combine them into a string.
-#' 3. Use 'collapse = ""' argument in the 'paste()' function to prevent any
-#'    separators between the selected characters.
-#' 4. Return the generated password.
+#' Generates a 12-character temporary password from a 64-symbol alphabet
+#' (digits, lowercase, uppercase, "!", "$"). Randomness comes from a CSPRNG
+#' (\code{openssl::rand_bytes}), NOT the seedable Mersenne-Twister behind
+#' \code{sample()}, because credentials must not be reproducible from a known
+#' seed. The alphabet is exactly 64 characters and \code{256 \%\% 64 == 0}, so
+#' mapping each uniform random byte with \code{\%\% 64} is bias-free (every symbol
+#' has exactly four byte preimages, no modulo bias, no rejection sampling needed).
+#' Entropy is 12 * log2(64) = 72 bits.
 #'
 #' @return A randomly generated password.
 #'
@@ -55,25 +52,18 @@ random_password <- function() {
 #' Validate email address
 #'
 #' @description
-#' This function checks whether a given email address is valid by using regular
-#' expressions and the 'grepl()' function. The email address is considered valid
-#' if it matches the following pattern:
-#' 1. Starts with a word boundary (\<).
-#' 2. Followed by one or more uppercase letters, digits, dots, underscores,
-#'    percent signs, plus signs, or hyphens ([A-Z0-9._%+-]+).
-#' 3. Followed by the at symbol (@).
-#' 4. Followed by one or more uppercase letters, digits, dots, or hyphens
-#'    ([A-Z0-9.-]+).
-#' 5. Followed by a dot (.).
-#' 6. Followed by two or more uppercase letters ([A-Z]{2,}).
-#' 7. Ends with a word boundary (\>).
-#' The 'ignore.case = TRUE' argument in 'grepl()' makes the function
-#' case-insensitive, allowing it to match email addresses regardless of the
-#' letter case.
+#' Checks whether a value is a single, syntactically valid email address that is
+#' safe to hand to \code{smtp_send()} as a \code{to}/\code{bcc} header. The value
+#' must be a NON-NA scalar string, contain NO control characters (CR/LF/tab/etc.,
+#' which enable SMTP header injection), and match the whole-string (anchored)
+#' pattern local-part@domain.tld. The old pattern used \code{\\<}/\code{\\>} word
+#' boundaries, which are NOT anchors: a valid address embedded in surrounding junk
+#' (including a newline-delimited injected header) matched. This function is now
+#' anchored and control-char-free so it is a trustworthy gate for the mail path.
 #'
 #' @param email_address A character string representing an email address.
 #'
-#' @return A boolean value indicating whether the email address is valid.
+#' @return A single boolean; TRUE only for a safe, valid, scalar email address.
 #'
 #' @examples
 #' # Validate an email address
@@ -84,10 +74,43 @@ random_password <- function() {
 #'
 #' @export
 is_valid_email <- function(email_address) {
-  grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
-    as.character(email_address),
+  # Reject non-scalar / NA up front: a vector could smuggle multiple addresses,
+  # and NA would coerce to the string "NA".
+  if (is.null(email_address) || length(email_address) != 1L ||
+    is.na(email_address)) {
+    return(FALSE)
+  }
+  email_address <- as.character(email_address)
+  # Any control character (CR/LF/tab) is disqualifying — it enables SMTP header
+  # injection once the value reaches the `to`/`bcc` header.
+  if (grepl("[[:cntrl:]]", email_address)) {
+    return(FALSE)
+  }
+  # Anchored whole-string match (^...$), so surrounding text cannot slip through.
+  grepl("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$",
+    email_address,
     ignore.case = TRUE
   )
+}
+
+
+#' Detect control characters in a user-supplied account field
+#'
+#' @description
+#' Returns TRUE if any element of \code{x} contains a control character
+#' (CR, LF, tab, etc.). Signup/profile free-text fields (user_name, first_name,
+#' family_name, email, orcid, comment) must reject these: a CR/LF survives into
+#' log lines (\code{message()}/logger, enabling log forging) and into email
+#' headers when the value is later emailed. Printable non-ASCII (accents,
+#' apostrophes) is intentionally allowed.
+#'
+#' @param x A character vector (or coercible) to inspect.
+#'
+#' @return A single logical: TRUE if a control character is present.
+#'
+#' @export
+account_field_has_control_char <- function(x) {
+  any(grepl("[[:cntrl:]]", as.character(x)))
 }
 
 
@@ -165,6 +188,31 @@ send_noreply_email <- function(
   email_blind_copy = "noreply@sysndd.org",
   html_content = FALSE
 ) {
+  # Defense-in-depth: this is the single choke point every outbound account email
+  # passes through. Reject CR/LF and other control characters in any address or
+  # the subject before handing them to smtp_send(). A control char in a `to`/`bcc`
+  # address or the Subject header enables SMTP header injection (e.g. an injected
+  # Bcc: or spoofed header). Upstream validation should already prevent this;
+  # failing loudly here guarantees no caller can bypass it. Addresses may be a
+  # character vector (e.g. the curator BCC list), so each element is checked.
+  reject_control_chars <- function(value, what) {
+    value <- as.character(value)
+    if (length(value) == 0L || any(is.na(value)) ||
+      any(grepl("[[:cntrl:]]", value))) {
+      stop(
+        sprintf(
+          "send_noreply_email: %s contains disallowed control characters",
+          what
+        ),
+        call. = FALSE
+      )
+    }
+    invisible(value)
+  }
+  reject_control_chars(email_recipient, "recipient")
+  reject_control_chars(email_subject, "subject")
+  reject_control_chars(email_blind_copy, "bcc")
+
   if (html_content) {
     # Use full HTML content directly (from email-templates.R)
     # Wrap with htmltools::HTML() for proper raw HTML handling

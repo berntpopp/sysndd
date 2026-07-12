@@ -78,3 +78,61 @@ test_that("benign names round-trip through the templates unchanged", {
   out <- email_account_approved("Ada Lovelace", "TempPass1!")
   expect_true(grepl("Ada Lovelace", out, fixed = TRUE))
 })
+
+# --- Codex final-review folds (#535 S8): control-char / header / log injection ---
+
+test_that("account_field_has_control_char flags CR/LF/tab, not printable text", {
+  # Log- and SMTP-header-injection root cause: a signup field carrying CR/LF is
+  # later logged verbatim and/or handed to smtp_send(). This guard rejects them.
+  expect_true(account_field_has_control_char("admin\n[FATAL] forged log line"))
+  expect_true(account_field_has_control_char("a\r\nBcc: evil@e.com"))
+  expect_true(account_field_has_control_char("a\tb"))
+  expect_false(account_field_has_control_char("normaluser"))
+  # Non-ASCII printable names must pass (no false positive).
+  expect_false(account_field_has_control_char("Zoë O'Brien"))
+})
+
+test_that("is_valid_email rejects control chars, junk-wrapped, and non-scalar input", {
+  expect_true(is_valid_email("test@example.com"))
+  expect_true(is_valid_email("First.Last+tag@sub.example.org"))
+  # CR/LF -> SMTP header injection into the `to` address must be rejected.
+  expect_false(is_valid_email("victim@example.com\r\nBcc: evil@e.com"))
+  expect_false(is_valid_email("victim@example.com\nSubject: spoof"))
+  # Unanchored old regex matched a valid address embedded in junk; now rejected.
+  expect_false(is_valid_email("hello a@b.com world"))
+  # Non-scalar / NA must not slip through as a vector of addresses.
+  expect_false(is_valid_email(c("a@b.com", "c@d.com")))
+  expect_false(is_valid_email(NA_character_))
+  expect_false(is_valid_email(NULL))
+})
+
+test_that("send_noreply_email rejects CR/LF in recipient, subject, and bcc", {
+  # Defense-in-depth choke point: every mail path passes through here, so a
+  # control char in any address or the subject is rejected before smtp_send().
+  expect_error(
+    send_noreply_email("body", "Subject", "a@b.com\r\nBcc: evil@e.com"),
+    "recipient"
+  )
+  expect_error(
+    send_noreply_email("body", "Subject\nX-Injected: 1", "a@b.com"),
+    "subject"
+  )
+  expect_error(
+    send_noreply_email("body", "Subject", "a@b.com",
+      email_blind_copy = "c@d.com\nBcc: evil@e.com"),
+    "bcc"
+  )
+})
+
+test_that("greeting templates tolerate NA/empty/vector user_name without error", {
+  # nchar() on NA / length>1 vectors throws; the escaped scalar drives the check.
+  expect_no_error(email_password_reset("https://x/reset", NA_character_))
+  expect_no_error(email_password_reset("https://x/reset", c("a", "b")))
+  expect_no_error(email_password_reset("https://x/reset", character(0)))
+  expect_no_error(email_notification("Subj", "<p>hi</p>", NA_character_))
+  # A benign name is still personalized.
+  out <- email_password_reset("https://x/reset", "Ada")
+  expect_true(grepl("Ada", out, fixed = TRUE))
+  out2 <- email_notification("Subj", "<p>hi</p>", "Ada")
+  expect_true(grepl("Ada", out2, fixed = TRUE))
+})
