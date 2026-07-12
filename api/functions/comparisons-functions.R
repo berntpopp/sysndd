@@ -250,15 +250,15 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 #' or "partial" (some failed), recorded in comparisons_metadata.
 #'
 #' @param params List containing:
-#'   - db_config: Database connection config (host, port, user, password, dbname)
 #'   - .__job_id__: Job ID for progress reporting (injected by create_job)
+#'   DB creds are resolved at run time via `async_job_db_connect()` (#535 S2b);
+#'   the payload no longer carries `db_config`.
 #'
 #' @return List with status, sources_updated, rows_written
 #'
 #' @export
 comparisons_update_async <- function(params) {
   job_id <- params$.__job_id__
-  db_config <- params$db_config
 
   # Create progress reporter
   progress <- create_progress_reporter(job_id)
@@ -274,16 +274,9 @@ comparisons_update_async <- function(params) {
     temp_dir <- tempfile(pattern = "comparisons_")
     dir.create(temp_dir, recursive = TRUE)
 
-    # Create database connection
+    # Create database connection — creds resolved at run time (#535 S2b).
     progress("connect", "Connecting to database...", current = 1, total = 10)
-    conn <- DBI::dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = db_config$dbname,
-      host = db_config$host,
-      user = db_config$user,
-      password = db_config$password,
-      port = db_config$port
-    )
+    conn <- async_job_db_connect()
 
     # Get active sources
     progress("config", "Loading source configuration...", current = 2, total = 10)

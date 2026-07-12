@@ -19,15 +19,9 @@
 # this file does not matter functionally — but keep them sourced nearby for
 # readability.
 
-.async_job_hgnc_write_db <- function(hgnc_data, db_config, job_id) {
-  conn <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = db_config$dbname,
-    host = db_config$host,
-    user = db_config$user,
-    password = db_config$password,
-    port = db_config$port
-  )
+.async_job_hgnc_write_db <- function(hgnc_data, job_id) {
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  conn <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
   db_cols <- DBI::dbListFields(conn, "non_alt_loci_set")
@@ -94,7 +88,6 @@
 
   write_result <- .async_job_hgnc_write_db(
     hgnc_data = hgnc_data,
-    db_config = payload$db_config,
     job_id = job$job_id[[1]]
   )
 

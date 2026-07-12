@@ -10,20 +10,20 @@
 # shell (byte-identical); these svc_ functions receive `res` (mutated in
 # place: status + headers) and return the JSON payload.
 #
-# CRITICAL (mirai): database connections cannot cross process boundaries.
-# `hgnc_update` and `comparisons_update` build a `db_config` list from the
-# global `dw` config object so their anonymous `executor_fn` closures can open
-# their own connection inside the daemon. `db_config` contains a database
-# password, so it is deliberately NEVER passed into `check_duplicate_job()` —
-# only the stable operation name is hashed/stored there. Keep every
-# `executor_fn` closure anonymous/inline (do not extract to a named helper);
-# `create_job()` serializes it into the mirai daemon call.
+# DB credentials (#535 S2b): `hgnc_update` and `comparisons_update` no longer
+# marshal a `db_config` into the job payload. Their durable handlers
+# (.async_job_run_hgnc_update / comparisons_update_async) resolve DB creds at
+# run time from the worker's runtime config via `async_job_db_connect()`, so no
+# password is ever persisted in `async_jobs.request_payload_json`. They also
+# dedupe via job-type single-flight (`async_job_service_duplicate_by_type()`),
+# not a payload hash, so a full-table-replace maintenance job never runs
+# concurrently — including across a deploy that changes its payload schema.
+# `create_job()`'s `executor_fn` is dead (ignored); these submits pass `NULL`.
 #
 # This is an ENDPOINT service: it is sourced by the shared bootstrap loader
-# (api/bootstrap/load_modules.R) like any other services/* file, but it is
-# never registered as an async job handler and the worker never calls it
-# directly — the worker only ever invokes the `executor_fn` closures below via
-# `async_job_service_submit()`.
+# (api/bootstrap/load_modules.R) like any other services/* file, and only ever
+# submits durable jobs (`async_job_service_submit()`); the worker executes the
+# registered handlers, never these svc_ functions.
 
 #' Submit a disease ontology update job (MONDO + OMIM).
 #'
@@ -119,17 +119,6 @@ svc_job_submit_ontology_update <- function(res) {
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_hgnc_update <- function(res) {
-  # CRITICAL: Extract database config BEFORE mirai
-  # Database connections cannot cross process boundaries, so the daemon
-  # must create its own connection using the config values.
-  db_config <- list(
-    dbname   = dw$dbname,
-    host     = dw$host,
-    user     = dw$user,
-    password = dw$password,
-    port     = dw$port
-  )
-
   # Job-type single-flight (#535 S2b HIGH-4): hgnc_update fully replaces
   # non_alt_loci_set, so only one may run at a time. Dedupe on job_type alone
   # (not a payload hash) so removing db_config from the payload cannot open a
@@ -150,137 +139,9 @@ svc_job_submit_hgnc_update <- function(res) {
   # gnomAD enrichment now uses bulk TSV download (~10s), Ensembl/STRINGdb are the bottleneck
   result <- create_job(
     operation = "hgnc_update",
-    params = list(db_config = db_config),
+    params = list(),
     timeout_ms = 1800000, # 30 minutes (bulk TSV approach makes gnomAD fast)
-    executor_fn = function(params) {
-      # This runs in mirai daemon
-      # Create file-based progress reporter so main process can read progress
-      progress <- create_progress_reporter(params$.__job_id__)
-      job_id <- params$.__job_id__
-
-      # --- Phase 1: Download and process HGNC data ---
-      message(sprintf(
-        "[%s] [job:%s] HGNC update: starting data download and processing...",
-        Sys.time(), job_id
-      ))
-
-      hgnc_data <- tryCatch(
-        {
-          update_process_hgnc_data(progress_fn = progress)
-        },
-        error = function(e) {
-          msg <- sprintf("HGNC pipeline failed during data processing: %s", conditionMessage(e))
-          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-          stop(msg)
-        }
-      )
-
-      message(sprintf(
-        "[%s] [job:%s] HGNC update: processed %d rows (%d columns), writing to database...",
-        Sys.time(), job_id, nrow(hgnc_data), ncol(hgnc_data)
-      ))
-
-      # --- Phase 2: Write to database ---
-      progress("db_write", "Writing to database...", current = 9, total = 9)
-
-      conn <- tryCatch(
-        {
-          DBI::dbConnect(
-            RMariaDB::MariaDB(),
-            dbname   = params$db_config$dbname,
-            host     = params$db_config$host,
-            user     = params$db_config$user,
-            password = params$db_config$password,
-            port     = params$db_config$port
-          )
-        },
-        error = function(e) {
-          msg <- sprintf("Failed to connect to database: %s", conditionMessage(e))
-          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-          stop(msg)
-        }
-      )
-      on.exit(DBI::dbDisconnect(conn), add = TRUE)
-
-      # Reconcile tibble columns against DB schema to prevent mismatches
-      # (e.g. HGNC upstream renames like rna_central_ids -> rna_central_id)
-      db_cols <- DBI::dbListFields(conn, "non_alt_loci_set")
-      tibble_cols <- colnames(hgnc_data)
-
-      # Drop tibble columns that don't exist in the DB table
-      extra_cols <- setdiff(tibble_cols, db_cols)
-      if (length(extra_cols) > 0) {
-        message(sprintf(
-          "[%s] [job:%s] Dropping %d tibble columns not in DB: %s",
-          Sys.time(), job_id, length(extra_cols),
-          paste(extra_cols, collapse = ", ")
-        ))
-        hgnc_data <- hgnc_data[, setdiff(tibble_cols, extra_cols), drop = FALSE]
-      }
-
-      # Warn about DB columns missing from the tibble (will be NULL in DB)
-      missing_cols <- setdiff(db_cols, colnames(hgnc_data))
-      if (length(missing_cols) > 0) {
-        message(sprintf(
-          "[%s] [job:%s] DB columns not in tibble (will be NULL): %s",
-          Sys.time(), job_id, paste(missing_cols, collapse = ", ")
-        ))
-      }
-
-      # Atomic table replacement: DELETE + INSERT in a real transaction
-      # NOTE: TRUNCATE is DDL and auto-commits in MySQL — it cannot be rolled back.
-      # DELETE FROM is DML and participates in the transaction, so on failure the
-      # entire operation rolls back and the table retains its previous data.
-      tryCatch(
-        {
-          # Disable FK checks for this session; ensure they are re-enabled even on error
-          DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0")
-          on.exit(tryCatch(DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1"),
-            error = function(e) NULL
-          ), add = TRUE)
-
-          DBI::dbWithTransaction(conn, {
-            DBI::dbExecute(conn, "DELETE FROM non_alt_loci_set")
-
-            if (nrow(hgnc_data) > 0) {
-              DBI::dbAppendTable(conn, "non_alt_loci_set", hgnc_data)
-            }
-          })
-
-          DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1")
-        },
-        error = function(e) {
-          msg <- sprintf(
-            "Database write failed: %s. Tibble cols: [%s]. DB cols: [%s].",
-            conditionMessage(e),
-            paste(colnames(hgnc_data), collapse = ", "),
-            paste(db_cols, collapse = ", ")
-          )
-          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-          stop(msg)
-        }
-      )
-
-      message(sprintf(
-        "[%s] [job:%s] HGNC update: database write complete (%d rows)",
-        Sys.time(), job_id, nrow(hgnc_data)
-      ))
-
-      # Return summary (not the full tibble — avoid memory overhead in job state)
-      list(
-        status = "completed",
-        rows_processed = nrow(hgnc_data),
-        columns_written = ncol(hgnc_data),
-        columns_dropped = length(extra_cols),
-        gnomad_fallback_recovered = as.integer(
-          attr(hgnc_data, "fallback_recovered", exact = TRUE) %||% 0L
-        ),
-        gnomad_fallback_unresolved = as.integer(
-          attr(hgnc_data, "fallback_unresolved", exact = TRUE) %||% 0L
-        ),
-        message = "HGNC data updated and written to database successfully"
-      )
-    }
+    executor_fn = NULL
   )
 
   # Check capacity
@@ -309,17 +170,6 @@ svc_job_submit_hgnc_update <- function(res) {
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_comparisons_update <- function(res) {
-  # CRITICAL: Extract database config BEFORE mirai
-  # Database connections cannot cross process boundaries, so the daemon
-  # must create its own connection using the config values.
-  db_config <- list(
-    dbname   = dw$dbname,
-    host     = dw$host,
-    user     = dw$user,
-    password = dw$password,
-    port     = dw$port
-  )
-
   # Job-type single-flight (#535 S2b HIGH-4): comparisons_update replaces
   # ndd_database_comparison per-list, so only one may run at a time. Dedupe on
   # job_type alone (not a payload hash) so removing db_config from the payload
@@ -340,12 +190,9 @@ svc_job_submit_comparisons_update <- function(res) {
   # Downloads from 7+ sources can take 5-30 minutes depending on network
   result <- create_job(
     operation = "comparisons_update",
-    params = list(db_config = db_config),
+    params = list(),
     timeout_ms = 1800000, # 30 minutes
-    executor_fn = function(params) {
-      # This runs in mirai daemon
-      comparisons_update_async(params)
-    }
+    executor_fn = NULL
   )
 
   # Check capacity

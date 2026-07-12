@@ -408,9 +408,16 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     expect_equal(res$status, 202)
     expect_equal(res$headers[["Retry-After"]], job_endpoint_spec$retry_after)
     expect_equal(out$job_id, new_job_id)
-    # The mirai executor closure is preserved anonymously/inline.
-    expect_true(is.function(create_job_executor))
-    expect_equal(names(formals(create_job_executor)), "params")
+    if (identical(job_endpoint_spec$op, "ontology_update")) {
+      # ontology_update carries no DB credential in its payload, so it keeps its
+      # inline executor closure (unchanged by #535 S2b).
+      expect_true(is.function(create_job_executor))
+      expect_equal(names(formals(create_job_executor)), "params")
+    } else {
+      # hgnc_update / comparisons_update resolve DB creds at run time (#535 S2b)
+      # and pass executor_fn = NULL (create_job ignores it).
+      expect_null(create_job_executor)
+    }
   })
 }
 
