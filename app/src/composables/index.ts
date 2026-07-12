@@ -47,16 +47,6 @@ export type {
 // Form draft/auto-save utilities
 export { default as useFormDraft } from './useFormDraft';
 
-// Network visualization composables (Cytoscape.js integration)
-export { default as useCytoscape } from './useCytoscape';
-export type { CytoscapeOptions, CytoscapeState } from './useCytoscape';
-export { usePhenotypeCytoscape } from './usePhenotypeCytoscape';
-export type { PhenotypeCluster, PhenotypeCytoscapeOptions } from './usePhenotypeCytoscape';
-export { default as useNetworkData } from './useNetworkData';
-export type { NetworkDataState } from './useNetworkData';
-export { default as useNetworkFilters } from './useNetworkFilters';
-export type { CategoryFilter, NetworkFiltersState } from './useNetworkFilters';
-
 // Filter and search utilities
 export { useFilterSync, resetFilterSyncInstance } from './useFilterSync';
 export type { FilterState, AnalysisTab, FilterSyncReturn } from './useFilterSync';
@@ -64,14 +54,6 @@ export type { FilterState, AnalysisTab, FilterSyncReturn } from './useFilterSync
 // Wildcard search
 export { useWildcardSearch } from './useWildcardSearch';
 export type { GeneWithSymbol, WildcardSearchReturn } from './useWildcardSearch';
-
-// Network highlighting (bidirectional table-network hover)
-export { useNetworkHighlight } from './useNetworkHighlight';
-export type { HighlightState, HoverSource, NetworkHighlightReturn } from './useNetworkHighlight';
-
-// Excel export utilities
-export { useExcelExport } from './useExcelExport';
-export type { ExcelExportOptions, UseExcelExportReturn } from './useExcelExport';
 
 // Bulk selection for admin tables
 export { useBulkSelection } from './useBulkSelection';
@@ -82,7 +64,6 @@ export { useFilterPresets } from './useFilterPresets';
 export type { FilterPreset, FilterPresetsReturn } from './useFilterPresets';
 
 // CMS content management
-export { useMarkdownRenderer, renderMarkdown } from './useMarkdownRenderer';
 export { useCmsContent } from './useCmsContent';
 
 // Async job management
@@ -101,18 +82,6 @@ export type { UseAriaLiveReturn } from './useAriaLive';
 // Search suggestions
 export { useSearchSuggestions } from './useSearchSuggestions';
 export type { SearchSuggestion, UseSearchSuggestionsReturn } from './useSearchSuggestions';
-
-// D3 lollipop plot composable for protein domain visualization
-export { useD3Lollipop } from './d3-lollipop';
-export type { LollipopOptions, D3LollipopState, PlotMargin } from './d3-lollipop';
-
-// D3 gene structure composable
-export { useD3GeneStructure } from './useD3GeneStructure';
-export type { GeneStructureOptions, D3GeneStructureState } from './useD3GeneStructure';
-
-// 3D structure viewer composable (NGL Viewer integration)
-export { use3DStructure } from './use3DStructure';
-export type { Use3DStructureReturn } from './use3DStructure';
 
 // PubTator annotation parser
 export {

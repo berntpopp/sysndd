@@ -393,7 +393,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useHead } from '@unhead/vue';
-import { renderMarkdown } from '@/composables';
+import { renderMarkdown } from '@/composables/useMarkdownRenderer';
 import type { AboutSection } from '@/types';
 import { getPublishedAbout } from '@/api/about';
 import AppVersionInfo from '@/components/AppVersionInfo.vue';

@@ -469,8 +469,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --prefer-offline
 
-      - name: Build production bundle
-        run: npm run build:docker
+      - name: Build production bundle and enforce public route budget
+        run: npm run build:bundle-budget
 
       - name: Assert no source maps or bundle report ship (#535)
         working-directory: app
@@ -482,7 +482,10 @@ jobs:
           if [ -f dist/stats.html ]; then
             echo "::error::Production build emitted dist/stats.html"; exit 1
           fi
-          echo "OK: dist contains no *.map and no stats.html"
+          if [ -e dist/.vite ]; then
+            echo "::error::Bundle-budget metadata escaped into dist/.vite"; exit 1
+          fi
+          echo "OK: dist contains no source maps, analyzer report, or bundle-budget metadata"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

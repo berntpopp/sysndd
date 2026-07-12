@@ -51,7 +51,7 @@
  */
 
 import { computed } from 'vue';
-import { useFilterSync, type AnalysisTab } from '@/composables';
+import { useFilterSync, type AnalysisTab } from '@/composables/useFilterSync';
 
 // Get filter state and actions from composable
 const { filterState, activeFilterCount, setTab, clearAllFilters } = useFilterSync();

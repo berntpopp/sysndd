@@ -12,7 +12,10 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { listPubtatorGenes } from '@/api/publication';
-import { useColumnTooltip, useTableData, useToast, useUrlParsing } from '@/composables';
+import { useColumnTooltip } from '@/composables/useColumnTooltip';
+import useTableData from '@/composables/useTableData';
+import useToast from '@/composables/useToast';
+import useUrlParsing from '@/composables/useUrlParsing';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { usePubtatorGenePublications } from '@/composables/usePubtatorGenePublications';
 import { useUiStore } from '@/stores/ui';

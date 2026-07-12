@@ -12,15 +12,12 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  useCytoscape,
-  useNetworkData,
-  useNetworkFilters,
-  useFilterSync,
-  useWildcardSearch,
-  useNetworkHighlight,
-} from '@/composables';
-import type { CategoryFilter } from '@/composables';
+import useCytoscape from '@/composables/useCytoscape';
+import useNetworkData from '@/composables/useNetworkData';
+import useNetworkFilters, { type CategoryFilter } from '@/composables/useNetworkFilters';
+import { useFilterSync } from '@/composables/useFilterSync';
+import { useWildcardSearch } from '@/composables/useWildcardSearch';
+import { useNetworkHighlight } from '@/composables/useNetworkHighlight';
 import { useNetworkTooltip } from '@/composables/useNetworkTooltip';
 import {
   categoryCountsHaveData,

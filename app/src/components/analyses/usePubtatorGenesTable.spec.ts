@@ -56,13 +56,9 @@ vi.mock('@/composables/usePubtatorGenePublications', () => ({
   }),
 }));
 
-vi.mock('@/composables', async () => {
-  const actual = await vi.importActual<typeof import('@/composables')>('@/composables');
-  return {
-    ...actual,
-    useToast: () => ({ makeToast: makeToastSpy }),
-  };
-});
+vi.mock('@/composables/useToast', () => ({
+  default: () => ({ makeToast: makeToastSpy }),
+}));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

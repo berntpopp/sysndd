@@ -16,10 +16,20 @@ vi.mock('@/composables', () => ({
     filterState: { search: '' },
     setSearch: vi.fn(),
   }),
+}));
+
+vi.mock('@/composables/useToast', () => ({
+  default: () => ({ makeToast: vi.fn() }),
+}));
+
+vi.mock('@/composables/useWildcardSearch', () => ({
   useWildcardSearch: () => ({
     pattern: { value: '' },
     matches: vi.fn(() => true),
   }),
+}));
+
+vi.mock('@/composables/useExcelExport', () => ({
   useExcelExport: () => ({
     isExporting: false,
     exportToExcel: vi.fn(),

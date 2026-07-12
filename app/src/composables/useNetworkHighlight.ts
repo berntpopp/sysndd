@@ -14,7 +14,8 @@
  *
  * @example
  * ```typescript
- * import { useCytoscape, useNetworkHighlight } from '@/composables';
+ * import useCytoscape from '@/composables/useCytoscape';
+ * import { useNetworkHighlight } from '@/composables/useNetworkHighlight';
  *
  * // In component setup
  * const { cy } = useCytoscape({ container: containerRef });

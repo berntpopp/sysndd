@@ -49,8 +49,8 @@ vi.mock('@/composables/useNetworkTooltip', () => ({
   }),
 }));
 
-vi.mock('@/composables', () => ({
-  useNetworkData: () => ({
+vi.mock('@/composables/useNetworkData', () => ({
+  default: () => ({
     isLoading: ref(false),
     error: ref(null),
     isPreparing: ref(false),
@@ -70,7 +70,10 @@ vi.mock('@/composables', () => ({
     cytoscapeInitialElements: computed(() => mocks.initialElements),
     cytoscapeNodeElements: computed(() => mocks.nodeElements),
   }),
-  useNetworkFilters: () => {
+}));
+
+vi.mock('@/composables/useNetworkFilters', () => ({
+  default: () => {
     const selectedClusters = ref(new Set<number>());
     const showAllClusters = ref(true);
 
@@ -83,14 +86,23 @@ vi.mock('@/composables', () => ({
       getVisibleEdgeCount: vi.fn(() => 1),
     };
   },
+}));
+
+vi.mock('@/composables/useFilterSync', () => ({
   useFilterSync: () => ({
     filterState: ref({ search: '' }),
   }),
+}));
+
+vi.mock('@/composables/useWildcardSearch', () => ({
   useWildcardSearch: () => ({
     pattern: ref(''),
     regex: computed(() => mocks.searchRegex),
     matches: (symbol: string) => mocks.searchMatches(symbol),
   }),
+}));
+
+vi.mock('@/composables/useNetworkHighlight', () => ({
   useNetworkHighlight: () => ({
     highlightState: ref({ hoveredNodeId: null }),
     setupNetworkListeners: vi.fn(),
@@ -98,7 +110,10 @@ vi.mock('@/composables', () => ({
     clearHighlights: vi.fn(),
     isRowHighlighted: vi.fn(() => false),
   }),
-  useCytoscape: (options: Record<string, unknown>) => {
+}));
+
+vi.mock('@/composables/useCytoscape', () => ({
+  default: (options: Record<string, unknown>) => {
     mocks.capturedCytoscapeOptions = options;
 
     return {

@@ -187,7 +187,8 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import { useToast, useColorAndSymbols } from '@/composables';
+import useToast from '@/composables/useToast';
+import useColorAndSymbols from '@/composables/useColorAndSymbols';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';

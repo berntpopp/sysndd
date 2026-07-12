@@ -17,7 +17,7 @@
 
 import { computed, reactive, ref, watch } from 'vue';
 import useToast from '@/composables/useToast';
-import { useExcelExport } from '@/composables';
+import { useExcelExport } from '@/composables/useExcelExport';
 import {
   sortPhenotypeClusterRows,
   filterPhenotypeClusterRows,

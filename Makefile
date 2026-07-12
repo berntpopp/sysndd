@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -106,6 +106,9 @@ build-app: check-npm ## [dev] Build frontend for production
 	@cd $(ROOT_DIR)/app && npm run build && \
 		printf "$(GREEN)✓ build-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ build-app failed$(RESET)\n" && exit 1)
+
+verify-app-bundle-budget: check-npm ## [quality] Verify production public-route bundle budgets
+	@cd $(ROOT_DIR)/app && npm run build:bundle-budget
 
 watch-app: check-docker ## [dev] Start Docker Compose watch for frontend hot-reload
 	@printf "$(CYAN)==> Starting Docker Compose watch mode...$(RESET)\n"

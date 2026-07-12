@@ -166,7 +166,7 @@
 <script>
 import { ref, onBeforeUnmount } from 'vue';
 import useToast from '@/composables/useToast';
-import { usePhenotypeCytoscape } from '@/composables';
+import { usePhenotypeCytoscape } from '@/composables/usePhenotypeCytoscape';
 import { useClusterSummary } from '@/composables/useClusterSummary';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';

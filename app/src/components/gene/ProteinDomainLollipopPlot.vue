@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watchEffect, watch } from 'vue';
 import * as d3 from 'd3';
-import { useD3Lollipop } from '@/composables';
+import { useD3Lollipop } from '@/composables/d3-lollipop';
 import type {
   ProteinPlotData,
   ProcessedVariant,

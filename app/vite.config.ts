@@ -5,6 +5,23 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
 import type { PluginOption } from 'vite';
 import type { UserConfig } from 'vite';
+import { visualizationChunkForModule } from './build/heavy-visualization-packages.mjs';
+import { routeBundleModulesPlugin } from './build/route-bundle-modules-plugin';
+
+function manualChunkForModule(id: string): string | undefined {
+  // Rollup otherwise places CommonJS interop helpers in the first manual chunk
+  // that needs them. Keeping them separate prevents a Cytoscape route chunk
+  // from importing NGL only for that tiny helper.
+  if (id.includes('commonjsHelpers')) return 'commonjs';
+  const visualizationChunk = visualizationChunkForModule(id);
+  if (visualizationChunk) return visualizationChunk;
+  if (/[/\\]node_modules[/\\](?:vue|vue-router|pinia|@vue)[/\\]/.test(id)) return 'vendor';
+  if (/[/\\]node_modules[/\\](?:bootstrap|bootstrap-vue-next|@popperjs)[/\\]/.test(id)) {
+    return 'bootstrap';
+  }
+
+  return undefined;
+}
 
 export function createViteConfig(mode: string): UserConfig {
   const env = loadEnv(mode, process.cwd(), '');
@@ -12,6 +29,7 @@ export function createViteConfig(mode: string): UserConfig {
   const apiProxyTarget = configuredApiUrl?.trim() || 'http://traefik:80';
   const configuredMcpUrl = process.env.VITE_MCP_PROXY_TARGET || env.VITE_MCP_PROXY_TARGET;
   const mcpProxyTarget = configuredMcpUrl?.trim() || 'http://127.0.0.1:8787';
+  const isBundleBudgetBuild = process.env.BUNDLE_BUDGET === 'true';
   const isBrowserMcpInfoRequest = (req: { method?: string; headers: { accept?: string } }) => {
     const accept = req.headers.accept ?? '';
     return (
@@ -26,6 +44,7 @@ export function createViteConfig(mode: string): UserConfig {
   return {
     plugins: [
       vue(),
+      ...(isBundleBudgetBuild ? [routeBundleModulesPlugin()] : []),
       VitePWA({
         registerType: 'prompt',
         workbox: {
@@ -44,6 +63,9 @@ export function createViteConfig(mode: string): UserConfig {
             '**/exceljs*.js', // ~0.9 MB — spreadsheet export (downloads only)
             '**/ApiView-*.{js,css}', // ~1.5 MB — Swagger UI (API docs page only)
             '**/useMarkdownRenderer-*.js', // ~0.7 MB — markdown (CMS/admin only)
+            '**/cytoscape-*.js', // graph layout/rendering (analysis detail only)
+            '**/viz-*.js', // d3 + UpSet.js visualizations (analysis detail only)
+            '**/FileSaver*.js', // export download helper (not needed until export)
           ],
           cleanupOutdatedCaches: true,
           runtimeCaching: [
@@ -219,22 +241,12 @@ export function createViteConfig(mode: string): UserConfig {
 
     build: {
       outDir: 'dist',
+      manifest: isBundleBudgetBuild,
       sourcemap: false, // #535: no production source maps emitted (no upload step consumes them)
       chunkSizeWarningLimit: 500, // Warn on chunks > 500KB (bootstrap is close at 300KB raw)
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Critical path chunks (loaded on initial page load)
-            vendor: ['vue', 'vue-router', 'pinia'],
-            bootstrap: ['bootstrap', 'bootstrap-vue-next'],
-            // Heavy visualization libraries (lazy-loaded)
-            // gsap is intentionally NOT bundled here: it is dynamically imported
-            // by HomeView for the count-up animation, so Vite emits it as its own
-            // small chunk and the home page no longer pulls in d3/upsetjs.
-            viz: ['d3', '@upsetjs/bundle'],
-            // 3D structure viewer (lazy-loaded via BTab lazy)
-            ngl: ['ngl'],
-          },
+          manualChunks: manualChunkForModule,
         },
       },
     },

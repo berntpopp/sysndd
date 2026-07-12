@@ -20,13 +20,14 @@ vi.mock('@/composables/useExcelExport', async () => {
   };
 });
 
-vi.mock('@/composables', async () => {
-  const actual = await vi.importActual<typeof import('@/composables')>('@/composables');
+vi.mock('@/composables/useToast', () => ({
+  default: () => ({ makeToast: makeToastSpy }),
+}));
+
+vi.mock('@/composables/useTableData', async () => {
   const { ref, computed } = await import('vue');
   return {
-    ...actual,
-    useToast: () => ({ makeToast: makeToastSpy }),
-    useTableData: (opts: { pageSizeInput: number; sortInput: string; pageAfterInput: string }) => ({
+    default: (opts: { pageSizeInput: number; sortInput: string; pageAfterInput: string }) => ({
       items: ref([]),
       totalRows: ref(0),
       perPage: ref(opts.pageSizeInput),
