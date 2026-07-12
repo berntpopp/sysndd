@@ -159,7 +159,7 @@ The curator GeneReviews coverage feature (`/api/genereviews`, Curator+) resolves
 
 ### Public analysis snapshots
 
-The `log-cleanup` Compose service prunes old rows from the operational request log table (`logging`) on a daily schedule so the table does not grow unbounded. It reuses the API image (so it shares the `renv` dependencies, `RMariaDB`, and the existing connection-pool/config helpers) and connects over the internal `backend` network only — it needs the database but no outbound egress. The service runs a small no-root scheduler loop that invokes `api/scripts/delete_old_logs.R` and then `api/scripts/delete_old_jobs.R` once per day; the scripts delegate to the unit-tested helpers in `api/functions/log-cleanup.R` and `api/functions/async-job-retention.R`.
+The `log-cleanup` Compose service prunes old rows from the operational request log table (`logging`) on a daily schedule so the table does not grow unbounded. It reuses the API image (so it shares the `renv` dependencies, `RMariaDB`, and the existing connection-pool/config helpers) and connects over the internal `backend` network only — it needs the database but no outbound egress. The service runs a small no-root scheduler loop that invokes `api/scripts/delete_old_jobs.R` (the fully-bounded `async_jobs` prune, run first) and then `api/scripts/delete_old_logs.R` once per day; the scripts delegate to the unit-tested helpers in `api/functions/async-job-retention.R` and `api/functions/log-cleanup.R`.
 
 Configuration (environment variables, with defaults):
 

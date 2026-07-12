@@ -537,8 +537,10 @@ services:
     healthcheck:
       disable: true
     # Daily scheduler loop (no root / system cron needed). Sleeps until the next
-    # LOG_CLEANUP_AT (HH:MM) and then runs the cleanup script; on script failure
-    # it logs and continues to the next day rather than crash-looping.
+    # LOG_CLEANUP_AT (HH:MM) and then runs the cleanup scripts; on script failure
+    # it logs and continues to the next day rather than crash-looping. The
+    # fully-bounded async_jobs prune runs FIRST so the legacy unbounded log prune
+    # can never delay/starve it.
     command:
       - bash
       - -lc
@@ -557,10 +559,10 @@ services:
             sleep_for=$$(( target - now ));
             echo "[log-cleanup] sleeping $$sleep_for s until next run";
             sleep "$$sleep_for";
-            echo "[log-cleanup] running scripts/delete_old_logs.R";
-            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] log run failed (exit $$?); will retry next cycle";
             echo "[log-cleanup] running scripts/delete_old_jobs.R";
             Rscript scripts/delete_old_jobs.R || echo "[log-cleanup] job-retention run failed (exit $$?); will retry next cycle";
+            echo "[log-cleanup] running scripts/delete_old_logs.R";
+            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] log run failed (exit $$?); will retry next cycle";
           done
     volumes:
       - ./api/functions:/app/functions:ro
