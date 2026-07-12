@@ -138,14 +138,8 @@
   total <- length(pmids)
   results <- vector("list", total)
 
-  sysndd_db <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = payload$db_config$dbname,
-    user = payload$db_config$user,
-    password = payload$db_config$password,
-    host = payload$db_config$host,
-    port = payload$db_config$port
-  )
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  sysndd_db <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
   for (i in seq_along(pmids)) {
@@ -211,8 +205,8 @@
 }
 
 # Durable verified publication-date backfill (#460). Worker-executed; needs NCBI
-# egress (already on the `proxy` network). Opens its own DB connection from
-# payload$db_config (mirroring .async_job_run_publication_refresh) and delegates to
+# egress (already on the `proxy` network). Resolves its DB connection at run time
+# via async_job_db_connect() (#535 S2b; no db_config in the payload) and delegates to
 # the shared backfill_publication_dates_run(). A benign single-flight skip
 # (lock_held) returns successfully; a hard DB failure OR a systemic fetch outage
 # (every targeted PMID failed to fetch -> classed publication_backfill_systemic_failure)
@@ -221,14 +215,8 @@
 .async_job_run_publication_date_backfill <- function(job, payload, state, worker_config) {
   reporter <- .async_job_progress_reporter(job$job_id[[1]])
 
-  sysndd_db <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = payload$db_config$dbname,
-    user = payload$db_config$user,
-    password = payload$db_config$password,
-    host = payload$db_config$host,
-    port = payload$db_config$port
-  )
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  sysndd_db <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
   res <- backfill_publication_dates_run(

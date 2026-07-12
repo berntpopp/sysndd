@@ -539,7 +539,8 @@ test_that("submit succeeds with 202 and the 350ms-per-PMID estimate", {
   # 350ms/PMID + overhead: ceiling(3 * 0.4) == 2
   expect_equal(result$estimated_seconds, 2)
   expect_equal(seen_params$pmids, list("1", "2", "3"))
-  expect_equal(seen_params$db_config$dbname, "d")
+  # #535 S2b: no DB credential in the payload — resolved at run time.
+  expect_null(seen_params$db_config)
 })
 
 test_that("svc_admin_publication_refresh_estimate_seconds matches the 350ms rate-limit guard", {

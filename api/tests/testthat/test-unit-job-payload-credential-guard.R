@@ -66,8 +66,6 @@ test_that("the fixed backup path carries no DB credential in its job payload", {
 
 test_that("credential-in-payload line set matches the frozen S2b-pending list", {
   expected <- sort(c(
-    "admin-publication-refresh-endpoint-service.R | password = dw$password,",
-    "admin_publications_endpoints.R | password = dw$password,",
     "llm-batch-generator.R | db_password = db_cfg$password",
     "llm-batch-generator.R | password = db_config$db_password",
     "publication-admin-endpoint-service.R | db_password = dw$db_password,",
@@ -92,6 +90,7 @@ test_that("migrated durable handlers resolve DB creds at run time via the resolv
   .expect_resolves_creds("functions/async-job-omim-apply.R")
   .expect_resolves_creds("functions/async-job-provider-handlers.R")
   .expect_resolves_creds("functions/comparisons-functions.R")
+  .expect_resolves_creds("functions/async-job-maintenance-handlers.R")
 })
 
 test_that("no site passes a raw dw/config object as a db_config (bypass tripwire)", {
