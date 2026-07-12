@@ -197,19 +197,19 @@ test_that("GET / review list: validation — filter_review_approved coerced via 
   })
 })
 
-test_that("GET / review list: permission — public read (no require_role)", {
+test_that("GET / review list: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- review_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/\\s*$", src)[[1L]]
     # The list handler body runs from dec_idx+1 to the next decorator block.
     # Grab enough lines to cover the whole function, then assert the body
-    # does NOT contain require_role() — GET / is the public list endpoint.
+    # gates at Reviewer+ — GET / exposes draft rows and curator identities.
     next_decorator <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     next_after <- next_decorator[next_decorator > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(next_after - 1L)], collapse = "\n")
-    expect_false(
-      grepl("require_role\\(", body_blob),
-      info = "GET /review is a public list endpoint; no require_role() guard expected."
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
     )
   })
 })
@@ -609,7 +609,7 @@ test_that("GET /<review_id_requested>: happy path — decorator + parameterised 
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(review_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, review_id_requested\\)")
   })
 })
 
@@ -623,7 +623,7 @@ test_that("GET /<review_id_requested>: validation — handler URLdecodes + split
   })
 })
 
-test_that("GET /<review_id_requested>: permission — public read (no require_role)", {
+test_that("GET /<review_id_requested>: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- review_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>\\s*$", src)[[1L]]
@@ -631,7 +631,10 @@ test_that("GET /<review_id_requested>: permission — public read (no require_ro
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
@@ -649,7 +652,7 @@ test_that("GET /<review_id>/phenotypes: happy path — decorator surface present
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/phenotypes\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(review_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, review_id_requested\\)")
   })
 })
 
@@ -668,14 +671,17 @@ test_that("GET /<review_id>/phenotypes: validation — body filters by review_id
   })
 })
 
-test_that("GET /<review_id>/phenotypes: permission — public read (no require_role)", {
+test_that("GET /<review_id>/phenotypes: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- review_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/phenotypes\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
@@ -692,7 +698,7 @@ test_that("GET /<review_id>/variation: happy path — decorator surface present"
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/variation\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(review_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, review_id_requested\\)")
   })
 })
 
@@ -708,14 +714,17 @@ test_that("GET /<review_id>/variation: validation — joins variation_ontology_l
   })
 })
 
-test_that("GET /<review_id>/variation: permission — public read (no require_role)", {
+test_that("GET /<review_id>/variation: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- review_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/variation\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
@@ -732,7 +741,7 @@ test_that("GET /<review_id>/publications: happy path — decorator surface prese
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/publications\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(review_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, review_id_requested\\)")
   })
 })
 
@@ -747,14 +756,17 @@ test_that("GET /<review_id>/publications: validation — pulls ndd_review_public
   })
 })
 
-test_that("GET /<review_id>/publications: permission — public read (no require_role)", {
+test_that("GET /<review_id>/publications: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- review_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<review_id_requested>/publications\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
@@ -834,5 +846,42 @@ test_that("PUT /approve/<review_id>: permission — non-Curator role blocked wit
     )
     expect_equal(res$status, 403L)
     expect_false(svc_called)
+  })
+})
+
+
+# =============================================================================
+# Behavioral deny-before-query: every gated GET route must reject an
+# anonymous / insufficient-role caller BEFORE touching the database, so no
+# draft rows or curator identities can leak. A sentinel `pool` (whose use as a
+# dbplyr source would error) proves the handler stops at `require_role`.
+# =============================================================================
+
+test_that("review GET routes: anonymous/insufficient role is denied BEFORE any DB access (403)", {
+  with_test_db_transaction({
+    deny <- function(req, res, min_role) {
+      res$status <- 403L
+      stop("forbidden")
+    }
+    # decorator -> (id-arg?) for each gated GET route
+    routes <- list(
+      list(dec = "^#\\*\\s+@get\\s+/\\s*$",                                   args = list()),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>\\s*$",              args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/phenotypes\\s*$",   args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/variation\\s*$",    args = list(review_id_requested = "1")),
+      list(dec = "^#\\*\\s+@get\\s+/<review_id_requested>/publications\\s*$", args = list(review_id_requested = "1"))
+    )
+    for (r in routes) {
+      env <- new.env(parent = globalenv())
+      env$require_role <- deny
+      # sentinel: any dbplyr use errors, so a green test proves deny-before-query
+      env$pool <- structure(list(), class = "SENTINEL_DB")
+      handler <- extract_review_handler(r$dec, env)
+      res <- new.env()
+      res$status <- 200L
+      call_args <- c(list(req = list(), res = res), r$args)
+      expect_error(do.call(handler, call_args), "forbidden", info = r$dec)
+      expect_equal(res$status, 403L)
+    }
   })
 })

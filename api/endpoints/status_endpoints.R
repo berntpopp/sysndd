@@ -25,6 +25,8 @@
 #*
 #* @get /
 function(req, res, filter_status_approved = FALSE) {
+  require_role(req, res, "Reviewer")
+
   filter_status_approved <- as.logical(filter_status_approved)
 
   entity_status_categories_coll <- pool %>%
@@ -151,6 +153,54 @@ function(req, res, filter_status_approved = FALSE) {
 }
 
 
+#* Get List of All Status
+#*
+#* Retrieves all status categories from ndd_entity_status_categories_list.
+#*
+#* # `Return`
+#* Returns a paginated list of categories with links (navigation URLs),
+#* meta (perPage, currentPage, totalPages), and data (actual status category records).
+#*
+#* NOTE: This static `_list` route MUST be declared BEFORE the dynamic
+#* `/<status_id_requested>` route below. Plumber matches routes in declaration
+#* order, so if the dynamic route came first it would capture `/status/_list`
+#* (with status_id_requested = "_list") and — now that the dynamic route is
+#* gated at Reviewer+ (#535 P0-1) — return 403 for this public vocabulary
+#* endpoint. Declaring `_list` first keeps it publicly reachable.
+#*
+#* @tag status
+#* @serializer json list(na="string")
+#*
+#* @param page_after Cursor after which entries are shown (default: 0).
+#* @param page_size Page size in cursor pagination (default: "all").
+#*
+#* @response 200 OK. Returns paginated status categories.
+#*
+#* Public: returns only the status-category vocabulary (ndd_entity_status_categories_list);
+#* no draft rows, curator identities, or approval state. Consumed by public entity-create option loaders.
+#* @get _list
+function(page_after = 0, page_size = "all") {
+  status_list_collected <- pool %>%
+    tbl("ndd_entity_status_categories_list") %>%
+    arrange(category_id) %>%
+    collect()
+
+  # Apply pagination
+  pagination_info <- generate_cursor_pag_inf_safe(
+    status_list_collected,
+    page_size,
+    page_after,
+    "category_id"
+  )
+
+  list(
+    links = pagination_info$links,
+    meta = pagination_info$meta,
+    data = pagination_info$data
+  )
+}
+
+
 #* Get Single Status by Status ID
 #*
 #* Retrieves detailed info for a specific status ID.
@@ -166,7 +216,9 @@ function(req, res, filter_status_approved = FALSE) {
 #* @response 200 OK. Returns the status data.
 #*
 #* @get /<status_id_requested>
-function(status_id_requested) {
+function(req, res, status_id_requested) {
+  require_role(req, res, "Reviewer")
+
   status_id_requested <- URLdecode(status_id_requested) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -206,45 +258,6 @@ function(status_id_requested) {
     arrange(status_date)
 
   status_table_collected
-}
-
-
-#* Get List of All Status
-#*
-#* Retrieves all status categories from ndd_entity_status_categories_list.
-#*
-#* # `Return`
-#* Returns a paginated list of categories with links (navigation URLs),
-#* meta (perPage, currentPage, totalPages), and data (actual status category records).
-#*
-#* @tag status
-#* @serializer json list(na="string")
-#*
-#* @param page_after Cursor after which entries are shown (default: 0).
-#* @param page_size Page size in cursor pagination (default: "all").
-#*
-#* @response 200 OK. Returns paginated status categories.
-#*
-#* @get _list
-function(page_after = 0, page_size = "all") {
-  status_list_collected <- pool %>%
-    tbl("ndd_entity_status_categories_list") %>%
-    arrange(category_id) %>%
-    collect()
-
-  # Apply pagination
-  pagination_info <- generate_cursor_pag_inf_safe(
-    status_list_collected,
-    page_size,
-    page_after,
-    "category_id"
-  )
-
-  list(
-    links = pagination_info$links,
-    meta = pagination_info$meta,
-    data = pagination_info$data
-  )
 }
 
 

@@ -153,16 +153,16 @@ test_that("GET / status list: validation — filter_status_approved coerced via 
   })
 })
 
-test_that("GET / status list: permission — public read (no require_role)", {
+test_that("GET / status list: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- status_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(
-      grepl("require_role\\(", body_blob),
-      info = "GET /status is a public list endpoint; no require_role() guard expected."
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
     )
   })
 })
@@ -180,7 +180,7 @@ test_that("GET /<status_id_requested>: happy path — parameterised signature", 
     )
     dec_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
     sig_line <- src[dec_idx + 1L]
-    expect_match(sig_line, "^function\\(status_id_requested\\)")
+    expect_match(sig_line, "^function\\(req, res, status_id_requested\\)")
   })
 })
 
@@ -194,14 +194,17 @@ test_that("GET /<status_id_requested>: validation — URLdecodes + splits on com
   })
 })
 
-test_that("GET /<status_id_requested>: permission — public read (no require_role)", {
+test_that("GET /<status_id_requested>: permission — requires Reviewer+", {
   with_test_db_transaction({
     src <- status_source()
     dec_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
     next_dec <- grep("^#\\*\\s+@(get|post|put|delete)\\b", src)
     after <- next_dec[next_dec > dec_idx][[1L]]
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
-    expect_false(grepl("require_role\\(", body_blob))
+    expect_true(
+      grepl("require_role\\(\\s*req\\s*,\\s*res\\s*,\\s*\"Reviewer\"", body_blob),
+      info = "This GET route must gate at Reviewer+ (draft/curator-identity exposure)."
+    )
   })
 })
 
@@ -256,6 +259,21 @@ test_that("GET _list status: permission — public read (no require_role)", {
     body_blob <- paste(src[dec_idx:(after - 1L)], collapse = "\n")
     expect_false(grepl("require_role\\(", body_blob))
   })
+})
+
+test_that("GET _list status: route precedence — declared BEFORE dynamic /<status_id_requested>", {
+  # #535 P0-1 regression guard: plumber matches routes in declaration order.
+  # The static `_list` route MUST be declared before the dynamic detail route,
+  # otherwise `/status/_list` is captured by the (now Reviewer+-gated) detail
+  # handler and the public vocabulary endpoint 403s. This locks the ordering
+  # that keeps `_list` publicly reachable.
+  src <- status_source()
+  list_idx <- grep("^#\\*\\s+@get\\s+_list\\s*$", src)[[1L]]
+  detail_idx <- grep("^#\\*\\s+@get\\s+/<status_id_requested>\\s*$", src)[[1L]]
+  expect_lt(
+    list_idx, detail_idx,
+    label = "The `_list` route decorator must appear before `/<status_id_requested>`"
+  )
 })
 
 
@@ -602,5 +620,40 @@ test_that("PUT /approve/<status_id>: permission — non-Curator role blocked wit
     )
     expect_equal(res$status, 403L)
     expect_false(svc_called)
+  })
+})
+
+
+# =============================================================================
+# Behavioral deny-before-query: the gated status GET routes (list + detail,
+# NOT `_list`, which is public vocabulary by design) must reject an anonymous /
+# insufficient-role caller BEFORE touching the database, so no draft rows or
+# curator identities can leak. A sentinel `pool` (whose use as a dbplyr source
+# would error) proves the handler stops at `require_role`.
+# =============================================================================
+
+test_that("status GET routes: anonymous/insufficient role is denied BEFORE any DB access (403)", {
+  with_test_db_transaction({
+    deny <- function(req, res, min_role) {
+      res$status <- 403L
+      stop("forbidden")
+    }
+    # decorator -> (id-arg?) for each gated GET route (NOT `_list`, which is public)
+    routes <- list(
+      list(dec = "^#\\*\\s+@get\\s+/\\s*$",                        args = list()),
+      list(dec = "^#\\*\\s+@get\\s+/<status_id_requested>\\s*$",   args = list(status_id_requested = "1"))
+    )
+    for (r in routes) {
+      env <- new.env(parent = globalenv())
+      env$require_role <- deny
+      # sentinel: any dbplyr use errors, so a green test proves deny-before-query
+      env$pool <- structure(list(), class = "SENTINEL_DB")
+      handler <- extract_status_handler(r$dec, env)
+      res <- new.env()
+      res$status <- 200L
+      call_args <- c(list(req = list(), res = res), r$args)
+      expect_error(do.call(handler, call_args), "forbidden", info = r$dec)
+      expect_equal(res$status, 403L)
+    }
   })
 })
