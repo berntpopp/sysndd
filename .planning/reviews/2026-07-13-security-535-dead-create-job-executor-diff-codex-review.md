@@ -31,3 +31,17 @@ The only finding was LOW: a positional call through a `submit_fn = create_job` i
 - HIGH: none
 - Cheap MEDIUM/LOW findings: folded where in scope
 - Residual: the pre-existing injectable capacity-error response seams remain intentionally unchanged; they are not caused by removing `executor_fn`/`timeout_ms` and require a separate behavior decision.
+
+## CI Follow-up Review
+
+CI restored `api/renv/library` and exposed that the static guard's original broad
+recursive scan attempted to parse an intentionally unparseable Biobase package
+template. Commit `45e98b61` narrows discovery to the six repository-owned API
+production roots plus the three top-level runtime entrypoints. A temp-tree
+regression proves an invalid `renv/library` source is excluded while a valid
+production offender is included and detected.
+
+Focused xhigh follow-up verdict: `SHIP`; `BLOCKER/HIGH remaining: no`.
+The reviewer reported no BLOCKER, HIGH, MEDIUM, or LOW findings and independently
+enumerated 266 selected production R files plus all nine direct and three
+injected-alias `create_job` call sites.
