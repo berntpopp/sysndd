@@ -175,6 +175,11 @@ services:
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       CACHE_VERSION: ${CACHE_VERSION:-3}
+      # #535 S6: per-caller throttle on the public clustering submit routes. Compose
+      # uses explicit env maps, so these must be passed through to be tunable via .env.
+      CLUSTERING_SUBMIT_PER_CALLER_MAX: ${CLUSTERING_SUBMIT_PER_CALLER_MAX:-5}
+      CLUSTERING_SUBMIT_WINDOW_SECONDS: ${CLUSTERING_SUBMIT_WINDOW_SECONDS:-60}
+      CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS: ${CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS:-1}
       # OMIM download key for genemap2.txt (required for ontology/comparisons)
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
       # NDDScore release source; defaults match api/config.yml.
