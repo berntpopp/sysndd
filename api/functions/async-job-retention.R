@@ -50,9 +50,13 @@ ASYNC_JOB_RETENTION_BATCH_SIZE <- 1000L
 #' pruned per run; any remainder is left for the next daily run.
 ASYNC_JOB_RETENTION_MAX_BATCHES <- 1000L
 
-#' Wall-clock ceiling (seconds) for one invocation's batch loop. Complements the
-#' batch cap: whichever bound trips first stops the run and leaves the remainder
-#' for the next daily run, so the destructive loop can never run unbounded.
+#' SOFT wall-clock budget (seconds) for one invocation's batch loop, checked
+#' BETWEEN batches. Complements the batch cap: whichever bound trips first stops
+#' the loop and leaves the remainder for the next daily run, so the loop can never
+#' run unbounded across many batches. It is a between-batch budget, not a hard
+#' per-statement deadline — a single in-flight statement is instead bounded by the
+#' per-batch lock-wait timeout (`ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS`) plus the
+#' small, index-bounded work of one batch.
 ASYNC_JOB_RETENTION_MAX_SECONDS <- 600L
 
 #' Fail-closed UPPER bounds on the operator-tunable knobs. Making a knob tunable

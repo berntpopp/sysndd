@@ -9,9 +9,12 @@
 # validate_retention_days() from functions/log-cleanup.R).
 #
 # Configuration (environment variables):
-#   ASYNC_JOB_RETENTION_DAYS      Retention window in days (default 90)
-#   ASYNC_JOB_RETENTION_DRY_RUN   When truthy (1/true/yes/on): count only, no delete
-#   ENVIRONMENT                   production | development | <other> -> config block
+#   ASYNC_JOB_RETENTION_DAYS             Retention window in days (default 90)
+#   ASYNC_JOB_RETENTION_DRY_RUN          When truthy (1/true/yes/on): count only, no delete
+#                                        (an unrecognized value fails safe to dry-run)
+#   ASYNC_JOB_RETENTION_BATCH_SIZE       Candidate PKs read+deleted per batch, clamped <=1000 (default 1000)
+#   ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS Per-batch row+metadata lock wait, clamped <=30 (default 10)
+#   ENVIRONMENT                          production | development | <other> -> config block
 #
 # Exit codes: 0 on success, non-zero on any failure.
 #
