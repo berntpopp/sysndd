@@ -135,7 +135,7 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
   row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
 
   # Cache-first: if the memoized function already has a cached result,
-  # return it immediately without spawning an async daemon job.
+  # return it immediately without submitting a durable worker job.
   # This ensures the LLM batch uses the same hashes as the API endpoint.
   cache_hit <- tryCatch(
     memoise::has_cache(gen_mca_clust_obj_mem)(sysndd_db_phenotypes_wider_df),

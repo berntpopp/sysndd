@@ -124,7 +124,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
   )
 
   # Cache-first: if the memoized function already has a cached result,
-  # return it immediately without spawning an async daemon job.
+  # return it immediately without submitting a durable worker job.
   # The network_edges endpoint (graph) warms this cache on first load,
   # so subsequent table requests resolve instantly.
   cache_hit <- tryCatch(

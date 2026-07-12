@@ -106,7 +106,7 @@ llm_should_skip_cached <- function(cached, force = FALSE) {
 #' - Checks is_gemini_configured() before proceeding
 #' - Creates job with operation="llm_generation"
 #' - Passes clusters, cluster_type, parent_job_id, and force to executor
-#' - Timeout set to 1 hour for large batches
+#' - Durable worker execution is governed by the async-job lease lifecycle
 #'
 #' @examples
 #' \dontrun{
@@ -235,7 +235,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #'
 #' @export
 llm_batch_executor <- function(params) {
-  # File-based debug logging for mirai daemon visibility
+  # File-based debug logging for durable worker visibility
   debug_log_file <- "/tmp/llm_executor_debug.log"
   log_debug <- function(...) {
     cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), " ", ..., "\n", file = debug_log_file, append = TRUE)
