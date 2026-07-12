@@ -1,5 +1,7 @@
 # Tests for async-job retention cleanup (#535 S7). Pure parameterized SQL
-# builders + injected DB layer; no live database.
+# builders + injected DB layer; no live database. The lock-safe delete path is
+# select-candidate-PKs (non-locking) then delete-by-PK with a full-predicate
+# re-check.
 
 if (exists("get_api_dir")) {
   api_dir <- get_api_dir()
@@ -22,6 +24,8 @@ EXPECTED_RETENTION_WHERE <- paste(
   "AND updated_at < TIMESTAMPADD(DAY, ?, CURRENT_TIMESTAMP(6))"
 )
 
+.fake_ids <- function(n) as.character(seq_len(n))
+
 test_that("count SQL is the EXACT terminal, non-retryable, aged predicate", {
   spec <- build_async_job_retention_count_sql(90L)
   expect_identical(
@@ -32,42 +36,53 @@ test_that("count SQL is the EXACT terminal, non-retryable, aged predicate", {
   expect_identical(spec$params, list(-90L, -90L))
 })
 
-test_that("count and delete share the exact same WHERE predicate + params", {
-  count_spec <- build_async_job_retention_count_sql(90L)
-  del_spec <- build_async_job_retention_delete_sql(90L)
-  count_where <- sub("^SELECT COUNT\\(\\*\\) AS n FROM async_jobs WHERE ", "", count_spec$sql)
-  del_where <- sub("^DELETE FROM async_jobs WHERE ", "", del_spec$sql)
-  expect_identical(count_where, EXPECTED_RETENTION_WHERE)
-  expect_identical(del_where, EXPECTED_RETENTION_WHERE)
-  expect_identical(count_spec$params, del_spec$params)
-})
-
-test_that("delete is a fully-parameterized statement (no interpolation)", {
-  spec <- build_async_job_retention_delete_sql(30L)
-  expect_identical(spec$sql, paste("DELETE FROM async_jobs WHERE", EXPECTED_RETENTION_WHERE))
-  expect_identical(spec$params, list(-30L, -30L))
-  # No literal day count is ever baked into the SQL text.
-  expect_false(grepl("30", spec$sql, fixed = TRUE))
-})
-
-test_that("batched delete is deterministic and bounded (ORDER BY tiebreak + LIMIT ?)", {
-  spec <- build_async_job_retention_delete_sql(90L, 500L)
+test_that("select-ids SQL is a bounded, deterministic, non-locking read", {
+  spec <- build_async_job_retention_select_ids_sql(90L, 500L)
   expect_identical(
     spec$sql,
-    paste("DELETE FROM async_jobs WHERE", EXPECTED_RETENTION_WHERE,
+    paste("SELECT job_id FROM async_jobs WHERE", EXPECTED_RETENTION_WHERE,
           "ORDER BY submitted_at, job_id LIMIT ?")
   )
-  # ORDER BY must precede LIMIT, tiebreak on the PK, and LIMIT is also bound.
+  # oldest-first, PK tiebreak, bound LIMIT; no FOR UPDATE / locking read.
   expect_lt(regexpr("ORDER BY", spec$sql, fixed = TRUE), regexpr("LIMIT", spec$sql, fixed = TRUE))
   expect_true(grepl("submitted_at, job_id", spec$sql, fixed = TRUE))
+  expect_false(grepl("FOR UPDATE", spec$sql, ignore.case = TRUE))
   expect_identical(spec$params, list(-90L, -90L, 500L))
-  # The unbatched form carries neither ORDER BY nor LIMIT.
-  expect_false(grepl("ORDER BY", build_async_job_retention_delete_sql(90L)$sql, fixed = TRUE))
-  expect_false(grepl("LIMIT", build_async_job_retention_delete_sql(90L)$sql, fixed = TRUE))
+})
+
+test_that("delete-by-ids is by PRIMARY KEY and RE-CHECKS the full predicate", {
+  spec <- build_async_job_retention_delete_by_ids_sql(c("a", "b", "c"), 90L)
+  expect_identical(
+    spec$sql,
+    paste0("DELETE FROM async_jobs WHERE job_id IN (?, ?, ?) AND ", EXPECTED_RETENTION_WHERE)
+  )
+  # IN-list PKs first, then the two bound TIMESTAMPADD offsets.
+  expect_identical(spec$params, list("a", "b", "c", -90L, -90L))
+  # No literal day count is ever baked into the SQL text.
+  expect_false(grepl("90", spec$sql, fixed = TRUE))
+})
+
+test_that("delete-by-ids refuses an empty id set (never an unbounded DELETE)", {
+  expect_error(build_async_job_retention_delete_by_ids_sql(character(0), 90L))
+  expect_error(build_async_job_retention_delete_by_ids_sql(NA_character_, 90L))
+  expect_error(build_async_job_retention_delete_by_ids_sql(c("", NA), 90L))
+})
+
+test_that("count, select, and delete share the exact same terminal WHERE clause", {
+  count_where <- sub("^SELECT COUNT\\(\\*\\) AS n FROM async_jobs WHERE ", "",
+    build_async_job_retention_count_sql(90L)$sql)
+  select_where <- sub(" ORDER BY submitted_at, job_id LIMIT \\?$", "",
+    sub("^SELECT job_id FROM async_jobs WHERE ", "",
+      build_async_job_retention_select_ids_sql(90L, 10L)$sql))
+  delete_where <- sub("^DELETE FROM async_jobs WHERE job_id IN \\(\\?\\) AND ", "",
+    build_async_job_retention_delete_by_ids_sql("a", 90L)$sql)
+  expect_identical(count_where, EXPECTED_RETENTION_WHERE)
+  expect_identical(select_where, EXPECTED_RETENTION_WHERE)
+  expect_identical(delete_where, EXPECTED_RETENTION_WHERE)
 })
 
 test_that("retention days are validated (injection-proof) AND bound", {
-  expect_error(build_async_job_retention_delete_sql("30; DROP TABLE async_jobs"))
+  expect_error(build_async_job_retention_select_ids_sql("30; DROP TABLE async_jobs"))
   expect_error(build_async_job_retention_count_sql("0")) # must be >= 1
   expect_error(build_async_job_retention_count_sql("-5")) # negative fails closed
   # default applies for empty/NULL -> bound offset -90
@@ -85,68 +100,97 @@ test_that("config_from_env reads ASYNC_JOB_RETENTION_* with defaults", {
   expect_false(cfg2$dry_run)
 })
 
-test_that("dry-run counts (with bound params) but never deletes", {
+test_that("dry-run counts (with bound params) but never selects or deletes", {
   seen_params <- NULL
-  executed <- 0L
+  selects <- 0L
+  deletes <- 0L
   summary <- run_async_job_retention(
     config = list(retention_days = 90L, dry_run = TRUE),
     count_fn = function(sql, params) {
       seen_params <<- params
       7L
     },
+    select_ids_fn = function(sql, params) {
+      selects <<- selects + 1L
+      .fake_ids(5)
+    },
     execute_fn = function(sql, params) {
-      executed <<- executed + 1L
+      deletes <<- deletes + 1L
       99L
     },
     logger = function(msg) invisible(NULL)
   )
   expect_equal(summary$candidate_rows, 7L)
   expect_equal(summary$deleted_rows, 0L)
-  expect_equal(executed, 0L) # DELETE never issued
+  expect_equal(selects, 0L) # no candidate read in dry-run
+  expect_equal(deletes, 0L) # DELETE never issued
   expect_identical(seen_params, list(-90L, -90L)) # count bound the window
 })
 
-test_that("destructive run skips the pre-count and deletes in batches", {
-  # Never pre-counts on a destructive run (extra scan); reports deleted_rows.
+test_that("destructive run skips pre-count, reads PKs, deletes by PK in batches", {
   count_calls <- 0L
-  returns <- c(1000L, 1000L, 3L) # ASYNC_JOB_RETENTION_BATCH_SIZE is 1000
-  i <- 0L
+  batches <- list(.fake_ids(1000L), .fake_ids(1000L), .fake_ids(3L)) # batch size 1000
+  s <- 0L
+  del_id_lengths <- integer(0)
   summary <- run_async_job_retention(
     config = list(retention_days = 90L, dry_run = FALSE),
     count_fn = function(sql, params) {
       count_calls <<- count_calls + 1L
       2003L
     },
+    select_ids_fn = function(sql, params) {
+      s <<- s + 1L
+      batches[[s]]
+    },
     execute_fn = function(sql, params) {
-      i <<- i + 1L
-      returns[i]
+      # params = c(ids..., off, off); rows deleted == number of ids in this batch
+      del_id_lengths <<- c(del_id_lengths, length(params) - 2L)
+      length(params) - 2L
     },
     logger = function(msg) invisible(NULL),
     now_fn = function() as.POSIXct(0, origin = "1970-01-01", tz = "UTC")
   )
   expect_equal(count_calls, 0L) # no pre-count on destructive runs
-  expect_equal(i, 3L) # three batches
+  expect_equal(s, 3L) # three candidate reads
+  expect_identical(del_id_lengths, c(1000L, 1000L, 3L))
   expect_equal(summary$deleted_rows, 2003L)
   expect_true(is.na(summary$candidate_rows))
   expect_false(summary$batch_cap_reached)
   expect_false(summary$time_cap_reached)
 })
 
+test_that("run loop stops immediately when no candidates remain", {
+  deletes <- 0L
+  summary <- run_async_job_retention(
+    config = list(retention_days = 90L, dry_run = FALSE),
+    count_fn = function(sql, params) 0L,
+    select_ids_fn = function(sql, params) character(0),
+    execute_fn = function(sql, params) {
+      deletes <<- deletes + 1L
+      5L
+    },
+    logger = function(msg) invisible(NULL)
+  )
+  expect_equal(deletes, 0L)
+  expect_equal(summary$deleted_rows, 0L)
+})
+
 test_that("the run loop is bounded by a max-batches cap", {
-  # Every execution reports a full batch (would loop forever without a cap).
-  calls <- 0L
+  # Every read returns a full batch (would loop forever without a cap).
+  reads <- 0L
   summary <- run_async_job_retention(
     config = list(retention_days = 90L, dry_run = FALSE),
     count_fn = function(sql, params) 1e9,
-    execute_fn = function(sql, params) {
-      calls <<- calls + 1L
-      ASYNC_JOB_RETENTION_BATCH_SIZE # always a full batch
+    select_ids_fn = function(sql, params) {
+      reads <<- reads + 1L
+      .fake_ids(ASYNC_JOB_RETENTION_BATCH_SIZE)
     },
+    execute_fn = function(sql, params) length(params) - 2L, # full batch deleted
     logger = function(msg) invisible(NULL),
     max_batches = 3L,
     now_fn = function() as.POSIXct(0, origin = "1970-01-01", tz = "UTC") # freeze clock
   )
-  expect_equal(calls, 3L) # stops at the cap, not indefinitely
+  expect_equal(reads, 3L) # stops at the cap, not indefinitely
   expect_equal(summary$deleted_rows, 3L * ASYNC_JOB_RETENTION_BATCH_SIZE)
   expect_true(isTRUE(summary$batch_cap_reached))
 })
@@ -160,20 +204,21 @@ test_that("the run loop is bounded by a wall-clock max-seconds cap", {
     t <<- t + step
     as.POSIXct(t, origin = "1970-01-01", tz = "UTC")
   }
-  calls <- 0L
+  reads <- 0L
   summary <- run_async_job_retention(
     config = list(retention_days = 90L, dry_run = FALSE),
     count_fn = function(sql, params) 1e9,
-    execute_fn = function(sql, params) {
-      calls <<- calls + 1L
-      ASYNC_JOB_RETENTION_BATCH_SIZE
+    select_ids_fn = function(sql, params) {
+      reads <<- reads + 1L
+      .fake_ids(ASYNC_JOB_RETENTION_BATCH_SIZE)
     },
+    execute_fn = function(sql, params) length(params) - 2L,
     logger = function(msg) invisible(NULL),
     max_batches = 1000L,
     max_seconds = 50, # tripped after the first batch (elapsed 100s)
     now_fn = clock
   )
-  expect_equal(calls, 1L)
+  expect_equal(reads, 1L)
   expect_true(isTRUE(summary$time_cap_reached))
   expect_false(summary$batch_cap_reached)
 })

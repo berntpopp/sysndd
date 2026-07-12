@@ -50,16 +50,19 @@ main <- function() {
 
   assign("pool", pool, envir = .GlobalEnv)
 
-  # Hold ONE connection for the whole run and bound its lock wait so a single
-  # batch DELETE can never stall indefinitely on a row/metadata lock held by a
-  # worker (a blocked statement fails fast instead of exceeding the run's
-  # wall-clock ceiling). Reuses the one connection for every batch.
+  # Hold ONE connection for the whole run and bound its lock waits so a single
+  # batch DELETE can never stall indefinitely on a lock held by a worker (a
+  # blocked statement fails fast instead of exceeding the run's wall-clock
+  # ceiling). `innodb_lock_wait_timeout` bounds InnoDB ROW-lock waits;
+  # `lock_wait_timeout` bounds METADATA-lock (DDL) waits — both are set because
+  # they cover distinct wait classes. Reuses the one connection for every batch.
   conn <- pool::poolCheckout(pool)
   on.exit(pool::poolReturn(conn), add = TRUE)
   lock_wait <- validate_retention_days(
     Sys.getenv("ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS", ""), 10L
   )
   DBI::dbExecute(conn, sprintf("SET SESSION innodb_lock_wait_timeout = %d", lock_wait))
+  DBI::dbExecute(conn, sprintf("SET SESSION lock_wait_timeout = %d", lock_wait))
 
   count_fn <- function(sql, params = list()) {
     res <- db_execute_query(sql, params, conn = conn)
@@ -68,6 +71,13 @@ main <- function() {
     }
     0L
   }
+  select_ids_fn <- function(sql, params = list()) {
+    res <- db_execute_query(sql, params, conn = conn)
+    if (is.data.frame(res) && "job_id" %in% names(res)) {
+      return(as.character(res$job_id))
+    }
+    character(0)
+  }
   execute_fn <- function(sql, params = list()) {
     as.integer(db_execute_statement(sql, params, conn = conn))
   }
@@ -75,6 +85,7 @@ main <- function() {
   run_async_job_retention(
     config = config,
     count_fn = count_fn,
+    select_ids_fn = select_ids_fn,
     execute_fn = execute_fn,
     logger = function(msg) message(sprintf("[%s] %s", format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"), msg))
   )
