@@ -56,6 +56,9 @@ services:
     environment:
       ENVIRONMENT: production
       LOG_LEVEL: WARN
+      # Browser workers share one loopback client; keep the test-only quota high
+      # enough for parallel authenticated fixtures while retaining a hard bound.
+      AUTH_ENDPOINT_PER_CALLER_MAX: 1000
     # Note: api/config.yml is bind-mounted by the base compose. The
     # `make playwright-stack` target writes api/config.yml.playwright into
     # api/config.yml before bringing the stack up (preserving any existing
@@ -71,6 +74,10 @@ services:
       - "traefik.http.routers.playwright-api.rule=PathPrefix(`/api`) || PathPrefix(`/__docs__`) || PathPrefix(`/__swagger__`)"
       - "traefik.http.routers.playwright-api.entrypoints=web"
       - "traefik.http.routers.playwright-api.priority=100"
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded_For="
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X-Forwarded_For="
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded-For="
+      - "traefik.http.routers.playwright-api.middlewares=api-strip-xff-alias@docker"
       - "traefik.http.services.playwright-api.loadbalancer.server.port=7777"
       - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie.name=sysndd_playwright_api_sticky"

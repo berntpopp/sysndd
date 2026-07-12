@@ -1,7 +1,10 @@
 # Tests for the per-caller clustering submit throttle (#535 S6).
 # Pure logic (injectable clock + store); no DB.
 
-if (exists("get_api_dir")) {
+staged_api_dir <- Sys.getenv("SYSNDD_API_DIR", "")
+if (nzchar(staged_api_dir)) {
+  api_dir <- staged_api_dir
+} else if (exists("get_api_dir")) {
   api_dir <- get_api_dir()
 } else {
   api_dir <- normalizePath(file.path(getwd(), "..", ".."), mustWork = FALSE)
@@ -9,6 +12,7 @@ if (exists("get_api_dir")) {
     api_dir <- normalizePath(file.path(getwd()), mustWork = FALSE)
   }
 }
+source(file.path(api_dir, "functions", "per-caller-throttle.R"), local = FALSE)
 source(file.path(api_dir, "functions", "clustering-submit-throttle.R"), local = FALSE)
 
 test_that("allows up to max_n submissions in the window, then throttles", {

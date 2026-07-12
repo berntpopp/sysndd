@@ -39,3 +39,21 @@ test_that("production API and MCP wait for DB readiness and use cheap MCP health
   expect_true(any(grepl("mcp-healthcheck.R", compose$services$mcp$healthcheck$test, fixed = TRUE)))
   expect_true(file.exists(file.path(repo_root, "api", "scripts", "mcp-healthcheck.R")))
 })
+
+test_that("Playwright auth load is bounded without weakening proxy header stripping", {
+  skip_if_not_installed("yaml")
+
+  overlay <- yaml::read_yaml(file.path(repo_root, "docker-compose.playwright.yml"))
+  api <- overlay$services$api
+  labels <- unlist(api$labels, use.names = FALSE)
+
+  expect_equal(api$environment$AUTH_ENDPOINT_PER_CALLER_MAX, 1000L)
+  expect_true(any(grepl(
+    "api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded_For=",
+    labels, fixed = TRUE
+  )))
+  expect_true(any(grepl(
+    "playwright-api.middlewares=api-strip-xff-alias@docker",
+    labels, fixed = TRUE
+  )))
+})

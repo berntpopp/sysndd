@@ -40,8 +40,12 @@
 #* @response 404 Not Found. Invalid registration data.
 #* @response 415 Unsupported Media Type. If the request is not JSON.
 #*
+#* @parser auth_body_raw
 #* @post signup
 function(req, res) {
+  admission <- auth_endpoint_admission_guard(req, res)
+  if (!admission$admitted) return(admission$response)
+
   content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
   if (media_type != "application/json") {
@@ -51,7 +55,7 @@ function(req, res) {
   }
 
   signup_body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
+    jsonlite::fromJSON(req$postBody, simplifyVector = FALSE),
     error = function(e) NULL
   )
   required_fields <- c(
@@ -65,6 +69,8 @@ function(req, res) {
   )
   if (
     is.null(signup_body) ||
+      !is.list(signup_body) ||
+      is.null(names(signup_body)) ||
       length(signup_body) == 0 ||
       !all(required_fields %in% names(signup_body))
   ) {
@@ -219,19 +225,36 @@ function(req, res) {
 #* @response 400 Bad Request. If JSON body is missing or malformed.
 #* @response 401 Unauthorized. If user or password is wrong or user not approved.
 #*
+#* @parser auth_body_raw
 #* @post authenticate
 function(req, res) {
+  admission <- auth_endpoint_admission_guard(req, res)
+  if (!admission$admitted) return(admission$response)
+
+  content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
+  if (media_type != "application/json") {
+    res$status <- 415L
+    return(list(error = "Content-Type must be application/json."))
+  }
+
   # Parse credentials from JSON body (OWASP: secrets MUST NOT be in URLs)
   body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
+    jsonlite::fromJSON(req$postBody, simplifyVector = FALSE),
+    error = function(e) NULL
   )
+  if (!is.list(body) || is.null(names(body))) {
+    res$status <- 400L
+    return(list(error = "Request body must be a JSON object."))
+  }
   user_name <- body$user_name %||% ""
   password <- body$password %||% ""
 
   # Validate inputs before calling service
   if (
-    nchar(user_name) < 5 || nchar(user_name) > 20 ||
+    !is.character(user_name) || length(user_name) != 1L || is.na(user_name) ||
+      !is.character(password) || length(password) != 1L || is.na(password) ||
+      nchar(user_name) < 5 || nchar(user_name) > 20 ||
       nchar(password) < 5 || nchar(password) > 50
   ) {
     res$status <- 400

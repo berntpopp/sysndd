@@ -166,23 +166,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
       # Sanitize the request before logging
       safe_req <- sanitize_request(req)
 
-      # For postBody, extract and sanitize if present
-      safe_post_body <- if (!is.null(req$postBody) && nchar(req$postBody) > 0) {
-        tryCatch(
-          {
-            body_parsed <- jsonlite::fromJSON(
-              req$postBody, simplifyVector = FALSE
-            )
-            body_sanitized <- sanitize_object(body_parsed)
-            jsonlite::toJSON(body_sanitized, auto_unbox = TRUE)
-          },
-          error = function(e) {
-            "[PARSE_ERROR]"
-          }
-        )
-      } else {
-        convert_empty(req$postBody)
-      }
+      safe_post_body <- sanitize_post_body_for_log(req)
 
       log_entry <- paste(
         convert_empty(req$REMOTE_ADDR),

@@ -68,17 +68,24 @@ make_mock_req <- function(
   req
 }
 
+endpoint_auth_api_dir <- function() {
+  staged_api_dir <- Sys.getenv("SYSNDD_API_DIR", "")
+  if (nzchar(staged_api_dir)) return(staged_api_dir)
+  get_api_dir()
+}
+
 auth_file_path <- function() {
-  file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
+  file.path(endpoint_auth_api_dir(), "endpoints", "authentication_endpoints.R")
 }
 
 user_file_path <- function() {
-  file.path(get_api_dir(), "endpoints", "user_endpoints.R")
+  file.path(endpoint_auth_api_dir(), "endpoints", "user_endpoints.R")
 }
 
 make_signup_sandbox <- function() {
   env <- new.env(parent = globalenv())
   env$`%||%` <- `%||%`
+  env$auth_endpoint_admission_guard <- function(...) list(admitted = TRUE)
   env$db_execute_statement <- function(...) {
     stop("db_execute_statement should not be called for request validation tests")
   }
@@ -129,6 +136,14 @@ extract_post_signup <- function(envir) {
   extract_plumber_handler(
     auth_file_path(),
     decorator_regex = "^#\\*\\s+@post\\s+signup\\s*$",
+    envir = envir
+  )
+}
+
+extract_post_authenticate <- function(envir) {
+  extract_plumber_handler(
+    auth_file_path(),
+    decorator_regex = "^#\\*\\s+@post\\s+authenticate\\s*$",
     envir = envir
   )
 }
@@ -220,6 +235,56 @@ test_that("signup handler rejects non-scalar required field values", {
   expect_no_error(handler(req = nested_req, res = nested_res))
   expect_equal(nested_res$status, 400L)
   expect_match(nested_res$body, "single string value")
+
+  array_res <- make_mock_res()
+  array_body <- paste0(
+    '[{"user_name":"validuser","first_name":"Ada","family_name":"Lovelace",',
+    '"email":"ada@example.org","orcid":"0000-0000-0000-000X",',
+    '"comment":"This comment is long enough.","terms_agreed":"accepted"}]'
+  )
+  expect_no_error(handler(
+    req = make_mock_req(array_body, "application/json"),
+    res = array_res
+  ))
+  expect_equal(array_res$status, 400L)
+
+  singleton_vector_res <- make_mock_res()
+  singleton_vector_body <- paste0(
+    '{"user_name":["validuser"],"first_name":"Ada","family_name":"Lovelace",',
+    '"email":"ada@example.org","orcid":"0000-0000-0000-000X",',
+    '"comment":"This comment is long enough.","terms_agreed":"accepted"}'
+  )
+  expect_no_error(handler(
+    req = make_mock_req(singleton_vector_body, "application/json"),
+    res = singleton_vector_res
+  ))
+  expect_equal(singleton_vector_res$status, 400L)
+})
+
+test_that("authenticate handler requires a JSON object with scalar credentials", {
+  skip_if_not_installed("jsonlite")
+  calls <- 0L
+  env <- make_signup_sandbox()
+  env$pool <- NULL
+  env$dw <- list()
+  env$auth_signin <- function(...) {
+    calls <<- calls + 1L
+    list(access_token = "unused")
+  }
+  handler <- extract_post_authenticate(env)
+
+  non_json_res <- make_mock_res()
+  handler(make_mock_req('{"user_name":"validuser","password":"validpass"}', "text/plain"), non_json_res)
+  expect_equal(non_json_res$status, 415L)
+
+  invalid_shape_res <- make_mock_res()
+  handler(make_mock_req('["validuser","validpass"]', "application/json"), invalid_shape_res)
+  expect_equal(invalid_shape_res$status, 400L)
+
+  vector_res <- make_mock_res()
+  handler(make_mock_req('{"user_name":["validuser","other"],"password":"validpass"}', "application/json"), vector_res)
+  expect_equal(vector_res$status, 400L)
+  expect_equal(calls, 0L)
 })
 
 test_that("password update handler only accepts JSON request bodies", {
