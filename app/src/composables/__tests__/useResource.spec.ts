@@ -509,4 +509,68 @@ describe('useResource — S5b request ownership (cache-slot epoch + transport-sl
     expect((w.vm as any).r.loading.value).toBe(false);
     w.unmount();
   });
+
+  it('a subscriber is not left stuck when another consumer starts a newer fetch', async () => {
+    // Consumer-ref ownership is per-instance, not the shared slot epoch, so a
+    // subscriber applies its subscribed value and clears loading even when another
+    // consumer supersedes the shared slot (regression guard for the epoch-as-consumer
+    // -token stuck-loading bug).
+    const resolvers: Array<(v: string) => void> = [];
+    const fetcher = vi.fn(() => new Promise<string>((res) => resolvers.push(res)));
+    const Comp = defineComponent({
+      setup() {
+        const r = useResource<string>('shared-k', fetcher, { ttlMs: 60_000 });
+        return { r };
+      },
+      render: () => h('div'),
+    });
+    const a = mount(Comp); // consumer A → fetch #0
+    await nextTick();
+    const b = mount(Comp); // consumer B subscribes to A's in-flight #0
+    await nextTick();
+    expect((b.vm as any).r.loading.value).toBe(true);
+
+    const pA = (a.vm as any).r.refresh(); // fetch #1 supersedes the slot
+    resolvers[0]('v0'); // B's subscribed pending resolves
+    await Promise.resolve();
+    await nextTick();
+    expect((b.vm as any).r.data.value).toBe('v0'); // B applied its value…
+    expect((b.vm as any).r.loading.value).toBe(false); // …and is NOT stuck loading
+
+    resolvers[1]('v1');
+    await pA;
+    await Promise.resolve();
+    expect((a.vm as any).r.data.value).toBe('v1');
+    a.unmount();
+    b.unmount();
+  });
+
+  it('an old fetch cannot overwrite a newer one after invalidate() recreates the slot', async () => {
+    // Global monotonic epochs prevent the collision where invalidate() resets a
+    // per-key epoch and a stale fetch then matches the recreated slot.
+    const resolvers: Array<(v: string) => void> = [];
+    const fetcher = vi.fn(() => new Promise<string>((res) => resolvers.push(res)));
+    const cache = useCacheStore();
+    const Comp = defineComponent({
+      setup() {
+        const r = useResource<string>('inv-k', fetcher, { ttlMs: 60_000 });
+        return { r };
+      },
+      render: () => h('div'),
+    });
+    const w = mount(Comp);
+    await nextTick(); // fetch #0 in flight
+    cache.invalidate('inv-k'); // deletes the slot mid-flight
+    const p1 = (w.vm as any).r.refresh(); // fetch #1 recreates the slot
+    resolvers[1]('fresh');
+    await p1;
+    await Promise.resolve();
+    expect(cache.peek('inv-k')?.value).toBe('fresh');
+
+    resolvers[0]('stale'); // the old #0 resolves LAST
+    await Promise.resolve();
+    expect((w.vm as any).r.data.value).toBe('fresh');
+    expect(cache.peek('inv-k')?.value).toBe('fresh'); // stale did NOT overwrite
+    w.unmount();
+  });
 });

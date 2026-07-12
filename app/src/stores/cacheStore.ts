@@ -33,11 +33,17 @@ export interface CacheEntry<T = unknown> {
 interface CacheState {
   // Plain object keyed by string. We keep insertion order via insertedAt for LRU.
   entries: Record<string, CacheEntry>;
+  // Globally-monotonic, never-reused fetch epoch allocator. Using a store-wide
+  // counter (rather than a per-key increment) means invalidate()/invalidatePrefix()
+  // — which delete an entry and let the next fetch recreate it — can never make a
+  // recreated slot's epoch collide with an in-flight older fetch's captured epoch.
+  epochCounter: number;
 }
 
 export const useCacheStore = defineStore('cache', {
   state: (): CacheState => ({
     entries: Object.create(null),
+    epochCounter: 0,
   }),
   actions: {
     peek<T>(key: string): CacheEntry<T> | null {
@@ -84,9 +90,9 @@ export const useCacheStore = defineStore('cache', {
         refCount: existing?.refCount ?? 0,
         insertedAt: existing?.insertedAt ?? now,
         lastAccessAt: now,
-        // Each new fetch advances the slot epoch so a stale consumer of the
-        // previous pending promise can detect it has been superseded.
-        epoch: (existing?.epoch ?? 0) + 1,
+        // Allocate a fresh globally-unique epoch so a stale consumer of the previous
+        // pending promise (or of a since-invalidated slot) can detect supersession.
+        epoch: (this.epochCounter += 1),
       };
     },
 

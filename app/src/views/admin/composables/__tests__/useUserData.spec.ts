@@ -157,6 +157,9 @@ describe('useUserData', () => {
     data.filter.value.user_name.content = 'alice';
     data.removeFilters();
     expect(data.filter.value.user_name.content).toBeNull();
+    // removeFilters() schedules a 50ms debounced load; dispose so its timer cannot
+    // fire inside a later test with a different axios mock / module state.
+    data.dispose();
   });
 
   // --- S5b request ownership -------------------------------------------------
@@ -223,5 +226,30 @@ describe('useUserData', () => {
     await p;
     await flushPromises();
     expect(data.totalRows.value).toBe(555); // disposed → late response ignored
+  });
+
+  it('A→B→cached-A does not leave isBusy stuck true', async () => {
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+    const pA = data.loadDataNow(); // A (default params) in flight
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B in flight
+    // stale A completes while B is pending → caches A's response
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA;
+    await flushPromises();
+    // switch back to A (served from the <500ms cache)
+    data.perPage.value = 25;
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.isBusy.value).toBe(false); // cache hit cleared busy; not stuck from B
+    // let B settle (superseded — must not resurrect busy)
+    resolvers[1]({ status: 200, data: userTablePayload });
+    await pB;
+    await flushPromises();
+    expect(data.isBusy.value).toBe(false);
+    data.dispose();
   });
 });

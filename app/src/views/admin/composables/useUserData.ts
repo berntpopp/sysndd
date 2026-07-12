@@ -131,10 +131,15 @@ export function useUserData(options: UseUserDataOptions = {}) {
       now - moduleLastApiCallTime < 500
     ) {
       if (!disposed && urlParam === latestIntent) {
+        // A current cache hit is a completed current intent: apply, sync the URL,
+        // and clear busy — otherwise a still-pending superseded request (A→B→cached-A)
+        // could leave isBusy stuck true forever.
         applyApiResponse(
           moduleLastApiResponse as UserTableResponse,
           () => !disposed && urlParam === latestIntent
         );
+        updateBrowserUrl();
+        tableData.isBusy.value = false;
       }
       return;
     }

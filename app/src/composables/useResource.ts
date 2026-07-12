@@ -47,6 +47,13 @@ export function useResource<T>(
   // A mutable token so that a fetcher resolution after key-change is ignored.
   let activeToken = Symbol('resource');
   let activeKey: ResourceKey | null = null;
+  // Per-INSTANCE fetch generation, bumped at each doFetch start. Gates THIS
+  // instance's consumer refs (data/error/isStale/loading) so two same-key fetches
+  // this instance started (concurrent refresh, SWR-vs-refresh) are distinguished.
+  // Deliberately NOT the shared cache-slot signal: a subscriber must not be left
+  // stuck (never applying, never clearing loading) just because ANOTHER consumer
+  // started a newer fetch of the same key.
+  let fetchGeneration = 0;
 
   const keyRef = computed<ResourceKey | null>(() => {
     if (keyInput === null) return null;
@@ -71,27 +78,27 @@ export function useResource<T>(
 
   async function doFetch(key: ResourceKey, force: boolean, background = false): Promise<void> {
     const myToken = activeToken;
+    const myGen = ++fetchGeneration;
+    // Per-instance consumer ownership: this instance's refs/loading are current only
+    // while it hasn't switched keys AND hasn't itself started a newer fetch. It is
+    // independent of what other consumers of the same key do.
+    const consumerCurrent = (): boolean => myToken === activeToken && myGen === fetchGeneration;
+
     // If another consumer already has a fetch in flight for this key, subscribe to it.
     const existing = cache.peek<T>(key);
     if (existing?.pending && !force) {
-      // Capture the slot epoch of the pending we subscribe to. If a newer fetch
-      // (any consumer) replaces the slot before this resolves, its epoch advances
-      // and we must not apply this now-stale shared value to our consumer refs.
-      const myEpoch = existing.epoch;
-      const stillOurs = (): boolean =>
-        myToken === activeToken && cache.peek<T>(key)?.epoch === myEpoch;
       try {
         if (!background) loading.value = true;
         const value = (await existing.pending) as T;
-        if (!stillOurs()) return; // consumer switched keys or the slot was superseded
+        if (!consumerCurrent()) return; // this instance switched keys or refetched
         data.value = value;
         error.value = null;
         isStale.value = false;
       } catch (e) {
-        if (!stillOurs()) return;
+        if (!consumerCurrent()) return;
         error.value = e instanceof Error ? e : new Error(String(e));
       } finally {
-        if (stillOurs() && !background) loading.value = false;
+        if (consumerCurrent() && !background) loading.value = false;
       }
       return;
     }
@@ -100,31 +107,30 @@ export function useResource<T>(
     const promise = (async () => {
       return await fetcher(ac.signal);
     })();
-    cache.beginFetch<T>(key, promise, ac); // advances this slot's epoch
+    cache.beginFetch<T>(key, promise, ac); // advances this slot's globally-unique epoch
     const myEpoch = cache.peek<T>(key)?.epoch;
-    // The slot epoch is the ownership signal for BOTH the shared cache write and
-    // the consumer refs. A newer `beginFetch` (any consumer) advances the epoch, so
-    // a stale fetch declines to write the cache. Crucially, `endFetch()` (e.g. the
-    // abort cleanup when a consumer switches keys) preserves the epoch, so a lone
-    // in-flight fetch still records its value for a future mount — unlike a
-    // `pending === promise` check, which the abort would have nulled out.
+    // Cache-slot ownership uses the shared, globally-monotonic slot epoch: a stale
+    // fetch cannot overwrite a newer fetch's cache entry, yet a lone in-flight fetch
+    // still records its value after an abort (endFetch preserves the epoch — unlike a
+    // `pending === promise` check, which the abort would have nulled out). Consumer
+    // refs use the per-instance generation above, so a subscriber is never stuck by
+    // another consumer starting a newer fetch of the same key.
     const slotCurrent = (): boolean => cache.peek<T>(key)?.epoch === myEpoch;
-    const isLatest = (): boolean => myToken === activeToken && slotCurrent();
     if (!background) loading.value = true;
     try {
       const value = await promise;
       if (slotCurrent()) cache.set<T>(key, value, ttlMs); // only the latest fetch records
-      if (!isLatest()) return;
+      if (!consumerCurrent()) return;
       data.value = value;
       error.value = null;
       isStale.value = false;
     } catch (e) {
       if (slotCurrent()) cache.endFetch(key);
-      if (!isLatest()) return;
+      if (!consumerCurrent()) return;
       error.value = e instanceof Error ? e : new Error(String(e));
     } finally {
       if (slotCurrent()) cache.endFetch(key);
-      if (isLatest() && !background) loading.value = false;
+      if (consumerCurrent() && !background) loading.value = false;
     }
   }
 

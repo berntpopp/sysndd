@@ -567,5 +567,43 @@ describe('useAsyncJob', () => {
       job.stopPolling();
       app.unmount();
     });
+
+    it('reset() invalidates an in-flight poll (its late response is ignored)', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((r) => {
+        release = r;
+      });
+      let entered!: () => void;
+      const handlerEntered = new Promise<void>((r) => {
+        entered = r;
+      });
+      server.use(
+        http.get('/api/jobs/:job_id/status', async () => {
+          entered();
+          await gate;
+          return HttpResponse.json({
+            job_id: ['j'],
+            status: ['completed'],
+            step: ['done'],
+            progress: { current: [1], total: [1] },
+          });
+        })
+      );
+
+      const [job, app] = withSetup(() =>
+        useAsyncJob(statusEndpoint, { pollingInterval: TEST_POLL_MS, timerInterval: TEST_TIMER_MS })
+      );
+
+      job.startJob('j');
+      const advance = vi.advanceTimersByTimeAsync(TEST_POLL_MS);
+      await handlerEntered;
+      job.reset(); // invalidates the in-flight poll
+      release();
+      await advance;
+      await flushPromises();
+
+      expect(job.status.value).toBe('idle'); // stale 'completed' did not apply
+      app.unmount();
+    });
   });
 });
