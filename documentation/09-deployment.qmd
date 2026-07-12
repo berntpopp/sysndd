@@ -69,9 +69,22 @@ restore replaces `async_jobs` and can drop the restore job's own row (so the
 `result_json.post_restore_scrub` field is best-effort; this is the restore-
 fencing limitation tracked separately as S3). The next API-startup scrub is an
 idempotent backstop. Set `ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP=false` only to
-disable the startup scrub (default on). The remaining durable job families (publication/hgnc/ontology/
-comparisons/omim/provider/pubtator/llm-batch) still carry `db_config` in payload
-and are migrated to the same resolver in a follow-up (S2b).
+disable the startup scrub (default on). As of #535 S2b, **all** durable job
+families (publication, hgnc/comparisons/omim/force_apply, provider,
+pubtator/pubtatornidd, llm) resolve DB credentials at run time via
+`async_job_db_connect()` — no payload carries `db_config`. The scrub is
+correspondingly job-type agnostic and redacts both `$.db_config.password` and
+`$.db_config.db_password` for historical terminal rows.
+
+**Deploy note (S2b payload-schema change):** dropping `db_config` changes the
+request-payload hash of `hgnc_update`/`comparisons_update`/`omim_update`. These
+destructive full-table-replace jobs now dedupe by **job type** (single-flight),
+so steady state is safe, but during the single deploy that lands S2b an
+in-flight pre-deploy job (old hash) will not dedupe against a newly-submitted
+post-deploy job. Prefer draining any in-flight maintenance job before deploying
+(these are admin/cron-triggered singletons; each is a full replace, so even a
+rare overlap converges to a consistent state). The scrub only touches terminal,
+non-retryable rows, so it never races an active job.
 
 ### `MIRAI_WORKERS`
 
