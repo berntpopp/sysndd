@@ -116,6 +116,22 @@ test_that("IPv6 rotation within a /64 collapses to one throttle bucket", {
   expect_false(identical(a, c))   # different /64 -> different key
 })
 
+test_that("IPv6 /64 is compression-invariant and rejects malformed addresses", {
+  ip <- function(x) async_job_submit_fingerprint(list(HTTP_X_FORWARDED_FOR = x))
+  # SAME address, different valid compressions -> ONE /64 key (no quota multiplication).
+  full <- ip("2001:0db8:0000:0001:0000:0000:0000:0005") # uncompressed, leading zeros
+  mid  <- ip("2001:db8:0:1::5")                          # "::" spans the interface bits
+  expect_equal(full, mid)
+  expect_equal(full, "2001:db8:0:1::/64")
+  # "::" that lands INSIDE the /64 prefix still expands to the correct hextets.
+  expect_equal(ip("2001::1:0:0:0:5"), "2001:0:0:1::/64")
+  # Malformed IPv6 is rejected (falls back to REMOTE_ADDR / "unknown"), not keyed.
+  expect_equal(async_job_submit_fingerprint(
+    list(HTTP_X_FORWARDED_FOR = "a:b", REMOTE_ADDR = "10.0.0.7")), "10.0.0.7")
+  expect_equal(ip("2001:::1"), "unknown")           # double "::"
+  expect_equal(ip("2001:db8:zzzz::1"), "unknown")   # non-hex hextet
+})
+
 # --- Admission guard (fingerprint + throttle -> HTTP decision) ----------------
 
 mock_res <- function() {

@@ -39,9 +39,11 @@
 # a stray `=0` (or any invalid value) falls back to the default rather than SILENTLY
 # disabling the control; it is clamped to a sane ceiling. WINDOW must be >= 1.
 CLUSTERING_SUBMIT_PER_CALLER_MAX <-
-  .async_job_submit_env_int("CLUSTERING_SUBMIT_PER_CALLER_MAX", 5L, 1L, max_value = 10000L)
+  .async_job_submit_env_int("CLUSTERING_SUBMIT_PER_CALLER_MAX", 5L, 1L, max_value = 1000L)
+# WINDOW floors at 5s (a 1s window would let a tiny MAX sustain a high rate) and caps
+# at a day.
 CLUSTERING_SUBMIT_WINDOW_SECONDS <-
-  .async_job_submit_env_int("CLUSTERING_SUBMIT_WINDOW_SECONDS", 60L, 1L, max_value = 86400L)
+  .async_job_submit_env_int("CLUSTERING_SUBMIT_WINDOW_SECONDS", 60L, 5L, max_value = 86400L)
 # Number of trusted reverse-proxy hops in front of the API (Traefik = 1). Clamped to
 # a small ceiling so a misconfiguration cannot index far into client-supplied XFF.
 CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS <-
@@ -49,7 +51,7 @@ CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS <-
 # Hard cap on distinct tracked fingerprints — bounds memory against X-Forwarded-For
 # rotation (each spoofed value would otherwise create a permanent 1-entry bucket).
 CLUSTERING_SUBMIT_MAX_TRACKED <-
-  .async_job_submit_env_int("CLUSTERING_SUBMIT_MAX_TRACKED", 20000L, 100L, max_value = 1000000L)
+  .async_job_submit_env_int("CLUSTERING_SUBMIT_MAX_TRACKED", 20000L, 100L, max_value = 200000L)
 
 # fingerprint -> numeric vector of recent submit epoch-seconds.
 .clustering_submit_history <- new.env(parent = emptyenv())
@@ -84,24 +86,36 @@ CLUSTERING_SUBMIT_MAX_TRACKED <-
     }
     return(NA_character_)
   }
-  # IPv6 (hex + colons only): group to the /64 network prefix (the first 4 hextets)
-  # so a whole ISP allocation is one bucket. The /64 prefix lives in the part BEFORE
-  # any "::" compression (real client addresses compress the low interface bits), so
-  # padding a short left part with zeros only ever OVER-groups (stricter throttle),
-  # never under-groups (which would be the bypass).
+  # IPv6 (hex + colons only): fully expand "::" to the exact zero run, validate the
+  # eight hextets, then key on the /64 (first four hextets, leading zeros stripped) so
+  # the SAME address in any compression maps to one bucket and a whole allocation is
+  # one caller. Malformed input (bad hextet, >8 groups, >1 "::") is rejected -> NA.
   if (grepl(":", token, fixed = TRUE) && grepl("^[0-9a-fA-F:]+$", token)) {
     low <- tolower(token)
-    compressed <- grepl("::", low, fixed = TRUE)
-    left <- if (compressed) sub("::.*$", "", low) else low
-    groups <- strsplit(left, ":", fixed = TRUE)[[1]]
-    groups <- groups[nzchar(groups)]
-    if (length(groups) >= 4L) {
-      prefix <- groups[1:4]
-    } else if (compressed) {
-      prefix <- c(groups, rep("0", 4L - length(groups)))
-    } else {
-      return(low) # uncompressed but < 4 hextets -> malformed; keep bounded value.
+    if (grepl(":::", low, fixed = TRUE)) {
+      return(NA_character_) # three-or-more consecutive colons is invalid
     }
+    dbl <- gregexpr("::", low, fixed = TRUE)[[1]]
+    if (length(dbl) == 1L && dbl[[1]] != -1L) {
+      left <- sub("::.*$", "", low)
+      right <- sub("^.*::", "", low)
+      lg <- if (nzchar(left)) strsplit(left, ":", fixed = TRUE)[[1]] else character(0)
+      rg <- if (nzchar(right)) strsplit(right, ":", fixed = TRUE)[[1]] else character(0)
+      zeros <- 8L - length(lg) - length(rg)
+      if (zeros < 1L) {
+        return(NA_character_) # "::" must stand in for at least one zero group
+      }
+      groups <- c(lg, rep("0", zeros), rg)
+    } else if (length(dbl) == 1L && dbl[[1]] == -1L) {
+      groups <- strsplit(low, ":", fixed = TRUE)[[1]]
+    } else {
+      return(NA_character_) # more than one "::" is invalid
+    }
+    if (length(groups) != 8L || !all(grepl("^[0-9a-f]{1,4}$", groups))) {
+      return(NA_character_)
+    }
+    prefix <- sub("^0+", "", groups[1:4])
+    prefix[!nzchar(prefix)] <- "0"
     return(paste0(paste(prefix, collapse = ":"), "::/64"))
   }
   NA_character_
