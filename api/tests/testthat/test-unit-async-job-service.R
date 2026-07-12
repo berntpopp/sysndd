@@ -135,6 +135,38 @@ test_that("async_job_service_find_duplicate hashes the request payload before qu
   )
 })
 
+test_that("find_active_by_type is job-type scoped and payload-hash independent (#535 S2b HIGH-4)", {
+  runtime <- load_async_job_service_runtime()
+  captured <- NULL
+
+  # Job-type single-flight must not hash a payload: destructive maintenance jobs
+  # dedupe on job_type alone, so a payload-schema change (dropping db_config)
+  # cannot open a deploy-window where two concurrent full-table-replace jobs run.
+  expect_true(is.function(runtime$async_job_service_find_active_by_type))
+  expect_equal(names(formals(runtime$async_job_service_find_active_by_type)),
+               c("job_type", "conn"))
+
+  runtime$async_job_repository_find_active_by_type <- function(job_type, conn = NULL) {
+    captured <<- list(job_type = job_type)
+    tibble::tibble(job_id = "job-active", status = "running")
+  }
+
+  dup <- runtime$async_job_service_duplicate_by_type("hgnc_update")
+  expect_true(dup$duplicate)
+  expect_equal(dup$existing_job_id, "job-active")
+  expect_equal(captured$job_type, "hgnc_update")
+})
+
+test_that("duplicate_by_type reports no duplicate when no active job of that type exists", {
+  runtime <- load_async_job_service_runtime()
+  runtime$async_job_repository_find_active_by_type <- function(job_type, conn = NULL) {
+    tibble::tibble()
+  }
+  dup <- runtime$async_job_service_duplicate_by_type("comparisons_update")
+  expect_false(dup$duplicate)
+  expect_null(dup$existing_job_id)
+})
+
 test_that("async_job_service_status and history delegate to the durable repository helpers", {
   runtime <- load_async_job_service_runtime()
   status_call <- NULL

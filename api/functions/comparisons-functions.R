@@ -14,12 +14,12 @@
 # functions/comparisons-parsers.R (extracted to keep both files < 600 lines).
 #
 # Key functions:
-#   - comparisons_update_async(params): Main async entry point for mirai daemon
+#   - comparisons_update_async(params): Main entry point for the durable worker
 #   - download_source_data(source_config, temp_dir): Download single source
 #   - resolve_hgnc_symbols(symbols, conn): Batch lookup HGNC IDs
 #
 # Usage:
-#   Called from jobs_endpoints.R via create_job() executor_fn
+#   Submitted via jobs_endpoints.R -> create_job(); run by the durable worker
 
 library(DBI)
 library(dplyr)
@@ -239,7 +239,7 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 #' Comparisons Update Async
 #'
 #' Main async entry point for the comparisons data refresh job.
-#' Called from mirai daemon via create_job().
+#' Submitted via create_job(); executed by the durable async worker.
 #'
 #' Downloads all active sources, parses, standardizes, resolves HGNC IDs,
 #' merges, and atomically updates the database.
@@ -250,15 +250,15 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 #' or "partial" (some failed), recorded in comparisons_metadata.
 #'
 #' @param params List containing:
-#'   - db_config: Database connection config (host, port, user, password, dbname)
 #'   - .__job_id__: Job ID for progress reporting (injected by create_job)
+#'   DB creds are resolved at run time via `async_job_db_connect()` (#535 S2b);
+#'   the payload no longer carries `db_config`.
 #'
 #' @return List with status, sources_updated, rows_written
 #'
 #' @export
 comparisons_update_async <- function(params) {
   job_id <- params$.__job_id__
-  db_config <- params$db_config
 
   # Create progress reporter
   progress <- create_progress_reporter(job_id)
@@ -274,16 +274,9 @@ comparisons_update_async <- function(params) {
     temp_dir <- tempfile(pattern = "comparisons_")
     dir.create(temp_dir, recursive = TRUE)
 
-    # Create database connection
+    # Create database connection — creds resolved at run time (#535 S2b).
     progress("connect", "Connecting to database...", current = 1, total = 10)
-    conn <- DBI::dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = db_config$dbname,
-      host = db_config$host,
-      user = db_config$user,
-      password = db_config$password,
-      port = db_config$port
-    )
+    conn <- async_job_db_connect()
 
     # Get active sources
     progress("config", "Loading source configuration...", current = 2, total = 10)

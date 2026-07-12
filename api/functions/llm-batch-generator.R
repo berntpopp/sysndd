@@ -173,41 +173,13 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 
   message("[LLM-Batch] About to call create_job() with llm_batch_executor")
 
-  # Build db_config from config.yml for daemon use
-  # Daemons don't have access to the main process's pool object
-  db_config <- tryCatch(
-    {
-      config_path <- if (file.exists("/app/config.yml")) "/app/config.yml" else "config.yml"
-      cfg <- config::get(file = config_path)
-      db_cfg <- cfg$sysndd_db %||% cfg
-      list(
-        db_host = db_cfg$host %||% "mysql",
-        db_port = as.integer(db_cfg$port %||% 3306),
-        db_name = db_cfg$dbname %||% "sysndd_db",
-        db_user = db_cfg$user,
-        db_password = db_cfg$password
-      )
-    },
-    error = function(e) {
-      message("[LLM-Batch] Failed to read config.yml: ", e$message)
-      NULL
-    }
-  )
-
-  if (is.null(db_config) || is.null(db_config$db_user)) {
-    message("[LLM-Batch] ERROR: Could not read database config")
-    return(list(skipped = TRUE, reason = "Database configuration not available"))
-  }
-
-  message("[LLM-Batch] db_config loaded: host=", db_config$db_host, ", db=", db_config$db_name)
-
-  # Create job with llm_batch_executor
+  # Create job with llm_batch_executor. The durable handler resolves DB creds at
+  # run time via async_job_db_connect() (#535 S2b) — no db_config in the payload.
   tryCatch(
     {
       result <- create_job(
         operation = "llm_generation",
         params = list(
-          db_config = db_config,
           clusters = clusters,
           cluster_type = cluster_type,
           parent_job_id = parent_job_id,
@@ -235,7 +207,8 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #' LLM batch executor for processing clusters
 #'
 #' Processes each cluster with cache-first lookup, retry logic, and progress reporting.
-#' Executed in mirai daemon as part of async job.
+#' Executed by the durable async worker; opens its DB connection via
+#' async_job_db_connect() (#535 S2b).
 #'
 #' @param params List containing:
 #'   - clusters: Tibble of cluster data
@@ -280,31 +253,14 @@ llm_batch_executor <- function(params) {
   cluster_type <- params$cluster_type
   job_id <- params$.__job_id__ %||% "unknown"
   parent_job_id <- params$parent_job_id %||% "unknown"
-  db_config <- params$db_config
   force <- isTRUE(params$force)
 
   message("[LLM-Executor] job_id=", job_id, " parent_job_id=", parent_job_id, " force=", force)
 
-  # Create database connection for this daemon
-  # Daemons don't have access to the main process's pool object
-  if (is.null(db_config)) {
-    log_debug("ERROR: db_config is NULL")
-    message("[LLM-Executor] ERROR: db_config is NULL")
-    return(list(total = 0L, succeeded = 0L, failed = 0L, skipped = 0L, error = "No database config"))
-  }
-
+  # Resolve the DB connection at run time from the worker runtime config (#535
+  # S2b); no db_config is carried in the job payload.
   daemon_conn <- tryCatch(
-    {
-      log_debug("Creating database connection: host=", db_config$db_host, ", db=", db_config$db_name)
-      DBI::dbConnect(
-        RMariaDB::MariaDB(),
-        host = db_config$db_host,
-        port = db_config$db_port,
-        dbname = db_config$db_name,
-        user = db_config$db_user,
-        password = db_config$db_password
-      )
-    },
+    async_job_db_connect(),
     error = function(e) {
       log_debug("ERROR: Database connection failed: ", e$message)
       message("[LLM-Executor] ERROR: Database connection failed: ", e$message)

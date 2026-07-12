@@ -235,6 +235,22 @@ check_duplicate_job <- function(operation, params) {
   async_job_service_duplicate(operation, params)
 }
 
+#' Job-type single-flight duplicate check for destructive maintenance jobs.
+#'
+#' Same `(operation, params)` shape as [check_duplicate_job()] so it is a
+#' drop-in `duplicate_check_fn` seam, but dedupes on job_type alone rather than
+#' the payload hash (#535 S2b HIGH-4): a full-table-replace maintenance job must
+#' never run concurrently, including across a deploy that changes its payload
+#' schema. `params` is ignored.
+#'
+#' @param operation Character job type.
+#' @param params Ignored (present for seam compatibility).
+#' @return list(duplicate = FALSE) or list(duplicate = TRUE, existing_job_id).
+#' @export
+check_active_job_by_type <- function(operation, params = NULL) {
+  async_job_service_duplicate_by_type(operation)
+}
+
 #' Compatibility no-op for the removed in-memory cleanup cycle
 #'
 #' @return Integer count of removed jobs (invisible).

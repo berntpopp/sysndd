@@ -194,20 +194,24 @@ test_that("the durable publication_refresh handler uses a 350ms NCBI rate-limit 
   )
 })
 
-test_that("the durable publication_refresh handler creates its own database connection", {
-  # Worker-executed code is sourced once at worker startup (AGENTS.md); it no
-  # longer needs to self-source per-job like the old mirai executor_fn did,
-  # but it still opens/closes its own DB connection (mirrors
-  # .async_job_run_publication_date_backfill's payload$db_config pattern).
+test_that("the durable publication_refresh handler resolves its DB connection at run time (#535 S2b)", {
+  # Worker-executed code is sourced once at worker startup (AGENTS.md). Post-S2b
+  # the handler resolves DB creds from the worker runtime config via
+  # async_job_db_connect() instead of reading a payload-supplied db_config, so no
+  # credential is persisted in async_jobs.request_payload_json.
   handler_code <- readLines(file.path(api_dir, "functions", "async-job-maintenance-handlers.R"))
 
   expect_true(
-    any(grepl("DBI::dbConnect", handler_code)),
-    info = ".async_job_run_publication_refresh should create a database connection"
+    any(grepl("async_job_db_connect\\(", handler_code)),
+    info = ".async_job_run_publication_refresh should open its connection via async_job_db_connect()"
   )
   expect_true(
     any(grepl("DBI::dbDisconnect", handler_code)),
     info = ".async_job_run_publication_refresh should disconnect on exit"
+  )
+  expect_false(
+    any(grepl("payload\\$db_config", handler_code)),
+    info = "publication handlers must not read a DB credential from the job payload"
   )
 })
 

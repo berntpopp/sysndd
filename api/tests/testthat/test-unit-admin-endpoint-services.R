@@ -209,27 +209,19 @@ test_that("svc_admin_force_apply_ontology_prepare 410s when the pending CSV is s
   expect_match(result$early_return$error, "stale")
 })
 
-test_that("svc_admin_force_apply_ontology_prepare threads db_config into the job params (#346 C1)", {
-  # Regression guard: the durable force_apply_ontology handler
-  # (.async_job_run_force_apply_ontology) opens its own DB connection from
-  # payload$db_config; the Wave 3 extraction must keep building it (like the
-  # sibling omim_update), or Force Apply fails at connect time with a NULL host.
-  expect_true("dw" %in% names(formals(svc_admin_force_apply_ontology_prepare)),
-              info = "prepare() must accept dw to build db_config")
-
+test_that("svc_admin_force_apply_ontology_prepare does NOT marshal db_config into the job params (#535 S2b)", {
+  # Post-S2b: the durable force_apply_ontology handler
+  # (.async_job_run_force_apply_ontology) resolves DB creds at run time via
+  # async_job_db_connect() from the worker's runtime config — no credential is
+  # written into async_jobs.request_payload_json. The prior helper
+  # .svc_admin_ontology_db_config() is removed.
   svc_src <- paste(
     deparse(body(svc_admin_force_apply_ontology_prepare)), collapse = "\n"
   )
-  expect_match(svc_src, "db_config = .svc_admin_ontology_db_config(dw)", fixed = TRUE,
-               info = "success-path params must wire db_config via the helper")
-
-  # And the helper returns the full connection descriptor the handler consumes.
-  dw <- list(dbname = "d", user = "u", password = "p", server = "s",
-             host = "h", port = 3306L)
-  cfg <- .svc_admin_ontology_db_config(dw)
-  expect_equal(cfg$dbname, "d")
-  expect_equal(cfg$host, "h")
-  expect_equal(cfg$port, 3306L)
+  expect_false(grepl("db_config", svc_src, fixed = TRUE),
+               info = "force_apply params must NOT carry db_config (creds resolved at run time)")
+  expect_false(grepl(".svc_admin_ontology_db_config", svc_src, fixed = TRUE),
+               info = "the credential-marshaling helper must no longer be referenced")
 })
 
 ## -------------------------------------------------------------------##
@@ -451,8 +443,7 @@ test_that("submit returns 400 on an invalid not_updated_since date", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(not_updated_since = "not-a-date")), res = res,
-    dw = list()
+    req = list(body = list(not_updated_since = "not-a-date")), res = res
   )
 
   expect_equal(res$status, 400)
@@ -463,7 +454,7 @@ test_that("submit returns 400 when no PMIDs and no filter/all flag are given (em
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list()), res = res, dw = list()
+    req = list(body = list()), res = res
   )
 
   expect_equal(res$status, 400)
@@ -474,7 +465,7 @@ test_that("submit returns 200 'no match' when the date filter matches nothing", 
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(not_updated_since = "2024-01-01")), res = res, dw = list(),
+    req = list(body = list(not_updated_since = "2024-01-01")), res = res,
     query_fn = function(sql, params = list()) {
       data.frame(publication_id = character(0))
     }
@@ -489,7 +480,7 @@ test_that("submit returns 200 when explicit PMIDs don't intersect the date filte
 
   result <- svc_admin_publication_refresh_submit(
     req = list(body = list(pmids = list("999999"), not_updated_since = "2024-01-01")),
-    res = res, dw = list(),
+    res = res,
     query_fn = function(sql, params = list()) data.frame(publication_id = c("111", "222"))
   )
 
@@ -501,7 +492,7 @@ test_that("submit returns 'already_running' when a duplicate job exists", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(pmids = list("12345"))), res = res, dw = list(),
+    req = list(body = list(pmids = list("12345"))), res = res,
     duplicate_check_fn = function(operation, params) {
       expect_equal(operation, "publication_refresh")
       list(duplicate = TRUE, existing_job_id = "existing-job")
@@ -517,7 +508,7 @@ test_that("submit returns 503 when job submission reports capacity exceeded", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(pmids = list("12345"))), res = res, dw = list(),
+    req = list(body = list(pmids = list("12345"))), res = res,
     duplicate_check_fn = function(...) list(duplicate = FALSE),
     create_job_fn = function(operation, params, ...) {
       list(error = "CAPACITY_EXCEEDED", message = "Too many jobs", retry_after = 60)
@@ -534,7 +525,6 @@ test_that("submit succeeds with 202 and the 350ms-per-PMID estimate", {
 
   result <- svc_admin_publication_refresh_submit(
     req = list(body = list(pmids = list("1", "2", "3"))), res = res,
-    dw = list(dbname = "d", user = "u", password = "p", server = "s", host = "h", port = 3306L),
     duplicate_check_fn = function(...) list(duplicate = FALSE),
     create_job_fn = function(operation, params, ...) {
       seen_params <<- params
@@ -547,7 +537,8 @@ test_that("submit succeeds with 202 and the 350ms-per-PMID estimate", {
   # 350ms/PMID + overhead: ceiling(3 * 0.4) == 2
   expect_equal(result$estimated_seconds, 2)
   expect_equal(seen_params$pmids, list("1", "2", "3"))
-  expect_equal(seen_params$db_config$dbname, "d")
+  # #535 S2b: no DB credential in the payload — resolved at run time.
+  expect_null(seen_params$db_config)
 })
 
 test_that("svc_admin_publication_refresh_estimate_seconds matches the 350ms rate-limit guard", {
@@ -563,7 +554,7 @@ test_that("submit resolves an opt-in all=true full-corpus refresh server-side", 
   seen_sql <- NULL
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(all = TRUE)), res = res, dw = list(),
+    req = list(body = list(all = TRUE)), res = res,
     query_fn = function(sql, params = list()) {
       seen_sql <<- sql
       data.frame(publication_id = c("1", "2"))

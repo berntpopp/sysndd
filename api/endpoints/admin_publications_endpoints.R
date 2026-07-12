@@ -49,17 +49,11 @@ function(req, res, limit = NULL, dry_run = FALSE) {
 
   outcome <- async_job_service_submit(
     job_type = "publication_date_backfill",
+    # DB creds resolved at run time via async_job_db_connect() (#535 S2b);
+    # the payload carries no db_config.
     request_payload = list(
       limit = limit_value,
-      dry_run = dry_run_flag,
-      db_config = list(
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-      )
+      dry_run = dry_run_flag
     ),
     # queue_name / priority default from the job type (#486): the backfill routes
     # to the "maintenance" lane so it no longer head-of-line blocks interactive

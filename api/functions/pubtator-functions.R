@@ -38,19 +38,17 @@ if (!exists("db_execute_query", mode = "function")) {
 #------------------------------------------------------------------------------
 #' Store PubTator search & annotation results in DB (transaction + rollback on errors)
 #'
-#' @param db_host,db_port,db_name,db_user,db_password  Connection params
+#' Uses the global connection pool via `db_with_transaction()`; it takes no
+#' connection params (the previously-declared `db_*` formals were dead — #535 S2b).
+#'
 #' @param query          The PubTator query string
 #' @param max_pages      Max pages to actually fetch (queried_page_number)
 #' @param do_full_update If TRUE, purge old data for that query_hash
+#' @param progress_fn    Optional progress reporting function
 #'
 #' @return The `query_id` used in the DB, or NULL on error
 #' @export
 pubtator_db_update <- function(
-  db_host,
-  db_port,
-  db_name,
-  db_user,
-  db_password,
   query,
   max_pages = 10,
   do_full_update = FALSE,
@@ -282,25 +280,27 @@ pubtator_db_update <- function(
 
 #------------------------------------------------------------------------------
 # ASYNC VERSION: pubtator_db_update_async
-#   - Designed for mirai daemons (no pool dependency)
-#   - Creates its own database connection
+#   - Durable-worker handler (no pool dependency)
+#   - Opens its own connection via async_job_db_connect() (#535 S2b)
 #   - Transaction handling via DBI directly
 #------------------------------------------------------------------------------
-#' Store PubTator results in DB (async/daemon version with direct connection)
+#' Store PubTator results in DB (durable-worker version with direct connection)
 #'
-#' This version is designed for use in mirai daemons where the global pool
-#' is not available. It creates its own database connection and uses direct
-#' DBI operations instead of pool-based helpers.
+#' This version runs in the durable async worker. It opens its own database
+#' connection via `async_job_db_connect()` (resolving creds from the worker
+#' runtime config) and uses direct DBI operations instead of pool-based helpers.
 #'
-#' @param db_config List with db_host, db_port, db_name, db_user, db_password
 #' @param query The PubTator query string
 #' @param max_pages Max pages to fetch
 #' @param do_full_update If TRUE, clear existing cache first
 #' @param progress_fn Optional progress reporting function
 #'
+#' DB creds are resolved at run time via `async_job_db_connect()` (#535 S2b);
+#' the payload no longer carries `db_config`.
+#'
 #' @return List with success status, query_id, and message
 #' @export
-pubtator_db_update_async <- function(db_config, query, max_pages = 10,
+pubtator_db_update_async <- function(query, max_pages = 10,
                                       do_full_update = FALSE, progress_fn = NULL) {
   # Helper to report progress
   report_progress <- function(step, message, current = NULL, total = NULL) {
@@ -327,16 +327,9 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
 
   report_progress("connect", "Connecting to database...", current = 0, total = max_pages)
 
-  # B) Create direct database connection
+  # B) Create direct database connection — creds resolved at run time (#535 S2b)
   conn <- tryCatch(
-    DBI::dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = db_config$db_name,
-      host = db_config$db_host,
-      user = db_config$db_user,
-      password = db_config$db_password,
-      port = db_config$db_port
-    ),
+    async_job_db_connect(),
     error = function(e) {
       log_error(skip_formatter(paste("Failed to connect to database:", e$message)))
       return(NULL)

@@ -234,11 +234,6 @@ svc_publication_pubtator_update <- function(req, res, query,
 
   tryCatch({
       query_id <- update_fn(
-        db_host = dw$db_host,
-        db_port = dw$db_port,
-        db_name = dw$db_name,
-        db_user = dw$db_user,
-        db_password = dw$db_password,
         query = query,
         max_pages = max_pages,
         do_full_update = clear_old
@@ -307,13 +302,6 @@ svc_publication_pubtator_update <- function(req, res, query,
 #' @export
 svc_publication_pubtator_update_submit <- function(req, res, query, max_pages, clear_old, q_hash,
                                                      submit_fn = create_job) {
-  db_config <- list(
-    db_host = dw$host,
-    db_port = dw$port,
-    db_name = dw$dbname,
-    db_user = dw$user,
-    db_password = dw$password
-  )
   # Each page ~6s (350ms rate limit + 2s fetch + 3s DB), plus a 2-minute
   # buffer for gene-symbol computation at the end.
   timeout_ms <- max(120000, (max_pages * 6000) + 120000)
@@ -324,39 +312,10 @@ svc_publication_pubtator_update_submit <- function(req, res, query, max_pages, c
       query = query,
       max_pages = max_pages,
       clear_old = clear_old,
-      query_hash = q_hash,
-      db_config = db_config
+      query_hash = q_hash
     ),
     timeout_ms = timeout_ms,
-    executor_fn = function(params) {
-      # Runs in the durable async worker.
-      progress <- create_progress_reporter(params$.__job_id__)
-      job_id <- params$.__job_id__
-      message(sprintf(
-        "[%s] [job:%s] PubTator update starting: query='%s', max_pages=%d, clear_old=%s",
-        Sys.time(), job_id, params$query, params$max_pages, params$clear_old
-      ))
-      progress("init", "Initializing PubTator fetch...", current = 0, total = params$max_pages)
-      result <- pubtator_db_update_async(
-        db_config = params$db_config,
-        query = params$query,
-        max_pages = params$max_pages,
-        do_full_update = params$clear_old,
-        progress_fn = progress
-      )
-      progress("complete", "PubTator fetch complete", current = params$max_pages, total = params$max_pages)
-
-      list(
-        status = "completed",
-        success = result$success,
-        query_id = result$query_id,
-        query = params$query,
-        pages_cached = result$pages_cached,
-        pages_total = result$pages_total,
-        publications_count = result$publications_count,
-        message = result$message
-      )
-    }
+    executor_fn = NULL
   )
 
   if (!is.null(result$error)) {

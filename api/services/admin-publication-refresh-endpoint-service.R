@@ -105,19 +105,6 @@ svc_admin_publication_refresh_estimate_seconds <- function(pmids) {
   ceiling(length(pmids) * 0.4)
 }
 
-#' Build the mirai/async job db_config list from the global `dw` config.
-#' @keywords internal
-.svc_admin_publication_refresh_db_config <- function(dw) {
-  list(
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-}
-
 #' POST /admin/publications/refresh body.
 #'
 #' Supports three modes: explicit `pmids`, a `not_updated_since` date filter,
@@ -127,7 +114,7 @@ svc_admin_publication_refresh_estimate_seconds <- function(pmids) {
 #' resolve (400/200 per the original contract).
 #'
 #' @export
-svc_admin_publication_refresh_submit <- function(req, res, dw,
+svc_admin_publication_refresh_submit <- function(req, res,
                                                    query_fn = db_execute_query,
                                                    duplicate_check_fn = check_duplicate_job,
                                                    create_job_fn = create_job) {
@@ -177,10 +164,7 @@ svc_admin_publication_refresh_submit <- function(req, res, dw,
 
   result <- create_job_fn(
     operation = "publication_refresh",
-    params = list(
-      pmids = pmids,
-      db_config = .svc_admin_publication_refresh_db_config(dw)
-    ),
+    params = list(pmids = pmids),
     timeout_ms = 7200000 # 2 hours timeout for large batches (4547 pubs ~27 min)
   )
 

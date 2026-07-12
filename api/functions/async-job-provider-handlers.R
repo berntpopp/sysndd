@@ -19,15 +19,9 @@
 # this file does not matter functionally — but keep them sourced nearby for
 # readability.
 
-.async_job_hgnc_write_db <- function(hgnc_data, db_config, job_id) {
-  conn <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = db_config$dbname,
-    host = db_config$host,
-    user = db_config$user,
-    password = db_config$password,
-    port = db_config$port
-  )
+.async_job_hgnc_write_db <- function(hgnc_data, job_id) {
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  conn <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
   db_cols <- DBI::dbListFields(conn, "non_alt_loci_set")
@@ -94,7 +88,6 @@
 
   write_result <- .async_job_hgnc_write_db(
     hgnc_data = hgnc_data,
-    db_config = payload$db_config,
     job_id = job$job_id[[1]]
   )
 
@@ -114,7 +107,6 @@
   progress("init", "Initializing PubTator fetch...", current = 0, total = payload$max_pages)
 
   result <- pubtator_db_update_async(
-    db_config = payload$db_config,
     query = payload$query,
     max_pages = payload$max_pages,
     do_full_update = payload$clear_old,
@@ -341,8 +333,7 @@
   progress("write", "Writing ontology update to the database...", 5, 5)
   auto_fixes_applied <- .async_job_omim_db_write(
     disease_ontology_set_update = disease_ontology_set_update,
-    safeguard = safeguard,
-    db_config = payload$db_config
+    safeguard = safeguard
   )
 
   list(
@@ -386,15 +377,8 @@
     tibble::tibble()
   }
 
-  sysndd_db <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = payload$db_config$dbname,
-    user = payload$db_config$user,
-    password = payload$db_config$password,
-    server = payload$db_config$server,
-    host = payload$db_config$host,
-    port = payload$db_config$port
-  )
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  sysndd_db <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
   result <- tryCatch(
