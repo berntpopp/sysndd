@@ -1,3 +1,5 @@
+> **STATUS: NOT IMPLEMENTATION-READY.** The Codex plan review (`.planning/reviews/2026-07-12-security-535-s1b-plan-codex-review.md`) found 4 BLOCKERs + 7 HIGHs (txn-rollback of the reuse response, SPA never gets the refresh token, one-way typ isolation, false rollout claim, concurrent-refresh false reuse, lock-order deadlock, "revoke chain"=revoke-all, regression-fixture must change, no server-side logout revocation). Resolve these in a plan v2 before writing code. This PR ships the design + plan + review for human decision, NOT an implementation.
+
 # S1b — Distinct/Revocable/Rotating Tokens — Plan (implementation-ready; human-gated)
 
 > REQUIRED SUB-SKILL: superpowers:test-driven-development. Design:
