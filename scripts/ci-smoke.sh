@@ -154,3 +154,11 @@ fi
 
 log "all security headers present, nginx version not leaked"
 exit 0
+
+# NOTE (#535): a runtime 404 check for /stats.html and /assets/*.map against the
+# prod stack was intentionally deferred — the smoke harness meta-test
+# (scripts/tests/test-ci-smoke.sh) mocks curl to 200 for all paths and asserts a
+# fixed probe-call count, so adding curls here needs the harness updated in the
+# same change. The nginx deny (local.conf) + the CI dist-artifact assertion +
+# the build verification already cover the regression; wire the HTTP 404 probe
+# in with a harness update as a follow-up.

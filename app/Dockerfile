@@ -69,6 +69,10 @@ RUN rm -rf ./*
 # Copy static assets from builder stage
 COPY --chown=nginx:nginx --from=builder /app/dist .
 
+# #535 belt-and-suspenders: never ship source maps or the analyzer report, even
+# if a build config regresses. Runs as root before `USER nginx`.
+RUN find . -name '*.map' -delete && rm -f stats.html
+
 # Health check using wget (included in Alpine)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget --spider --tries=1 --no-verbose http://localhost:8080/ || exit 1
