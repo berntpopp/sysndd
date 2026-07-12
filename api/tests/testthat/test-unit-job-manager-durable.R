@@ -48,7 +48,7 @@ test_that("create_job delegates to async_job_service_submit and preserves accept
 test_that("create_job and production source have no dead executor or timeout API", {
   runtime <- load_job_manager_runtime()
 
-  expect_setequal(names(formals(runtime$create_job)), c("operation", "params"))
+  expect_identical(as.list(formals(runtime$create_job)), alist(operation =, params =))
 
   dead_arguments <- c("executor_fn", "timeout_ms")
   collect_dead_symbols <- function(expression) {
@@ -68,6 +68,29 @@ test_that("create_job and production source have no dead executor or timeout API
     unique(found)
   }
 
+  collect_invalid_create_job_arity <- function(expression) {
+    found <- character()
+    visit <- function(node) {
+      if (is.call(node)) {
+        node_parts <- as.list(node)
+        call_name <- as.character(node[[1]])[[1L]]
+        argument_names <- names(node_parts)[-1L]
+        is_create_job_alias <- call_name %in% c("create_job", "create_job_fn") ||
+          (identical(call_name, "submit_fn") &&
+            any(argument_names %in% c("operation", "params")))
+        if (is_create_job_alias && length(node_parts) != 3L) {
+          found <<- c(found, deparse1(node))
+        }
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        lapply(as.list(node), visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(found)
+  }
+
   expect_setequal(
     collect_dead_symbols(quote(submit_fn(timeout_ms = 1, executor_fn = NULL))),
     dead_arguments
@@ -75,6 +98,10 @@ test_that("create_job and production source have no dead executor or timeout API
   expect_setequal(
     collect_dead_symbols(quote(function(executor_fn, timeout_ms = 1) NULL)),
     dead_arguments
+  )
+  expect_length(
+    collect_invalid_create_job_arity(quote(create_job("x", list(), NULL))),
+    1L
   )
 
   source_files <- list.files(
@@ -94,6 +121,19 @@ test_that("create_job and production source have no dead executor or timeout API
   offenders <- offenders[!endsWith(offenders, ":")]
 
   expect_equal(length(offenders), 0L, info = paste(offenders, collapse = ", "))
+
+  arity_offenders <- unlist(lapply(source_files, function(source_file) {
+    invalid_calls <- collect_invalid_create_job_arity(
+      parse(source_file, keep.source = FALSE)
+    )
+    paste(source_file, invalid_calls, sep = ":")
+  }))
+  arity_offenders <- arity_offenders[!endsWith(arity_offenders, ":")]
+  expect_equal(
+    length(arity_offenders),
+    0L,
+    info = paste(arity_offenders, collapse = ", ")
+  )
 })
 
 test_that("get_job_status translates durable rows into the legacy polling contract", {

@@ -24,9 +24,7 @@
 #'   (e.g., "clustering", "phenotype_clustering", "ontology_update")
 #' @param params List of payload parameters for the registered handler.
 #'
-#' @return List with either:
-#'   - On success: job_id, status="accepted", estimated_seconds=30
-#'   - On capacity exceeded: error="CAPACITY_EXCEEDED", message, retry_after=60
+#' @return List with job_id, status="accepted", and estimated_seconds=30.
 #'
 #' @examples
 #' \dontrun{

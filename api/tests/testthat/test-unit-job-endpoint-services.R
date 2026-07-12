@@ -139,8 +139,10 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
 
   env$async_job_capacity_exceeded <- function(...) FALSE
   create_job_operation <- NULL
+  create_job_params <- NULL
   env$create_job <- function(operation, params) {
     create_job_operation <<- operation
+    create_job_params <<- params
     list(job_id = "new-job-1", status = "accepted", estimated_seconds = 30)
   }
   res <- job_endpoint_fake_res()
@@ -149,6 +151,10 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   expect_equal(res$headers[["Retry-After"]], "5")
   expect_equal(out$job_id, "new-job-1")
   expect_equal(create_job_operation, "clustering")
+  expect_setequal(
+    names(create_job_params),
+    c("genes", "algorithm", "category_links", "string_id_table")
+  )
 })
 
 test_that("functional clustering: admission throttle runs FIRST, before any DB/cache work", {
@@ -305,7 +311,9 @@ test_that("phenotype clustering: capacity guard (503) then a cache miss under ca
   expect_equal(out$error, "CAPACITY_EXCEEDED")
 
   env$async_job_capacity_exceeded <- function(...) FALSE
+  create_job_params <- NULL
   env$create_job <- function(operation, params) {
+    create_job_params <<- params
     list(job_id = "new-pheno-1", status = "accepted", estimated_seconds = 30)
   }
   res <- job_endpoint_fake_res()
@@ -316,6 +324,14 @@ test_that("phenotype clustering: capacity guard (503) then a cache miss under ca
   # estimated_seconds is hardcoded to 60 for the new-submit response (matches
   # the original handler, which does not thread through create_job's value).
   expect_equal(out$estimated_seconds, 60)
+  expect_setequal(
+    names(create_job_params),
+    c(
+      "ndd_entity_view_tbl", "ndd_entity_review_tbl",
+      "ndd_review_phenotype_connect_tbl", "modifier_list_tbl",
+      "phenotype_list_tbl", "id_phenotype_ids", "categories"
+    )
+  )
 })
 
 test_that("phenotype clustering service source keeps is_primary filters paired with review_approved", {
