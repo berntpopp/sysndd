@@ -4,8 +4,14 @@
 
 # Max simultaneously queued+running jobs allowed on the public submit queue.
 # Read once at source/startup time; changing the env var requires an API
-# restart to take effect.
-ASYNC_PUBLIC_JOB_CAP <- as.integer(Sys.getenv("ASYNC_PUBLIC_JOB_CAP", "8"))
+# restart to take effect. An INVALID value (e.g. "abc") must not parse to NA:
+# `async_job_capacity_exceeded()` isTRUE-wraps its comparison, so an NA cap would
+# silently disable this DB-backed backstop entirely. Floor at 1, default 8.
+ASYNC_PUBLIC_JOB_CAP <- local({
+  raw <- trimws(Sys.getenv("ASYNC_PUBLIC_JOB_CAP", "8"))
+  value <- suppressWarnings(as.integer(raw))
+  if (is.na(value) || value < 1L) 8L else value
+})
 
 #' TRUE when the active (queued+running) job count is at or over the cap.
 #'
@@ -18,7 +24,11 @@ ASYNC_PUBLIC_JOB_CAP <- as.integer(Sys.getenv("ASYNC_PUBLIC_JOB_CAP", "8"))
 #' @return Logical.
 #' @export
 async_job_capacity_exceeded <- function(active_count, cap = ASYNC_PUBLIC_JOB_CAP) {
-  isTRUE(as.integer(active_count) >= as.integer(cap))
+  cap <- suppressWarnings(as.integer(cap))
+  if (length(cap) != 1L || is.na(cap) || cap < 1L) {
+    cap <- 8L # never let an invalid cap silently disable the backstop
+  }
+  isTRUE(as.integer(active_count) >= cap)
 }
 
 #' Count queued+running jobs for a given queue.

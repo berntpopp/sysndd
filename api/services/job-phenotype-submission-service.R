@@ -40,6 +40,15 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_phenotype_clustering <- function(req, res) {
+  # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
+  # DB/cache/duplicate work. The phenotype path otherwise collects five whole tables
+  # and builds the wide MCA matrix before admission — an abusive caller must be
+  # rejected before provoking that. Layered on the global capacity cap.
+  admission <- async_job_submit_admission_guard(req, res)
+  if (!isTRUE(admission$admitted)) {
+    return(admission$response)
+  }
+
   # Prepare data BEFORE mirai (database connections can't cross process boundary)
   # This replicates the data gathering from phenotype_clustering endpoint
 

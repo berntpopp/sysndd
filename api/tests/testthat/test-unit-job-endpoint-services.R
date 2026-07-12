@@ -1,58 +1,34 @@
 # tests/testthat/test-unit-job-endpoint-services.R
 #
-# Host-runnable unit tests for the job endpoint services extracted from
-# endpoints/jobs_endpoints.R (issue #346, Wave 3, Task 5): job-functional-
-# submission-service.R, job-phenotype-submission-service.R, job-maintenance-
-# submission-service.R, job-query-endpoint-service.R.
+# Host-runnable unit tests for the PUBLIC clustering submission services extracted
+# from endpoints/jobs_endpoints.R (issue #346, Wave 3, Task 5): job-functional-
+# submission-service.R and job-phenotype-submission-service.R. The maintenance-
+# submission (job-maintenance-submission-service.R) and query-endpoint
+# (job-query-endpoint-service.R) services are covered in the sibling
+# test-unit-job-endpoint-services-maintenance.R. Shared fixtures live in
+# job-endpoint-services-fixtures.R (explicitly sourced below). Split this way to keep
+# every file under the 600-line ceiling (#535 S6).
 #
-# Each service is sourced directly into an isolated environment via
-# sys.source() (mirrors test-unit-job-status-result-mode.R), and every bare
-# global name the service body references (pool, dw, check_duplicate_job,
-# create_job, async_job_capacity_exceeded, async_job_active_count,
-# async_job_service_store_completed, gen_string_clust_obj_mem,
-# gen_mca_clust_obj_mem, log_warn, get_job_history, get_job_status, ...) is
-# stubbed in that environment, so the tests exercise pure request/response
-# logic without a live DB or mirai daemon pool.
-#
-# `pool %>% dplyr::tbl(name)` is faked with a small S3 dispatch trick: a
-# "fake_pool" object wrapping a named list of tibbles, plus one `tbl.fake_pool`
-# method registered in the environment the service was sourced into (S3
-# dispatch finds it there). This needs no test DB / RSQLite, so every test
-# here is a real PASS on host R.
+# Each service is sourced directly into an isolated environment via sys.source()
+# (mirrors test-unit-job-status-result-mode.R), and every bare global name the service
+# body references (pool, dw, check_duplicate_job, create_job, async_job_capacity_exceeded,
+# async_job_active_count, async_job_service_store_completed, gen_string_clust_obj_mem,
+# gen_mca_clust_obj_mem, log_warn, ...) is stubbed in that environment, so the tests
+# exercise pure request/response logic without a live DB or mirai daemon pool.
 
-library(dplyr)
-library(tidyr)
-
-## -------------------------------------------------------------------##
-## Shared fixtures
-## -------------------------------------------------------------------##
-
-#' Source a service file into a fresh child-of-globalenv environment.
-job_endpoint_source_service <- function(filename) {
-  env <- new.env(parent = globalenv())
-  sys.source(file.path(get_api_dir(), "services", filename), envir = env)
-  env
-}
-
-#' Register `tbl.fake_pool` in `env` and build a fake pool over `tables`.
-job_endpoint_fake_pool <- function(env, tables) {
-  env$tbl.fake_pool <- function(src, from, ...) src$tables[[from]]
-  structure(list(tables = tables), class = "fake_pool")
-}
-
-#' Minimal Plumber-response stand-in: an environment with `$status` and a
-#' `$setHeader()` that records every header set (mirrors the `res_env`
-#' pattern in test-unit-pubtator-enrichment.R).
-job_endpoint_fake_res <- function() {
-  res <- new.env()
-  res$status <- NULL
-  res$headers <- list()
-  res$setHeader <- function(name, value) {
-    res$headers[[name]] <- value
-    invisible(NULL)
+# Resolve api_dir robustly so the file runs both under the full suite and a single-file
+# testthat::test_file(), then source the shared fixtures.
+if (exists("get_api_dir")) {
+  api_dir <- get_api_dir()
+} else {
+  api_dir <- normalizePath(file.path(getwd(), "..", ".."), mustWork = FALSE)
+  if (!file.exists(file.path(api_dir, "tests", "testthat", "job-endpoint-services-fixtures.R"))) {
+    api_dir <- normalizePath(getwd(), mustWork = FALSE)
   }
-  res
 }
+# local = TRUE keeps the shared helpers in this test file's environment (as if defined
+# inline) so `job_endpoint_source_service()` can still see the auto-loaded `get_api_dir`.
+source(file.path(api_dir, "tests", "testthat", "job-endpoint-services-fixtures.R"), local = TRUE)
 
 ## -------------------------------------------------------------------##
 ## job-functional-submission-service.R
@@ -178,6 +154,36 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   # The mirai executor closure is preserved anonymously/inline.
   expect_true(is.function(create_job_executor))
   expect_equal(names(formals(create_job_executor)), "params")
+})
+
+test_that("functional clustering: admission throttle runs FIRST, before any DB/cache work", {
+  # #535 S6 BLOCKER fix: a throttle block must short-circuit before the cache/dup/DB
+  # path so an abusive caller cannot bypass the limit or grow async_jobs via cache
+  # hits. The guard returning admitted=FALSE must return its response and touch nothing.
+  req <- list(argsBody = list(genes = list("HGNC:1")), user = list(user_id = NULL))
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  pool_touched <- FALSE
+  env$pool <- structure(list(), class = "trap_pool")
+  env$tbl.trap_pool <- function(src, from, ...) {
+    pool_touched <<- TRUE
+    stop("DB must not be touched when the throttle blocks")
+  }
+  create_job_called <- FALSE
+  env$create_job <- function(...) {
+    create_job_called <<- TRUE
+    NULL
+  }
+  env$async_job_submit_admission_guard <- function(req, res) {
+    res$status <- 429
+    res$setHeader("Retry-After", "42")
+    list(admitted = FALSE, response = list(error = "RATE_LIMITED", retry_after = 42L))
+  }
+  res <- job_endpoint_fake_res()
+  out <- env$svc_job_submit_functional_clustering(req, res)
+  expect_equal(res$status, 429)
+  expect_equal(out$error, "RATE_LIMITED")
+  expect_false(pool_touched)
+  expect_false(create_job_called)
 })
 
 ## -------------------------------------------------------------------##
@@ -338,273 +344,30 @@ test_that("phenotype clustering service source keeps is_primary filters paired w
   succeed()
 })
 
-## -------------------------------------------------------------------##
-## job-maintenance-submission-service.R
-## -------------------------------------------------------------------##
-
-job_endpoint_ontology_pool <- function(env) {
-  job_endpoint_fake_pool(env, list(
-    non_alt_loci_set = tibble::tibble(symbol = "A", hgnc_id = "HGNC:1"),
-    mode_of_inheritance_list = tibble::tibble(
-      is_active = c(1L, 0L),
-      hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007"),
-      hpo_mode_of_inheritance_term_name = c("AD", "AR")
-    )
-  ))
-}
-
-job_endpoint_maintenance_env <- function(needs_pool) {
-  env <- job_endpoint_source_service("job-maintenance-submission-service.R")
-  if (needs_pool) {
-    env$pool <- job_endpoint_ontology_pool(env)
-  } else {
-    env$dw <- list(dbname = "sysndd_db", host = "db", user = "sysndd", password = "s3cr3t", port = 3306L)
+test_that("phenotype clustering: admission throttle runs FIRST, before collecting tables", {
+  # #535 S6 BLOCKER fix: the phenotype path otherwise collects five whole tables and
+  # builds the MCA matrix before admission. A blocked caller must touch nothing.
+  env <- job_endpoint_source_service("job-phenotype-submission-service.R")
+  pool_touched <- FALSE
+  env$pool <- structure(list(), class = "trap_pool")
+  env$tbl.trap_pool <- function(src, from, ...) {
+    pool_touched <<- TRUE
+    stop("DB must not be touched when the throttle blocks")
   }
-  # hgnc/comparisons now dedupe via job-type single-flight (#535 S2b HIGH-4);
-  # ontology_update still uses check_duplicate_job. Provide a no-duplicate
-  # default for both seams so per-test overrides only set the case they exercise.
-  env$async_job_service_duplicate_by_type <- function(...) list(duplicate = FALSE)
-  env
-}
-
-# Table-driven: the three maintenance types share duplicate/new-submit flow,
-# differing only in operation name and Retry-After (30 / 60 / 30 seconds).
-job_endpoint_maintenance_specs <- list(
-  list(fn = "svc_job_submit_ontology_update", op = "ontology_update", retry_after = "30", needs_pool = TRUE),
-  list(fn = "svc_job_submit_hgnc_update", op = "hgnc_update", retry_after = "60", needs_pool = FALSE),
-  list(fn = "svc_job_submit_comparisons_update", op = "comparisons_update", retry_after = "30", needs_pool = FALSE)
-)
-
-for (job_endpoint_spec in job_endpoint_maintenance_specs) {
-  test_that(paste(job_endpoint_spec$op, ": duplicate job returns 409 with Location"), {
-    env <- job_endpoint_maintenance_env(job_endpoint_spec$needs_pool)
-    dup_id <- paste0("dup-", job_endpoint_spec$op)
-    env$check_duplicate_job <- function(...) list(duplicate = TRUE, existing_job_id = dup_id)
-    env$async_job_service_duplicate_by_type <- function(...) list(duplicate = TRUE, existing_job_id = dup_id)
-    res <- job_endpoint_fake_res()
-
-    out <- env[[job_endpoint_spec$fn]](res)
-
-    expect_equal(res$status, 409)
-    expect_equal(out$error, "DUPLICATE_JOB")
-    expect_match(res$headers[["Location"]], paste0("/api/jobs/", dup_id, "/status"))
-  })
-
-  test_that(paste(job_endpoint_spec$op, ": new submit returns 202 with the expected Retry-After"), {
-    env <- job_endpoint_maintenance_env(job_endpoint_spec$needs_pool)
-    env$check_duplicate_job <- function(...) list(duplicate = FALSE)
-    new_job_id <- paste0(job_endpoint_spec$op, "-1")
-    create_job_executor <- NULL
-    env$create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
-      create_job_executor <<- executor_fn
-      list(job_id = new_job_id, status = "accepted", estimated_seconds = 30)
-    }
-
-    out <- {
-      res <- job_endpoint_fake_res()
-      env[[job_endpoint_spec$fn]](res)
-    }
-
-    expect_equal(res$status, 202)
-    expect_equal(res$headers[["Retry-After"]], job_endpoint_spec$retry_after)
-    expect_equal(out$job_id, new_job_id)
-    if (identical(job_endpoint_spec$op, "ontology_update")) {
-      # ontology_update carries no DB credential in its payload, so it keeps its
-      # inline executor closure (unchanged by #535 S2b).
-      expect_true(is.function(create_job_executor))
-      expect_equal(names(formals(create_job_executor)), "params")
-    } else {
-      # hgnc_update / comparisons_update resolve DB creds at run time (#535 S2b)
-      # and pass executor_fn = NULL (create_job ignores it).
-      expect_null(create_job_executor)
-    }
-  })
-}
-
-test_that("ontology update: create_job error surfaces as 503 with Retry-After", {
-  env <- job_endpoint_maintenance_env(needs_pool = TRUE)
-  env$check_duplicate_job <- function(...) list(duplicate = FALSE)
-  env$create_job <- function(...) list(error = "CAPACITY_EXCEEDED", retry_after = 60)
-  res <- job_endpoint_fake_res()
-
-  out <- env$svc_job_submit_ontology_update(res)
-
-  expect_equal(res$status, 503)
-  expect_equal(res$headers[["Retry-After"]], "60")
-  expect_equal(out$error, "CAPACITY_EXCEEDED")
-})
-
-# Job-type single-flight (#535 S2b HIGH-4): the destructive maintenance submits
-# dedupe on job_type ALONE — no db_config/password/payload reaches the dedup
-# path — so a payload-schema change (dropping db_config) cannot open a
-# deploy-window where two concurrent full-table-replace jobs run.
-job_endpoint_single_flight_specs <- list(
-  list(fn = "svc_job_submit_hgnc_update", op = "hgnc_update"),
-  list(fn = "svc_job_submit_comparisons_update", op = "comparisons_update")
-)
-
-for (job_endpoint_spec in job_endpoint_single_flight_specs) {
-  test_that(paste(job_endpoint_spec$op, ": dedupe is job-type single-flight (no credential/payload)"), {
-    env <- job_endpoint_maintenance_env(needs_pool = FALSE)
-    captured <- NULL
-    env$async_job_service_duplicate_by_type <- function(...) {
-      captured <<- list(...)
-      list(duplicate = TRUE, existing_job_id = paste0("dup-", job_endpoint_spec$op))
-    }
-    res <- job_endpoint_fake_res()
-
-    env[[job_endpoint_spec$fn]](res)
-
-    # Only the job_type is passed to the dedup path (no params/credentials).
-    expect_equal(captured[[1]], job_endpoint_spec$op)
-    expect_false(any(grepl("s3cr3t", unlist(captured), fixed = TRUE)))
-  })
-}
-
-## -------------------------------------------------------------------##
-## job-query-endpoint-service.R — history
-## -------------------------------------------------------------------##
-
-job_endpoint_history_rows <- function(n = 2L) {
-  if (n == 0L) {
-    return(data.frame(
-      job_id = character(0), operation = character(0), status = character(0),
-      submitted_at = character(0), completed_at = character(0),
-      duration_seconds = integer(0), error_message = character(0),
-      stringsAsFactors = FALSE
-    ))
-  }
-  data.frame(
-    job_id = paste0("job-", seq_len(n)),
-    operation = rep("clustering", n),
-    status = rep("completed", n),
-    submitted_at = rep("2026-07-01T00:00:00Z", n),
-    completed_at = rep("2026-07-01T00:05:00Z", n),
-    duration_seconds = rep(300L, n),
-    error_message = rep(NA_character_, n),
-    stringsAsFactors = FALSE
-  )
-}
-
-test_that("job history: limit clamps to [1, 100] and non-numeric falls back to 20", {
-  env <- job_endpoint_source_service("job-query-endpoint-service.R")
-  captured_limit <- NULL
-  env$get_job_history <- function(limit) {
-    captured_limit <<- limit
-    job_endpoint_history_rows(0L)
-  }
-
-  env$svc_job_get_history(limit = 0)
-  expect_equal(captured_limit, 20L)
-
-  env$svc_job_get_history(limit = 500)
-  expect_equal(captured_limit, 100L)
-
-  # as.integer() on a non-numeric string warns (matches the original inline
-  # handler's un-guarded as.integer(limit) coercion); assert it explicitly
-  # instead of leaking it to the console.
-  expect_warning(env$svc_job_get_history(limit = "not-a-number"), "NAs introduced")
-  expect_equal(captured_limit, 20L)
-
-  env$svc_job_get_history(limit = 50)
-  expect_equal(captured_limit, 50L)
-})
-
-test_that("job history: shapes rows into a list (or an empty list) and reports meta count/limit", {
-  env <- job_endpoint_source_service("job-query-endpoint-service.R")
-
-  env$get_job_history <- function(limit) job_endpoint_history_rows(2L)
-  out <- env$svc_job_get_history(limit = 20)
-  expect_length(out$data, 2)
-  expect_equal(out$data[[1]]$job_id, "job-1")
-  expect_equal(out$meta$count, 2)
-  expect_equal(out$meta$limit, 20L)
-
-  env$get_job_history <- function(limit) job_endpoint_history_rows(0L)
-  out <- env$svc_job_get_history(limit = 20)
-  expect_equal(out$data, list())
-  expect_equal(out$meta$count, 0)
-})
-
-## -------------------------------------------------------------------##
-## job-query-endpoint-service.R — status
-## -------------------------------------------------------------------##
-
-test_that("job status: invalid result_mode (400), summary bypasses the gate (200), 404, and running Retry-After", {
-  req <- list(user_role = NULL)
-
-  env <- job_endpoint_source_service("job-query-endpoint-service.R")
-  out <- env$svc_job_get_status("job-1", "bogus", req, job_endpoint_fake_res())
-  expect_equal(out$error, "INVALID_RESULT_MODE")
-
-  # Summary mode is a public read: it must never touch the full-result gate.
-  gate_called <- FALSE
-  env$async_job_repository_get <- function(...) {
-    gate_called <<- TRUE
+  create_job_called <- FALSE
+  env$create_job <- function(...) {
+    create_job_called <<- TRUE
     NULL
   }
-  env$get_job_status <- function(job_id, result_mode) {
-    list(job_id = job_id, status = "completed", result = list(ok = TRUE))
+  env$async_job_submit_admission_guard <- function(req, res) {
+    res$status <- 429
+    res$setHeader("Retry-After", "42")
+    list(admitted = FALSE, response = list(error = "RATE_LIMITED", retry_after = 42L))
   }
   res <- job_endpoint_fake_res()
-  out <- env$svc_job_get_status("job-1", "summary", req, res)
-  expect_false(gate_called)
-  expect_equal(res$status, 200)
-  expect_equal(out$status, "completed")
-  expect_null(res$headers[["Retry-After"]])
-
-  env$get_job_status <- function(job_id, result_mode) list(error = "JOB_NOT_FOUND")
-  res <- job_endpoint_fake_res()
-  out <- env$svc_job_get_status("missing-job", "summary", req, res)
-  expect_equal(res$status, 404)
-  expect_equal(out$error, "JOB_NOT_FOUND")
-
-  env$get_job_status <- function(job_id, result_mode) list(job_id = job_id, status = "running", retry_after = 7)
-  res <- job_endpoint_fake_res()
-  out <- env$svc_job_get_status("job-1", "summary", req, res)
-  expect_equal(res$status, 200)
-  expect_equal(res$headers[["Retry-After"]], "7")
-  expect_equal(out$status, "running")
-})
-
-test_that("job status: full mode gates on access-verification failure (503) and role (403)", {
-  req <- list(user_role = "Viewer")
-
-  env <- job_endpoint_source_service("job-query-endpoint-service.R")
-  env$async_job_repository_get <- function(job_id) stop("db unavailable")
-  out <- env$svc_job_get_status("job-1", "full", req, job_endpoint_fake_res())
-  expect_equal(out$error, "SERVICE_UNAVAILABLE")
-
-  env$async_job_repository_get <- function(job_id) tibble::tibble(job_id = job_id, job_type = "hgnc_update")
-  env$can_read_full_job_result <- function(job_type, user_role) FALSE
-  res <- job_endpoint_fake_res()
-  out <- env$svc_job_get_status("job-1", "full", req, res)
-  expect_equal(res$status, 403)
-  expect_equal(out$error, "FORBIDDEN")
-})
-
-test_that("job status: full mode skips the gate for an unknown id (404) and returns the result when authorized", {
-  req <- list(user_role = NULL)
-
-  env <- job_endpoint_source_service("job-query-endpoint-service.R")
-  env$async_job_repository_get <- function(job_id) tibble::tibble(job_id = character(0), job_type = character(0))
-  gate_called <- FALSE
-  env$can_read_full_job_result <- function(job_type, user_role) {
-    gate_called <<- TRUE
-    FALSE
-  }
-  env$get_job_status <- function(job_id, result_mode) list(error = "JOB_NOT_FOUND")
-  out <- env$svc_job_get_status("missing-job", "full", req, job_endpoint_fake_res())
-  expect_false(gate_called)
-  expect_equal(out$error, "JOB_NOT_FOUND")
-
-  env$async_job_repository_get <- function(job_id) tibble::tibble(job_id = job_id, job_type = "clustering")
-  env$can_read_full_job_result <- function(job_type, user_role) TRUE
-  env$get_job_status <- function(job_id, result_mode) {
-    list(job_id = job_id, status = "completed", result = list(cluster_count = 2))
-  }
-  res <- job_endpoint_fake_res()
-  out <- env$svc_job_get_status("job-1", "full", req, res)
-  expect_equal(res$status, 200)
-  expect_equal(out$result$cluster_count, 2)
+  out <- env$svc_job_submit_phenotype_clustering(list(user = list(user_id = NULL)), res)
+  expect_equal(res$status, 429)
+  expect_equal(out$error, "RATE_LIMITED")
+  expect_false(pool_touched)
+  expect_false(create_job_called)
 })

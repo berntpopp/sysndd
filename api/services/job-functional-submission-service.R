@@ -35,6 +35,15 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_functional_clustering <- function(req, res) {
+  # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
+  # DB/cache/duplicate work so an abusive caller is rejected before it can do — or
+  # provoke — expensive work (a cache hit still writes a completed job row, and the
+  # duplicate/data fetch below touch the DB). Layered on the global capacity cap.
+  admission <- async_job_submit_admission_guard(req, res)
+  if (!isTRUE(admission$admitted)) {
+    return(admission$response)
+  }
+
   # CRITICAL: Extract request data BEFORE mirai call
 
   # Connection objects cannot cross process boundaries
