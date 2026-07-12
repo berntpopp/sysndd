@@ -111,22 +111,57 @@ sanitize_request <- function(req) {
     req_safe$HTTP_AUTHORIZATION <- "[REDACTED]"
   }
 
-  # Sanitize args (query parameters and path parameters)
-  if (!is.null(req$args)) {
-    req_safe$args <- sanitize_object(req$args)
-  }
+  auth_sensitive_body <- tryCatch(
+    isTRUE(req$.auth_sensitive_body_log),
+    error = function(e) FALSE
+  )
+  if (auth_sensitive_body) {
+    # Raw-parser routes can leave reconstructable credential bytes in all three
+    # fields. Never pass them to the exception logger, even unnamed/malformed.
+    req_safe$body <- "[AUTH_REQUEST_BODY]"
+  } else {
+    # Sanitize args (query parameters and path parameters)
+    if (!is.null(req$args)) {
+      req_safe$args <- sanitize_object(req$args)
+    }
 
-  # Sanitize body (POST/PUT request body)
-  if (!is.null(req$body)) {
-    req_safe$body <- sanitize_object(req$body)
-  }
+    # Sanitize body (POST/PUT request body)
+    if (!is.null(req$body)) {
+      req_safe$body <- sanitize_object(req$body)
+    }
 
-  # Sanitize argsBody (alternative body accessor in Plumber)
-  if (!is.null(req$argsBody)) {
-    req_safe$argsBody <- sanitize_object(req$argsBody)
+    # Sanitize argsBody (alternative body accessor in Plumber)
+    if (!is.null(req$argsBody)) {
+      req_safe$argsBody <- sanitize_object(req$argsBody)
+    }
   }
 
   return(req_safe)
+}
+
+#' Produce a credential-safe request-body field for the operational log.
+#'
+#' Protected auth request bodies can contain unnamed malformed JSON where field
+#' redaction is impossible. Returning the sentinel first also prevents the root
+#' postroute hook from materializing an over-quota body's delayed binding.
+sanitize_post_body_for_log <- function(req) {
+  skip_body <- tryCatch(
+    isTRUE(req$.auth_sensitive_body_log),
+    error = function(e) FALSE
+  )
+  if (skip_body) return("[AUTH_REQUEST_BODY]")
+
+  post_body <- tryCatch(req$postBody, error = function(e) NULL)
+  if (is.null(post_body) || !nzchar(post_body)) return(convert_empty(post_body))
+
+  tryCatch(
+    {
+      body_parsed <- jsonlite::fromJSON(post_body, simplifyVector = FALSE)
+      body_sanitized <- sanitize_object(body_parsed)
+      jsonlite::toJSON(body_sanitized, auto_unbox = TRUE)
+    },
+    error = function(e) "[PARSE_ERROR]"
+  )
 }
 
 #' Sanitize user data for safe logging

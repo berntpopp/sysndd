@@ -192,6 +192,7 @@ function(req, res) {
 #* and sends email with reset URL. Uses POST with JSON body per OWASP guidelines
 #* to avoid exposing email in URL/logs.
 #* @tag user
+#* @parser auth_body_raw
 #* @post password/reset/request
 function(req, res) {
   admission <- auth_endpoint_admission_guard(req, res)

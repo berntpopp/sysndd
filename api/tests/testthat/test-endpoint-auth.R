@@ -235,6 +235,30 @@ test_that("signup handler rejects non-scalar required field values", {
   expect_no_error(handler(req = nested_req, res = nested_res))
   expect_equal(nested_res$status, 400L)
   expect_match(nested_res$body, "single string value")
+
+  array_res <- make_mock_res()
+  array_body <- paste0(
+    '[{"user_name":"validuser","first_name":"Ada","family_name":"Lovelace",',
+    '"email":"ada@example.org","orcid":"0000-0000-0000-000X",',
+    '"comment":"This comment is long enough.","terms_agreed":"accepted"}]'
+  )
+  expect_no_error(handler(
+    req = make_mock_req(array_body, "application/json"),
+    res = array_res
+  ))
+  expect_equal(array_res$status, 400L)
+
+  singleton_vector_res <- make_mock_res()
+  singleton_vector_body <- paste0(
+    '{"user_name":["validuser"],"first_name":"Ada","family_name":"Lovelace",',
+    '"email":"ada@example.org","orcid":"0000-0000-0000-000X",',
+    '"comment":"This comment is long enough.","terms_agreed":"accepted"}'
+  )
+  expect_no_error(handler(
+    req = make_mock_req(singleton_vector_body, "application/json"),
+    res = singleton_vector_res
+  ))
+  expect_equal(singleton_vector_res$status, 400L)
 })
 
 test_that("authenticate handler requires a JSON object with scalar credentials", {

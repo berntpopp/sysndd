@@ -40,6 +40,7 @@
 #* @response 404 Not Found. Invalid registration data.
 #* @response 415 Unsupported Media Type. If the request is not JSON.
 #*
+#* @parser auth_body_raw
 #* @post signup
 function(req, res) {
   admission <- auth_endpoint_admission_guard(req, res)
@@ -54,7 +55,7 @@ function(req, res) {
   }
 
   signup_body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
+    jsonlite::fromJSON(req$postBody, simplifyVector = FALSE),
     error = function(e) NULL
   )
   required_fields <- c(
@@ -68,6 +69,8 @@ function(req, res) {
   )
   if (
     is.null(signup_body) ||
+      !is.list(signup_body) ||
+      is.null(names(signup_body)) ||
       length(signup_body) == 0 ||
       !all(required_fields %in% names(signup_body))
   ) {
@@ -222,6 +225,7 @@ function(req, res) {
 #* @response 400 Bad Request. If JSON body is missing or malformed.
 #* @response 401 Unauthorized. If user or password is wrong or user not approved.
 #*
+#* @parser auth_body_raw
 #* @post authenticate
 function(req, res) {
   admission <- auth_endpoint_admission_guard(req, res)

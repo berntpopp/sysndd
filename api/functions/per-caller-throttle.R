@@ -6,6 +6,8 @@
 
 PER_CALLER_THROTTLE_MAX_XFF_BYTES <- 4096L
 PER_CALLER_THROTTLE_MAX_XFF_HOPS <- 32L
+PER_CALLER_THROTTLE_MAX_TRUSTED_CIDR_BYTES <- 4096L
+PER_CALLER_THROTTLE_MAX_TRUSTED_CIDRS <- 32L
 
 # Parse a bounded positive integer env var. Bad values fall back to a secure
 # default; callers use a minimum >= 1 for limits so configuration cannot disable
@@ -131,10 +133,29 @@ per_caller_throttle_valid_cidr <- function(cidr) {
 # Parse a comma-separated proxy trust list and fail closed on malformed entries:
 # invalid text is observable but is never retained as a trusted source.
 per_caller_throttle_parse_trusted_cidrs <- function(raw, config_name) {
+  if (
+    !is.character(raw) || length(raw) != 1L || is.na(raw) ||
+      nchar(raw, type = "bytes") > PER_CALLER_THROTTLE_MAX_TRUSTED_CIDR_BYTES
+  ) {
+    if (base::exists("log_warn", mode = "function")) {
+      logger <- base::get("log_warn", mode = "function")
+      try(logger(paste0(config_name, " exceeds the safe size bound; trusting no proxy CIDRs")),
+          silent = TRUE)
+    }
+    return(character(0))
+  }
   raw <- trimws(raw)
   if (!nzchar(raw)) return(character(0))
   cidrs <- trimws(strsplit(raw, ",", fixed = TRUE)[[1]])
   cidrs <- cidrs[nzchar(cidrs)]
+  if (length(cidrs) > PER_CALLER_THROTTLE_MAX_TRUSTED_CIDRS) {
+    if (base::exists("log_warn", mode = "function")) {
+      logger <- base::get("log_warn", mode = "function")
+      try(logger(paste0(config_name, " has too many entries; trusting no proxy CIDRs")),
+          silent = TRUE)
+    }
+    return(character(0))
+  }
   valid <- vapply(cidrs, per_caller_throttle_valid_cidr, logical(1))
   invalid <- cidrs[!valid]
   if (length(invalid) > 0L && base::exists("log_warn", mode = "function")) {
@@ -299,8 +320,18 @@ per_caller_admission_guard <- function(
     is.logical(decision$allowed) && !is.na(decision$allowed)
   if (!valid) return(.per_caller_throttle_unavailable(res, unavailable_retry_after, unavailable_message))
   if (!isTRUE(decision$allowed)) {
-    retry_after <- suppressWarnings(as.integer(decision$retry_after))
-    if (length(retry_after) != 1L || is.na(retry_after) || retry_after < 1L) retry_after <- 1L
+    raw_retry_after <- decision$retry_after
+    valid_retry_after <- is.numeric(raw_retry_after) &&
+      length(raw_retry_after) == 1L && !is.na(raw_retry_after) &&
+      is.finite(raw_retry_after) && raw_retry_after >= 1 &&
+      raw_retry_after <= .Machine$integer.max &&
+      raw_retry_after == floor(raw_retry_after)
+    if (!valid_retry_after) {
+      return(.per_caller_throttle_unavailable(
+        res, unavailable_retry_after, unavailable_message
+      ))
+    }
+    retry_after <- as.integer(raw_retry_after)
     res$status <- 429L
     res$setHeader("Retry-After", as.character(retry_after))
     return(list(admitted = FALSE, response = list(

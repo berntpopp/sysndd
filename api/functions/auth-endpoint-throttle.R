@@ -4,6 +4,16 @@
 # this file supplies an independent auth policy/store so one route class cannot
 # consume another class's caller quota.
 
+# Plumber 1.3.2's built-in `none` parser registers the invalid regex `*`.
+# Register an equivalent route-local raw parser with a valid catch-all so the
+# admission guard runs before JSON decoding without changing router defaults.
+plumber::register_parser(
+  "auth_body_raw",
+  plumber::parser_none,
+  regex = ".*",
+  verbose = FALSE
+)
+
 AUTH_ENDPOINT_PER_CALLER_MAX <-
   per_caller_throttle_env_int("AUTH_ENDPOINT_PER_CALLER_MAX", 5L, 1L, max_value = 1000L)
 AUTH_ENDPOINT_WINDOW_SECONDS <-
@@ -11,7 +21,7 @@ AUTH_ENDPOINT_WINDOW_SECONDS <-
 AUTH_ENDPOINT_MAX_ENTRIES <- 2000000L
 AUTH_ENDPOINT_MAX_TRACKED <- min(
   per_caller_throttle_env_int("AUTH_ENDPOINT_MAX_TRACKED", 20000L, 100L, max_value = 200000L),
-  as.integer(AUTH_ENDPOINT_MAX_ENTRIES %/% AUTH_ENDPOINT_PER_CALLER_MAX)
+  max(1L, as.integer(AUTH_ENDPOINT_MAX_ENTRIES %/% AUTH_ENDPOINT_PER_CALLER_MAX) - 1L)
 )
 AUTH_ENDPOINT_TRUSTED_PROXY_CIDRS <- per_caller_throttle_parse_trusted_cidrs(
   Sys.getenv("AUTH_ENDPOINT_TRUSTED_PROXY_CIDRS", ""),
@@ -33,7 +43,11 @@ auth_endpoint_rate_limit <- function(fingerprint, now = as.numeric(Sys.time()),
 #' The response is deliberately generic: it contains no credentials, email address,
 #' raw body, query string, or client fingerprint.
 auth_endpoint_admission_guard <- function(req, res) {
-  per_caller_admission_guard(
+  # The root postroute logger must never materialize or persist auth bodies,
+  # including malformed unnamed JSON where field-name redaction is impossible.
+  if (is.environment(req)) req$.auth_sensitive_body_log <- TRUE
+
+  admission <- per_caller_admission_guard(
     req = req,
     res = res,
     rate_limit = function(fingerprint) auth_endpoint_rate_limit(fingerprint),
@@ -49,6 +63,7 @@ auth_endpoint_admission_guard <- function(req, res) {
       per_caller_throttle_warn("Authentication throttle failed; request denied with 503.")
     }
   )
+  admission
 }
 
 auth_endpoint_rate_limit_reset <- function(store = .auth_endpoint_throttle_history) {

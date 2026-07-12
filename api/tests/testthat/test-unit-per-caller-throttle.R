@@ -71,6 +71,20 @@ test_that("oversized or excessive-hop XFF falls back before expensive parsing", 
   expect_equal(per_caller_throttle_fingerprint(excessive_hops), remote)
 })
 
+test_that("trusted proxy configuration is bounded before parsing", {
+  too_many <- paste(rep("10.9.0.0/24", 33L), collapse = ",")
+  too_large <- paste0("10.9.0.0/24,", strrep(" ", 4096L))
+
+  expect_identical(
+    per_caller_throttle_parse_trusted_cidrs(too_many, "TEST_TRUSTED_CIDRS"),
+    character(0)
+  )
+  expect_identical(
+    per_caller_throttle_parse_trusted_cidrs(too_large, "TEST_TRUSTED_CIDRS"),
+    character(0)
+  )
+})
+
 test_that("generic limiter isolates callers and bounds a rotation flood", {
   store <- new.env(parent = emptyenv())
   for (i in 1:2) {
@@ -139,4 +153,25 @@ test_that("generic guard invokes a safe error observer before failing closed", {
   expect_equal(observed, 1L)
   expect_false(denied$admitted)
   expect_equal(res$status, 503L)
+})
+
+test_that("generic guard fails closed on malformed denied decisions", {
+  res <- new.env(parent = emptyenv())
+  res$status <- 200L
+  res$headers <- list()
+  res$setHeader <- function(name, value) res$headers[[name]] <- value
+
+  denied <- per_caller_admission_guard(
+    req = list(REMOTE_ADDR = "203.0.113.8"),
+    res = res,
+    rate_limit = function(...) list(
+      allowed = FALSE,
+      retry_after = list(list())
+    ),
+    rate_limit_message = "Too many requests."
+  )
+
+  expect_false(denied$admitted)
+  expect_equal(res$status, 503L)
+  expect_equal(denied$response$error, "THROTTLE_UNAVAILABLE")
 })

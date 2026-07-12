@@ -89,7 +89,8 @@ test_that("auth policy caps the aggregate timestamp budget", {
   })
 
   expect_lte(
-    configured$AUTH_ENDPOINT_PER_CALLER_MAX * configured$AUTH_ENDPOINT_MAX_TRACKED,
+    configured$AUTH_ENDPOINT_PER_CALLER_MAX *
+      (configured$AUTH_ENDPOINT_MAX_TRACKED + 1L),
     configured$AUTH_ENDPOINT_MAX_ENTRIES
   )
 })

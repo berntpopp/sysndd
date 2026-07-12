@@ -139,3 +139,174 @@ test_that("protected auth route sources remain body-only and do not log raw cred
   expect_true(grepl("req\\$postBody", auth_source))
   expect_true(grepl("svc_user_password_reset_request\\(req, res\\)", reset_source))
 })
+
+test_that("mounted auth routes suppress credential logging and pre-handler parsing", {
+  skip_if_not_installed("plumber")
+
+  source(file.path(
+    auth_rate_limit_api_dir(), "functions", "per-caller-throttle.R"
+  ), local = FALSE)
+  source(file.path(
+    auth_rate_limit_api_dir(), "functions", "auth-endpoint-throttle.R"
+  ), local = FALSE)
+  source(file.path(
+    auth_rate_limit_api_dir(), "core", "logging_sanitizer.R"
+  ), local = FALSE)
+  source(file.path(
+    auth_rate_limit_api_dir(), "core", "filters.R"
+  ), local = FALSE)
+
+  old_guard <- get0("auth_endpoint_admission_guard", envir = .GlobalEnv,
+                    inherits = FALSE)
+  had_guard <- exists("auth_endpoint_admission_guard", envir = .GlobalEnv,
+                      inherits = FALSE)
+  on.exit({
+    if (had_guard) {
+      assign("auth_endpoint_admission_guard", old_guard, envir = .GlobalEnv)
+    } else if (exists("auth_endpoint_admission_guard", envir = .GlobalEnv,
+                      inherits = FALSE)) {
+      rm("auth_endpoint_admission_guard", envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+
+  auth_router <- plumber::plumb(file.path(
+    auth_rate_limit_api_dir(), "endpoints", "authentication_endpoints.R"
+  ))
+  user_router <- plumber::plumb(file.path(
+    auth_rate_limit_api_dir(), "endpoints", "user_endpoints.R"
+  ))
+
+  expect_s3_class(auth_router$routes$signup$parsers, "plumber_parsed_parsers")
+  expect_s3_class(auth_router$routes$authenticate$parsers, "plumber_parsed_parsers")
+  expect_s3_class(
+    user_router$routes$password$reset$request$parsers,
+    "plumber_parsed_parsers"
+  )
+
+  logged_post_body <- NULL
+  root_router <- plumber::pr()
+  root_router <- plumber::pr_mount(root_router, "/api/auth", auth_router)
+  root_router <- plumber::pr_hook(root_router, "postroute", function(req, res) {
+    logged_post_body <<- sanitize_post_body_for_log(req)
+  })
+
+  admitted_body_reads <- 0L
+  admitted_req <- new.env(parent = emptyenv())
+  admitted_req$REQUEST_METHOD <- "POST"
+  admitted_req$PATH_INFO <- "/api/auth/authenticate"
+  admitted_req$HTTP_CONTENT_TYPE <- "application/json"
+  admitted_req$QUERY_STRING <- ""
+  admitted_input <- new.env(parent = emptyenv())
+  admitted_input$read <- function() charToRaw('["validuser","real-password"]')
+  admitted_input$rewind <- function() invisible(NULL)
+  admitted_input$read_lines <- function() {
+    admitted_body_reads <<- admitted_body_reads + 1L
+    '["validuser","real-password"]'
+  }
+  admitted_req$rook.input <- admitted_input
+
+  admitted_response <- root_router$call(admitted_req)
+  expect_equal(admitted_response$status, 400L)
+  expect_equal(admitted_body_reads, 1L)
+  expect_equal(logged_post_body, "[AUTH_REQUEST_BODY]")
+  expect_false(grepl("real-password", logged_post_body, fixed = TRUE))
+
+  sanitized_admitted <- sanitize_request(admitted_req)
+  expect_equal(sanitized_admitted$body, "[AUTH_REQUEST_BODY]")
+  expect_null(sanitized_admitted$argsBody)
+  expect_false(grepl(
+    "real-password", paste(unlist(sanitized_admitted), collapse = " "),
+    fixed = TRUE
+  ))
+
+  auth_endpoint_rate_limit_reset()
+  on.exit(auth_endpoint_rate_limit_reset(), add = TRUE)
+  for (i in seq_len(AUTH_ENDPOINT_PER_CALLER_MAX)) {
+    expect_true(auth_endpoint_rate_limit("unknown")$allowed)
+  }
+
+  post_body_reads <- 0L
+  req <- new.env(parent = emptyenv())
+  req$REQUEST_METHOD <- "POST"
+  req$PATH_INFO <- "/api/auth/authenticate"
+  req$HTTP_CONTENT_TYPE <- "application/json"
+  req$QUERY_STRING <- ""
+  rook_input <- new.env(parent = emptyenv())
+  rook_input$read <- function() charToRaw("{")
+  rook_input$rewind <- function() invisible(NULL)
+  rook_input$read_lines <- function() {
+    post_body_reads <<- post_body_reads + 1L
+    "{"
+  }
+  req$rook.input <- rook_input
+
+  response <- root_router$call(req)
+  expect_equal(response$status, 429L)
+  expect_equal(response$headers[["Retry-After"]], "60")
+  expect_match(paste(unlist(response$body), collapse = " "), "RATE_LIMITED", fixed = TRUE)
+  expect_equal(post_body_reads, 0L)
+  expect_equal(logged_post_body, "[AUTH_REQUEST_BODY]")
+})
+
+test_that("mounted auth exceptions never send credentials to error logging", {
+  skip_if_not_installed("plumber")
+
+  source(file.path(auth_rate_limit_api_dir(), "functions", "per-caller-throttle.R"),
+         local = FALSE)
+  source(file.path(auth_rate_limit_api_dir(), "functions", "auth-endpoint-throttle.R"),
+         local = FALSE)
+  source(file.path(auth_rate_limit_api_dir(), "core", "logging_sanitizer.R"),
+         local = FALSE)
+  source(file.path(auth_rate_limit_api_dir(), "core", "filters.R"),
+         local = FALSE)
+
+  old_log_error <- get0("log_error", envir = .GlobalEnv, inherits = FALSE)
+  had_log_error <- exists("log_error", envir = .GlobalEnv, inherits = FALSE)
+  on.exit({
+    if (had_log_error) assign("log_error", old_log_error, envir = .GlobalEnv) else
+      rm("log_error", envir = .GlobalEnv)
+    auth_endpoint_rate_limit_reset()
+  }, add = TRUE)
+
+  captured_error_log <- NULL
+  assign("log_error", function(...) captured_error_log <<- list(...), envir = .GlobalEnv)
+  auth_endpoint_rate_limit_reset()
+
+  child <- plumber::pr()
+  child <- plumber::pr_post(
+    child,
+    "/explode",
+    function(req, res) {
+      admission <- auth_endpoint_admission_guard(req, res)
+      if (!admission$admitted) return(admission$response)
+      stop("database unavailable")
+    },
+    parsers = "auth_body_raw"
+  )
+  child <- plumber::pr_set_error(child, errorHandler)
+  root <- plumber::pr_mount(plumber::pr(), "/api/auth", child)
+
+  req <- new.env(parent = emptyenv())
+  req$REQUEST_METHOD <- "POST"
+  req$PATH_INFO <- "/api/auth/explode"
+  req$HTTP_CONTENT_TYPE <- "application/json"
+  req$QUERY_STRING <- ""
+  rook_input <- new.env(parent = emptyenv())
+  rook_input$read <- function() {
+    charToRaw('{"user_name":"validuser","password":"exception-secret"}')
+  }
+  rook_input$rewind <- function() invisible(NULL)
+  rook_input$read_lines <- function() {
+    '{"user_name":"validuser","password":"exception-secret"}'
+  }
+  req$rook.input <- rook_input
+
+  response <- root$call(req)
+  expect_equal(response$status, 500L)
+  expect_equal(captured_error_log$request$body, "[AUTH_REQUEST_BODY]")
+  expect_null(captured_error_log$request$argsBody)
+  expect_false(grepl(
+    "exception-secret", paste(unlist(captured_error_log), collapse = " "),
+    fixed = TRUE
+  ))
+})
