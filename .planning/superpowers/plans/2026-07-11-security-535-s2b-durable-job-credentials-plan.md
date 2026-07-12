@@ -59,6 +59,64 @@ These MUST migrate with their family: once the submit side stops writing the pas
 
 ---
 
+## Codex plan-review folds (2026-07-12)
+
+Adversarial plan review (`gpt-5.6-sol`, high) verdict **FIX-FIRST** — no blockers; the migration design is confirmed sound (family classifications, migration completeness, in-process worker execution, resolver-arg parity, signature/caller mapping, empty-payload support, scrub-SQL validity, `character(0)` result, dead-closure safety, 600-line ceiling all confirmed correct). Findings folded:
+
+- **HIGH-1 (folded).** `test-unit-publication-endpoint-services.R:414/431` uses a `submit_fn` fake that asserts `is.function(seen_args$executor_fn)` and inspects `params`. Removing the dead pubtator closure breaks it. → Task 7 now lists this file explicitly: update the fake to `executor_fn = NULL` and assert `seen_args$executor_fn` is NULL and `seen_args$params$db_config` is NULL.
+- **HIGH-2 (folded).** `test-unit-async-job-payload-scrub.R:14/20` asserts the backup-only `job_type` predicate and that `db_password` is absent — both intentionally broken by the widened statement. → Task 8 now **replaces** those two assertions (not "extends"); the statement-shape test is rewritten for job-type independence + both paths.
+- **HIGH-3 (REFUTED — verified empirically).** Codex claimed the guard `expected` vector is missing commas at `:67/:68/:70`. The trailing `,` it flagged is the **frozen code-snippet's own comma** (e.g. the R text `password = dw$password,`); every R vector comma is present, and the baseline test parses and passes (14 successes). No fix; no "repair commas before Task 1" step.
+- **HIGH-4 (folded → new Task 0).** hgnc/comparisons/omim payload-hash changes create a deploy-window where a pre-deploy in-flight job (old hash) does not dedupe against a post-deploy submission (new hash). Verified the existing pre-check is **already dead**: `check_duplicate_job("hgnc_update", list(operation="hgnc_update"))` hashes `list(operation=…)` while the job stores `list(db_config=…)` — different hashes, so it never matches the running job; the DB `UNIQUE(job_type, active_request_hash)` index is the only working dedup. Because these are **destructive full-table-replace singletons**, the correct fix is **job-type single-flight**, which closes the window AND repairs the dead pre-check. → New **Task 0** adds `async_job_service_find_active_by_type()` (job-type-only active lookup) and repoints the hgnc/comparisons/omim pre-checks at it; plus a deploy-runbook note (drain in-flight maintenance jobs before deploy; the scrub only touches terminal rows so it never races an active job).
+- **MEDIUM-1 (folded).** File-level `grepl("async_job_db_connect(")` is too weak (a file with one resolver call passes even if another handler in it was not migrated). → Task 6 adds a **final** negative assertion across all scanned files: no file may read `(payload|params)$db_config` (the unambiguous "credential from payload" tell — backup uses a *resolver-derived* `db_config` local, never `payload$db_config`). Per-file resolver-presence stays as the positive signal.
+- **MEDIUM-2 (folded).** → Task 8 adds a DB integration test: a terminal `llm_generation`/`pubtator_update` row with `$.db_config.db_password` is redacted + hash-recomputed + idempotent, and a retryable (`active_request_hash` non-NULL) row is untouched.
+- **MEDIUM-3 (folded).** `async_job_worker_db_config()` reads `dw` from `.GlobalEnv` with `inherits = FALSE`, so a *local* `dw` won't satisfy it. → Task 7 guidance corrected: temporarily `assign("dw", <cfg>, envir = .GlobalEnv)` with `on.exit` restore, OR mock `async_job_db_connect` in the handler's lexical env.
+- **MEDIUM-4 (folded).** Now-false source comments/roxygen are updated in their family tasks: `job-maintenance-submission-service.R:13-26`, `comparisons-functions.R:242-254`, `pubtator-functions.R:283-303`, `async-job-maintenance-handlers.R:213-216`.
+- **LOW-1 (folded).** The HGNC dead closure is the whole `executor_fn = function(params){…}` argument at `job-maintenance-submission-service.R:154-282` (not just its `:187-193` connect block) — removed as one argument expression, replaced by `executor_fn = NULL`.
+- **LOW-2 (folded).** Task 7 test inventory distinguishes direct callers (updated) from source-shape/boundary tests (no change needed).
+- **LOW-3 (folded).** `pubtatornidd_nightly_run()`'s `dw_config` formal becomes unused after removing the in-process `db_config`; remove the formal and drop it from the sole caller `pubtatornidd_nightly_job_run` (`:284-288`).
+
+**Cross-cutting correction (all submit tasks):** `create_job()` has **no default** for `executor_fn`, so every migrated `create_job(...)`/`submit_fn(...)` call must keep `executor_fn = NULL` (mirroring the S2 backup fix) — the dead closures are *replaced by `NULL`*, never removed leaving the argument absent (that raises "argument executor_fn is missing").
+
+---
+
+### Task 0: Job-type single-flight for destructive maintenance families (HIGH-4)
+
+**Files:**
+- Modify: `api/functions/async-job-service.R` (add `async_job_service_find_active_by_type()`)
+- Modify: `api/functions/async-job-repository.R` (add `async_job_repository_find_active_by_type()`)
+- Modify: `api/services/job-maintenance-submission-service.R` (hgnc + comparisons pre-checks)
+- Modify: `api/services/admin-ontology-endpoint-service.R` (omim_update pre-check via `duplicate_check_fn`)
+- Test: `api/tests/testthat/test-unit-async-job-service.R` (or the nearest existing service test) + `test-unit-job-endpoint-services.R`
+
+**Interfaces:**
+- Produces: `async_job_service_find_active_by_type(job_type, conn = NULL) -> tibble` (zero or one active row of that job_type, any payload hash), and `async_job_repository_find_active_by_type(job_type, conn = NULL)` (`SELECT ... WHERE job_type = ? AND status IN ('queued','running','cancel_requested') ORDER BY submitted_at LIMIT 1`).
+
+- [ ] **Step 1: Write the failing test.** In `test-unit-async-job-service.R`, assert `async_job_service_find_active_by_type` builds a job-type-only, status-scoped query (string-shape test, mirroring the file's style) and does NOT hash a payload:
+  ```r
+  test_that("find_active_by_type is job-type scoped and payload-hash independent", {
+    expect_true(exists("async_job_service_find_active_by_type"))
+    # it must not require/serialize a request_payload
+    expect_equal(length(formals(async_job_service_find_active_by_type)), 2L) # job_type, conn
+  })
+  ```
+- [ ] **Step 2: Run — RED** (`... find_active_by_type ... not found`).
+- [ ] **Step 3: Implement.** Add the repository query and the service wrapper (namespace all `DBI`/`dplyr`), returning a zero/one-row tibble. Then change the three pre-checks from hash-based to job-type-based:
+  - `job-maintenance-submission-service.R` hgnc: replace `dup_check <- check_duplicate_job("hgnc_update", list(operation = "hgnc_update"))` with a job-type lookup: `active <- async_job_service_find_active_by_type("hgnc_update"); if (nrow(active) > 0) { <409 with active$job_id> }`.
+  - Same for comparisons (`"comparisons_update"`).
+  - `admin-ontology-endpoint-service.R` omim: the current `duplicate_check_fn("omim_update", list())` is injected (default `check_duplicate_job`); switch its default to a job-type lookup wrapper (keep the injection seam for tests) so an active `omim_update` blocks a new submit regardless of payload.
+- [ ] **Step 4: Run — GREEN.**
+- [ ] **Step 5: Commit.**
+  ```bash
+  git add api/functions/async-job-service.R api/functions/async-job-repository.R \
+          api/services/job-maintenance-submission-service.R api/services/admin-ontology-endpoint-service.R \
+          api/tests/testthat/test-unit-async-job-service.R
+  git commit -m "fix(security): job-type single-flight for destructive maintenance jobs across payload-schema change (#535 S2b HIGH-4)"
+  ```
+
+> NOTE: Task 0 lands the single-flight guard **before** Tasks 1–3 change the payload hashes, so there is no intermediate commit where the dedup is weaker than today.
+
+---
+
 ## Canonical edit patterns (referenced by every task)
 
 **CONSUME pattern.** Replace the inline connect block (any of the field-name shapes: `dbname/host/user/password/port`, with or without an ignored `server`, or the `db_*`-prefixed `db_name/db_host/db_user/db_password/db_port`) with the resolver call, preserving the surrounding variable name and `on.exit(DBI::dbDisconnect(...))`:
@@ -89,7 +147,7 @@ conn <- tryCatch(
 )
 ```
 
-**SUBMIT pattern.** Delete the `db_config <- list(...)` (or the `.svc_*_db_config()` helper) and drop `db_config = ...` from the `create_job(...)`/`async_job_service_submit(...)` `params`/`request_payload`. No family has a non-connection reader of `db_config`, so nothing downstream needs a replacement value.
+**SUBMIT pattern.** Delete the `db_config <- list(...)` (or the `.svc_*_db_config()` helper) and drop `db_config = ...` from the `create_job(...)`/`async_job_service_submit(...)` `params`/`request_payload`. No family has a non-connection reader of `db_config`, so nothing downstream needs a replacement value. **Keep `executor_fn = NULL`** on every `create_job(...)` call — `create_job()` has no default for `executor_fn`, so omitting it raises "argument executor_fn is missing"; a dead inline `executor_fn = function(params){…}` closure is *replaced by `NULL`*, never removed leaving the argument absent (mirrors the S2 backup fix).
 
 ---
 
@@ -168,8 +226,9 @@ git commit -m "fix(security): resolve DB creds at run time for omim_update/force
 - [ ] **Step 1: Migrate the consume connect + drop the param.**
   - `async-job-provider-handlers.R:23-30` (`.async_job_hgnc_write_db`): replace the `DBI::dbConnect(...)` with `conn <- async_job_db_connect()` (keep `:31` disconnect). Remove the `db_config` formal (`:22` region) and update the caller `.async_job_run_hgnc_update` at `:97` to call `.async_job_hgnc_write_db(hgnc_data, job_id)` (drop `db_config = payload$db_config`).
 
-- [ ] **Step 2: Remove the submit-side credential + dead closure.**
-  - `job-maintenance-submission-service.R` (`svc_job_submit_hgnc_update`): delete the `db_config <- list(...)` block (contains `password = dw$password` at `:129`) and the dead inline `executor_fn = function(params) { ... DBI::dbConnect(..., password = params$db_config$password ...) }` closure (`:187-193` region). Reduce `create_job(operation = "hgnc_update", params = list(db_config = db_config), executor_fn = <closure>)` to `create_job(operation = "hgnc_update", params = list(), executor_fn = NULL)`.
+- [ ] **Step 2: Remove the submit-side credential + dead closure. Update the file's payload-credential comment (`:13-26`) to state creds are resolved at run time (MEDIUM-4).**
+  - `job-maintenance-submission-service.R` (`svc_job_submit_hgnc_update`): delete the `db_config <- list(...)` block (contains `password = dw$password` at `:129`) and the **entire** dead inline `executor_fn = function(params) { ... }` argument expression — it spans **`:154-282`** (the `DBI::dbConnect(..., password = params$db_config$password ...)` at `:187-193` is only its connection block; remove it as one whole argument, not just the connect). Reduce `create_job(operation = "hgnc_update", params = list(db_config = db_config), executor_fn = <closure>)` to `create_job(operation = "hgnc_update", params = list(), executor_fn = NULL)`.
+  - NOTE: the hgnc pre-check was already converted to job-type single-flight in **Task 0**; do not re-add a hash-based `check_duplicate_job` here.
     - NOTE: empty `params = list()` is already the established pattern — `svc_admin_ontology_update_async` calls `duplicate_check_fn("omim_update", list())`. Serializing `list()` yields a stable payload/hash; two concurrent hgnc submits then dedupe (desired).
 
 - [ ] **Step 3: Run guard — RED** (missing `async-job-provider-handlers.R | password = db_config$password,` and one `job-maintenance-submission-service.R | password = dw$password,`).
@@ -201,8 +260,8 @@ git commit -m "fix(security): resolve DB creds at run time for hgnc_update (#535
 - Modify: `api/services/job-maintenance-submission-service.R` (comparisons submit `db_config` + params `:314-347`)
 - Modify (guard): `api/tests/testthat/test-unit-job-payload-credential-guard.R`
 
-- [ ] **Step 1: Migrate the consume connect.**
-  - `comparisons-functions.R:279-286` (`comparisons_update_async`): replace the `DBI::dbConnect(...)` with `conn <- async_job_db_connect()`. Delete the now-unused `db_config <- params$db_config` at `:261` (no other reference — verified).
+- [ ] **Step 1: Migrate the consume connect + fix roxygen (MEDIUM-4).**
+  - `comparisons-functions.R:279-286` (`comparisons_update_async`): replace the `DBI::dbConnect(...)` with `conn <- async_job_db_connect()`. Delete the now-unused `db_config <- params$db_config` at `:261` (no other reference — verified). Update the roxygen at `:242-254` (which documents a `db_config` param `host, port, user, password, dbname`) to state the connection is resolved at run time via `async_job_db_connect()`.
 
 - [ ] **Step 2: Remove the submit-side credential.**
   - `job-maintenance-submission-service.R` (`svc_job_submit_comparisons_update`): delete the `db_config <- list(...)` block (`password = dw$password` at `:318`) and drop `db_config = db_config` from the `create_job(operation = "comparisons_update", params = ...)` at `:341` → `params = list()`. If a dead inline `executor_fn` closure builds/reads `db_config` here, remove it and pass `executor_fn = NULL`.
@@ -231,7 +290,7 @@ git commit -m "fix(security): resolve DB creds at run time for comparisons_updat
 - Modify: `api/endpoints/admin_publications_endpoints.R` (`request_payload$db_config` `:55-62`)
 - Modify (guard): `api/tests/testthat/test-unit-job-payload-credential-guard.R`
 
-- [ ] **Step 1: Migrate the two consume connects.**
+- [ ] **Step 1: Migrate the two consume connects + fix the `payload$db_config` comment at `:213-216` (MEDIUM-4).**
   - `async-job-maintenance-handlers.R:141-148` (`.async_job_run_publication_refresh`): replace the `DBI::dbConnect(...)` with `sysndd_db <- async_job_db_connect()` (keep disconnect + the subsequent `backfill`/refresh calls that use `sysndd_db`).
   - `async-job-maintenance-handlers.R:224-231` (`.async_job_run_publication_date_backfill`): replace with `sysndd_db <- async_job_db_connect()` (the live conn is still passed to `backfill_publication_dates_run(sysndd_db, ...)` at `:234`).
 
@@ -269,12 +328,13 @@ git commit -m "fix(security): resolve DB creds at run time for publication_refre
 **Interfaces:**
 - Produces: `pubtator_db_update_async(query, max_pages, do_full_update = FALSE, progress_fn = NULL, ...)` — the leading `db_config` param is REMOVED. Both live callers (`.async_job_run_pubtator` at `provider-handlers.R:116`, and `pubtatornidd_nightly_run` at `pubtatornidd-nightly.R:197`) use named args, so dropping `db_config = ...` from those calls is sufficient. Verify no positional call passes `db_config` first.
 
-- [ ] **Step 1: Migrate the async consume connect + drop the param.**
-  - `pubtator-functions.R:332-338` (`pubtator_db_update_async`): replace the `DBI::dbConnect(...)` inside its `tryCatch` with `async_job_db_connect()` (keep the `error = function(e) { log_error(...); NULL }` arm). Remove the `db_config` formal from the signature (`:303`).
+- [ ] **Step 1: Migrate the async consume connect + drop the param + fix roxygen (MEDIUM-4).**
+  - `pubtator-functions.R:332-338` (`pubtator_db_update_async`): replace the `DBI::dbConnect(...)` inside its `tryCatch` with `async_job_db_connect()` (keep the `error = function(e) { log_error(...); NULL }` arm). Remove the `db_config` formal from the signature (`:303`) and update the `db_config`/mirai roxygen at `:283-303` (drop the `@param db_config … db_password` line; note run-time resolution).
   - `async-job-provider-handlers.R:116`: drop `db_config = payload$db_config` from the `pubtator_db_update_async(...)` call. (This handler also forwarded `payload$db_config` ONLY to pubtator — after this, `payload$db_config` is unused here.)
 
-- [ ] **Step 2: Remove the pubtatornidd in-process marshal.**
-  - `pubtatornidd-nightly.R:189-195`: delete the in-process `db_config <- list(db_host = dw_config$host, ..., db_password = dw_config$password)` block. Update the call at `:197-198` to `pubtator_db_update_async(query = query, max_pages = max_pages, do_full_update = FALSE, progress_fn = progress_fn)` (drop `db_config = db_config`). The `dw_config` param of `pubtatornidd_nightly_run` becomes unused — leave the signature (its caller still passes it) unless removal is trivial and local.
+- [ ] **Step 2: Remove the pubtatornidd in-process marshal + the now-unused `dw_config` formal (LOW-3).**
+  - `pubtatornidd-nightly.R:189-195`: delete the in-process `db_config <- list(db_host = dw_config$host, ..., db_password = dw_config$password)` block. Update the call at `:197-198` to `pubtator_db_update_async(query = query, max_pages = max_pages, do_full_update = FALSE, progress_fn = progress_fn)` (drop `db_config = db_config`).
+  - `dw_config` is now unused in `pubtatornidd_nightly_run()` — **remove the formal** (`:135`) and its roxygen (`:128`), and drop it from the sole caller `pubtatornidd_nightly_job_run` (`:284-288`, which resolves `dw` via `base::get("dw", …)`; remove that now-dead resolution too if nothing else uses it). Update `test-unit-pubtatornidd-nightly.R` if it passes `dw_config`.
 
 - [ ] **Step 3: Remove the async submit credential + dead closure + dead sync args.**
   - `publication-admin-endpoint-service.R`: delete the `db_config <- list(db_host = dw$host, ..., db_password = dw$password)` block (`:310-316`) and drop `db_config = db_config` from the `submit_fn(operation = "pubtator_update", params = list(query, max_pages, clear_old, query_hash, db_config = db_config))` (`:328`) → keep `query, max_pages, clear_old, query_hash`. Remove the dead inline `executor_fn` closure (`:331-360` — unreachable; `create_job` ignores `executor_fn`).
@@ -328,6 +388,18 @@ git commit -m "fix(security): resolve DB creds at run time for pubtator_update/p
   - Remove `"llm-batch-generator.R | db_password = db_cfg$password"` and `"llm-batch-generator.R | password = db_config$db_password"`. The `expected` vector is now empty: `expected <- sort(character(0))`. Update the test name/`info` to state the invariant is now "no credential-in-payload site remains in any durable family (backup must never reappear)".
   - Add `.expect_resolves_creds("functions/llm-batch-generator.R")` to the resolver-presence test.
   - Keep the bypass tripwire test (`db_config = dw`) and the backup exact-string test unchanged.
+  - **Add the final MEDIUM-1 negative assertion** (strong, per-handler-body-independent): no scanned file reads a DB config **from the payload**:
+    ```r
+    test_that("no durable handler reads db_config from the job payload", {
+      offenders <- Filter(function(f) {
+        any(grepl("(payload|params)\\$db_config", readLines(f, warn = FALSE)))
+      }, .scan_files())
+      expect_equal(length(offenders), 0L,
+        info = paste("payload/db_config credential read remains in:",
+                     paste(basename(offenders), collapse = ", ")))
+    })
+    ```
+    (Backup uses a *resolver-derived* `db_config` local — never `payload$db_config` — so it is not an offender; `.scan_files()` already excludes `async-job-db-config.R`/`db-helpers.R`. This proves every consume site was actually migrated, closing the "file-level grepl too weak" gap.)
 
 - [ ] **Step 5: Run guard — GREEN.**
 
@@ -346,16 +418,18 @@ git commit -m "fix(security): resolve DB creds at run time for llm_generation; f
 ### Task 7: Update existing container tests that construct `db_config` payloads
 
 **Files (verify + modify as needed):**
-- `api/tests/testthat/test-unit-pubtator-functions.R` (calls `pubtator_db_update_async` — drop the removed `db_config` arg; stub `async_job_db_connect`/`dw` if it opened a real conn)
-- `api/tests/testthat/test-unit-admin-endpoint-services.R` (may assert `.svc_admin_ontology_db_config`/params shape)
-- `api/tests/testthat/test-unit-pubtatornidd-nightly.R` (may pass `dw_config`/assert the in-process `db_config`)
+- `api/tests/testthat/test-unit-publication-endpoint-services.R` (**HIGH-1, must-fix**): `:405-432` (`svc_publication_pubtator_update_submit`) uses a `submit_fn` fake `function(operation, params, timeout_ms, executor_fn)` and asserts `is.function(seen_args$executor_fn)` at `:431`. After the migration the closure is `NULL`. Change the fake signature to accept `executor_fn = NULL` (or `...`), replace `expect_true(is.function(seen_args$executor_fn))` with `expect_null(seen_args$executor_fn)`, and add `expect_null(seen_args$params$db_config)`.
+- `api/tests/testthat/test-unit-pubtator-functions.R` (source-shape test only — `:129-130` locates the function boundary textually; it does **not** call `pubtator_db_update_async`, so no arg change needed unless a direct call is added elsewhere in the file — grep to confirm)
+- `api/tests/testthat/test-unit-admin-endpoint-services.R` (may assert `.svc_admin_ontology_db_config`/params shape, and the omim `duplicate_check_fn` seam changed by Task 0)
+- `api/tests/testthat/test-unit-pubtatornidd-nightly.R` (may pass `dw_config`/assert the in-process `db_config`; the `dw_config` formal is removed in Task 5/LOW-3)
 - `api/tests/testthat/test-llm-batch.R` / `test-unit-llm-regenerate.R` (may build a `db_config` payload for `trigger_llm_batch_generation`/`llm_batch_executor`)
 - `api/tests/testthat/test-publication-refresh.R`, `test-unit-async-job-maintenance-handlers.R`, `test-unit-async-job-handlers.R`, `test-unit-job-endpoint-services.R`, `test-unit-ontology-refresh-chains-mapping.R`
 
-- [ ] **Step 1: Grep the test suite for the removed surface.**
+- [ ] **Step 1: Grep the test suite for the removed surface (distinguish real callers from source-shape tests).**
 
-  Run: `cd api && grep -rn "db_config\|\.svc_admin_ontology_db_config\|\.svc_admin_publication_refresh_db_config\|dw_config" tests/testthat/`
-  For each hit: if it constructs a `db_config` payload for a migrated submit, drop it; if it calls a migrated handler/`pubtator_db_update_async` with a `db_config` arg, drop the arg; if it asserts a removed helper exists, delete/adjust the assertion. Where a test needs a live connection from `async_job_db_connect()`, inject via the resolver's `runtime_config` seam — the resolver accepts `async_job_worker_db_config(runtime_config = <list>)`, but `async_job_db_connect()` reads global `dw`; for unit tests, set a global `dw <- <test cfg>` in a local env or mock `async_job_db_connect` to return the test connection.
+  Run: `cd api && grep -rn "db_config\|\.svc_admin_ontology_db_config\|\.svc_admin_publication_refresh_db_config\|dw_config\|is.function(seen_args\$executor_fn)\|executor_fn" tests/testthat/`
+  For each hit: if it **constructs** a `db_config` payload for a migrated submit, drop it; if it **calls** a migrated handler/`pubtator_db_update_async` with a `db_config` arg, drop the arg; if it asserts a removed helper/closure exists, adjust per the file notes above; if it is only a textual source-shape/boundary probe (no call), leave it.
+  Where a test needs a live connection from `async_job_db_connect()`: **it reads global `dw` from `.GlobalEnv` with `inherits = FALSE`** (a *local* `dw` will NOT satisfy `async_job_worker_db_config()`). Either `withr::defer(...)`/`on.exit` around `assign("dw", <test cfg>, envir = .GlobalEnv)` + restore, OR mock `async_job_db_connect` in the handler's lexical environment (e.g. `local_mocked_bindings(async_job_db_connect = function(...) <test conn>)`), OR call the resolver's injectable seam `async_job_worker_db_config(runtime_config = <list>)` where a handler exposes it.
 
 - [ ] **Step 2: Run each modified test file in the container.**
 
@@ -386,21 +460,22 @@ git commit -m "test: update durable-job tests for run-time DB credential resolut
 **Interfaces:**
 - Produces: `async_job_payload_scrub_statement(sentinel)` — now job-type-agnostic and redacts **both** `$.db_config.password` and `$.db_config.db_password`, preserving the exact terminal + `active_request_hash IS NULL` + not-already-sentinel guards.
 
-- [ ] **Step 1: Write the failing test (non-backup + `db_password`-path rows are scrubbed; retryable rows are not).**
-  Extend `test-unit-async-job-payload-scrub.R` with statement-shape assertions (string checks — no DB needed, matching the file's existing style):
+- [ ] **Step 1: Rewrite the obsolete statement-shape test + add a DB behavior test (HIGH-2 + MEDIUM-2).**
+  The existing test at `test-unit-async-job-payload-scrub.R:11-21` ("backup+terminal-scoped, single-path") **hard-asserts the two things this task removes**: `:14` `grepl("job_type IN ('backup_create','backup_restore')")` and `:20` `expect_false(grepl("db_password", s))`. **Replace** that whole `test_that(...)` block (do NOT "extend" — those two assertions must be deleted) with:
   ```r
-  test_that("scrub covers all families and both credential JSON paths", {
-    stmt <- async_job_payload_scrub_statement("X")
-    # both paths redacted in payload + hash recompute
-    expect_true(grepl("\\$\\.db_config\\.password", stmt))
-    expect_true(grepl("\\$\\.db_config\\.db_password", stmt))
-    # job-type-agnostic: no backup-only WHERE filter
-    expect_false(grepl("job_type IN \\('backup_create'", stmt))
-    # terminal + non-retryable guards preserved (UNIQUE(active_request_hash) safety)
-    expect_true(grepl("status IN \\('completed','failed','cancelled'\\)", stmt))
-    expect_true(grepl("active_request_hash IS NULL", stmt))
+  test_that("scrub statement is family-agnostic, terminal-scoped, both paths, idempotent, recomputes hash", {
+    s <- async_job_payload_scrub_statement()
+    expect_true(grepl("$.db_config.password", s, fixed = TRUE))
+    expect_true(grepl("$.db_config.db_password", s, fixed = TRUE))       # NEW: db_* families
+    expect_false(grepl("job_type IN ('backup_create'", s, fixed = TRUE)) # NEW: no longer backup-only
+    expect_true(grepl("status IN ('completed','failed','cancelled')", s, fixed = TRUE))
+    expect_true(grepl("active_request_hash IS NULL", s, fixed = TRUE))   # UNIQUE(active_request_hash) safety (M1)
+    expect_true(grepl("SHA2(CONCAT(job_type", s, fixed = TRUE))          # hash recompute (H6)
+    expect_true(grepl("JSON_REPLACE", s, fixed = TRUE))                  # not JSON_SET (never create keys)
+    expect_true(grepl("<> '***REDACTED***'", s, fixed = TRUE))           # idempotency guard
   })
   ```
+  Then extend the DB-backed test (the existing one seeds a `backup_create` + `$.db_config.password` row at `:23-50`) with a second seeded row for MEDIUM-2 — a terminal `llm_generation` (or `pubtator_update`) row whose payload carries `$.db_config.db_password`, plus a **retryable** row (`status='failed'`, `active_request_hash` non-NULL). Assert: the `db_password` row is redacted to the sentinel and its `request_hash` recomputed; a second scrub is a no-op (idempotent); the retryable row is **untouched** (still holds its password). Use `with_test_db_transaction({...})` + `skip_if_no_test_db()` as the existing test does.
 
 - [ ] **Step 2: Run it — expect RED.**
 
