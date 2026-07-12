@@ -61,6 +61,17 @@ test_that("re-review email attribute-escapes a hostile orcid", {
   # The quote-and-tag break-out must not survive verbatim in the href/label.
   expect_false(grepl("\"><b>", out, fixed = TRUE))
   expect_true(grepl("&gt;&lt;b&gt;", out, fixed = TRUE))
+  # The href attribute must attribute-escape the quote (&quot;) — proving attribute
+  # escaping, not merely text escaping (which would leave a dangerous bare quote).
+  expect_true(grepl("&quot;", out, fixed = TRUE))
+})
+
+test_that("email_escape coerces NULL/NA/non-scalar to empty string", {
+  expect_equal(email_escape(NULL), "")
+  expect_equal(email_escape(NA), "")
+  expect_equal(email_escape(character(0)), "")
+  expect_equal(email_escape_attr(NA_character_), "")
+  expect_equal(email_escape("<b>"), "&lt;b&gt;")
 })
 
 test_that("benign names round-trip through the templates unchanged", {

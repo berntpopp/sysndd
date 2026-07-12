@@ -27,7 +27,9 @@ SYSNDD_WARNING <- "#ffc107"
 #' markup/script injection into the recipient's mail client. NULL/empty -> "".
 #' Use email_escape_attr() for a value placed inside an HTML attribute.
 email_escape <- function(x) {
-  if (is.null(x) || length(x) == 0) {
+  # Templates interpolate scalar fields; a NULL/NA/empty/non-scalar value coerces
+  # to "" rather than rendering "NA" or vectorizing into the HTML.
+  if (is.null(x) || length(x) != 1L || is.na(x)) {
     return("")
   }
   htmltools::htmlEscape(as.character(x), attribute = FALSE)
@@ -35,7 +37,7 @@ email_escape <- function(x) {
 
 #' HTML-escape a user-controlled value for an HTML attribute (also escapes quotes).
 email_escape_attr <- function(x) {
-  if (is.null(x) || length(x) == 0) {
+  if (is.null(x) || length(x) != 1L || is.na(x)) {
     return("")
   }
   htmltools::htmlEscape(as.character(x), attribute = TRUE)
