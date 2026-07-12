@@ -105,6 +105,54 @@ test_that("config_from_env reads ASYNC_JOB_RETENTION_* with defaults", {
   expect_false(cfg2$dry_run)
 })
 
+test_that("tunable knobs are clamped to fail-closed maximums", {
+  # Oversized batch is clamped DOWN (never recreates the giant-DELETE risk).
+  expect_warning(
+    b <- async_job_retention_bounded_int("1000000", ASYNC_JOB_RETENTION_BATCH_SIZE,
+      ASYNC_JOB_RETENTION_BATCH_SIZE_MAX, "batch"),
+    "clamping"
+  )
+  expect_equal(b, ASYNC_JOB_RETENTION_BATCH_SIZE_MAX)
+  # Oversized lock wait is clamped DOWN (cannot defeat the wall-clock ceiling).
+  expect_warning(
+    lw <- async_job_retention_bounded_int("99999", ASYNC_JOB_RETENTION_LOCK_WAIT_DEFAULT,
+      ASYNC_JOB_RETENTION_LOCK_WAIT_MAX, "lock_wait"),
+    "clamping"
+  )
+  expect_equal(lw, ASYNC_JOB_RETENTION_LOCK_WAIT_MAX)
+  # In-range and default/empty values pass through unchanged (no warning).
+  expect_equal(async_job_retention_bounded_int("250", 1000L, 1000L, "b"), 250L)
+  expect_equal(async_job_retention_bounded_int("", 1000L, 1000L, "b"), 1000L)
+  # Zero / negative still fail closed (validate_retention_days rejects them).
+  expect_error(async_job_retention_bounded_int("0", 1000L, 1000L, "b"))
+  expect_error(async_job_retention_bounded_int("-1", 1000L, 1000L, "b"))
+})
+
+test_that("config_from_env clamps an oversized batch_size override", {
+  cfg <- suppressWarnings(async_job_retention_config_from_env(getenv = function(k, d = "") {
+    switch(k, ASYNC_JOB_RETENTION_BATCH_SIZE = "500000", d)
+  }))
+  expect_equal(cfg$batch_size, ASYNC_JOB_RETENTION_BATCH_SIZE_MAX)
+})
+
+test_that("run loop clamps an oversized config batch_size", {
+  seen_limit <- NULL
+  expect_warning(
+    run_async_job_retention(
+      config = list(retention_days = 90L, dry_run = FALSE, batch_size = 999999L),
+      count_fn = function(sql, params) 0L,
+      select_ids_fn = function(sql, params) {
+        seen_limit <<- params[[length(params)]]
+        character(0)
+      },
+      execute_fn = function(sql, params) 0L,
+      logger = function(msg) invisible(NULL)
+    ),
+    "clamping"
+  )
+  expect_equal(seen_limit, ASYNC_JOB_RETENTION_BATCH_SIZE_MAX) # clamped, not 999999
+})
+
 test_that("a configured batch_size drives the read LIMIT and delete size", {
   seen_limit <- NULL
   reads <- 0L

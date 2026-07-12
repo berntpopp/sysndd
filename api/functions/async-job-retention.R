@@ -55,6 +55,43 @@ ASYNC_JOB_RETENTION_MAX_BATCHES <- 1000L
 #' for the next daily run, so the destructive loop can never run unbounded.
 ASYNC_JOB_RETENTION_MAX_SECONDS <- 600L
 
+#' Fail-closed UPPER bounds on the operator-tunable knobs. Making a knob tunable
+#' must not reopen the failure modes the batching/lock bounds close: an oversized
+#' batch would recreate the giant DELETE transaction / huge IN(...) placeholder
+#' list, and an oversized lock wait would let a blocked statement stall past the
+#' wall-clock ceiling (a blocked DB call cannot be interrupted mid-statement).
+#' Values above the cap are clamped DOWN to it, never up — the batch knob is a
+#' "lower it to shrink the cascade" lever, not a way to raise risk.
+ASYNC_JOB_RETENTION_BATCH_SIZE_MAX <- 1000L
+ASYNC_JOB_RETENTION_LOCK_WAIT_DEFAULT <- 10L
+ASYNC_JOB_RETENTION_LOCK_WAIT_MAX <- 30L
+
+#' Validate a positive-integer knob and clamp it to a fail-closed maximum.
+#'
+#' Reuses `validate_retention_days()` (rejects 0 / negative / non-integer,
+#' defaults on empty/NULL), then caps at `max_value` so an oversized override can
+#' never widen the blast radius. Emits a warning when it clamps.
+#'
+#' @param value Raw value (character from env, or numeric).
+#' @param default Fallback for empty/NULL.
+#' @param max_value Inclusive upper bound.
+#' @param label Human-readable knob name for the clamp warning.
+#' @param warn Function used to surface a clamp (injectable for tests).
+#' @return A positive integer in `[1, max_value]`.
+#' @export
+async_job_retention_bounded_int <- function(value, default, max_value,
+                                            label = "value", warn = warning) {
+  n <- validate_retention_days(value, default)
+  if (n > max_value) {
+    warn(sprintf(
+      "[job-retention] %s=%d exceeds the safe maximum %d; clamping to %d.",
+      label, n, max_value, max_value
+    ))
+    return(as.integer(max_value))
+  }
+  n
+}
+
 #' The terminal + non-retryable + aged WHERE clause shared by the count, select,
 #' and delete builders, as a PARAMETERIZED template. Age is gated on BOTH
 #' submitted_at (indexed, prunes the bulk) AND updated_at (the last state change —
@@ -184,9 +221,11 @@ async_job_retention_config_from_env <- function(getenv = Sys.getenv) {
     ),
     # Operator lever: a smaller batch proportionally shrinks each statement's
     # work AND the FK cascade into async_job_events (useful if a job family emits
-    # unusually many lifecycle events).
-    batch_size = validate_retention_days(
-      getenv("ASYNC_JOB_RETENTION_BATCH_SIZE", ""), ASYNC_JOB_RETENTION_BATCH_SIZE
+    # unusually many lifecycle events). Clamped to a fail-closed maximum so an
+    # oversized override cannot recreate the giant-DELETE risk.
+    batch_size = async_job_retention_bounded_int(
+      getenv("ASYNC_JOB_RETENTION_BATCH_SIZE", ""), ASYNC_JOB_RETENTION_BATCH_SIZE,
+      ASYNC_JOB_RETENTION_BATCH_SIZE_MAX, "ASYNC_JOB_RETENTION_BATCH_SIZE"
     ),
     dry_run = async_job_retention_resolve_dry_run(getenv("ASYNC_JOB_RETENTION_DRY_RUN", ""))
   )
@@ -253,9 +292,10 @@ run_async_job_retention <- function(config, count_fn, select_ids_fn, execute_fn,
     "[job-retention] table=async_jobs retention_days=%d dry_run=false",
     config$retention_days
   ))
-  batch_size <- validate_retention_days(
+  batch_size <- async_job_retention_bounded_int(
     if (is.null(config$batch_size)) ASYNC_JOB_RETENTION_BATCH_SIZE else config$batch_size,
-    ASYNC_JOB_RETENTION_BATCH_SIZE
+    ASYNC_JOB_RETENTION_BATCH_SIZE, ASYNC_JOB_RETENTION_BATCH_SIZE_MAX,
+    "batch_size"
   )
   deleted_rows <- 0L
   batches <- 0L

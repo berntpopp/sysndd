@@ -58,8 +58,12 @@ main <- function() {
   # they cover distinct wait classes. Reuses the one connection for every batch.
   conn <- pool::poolCheckout(pool)
   on.exit(pool::poolReturn(conn), add = TRUE)
-  lock_wait <- validate_retention_days(
-    Sys.getenv("ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS", ""), 10L
+  # Clamped to a fail-closed maximum so an oversized lock wait cannot let a
+  # blocked statement stall past the run's wall-clock ceiling.
+  lock_wait <- async_job_retention_bounded_int(
+    Sys.getenv("ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS", ""),
+    ASYNC_JOB_RETENTION_LOCK_WAIT_DEFAULT, ASYNC_JOB_RETENTION_LOCK_WAIT_MAX,
+    "ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS"
   )
   DBI::dbExecute(conn, sprintf("SET SESSION innodb_lock_wait_timeout = %d", lock_wait))
   DBI::dbExecute(conn, sprintf("SET SESSION lock_wait_timeout = %d", lock_wait))
