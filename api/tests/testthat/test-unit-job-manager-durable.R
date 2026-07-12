@@ -68,17 +68,34 @@ test_that("create_job and production source have no dead executor or timeout API
     unique(found)
   }
 
-  collect_invalid_create_job_arity <- function(expression) {
+  collect_create_job_aliases <- function(expression) {
+    aliases <- "create_job"
+    visit <- function(node) {
+      if (is.call(node) && identical(node[[1]], as.name("function"))) {
+        formal_defaults <- as.list(node[[2L]])
+        create_job_defaults <- vapply(
+          formal_defaults,
+          function(default) is.name(default) && identical(default, as.name("create_job")),
+          logical(1)
+        )
+        aliases <<- c(aliases, names(formal_defaults)[create_job_defaults])
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        lapply(as.list(node), visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(aliases)
+  }
+
+  collect_invalid_create_job_arity <- function(expression, alias_names) {
     found <- character()
     visit <- function(node) {
       if (is.call(node)) {
         node_parts <- as.list(node)
         call_name <- as.character(node[[1]])[[1L]]
-        argument_names <- names(node_parts)[-1L]
-        is_create_job_alias <- call_name %in% c("create_job", "create_job_fn") ||
-          (identical(call_name, "submit_fn") &&
-            any(argument_names %in% c("operation", "params")))
-        if (is_create_job_alias && length(node_parts) != 3L) {
+        if (call_name %in% alias_names && length(node_parts) != 3L) {
           found <<- c(found, deparse1(node))
         }
       }
@@ -100,7 +117,20 @@ test_that("create_job and production source have no dead executor or timeout API
     dead_arguments
   )
   expect_length(
-    collect_invalid_create_job_arity(quote(create_job("x", list(), NULL))),
+    collect_invalid_create_job_arity(
+      quote(create_job("x", list(), NULL)),
+      alias_names = "create_job"
+    ),
+    1L
+  )
+  injected_alias_example <- quote(
+    function(submit_fn = create_job) submit_fn("x", list(), NULL)
+  )
+  expect_length(
+    collect_invalid_create_job_arity(
+      injected_alias_example,
+      alias_names = collect_create_job_aliases(injected_alias_example)
+    ),
     1L
   )
 
@@ -123,8 +153,10 @@ test_that("create_job and production source have no dead executor or timeout API
   expect_equal(length(offenders), 0L, info = paste(offenders, collapse = ", "))
 
   arity_offenders <- unlist(lapply(source_files, function(source_file) {
+    source_expression <- parse(source_file, keep.source = FALSE)
     invalid_calls <- collect_invalid_create_job_arity(
-      parse(source_file, keep.source = FALSE)
+      source_expression,
+      alias_names = collect_create_job_aliases(source_expression)
     )
     paste(source_file, invalid_calls, sep = ":")
   }))
