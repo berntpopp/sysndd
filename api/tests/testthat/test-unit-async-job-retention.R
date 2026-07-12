@@ -91,13 +91,36 @@ test_that("retention days are validated (injection-proof) AND bound", {
 
 test_that("config_from_env reads ASYNC_JOB_RETENTION_* with defaults", {
   cfg <- async_job_retention_config_from_env(getenv = function(k, d = "") {
-    switch(k, ASYNC_JOB_RETENTION_DAYS = "45", ASYNC_JOB_RETENTION_DRY_RUN = "true", d)
+    switch(k,
+      ASYNC_JOB_RETENTION_DAYS = "45",
+      ASYNC_JOB_RETENTION_BATCH_SIZE = "250",
+      ASYNC_JOB_RETENTION_DRY_RUN = "true", d)
   })
   expect_equal(cfg$retention_days, 45L)
+  expect_equal(cfg$batch_size, 250L)
   expect_true(cfg$dry_run)
   cfg2 <- async_job_retention_config_from_env(getenv = function(k, d = "") d)
   expect_equal(cfg2$retention_days, 90L)
+  expect_equal(cfg2$batch_size, 1000L) # default
   expect_false(cfg2$dry_run)
+})
+
+test_that("a configured batch_size drives the read LIMIT and delete size", {
+  seen_limit <- NULL
+  reads <- 0L
+  run_async_job_retention(
+    config = list(retention_days = 90L, dry_run = FALSE, batch_size = 250L),
+    count_fn = function(sql, params) 0L,
+    select_ids_fn = function(sql, params) {
+      reads <<- reads + 1L
+      seen_limit <<- params[[length(params)]] # LIMIT ? is the last bound param
+      .fake_ids(10L) # fewer than batch -> single batch
+    },
+    execute_fn = function(sql, params) length(params) - 2L,
+    logger = function(msg) invisible(NULL)
+  )
+  expect_equal(reads, 1L)
+  expect_equal(seen_limit, 250L) # the configured batch size flowed into the read
 })
 
 test_that("dry-run counts (with bound params) but never selects or deletes", {

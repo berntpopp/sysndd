@@ -583,6 +583,11 @@ services:
       # this window (result_json/async_job_events grow unbounded otherwise).
       ASYNC_JOB_RETENTION_DAYS: ${ASYNC_JOB_RETENTION_DAYS:-90}
       ASYNC_JOB_RETENTION_DRY_RUN: ${ASYNC_JOB_RETENTION_DRY_RUN:-false}
+      # Candidate PKs read + deleted per batch (also bounds the FK cascade into
+      # async_job_events); lower it for job families that emit many events.
+      ASYNC_JOB_RETENTION_BATCH_SIZE: ${ASYNC_JOB_RETENTION_BATCH_SIZE:-1000}
+      # Per-batch InnoDB row-lock + metadata-lock wait ceiling (seconds).
+      ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS: ${ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS:-10}
     networks:
       # DB access only; no proxy/egress needed for a DB-local cleanup.
       - backend

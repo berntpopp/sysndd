@@ -182,6 +182,12 @@ async_job_retention_config_from_env <- function(getenv = Sys.getenv) {
     retention_days = validate_retention_days(
       getenv("ASYNC_JOB_RETENTION_DAYS", ""), ASYNC_JOB_RETENTION_DEFAULT_DAYS
     ),
+    # Operator lever: a smaller batch proportionally shrinks each statement's
+    # work AND the FK cascade into async_job_events (useful if a job family emits
+    # unusually many lifecycle events).
+    batch_size = validate_retention_days(
+      getenv("ASYNC_JOB_RETENTION_BATCH_SIZE", ""), ASYNC_JOB_RETENTION_BATCH_SIZE
+    ),
     dry_run = async_job_retention_resolve_dry_run(getenv("ASYNC_JOB_RETENTION_DRY_RUN", ""))
   )
 }
@@ -247,7 +253,10 @@ run_async_job_retention <- function(config, count_fn, select_ids_fn, execute_fn,
     "[job-retention] table=async_jobs retention_days=%d dry_run=false",
     config$retention_days
   ))
-  batch_size <- ASYNC_JOB_RETENTION_BATCH_SIZE
+  batch_size <- validate_retention_days(
+    if (is.null(config$batch_size)) ASYNC_JOB_RETENTION_BATCH_SIZE else config$batch_size,
+    ASYNC_JOB_RETENTION_BATCH_SIZE
+  )
   deleted_rows <- 0L
   batches <- 0L
   batch_cap_reached <- FALSE
