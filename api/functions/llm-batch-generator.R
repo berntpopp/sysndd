@@ -212,7 +212,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #'   - clusters: Tibble of cluster data
 #'   - cluster_type: Character, "functional" or "phenotype"
 #'   - parent_job_id: Character, UUID of parent clustering job
-#'   - .__job_id__: Character, UUID of this job (injected by create_job)
+#'   - .__job_id__: Character, UUID injected by the durable handler
 #'
 #' @return List with summary statistics:
 #'   - total: Integer, total clusters processed

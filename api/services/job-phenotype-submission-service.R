@@ -44,7 +44,8 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     return(admission$response)
   }
 
-  # Prepare data BEFORE mirai (database connections can't cross process boundary)
+  # Prepare data before submission; DB connections cannot cross the durable
+  # worker boundary.
   # This replicates the data gathering from phenotype_clustering endpoint
 
   id_phenotype_ids <- c(

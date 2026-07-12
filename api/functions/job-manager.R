@@ -8,7 +8,7 @@
 #' @author SysNDD Team
 
 # Load required packages for this module
-# Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
+# Note: uuid, digest, and durable async-job helpers are loaded at bootstrap.
 
 # NOTE: LLM batch generator loaded at END of file (after create_job is defined)
 
@@ -52,8 +52,7 @@ create_job <- function(operation, params) {
 
 #' Get the status of a job
 #'
-#' Checks if job exists, determines current status by checking
-#' mirai resolution state, and returns appropriate response.
+#' Reads the persisted durable-job state and returns the polling response.
 #'
 #' @param job_id Character string - the UUID of the job
 #' @param result_mode Character string - "summary" omits stored result JSON,

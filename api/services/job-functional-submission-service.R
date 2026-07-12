@@ -39,7 +39,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
     return(admission$response)
   }
 
-  # CRITICAL: Extract request data BEFORE mirai call
+  # Extract request data before durable submission.
 
   # Connection objects cannot cross process boundaries
   genes_list <- NULL
@@ -75,8 +75,8 @@ svc_job_submit_functional_clustering <- function(req, res) {
       dplyr::pull(hgnc_id)
   }
 
-  # CRITICAL: Pre-fetch STRING ID table BEFORE mirai call
-  # Database connections cannot cross process boundaries (mirai best practice)
+  # Pre-fetch the STRING ID table because DB connections cannot cross the
+  # durable worker boundary.
   string_id_table <- pool %>%
     dplyr::tbl("non_alt_loci_set") %>%
     dplyr::filter(!is.na(STRING_id)) %>%

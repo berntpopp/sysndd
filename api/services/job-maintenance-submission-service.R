@@ -32,7 +32,7 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_ontology_update <- function(res) {
-  # CRITICAL: Extract all database data BEFORE mirai
+  # Extract all database data before durable submission.
   # Database connections cannot cross process boundaries
 
   # Get HGNC list
