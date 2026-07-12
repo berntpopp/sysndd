@@ -40,6 +40,15 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_phenotype_clustering <- function(req, res) {
+  # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
+  # DB/cache/duplicate work. The phenotype path otherwise collects five whole tables
+  # and builds the wide MCA matrix before admission — an abusive caller must be
+  # rejected before provoking that. Layered on the global capacity cap.
+  admission <- async_job_submit_admission_guard(req, res)
+  if (!isTRUE(admission$admitted)) {
+    return(admission$response)
+  }
+
   # Prepare data BEFORE mirai (database connections can't cross process boundary)
   # This replicates the data gathering from phenotype_clustering endpoint
 
@@ -178,21 +187,6 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
       estimated_seconds = 0,
       status_url = paste0("/api/jobs/", job_id, "/status"),
       meta = list(llm_generation = "snapshot_refresh_owned")
-    ))
-  }
-
-  # Guard: per-caller submit throttle (#535 S6) — reject an abusive single caller
-  # before it can consume the shared queue capacity. Runs after the cache-hit and
-  # duplicate-job short-circuits (those are cheap and must not count against the
-  # limit), and is layered on the global capacity cap below.
-  submit_rl <- async_job_submit_rate_limit(async_job_submit_fingerprint(req))
-  if (!isTRUE(submit_rl$allowed)) {
-    res$status <- 429
-    res$setHeader("Retry-After", as.character(submit_rl$retry_after))
-    return(list(
-      error = "RATE_LIMITED",
-      message = "Too many analysis submissions from your client. Please retry shortly.",
-      retry_after = submit_rl$retry_after
     ))
   }
 

@@ -35,6 +35,15 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_functional_clustering <- function(req, res) {
+  # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
+  # DB/cache/duplicate work so an abusive caller is rejected before it can do — or
+  # provoke — expensive work (a cache hit still writes a completed job row, and the
+  # duplicate/data fetch below touch the DB). Layered on the global capacity cap.
+  admission <- async_job_submit_admission_guard(req, res)
+  if (!isTRUE(admission$admitted)) {
+    return(admission$response)
+  }
+
   # CRITICAL: Extract request data BEFORE mirai call
 
   # Connection objects cannot cross process boundaries
@@ -181,21 +190,6 @@ svc_job_submit_functional_clustering <- function(req, res) {
       estimated_seconds = 0,
       status_url = paste0("/api/jobs/", job_id, "/status"),
       meta = list(llm_generation = "snapshot_refresh_owned")
-    ))
-  }
-
-  # Guard: per-caller submit throttle (#535 S6) — reject an abusive single caller
-  # before it can consume the shared queue capacity. Runs after the cache-hit and
-  # duplicate-job short-circuits (those are cheap and must not count against the
-  # limit), and is layered on the global capacity cap below.
-  submit_rl <- async_job_submit_rate_limit(async_job_submit_fingerprint(req))
-  if (!isTRUE(submit_rl$allowed)) {
-    res$status <- 429
-    res$setHeader("Retry-After", as.character(submit_rl$retry_after))
-    return(list(
-      error = "RATE_LIMITED",
-      message = "Too many analysis submissions from your client. Please retry shortly.",
-      retry_after = submit_rl$retry_after
     ))
   }
 

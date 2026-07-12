@@ -71,17 +71,95 @@ test_that("fingerprint uses the proxy-appended (rightmost) XFF hop, not the spoo
   req <- list(HTTP_X_FORWARDED_FOR = "9.9.9.9, 10.0.0.1", REMOTE_ADDR = "172.18.0.5")
   expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "10.0.0.1")
   # A spoofed leftmost value cannot change the appended hop.
-  spoof <- list(HTTP_X_FORWARDED_FOR = "evil-rotating-value, 10.0.0.1")
+  spoof <- list(HTTP_X_FORWARDED_FOR = "1.1.1.1, 10.0.0.1")
   expect_equal(async_job_submit_fingerprint(spoof, trusted_hops = 1L), "10.0.0.1")
-  # Two trusted hops -> take the entry two from the right.
-  req2 <- list(HTTP_X_FORWARDED_FOR = "client, edge, traefik")
-  expect_equal(async_job_submit_fingerprint(req2, trusted_hops = 2L), "edge")
+  # Real 2-proxy chain: the edge appends the real client, Traefik appends the edge.
+  # XFF = "<spoof>, <real-client>, <edge-ip>"; 2 trusted hops -> the real client
+  # (the entry the OUTERMOST trusted proxy appended = 2nd from the right).
+  req2 <- list(HTTP_X_FORWARDED_FOR = "1.1.1.1, 2.2.2.2, 3.3.3.3")
+  expect_equal(async_job_submit_fingerprint(req2, trusted_hops = 2L), "2.2.2.2")
 })
 
 test_that("fingerprint falls back to REMOTE_ADDR, then 'unknown'", {
   expect_equal(async_job_submit_fingerprint(list(REMOTE_ADDR = "172.18.0.5")), "172.18.0.5")
   expect_equal(async_job_submit_fingerprint(list()), "unknown")
   expect_equal(async_job_submit_fingerprint(list(HTTP_X_FORWARDED_FOR = "")), "unknown")
+})
+
+test_that("a non-IP XFF token is rejected and falls back to a server-owned source", {
+  # Header-alias injection (X_Forwarded_For colliding with X-Forwarded-For) or any
+  # junk in the selected hop must NOT become a throttle key: it would let an
+  # attacker rotate arbitrary strings to evade the limit and exhaust the store.
+  req <- list(HTTP_X_FORWARDED_FOR = "evil-rotating-value", REMOTE_ADDR = "172.18.0.5")
+  expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "172.18.0.5")
+  # No valid IP anywhere -> stable constant, never the attacker string.
+  req2 <- list(HTTP_X_FORWARDED_FOR = "not an ip")
+  expect_equal(async_job_submit_fingerprint(req2, trusted_hops = 1L), "unknown")
+  # Out-of-range octets are not a valid IPv4.
+  req3 <- list(HTTP_X_FORWARDED_FOR = "999.1.1.1", REMOTE_ADDR = "10.0.0.9")
+  expect_equal(async_job_submit_fingerprint(req3, trusted_hops = 1L), "10.0.0.9")
+})
+
+test_that("an IPv4 host:port is normalized to the bare IP", {
+  req <- list(HTTP_X_FORWARDED_FOR = "203.0.113.7:54321")
+  expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "203.0.113.7")
+})
+
+test_that("IPv6 rotation within a /64 collapses to one throttle bucket", {
+  # An attacker with a /64 allocation can rotate 2^64 addresses; grouping by the
+  # /64 network prefix keeps them one caller instead of 2^64 fresh buckets.
+  a <- async_job_submit_fingerprint(list(HTTP_X_FORWARDED_FOR = "2001:db8:abcd:1::1"))
+  b <- async_job_submit_fingerprint(list(HTTP_X_FORWARDED_FOR = "2001:db8:abcd:1::dead:beef"))
+  expect_equal(a, b)              # same /64 -> same key
+  expect_match(a, "/64$")
+  c <- async_job_submit_fingerprint(list(HTTP_X_FORWARDED_FOR = "2001:db8:abcd:2::1"))
+  expect_false(identical(a, c))   # different /64 -> different key
+})
+
+# --- Admission guard (fingerprint + throttle -> HTTP decision) ----------------
+
+mock_res <- function() {
+  r <- new.env(parent = emptyenv())
+  r$status <- NA_integer_
+  r$headers <- list()
+  r$setHeader <- function(name, value) {
+    r$headers[[name]] <- value
+    invisible(NULL)
+  }
+  r
+}
+
+test_that("admission guard admits under the limit and blocks with 429 over it", {
+  async_job_submit_rate_limit_reset()
+  req <- list(HTTP_X_FORWARDED_FOR = "198.51.100.7")
+  # Default module limit is 5 per 60s. First 5 admit, 6th -> 429 + Retry-After.
+  for (i in 1:5) {
+    res <- mock_res()
+    adm <- async_job_submit_admission_guard(req, res)
+    expect_true(adm$admitted)
+  }
+  res <- mock_res()
+  adm <- async_job_submit_admission_guard(req, res)
+  expect_false(adm$admitted)
+  expect_equal(res$status, 429)
+  expect_equal(adm$response$error, "RATE_LIMITED")
+  expect_true(!is.null(res$headers[["Retry-After"]]))
+  expect_gte(as.integer(res$headers[["Retry-After"]]), 1L)
+  async_job_submit_rate_limit_reset()
+})
+
+test_that("admission guard fails CLOSED (503) on an internal throttle error", {
+  # A throttle bug must neither 500 the endpoint nor silently admit an abusive
+  # caller: an internal error is caught and mapped to 503 THROTTLE_UNAVAILABLE.
+  orig <- async_job_submit_rate_limit
+  async_job_submit_rate_limit <<- function(...) stop("boom")
+  on.exit(async_job_submit_rate_limit <<- orig, add = TRUE)
+  res <- mock_res()
+  adm <- async_job_submit_admission_guard(list(REMOTE_ADDR = "10.0.0.1"), res)
+  expect_false(adm$admitted)
+  expect_equal(res$status, 503)
+  expect_equal(adm$response$error, "THROTTLE_UNAVAILABLE")
+  expect_true(!is.null(res$headers[["Retry-After"]]))
 })
 
 test_that("the store is bounded against fingerprint rotation (memory-DoS guard)", {
@@ -103,4 +181,15 @@ test_that("invalid env values fall back to safe defaults (not disable/corrupt)",
   withr::with_envvar(c(SOME_BAD = "abc"), expect_equal(.async_job_submit_env_int("SOME_BAD", 5L, 0L), 5L))
   withr::with_envvar(c(SOME_NEG = "-3"), expect_equal(.async_job_submit_env_int("SOME_NEG", 60L, 1L), 60L))
   withr::with_envvar(c(SOME_OK = "7"), expect_equal(.async_job_submit_env_int("SOME_OK", 5L, 0L), 7L))
+})
+
+test_that("env values are clamped to a ceiling so a typo cannot make vectors unbounded", {
+  withr::with_envvar(
+    c(SOME_HUGE = "1000000000"),
+    expect_equal(.async_job_submit_env_int("SOME_HUGE", 5L, 0L, max_value = 10000L), 10000L)
+  )
+  withr::with_envvar( # a value under the ceiling is untouched
+    c(SOME_FINE = "42"),
+    expect_equal(.async_job_submit_env_int("SOME_FINE", 5L, 0L, max_value = 10000L), 42L)
+  )
 })

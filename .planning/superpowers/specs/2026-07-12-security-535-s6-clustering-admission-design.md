@@ -21,13 +21,25 @@ submit rate limit. Kept intentionally small and self-contained.
   allows and records if under `max_n`, else returns `allowed=FALSE` + a computed `retry_after`. A
   non-positive `max_n` disables it. Tunable via `CLUSTERING_SUBMIT_PER_CALLER_MAX` (default 5) and
   `CLUSTERING_SUBMIT_WINDOW_SECONDS` (default 60).
-- **`async_job_submit_fingerprint(req)`**: prefers the real client IP behind the trusted reverse
-  proxy — the **first hop of `X-Forwarded-For`** (set by Traefik) — over `REMOTE_ADDR`, which in the
-  Compose topology is the **proxy container's** address (shared by every client, so throttling on it
-  alone would rate-limit all callers as one). Falls back to `REMOTE_ADDR`, then `"unknown"`.
-- Both submit services call the throttle **after** the cache-hit and duplicate-job short-circuits
-  (those are cheap and must not consume a caller's budget) and **before** the global capacity cap;
-  on throttle → `429 + Retry-After` (`RATE_LIMITED`).
+- **`async_job_submit_fingerprint(req)`**: takes the client IP the **trusted reverse proxy appended**
+  to `X-Forwarded-For` — the entry `CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS` positions from the **RIGHT**
+  (Traefik = 1 hop → the **rightmost** entry). The proxy appends the address of the peer it actually
+  saw, so that hop is not spoofable; the leftmost XFF entries are client-supplied and an attacker
+  could rotate them to evade the limit or exhaust the store, so they are never trusted. The selected
+  value must **validate as an IP** (`.async_job_submit_normalize_ip()`): a non-IP token (e.g. an
+  injected `X_Forwarded_For` header-alias value) is discarded, IPv4 `:port` suffixes are stripped, and
+  IPv6 is grouped to its **`/64`** so a whole allocation is one caller, not 2^64 buckets. Falls back to
+  a validated `REMOTE_ADDR` (the proxy's own address in the Compose topology — coarse but unspoofable),
+  then `"unknown"`. It never throws — crafted headers degrade to the `"unknown"` bucket.
+- **`async_job_submit_admission_guard(req, res)`**: the single entry point both submit services call.
+  Wraps the throttle in `tryCatch` and **fails CLOSED** on any internal error (`503
+  THROTTLE_UNAVAILABLE + Retry-After`) so a throttle bug can neither 500 the endpoint nor silently
+  admit. On throttle → `429 + Retry-After` (`RATE_LIMITED`). Sharing one guard also removes copy drift
+  between the two services.
+- Both submit services call the guard **FIRST — before any DB/cache/duplicate work** — so an abusive
+  caller is rejected before it can do or provoke expensive work (a cache hit still writes a completed
+  `async_jobs` row; the phenotype path collects five tables and builds the wide MCA matrix). It is
+  layered on the global capacity cap that still runs after.
 
 ### Why in-memory / process-local (documented trade-off)
 The store is an in-process environment, so a caller's window is per API process. In the single-API
