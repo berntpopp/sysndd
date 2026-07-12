@@ -433,6 +433,28 @@ docker compose restart app
 
 Do not add cron or Node to the nginx app container. For periodic refreshes after data releases, run the profiled sidecar from host cron or rebuild the app image with `SEO_GENERATE=true`.
 
+## Session security — revocable token refresh (#535 P0-2)
+
+Migration `043_add_user_session_epoch.sql` adds `user.session_epoch` (default `0`) and is applied by the
+startup migration runner. Token refresh (`GET /api/auth/refresh`) now loads current account state, requires
+`approved == 1`, and requires the token's `sepoch` claim to equal `user.session_epoch`; any privilege/state
+change (role change, deactivation, password change) increments the epoch and immediately **revokes the
+user's refresh** (they must sign in again).
+
+Operator notes:
+
+- **Pre-deploy tokens** (issued before this deploy) carry no `sepoch` and are **rejected on refresh**, so
+  every user signs in once after cutover. Existing *access* tokens keep working until they expire
+  (`config$token_expiry`, ~1h); there is no forced immediate logout.
+- To additionally invalidate **all** in-flight access tokens at cutover (e.g. after a suspected token leak),
+  run `UPDATE user SET session_epoch = session_epoch + 1;` once after the migration — this forces re-login on
+  the next refresh for everyone.
+- No worker change is needed for this feature; `auth-service.R` runs in the API, so a normal API restart
+  (which also applies the migration) is sufficient.
+- Deferred follow-ups (**S1b**): immediate access-token revocation (an epoch check in `require_auth`), distinct
+  rotating refresh tokens for theft resistance, and repairing the pre-existing `user-service.R` bulk-approve
+  `account_status` schema mismatch.
+
 ## Security headers
 
 The frontend nginx config (`app/docker/nginx/security-headers.conf`) emits the following on every SPA response:

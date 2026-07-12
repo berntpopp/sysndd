@@ -134,6 +134,12 @@ needs_upgrade <- function(password_from_db) {
 upgrade_password <- function(pool, user_id, password_plaintext) {
   tryCatch({
     new_hash <- hash_password(password_plaintext)
+    # #535 P0-2: this is the SOLE exemption from the "every password writer bumps
+    # session_epoch" invariant. It re-hashes the SAME already-verified secret
+    # (a storage-representation upgrade), so it must NOT revoke sessions — and it
+    # runs mid-sign-in, so bumping here would immediately invalidate the token
+    # auth_signin() is about to issue. A change of the actual secret goes through
+    # user_update_password(), which does bump.
     db_execute_statement(
       "UPDATE user SET password = ? WHERE user_id = ?",
       list(new_hash, user_id)

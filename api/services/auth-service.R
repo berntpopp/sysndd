@@ -142,25 +142,81 @@ auth_refresh <- function(refresh_token, pool, config) {
     stop_for_bad_request("refresh_token is required")
   }
 
-  # Validate current token
-  user <- auth_validate_token(refresh_token, config)
-
-  if (is.null(user)) {
+  # Validate signature + decode the presented token.
+  claims <- auth_validate_token(refresh_token, config)
+  if (is.null(claims)) {
     stop_for_unauthorized("Invalid refresh token")
   }
-
-  # Check expiration
-  if (user$exp < as.numeric(Sys.time())) {
+  if (is.null(claims$exp) || claims$exp < as.numeric(Sys.time())) {
     stop_for_unauthorized("Refresh token has expired")
   }
 
-  # Generate new token with same user claims
-  token <- auth_generate_token(user, config)
+  # #535 P0-2: a token that predates session-epoch support carries no `sepoch`.
+  # Reject it rather than treating it as epoch 0 — otherwise a pre-deploy
+  # (possibly compromised) token could be refreshed into a fresh epoch-0 token
+  # and renewed indefinitely. This forces exactly one post-deploy sign-in.
+  if (is.null(claims$sepoch) || length(claims$sepoch) != 1L) {
+    stop_for_unauthorized("Session predates revocation support. Please sign in again.")
+  }
+  token_epoch <- suppressWarnings(as.numeric(claims$sepoch))
+  if (is.na(token_epoch)) {
+    stop_for_unauthorized("Invalid refresh token")
+  }
 
-  logger::log_info("Token refreshed", user_id = user$user_id)
+  # Validate the subject id before querying.
+  uid <- suppressWarnings(as.integer(claims$user_id))
+  if (length(uid) != 1L || is.na(uid) || uid <= 0L) {
+    stop_for_unauthorized("Invalid refresh token")
+  }
+
+  # #535 P0-2: read CURRENT account state, verify it, and sign the new token
+  # under a single row lock (`SELECT ... FOR UPDATE`) so the read-check-sign is
+  # serialized against any concurrent privilege/state mutation. Without the
+  # lock a refresh could read the pre-demotion row and then sign a stale-role
+  # token after the demotion commits (TOCTOU). Never trust the token's claims.
+  issue <- function(conn) {
+    user <- DBI::dbGetQuery(
+      conn,
+      "SELECT user_id, user_name, email, user_role, session_epoch,
+              created_at AS user_created, abbreviation, orcid, approved
+         FROM user WHERE user_id = ? FOR UPDATE",
+      params = list(uid)
+    )
+    if (nrow(user) == 0) {
+      stop_for_unauthorized("User no longer exists")
+    }
+    if (is.null(user$approved[1]) || is.na(user$approved[1]) || user$approved[1] != 1) {
+      stop_for_unauthorized("Account is not active")
+    }
+    current_epoch <- suppressWarnings(as.numeric(user$session_epoch[1]))
+    if (is.na(current_epoch) || token_epoch != current_epoch) {
+      stop_for_unauthorized("Session has been revoked. Please sign in again.")
+    }
+    # Mint with role + claim fields taken from the DB row (not the token).
+    auth_generate_token(user[1, ], config)$access_token
+  }
+
+  if (inherits(pool, "Pool")) {
+    # API path: hold the FOR UPDATE lock across signing in one transaction.
+    # dbWithTransaction commits on success and rolls back on ANY error —
+    # including a failure of the commit itself or an interrupt escaping
+    # issue() — so the connection is never returned to the pool with an open
+    # transaction / row lock.
+    conn <- pool::poolCheckout(pool)
+    on.exit(pool::poolReturn(conn), add = TRUE)
+    access_token <- DBI::dbWithTransaction(conn, issue(conn))
+  } else {
+    # Test / direct-connection path ONLY: the caller already owns the
+    # transaction (e.g. with_test_db_transaction). Production always passes a
+    # pool::Pool, so the FOR UPDATE lock is always inside an explicit
+    # transaction and is held through signing.
+    access_token <- issue(pool)
+  }
+
+  logger::log_info("Token refreshed", user_id = uid)
 
   # Return just the access token (string format for backward compatibility)
-  token$access_token
+  access_token
 }
 
 
@@ -184,6 +240,9 @@ auth_generate_token <- function(user, config) {
     user_created = user$user_created,
     abbreviation = user$abbreviation,
     orcid = user$orcid,
+    # #535 P0-2: bind the token to the user's current session epoch so a later
+    # privilege/state change (which increments session_epoch) invalidates refresh.
+    sepoch = user$session_epoch %||% 0,
     iat = as.numeric(Sys.time()),
     exp = as.numeric(Sys.time()) + (config$token_expiry %||% 3600)
   )
