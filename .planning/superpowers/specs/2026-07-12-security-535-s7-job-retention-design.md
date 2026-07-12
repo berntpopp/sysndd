@@ -1,5 +1,16 @@
 # S7 — Perf & Retention: async_jobs retention prune — Design
 
+> **Implementation note (supersedes the SQL details below).** The shipped design
+> hardened well past this draft during adversarial review: the retention SQL is
+> **fully parameterized** (bound `TIMESTAMPADD(DAY, ?, …)` window + `LIMIT ?`, no
+> interpolation), the age gate requires **both** `submitted_at` **and** `updated_at`
+> older than the window, and deletion is a **lock-safe non-locking candidate-PK read
+> then delete-by-PK with a full-predicate re-check** (not a single `DELETE … LIMIT`),
+> with batch-count + soft between-batch time caps, per-batch row+metadata lock-wait
+> bounds, fail-closed clamps on the tunable knobs, and a fail-safe dry-run parse.
+> See `api/functions/async-job-retention.R` and the diff review at
+> `.planning/reviews/2026-07-13-security-535-s7-diff-codex-review.md`.
+
 Date: 2026-07-12
 Issue: [#535](https://github.com/berntpopp/sysndd/issues/535) — umbrella hardening, slice **S7**
 (audit P2-2/4/5/6). Parent design: `.../specs/2026-07-11-security-hardening-535-design.md` §3 (S7).

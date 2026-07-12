@@ -1,6 +1,12 @@
 # S7 — async_jobs retention prune — Plan
 
 > Design: `.../specs/2026-07-12-security-535-s7-job-retention-design.md`. TDD.
+>
+> **Post-review note:** the tasks below reflect the initial plan. The shipped
+> implementation is stronger (fully-parameterized bind SQL, dual `submitted_at`+
+> `updated_at` age gate, lock-safe select-PK-then-delete-by-PK with predicate
+> re-check, batch/time caps, lock-wait bounds, fail-closed knob clamps). See
+> `.planning/reviews/2026-07-13-security-535-s7-diff-codex-review.md`.
 
 - [x] **Task 1 (TDD):** `test-unit-async-job-retention.R` (SQL predicate, injection guard, config env,
   dry-run vs delete) — host-runnable, injected DB. GREEN.
