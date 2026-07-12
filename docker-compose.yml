@@ -537,24 +537,32 @@ services:
     healthcheck:
       disable: true
     # Daily scheduler loop (no root / system cron needed). Sleeps until the next
-    # LOG_CLEANUP_AT (HH:MM) and then runs the cleanup script; on script failure
-    # it logs and continues to the next day rather than crash-looping.
+    # LOG_CLEANUP_AT (HH:MM) and then runs the cleanup scripts; on script failure
+    # it logs and continues to the next day rather than crash-looping. The
+    # fully-bounded async_jobs prune runs FIRST so the legacy unbounded log prune
+    # can never delay/starve it.
     command:
       - bash
       - -lc
       - >
           set -u;
-          at="$${LOG_CLEANUP_AT:-03:00}";
+          at="$${LOG_CLEANUP_AT:-04:00}";
+          if ! printf '%s' "$$at" | grep -Eq '^([01][0-9]|2[0-3]):[0-5][0-9]$$'; then
+            echo "[log-cleanup] FATAL: invalid LOG_CLEANUP_AT '$$at' (expected HH:MM, 00:00-23:59); refusing to start to avoid a tight destructive-cleanup loop";
+            exit 1;
+          fi;
           echo "[log-cleanup] scheduler started; daily run at $$at (container time), retention=$${LOG_RETENTION_DAYS:-30}d, dry_run=$${LOG_CLEANUP_DRY_RUN:-false}";
           while true; do
             now=$$(date +%s);
-            target=$$(date -d "today $$at" +%s 2>/dev/null || date +%s);
+            target=$$(date -d "today $$at" +%s);
             if [ "$$target" -le "$$now" ]; then target=$$(date -d "tomorrow $$at" +%s); fi;
             sleep_for=$$(( target - now ));
             echo "[log-cleanup] sleeping $$sleep_for s until next run";
             sleep "$$sleep_for";
+            echo "[log-cleanup] running scripts/delete_old_jobs.R";
+            Rscript scripts/delete_old_jobs.R || echo "[log-cleanup] job-retention run failed (exit $$?); will retry next cycle";
             echo "[log-cleanup] running scripts/delete_old_logs.R";
-            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] run failed (exit $$?); will retry next cycle";
+            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] log run failed (exit $$?); will retry next cycle";
           done
     volumes:
       - ./api/functions:/app/functions:ro
@@ -570,9 +578,20 @@ services:
       # Retention window in days (rows older than this are deleted).
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
       # Daily run time, HH:MM in container (UTC) time.
-      LOG_CLEANUP_AT: ${LOG_CLEANUP_AT:-03:00}
+      # 04:00 (not 03:00) so the daily prune does not compete with the 03:00
+      # mysql-cron-backup dump for DB I/O.
+      LOG_CLEANUP_AT: ${LOG_CLEANUP_AT:-04:00}
       # Set to 1/true to count-only and never delete (safe verification).
       LOG_CLEANUP_DRY_RUN: ${LOG_CLEANUP_DRY_RUN:-false}
+      # #535 S7: same daily loop also prunes terminal async_jobs rows older than
+      # this window (result_json/async_job_events grow unbounded otherwise).
+      ASYNC_JOB_RETENTION_DAYS: ${ASYNC_JOB_RETENTION_DAYS:-90}
+      ASYNC_JOB_RETENTION_DRY_RUN: ${ASYNC_JOB_RETENTION_DRY_RUN:-false}
+      # Candidate PKs read + deleted per batch (also bounds the FK cascade into
+      # async_job_events); lower it for job families that emit many events.
+      ASYNC_JOB_RETENTION_BATCH_SIZE: ${ASYNC_JOB_RETENTION_BATCH_SIZE:-1000}
+      # Per-batch InnoDB row-lock + metadata-lock wait ceiling (seconds).
+      ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS: ${ASYNC_JOB_RETENTION_LOCK_WAIT_SECONDS:-10}
     networks:
       # DB access only; no proxy/egress needed for a DB-local cleanup.
       - backend
