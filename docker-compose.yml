@@ -545,10 +545,14 @@ services:
       - >
           set -u;
           at="$${LOG_CLEANUP_AT:-03:00}";
+          if ! printf '%s' "$$at" | grep -Eq '^([01][0-9]|2[0-3]):[0-5][0-9]$$'; then
+            echo "[log-cleanup] FATAL: invalid LOG_CLEANUP_AT '$$at' (expected HH:MM, 00:00-23:59); refusing to start to avoid a tight destructive-cleanup loop";
+            exit 1;
+          fi;
           echo "[log-cleanup] scheduler started; daily run at $$at (container time), retention=$${LOG_RETENTION_DAYS:-30}d, dry_run=$${LOG_CLEANUP_DRY_RUN:-false}";
           while true; do
             now=$$(date +%s);
-            target=$$(date -d "today $$at" +%s 2>/dev/null || date +%s);
+            target=$$(date -d "today $$at" +%s);
             if [ "$$target" -le "$$now" ]; then target=$$(date -d "tomorrow $$at" +%s); fi;
             sleep_for=$$(( target - now ));
             echo "[log-cleanup] sleeping $$sleep_for s until next run";
