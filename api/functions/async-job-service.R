@@ -489,3 +489,100 @@ async_job_service_request_cancel <- function(job_id, cancelled_by = NULL, conn =
 
   list(job_id = job_id, status = cancelled$status[[1]])
 }
+
+# ---------------------------------------------------------------------------
+# Per-caller submit throttle (#535 S6 — clustering admission controls)
+#
+# async_job_capacity_exceeded() bounds the TOTAL in-flight public jobs but lets a
+# single caller consume every slot. This adds a per-caller sliding-window submit
+# rate limit as a SECOND admission dimension layered on the global cap (it does not
+# replace it). It is process-local (in-memory) defense-in-depth: a fresh window per
+# API process, so with multiple API replicas each enforces independently while the
+# DB-backed global cap remains the cross-process backstop.
+# ---------------------------------------------------------------------------
+
+# Max submissions per caller per window, and the window length (seconds). Read once
+# at source/startup; changing the env var requires an API restart.
+CLUSTERING_SUBMIT_PER_CALLER_MAX <- as.integer(
+  Sys.getenv("CLUSTERING_SUBMIT_PER_CALLER_MAX", "5")
+)
+CLUSTERING_SUBMIT_WINDOW_SECONDS <- as.integer(
+  Sys.getenv("CLUSTERING_SUBMIT_WINDOW_SECONDS", "60")
+)
+
+# fingerprint -> numeric vector of recent submit epoch-seconds.
+.clustering_submit_history <- new.env(parent = emptyenv())
+
+#' Resolve the client fingerprint for submit throttling.
+#'
+#' Prefers the real client IP behind a trusted reverse proxy (the first hop of
+#' `X-Forwarded-For`, set by Traefik) over `REMOTE_ADDR`, which in the Compose
+#' topology is the proxy container's address (shared by every client, so throttling
+#' on it alone would rate-limit all callers as one). Falls back to REMOTE_ADDR, then
+#' a constant when neither is present.
+#'
+#' @param req Plumber request object.
+#' @return Character fingerprint (never empty).
+#' @export
+async_job_submit_fingerprint <- function(req) {
+  xff <- req$HTTP_X_FORWARDED_FOR
+  if (!is.null(xff) && length(xff) == 1L && nzchar(xff)) {
+    first <- trimws(strsplit(as.character(xff), ",", fixed = TRUE)[[1]][[1]])
+    if (nzchar(first)) {
+      return(first)
+    }
+  }
+  addr <- req$REMOTE_ADDR
+  if (!is.null(addr) && length(addr) == 1L && nzchar(addr)) {
+    return(as.character(addr))
+  }
+  "unknown"
+}
+
+#' Sliding-window per-caller submit rate limit.
+#'
+#' Pure except for the module-level `store`; the clock is injected so tests are
+#' deterministic. Records the attempt when allowed.
+#'
+#' @param fingerprint Caller fingerprint (see async_job_submit_fingerprint()).
+#' @param now Current epoch-seconds (injected for tests).
+#' @param max_n Max allowed submissions in the window.
+#' @param window_s Window length in seconds.
+#' @param store Environment mapping fingerprint -> recent timestamps.
+#' @return list(allowed, retry_after, count).
+#' @export
+async_job_submit_rate_limit <- function(fingerprint,
+                                        now = as.numeric(Sys.time()),
+                                        max_n = CLUSTERING_SUBMIT_PER_CALLER_MAX,
+                                        window_s = CLUSTERING_SUBMIT_WINDOW_SECONDS,
+                                        store = .clustering_submit_history) {
+  if (is.null(fingerprint) || length(fingerprint) != 1L || !nzchar(fingerprint)) {
+    fingerprint <- "unknown"
+  }
+  # A non-positive cap disables the limiter (always allow).
+  if (is.na(max_n) || max_n <= 0L) {
+    return(list(allowed = TRUE, retry_after = 0L, count = 0L))
+  }
+  cutoff <- now - window_s
+  prev <- if (exists(fingerprint, envir = store, inherits = FALSE)) {
+    get(fingerprint, envir = store, inherits = FALSE)
+  } else {
+    numeric(0)
+  }
+  recent <- prev[prev > cutoff]
+  if (length(recent) >= max_n) {
+    # The oldest in-window submission ages out at recent[1] + window_s.
+    retry_after <- max(1L, as.integer(ceiling((recent[[1]] + window_s) - now)))
+    assign(fingerprint, recent, envir = store) # persist the prune
+    return(list(allowed = FALSE, retry_after = retry_after, count = length(recent)))
+  }
+  assign(fingerprint, c(recent, now), envir = store)
+  list(allowed = TRUE, retry_after = 0L, count = length(recent) + 1L)
+}
+
+#' Reset the in-memory submit-throttle store (tests only).
+#' @export
+async_job_submit_rate_limit_reset <- function(store = .clustering_submit_history) {
+  rm(list = ls(envir = store), envir = store)
+  invisible(NULL)
+}

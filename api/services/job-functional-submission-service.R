@@ -184,6 +184,21 @@ svc_job_submit_functional_clustering <- function(req, res) {
     ))
   }
 
+  # Guard: per-caller submit throttle (#535 S6) — reject an abusive single caller
+  # before it can consume the shared queue capacity. Runs after the cache-hit and
+  # duplicate-job short-circuits (those are cheap and must not count against the
+  # limit), and is layered on the global capacity cap below.
+  submit_rl <- async_job_submit_rate_limit(async_job_submit_fingerprint(req))
+  if (!isTRUE(submit_rl$allowed)) {
+    res$status <- 429
+    res$setHeader("Retry-After", as.character(submit_rl$retry_after))
+    return(list(
+      error = "RATE_LIMITED",
+      message = "Too many analysis submissions from your client. Please retry shortly.",
+      retry_after = submit_rl$retry_after
+    ))
+  }
+
   # Guard: refuse if the queue is already at capacity (soft, fail-open on DB error).
   # "default" matches the queue create_job() enqueues on via async_job_service_submit.
   if (async_job_capacity_exceeded(
