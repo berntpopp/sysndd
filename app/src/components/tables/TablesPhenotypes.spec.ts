@@ -43,6 +43,19 @@ vi.mock('@/composables', async () => {
 });
 
 vi.mock('@/utils/tableRequestCoordinator', () => ({
+  createTableRequestOwner: () => {
+    let generation = 0;
+    let disposed = false;
+    return {
+      beginIntent: () => ++generation,
+      isCurrent: (intent: number) => !disposed && intent === generation,
+      isDisposed: () => disposed,
+      dispose: () => {
+        disposed = true;
+        generation += 1;
+      },
+    };
+  },
   createTableRequestCoordinator: () => ({
     request: async ({
       fetcher,
@@ -65,7 +78,7 @@ function makeRouter() {
   });
 }
 
-async function mountSubject(props = {}) {
+async function mountSubject(props = {}, settle = true) {
   setActivePinia(createPinia());
   const router = makeRouter();
   await router.push('/Tables/Phenotypes');
@@ -123,9 +136,11 @@ async function mountSubject(props = {}) {
       },
     },
   });
-  await flushPromises();
-  await new Promise((resolve) => setTimeout(resolve, 75));
-  await flushPromises();
+  if (settle) {
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    await flushPromises();
+  }
   mountedWrappers.push(wrapper);
   return wrapper;
 }
@@ -324,5 +339,27 @@ describe('TablesPhenotypes', () => {
     expect((exportQuery as URLSearchParams).get('format')).toBe('xlsx');
     expect(clickSpy).toHaveBeenCalled();
     createElementSpy.mockRestore();
+  });
+
+  // This stays last because the composable intentionally retains its phenotype
+  // option cache across remounts; an immediate unmount may populate that cache.
+  it('does not schedule selected-phenotype rows after immediate unmount', async () => {
+    let browseCalls = 0;
+    server.use(
+      http.get('/api/list/phenotype', () => HttpResponse.json({ data: [] })),
+      http.get('/api/phenotype/entities/browse', () => {
+        browseCalls += 1;
+        return HttpResponse.json({ data: [], meta: [] });
+      })
+    );
+
+    const wrapper = await mountSubject(
+      { filterInput: 'all(modifier_phenotype_id,HP:0001250)' },
+      false
+    );
+    wrapper.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+
+    expect(browseCalls).toBe(0);
   });
 });

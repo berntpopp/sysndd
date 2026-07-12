@@ -98,7 +98,8 @@ function baseProps(overrides: Partial<UsePublicationsTableProps> = {}): UsePubli
     fieldsInput: null,
     pageAfterInput: '0',
     pageSizeInput: 10,
-    fspecInput: 'publication_id,Title,Journal,Publication_date,Abstract,Lastname,Firstname,Keywords',
+    fspecInput:
+      'publication_id,Title,Journal,Publication_date,Abstract,Lastname,Firstname,Keywords',
     ...overrides,
   };
 }
@@ -147,6 +148,16 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('initial load', () => {
+  it('does not schedule its initial request after immediate unmount', async () => {
+    const { app } = await mountPublicationsTable(baseProps({ pageSizeInput: 11 }));
+    app.unmount();
+
+    await waitForDebounce();
+    await flushPromises();
+
+    expect(listPublicationsMock).not.toHaveBeenCalled();
+  });
+
   it('applies URL-derived filter, sort, and cursor state before firing the single initial request', async () => {
     listPublicationsMock.mockResolvedValue(makeListResponse([]));
 

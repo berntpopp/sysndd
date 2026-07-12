@@ -71,8 +71,11 @@ export function useAdminTrendData(
 
   async function fetchTrendData(): Promise<void> {
     abortController?.abort();
-    abortController = new AbortController();
+    const controller = new AbortController();
+    abortController = controller;
     const currentVersion = ++requestVersion;
+    const isCurrentRequest = () =>
+      currentVersion === requestVersion && abortController === controller;
 
     trendData.value = [];
     trendCategoryData.value = { dates: [], series: {} };
@@ -90,10 +93,10 @@ export function useAdminTrendData(
       }
 
       const response = await getEntitiesOverTime(params, {
-        signal: abortController.signal,
+        signal: controller.signal,
       });
 
-      if (currentVersion !== requestVersion) return;
+      if (!isCurrentRequest()) return;
 
       const allData = safeArray<GroupedTimeSeries>(response?.data);
       trendData.value = mergeGroupedCumulativeSeries(allData);
@@ -105,8 +108,8 @@ export function useAdminTrendData(
         trendYMax.value = Math.max(trendYMax.value ?? 0, maxVal);
       }
 
-      abortController = null;
     } catch (error) {
+      if (!isCurrentRequest()) return;
       if ((error as Error).name !== 'AbortError') {
         console.error('Failed to fetch trend data:', error);
         makeToast('Failed to fetch trend data', 'Error', 'danger');
@@ -114,7 +117,10 @@ export function useAdminTrendData(
         trendCategoryData.value = { dates: [], series: {} };
       }
     } finally {
-      loading.value = false;
+      if (isCurrentRequest()) {
+        loading.value = false;
+        abortController = null;
+      }
     }
   }
 
@@ -128,6 +134,7 @@ export function useAdminTrendData(
 
   // Cleanup
   onUnmounted(() => {
+    requestVersion += 1;
     abortController?.abort();
     abortController = null;
   });

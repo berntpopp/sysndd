@@ -12,7 +12,6 @@
 //     silent; real errors exit the loading state and surface a toast).
 
 import { ref } from 'vue';
-import axios from 'axios';
 import { listPubtatorTable } from '@/api/publication';
 import type useToast from '@/composables/useToast';
 
@@ -32,6 +31,22 @@ export interface PubtatorPublicationData {
 // string) so consumers can pass useToast().makeToast under strict type-check.
 type MakeToast = ReturnType<typeof useToast>['makeToast'];
 
+/**
+ * Typed API clients surface cancellation as either the platform AbortError or
+ * Axios's transport-shaped CanceledError. Keep that implementation detail at
+ * the boundary without importing the raw client into this composable.
+ */
+function isCancellation(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { name?: unknown; code?: unknown };
+  return (
+    candidate.name === 'AbortError' ||
+    candidate.name === 'CanceledError' ||
+    candidate.code === 'ERR_CANCELED'
+  );
+}
+
 export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
   const { makeToast } = options;
 
@@ -41,6 +56,8 @@ export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
 
   // AbortControllers for per-gene fetches (prevents orphaned requests).
   const abortControllers = new Map<string, AbortController>();
+  const requestGenerations = new Map<string, number>();
+  let cacheGeneration = 0;
 
   /**
    * Reset the entire cache. Call when the gene filter/sort changes so an
@@ -49,16 +66,20 @@ export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
    * the freshly-cleared cache.
    */
   const resetCache = (): void => {
+    cacheGeneration += 1;
     abortControllers.forEach((controller) => controller.abort());
     abortControllers.clear();
+    requestGenerations.clear();
     publicationCache.value = {};
     loadingPublications.value = {};
   };
 
   /** Abort and clear every in-flight fetch (call on component unmount). */
   const cancelAll = (): void => {
+    cacheGeneration += 1;
     abortControllers.forEach((controller) => controller.abort());
     abortControllers.clear();
+    requestGenerations.clear();
   };
 
   /**
@@ -73,6 +94,13 @@ export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
     // Cancel any in-flight request for this gene.
     abortControllers.get(geneSymbol)?.abort();
     const controller = new AbortController();
+    const requestGeneration = (requestGenerations.get(geneSymbol) ?? 0) + 1;
+    const startedCacheGeneration = cacheGeneration;
+    const ownsRequest = () =>
+      cacheGeneration === startedCacheGeneration &&
+      requestGenerations.get(geneSymbol) === requestGeneration &&
+      abortControllers.get(geneSymbol) === controller;
+    requestGenerations.set(geneSymbol, requestGeneration);
     abortControllers.set(geneSymbol, controller);
 
     loadingPublications.value[geneSymbol] = true;
@@ -86,11 +114,14 @@ export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
         },
         { signal: controller.signal }
       );
+      if (!ownsRequest()) return;
       publicationCache.value[geneSymbol] = (response.data as PubtatorPublicationData[]) || [];
     } catch (error) {
-      // Genuine aborts (axios CanceledError / DOMException AbortError) are not
-      // errors — the caller intentionally cancelled. Stay silent.
-      if (axios.isCancel(error) || (error as Error)?.name === 'AbortError') {
+      if (!ownsRequest()) return;
+      // Genuine aborts are not errors — the caller intentionally cancelled.
+      // `isCancellation` recognises the typed client's transport shape without
+      // pulling the raw Axios client into this composable.
+      if (isCancellation(error)) {
         return;
       }
       // Real failure: surface it and record an empty result so the row exits
@@ -98,16 +129,17 @@ export function usePubtatorGenePublications(options: { makeToast: MakeToast }) {
       makeToast(error, 'Error loading publication details', 'danger');
       publicationCache.value[geneSymbol] = [];
     } finally {
-      abortControllers.delete(geneSymbol);
-      loadingPublications.value[geneSymbol] = false;
+      if (ownsRequest()) {
+        abortControllers.delete(geneSymbol);
+        loadingPublications.value[geneSymbol] = false;
+      }
     }
   };
 
   const getPublications = (geneSymbol: string): PubtatorPublicationData[] =>
     publicationCache.value[geneSymbol] || [];
 
-  const isLoading = (geneSymbol: string): boolean =>
-    loadingPublications.value[geneSymbol] || false;
+  const isLoading = (geneSymbol: string): boolean => loadingPublications.value[geneSymbol] || false;
 
   const isCached = (geneSymbol: string): boolean =>
     publicationCache.value[geneSymbol] !== undefined;

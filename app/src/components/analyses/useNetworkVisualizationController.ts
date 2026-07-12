@@ -37,6 +37,7 @@ import {
   selectSingleNetworkCluster,
   showAllNetworkClusters,
 } from './networkSelection';
+import { downloadNetworkSvg } from './networkExport';
 
 /** Typed emit surface the controller drives on the parent's behalf. */
 export interface NetworkVisualizationEmit {
@@ -59,6 +60,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     isPreparing,
     metadata,
     fetchNetworkData,
+    clearNetworkData,
     cytoscapeElements,
     cytoscapeInitialElements,
     cytoscapeNodeElements,
@@ -75,7 +77,11 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
   const { filterState } = useFilterSync();
 
-  const { pattern: searchPattern, regex: searchRegex, matches: searchMatches } = useWildcardSearch();
+  const {
+    pattern: searchPattern,
+    regex: searchRegex,
+    matches: searchMatches,
+  } = useWildcardSearch();
 
   const searchMatchCount = ref(0);
 
@@ -84,6 +90,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
   const fullGraphMounted = ref(false);
   const initialEdgesMounted = ref(false);
   const initialEdgeHydrationQueued = ref(false);
+  let disposed = false;
 
   const {
     cy,
@@ -224,6 +231,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
     initialEdgeHydrationQueued.value = true;
     const hydrate = () => {
+      if (disposed) return;
       mountInitialGraphElements();
       initialEdgeHydrationQueued.value = false;
     };
@@ -248,6 +256,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     fullGraphMounted.value = true;
     handleApplyFilters();
     nextTick(() => {
+      if (disposed) return;
       setupTooltipHandlers();
     });
   }
@@ -397,15 +406,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
   function handleExportSVG() {
     const svgString = exportSVG();
-    if (svgString) {
-      const blob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = 'network.svg';
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-    }
+    if (svgString) downloadNetworkSvg(svgString);
   }
 
   // ---------------------------------------------------------------------------
@@ -439,9 +440,11 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
   onMounted(async () => {
     // Fetch network data
     await fetchNetworkData();
+    if (disposed) return;
 
     // Wait for DOM update
     await nextTick();
+    if (disposed) return;
 
     if (cytoscapeNodeElements.value.length > 0) {
       initializeCytoscape(cytoscapeNodeElements.value);
@@ -454,6 +457,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
     // Setup tooltip handlers after a brief delay to ensure cy is ready
     await nextTick();
+    if (disposed) return;
     setupTooltipHandlers();
 
     // Setup network highlight listeners for bidirectional hover
@@ -461,6 +465,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
     // Apply initial filters (defaults to Definitive only)
     await nextTick();
+    if (disposed) return;
     handleApplyFilters();
 
     // Setup resize observer to refit graph when container is resized
@@ -478,6 +483,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
   // Cleanup resize observer on unmount
   onBeforeUnmount(() => {
+    disposed = true;
+    clearNetworkData();
     if (resizeObserver) {
       resizeObserver.disconnect();
       resizeObserver = null;
@@ -486,13 +493,14 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
   // Watch for element changes and update the graph
   watch(cytoscapeNodeElements, (newElements) => {
-    if (isInitialized.value && newElements.length > 0) {
+    if (!disposed && isInitialized.value && newElements.length > 0) {
       updateElements(newElements);
       initialEdgesMounted.value = false;
       initialEdgeHydrationQueued.value = false;
       fullGraphMounted.value = false;
       // Re-setup tooltip handlers and apply filters after elements update
       nextTick(() => {
+        if (disposed) return;
         setupTooltipHandlers();
         handleApplyFilters();
       });
@@ -503,8 +511,11 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
    * Retry loading network data after an error.
    */
   const retryLoadNetwork = async () => {
+    if (disposed) return;
     await fetchNetworkData();
+    if (disposed) return;
     await nextTick();
+    if (disposed) return;
     if (!isInitialized.value) {
       initializeCytoscape(cytoscapeNodeElements.value);
       initialEdgesMounted.value = false;

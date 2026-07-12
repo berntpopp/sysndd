@@ -100,7 +100,7 @@ function geneListPayload(overrides: Record<string, unknown> = {}) {
 // two tests' request params can ever collide.
 let mountCallIndex = 0;
 
-async function mountTable(props: Record<string, unknown> = {}) {
+async function mountTable(props: Record<string, unknown> = {}, waitForInitialLoad = true) {
   mountCallIndex += 1;
   setActivePinia(createPinia());
   const router = makeRouter();
@@ -141,12 +141,14 @@ async function mountTable(props: Record<string, unknown> = {}) {
       },
     },
   });
-  await flushPromises();
-  // The initial load is debounced ~50ms (useGenesTable's loadData()); wait it
-  // out so the mounted-component's first request has actually fired before
-  // assertions run.
-  await new Promise((resolve) => setTimeout(resolve, 75));
-  await flushPromises();
+  if (waitForInitialLoad) {
+    await flushPromises();
+    // The initial load is debounced ~50ms (useGenesTable's loadData()); wait it
+    // out so the mounted-component's first request has actually fired before
+    // assertions run.
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    await flushPromises();
+  }
   return wrapper;
 }
 
@@ -164,6 +166,22 @@ describe('TablesGenes — #346 Wave 2 useGenesTable controller', () => {
   // -------------------------------------------------------------------------
   // Initial URL state + exactly-one initial request
   // -------------------------------------------------------------------------
+
+  it('does not schedule its initial request after immediate unmount', async () => {
+    let requestCount = 0;
+    server.use(
+      http.get('/api/gene', () => {
+        requestCount += 1;
+        return HttpResponse.json(geneListPayload());
+      })
+    );
+
+    const wrapper = await mountTable({}, false);
+    wrapper.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+
+    expect(requestCount).toBe(0);
+  });
 
   it('applies sortInput/filterInput/pageAfterInput and issues exactly one initial request', async () => {
     let requestCount = 0;

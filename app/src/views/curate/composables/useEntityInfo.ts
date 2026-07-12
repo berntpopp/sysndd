@@ -28,6 +28,42 @@ interface ReviewSnapshot {
   genereviews: string[];
 }
 
+interface RequestOwner {
+  generation: number;
+  controller: AbortController | null;
+}
+
+interface ActiveRequest {
+  signal: AbortSignal;
+  isCurrent: () => boolean;
+}
+
+function beginRequest(owner: RequestOwner): ActiveRequest {
+  owner.generation += 1;
+  owner.controller?.abort();
+  const controller = new AbortController();
+  const generation = owner.generation;
+  owner.controller = controller;
+  return {
+    signal: controller.signal,
+    isCurrent: () => owner.generation === generation && owner.controller === controller,
+  };
+}
+
+function cancelRequest(owner: RequestOwner): void {
+  owner.generation += 1;
+  owner.controller?.abort();
+  owner.controller = null;
+}
+
+function finishRequest(owner: RequestOwner, request: ActiveRequest): void {
+  if (request.isCurrent()) owner.controller = null;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 // Fields loadEntity() asks the entity-LIST endpoint (GET /api/entity/) for.
 // This list MUST be a subset of the columns `ndd_entity_view` exposes
 // (db/migrations/025_create_core_views.sql) + `synopsis` from the review
@@ -70,6 +106,9 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
   const select_gene_reviews = ref<string[]>([]);
 
   const reviewLoadedData = ref<ReviewSnapshot | null>(null);
+  const entityRequest: RequestOwner = { generation: 0, controller: null };
+  const reviewRequest: RequestOwner = { generation: 0, controller: null };
+  const statusRequest: RequestOwner = { generation: 0, controller: null };
 
   const hasReviewChanges = computed(() => {
     if (!reviewLoadedData.value) return false;
@@ -85,13 +124,15 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
   });
 
   async function loadEntity(entityId: number): Promise<void> {
+    const request = beginRequest(entityRequest);
     try {
       const response: any = await listEntities({
         filter: `equals(entity_id,${entityId})`,
         fields: ENTITY_MUTATION_FIELDS,
         page_size: '1',
         compact: true,
-      });
+      }, { signal: request.signal });
+      if (!request.isCurrent()) return;
       const data = response?.data;
       if (!Array.isArray(data) || data.length === 0) {
         onToast?.(`Entity ${entityId} not found`, 'Error', 'danger');
@@ -100,17 +141,25 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       }
       entity_info.value = data[0];
     } catch (e) {
+      if (!request.isCurrent() || isAbortError(e)) return;
       onToast?.(e, 'Error', 'danger');
       entity_info.value = {};
+    } finally {
+      finishRequest(entityRequest, request);
     }
   }
 
   async function loadReview(entityId: number): Promise<void> {
+    const request = beginRequest(reviewRequest);
     try {
-      const review_data: any = await getEntityReview(entityId);
-      const phenotypes_data: any = await getEntityPhenotypes(entityId);
-      const variation_data: any = await getEntityVariation(entityId);
-      const publications_data: any = await getEntityPublications(entityId);
+      const review_data: any = await getEntityReview(entityId, { signal: request.signal });
+      if (!request.isCurrent()) return;
+      const phenotypes_data: any = await getEntityPhenotypes(entityId, {}, { signal: request.signal });
+      if (!request.isCurrent()) return;
+      const variation_data: any = await getEntityVariation(entityId, {}, { signal: request.signal });
+      if (!request.isCurrent()) return;
+      const publications_data: any = await getEntityPublications(entityId, {}, { signal: request.signal });
+      if (!request.isCurrent()) return;
 
       const new_phenotype = phenotypes_data.map(
         (item: any) => new Phenotype(item.phenotype_id, item.modifier_id)
@@ -160,13 +209,18 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
         genereviews: [...select_gene_reviews.value],
       };
     } catch (e) {
+      if (!request.isCurrent() || isAbortError(e)) return;
       onToast?.(e, 'Error', 'danger');
+    } finally {
+      finishRequest(reviewRequest, request);
     }
   }
 
   async function loadStatus(entityId: number): Promise<void> {
+    const request = beginRequest(statusRequest);
     try {
-      const status_data: any = await getEntityStatus(entityId);
+      const status_data: any = await getEntityStatus(entityId, { signal: request.signal });
+      if (!request.isCurrent()) return;
       status_info.value = new Status(
         status_data[0].category_id,
         status_data[0].comment,
@@ -175,11 +229,17 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       status_info.value.status_id = status_data[0].status_id;
       status_info.value.entity_id = status_data[0].entity_id;
     } catch (e) {
+      if (!request.isCurrent() || isAbortError(e)) return;
       onToast?.(e, 'Error', 'danger');
+    } finally {
+      finishRequest(statusRequest, request);
     }
   }
 
   function reset(): void {
+    cancelRequest(entityRequest);
+    cancelRequest(reviewRequest);
+    cancelRequest(statusRequest);
     entity_info.value = {};
     review_info.value = new Review();
     status_info.value = new Status();

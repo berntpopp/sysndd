@@ -266,6 +266,7 @@ export default {
     const curation_selected = ref(false);
     const curator_mode = ref(0);
     const user = ref({ ...EMPTY_USER });
+    const modalLoadGeneration = ref(0);
 
     // Re-fetch the table when the curator-mode toggle flips. This watch
     // intentionally lives in `setup()` (not `watch:`) so it composes
@@ -361,6 +362,7 @@ export default {
       curation_selected,
       curator_mode,
       user,
+      modalLoadGeneration,
 
       // Static config
       fields: TABLE_FIELDS,
@@ -387,25 +389,32 @@ export default {
     // ---- Modal triggers (template @click handlers) -------------------------
 
     async infoReview(item) {
+      const generation = ++this.modalLoadGeneration;
       this.reviewModals.setReviewTarget(item);
       await this.reviewData.getEntity(item.entity_id);
+      if (generation !== this.modalLoadGeneration) return;
 
       // Clear any existing draft and load fresh data from server
       this.reviewForm.clearDraft();
       await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+      if (generation !== this.modalLoadGeneration) return;
 
       // Load review metadata for the modal footer display
       await this.reviewData.loadReviewInfo(item.review_id, item.re_review_review_saved);
+      if (generation !== this.modalLoadGeneration) return;
 
       this.$refs.reviewModalRef?.show();
     },
     async infoStatus(item) {
+      const generation = ++this.modalLoadGeneration;
       this.reviewModals.setStatusTarget(item);
       await this.reviewData.getEntity(item.entity_id);
+      if (generation !== this.modalLoadGeneration) return;
 
       // Clear any existing draft and load fresh data from server
       this.statusForm.clearDraft();
       await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
+      if (generation !== this.modalLoadGeneration) return;
 
       this.$refs.statusModalRef?.show();
     },

@@ -8,7 +8,7 @@
 // useLogTable.ts / usePhenotypeClusterTable.ts, #346). Formatting stays
 // delegated to publicationsTableFormatters.ts.
 
-import { nextTick, onMounted, ref, watch, type Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
 import Utils from '@/assets/js/utils';
@@ -27,7 +27,7 @@ import {
   type PublicationListResponse,
   type PublicationRecord,
 } from '@/api/publication';
-import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import { createTableRequestCoordinator, createTableRequestOwner } from '@/utils/tableRequestCoordinator';
 
 // Module-level request coordinator (survives Vue Router remounts on URL change).
 // Dedupes identical concurrent requests and (via isCurrent) drops a response
@@ -67,6 +67,8 @@ function createEmptyPublicationFilter(): PublicationFilter {
 }
 
 export function usePublicationsTable(props: UsePublicationsTableProps) {
+  const requestConsumer = {};
+  const requestOwner = createTableRequestOwner();
   const { makeToast } = useToast();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
   const colorAndSymbols = useColorAndSymbols();
@@ -106,6 +108,7 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
   // ── Local state (was data()) ─────────────────────────────────────────────
   const isInitializing = ref(true); // guards watchers during initial load
   const loadDataDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+  let initialLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   const totalPages = ref(0); // cursor pagination info not in useTableData
 
   // Table columns
@@ -150,26 +153,31 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
 
   /** Debounced wrapper for doLoadData to prevent duplicate calls. */
   function loadData(): void {
+    if (requestOwner.isDisposed()) return;
+    const intent = requestOwner.beginIntent();
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
     }
     loadDataDebounceTimer.value = setTimeout(() => {
       loadDataDebounceTimer.value = null;
-      void doLoadData();
+      void doLoadData(intent);
     }, 50);
   }
 
   /** Fetches /api/publication via the coordinator (dedupe + stale-response guard). */
-  async function doLoadData(): Promise<void> {
+  async function doLoadData(intent = requestOwner.beginIntent()): Promise<void> {
     const buildParams = () =>
       `sort=${sort.value}` +
       `&filter=${filter_string.value}` +
       `&page_after=${currentItemID.value}` +
       `&page_size=${perPage.value}`;
     const urlParam = buildParams();
+    const isCurrentIntent = () => requestOwner.isCurrent(intent);
+    if (!isCurrentIntent()) return;
     isBusy.value = true;
 
     const result = await publicationsRequestCoordinator.request({
+      consumer: requestConsumer,
       params: urlParam,
       fetcher: () =>
         listPublications({
@@ -178,16 +186,16 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
           page_after: String(currentItemID.value),
           page_size: String(perPage.value),
           fields: props.fspecInput,
-        }),
+      }),
       apply: (data, source) => {
-        applyApiResponse(data);
+        applyApiResponse(data, isCurrentIntent);
         if (source === 'network') {
           // Update URL AFTER API success to prevent component remount mid-call
           updateBrowserUrl();
         }
       },
       onError: (error) => makeToast(error, 'Error', 'danger'),
-      isCurrent: (params) => buildParams() === params,
+      isCurrent: (params) => isCurrentIntent() && buildParams() === params,
     });
 
     if (result.handled) {
@@ -196,7 +204,10 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
   }
 
   /** Applies API response data to state; reused by every coordinator apply() path. */
-  function applyApiResponse(data: PublicationListResponse): void {
+  function applyApiResponse(
+    data: PublicationListResponse,
+    isCurrentIntent: () => boolean = () => true
+  ): void {
     items.value = data.data;
 
     const metaArr = data.meta as Array<Record<string, unknown>> | undefined;
@@ -206,7 +217,7 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
 
       // Fix for b-pagination
       void nextTick(() => {
-        currentPage.value = metaObj.currentPage as number;
+        if (isCurrentIntent()) currentPage.value = metaObj.currentPage as number;
       });
       totalPages.value = metaObj.totalPages as number;
       // Publication IDs are strings like "PMID:12345", not numbers. Store as-is
@@ -390,6 +401,7 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
     // Transform input filter string to object and load data.
     // Use nextTick to ensure Vue reactivity is fully initialized.
     void nextTick(() => {
+      if (requestOwner.isDisposed()) return;
       if (props.filterInput && props.filterInput !== 'null' && props.filterInput !== '') {
         // Parse URL filter string into filter object for proper UI state
         filter.value = filterStrToObj(props.filterInput, filter.value) as PublicationFilter;
@@ -401,13 +413,19 @@ export function usePublicationsTable(props: UsePublicationsTableProps) {
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       void nextTick(() => {
-        isInitializing.value = false;
+        if (!requestOwner.isDisposed()) isInitializing.value = false;
       });
     });
 
-    setTimeout(() => {
-      loading.value = false;
+    initialLoadingTimer = setTimeout(() => {
+      if (!requestOwner.isDisposed()) loading.value = false;
     }, 500);
+  });
+
+  onBeforeUnmount(() => {
+    requestOwner.dispose();
+    if (loadDataDebounceTimer.value) clearTimeout(loadDataDebounceTimer.value);
+    if (initialLoadingTimer) clearTimeout(initialLoadingTimer);
   });
 
   return {

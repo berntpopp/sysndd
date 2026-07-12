@@ -17,6 +17,7 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
+import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
 import {
   createReview,
   getReviewById,
@@ -156,6 +157,7 @@ export default function useReviewForm(entityId?: string | number) {
 
   // Loading state
   const loading = ref(false);
+  const loadOwner = createFormLoadOwner();
 
   // Internal state for tracking review metadata
   const reviewId = ref<number | null>(null);
@@ -241,16 +243,18 @@ export default function useReviewForm(entityId?: string | number) {
     reviewIdInput: number,
     _reReviewReviewSaved?: number
   ): Promise<void> => {
+    const request = loadOwner.begin();
     loading.value = true;
-    reviewId.value = reviewIdInput;
 
     try {
       const [reviewData, phenotypesData, variationData, publicationsData] = await Promise.all([
-        getReviewById(reviewIdInput),
-        getReviewPhenotypes(reviewIdInput),
-        getReviewVariation(reviewIdInput),
-        getReviewPublications(reviewIdInput),
+        getReviewById(reviewIdInput, { signal: request.signal }),
+        getReviewPhenotypes(reviewIdInput, { signal: request.signal }),
+        getReviewVariation(reviewIdInput, { signal: request.signal }),
+        getReviewPublications(reviewIdInput, { signal: request.signal }),
       ]);
+      if (!request.isCurrent()) return;
+      reviewId.value = reviewIdInput;
 
       // Load synopsis and comment
       if (reviewData && reviewData.length > 0) {
@@ -298,11 +302,14 @@ export default function useReviewForm(entityId?: string | number) {
         publications: [...formData.publications],
         genereviews: [...formData.genereviews],
       };
-
-      loading.value = false;
     } catch (error) {
-      loading.value = false;
+      if (!request.isCurrent() || isAbortError(error)) return;
       throw error;
+    } finally {
+      if (request.isCurrent()) {
+        loading.value = false;
+        loadOwner.finish(request);
+      }
     }
   };
 
@@ -385,6 +392,8 @@ export default function useReviewForm(entityId?: string | number) {
    * Reset form to initial state
    */
   const resetForm = () => {
+    loadOwner.cancel();
+    loading.value = false;
     formData.synopsis = '';
     formData.phenotypes = [];
     formData.variationOntology = [];

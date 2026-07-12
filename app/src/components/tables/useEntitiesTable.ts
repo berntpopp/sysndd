@@ -6,13 +6,13 @@
 // useLogTable.ts / usePublicationsTable.ts, issue #346). Static column/
 // filter/detail configuration lives in entityTableConfig.ts.
 
-import { nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData, useColumnTooltip } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import { withReturnTo } from '@/utils/returnNavigation';
 import { listEntities, listEntitiesXlsx, type EntityListResponse } from '@/api/entity';
 import { getEntityMappings } from '@/api/disease-mappings';
-import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import { createTableRequestCoordinator, createTableRequestOwner } from '@/utils/tableRequestCoordinator';
 import {
   ENTITY_TABLE_FIELDS,
   ENTITY_TABLE_FIELD_DETAILS,
@@ -52,6 +52,8 @@ interface EntityMappingState {
 }
 
 export function useEntitiesTable(props: UseEntitiesTableProps) {
+  const requestConsumer = {};
+  const requestOwner = createTableRequestOwner();
   const { makeToast } = useToast();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
   const colorAndSymbols = useColorAndSymbols();
@@ -228,12 +230,14 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
 
   /** Debounced wrapper for doLoadData to prevent duplicate calls from multiple triggers. */
   function loadData(): void {
+    if (requestOwner.isDisposed()) return;
+    const intent = requestOwner.beginIntent();
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
     }
     loadDataDebounceTimer.value = setTimeout(() => {
       loadDataDebounceTimer.value = null;
-      void doLoadData();
+      void doLoadData(intent);
     }, 50);
   }
 
@@ -242,15 +246,17 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
   // after-nav budget). Used only by the onMounted hook below; reactivity
   // triggers continue to use loadData() with its 50 ms debounce.
   function loadDataImmediate(): void {
+    if (requestOwner.isDisposed()) return;
+    const intent = requestOwner.beginIntent();
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
       loadDataDebounceTimer.value = null;
     }
-    void doLoadData();
+    void doLoadData(intent);
   }
 
   /** Fetches /api/entity via the coordinator (dedupe + stale-response guard). */
-  async function doLoadData(): Promise<void> {
+  async function doLoadData(intent = requestOwner.beginIntent()): Promise<void> {
     // `compact` changes the server response shape (count == count_filtered,
     // no global fspec) so it MUST be part of the dedup key — otherwise a
     // remounted instance with different controls visibility would receive a
@@ -259,9 +265,12 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
       `sort=${sort.value}&filter=${filter_string.value}&page_after=${currentItemID.value}` +
       `&page_size=${perPage.value}&compact=${!props.showFilterControls}`;
     const urlParam = buildParams();
+    const isCurrentIntent = () => requestOwner.isCurrent(intent);
+    if (!isCurrentIntent()) return;
     isBusy.value = true;
 
     const result = await entitiesRequestCoordinator.request({
+      consumer: requestConsumer,
       params: urlParam,
       fetcher: () =>
         listEntities({
@@ -273,9 +282,9 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
           // so they don't need the global-fspec round-trip. Compact mode
           // pushes the filter to SQL and skips the wasted fspec compute.
           compact: !props.showFilterControls,
-        }),
+      }),
       apply: (data, source) => {
-        applyApiResponse(data);
+        applyApiResponse(data, isCurrentIntent);
         if (source === 'network') {
           // Update URL AFTER API success to prevent component remount during API call
           updateBrowserUrl();
@@ -284,7 +293,7 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
       onError: (e) => {
         makeToast(e, 'Error', 'danger');
       },
-      isCurrent: (params) => buildParams() === params,
+      isCurrent: (params) => isCurrentIntent() && buildParams() === params,
     });
 
     if (result.handled) {
@@ -294,7 +303,10 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
   }
 
   /** Applies API response data to state; reused by every coordinator apply() path. */
-  function applyApiResponse(data: EntityListResponse): void {
+  function applyApiResponse(
+    data: EntityListResponse,
+    isCurrentIntent: () => boolean = () => true
+  ): void {
     items.value = data.data;
     const metaArr = data.meta as Array<Record<string, unknown>>;
     const meta = metaArr[0];
@@ -302,7 +314,7 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
     // this solves an update issue in b-pagination component
     // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
     void nextTick(() => {
-      currentPage.value = meta.currentPage as number;
+      if (isCurrentIntent()) currentPage.value = meta.currentPage as number;
     });
     totalPages.value = meta.totalPages as number;
     prevItemID.value = Number(meta.prevItemID) || 0;
@@ -419,6 +431,7 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
     // Transform input filter string to object and load data.
     // Use nextTick to ensure Vue reactivity is fully initialized.
     void nextTick(() => {
+      if (requestOwner.isDisposed()) return;
       if (props.filterInput && props.filterInput !== 'null' && props.filterInput !== '') {
         // Parse URL filter string into filter object for proper UI state
         filter.value = filterStrToObj(props.filterInput, filter.value) as EntityFilter;
@@ -432,10 +445,15 @@ export function useEntitiesTable(props: UseEntitiesTableProps) {
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       void nextTick(() => {
-        isInitializing.value = false;
+        if (!requestOwner.isDisposed()) isInitializing.value = false;
       });
     });
     // Note: `loading` flips to false inside doLoadData() once the API responds.
+  });
+
+  onBeforeUnmount(() => {
+    requestOwner.dispose();
+    if (loadDataDebounceTimer.value) clearTimeout(loadDataDebounceTimer.value);
   });
 
   return {

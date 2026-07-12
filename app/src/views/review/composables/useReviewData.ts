@@ -125,6 +125,42 @@ interface RawTreeNode {
   children?: Array<{ id: string | number; label: string }>;
 }
 
+interface RequestOwner {
+  generation: number;
+  controller: AbortController | null;
+}
+
+interface ActiveRequest {
+  signal: AbortSignal;
+  isCurrent: () => boolean;
+}
+
+function beginRequest(owner: RequestOwner): ActiveRequest {
+  owner.generation += 1;
+  owner.controller?.abort();
+  const controller = new AbortController();
+  const generation = owner.generation;
+  owner.controller = controller;
+  return {
+    signal: controller.signal,
+    isCurrent: () => owner.generation === generation && owner.controller === controller,
+  };
+}
+
+function cancelRequest(owner: RequestOwner): void {
+  owner.generation += 1;
+  owner.controller?.abort();
+  owner.controller = null;
+}
+
+function finishRequest(owner: RequestOwner, request: ActiveRequest): void {
+  if (request.isCurrent()) owner.controller = null;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 /**
  * The phenotype + variation_ontology APIs return a tree where the root
  * label is `present: <name>` and the children are modifiers. The view
@@ -185,6 +221,13 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
   });
   const status_info = reactive(new Status()) as UseReviewData['status_info'];
   const loading_status_modal = ref(true);
+  const reReviewRequest: RequestOwner = { generation: 0, controller: null };
+  const phenotypesRequest: RequestOwner = { generation: 0, controller: null };
+  const variationRequest: RequestOwner = { generation: 0, controller: null };
+  const statusListRequest: RequestOwner = { generation: 0, controller: null };
+  const entityRequest: RequestOwner = { generation: 0, controller: null };
+  const reviewRequest: RequestOwner = { generation: 0, controller: null };
+  const statusRequest: RequestOwner = { generation: 0, controller: null };
 
   function reportError(err: unknown): void {
     if (onError) {
@@ -193,9 +236,11 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
   }
 
   async function loadReReviewData(curate: boolean): Promise<void> {
+    const request = beginRequest(reReviewRequest);
     isBusy.value = true;
     try {
-      const payload = await getReReviewTable({ curate });
+      const payload = await getReReviewTable({ curate }, { signal: request.signal });
+      if (!request.isCurrent()) return;
       // R serialises the table as `{ data, meta }`; legacy stubs may surface
       // a bare array — accept either.
       const rows = Array.isArray(payload)
@@ -204,51 +249,77 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
       items.value = rows;
       totalRows.value = rows.length;
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
+    } finally {
+      if (request.isCurrent()) {
+        isBusy.value = false;
+        loading.value = false;
+        finishRequest(reReviewRequest, request);
+      }
     }
-    isBusy.value = false;
-    loading.value = false;
   }
 
   async function loadPhenotypesList(): Promise<void> {
+    const request = beginRequest(phenotypesRequest);
     try {
-      const payload = await listPhenotypesTree();
+      const payload = await listPhenotypesTree({ signal: request.signal });
+      if (!request.isCurrent()) return;
       phenotypes_options.value = transformModifierTree(payload);
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
       phenotypes_options.value = [];
+    } finally {
+      finishRequest(phenotypesRequest, request);
     }
   }
 
   async function loadVariationOntologyList(): Promise<void> {
+    const request = beginRequest(variationRequest);
     try {
-      const payload = await listVariationOntologyTree();
+      const payload = await listVariationOntologyTree({ signal: request.signal });
+      if (!request.isCurrent()) return;
       variation_ontology_options.value = transformModifierTree(payload);
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
       variation_ontology_options.value = [];
+    } finally {
+      finishRequest(variationRequest, request);
     }
   }
 
   async function loadStatusList(): Promise<void> {
+    const request = beginRequest(statusListRequest);
     try {
-      status_options.value = await listStatusCategoriesTree();
+      const payload = await listStatusCategoriesTree({ signal: request.signal });
+      if (!request.isCurrent()) return;
+      status_options.value = payload;
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
+    } finally {
+      finishRequest(statusListRequest, request);
     }
   }
 
   async function getEntity(entity_input: number | string): Promise<void> {
+    const request = beginRequest(entityRequest);
     try {
       const payload = await listEntities({
         filter: `equals(entity_id,${entity_input})`,
-      });
+      }, { signal: request.signal });
+      if (!request.isCurrent()) return;
       const [first] = payload.data as Array<Partial<ReviewEntityInfo>>;
       if (first) {
         Object.assign(entity_info, EMPTY_ENTITY_INFO, first);
       }
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
+    } finally {
+      finishRequest(entityRequest, request);
     }
   }
 
@@ -256,8 +327,10 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
     review_id: number | string,
     re_review_review_saved: number
   ): Promise<void> {
+    const request = beginRequest(reviewRequest);
     try {
-      const rows = await getReviewById(review_id);
+      const rows = await getReviewById(review_id, { signal: request.signal });
+      if (!request.isCurrent()) return;
       if (rows && rows.length > 0) {
         const row = rows[0];
         review_info.review_id = row.review_id;
@@ -268,7 +341,10 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
         review_info.re_review_review_saved = re_review_review_saved;
       }
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
+    } finally {
+      finishRequest(reviewRequest, request);
     }
   }
 
@@ -276,9 +352,11 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
     status_id: number | string,
     re_review_status_saved: number
   ): Promise<void> {
+    const request = beginRequest(statusRequest);
     loading_status_modal.value = true;
     try {
-      const rows = await getStatusById(status_id);
+      const rows = await getStatusById(status_id, { signal: request.signal });
+      if (!request.isCurrent()) return;
       if (rows && rows.length > 0) {
         const row = rows[0];
         // Replace the reactive backing object's keys (we cannot reassign
@@ -292,13 +370,22 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
         status_info.status_date = row.status_date;
         status_info.re_review_status_saved = re_review_status_saved;
       }
-      loading_status_modal.value = false;
     } catch (err) {
+      if (!request.isCurrent() || isAbortError(err)) return;
       reportError(err);
+    } finally {
+      if (request.isCurrent()) {
+        loading_status_modal.value = false;
+        finishRequest(statusRequest, request);
+      }
     }
   }
 
   function resetEntityContext(): void {
+    cancelRequest(entityRequest);
+    cancelRequest(reviewRequest);
+    cancelRequest(statusRequest);
+    loading_status_modal.value = false;
     Object.assign(entity_info, EMPTY_ENTITY_INFO);
     Object.assign(review_info, new Review() as ReviewInfo, {
       review_id: null,
@@ -307,6 +394,14 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
       review_user_role: null,
       review_date: null,
       re_review_review_saved: null,
+    });
+    Object.assign(status_info, new Status(), {
+      status_id: null,
+      entity_id: null,
+      status_user_name: null,
+      status_user_role: null,
+      status_date: null,
+      re_review_status_saved: null,
     });
   }
 
