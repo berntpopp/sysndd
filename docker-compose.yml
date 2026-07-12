@@ -554,7 +554,9 @@ services:
             echo "[log-cleanup] sleeping $$sleep_for s until next run";
             sleep "$$sleep_for";
             echo "[log-cleanup] running scripts/delete_old_logs.R";
-            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] run failed (exit $$?); will retry next cycle";
+            Rscript scripts/delete_old_logs.R || echo "[log-cleanup] log run failed (exit $$?); will retry next cycle";
+            echo "[log-cleanup] running scripts/delete_old_jobs.R";
+            Rscript scripts/delete_old_jobs.R || echo "[log-cleanup] job-retention run failed (exit $$?); will retry next cycle";
           done
     volumes:
       - ./api/functions:/app/functions:ro
@@ -573,6 +575,10 @@ services:
       LOG_CLEANUP_AT: ${LOG_CLEANUP_AT:-03:00}
       # Set to 1/true to count-only and never delete (safe verification).
       LOG_CLEANUP_DRY_RUN: ${LOG_CLEANUP_DRY_RUN:-false}
+      # #535 S7: same daily loop also prunes terminal async_jobs rows older than
+      # this window (result_json/async_job_events grow unbounded otherwise).
+      ASYNC_JOB_RETENTION_DAYS: ${ASYNC_JOB_RETENTION_DAYS:-90}
+      ASYNC_JOB_RETENTION_DRY_RUN: ${ASYNC_JOB_RETENTION_DRY_RUN:-false}
     networks:
       # DB access only; no proxy/egress needed for a DB-local cleanup.
       - backend
