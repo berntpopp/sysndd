@@ -303,71 +303,46 @@ test_that("svc_backup_restore returns 202 with job id on success", {
 })
 
 # -----------------------------------------------------------------------------
-# svc_backup_restore executor: pre-restore safety backup ordering (BKUP-05)
+# Credential-free job submission (#535 P1-1)
 #
-# create_job() is stubbed and never runs its executor_fn in the tests above.
-# These tests capture the real executor_fn closure produced by
-# svc_backup_restore and invoke it directly (with mysqldump/restore/progress/
-# source stubbed) to prove the safety-backup-before-restore contract holds.
+# Backup jobs execute in the durable handlers .async_job_run_backup_create /
+# .async_job_run_backup_restore (registered in async_job_handler_registry);
+# create_job() IGNORES executor_fn. The submit params must therefore carry NO
+# database credential — the worker resolves it from runtime config via
+# async_job_worker_db_config(). The restore-ordering / pre-backup-abort safety
+# contract is now verified against the real durable handler in
+# test-unit-async-job-maintenance-handlers.R.
 # -----------------------------------------------------------------------------
 
-capture_restore_executor <- function(env) {
-  captured <- new.env()
-  env$file.exists <- function(path) TRUE
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
-    captured$executor_fn <- executor_fn
-    captured$params <- params
-    list(job_id = "job-restore-1", error = NULL)
-  }
-  # The real executor calls source("/app/functions/backup-functions.R", ...)
-  # to (re)load itself inside the mirai daemon. On host that path doesn't
-  # exist, so stub source() to a no-op; execute_mysqldump/execute_restore/
-  # create_progress_reporter are stubbed directly below instead.
-  env$source <- function(...) invisible(NULL)
-  env$create_progress_reporter <- function(job_id) function(...) invisible(NULL)
-
-  res <- make_mock_res()
-  env$svc_backup_restore(admin_req(body = list(filename = "backup-2026-04-01.sql.gz")), res)
-  captured
-}
-
-test_that("restore executor creates a pre-restore safety backup before restoring", {
+test_that("svc_backup_create submits NO DB credential in job params (#535 P1-1)", {
   env <- make_service_sandbox()
-  call_log <- character(0)
-  env$execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
-                                     compress = TRUE, create_latest_link = TRUE) {
-    call_log <<- c(call_log, "mysqldump")
-    list(success = TRUE, file = output_file, size_bytes = 123, compressed = compress)
+  captured <- new.env()
+  env$create_job <- function(operation, params, executor_fn = NULL, timeout_ms = NULL) {
+    captured$params <- params
+    list(job_id = "job-fixture-1234", error = NULL)
   }
-  env$execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
-    call_log <<- c(call_log, "restore")
-    list(success = TRUE)
-  }
+  res <- make_mock_res()
+  env$svc_backup_create(admin_req(), res)
 
-  captured <- capture_restore_executor(env)
-  exec_result <- captured$executor_fn(captured$params)
-
-  expect_equal(call_log, c("mysqldump", "restore")) # safety backup strictly before restore
-  expect_equal(exec_result$status, "completed")
-  expect_false(isTRUE(captured$params$db_config$dbname == "")) # sanity: db_config passed through
+  expect_false("db_config" %in% names(captured$params))
+  expect_false(any(grepl("password", unlist(captured$params), fixed = TRUE)))
+  expect_true(all(c("backup_dir", "backup_filename") %in% names(captured$params)))
 })
 
-test_that("restore executor aborts before restoring when the pre-restore backup fails", {
+test_that("svc_backup_restore submits NO DB credential in job params (#535 P1-1)", {
   env <- make_service_sandbox()
-  call_log <- character(0)
-  env$execute_mysqldump <- function(...) {
-    call_log <<- c(call_log, "mysqldump")
-    list(success = FALSE, error = "disk full")
+  env$file.exists <- function(path) TRUE
+  captured <- new.env()
+  env$create_job <- function(operation, params, executor_fn = NULL, timeout_ms = NULL) {
+    captured$params <- params
+    list(job_id = "job-fixture-1234", error = NULL)
   }
-  env$execute_restore <- function(...) {
-    call_log <<- c(call_log, "restore")
-    list(success = TRUE)
-  }
+  res <- make_mock_res()
+  env$svc_backup_restore(admin_req(body = list(filename = "backup-2026-04-01.sql.gz")), res)
 
-  captured <- capture_restore_executor(env)
-
-  expect_error(captured$executor_fn(captured$params), "Pre-restore backup failed")
-  expect_equal(call_log, "mysqldump") # execute_restore() must never run
+  expect_false("db_config" %in% names(captured$params))
+  expect_false(any(grepl("password", unlist(captured$params), fixed = TRUE)))
+  expect_true(all(c("restore_file", "backup_dir") %in% names(captured$params)))
 })
 
 # -----------------------------------------------------------------------------

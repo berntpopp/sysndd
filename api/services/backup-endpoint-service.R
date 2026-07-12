@@ -11,15 +11,12 @@
 # functions/job-manager.R (create_job, check_duplicate_job),
 # functions/job-progress.R (create_progress_reporter), and
 # functions/backup-functions.R (list_backup_files, get_backup_metadata,
-# is_valid_backup_filename, execute_mysqldump, execute_restore). Not used
-# by the async worker: none of these are registered job handlers; the
-# `executor_fn` closures below run inside the legacy mirai create_job()
-# daemon and source() their own dependencies, unchanged from before.
-
-#' Shared DB connection config passed into the create_job() daemon.
-.svc_backup_db_config <- function() {
-  list(dbname = dw$dbname, host = dw$host, user = dw$user, password = dw$password, port = dw$port)
-}
+# is_valid_backup_filename). These svc_ functions only SUBMIT durable jobs:
+# create_job() ignores executor_fn and enqueues a durable async job that the
+# worker executes via the registered handlers .async_job_run_backup_create /
+# .async_job_run_backup_restore (functions/async-job-maintenance-handlers.R).
+# The job payload carries NO DB credential (#535 P1-1); the worker resolves it
+# at run time via async_job_worker_db_config().
 
 #' Shared 202/503 response shaping for the /create and /restore job
 #' submissions, which differ only in the create_job() operation/params.
@@ -128,7 +125,7 @@ svc_backup_list <- function(req, res, page = 1, sort = "newest", limit = NULL, o
 }
 
 # ---- Backup Creation: POST /create ----
-# Submits a mirai `backup_create` job via create_job(); 409 when a backup is
+# Submits a durable `backup_create` job via create_job(); 409 when a backup is
 # already in progress, 503 when job capacity is exceeded.
 svc_backup_create <- function(req, res) {
   dup_check <- check_duplicate_job("backup_create", list())
@@ -141,45 +138,18 @@ svc_backup_create <- function(req, res) {
     ))
   }
 
-  db_config <- .svc_backup_db_config()
   backup_filename <- sprintf("manual_%s.sql", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"))
 
+  # No DB credential in the job payload (#535 P1-1): the durable handler
+  # .async_job_run_backup_create resolves it from runtime config. create_job()
+  # ignores executor_fn/timeout_ms; execution is the registered durable handler.
   result <- create_job(
     operation = "backup_create",
     params = list(
-      db_config = db_config,
       backup_dir = "/backup",
       backup_filename = backup_filename
     ),
-    timeout_ms = 600000, # 10 minutes per CONTEXT.md
-    executor_fn = function(params) {
-      # Source required modules in daemon
-      source("/app/functions/backup-functions.R", local = FALSE)
-      source("/app/functions/job-progress.R", local = FALSE)
-
-      # Create progress reporter using injected job_id
-      progress <- create_progress_reporter(params$.__job_id__)
-
-      output_path <- file.path(params$backup_dir, params$backup_filename)
-      result <- execute_mysqldump(
-        params$db_config,
-        output_path,
-        progress_fn = progress,
-        compress = TRUE,
-        create_latest_link = TRUE
-      )
-
-      if (!result$success) {
-        stop(paste("Backup failed:", result$error))
-      }
-
-      list(
-        status = "completed",
-        filename = basename(result$file),
-        size_bytes = result$size_bytes,
-        compressed = result$compressed
-      )
-    }
+    executor_fn = NULL
   )
 
   .svc_backup_job_response(res, result)
@@ -229,87 +199,17 @@ svc_backup_restore <- function(req, res) {
     ))
   }
 
-  db_config <- .svc_backup_db_config()
-
+  # No DB credential in the job payload (#535 P1-1): the durable handler
+  # .async_job_run_backup_restore resolves it from runtime config and performs
+  # the pre-restore safety backup (BKUP-05). create_job() ignores
+  # executor_fn/timeout_ms; execution is the registered durable handler.
   result <- create_job(
     operation = "backup_restore",
     params = list(
-      db_config = db_config,
       restore_file = backup_path,
       backup_dir = "/backup"
     ),
-    timeout_ms = 600000, # 10 minutes per CONTEXT.md
-    executor_fn = function(params) {
-      # Source required modules in daemon
-      source("/app/functions/backup-functions.R", local = FALSE)
-      source("/app/functions/job-progress.R", local = FALSE)
-
-      # Create progress reporter using injected job_id
-      progress <- create_progress_reporter(params$.__job_id__)
-
-      # Step 1: Create pre-restore safety backup (BKUP-05)
-      progress("pre_backup", "Creating pre-restore safety backup...", 1, 4)
-
-      pre_restore_filename <- sprintf(
-        "pre-restore_%s.sql",
-        format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
-      )
-      pre_restore_path <- file.path(params$backup_dir, pre_restore_filename)
-
-      pre_result <- execute_mysqldump(
-        params$db_config,
-        pre_restore_path,
-        progress_fn = NULL, # Skip nested progress
-        compress = TRUE,
-        create_latest_link = FALSE # Don't update latest for pre-restore backups
-      )
-
-      if (!pre_result$success) {
-        stop(paste(
-          "Pre-restore backup failed - cannot proceed with restore:",
-          pre_result$error
-        ))
-      }
-
-      progress(
-        "pre_backup_done",
-        sprintf(
-          "Pre-restore backup created (%.1f MB)",
-          pre_result$size_bytes / 1024 / 1024
-        ),
-        2, 4
-      )
-
-      # Step 2: Execute restore from specified file
-      progress(
-        "restoring",
-        sprintf("Restoring from %s...", basename(params$restore_file)),
-        3, 4
-      )
-
-      restore_result <- execute_restore(
-        params$db_config,
-        params$restore_file,
-        progress_fn = NULL # Skip nested progress
-      )
-
-      if (!restore_result$success) {
-        stop(paste(
-          "Restore failed:",
-          restore_result$error,
-          "- pre-restore backup available at:",
-          basename(pre_result$file)
-        ))
-      }
-
-      progress("complete", "Restore completed successfully", 4, 4)
-
-      list(
-        status = "completed",
-        pre_restore_backup = basename(pre_result$file),
-        restored_from = basename(params$restore_file)
-      )
-    }
+    executor_fn = NULL
   )
 
   .svc_backup_job_response(res, result)

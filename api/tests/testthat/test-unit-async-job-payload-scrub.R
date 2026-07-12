@@ -1,0 +1,100 @@
+# tests/testthat/test-unit-async-job-payload-scrub.R
+# #535 P1-1: the historical-payload scrub is backup + terminal scoped, single
+# path, idempotent, and recomputes request_hash so it no longer encodes the
+# password. The statement-shape test is host-runnable; the idempotency test
+# needs the test DB.
+
+library(testthat)
+
+source_api_file("functions/async-job-payload-scrub.R", local = FALSE)
+
+test_that("scrub statement is backup+terminal-scoped, single-path, idempotent, recomputes hash", {
+  s <- async_job_payload_scrub_statement()
+  expect_true(grepl("$.db_config.password", s, fixed = TRUE))
+  expect_true(grepl("job_type IN ('backup_create','backup_restore')", s, fixed = TRUE))
+  expect_true(grepl("status IN ('completed','failed','cancelled')", s, fixed = TRUE))
+  expect_true(grepl("active_request_hash IS NULL", s, fixed = TRUE))  # avoid unique-index collision (M1)
+  expect_true(grepl("SHA2(CONCAT(job_type", s, fixed = TRUE))   # request_hash recompute (H6)
+  expect_true(grepl("<> '***REDACTED***'", s, fixed = TRUE))    # idempotency guard (M3)
+  # Single path only (backup family): must NOT touch other families' variants.
+  expect_false(grepl("db_password", s, fixed = TRUE))
+})
+
+test_that("scrub redacts a seeded terminal backup row once and is idempotent (DB)", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    con <- getOption(".test_db_con")
+    db_execute_statement(
+      paste0(
+        "INSERT INTO async_jobs (job_id, job_type, status, request_hash, request_payload_json) ",
+        "VALUES ('scrub-test-1','backup_create','completed', REPEAT('a',64), ",
+        "JSON_OBJECT('db_config', JSON_OBJECT('password','leaky','host','h','user','u','port',3306,'dbname','d'), ",
+        "'backup_dir','/backup'))"
+      ),
+      list(), conn = con
+    )
+
+    n1 <- async_job_scrub_payload_credentials(conn = con)
+    n2 <- async_job_scrub_payload_credentials(conn = con)
+    expect_equal(n1, 1L)   # redacts the seeded row
+    expect_equal(n2, 0L)   # idempotent: nothing left to do
+
+    row <- DBI::dbGetQuery(
+      con,
+      paste0("SELECT JSON_UNQUOTE(JSON_EXTRACT(request_payload_json,'$.db_config.password')) AS pw, ",
+             "request_hash FROM async_jobs WHERE job_id='scrub-test-1'")
+    )
+    expect_equal(row$pw, "***REDACTED***")
+    expect_equal(nchar(row$request_hash), 64L)          # still a valid sha256
+    expect_false(identical(row$request_hash, paste(rep("a", 64), collapse = "")))  # recomputed
+  })
+})
+
+test_that("scrub leaves a QUEUED backup row (non-terminal) untouched (DB)", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    con <- getOption(".test_db_con")
+    db_execute_statement(
+      paste0(
+        "INSERT INTO async_jobs (job_id, job_type, status, request_hash, request_payload_json) ",
+        "VALUES ('scrub-queued-1','backup_create','queued', REPEAT('b',64), ",
+        "JSON_OBJECT('db_config', JSON_OBJECT('password','leaky'), 'backup_dir','/backup'))"
+      ),
+      list(), conn = con
+    )
+    n <- async_job_scrub_payload_credentials(conn = con)
+    row <- DBI::dbGetQuery(
+      con,
+      "SELECT JSON_UNQUOTE(JSON_EXTRACT(request_payload_json,'$.db_config.password')) AS pw FROM async_jobs WHERE job_id='scrub-queued-1'"
+    )
+    expect_equal(row$pw, "leaky")  # queued row must NOT be scrubbed (its handler may still run)
+    expect_equal(n, 0L)
+  })
+})
+
+test_that("scrub leaves a RETRYABLE-failed backup row (active_request_hash non-NULL) untouched (DB)", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    con <- getOption(".test_db_con")
+    # attempt_count < max_attempts AND next_attempt_at set -> active_request_hash
+    # is the generated request_hash (non-NULL). Scrubbing two such rows that
+    # differ only by password could collide on UNIQUE(job_type, active_request_hash).
+    db_execute_statement(
+      paste0(
+        "INSERT INTO async_jobs (job_id, job_type, status, request_hash, ",
+        "attempt_count, max_attempts, next_attempt_at, request_payload_json) ",
+        "VALUES ('scrub-retry-1','backup_create','failed', REPEAT('c',64), ",
+        "0, 3, NOW(6), JSON_OBJECT('db_config', JSON_OBJECT('password','leaky')))"
+      ),
+      list(), conn = con
+    )
+    n <- async_job_scrub_payload_credentials(conn = con)
+    row <- DBI::dbGetQuery(
+      con,
+      "SELECT JSON_UNQUOTE(JSON_EXTRACT(request_payload_json,'$.db_config.password')) AS pw, active_request_hash FROM async_jobs WHERE job_id='scrub-retry-1'"
+    )
+    expect_false(is.na(row$active_request_hash))  # retryable -> active hash present
+    expect_equal(row$pw, "leaky")                 # retryable row must NOT be scrubbed
+    expect_equal(n, 0L)
+  })
+})

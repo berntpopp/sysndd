@@ -38,6 +38,12 @@ worker_config <- async_job_worker_config_from_env()
 if (!is.null(worker_config$drain_file) && nzchar(worker_config$drain_file)) {
   unlink(worker_config$drain_file, force = TRUE)
 }
+
+# Remove any mode-0600 MySQL option files a previously-crashed worker left
+# behind (#535 P1-1 L1). Best-effort.
+if (exists("async_job_backup_cleanup_stale_option_files")) {
+  async_job_backup_cleanup_stale_option_files()
+}
 message(sprintf(
   "[async-worker] starting worker_id=%s queues=%s",
   worker_config$worker_id,

@@ -14,9 +14,12 @@
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
+  # Resolve DB credentials from runtime config, not the job payload (#535 P1-1).
+  db_config <- async_job_worker_db_config()
+
   output_path <- file.path(payload$backup_dir, payload$backup_filename)
   result <- execute_mysqldump(
-    payload$db_config,
+    db_config,
     output_path,
     progress_fn = progress,
     compress = TRUE,
@@ -38,12 +41,15 @@
 .async_job_run_backup_restore <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
+  # Resolve DB credentials from runtime config, not the job payload (#535 P1-1).
+  db_config <- async_job_worker_db_config()
+
   progress("pre_backup", "Creating pre-restore safety backup...", 1, 4)
   pre_restore_filename <- sprintf("pre-restore_%s.sql", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"))
   pre_restore_path <- file.path(payload$backup_dir, pre_restore_filename)
 
   pre_result <- execute_mysqldump(
-    payload$db_config,
+    db_config,
     pre_restore_path,
     progress_fn = NULL,
     compress = TRUE,
@@ -65,7 +71,7 @@
   progress("restoring", sprintf("Restoring from %s...", basename(payload$restore_file)), 3, 4)
 
   restore_result <- execute_restore(
-    payload$db_config,
+    db_config,
     payload$restore_file,
     progress_fn = NULL
   )
@@ -82,12 +88,47 @@
     )
   }
 
+  # A restored dump may re-import credential-bearing async_jobs rows (#535 H5);
+  # scrub them before reporting completion. The scrub RUNS regardless of the
+  # job's eventual status, so the credentials are redacted either way; the next
+  # API-startup scrub is an additional idempotent backstop. The restore itself
+  # succeeded, so a scrub failure must NOT fail the job — it is logged at WARN
+  # (the worker log survives the restore) and also surfaced in the result.
+  # NOTE: a *full* restore replaces async_jobs, deleting this job's own row, so
+  # result_json (incl. post_restore_scrub) may be lost when the worker's
+  # completion UPDATE finds 0 rows (the restore-fencing limitation tracked as
+  # S3). The WARN log is therefore the reliable signal. Retry once on a fresh
+  # runtime-config connection since the restore may have invalidated the pool.
+  scrub_outcome <- tryCatch(
+    {
+      async_job_scrub_payload_credentials()
+      "ok"
+    },
+    error = function(e1) {
+      tryCatch(
+        {
+          con <- async_job_db_connect()
+          on.exit(tryCatch(DBI::dbDisconnect(con), error = function(e) NULL), add = TRUE)
+          async_job_scrub_payload_credentials(conn = con)
+          "ok"
+        },
+        error = function(e2) {
+          logger::log_warn(
+            "[backup-restore] post-restore credential scrub FAILED after retry: {conditionMessage(e2)}"
+          )
+          paste0("failed: ", conditionMessage(e2))
+        }
+      )
+    }
+  )
+
   progress("complete", "Restore completed successfully", 4, 4)
 
   list(
     status = "completed",
     pre_restore_backup = basename(pre_result$file),
-    restored_from = basename(payload$restore_file)
+    restored_from = basename(payload$restore_file),
+    post_restore_scrub = scrub_outcome
   )
 }
 
