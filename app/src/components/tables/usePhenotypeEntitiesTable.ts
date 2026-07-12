@@ -6,7 +6,7 @@
 // the phenotype multi-select toolbar markup lives in
 // PhenotypeFilterToolbar.vue. Mirrors the useLogTable.ts composable shape.
 
-import { nextTick, onMounted, ref, watch, type Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import {
   useToast,
   useUrlParsing,
@@ -24,7 +24,7 @@ import {
   type BrowsePhenotypeEntitiesResponse,
 } from '@/api/phenotype';
 import { listPhenotypes, type PhenotypeRow } from '@/api/list';
-import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import { createTableRequestCoordinator, createTableRequestOwner } from '@/utils/tableRequestCoordinator';
 import {
   createDefaultPhenotypeFilter,
   phenotypeLogicOperator,
@@ -111,6 +111,8 @@ const PHENOTYPE_TABLE_FIELDS_DETAILS: Array<Record<string, unknown>> = [
 ];
 
 export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps) {
+  const requestConsumer = {};
+  const requestOwner = createTableRequestOwner();
   const { makeToast } = useToast();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
   const colorAndSymbols = useColorAndSymbols();
@@ -332,23 +334,28 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
   }
 
   function loadEntitiesFromPhenotypes(): void {
+    if (requestOwner.isDisposed()) return;
+    const intent = requestOwner.beginIntent();
     // Debounce to prevent duplicate calls from multiple triggers
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
     }
     loadDataDebounceTimer.value = setTimeout(() => {
       loadDataDebounceTimer.value = null;
-      void doLoadEntitiesFromPhenotypes();
+      void doLoadEntitiesFromPhenotypes(intent);
     }, 50);
   }
 
-  async function doLoadEntitiesFromPhenotypes(): Promise<void> {
+  async function doLoadEntitiesFromPhenotypes(intent = requestOwner.beginIntent()): Promise<void> {
     const currentUrlParam = () =>
       `sort=${sort.value}&filter=${filter_string.value}&page_after=${currentItemID.value}&page_size=${perPage.value}`;
     const urlParam = currentUrlParam();
+    const isCurrentIntent = () => requestOwner.isCurrent(intent);
+    if (!isCurrentIntent()) return;
     isBusy.value = true;
 
     const result = await phenotypeEntitiesRequestCoordinator.request({
+      consumer: requestConsumer,
       params: urlParam,
       fetcher: () =>
         browsePhenotypeEntities({
@@ -356,9 +363,9 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
           filter: filter_string.value,
           page_after: currentItemID.value,
           page_size: String(perPage.value),
-        }),
+      }),
       apply: (data, source) => {
-        applyApiResponse(data);
+        applyApiResponse(data, isCurrentIntent);
         if (source === 'network') {
           // Update URL AFTER API success to prevent component remount during the API call
           updateBrowserUrl();
@@ -367,7 +374,7 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
       onError: (e) => {
         makeToast(e, 'Error', 'danger');
       },
-      isCurrent: (params) => currentUrlParam() === params,
+      isCurrent: (params) => isCurrentIntent() && currentUrlParam() === params,
     });
 
     if (result.handled) {
@@ -380,7 +387,10 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
    * Apply API response data to component state. Extracted to allow reuse
    * when skipping duplicate API calls.
    */
-  function applyApiResponse(data: BrowsePhenotypeEntitiesResponse): void {
+  function applyApiResponse(
+    data: BrowsePhenotypeEntitiesResponse,
+    isCurrentIntent: () => boolean = () => true
+  ): void {
     const meta = (data.meta as Array<Record<string, unknown>>)[0];
     fields.value = meta.fspec as Array<Record<string, unknown>>;
     items.value = data.data;
@@ -388,7 +398,7 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
     // this solves an update issue in b-pagination component
     // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
     void nextTick(() => {
-      currentPage.value = meta.currentPage as number;
+      if (isCurrentIntent()) currentPage.value = meta.currentPage as number;
     });
     totalPages.value = meta.totalPages as number;
     prevItemID.value = Number(meta.prevItemID) || 0;
@@ -405,6 +415,7 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
     if (phenotypeIdList().length > 0) {
       loadEntitiesFromPhenotypes();
     } else {
+      requestOwner.beginIntent();
       items.value = [];
       totalRows.value = 0;
       isBusy.value = false;
@@ -500,6 +511,7 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
     // Transform input filter string to object and load data.
     // Use nextTick to ensure Vue reactivity is fully initialized.
     void nextTick(() => {
+      if (requestOwner.isDisposed()) return;
       if (props.filterInput && props.filterInput !== 'null' && props.filterInput !== '') {
         // Parse URL filter string into filter object for proper UI state
         filter.value = filterStrToObj(props.filterInput, filter.value) as PhenotypeTableFilter;
@@ -511,9 +523,14 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       void nextTick(() => {
-        isInitializing.value = false;
+        if (!requestOwner.isDisposed()) isInitializing.value = false;
       });
     });
+  });
+
+  onBeforeUnmount(() => {
+    requestOwner.dispose();
+    if (loadDataDebounceTimer.value) clearTimeout(loadDataDebounceTimer.value);
   });
 
   return {

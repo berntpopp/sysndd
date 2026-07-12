@@ -43,6 +43,7 @@ export function usePubtatorAdminPanel() {
   // Feedback banner
   const feedbackMessage = ref('');
   const feedbackVariant = ref<FeedbackVariant>('info');
+  let statusCheckGeneration = 0;
 
   const feedbackIcon = computed(() => {
     switch (feedbackVariant.value) {
@@ -70,11 +71,13 @@ export function usePubtatorAdminPanel() {
 
   async function checkStatus(): Promise<void> {
     if (!query.value.trim()) return;
+    const generation = ++statusCheckGeneration;
     feedbackMessage.value = '';
 
     try {
       await getCacheStatus(query.value);
     } catch (err) {
+      if (generation !== statusCheckGeneration) return;
       feedbackMessage.value = extractApiErrorMessage(err, 'Failed to check cache status');
       feedbackVariant.value = 'danger';
     }

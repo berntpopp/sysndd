@@ -153,7 +153,7 @@ function makeEntityRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function mountTable(props: UseEntitiesTableProps = {}) {
+async function mountTable(props: UseEntitiesTableProps = {}, settle = true) {
   setActivePinia(createPinia());
   const router = makeRouter();
   await router.push('/');
@@ -229,7 +229,7 @@ async function mountTable(props: UseEntitiesTableProps = {}) {
     },
   });
 
-  await flushPromises();
+  if (settle) await flushPromises();
   return wrapper;
 }
 
@@ -249,6 +249,14 @@ afterEach(() => {
 });
 
 describe('TablesEntities — WP-F row-expansion ontology outlinks', () => {
+  it('does not schedule its initial request after immediate unmount', async () => {
+    const wrapper = await mountTable({}, false);
+    wrapper.unmount();
+    await flushPromises();
+
+    expect(listEntitiesMock).not.toHaveBeenCalled();
+  });
+
   it('renders without errors and contains the GenericTable wrapper', async () => {
     const wrapper = await mountTable();
     expect(wrapper.find('.generic-table-stub').exists()).toBe(true);

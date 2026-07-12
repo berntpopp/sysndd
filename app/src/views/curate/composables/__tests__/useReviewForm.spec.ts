@@ -45,6 +45,14 @@ vi.mock('@/composables/useFormDraft', () => ({
 
 import useReviewForm from '../useReviewForm';
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
 interface ResolverMap {
   review?: Array<{ synopsis?: string; comment?: string; entity_id?: number }>;
   phenotypes?: Array<{ phenotype_id: number; modifier_id: number }>;
@@ -342,6 +350,48 @@ describe('useReviewForm', () => {
 
       // Should be false after reset (no loaded data)
       expect(hasChanges.value).toBe(false);
+    });
+  });
+
+  describe('request ownership', () => {
+    it('keeps B form state when older A review data resolves last', async () => {
+      const aReview = deferred<Array<{ synopsis: string; comment: string; entity_id: number }>>();
+      const aPhenotypes = deferred<Array<{ phenotype_id: number; modifier_id: number }>>();
+      const aVariation = deferred<Array<{ vario_id: number; modifier_id: number }>>();
+      const aPublications = deferred<Array<{ publication_id: string; publication_type: string }>>();
+      const bReview = deferred<Array<{ synopsis: string; comment: string; entity_id: number }>>();
+      const bPhenotypes = deferred<Array<{ phenotype_id: number; modifier_id: number }>>();
+      const bVariation = deferred<Array<{ vario_id: number; modifier_id: number }>>();
+      const bPublications = deferred<Array<{ publication_id: string; publication_type: string }>>();
+      reviewApiMocks.getReviewById.mockImplementation((id: number) =>
+        id === 1 ? aReview.promise : bReview.promise
+      );
+      reviewApiMocks.getReviewPhenotypes.mockImplementation((id: number) =>
+        id === 1 ? aPhenotypes.promise : bPhenotypes.promise
+      );
+      reviewApiMocks.getReviewVariation.mockImplementation((id: number) =>
+        id === 1 ? aVariation.promise : bVariation.promise
+      );
+      reviewApiMocks.getReviewPublications.mockImplementation((id: number) =>
+        id === 1 ? aPublications.promise : bPublications.promise
+      );
+      const { formData, loadReviewData } = useReviewForm();
+
+      const loadA = loadReviewData(1);
+      const loadB = loadReviewData(2);
+      bReview.resolve([{ synopsis: 'B synopsis', comment: 'B', entity_id: 2 }]);
+      bPhenotypes.resolve([]);
+      bVariation.resolve([]);
+      bPublications.resolve([]);
+      await loadB;
+      aReview.resolve([{ synopsis: 'A synopsis', comment: 'A', entity_id: 1 }]);
+      aPhenotypes.resolve([]);
+      aVariation.resolve([]);
+      aPublications.resolve([]);
+      await loadA;
+
+      expect(formData.synopsis).toBe('B synopsis');
+      expect(formData.comment).toBe('B');
     });
   });
 

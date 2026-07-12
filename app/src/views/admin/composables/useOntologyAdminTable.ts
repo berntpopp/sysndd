@@ -12,7 +12,7 @@
 // unchanged by this extraction — only the responsibility's *location*
 // moved. Every network call goes through the typed `@/api/ontology` client.
 
-import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import useToast from '@/composables/useToast';
 import useUrlParsing from '@/composables/useUrlParsing';
 import useTableData from '@/composables/useTableData';
@@ -62,6 +62,7 @@ export interface OntologyActiveFilterEntry {
 }
 
 export function useOntologyAdminTable() {
+  const requestConsumer = {};
   const { makeToast } = useToast();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
   const { isExporting, exportToExcel } = useExcelExport();
@@ -102,6 +103,8 @@ export function useOntologyAdminTable() {
   // ── Local state (was data()) ─────────────────────────────────────────────
   const isInitializing = ref(true);
   const loadDataDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+  let tableIntentGeneration = 0;
+  let disposed = false;
   const totalPages = ref(0);
   const ontologies = ref<VariantOntologyRow[]>([]);
   const fields = ref<OntologyTableField[]>([...ONTOLOGY_TABLE_FIELDS]);
@@ -257,23 +260,28 @@ export function useOntologyAdminTable() {
 
   // Load data with debouncing.
   function loadData(): void {
+    if (disposed) return;
+    const intentGeneration = ++tableIntentGeneration;
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
     }
     loadDataDebounceTimer.value = setTimeout(() => {
       loadDataDebounceTimer.value = null;
-      void doLoadData();
+      void doLoadData(intentGeneration);
     }, 50);
   }
 
   // Actual data loading method with module-level request coordination.
-  async function doLoadData(): Promise<void> {
+  async function doLoadData(intentGeneration = ++tableIntentGeneration): Promise<void> {
     const buildParams = () =>
       `sort=${sort.value}&filter=${filter_string.value}&page_after=${currentItemID.value}&page_size=${perPage.value}`;
     const urlParam = buildParams();
+    const isIntentCurrent = () => !disposed && tableIntentGeneration === intentGeneration;
+    if (!isIntentCurrent()) return;
     isBusy.value = true;
 
     const result = await ontologyRequestCoordinator.request({
+      consumer: requestConsumer,
       params: urlParam,
       fetcher: () =>
         listVariantOntology({
@@ -281,15 +289,15 @@ export function useOntologyAdminTable() {
           filter: filter_string.value,
           page_after: currentItemID.value,
           page_size: perPage.value,
-        }),
+      }),
       apply: (data, source) => {
-        applyApiResponse(data);
+        applyApiResponse(data, isIntentCurrent);
         if (source === 'network') {
           updateBrowserUrl();
         }
       },
       onError: (e) => makeToast(e, 'Error', 'danger'),
-      isCurrent: (params) => buildParams() === params,
+      isCurrent: (params) => isIntentCurrent() && buildParams() === params,
     });
 
     if (result.handled) {
@@ -301,13 +309,18 @@ export function useOntologyAdminTable() {
    * Apply API response data to component state. Extracted to allow reuse
    * when skipping duplicate API calls (see doLoadData's `apply` callback).
    */
-  function applyApiResponse(data: VariantOntologyListResponse): void {
+  function applyApiResponse(
+    data: VariantOntologyListResponse,
+    isIntentCurrent: () => boolean = () => true
+  ): void {
     const meta = (data.meta as OntologyListMeta[])[0];
 
     ontologies.value = data.data;
     totalRows.value = meta.totalItems;
     void nextTick(() => {
-      currentPage.value = meta.currentPage;
+      if (isIntentCurrent()) {
+        currentPage.value = meta.currentPage;
+      }
     });
     totalPages.value = meta.totalPages;
     // VariO cursor IDs are strings like "VariO:0026" — store them as-is so the
@@ -407,11 +420,18 @@ export function useOntologyAdminTable() {
     }
 
     void nextTick(() => {
+      if (disposed) return;
       loadData();
       void nextTick(() => {
-        isInitializing.value = false;
+        if (!disposed) isInitializing.value = false;
       });
     });
+  });
+
+  onBeforeUnmount(() => {
+    disposed = true;
+    tableIntentGeneration += 1;
+    if (loadDataDebounceTimer.value) clearTimeout(loadDataDebounceTimer.value);
   });
 
   return {

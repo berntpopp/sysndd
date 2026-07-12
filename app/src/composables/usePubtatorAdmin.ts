@@ -36,6 +36,8 @@ export function usePubtatorAdmin() {
   const isCheckingStatus = ref(false);
   const isClearing = ref(false);
   const isBackfilling = ref(false);
+  let statusRequestGeneration = 0;
+  let statusAbortController: AbortController | null = null;
 
   // Use the async job composable for fetch operations
   const asyncJob = useAsyncJob((jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`, {
@@ -46,18 +48,31 @@ export function usePubtatorAdmin() {
    * Get cache status for a query
    */
   async function getCacheStatus(query: string): Promise<PubtatorCacheStatus> {
+    statusAbortController?.abort();
+    const controller = new AbortController();
+    statusAbortController = controller;
+    const generation = ++statusRequestGeneration;
+    const isCurrentRequest = () =>
+      statusRequestGeneration === generation && statusAbortController === controller;
     isCheckingStatus.value = true;
     error.value = null;
 
     try {
-      const status = await getPubtatorCacheStatus({ query });
-      lastStatus.value = status;
+      const status = await getPubtatorCacheStatus({ query }, { signal: controller.signal });
+      if (isCurrentRequest()) {
+        lastStatus.value = status;
+      }
       return status;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to get cache status';
+      if (isCurrentRequest()) {
+        error.value = err instanceof Error ? err.message : 'Failed to get cache status';
+      }
       throw err;
     } finally {
-      isCheckingStatus.value = false;
+      if (isCurrentRequest()) {
+        isCheckingStatus.value = false;
+        statusAbortController = null;
+      }
     }
   }
 

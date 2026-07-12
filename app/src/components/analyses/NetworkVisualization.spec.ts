@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   fitToScreen: vi.fn(),
   exportPNG: vi.fn(() => ''),
   exportSVG: vi.fn(() => ''),
+  clearNetworkData: vi.fn(),
   // Controllable data the composables feed the controller.
   nodeElements: [] as ElementLike[],
   initialElements: [] as ElementLike[],
@@ -66,6 +67,7 @@ vi.mock('@/composables/useNetworkData', () => ({
       category_counts: { Definitive: 2, Moderate: 0, Limited: 0 },
     }),
     fetchNetworkData: vi.fn().mockResolvedValue(undefined),
+    clearNetworkData: mocks.clearNetworkData,
     cytoscapeElements: computed(() => mocks.fullElements),
     cytoscapeInitialElements: computed(() => mocks.initialElements),
     cytoscapeNodeElements: computed(() => mocks.nodeElements),
@@ -207,6 +209,7 @@ describe('NetworkVisualization', () => {
     mocks.fitToScreen.mockClear();
     mocks.exportPNG.mockClear();
     mocks.exportSVG.mockClear();
+    mocks.clearNetworkData.mockClear();
     mocks.exportPNG.mockReturnValue('');
     mocks.exportSVG.mockReturnValue('');
     mocks.nodeElements = [];
@@ -229,8 +232,7 @@ describe('NetworkVisualization', () => {
     });
 
     const onClusterClick = mocks.capturedCytoscapeOptions?.onClusterClick as
-      | ((clusterId: number) => void)
-      | undefined;
+      ((clusterId: number) => void) | undefined;
 
     expect(onClusterClick).toBeTypeOf('function');
     onClusterClick?.(1);
@@ -245,8 +247,7 @@ describe('NetworkVisualization', () => {
     });
 
     const onNodeClick = mocks.capturedCytoscapeOptions?.onNodeClick as
-      | ((nodeId: string) => void)
-      | undefined;
+      ((nodeId: string) => void) | undefined;
 
     expect(onNodeClick).toBeTypeOf('function');
     onNodeClick?.('HGNC:1234');
@@ -263,11 +264,9 @@ describe('NetworkVisualization', () => {
     });
 
     const onClusterClick = mocks.capturedCytoscapeOptions?.onClusterClick as
-      | ((clusterId: number) => void)
-      | undefined;
+      ((clusterId: number) => void) | undefined;
     const onBackgroundClick = mocks.capturedCytoscapeOptions?.onBackgroundClick as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
 
     expect(onClusterClick).toBeTypeOf('function');
     expect(onBackgroundClick).toBeTypeOf('function');
@@ -322,7 +321,8 @@ describe('NetworkVisualization', () => {
       const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
       await flushPromises();
 
-      const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as (() => void) | undefined;
+      const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as
+        (() => void) | undefined;
       expect(onLayoutReady).toBeTypeOf('function');
 
       onLayoutReady?.();
@@ -341,6 +341,35 @@ describe('NetworkVisualization', () => {
       (window as unknown as { requestIdleCallback: unknown }).requestIdleCallback = originalRIC;
     });
 
+    it('does not hydrate queued initial edges after unmount', async () => {
+      const originalRIC = window.requestIdleCallback;
+      let idleCallback: ((deadline: unknown) => void) | null = null;
+      (window as unknown as { requestIdleCallback: unknown }).requestIdleCallback = (
+        cb: (deadline: unknown) => void
+      ) => {
+        idleCallback = cb;
+        return 1;
+      };
+
+      mocks.nodeElements = [{ data: { id: 'A' } }, { data: { id: 'B' } }];
+      mocks.initialElements = [
+        { data: { id: 'A' } },
+        { data: { id: 'B' } },
+        { data: { id: 'A_B', source: 'A', target: 'B' } },
+      ];
+
+      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
+      await flushPromises();
+      const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as
+        (() => void) | undefined;
+      onLayoutReady?.();
+      wrapper.unmount();
+      idleCallback?.({ didTimeout: false, timeRemaining: () => 0 });
+
+      expect(mocks.updateElements).not.toHaveBeenCalled();
+      (window as unknown as { requestIdleCallback: unknown }).requestIdleCallback = originalRIC;
+    });
+
     it('emits network-ready immediately when there is no initial edge set to hydrate', async () => {
       mocks.nodeElements = [{ data: { id: 'A' } }, { data: { id: 'B' } }];
       mocks.initialElements = [];
@@ -348,7 +377,8 @@ describe('NetworkVisualization', () => {
       const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
       await flushPromises();
 
-      const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as (() => void) | undefined;
+      const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as
+        (() => void) | undefined;
       onLayoutReady?.();
       await wrapper.vm.$nextTick();
 
@@ -367,9 +397,7 @@ describe('NetworkVisualization', () => {
       const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
       await flushPromises();
 
-      const moderate = wrapper
-        .findAll('button')
-        .find((btn) => btn.text().includes('+ Moderate'));
+      const moderate = wrapper.findAll('button').find((btn) => btn.text().includes('+ Moderate'));
       expect(moderate).toBeTruthy();
 
       await moderate!.trigger('click');
@@ -418,6 +446,14 @@ describe('NetworkVisualization', () => {
       expect(disconnectSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('detaches its network-data consumer on unmount', async () => {
+      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
+      await flushPromises();
+
+      wrapper.unmount();
+      expect(mocks.clearNetworkData).toHaveBeenCalledTimes(1);
+    });
+
     it('exports a PNG using the network.png filename', async () => {
       mocks.exportPNG.mockReturnValue('data:image/png;base64,AAAA');
 
@@ -431,16 +467,14 @@ describe('NetworkVisualization', () => {
       // element creation isn't counted.
       const anchors: HTMLAnchorElement[] = [];
       const origCreate = document.createElement.bind(document);
-      const createSpy = vi
-        .spyOn(document, 'createElement')
-        .mockImplementation((tag: string) => {
-          const el = origCreate(tag) as HTMLElement;
-          if (tag === 'a') {
-            (el as HTMLAnchorElement).click = vi.fn();
-            anchors.push(el as HTMLAnchorElement);
-          }
-          return el;
-        });
+      const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = origCreate(tag) as HTMLElement;
+        if (tag === 'a') {
+          (el as HTMLAnchorElement).click = vi.fn();
+          anchors.push(el as HTMLAnchorElement);
+        }
+        return el;
+      });
 
       await pngBtn!.trigger('click');
 
@@ -468,16 +502,14 @@ describe('NetworkVisualization', () => {
 
       const anchors: HTMLAnchorElement[] = [];
       const origCreate = document.createElement.bind(document);
-      const createSpy = vi
-        .spyOn(document, 'createElement')
-        .mockImplementation((tag: string) => {
-          const el = origCreate(tag) as HTMLElement;
-          if (tag === 'a') {
-            (el as HTMLAnchorElement).click = vi.fn();
-            anchors.push(el as HTMLAnchorElement);
-          }
-          return el;
-        });
+      const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = origCreate(tag) as HTMLElement;
+        if (tag === 'a') {
+          (el as HTMLAnchorElement).click = vi.fn();
+          anchors.push(el as HTMLAnchorElement);
+        }
+        return el;
+      });
 
       await svgBtn!.trigger('click');
 

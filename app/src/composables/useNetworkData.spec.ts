@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { nextTick } from 'vue';
 
 import { getNetworkEdges } from '@/api/analysis';
+import type { NetworkResponse } from '@/api/analysis';
 import { useNetworkData } from './useNetworkData';
 
 vi.mock('@/api/analysis', () => ({
@@ -89,6 +90,38 @@ describe('useNetworkData', () => {
     await preload;
 
     expect(getNetworkEdgesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps B able to receive a shared preload after A clears its local state', async () => {
+    let resolveNetwork!: (value: NetworkResponse) => void;
+    const network = new Promise<NetworkResponse>((resolve) => {
+      resolveNetwork = resolve;
+    });
+    getNetworkEdgesMock.mockReturnValue(network);
+    const a = useNetworkData();
+    const b = useNetworkData();
+
+    const requestA = a.fetchNetworkData();
+    const requestB = b.fetchNetworkData();
+    a.clearNetworkData();
+    resolveNetwork({
+      nodes: [],
+      edges: [],
+      metadata: {
+        node_count: 0,
+        edge_count: 0,
+        cluster_count: 0,
+        total_edges: 0,
+        edges_filtered: false,
+        elapsed_seconds: 0.1,
+      },
+    });
+    await Promise.all([requestA, requestB]);
+
+    expect(a.networkData.value).toBeNull();
+    expect(a.isLoading.value).toBe(false);
+    expect(b.networkData.value).not.toBeNull();
+    expect(b.isLoading.value).toBe(false);
   });
 
   it('converts finite API coordinates into Cytoscape positions', async () => {

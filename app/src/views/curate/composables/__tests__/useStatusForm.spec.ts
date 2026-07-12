@@ -41,6 +41,14 @@ vi.mock('@/composables/useFormDraft', () => ({
 
 import useStatusForm from '../useStatusForm';
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
 describe('useStatusForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -218,6 +226,45 @@ describe('useStatusForm', () => {
 
       // Should be false immediately after loading via loadStatusData
       expect(hasChanges.value).toBe(false);
+    });
+  });
+
+  describe('request ownership', () => {
+    it('keeps B form state when older A status data resolves last', async () => {
+      const a =
+        deferred<
+          Array<{
+            status_id: number;
+            entity_id: number;
+            category_id: number;
+            comment: string;
+            problematic: boolean;
+          }>
+        >();
+      const b =
+        deferred<
+          Array<{
+            status_id: number;
+            entity_id: number;
+            category_id: number;
+            comment: string;
+            problematic: boolean;
+          }>
+        >();
+      statusApiMocks.getStatusById.mockImplementation((id: number) =>
+        id === 1 ? a.promise : b.promise
+      );
+      const { formData, loadStatusData } = useStatusForm();
+
+      const loadA = loadStatusData(1, 0);
+      const loadB = loadStatusData(2, 0);
+      b.resolve([{ status_id: 2, entity_id: 2, category_id: 2, comment: 'B', problematic: true }]);
+      await loadB;
+      a.resolve([{ status_id: 1, entity_id: 1, category_id: 1, comment: 'A', problematic: false }]);
+      await loadA;
+
+      expect(formData.status_id).toBe(2);
+      expect(formData.comment).toBe('B');
     });
   });
 

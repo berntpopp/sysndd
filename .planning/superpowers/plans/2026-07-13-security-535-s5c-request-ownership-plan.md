@@ -58,9 +58,9 @@
 - Modify: `app/src/views/review/composables/useReviewData.ts`
 - Test: `app/src/views/review/composables/__tests__/useReviewData.spec.ts`
 
-- [ ] Add deferred A-B-A tests for entity, review, and status loads. Resolve the original request last and assert no mixed entity/review/status model, no stale clear/reset, and no stale error toast.
+- [ ] Add deferred A-B-A tests for entity, review, and status loads. Resolve the original request last and assert no mixed entity/review/status model, no stale clear/reset, and no stale error toast. Call `reset()` while each family is pending, then resolve and reject the obsolete request; reset must leave all three state families empty and toast-free.
 - [ ] Add per-read generation + AbortController state. Start a new logical read by aborting and superseding the previous controller; pass `signal` through the existing typed clients. Guard every multi-call `useEntityInfo.loadReview()` mutation as one atomic snapshot.
-- [ ] In `useReviewData`, independently own table, option-list, entity, review-info, and status-info request families. Guard `isBusy`, `loading`, `loading_status_modal`, reactive-object assignment, option clears, and errors. `resetEntityContext()` invalidates its entity/review generations.
+- [ ] In `useReviewData`, independently own table, **each** option list (phenotype, variation, status), entity, review-info, and status-info request families; the three option lists legitimately load concurrently and must not share a generation/controller. Guard `isBusy`, `loading`, `loading_status_modal`, reactive-object assignment, option clears, and errors. `resetEntityContext()` aborts/invalidates entity, review-info, and status-info generations and resets the status-modal spinner. Add a concurrent-three-list deferred test plus current/stale `loadStatusInfo` rejection tests proving only the current failure clears its spinner.
 - [ ] If `useReviewData.ts` approaches 600 lines, move only the request-owner helper/types to an explicitly imported sibling file; preserve its public composable API.
 - [ ] Run both targeted specs GREEN.
 
@@ -76,9 +76,9 @@
 - Modify: `app/src/composables/usePubtatorAdmin.ts`
 - Create: `app/src/composables/usePubtatorAdmin.spec.ts`
 
-- [ ] Add RED tests that supersede a gene/publication read via `resetCache()`/same-gene refetch; stale success, catch, and finally cannot repopulate cache, clear a newer controller, or stop its spinner.
+- [ ] Add RED tests that supersede a gene/publication read via `resetCache()` and `cancelAll()` followed by a same-gene refetch; stale success, catch, and finally cannot repopulate cache, delete a newer controller, or stop its spinner.
 - [ ] Add RED trend/network/admin-status tests with deferred typed-client promises: B wins over A; A's success/catch/finally cannot clear B's data/loading/error/controller. Test actual abort cleanup where a controller exists.
-- [ ] Give each logical key/request family its own generation and controller. `useNetworkData` preserves the global preload promise as the transport slot but races a local abort signal and gates consumer refs/loading by its per-instance generation; cancelling one consumer must not abort the shared preload for another.
+- [ ] Give each logical key/request family its own generation and controller. `useNetworkData` preserves the global preload promise as the transport slot but races a local abort signal and gates consumer refs/loading by its per-instance generation; `clearNetworkData()` aborts/detaches the local waiter and increments its generation. Add a two-instance deferred test proving clearing A leaves A clear while B receives the single shared preload result.
 - [ ] Run all four targeted specs GREEN.
 
 ## Task 6: `useOntologyAdminTable` deferred page ownership
@@ -87,7 +87,7 @@
 - Modify: `app/src/views/admin/composables/useOntologyAdminTable.ts`
 - Test: `app/src/views/admin/ManageOntology.spec.ts`
 
-- [ ] Add a RED deferred-response test: request page A, start page B, resolve A last, then flush `nextTick`; A must not assign B's `currentPage`, cursors, rows, busy flag, or URL.
+- [ ] Add a RED deferred-page test that cannot be rejected by the coordinator before the defect is reached: let A apply and queue its `nextTick(currentPage)` callback, supersede A with B **before that callback flushes**, then flush; A's queued callback must not overwrite B's page. Separately retain the coordinator-level stale-network test for rows/cursors/URL/busy.
 - [ ] Capture a local table-load generation at intent scheduling, pass its ownership predicate into `applyApiResponse`, and recheck it inside the deferred `nextTick(currentPage)` assignment. `doLoadData` passes the same predicate to coordinator apply/error and clears busy only for its own current intent.
 - [ ] Run the focused ManageOntology spec GREEN.
 
@@ -100,5 +100,6 @@
 ## Self-review
 
 - Scope coverage: `useUserData` map → Task 2; coordinator cross-instance semantics → Task 3; entity/review ownership → Task 4; remaining four read composables → Task 5; ontology deferred page write → Task 6.
+- Plan-review folds: reset invalidates every relevant family; concurrent Review lookup lists have separate owners; Ontology exercises the actual deferred callback; network clear detaches one consumer without cancelling another; PubTator covers `cancelAll()` followed by same-key refetch.
 - No new public APIs or raw transport boundary are proposed; implementation is restricted to typed existing clients and S5/S5b identity patterns.
 - Every async mutation class named by the issue—success, error, finally, abort cleanup, shared subscriber, and deferred callback—has a deterministic test task.

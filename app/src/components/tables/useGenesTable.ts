@@ -18,7 +18,7 @@
 // `generate_cursor_pag_inf()` on the R side). This mirrors the untyped
 // behaviour of the original Options-API `TablesGenes.vue` byte-for-byte.
 
-import { nextTick, onMounted, ref, watch, type Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 // Import composables from the barrel so view specs that mock '@/composables'
 // (e.g. TablesGenes.spec.ts) intercept these the same way the SFC did.
 import {
@@ -32,7 +32,7 @@ import {
 import { useUiStore } from '@/stores/ui';
 import { withReturnTo } from '@/utils/returnNavigation';
 import { listGenes, listGenesXlsx, type PaginatedGeneResponse } from '@/api/genes';
-import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import { createTableRequestCoordinator, createTableRequestOwner } from '@/utils/tableRequestCoordinator';
 import { GENE_TABLE_FIELDS, GENE_TABLE_DETAIL_FIELDS, type GeneTableField } from './geneTableConfig';
 
 // Module-level coordinator so it survives component remounts (Vue Router
@@ -90,6 +90,8 @@ interface GeneListMeta {
 }
 
 export function useGenesTable(props: UseGenesTableProps) {
+  const requestConsumer = {};
+  const requestOwner = createTableRequestOwner();
   const { makeToast } = useToast();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
   const colorAndSymbols = useColorAndSymbols();
@@ -202,22 +204,27 @@ export function useGenesTable(props: UseGenesTableProps) {
   // Debounced loadData to prevent duplicate calls from multiple triggers
   // (e.g. the filter watcher firing alongside a direct filtered() call).
   function loadData(): void {
+    if (requestOwner.isDisposed()) return;
+    const intent = requestOwner.beginIntent();
     if (loadDataDebounceTimer.value) {
       clearTimeout(loadDataDebounceTimer.value);
     }
     loadDataDebounceTimer.value = setTimeout(() => {
       loadDataDebounceTimer.value = null;
-      void doLoadData();
+      void doLoadData(intent);
     }, 50);
   }
 
-  async function doLoadData(): Promise<void> {
+  async function doLoadData(intent = requestOwner.beginIntent()): Promise<void> {
     const currentUrlParam = () =>
       `sort=${sort.value}&filter=${filter_string.value}&page_after=${currentItemID.value}&page_size=${perPage.value}`;
 
+    const isCurrentIntent = () => requestOwner.isCurrent(intent);
+    if (!isCurrentIntent()) return;
     isBusy.value = true;
 
     const result = await genesRequestCoordinator.request({
+      consumer: requestConsumer,
       params: currentUrlParam(),
       fetcher: () =>
         listGenes({
@@ -225,9 +232,9 @@ export function useGenesTable(props: UseGenesTableProps) {
           filter: filter_string.value,
           page_after: String(currentItemID.value ?? ''),
           page_size: String(perPage.value),
-        }),
+      }),
       apply: (data, source) => {
-        applyApiResponse(data);
+        applyApiResponse(data, isCurrentIntent);
         if (source === 'network') {
           // Update URL AFTER API success to prevent component remount during
           // the API call.
@@ -237,7 +244,7 @@ export function useGenesTable(props: UseGenesTableProps) {
       onError: (e) => {
         makeToast(e, 'Error', 'danger');
       },
-      isCurrent: (params) => currentUrlParam() === params,
+      isCurrent: (params) => isCurrentIntent() && currentUrlParam() === params,
     });
 
     if (result.handled) {
@@ -250,7 +257,10 @@ export function useGenesTable(props: UseGenesTableProps) {
    * Apply API response data to component state. Extracted to allow reuse
    * when skipping duplicate API calls (see doLoadData's `apply` callback).
    */
-  function applyApiResponse(data: PaginatedGeneResponse): void {
+  function applyApiResponse(
+    data: PaginatedGeneResponse,
+    isCurrentIntent: () => boolean = () => true
+  ): void {
     const meta = data.meta[0] as GeneListMeta;
 
     items.value = data.data;
@@ -258,7 +268,7 @@ export function useGenesTable(props: UseGenesTableProps) {
     // this solves an update issue in b-pagination component
     // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
     void nextTick(() => {
-      currentPage.value = meta.currentPage;
+      if (isCurrentIntent()) currentPage.value = meta.currentPage;
     });
     totalPages.value = meta.totalPages;
     prevItemID.value = meta.prevItemID as unknown as number | null;
@@ -360,6 +370,7 @@ export function useGenesTable(props: UseGenesTableProps) {
     // Transform input filter string to object and load data. Use $nextTick
     // to ensure Vue reactivity is fully initialized.
     void nextTick(() => {
+      if (requestOwner.isDisposed()) return;
       if (props.filterInput && props.filterInput !== 'null' && props.filterInput !== '') {
         // Parse URL filter string into filter object for proper UI state
         filter.value = filterStrToObj(props.filterInput, filter.value) as GeneFilter;
@@ -371,9 +382,14 @@ export function useGenesTable(props: UseGenesTableProps) {
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       void nextTick(() => {
-        isInitializing.value = false;
+        if (!requestOwner.isDisposed()) isInitializing.value = false;
       });
     });
+  });
+
+  onBeforeUnmount(() => {
+    requestOwner.dispose();
+    if (loadDataDebounceTimer.value) clearTimeout(loadDataDebounceTimer.value);
   });
 
   return {

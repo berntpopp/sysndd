@@ -5,7 +5,28 @@ export interface TableRequestResult {
   source: TableRequestSource;
 }
 
+/** Instance-local intent ownership for module-coordinated table transports. */
+export function createTableRequestOwner() {
+  let generation = 0;
+  let disposed = false;
+
+  return {
+    beginIntent: (): number => ++generation,
+    isCurrent: (intent: number): boolean => !disposed && generation === intent,
+    isDisposed: (): boolean => disposed,
+    dispose: (): void => {
+      disposed = true;
+      generation += 1;
+    },
+  };
+}
+
 interface TableRequestOptions<T> {
+  // The coordinator is module-scoped so it can preserve a short response
+  // cache across a route remount.  Each composable instance must still own
+  // its own response application: a request from table B cannot make an
+  // in-flight table A response stale merely because it started later.
+  consumer?: object;
   params: string;
   fetcher: () => Promise<T>;
   apply: (data: T, source: TableRequestSource) => void;
@@ -28,8 +49,11 @@ export function createTableRequestCoordinator<T>(recentWindowMs = 500) {
   // in-flight slot (#535 P1-7).
   let inFlightGen = 0;
   let generation = 0;
+  const defaultConsumer = {};
+  const consumerGenerations = new WeakMap<object, number>();
 
   async function request({
+    consumer = defaultConsumer,
     params,
     fetcher,
     apply,
@@ -37,19 +61,32 @@ export function createTableRequestCoordinator<T>(recentWindowMs = 500) {
     isCurrent,
     now = () => Date.now(),
   }: TableRequestOptions<T>): Promise<TableRequestResult> {
-    if (inFlightParams === params && inFlightPromise) {
+    const sharedRequest = inFlightParams === params && inFlightPromise;
+    const priorConsumerGeneration = consumerGenerations.get(consumer);
+    // Repeated same-parameter requests from one consumer join its existing
+    // intent; a different consumer still receives its own ownership token.
+    const reusesConsumerIntent =
+      Boolean(sharedRequest) && priorConsumerGeneration !== undefined && isCurrent(params);
+    const consumerGeneration = reusesConsumerIntent
+      ? priorConsumerGeneration
+      : (priorConsumerGeneration ?? 0) + 1;
+    if (!reusesConsumerIntent) {
+      consumerGenerations.set(consumer, consumerGeneration);
+    }
+    const isConsumerCurrent = () =>
+      consumerGenerations.get(consumer) === consumerGeneration && isCurrent(params);
+
+    if (sharedRequest) {
       const source: TableRequestSource = 'shared';
-      // Borrow the in-flight promise but capture the current generation so a
-      // newer request (even same params) supersedes this borrower.
-      const myGen = generation;
       const shared = inFlightPromise;
+      if (!shared) return { handled: false, source };
       try {
         const data = await shared;
-        if (myGen !== generation || !isCurrent(params)) return { handled: false, source };
+        if (!isConsumerCurrent()) return { handled: false, source };
         apply(data, source);
         return { handled: true, source };
       } catch (error) {
-        if (myGen !== generation || !isCurrent(params)) return { handled: false, source };
+        if (!isConsumerCurrent()) return { handled: false, source };
         onError(error, source);
         return { handled: true, source };
       }
@@ -62,7 +99,7 @@ export function createTableRequestCoordinator<T>(recentWindowMs = 500) {
       lastResponseParams === params
     ) {
       const source: TableRequestSource = 'cache';
-      if (!isCurrent(params)) return { handled: false, source };
+      if (!isConsumerCurrent()) return { handled: false, source };
       apply(lastResponse, source);
       return { handled: true, source };
     }
@@ -89,7 +126,7 @@ export function createTableRequestCoordinator<T>(recentWindowMs = 500) {
         lastResponse = data;
         lastResponseParams = params;
       }
-      if (myGen !== generation || !isCurrent(params)) return { handled: false, source };
+      if (!isConsumerCurrent()) return { handled: false, source };
       apply(data, source);
       return { handled: true, source };
     } catch (error) {
@@ -99,7 +136,7 @@ export function createTableRequestCoordinator<T>(recentWindowMs = 500) {
         lastResponse = null;
         lastResponseParams = null;
       }
-      if (myGen !== generation || !isCurrent(params)) return { handled: false, source };
+      if (!isConsumerCurrent()) return { handled: false, source };
       onError(error, source);
       return { handled: true, source };
     }

@@ -152,6 +152,27 @@ function networkDataError(err: unknown): Error {
   return err instanceof Error ? err : new Error('Failed to fetch network data');
 }
 
+function waitForSharedNetworkRequest<T>(request: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(new DOMException('Network request aborted', 'AbortError'));
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException('Network request aborted', 'AbortError'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    request.then(
+      (data) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(data);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      }
+    );
+  });
+}
+
 /**
  * Composable for fetching and transforming network data
  *
@@ -183,6 +204,8 @@ export function useNetworkData(): NetworkDataState {
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
   const isPreparing = ref(false);
+  let requestGeneration = 0;
+  let requestController: AbortController | null = null;
 
   /**
    * Computed metadata for UI display
@@ -197,6 +220,12 @@ export function useNetworkData(): NetworkDataState {
    * Fetches the supported public-ready network snapshot preset.
    */
   const fetchNetworkData = async (): Promise<void> => {
+    requestController?.abort();
+    const controller = new AbortController();
+    requestController = controller;
+    const generation = ++requestGeneration;
+    const isCurrentRequest = () =>
+      requestGeneration === generation && requestController === controller;
     isLoading.value = true;
     error.value = null;
     isPreparing.value = false;
@@ -205,7 +234,8 @@ export function useNetworkData(): NetworkDataState {
     const startTime = performance.now();
 
     try {
-      const data = await preloadNetworkData();
+      const data = await waitForSharedNetworkRequest(preloadNetworkData(), controller.signal);
+      if (!isCurrentRequest()) return;
       networkData.value = data;
 
       const elapsed = performance.now() - startTime;
@@ -220,11 +250,15 @@ export function useNetworkData(): NetworkDataState {
         );
       }
     } catch (err) {
+      if (!isCurrentRequest()) return;
       isPreparing.value = isSnapshotPreparingError(err);
       error.value = networkDataError(err);
       console.error('Network data fetch error:', err);
     } finally {
-      isLoading.value = false;
+      if (isCurrentRequest()) {
+        isLoading.value = false;
+        requestController = null;
+      }
     }
   };
 
@@ -291,6 +325,9 @@ export function useNetworkData(): NetworkDataState {
    * Clear network data and reset state
    */
   const clearNetworkData = (): void => {
+    requestGeneration += 1;
+    requestController?.abort();
+    requestController = null;
     networkData.value = null;
     error.value = null;
     isPreparing.value = false;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createTableRequestCoordinator } from './tableRequestCoordinator';
+import { createTableRequestCoordinator, createTableRequestOwner } from './tableRequestCoordinator';
 
 describe('createTableRequestCoordinator', () => {
   it('awaits an in-flight request before using the recent cache shortcut', async () => {
@@ -191,5 +191,56 @@ describe('createTableRequestCoordinator', () => {
     d1.reject(new Error('stale fail'));
     await r1;
     expect(errors).toEqual([]); // superseded X's rejection must not surface
+  });
+
+  it('keeps current responses for separate table consumers when either starts later', async () => {
+    const coordinator = createTableRequestCoordinator<string>();
+    const consumerA = {};
+    const consumerB = {};
+    const a = deferred<string>();
+    const b = deferred<string>();
+    const appliedA: string[] = [];
+    const appliedB: string[] = [];
+
+    const requestA = coordinator.request({
+      consumer: consumerA,
+      params: 'A',
+      fetcher: () => a.promise,
+      apply: (data) => appliedA.push(data),
+      onError: () => {},
+      isCurrent: () => true,
+    });
+    const requestB = coordinator.request({
+      consumer: consumerB,
+      params: 'B',
+      fetcher: () => b.promise,
+      apply: (data) => appliedB.push(data),
+      onError: () => {},
+      isCurrent: () => true,
+    });
+
+    a.resolve('A current');
+    b.resolve('B current');
+
+    await expect(requestA).resolves.toEqual({ handled: true, source: 'network' });
+    await expect(requestB).resolves.toEqual({ handled: true, source: 'network' });
+    expect(appliedA).toEqual(['A current']);
+    expect(appliedB).toEqual(['B current']);
+  });
+});
+
+describe('createTableRequestOwner', () => {
+  it('invalidates a queued response when superseded or disposed', () => {
+    const owner = createTableRequestOwner();
+    const a = owner.beginIntent();
+    expect(owner.isCurrent(a)).toBe(true);
+
+    const b = owner.beginIntent();
+    expect(owner.isCurrent(a)).toBe(false);
+    expect(owner.isCurrent(b)).toBe(true);
+
+    owner.dispose();
+    expect(owner.isCurrent(b)).toBe(false);
+    expect(owner.isDisposed()).toBe(true);
   });
 });

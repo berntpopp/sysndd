@@ -164,6 +164,28 @@ describe('useUserData', () => {
 
   // --- S5b request ownership -------------------------------------------------
 
+  it('shares one same-param transport with two current instances and applies it to both', async () => {
+    const axios = await getAxiosMock();
+    let resolve!: (value: unknown) => void;
+    axios.get.mockImplementationOnce(() => new Promise((res) => (resolve = res)));
+
+    const first = useUserData();
+    const second = useUserData();
+    const firstPending = first.loadDataNow();
+    const secondPending = second.loadDataNow();
+
+    expect(axios.get).toHaveBeenCalledTimes(1);
+
+    resolve({ status: 200, data: userTablePayload });
+    await Promise.all([firstPending, secondPending]);
+    await flushPromises();
+
+    expect(first.totalRows.value).toBe(2);
+    expect(second.totalRows.value).toBe(2);
+    expect(first.isBusy.value).toBe(false);
+    expect(second.isBusy.value).toBe(false);
+  });
+
   it('an out-of-order stale response does not apply over the newer request', async () => {
     const axios = await getAxiosMock();
     const resolvers: Array<(v: unknown) => void> = [];
@@ -198,7 +220,7 @@ describe('useUserData', () => {
     axios.get.mockImplementationOnce(() => new Promise((res) => (resolveB = res)));
     const pB = data.loadDataNow(); // P2 in flight
     data.totalRows.value = 999; // sentinel — a wrong cache-serve would overwrite this
-    await data.loadDataNow(); // 2nd identical P2 while pending
+    const sharedP2 = data.loadDataNow(); // 2nd identical P2 subscribes while pending
     await Promise.resolve();
     expect(data.totalRows.value).toBe(999); // must NOT serve P1's cached response for P2
 
@@ -206,7 +228,7 @@ describe('useUserData', () => {
       status: 200,
       data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 7 }] },
     });
-    await pB;
+    await Promise.all([pB, sharedP2]);
     await flushPromises();
     expect(data.totalRows.value).toBe(7); // the real P2 response applies
   });
@@ -228,11 +250,9 @@ describe('useUserData', () => {
     expect(data.totalRows.value).toBe(555); // disposed → late response ignored
   });
 
-  it('a superseded same-param response completing last does not poison the recent cache', async () => {
-    // A1→B→A2 all in flight; A1 and A2 share params A. A2 (latest) completes first
-    // and caches fresh A; the stale A1 then completes LAST. A subsequent cache hit
-    // for A must serve A2's data, never the stale A1 (param-keying alone does not
-    // protect same-param out-of-order; the module write-sequence guard does).
+  it('A-B-A reuses the original keyed A transport for the current A intent', async () => {
+    // A keyed transport is a valid shared result for a later identical intent. The
+    // map must subscribe A2 to A1 rather than launching a duplicate A2 request.
     const axios = await getAxiosMock();
     const resolvers: Array<(v: unknown) => void> = [];
     axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
@@ -242,21 +262,17 @@ describe('useUserData', () => {
     data.perPage.value = 50;
     const pB = data.loadDataNow(); // B (params B) — resolvers[1]
     data.perPage.value = 25; // back to default params A
-    const pA2 = data.loadDataNow(); // A2 (params A again) — resolvers[2]
+    const pA2 = data.loadDataNow(); // A2 subscribes to A1 (same params)
 
-    // A2 (latest) completes first → caches fresh A (totalItems 77).
-    resolvers[2]({
+    expect(resolvers).toHaveLength(2); // A1 + B only; no duplicate A2 transport
+    resolvers[0]({
       status: 200,
       data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 77 }] },
     });
-    await pA2;
-    await flushPromises();
-    // Stale A1 completes LAST (totalItems 2) — must NOT overwrite the cached A2.
-    resolvers[0]({ status: 200, data: userTablePayload });
-    await pA1;
+    await Promise.all([pA1, pA2]);
     await flushPromises();
 
-    // Trigger a cache hit for params A: it must serve A2 (77), not the stale A1 (2).
+    // The current A intent received the shared A transport and recorded it for cache.
     await data.loadDataNow();
     await flushPromises();
     expect(data.totalRows.value).toBe(77);
@@ -268,42 +284,40 @@ describe('useUserData', () => {
     data.dispose();
   });
 
-  it('a stale same-param response resolving BEFORE the newer one does not populate the cache', async () => {
-    // A1→B→A2 (A1, A2 share params A). Here the STALE A1 resolves FIRST, while A2 is
-    // still pending. A1 is not the latest-started A fetch, so it must not write the
-    // recent-response cache — a cache-serve attempt in that window must not return A1.
+  it('a stale shared rejection cannot clear a newer keyed slot or busy state', async () => {
     const axios = await getAxiosMock();
-    const resolvers: Array<(v: unknown) => void> = [];
-    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
-    const data = useUserData();
+    const pending: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
+    axios.get.mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          pending.push({ resolve, reject });
+        })
+    );
+    const staleToasts: unknown[][] = [];
+    const currentToasts: unknown[][] = [];
+    const stale = useUserData({ onToast: (...args) => staleToasts.push(args) });
+    const current = useUserData({ onToast: (...args) => currentToasts.push(args) });
 
-    const pA1 = data.loadDataNow(); // A1 (default params) — resolvers[0]
-    data.perPage.value = 50;
-    const pB = data.loadDataNow(); // B (params B) — resolvers[1]
-    data.perPage.value = 25;
-    const pA2 = data.loadDataNow(); // A2 (params A again, latest A start) — resolvers[2]
+    const staleA = stale.loadDataNow();
+    const currentA = current.loadDataNow(); // shared A transport
+    stale.perPage.value = 50;
+    const staleB = stale.loadDataNow(); // independent B transport
 
-    // Stale A1 resolves FIRST (totalItems 2), while A2 is still pending.
-    resolvers[0]({ status: 200, data: userTablePayload });
-    await pA1;
+    pending[0].reject(new Error('obsolete A'));
+    await Promise.allSettled([staleA, currentA]);
     await flushPromises();
 
-    // Cache-serve attempt for params A must NOT return the stale A1 (cache empty here).
-    data.totalRows.value = 555; // sentinel — a wrong cache-serve would overwrite this
-    const pA3 = data.loadDataNow(); // resolvers[3]
-    await Promise.resolve();
-    await flushPromises();
-    expect(data.totalRows.value).toBe(555); // stale A1 was not served from the cache
+    expect(staleToasts).toEqual([]); // stale A was superseded by B
+    expect(currentToasts).toHaveLength(1); // current shared A receives its failure
+    expect(stale.isBusy.value).toBe(true); // stale A finally did not clear B's spinner
 
-    // Settle the remaining requests so nothing leaks into the next test.
-    resolvers[2]({ status: 200, data: userTablePayload });
-    resolvers[1]({ status: 200, data: userTablePayload });
-    resolvers[3]({ status: 200, data: userTablePayload });
-    await pA2;
-    await pB;
-    await pA3;
+    pending[1].resolve({ status: 200, data: userTablePayload });
+    await staleB;
     await flushPromises();
-    data.dispose();
+    expect(stale.totalRows.value).toBe(2);
+    expect(stale.isBusy.value).toBe(false);
+    stale.dispose();
+    current.dispose();
   });
 
   it('A→B→cached-A does not leave isBusy stuck true', async () => {

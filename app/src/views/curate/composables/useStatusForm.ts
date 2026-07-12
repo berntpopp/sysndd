@@ -12,6 +12,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import useFormDraft from '@/composables/useFormDraft';
+import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
 import { getStatusById, createStatus, updateStatus } from '@/api/status';
 import { getEntityStatus } from '@/api/entity';
 
@@ -59,6 +60,7 @@ const validationRules = {
 export default function useStatusForm(entityId?: string | number) {
   // Loading state
   const loading = ref(false);
+  const loadOwner = createFormLoadOwner();
 
   // Form data state
   const formData = reactive<StatusFormData>({
@@ -151,10 +153,12 @@ export default function useStatusForm(entityId?: string | number) {
    * Load status data from API by status ID
    */
   const loadStatusData = async (statusId: number, reReviewSaved?: number): Promise<void> => {
+    const request = loadOwner.begin();
     loading.value = true;
 
     try {
-      const rows = await getStatusById(statusId);
+      const rows = await getStatusById(statusId, { signal: request.signal });
+      if (!request.isCurrent()) return;
 
       if (!rows || rows.length === 0) {
         throw new Error('Status not found');
@@ -182,10 +186,14 @@ export default function useStatusForm(entityId?: string | number) {
         problematic: formData.problematic,
       };
     } catch (error) {
+      if (!request.isCurrent() || isAbortError(error)) return;
       console.error('Failed to load status:', error);
       throw error;
     } finally {
-      loading.value = false;
+      if (request.isCurrent()) {
+        loading.value = false;
+        loadOwner.finish(request);
+      }
     }
   };
 
@@ -193,10 +201,12 @@ export default function useStatusForm(entityId?: string | number) {
    * Load status data by entity ID (for ModifyEntity view)
    */
   const loadStatusByEntity = async (entityId: number): Promise<void> => {
+    const request = loadOwner.begin();
     loading.value = true;
 
     try {
-      const rows = await getEntityStatus(entityId);
+      const rows = await getEntityStatus(entityId, { signal: request.signal });
+      if (!request.isCurrent()) return;
 
       if (!rows || rows.length === 0) {
         throw new Error('Status not found for entity');
@@ -220,10 +230,14 @@ export default function useStatusForm(entityId?: string | number) {
         problematic: formData.problematic,
       };
     } catch (error) {
+      if (!request.isCurrent() || isAbortError(error)) return;
       console.error('Failed to load status by entity:', error);
       throw error;
     } finally {
-      loading.value = false;
+      if (request.isCurrent()) {
+        loading.value = false;
+        loadOwner.finish(request);
+      }
     }
   };
 
@@ -297,6 +311,8 @@ export default function useStatusForm(entityId?: string | number) {
    * Reset form to initial state
    */
   const resetForm = () => {
+    loadOwner.cancel();
+    loading.value = false;
     formData.category_id = null;
     formData.comment = '';
     formData.problematic = false;
