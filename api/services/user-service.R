@@ -145,7 +145,7 @@ user_approve <- function(user_id, approving_user_id, approve, pool) {
         list(user_initials, user_id)
       )
 
-      # Send approval email with password
+      # Temp password -> USER ONLY; never BCC a credential to curators (#535 S8).
       send_noreply_email(
         c(
           "Your registration for sysndd.org has been approved by a curator.",
@@ -153,8 +153,7 @@ user_approve <- function(user_id, approving_user_id, approve, pool) {
           user_password
         ),
         "Account approved for SysNDD.org",
-        user$email,
-        "curator@sysndd.org"
+        user$email
       )
     }
 
@@ -423,7 +422,7 @@ user_bulk_approve <- function(user_ids, approving_user_id, pool) {
           conn = txn_conn
         )
 
-        # Send approval email with password
+        # Temp password -> USER ONLY; never BCC a credential to curators (#535 S8).
         send_noreply_email(
           c(
             "Your registration for sysndd.org has been approved by a curator.",
@@ -431,8 +430,7 @@ user_bulk_approve <- function(user_ids, approving_user_id, pool) {
             user_password
           ),
           "Account approved for SysNDD.org",
-          user$email,
-          "curator@sysndd.org"
+          user$email
         )
       }
     }

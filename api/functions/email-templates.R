@@ -19,6 +19,30 @@ SYSNDD_WHITE <- "#ffffff"
 SYSNDD_SUCCESS <- "#28a745"
 SYSNDD_WARNING <- "#ffc107"
 
+#' HTML-escape a user-controlled value for HTML email element text.
+#'
+#' Signup fields (user_name, first_name, family_name, email, orcid) are stored raw
+#' and interpolated into HTML email bodies that are then marked as trusted HTML
+#' (htmltools::HTML) and sent (incl. BCC to curators). Escaping them here prevents
+#' markup/script injection into the recipient's mail client. NULL/empty -> "".
+#' Use email_escape_attr() for a value placed inside an HTML attribute.
+email_escape <- function(x) {
+  # Templates interpolate scalar fields; a NULL/NA/empty/non-scalar value coerces
+  # to "" rather than rendering "NA" or vectorizing into the HTML.
+  if (is.null(x) || length(x) != 1L || is.na(x)) {
+    return("")
+  }
+  htmltools::htmlEscape(as.character(x), attribute = FALSE)
+}
+
+#' HTML-escape a user-controlled value for an HTML attribute (also escapes quotes).
+email_escape_attr <- function(x) {
+  if (is.null(x) || length(x) != 1L || is.na(x)) {
+    return("")
+  }
+  htmltools::htmlEscape(as.character(x), attribute = TRUE)
+}
+
 #' Generate base HTML email wrapper
 #'
 #' Creates a responsive HTML email template wrapper with consistent branding.
@@ -118,8 +142,11 @@ email_wrapper <- function(content, preheader = "") {
 #' @param expiry_minutes Token expiry time in minutes (default 60)
 #' @return Complete HTML email string
 email_password_reset <- function(reset_url, user_name = NULL, expiry_minutes = 60) {
-  greeting <- if (!is.null(user_name) && nchar(user_name) > 0) {
-    glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,</p>')
+  # Drive the greeting off the escaped scalar (email_escape coerces NULL/NA/empty/
+  # non-scalar to ""), so nchar() is never called on NA or a length>1 vector.
+  user_name_e <- email_escape(user_name)
+  greeting <- if (nzchar(user_name_e)) {
+    glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,</p>')
   } else {
     glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello,</p>')
   }
@@ -171,12 +198,17 @@ email_password_reset <- function(reset_url, user_name = NULL, expiry_minutes = 6
 #' @return Complete HTML email string
 email_registration_request <- function(user_info) {
   first_name <- user_info$first_name %||% user_info$user_name %||% "there"
+  first_name_e <- email_escape(first_name)
+  user_name_e <- email_escape(user_info$user_name)
+  email_e <- email_escape(user_info$email)
+  fname_e <- email_escape(user_info$first_name)
+  lname_e <- email_escape(user_info$family_name)
 
   content <- glue::glue('
 <h2 style="color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600;">Registration Request Received</h2>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{first_name}</span>,
+  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{first_name_e}</span>,
 </p>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
@@ -186,9 +218,9 @@ email_registration_request <- function(user_info) {
 <div class="info-box" style="background-color: #e3f2fd; border-left: 4px solid {SYSNDD_PRIMARY}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
   <p style="margin: 0 0 8px 0; color: {SYSNDD_TEXT}; font-size: 14px;"><strong>Registration Details:</strong></p>
   <table style="font-size: 14px; color: {SYSNDD_TEXT};">
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Username:</td><td style="font-weight: 600;">{user_info$user_name}</td></tr>
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Email:</td><td>{user_info$email}</td></tr>
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Name:</td><td>{user_info$first_name} {user_info$family_name}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Username:</td><td style="font-weight: 600;">{user_name_e}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Email:</td><td>{email_e}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Name:</td><td>{fname_e} {lname_e}</td></tr>
   </table>
 </div>
 
@@ -220,11 +252,12 @@ email_registration_request <- function(user_info) {
 #' @param login_url The login page URL
 #' @return Complete HTML email string
 email_account_approved <- function(user_name, temp_password, login_url = "https://sysndd.org/Login") {
+  user_name_e <- email_escape(user_name)
   content <- glue::glue('
 <h2 style="color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600;">Your Account Has Been Approved!</h2>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,
+  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,
 </p>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
@@ -277,12 +310,20 @@ email_account_approved <- function(user_name, temp_password, login_url = "https:
 #' @return Complete HTML email string
 email_rereview_request <- function(user_info, batch_info = NULL) {
   user_name <- user_info$user_name %||% "User"
+  user_name_e <- email_escape(user_name)
+  uname_e <- email_escape(user_info$user_name)
+  email_e <- email_escape(user_info$email)
+  orcid_e <- email_escape(user_info$orcid)
+  orcid_attr_e <- email_escape_attr(user_info$orcid)
+  # batch_info is optional free text; escape it so a future caller cannot inject
+  # markup into the email body (latent same-class sink — no current caller).
+  batch_info_e <- email_escape(batch_info)
 
   batch_section <- if (!is.null(batch_info)) {
     glue::glue('
 <div class="info-box" style="background-color: #e3f2fd; border-left: 4px solid {SYSNDD_PRIMARY}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
   <p style="margin: 0 0 8px 0; color: {SYSNDD_TEXT}; font-size: 14px;"><strong>Batch Details:</strong></p>
-  <p style="margin: 0; color: {SYSNDD_TEXT}; font-size: 14px;">{batch_info}</p>
+  <p style="margin: 0; color: {SYSNDD_TEXT}; font-size: 14px;">{batch_info_e}</p>
 </div>
 ', .open = "{", .close = "}")
   } else {
@@ -293,7 +334,7 @@ email_rereview_request <- function(user_info, batch_info = NULL) {
 <h2 style="color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600;">Re-Review Batch Request Submitted</h2>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,
+  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,
 </p>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
@@ -305,9 +346,9 @@ email_rereview_request <- function(user_info, batch_info = NULL) {
 <div class="info-box" style="background-color: #e3f2fd; border-left: 4px solid {SYSNDD_PRIMARY}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
   <p style="margin: 0 0 8px 0; color: {SYSNDD_TEXT}; font-size: 14px;"><strong>Requesting User Information:</strong></p>
   <table style="font-size: 14px; color: {SYSNDD_TEXT};">
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Username:</td><td style="font-weight: 600;">{user_info$user_name}</td></tr>
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Email:</td><td>{user_info$email}</td></tr>
-    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">ORCID:</td><td><a href="https://orcid.org/{user_info$orcid}" style="color: {SYSNDD_PRIMARY};">{user_info$orcid}</a></td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Username:</td><td style="font-weight: 600;">{uname_e}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Email:</td><td>{email_e}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">ORCID:</td><td><a href="https://orcid.org/{orcid_attr_e}" style="color: {SYSNDD_PRIMARY};">{orcid_e}</a></td></tr>
   </table>
 </div>
 
@@ -339,6 +380,7 @@ email_rereview_request <- function(user_info, batch_info = NULL) {
 #' @return Complete HTML email string
 email_batch_assigned <- function(user_info, batch_info, review_url = "https://sysndd.org/ReReview") {
   user_name <- user_info$user_name %||% "User"
+  user_name_e <- email_escape(user_name)
   batch_number <- batch_info$batch_number %||% "N/A"
   entity_count <- batch_info$entity_count %||% 0
 
@@ -346,7 +388,7 @@ email_batch_assigned <- function(user_info, batch_info, review_url = "https://sy
 <h2 style="color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600;">Re-Review Batch Assigned</h2>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,
+  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,
 </p>
 
 <p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
@@ -400,8 +442,12 @@ email_batch_assigned <- function(user_info, batch_info, review_url = "https://sy
 #' @param user_name Optional user name for personalization
 #' @return Complete HTML email string
 email_notification <- function(subject_text, body_content, user_name = NULL) {
-  greeting <- if (!is.null(user_name) && nchar(user_name) > 0) {
-    glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,</p>')
+  # subject_text and body_content are developer/system-controlled (body_content is
+  # deliberately HTML); only the user-controlled user_name is escaped. Drive the
+  # greeting off the escaped scalar so nchar() never sees NA or a length>1 vector.
+  user_name_e <- email_escape(user_name)
+  greeting <- if (nzchar(user_name_e)) {
+    glue::glue('<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name_e}</span>,</p>')
   } else {
     ""
   }

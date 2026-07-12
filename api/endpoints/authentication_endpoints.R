@@ -87,6 +87,31 @@ function(req, res) {
     return(res)
   }
 
+  # Reject control characters (CR/LF/tab) in any account field. Left unchecked,
+  # a CR/LF-bearing field is forged into log lines (the best-effort SMTP-failure
+  # logger below prints user_name verbatim) and into email headers once the value
+  # is emailed to the user/curators. Printable non-ASCII (accents) is allowed.
+  fields_have_control_chars <- vapply(
+    required_fields,
+    function(field) account_field_has_control_char(signup_body[[field]]),
+    logical(1)
+  )
+  if (any(fields_have_control_chars)) {
+    res$status <- 400
+    res$body <- "Malformed JSON body: fields must not contain control characters."
+    return(res)
+  }
+
+  # Gate the email through the hardened, anchored validator (not the permissive
+  # `.+@.+\\..+` shape used below): SMTP recipient grammar such as
+  # `<a@example.com> NOTIFY=SUCCESS` must not create an account whose approval
+  # credentials are then handed to smtp_send() as a malformed/injectable address.
+  if (!is_valid_email(signup_body[["email"]])) {
+    res$status <- 400
+    res$body <- "Malformed JSON body: invalid email address."
+    return(res)
+  }
+
   user <- tibble::as_tibble(signup_body) %>%
     dplyr::mutate(
       terms_agreed = dplyr::case_when(
