@@ -64,19 +64,18 @@ test_that("the fixed backup path carries no DB credential in its job payload", {
   expect_gte(sum(grepl("async_job_worker_db_config\\(", mh)), 2L)
 })
 
-test_that("credential-in-payload line set matches the frozen S2b-pending list", {
-  expected <- sort(c(
-    "llm-batch-generator.R | db_password = db_cfg$password",
-    "llm-batch-generator.R | password = db_config$db_password"
-  ))
+test_that("no durable family carries a DB credential in its job payload (frozen set is empty)", {
+  # #535 S2b migrated ALL durable families to run-time credential resolution
+  # via async_job_worker_db_config()/async_job_db_connect(); the offender set is
+  # now empty. A NEW credential-in-payload marshaling site breaks this.
+  expected <- sort(character(0))
   actual <- .scan_cred_lines()
   expect_identical(
     actual, expected,
     info = paste(
-      "Credential-in-payload set changed. Added a site -> resolve via",
-      "async_job_worker_db_config() instead of putting the password in the",
-      "payload. Migrated a family in S2b -> update this frozen set. 'backup*'",
-      "must never appear here."
+      "Credential-in-payload set changed. A durable job handler must resolve",
+      "DB creds at run time via async_job_db_connect() (functions/async-job-db-config.R),",
+      "never marshal a password into the job payload. 'backup*' must never appear here."
     )
   )
   expect_false(any(grepl("backup", actual)))
@@ -88,6 +87,23 @@ test_that("migrated durable handlers resolve DB creds at run time via the resolv
   .expect_resolves_creds("functions/comparisons-functions.R")
   .expect_resolves_creds("functions/async-job-maintenance-handlers.R")
   .expect_resolves_creds("functions/pubtator-functions.R")
+  .expect_resolves_creds("functions/llm-batch-generator.R")
+})
+
+test_that("no durable handler reads db_config from the job payload (#535 S2b MEDIUM-1)", {
+  # Strong closer: file-level resolver presence is not enough on its own (a file
+  # with one resolver call could still have an unmigrated handler). After the
+  # migration NO scanned file may read a DB config OUT OF the payload. Backup
+  # uses a resolver-derived db_config LOCAL (never payload$db_config), so it is
+  # not an offender; .scan_files() already excludes the resolver/helper modules.
+  offenders <- Filter(function(f) {
+    any(grepl("(payload|params)\\$db_config", readLines(f, warn = FALSE)))
+  }, .scan_files())
+  expect_equal(
+    length(offenders), 0L,
+    info = paste("payload/db_config credential read remains in:",
+                 paste(basename(offenders), collapse = ", "))
+  )
 })
 
 test_that("no site passes a raw dw/config object as a db_config (bypass tripwire)", {

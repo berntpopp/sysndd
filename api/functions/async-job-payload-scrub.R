@@ -7,9 +7,10 @@
 # password-derived verifier for offline guessing; #535 P1-1 H6).
 #
 # Scope is deliberately narrow (#535 H1/B1):
-#   - job_type IN ('backup_create','backup_restore') only -> other durable
-#     families still READ payload$db_config$password until S2b migrates them, so
-#     scrubbing their rows would break queued/retryable jobs.
+#   - job_type IN ('backup_create','backup_restore') only -> at the time this
+#     was written the other durable families still read the payload db_config
+#     credential, so scrubbing their rows would have broken queued/retryable jobs.
+#     (#535 S2b later migrated every family off the payload; Task 8 widens this.)
 #   - status IN ('completed','failed','cancelled') AND active_request_hash IS
 #     NULL (TERMINAL, non-retryable) only. active_request_hash is a generated
 #     column that stays non-NULL for retryable-failed rows; two such rows
