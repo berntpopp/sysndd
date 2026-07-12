@@ -166,20 +166,19 @@ async_job_repository_get <- function(job_id, include_result = FALSE, conn = NULL
 #'
 #' @return Tibble with zero or one active duplicate row.
 #' @export
+# "Active" = in-flight OR retryable-failed. Shared by the hash-keyed duplicate
+# lookup and the job-type single-flight lookup so they stay identical.
+.async_job_active_status_sql <- paste(
+  "(status IN ('queued', 'running', 'cancel_requested')",
+  "OR (status = 'failed' AND attempt_count < max_attempts AND next_attempt_at IS NOT NULL))"
+)
+
 async_job_repository_find_active_duplicate <- function(job_type, request_hash, conn = NULL) {
   sql <- paste(
     .async_job_build_select(FALSE),
-    paste(
-      "FROM async_jobs",
-      "WHERE job_type = ?",
-      "AND request_hash = ?",
-      "AND (",
-      "  status IN ('queued', 'running', 'cancel_requested')",
-      "  OR (status = 'failed' AND attempt_count < max_attempts AND next_attempt_at IS NOT NULL)",
-      ")",
-      "ORDER BY submitted_at DESC",
-      "LIMIT 1"
-    )
+    "FROM async_jobs WHERE job_type = ? AND request_hash = ?",
+    "AND", .async_job_active_status_sql,
+    "ORDER BY submitted_at DESC LIMIT 1"
   )
 
   db_execute_query(sql, list(job_type, request_hash), conn = conn)
@@ -200,16 +199,9 @@ async_job_repository_find_active_duplicate <- function(job_type, request_hash, c
 async_job_repository_find_active_by_type <- function(job_type, conn = NULL) {
   sql <- paste(
     .async_job_build_select(FALSE),
-    paste(
-      "FROM async_jobs",
-      "WHERE job_type = ?",
-      "AND (",
-      "  status IN ('queued', 'running', 'cancel_requested')",
-      "  OR (status = 'failed' AND attempt_count < max_attempts AND next_attempt_at IS NOT NULL)",
-      ")",
-      "ORDER BY submitted_at DESC",
-      "LIMIT 1"
-    )
+    "FROM async_jobs WHERE job_type = ?",
+    "AND", .async_job_active_status_sql,
+    "ORDER BY submitted_at DESC LIMIT 1"
   )
 
   db_execute_query(sql, list(job_type), conn = conn)
