@@ -18,7 +18,39 @@ test_that("count SQL targets only terminal, non-retryable, aged rows", {
   expect_true(grepl("status IN ('completed', 'failed', 'cancelled')", sql, fixed = TRUE))
   expect_true(grepl("active_request_hash IS NULL", sql, fixed = TRUE))
   expect_true(grepl("submitted_at < (NOW() - INTERVAL 90 DAY)", sql, fixed = TRUE))
+  # Terminal-age guard: also require updated_at older than the window so a
+  # just-completed but long-ago-submitted job is not deleted immediately.
+  expect_true(grepl("updated_at < (NOW() - INTERVAL 90 DAY)", sql, fixed = TRUE))
   expect_true(grepl("^SELECT COUNT", sql))
+})
+
+test_that("count and delete share the same WHERE predicate", {
+  count_where <- sub("^SELECT COUNT\\(\\*\\) AS n FROM async_jobs WHERE ", "",
+    build_async_job_retention_count_sql(90L))
+  del_where <- sub("^DELETE FROM async_jobs WHERE ", "",
+    build_async_job_retention_delete_sql(90L))
+  expect_equal(count_where, del_where)
+})
+
+test_that("delete supports a bounded batch LIMIT", {
+  expect_true(grepl("LIMIT 500", build_async_job_retention_delete_sql(90L, 500L), fixed = TRUE))
+  expect_false(grepl("LIMIT", build_async_job_retention_delete_sql(90L), fixed = TRUE))
+})
+
+test_that("the run loop deletes in batches until under a full batch", {
+  returns <- c(1000L, 1000L, 3L) # ASYNC_JOB_RETENTION_BATCH_SIZE is 1000
+  i <- 0L
+  summary <- run_async_job_retention(
+    config = list(retention_days = 90L, dry_run = FALSE),
+    count_fn = function(sql) 2003L,
+    execute_fn = function(sql) {
+      i <<- i + 1L
+      returns[i]
+    },
+    logger = function(msg) invisible(NULL)
+  )
+  expect_equal(i, 3L) # three batches
+  expect_equal(summary$deleted_rows, 2003L)
 })
 
 test_that("delete SQL mirrors the count predicate exactly", {

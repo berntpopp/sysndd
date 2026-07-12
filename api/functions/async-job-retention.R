@@ -22,11 +22,21 @@
 #' request-log window because job history is more operationally useful.
 ASYNC_JOB_RETENTION_DEFAULT_DAYS <- 90L
 
+#' Default DELETE batch size — keeps a first-run backlog from becoming one giant
+#' transaction (row locks / undo / replication lag). The run loop commits between
+#' batches until fewer than a full batch remain.
+ASYNC_JOB_RETENTION_BATCH_SIZE <- 1000L
+
 #' The terminal + non-retryable predicate shared by the count and delete builders.
+#' Age is gated on BOTH submitted_at (indexed, prunes the bulk) AND updated_at (the
+#' last state change — i.e. when the row became/stayed terminal), so a job that was
+#' submitted long ago but only just completed is not deleted immediately after its
+#' terminal write. `%1$d` interpolates the one validated retention-day integer.
 .async_job_retention_predicate <- paste(
   "status IN ('completed', 'failed', 'cancelled')",
   "AND active_request_hash IS NULL",
-  "AND submitted_at < (NOW() - INTERVAL %d DAY)"
+  "AND submitted_at < (NOW() - INTERVAL %1$d DAY)",
+  "AND updated_at < (NOW() - INTERVAL %1$d DAY)"
 )
 
 #' Build the COUNT(*) query for prunable terminal jobs.
@@ -50,12 +60,18 @@ build_async_job_retention_count_sql <- function(retention_days = ASYNC_JOB_RETEN
 #' @param retention_days Validated positive integer day count.
 #' @return A single SQL string.
 #' @export
-build_async_job_retention_delete_sql <- function(retention_days = ASYNC_JOB_RETENTION_DEFAULT_DAYS) {
+build_async_job_retention_delete_sql <- function(retention_days = ASYNC_JOB_RETENTION_DEFAULT_DAYS,
+                                                 batch_size = NULL) {
   retention_days <- validate_retention_days(retention_days, ASYNC_JOB_RETENTION_DEFAULT_DAYS)
-  sprintf(
+  sql <- sprintf(
     paste("DELETE FROM async_jobs WHERE", .async_job_retention_predicate),
     retention_days
   )
+  if (!is.null(batch_size)) {
+    batch_size <- validate_retention_days(batch_size, ASYNC_JOB_RETENTION_BATCH_SIZE)
+    sql <- sprintf("%s LIMIT %d", sql, batch_size)
+  }
+  sql
 }
 
 #' Resolve the async-job retention configuration from environment variables.
@@ -113,14 +129,26 @@ run_async_job_retention <- function(config, count_fn, execute_fn, logger = messa
     )))
   }
 
-  deleted_rows <- as.integer(execute_fn(build_async_job_retention_delete_sql(config$retention_days)))
-  if (length(deleted_rows) != 1L || is.na(deleted_rows)) {
-    deleted_rows <- 0L
+  # Delete in bounded batches, each its own auto-committed statement, so a large
+  # first-run backlog never becomes one giant transaction / lock set.
+  batch_size <- ASYNC_JOB_RETENTION_BATCH_SIZE
+  deleted_rows <- 0L
+  repeat {
+    n <- as.integer(execute_fn(
+      build_async_job_retention_delete_sql(config$retention_days, batch_size)
+    ))
+    if (length(n) != 1L || is.na(n)) {
+      n <- 0L
+    }
+    deleted_rows <- deleted_rows + n
+    if (n < batch_size) {
+      break
+    }
   }
 
   logger(sprintf(
-    "[job-retention] deleted %d terminal job row(s) (retention %d day(s))",
-    deleted_rows, config$retention_days
+    "[job-retention] deleted %d terminal job row(s) in batches of %d (retention %d day(s))",
+    deleted_rows, batch_size, config$retention_days
   ))
 
   invisible(list(
