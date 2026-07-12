@@ -47,6 +47,13 @@ export function useResource<T>(
   // A mutable token so that a fetcher resolution after key-change is ignored.
   let activeToken = Symbol('resource');
   let activeKey: ResourceKey | null = null;
+  // Per-INSTANCE fetch generation, bumped at each doFetch start. Gates THIS
+  // instance's consumer refs (data/error/isStale/loading) so two same-key fetches
+  // this instance started (concurrent refresh, SWR-vs-refresh) are distinguished.
+  // Deliberately NOT the shared cache-slot signal: a subscriber must not be left
+  // stuck (never applying, never clearing loading) just because ANOTHER consumer
+  // started a newer fetch of the same key.
+  let fetchGeneration = 0;
 
   const keyRef = computed<ResourceKey | null>(() => {
     if (keyInput === null) return null;
@@ -71,21 +78,33 @@ export function useResource<T>(
 
   async function doFetch(key: ResourceKey, force: boolean, background = false): Promise<void> {
     const myToken = activeToken;
+    const myGen = ++fetchGeneration;
+    // Per-instance consumer ownership: this instance's refs/loading are current only
+    // while it hasn't switched keys AND hasn't itself started a newer fetch. It is
+    // independent of what other consumers of the same key do.
+    const consumerCurrent = (): boolean => myToken === activeToken && myGen === fetchGeneration;
+
     // If another consumer already has a fetch in flight for this key, subscribe to it.
     const existing = cache.peek<T>(key);
     if (existing?.pending && !force) {
+      const subEpoch = existing.epoch; // the shared fetch this subscriber is awaiting
       try {
         if (!background) loading.value = true;
         const value = (await existing.pending) as T;
-        if (myToken !== activeToken) return; // consumer switched keys
+        if (!consumerCurrent()) return; // this instance switched keys or refetched
+        // The shared slot advanced past the fetch we awaited: a newer fetch (started
+        // by ANOTHER consumer) superseded it. Applying `value` would strand this
+        // subscriber on stale data forever, so follow the current slot instead.
+        if (cache.peek<T>(key)?.epoch !== subEpoch) return followCurrentSlot(key, background);
         data.value = value;
         error.value = null;
         isStale.value = false;
       } catch (e) {
-        if (myToken !== activeToken) return;
+        if (!consumerCurrent()) return;
+        if (cache.peek<T>(key)?.epoch !== subEpoch) return followCurrentSlot(key, background);
         error.value = e instanceof Error ? e : new Error(String(e));
       } finally {
-        if (myToken === activeToken && !background) loading.value = false;
+        if (consumerCurrent() && !background) loading.value = false;
       }
       return;
     }
@@ -94,24 +113,55 @@ export function useResource<T>(
     const promise = (async () => {
       return await fetcher(ac.signal);
     })();
-    cache.beginFetch<T>(key, promise, ac);
+    cache.beginFetch<T>(key, promise, ac); // advances this slot's globally-unique epoch
+    const myEpoch = cache.peek<T>(key)?.epoch;
+    // Cache-slot ownership uses the shared, globally-monotonic slot epoch: a stale
+    // fetch cannot overwrite a newer fetch's cache entry, yet a lone in-flight fetch
+    // still records its value after an abort (endFetch preserves the epoch — unlike a
+    // `pending === promise` check, which the abort would have nulled out). Consumer
+    // refs use the per-instance generation above, so a subscriber is never stuck by
+    // another consumer starting a newer fetch of the same key.
+    const slotCurrent = (): boolean => cache.peek<T>(key)?.epoch === myEpoch;
     if (!background) loading.value = true;
     try {
       const value = await promise;
-      // Always write to cache so a later mount sees the value.
-      cache.set<T>(key, value, ttlMs);
-      if (myToken !== activeToken) return;
+      if (slotCurrent()) cache.set<T>(key, value, ttlMs); // only the latest fetch records
+      if (!consumerCurrent()) return;
+      // Another consumer superseded this slot with a newer fetch while ours was in
+      // flight (e.g. it called refresh() on the same key): our value is stale, so
+      // follow the current slot instead of applying it to this instance's refs.
+      if (!slotCurrent()) return followCurrentSlot(key, background);
       data.value = value;
       error.value = null;
       isStale.value = false;
     } catch (e) {
-      cache.endFetch(key);
-      if (myToken !== activeToken) return;
+      if (slotCurrent()) cache.endFetch(key);
+      if (!consumerCurrent()) return;
+      if (!slotCurrent()) return followCurrentSlot(key, background); // superseded: adopt the newer outcome
       error.value = e instanceof Error ? e : new Error(String(e));
     } finally {
-      cache.endFetch(key);
-      if (myToken === activeToken && !background) loading.value = false;
+      if (slotCurrent()) cache.endFetch(key);
+      if (consumerCurrent() && !background) loading.value = false;
     }
+  }
+
+  // A subscriber's shared pending was superseded by a newer fetch on the same slot.
+  // Adopt the newer outcome instead of the stale value: hydrate from the resolved
+  // cache entry if the newer fetch already completed, else re-subscribe to (or start)
+  // the current fetch. Never applies the stale value; never leaves loading stuck (the
+  // re-entered doFetch bumps fetchGeneration, so the caller's finally yields loading
+  // ownership to it).
+  async function followCurrentSlot(key: ResourceKey, background: boolean): Promise<void> {
+    const cur = cache.peek<T>(key);
+    if (cur && cur.fetchedAt !== 0 && !cur.pending) {
+      // The superseding fetch already resolved into the cache — adopt it, no refetch.
+      data.value = cur.value;
+      error.value = null;
+      isStale.value = cache.isStale(key);
+      return;
+    }
+    // Superseding fetch still in flight (or the slot was invalidated): follow/restart it.
+    return doFetch(key, false, background);
   }
 
   async function activate(key: ResourceKey | null): Promise<void> {
@@ -137,6 +187,9 @@ export function useResource<T>(
     const { hasEntry, value, fresh } = readFromCache(key);
     if (hasEntry) {
       // Cache hit (including legitimate cached null): serve it immediately.
+      // Take ownership of `loading`: a superseded foreground fetch on the previous
+      // key can no longer clear it (its activeToken is stale), so clear it here.
+      loading.value = false;
       data.value = value;
       isStale.value = !fresh;
       if (!fresh && staleWhileRevalidate) {
@@ -169,6 +222,8 @@ export function useResource<T>(
     }
     activeKey = null;
     activeToken = Symbol('resource');
+    // A foreground fetch invalidated by this abort can no longer clear `loading`.
+    loading.value = false;
   }
 
   // Initial activation + key-change watcher.

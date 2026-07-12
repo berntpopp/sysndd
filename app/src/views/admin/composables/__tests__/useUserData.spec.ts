@@ -157,5 +157,177 @@ describe('useUserData', () => {
     data.filter.value.user_name.content = 'alice';
     data.removeFilters();
     expect(data.filter.value.user_name.content).toBeNull();
+    // removeFilters() schedules a 50ms debounced load; dispose so its timer cannot
+    // fire inside a later test with a different axios mock / module state.
+    data.dispose();
+  });
+
+  // --- S5b request ownership -------------------------------------------------
+
+  it('an out-of-order stale response does not apply over the newer request', async () => {
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+    const p1 = data.loadDataNow(); // P1 (default params)
+    data.perPage.value = 50; // params change → P2 differs
+    const p2 = data.loadDataNow(); // P2 (latest)
+    // resolve the newer P2 first, then the stale P1 LAST
+    resolvers[1]({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 99 }] },
+    });
+    await p2;
+    await flushPromises();
+    resolvers[0]({ status: 200, data: userTablePayload }); // stale P1 (totalItems 2)
+    await p1;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(99); // P2 retained; stale P1 ignored
+  });
+
+  it('the 500ms cache never serves a response cached under different params', async () => {
+    const axios = await getAxiosMock();
+    axios.get.mockResolvedValueOnce({ status: 200, data: userTablePayload }); // P1: totalItems 2
+    const data = useUserData();
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(2);
+
+    data.perPage.value = 50; // params → P2
+    let resolveB!: (v: unknown) => void;
+    axios.get.mockImplementationOnce(() => new Promise((res) => (resolveB = res)));
+    const pB = data.loadDataNow(); // P2 in flight
+    data.totalRows.value = 999; // sentinel — a wrong cache-serve would overwrite this
+    await data.loadDataNow(); // 2nd identical P2 while pending
+    await Promise.resolve();
+    expect(data.totalRows.value).toBe(999); // must NOT serve P1's cached response for P2
+
+    resolveB({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 7 }] },
+    });
+    await pB;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(7); // the real P2 response applies
+  });
+
+  it('a response arriving after dispose() does not apply', async () => {
+    const axios = await getAxiosMock();
+    let resolve!: (v: unknown) => void;
+    axios.get.mockImplementation(() => new Promise((res) => (resolve = res)));
+    const data = useUserData();
+    const p = data.loadDataNow();
+    data.totalRows.value = 555; // sentinel
+    data.dispose(); // simulate unmount/navigation
+    resolve({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 42 }] },
+    });
+    await p;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(555); // disposed → late response ignored
+  });
+
+  it('a superseded same-param response completing last does not poison the recent cache', async () => {
+    // A1→B→A2 all in flight; A1 and A2 share params A. A2 (latest) completes first
+    // and caches fresh A; the stale A1 then completes LAST. A subsequent cache hit
+    // for A must serve A2's data, never the stale A1 (param-keying alone does not
+    // protect same-param out-of-order; the module write-sequence guard does).
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+
+    const pA1 = data.loadDataNow(); // A1 (default params) — resolvers[0]
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B (params B) — resolvers[1]
+    data.perPage.value = 25; // back to default params A
+    const pA2 = data.loadDataNow(); // A2 (params A again) — resolvers[2]
+
+    // A2 (latest) completes first → caches fresh A (totalItems 77).
+    resolvers[2]({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 77 }] },
+    });
+    await pA2;
+    await flushPromises();
+    // Stale A1 completes LAST (totalItems 2) — must NOT overwrite the cached A2.
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA1;
+    await flushPromises();
+
+    // Trigger a cache hit for params A: it must serve A2 (77), not the stale A1 (2).
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(77);
+
+    // let B settle so no timer/promise leaks into the next test
+    resolvers[1]({ status: 200, data: userTablePayload });
+    await pB;
+    await flushPromises();
+    data.dispose();
+  });
+
+  it('a stale same-param response resolving BEFORE the newer one does not populate the cache', async () => {
+    // A1→B→A2 (A1, A2 share params A). Here the STALE A1 resolves FIRST, while A2 is
+    // still pending. A1 is not the latest-started A fetch, so it must not write the
+    // recent-response cache — a cache-serve attempt in that window must not return A1.
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+
+    const pA1 = data.loadDataNow(); // A1 (default params) — resolvers[0]
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B (params B) — resolvers[1]
+    data.perPage.value = 25;
+    const pA2 = data.loadDataNow(); // A2 (params A again, latest A start) — resolvers[2]
+
+    // Stale A1 resolves FIRST (totalItems 2), while A2 is still pending.
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA1;
+    await flushPromises();
+
+    // Cache-serve attempt for params A must NOT return the stale A1 (cache empty here).
+    data.totalRows.value = 555; // sentinel — a wrong cache-serve would overwrite this
+    const pA3 = data.loadDataNow(); // resolvers[3]
+    await Promise.resolve();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(555); // stale A1 was not served from the cache
+
+    // Settle the remaining requests so nothing leaks into the next test.
+    resolvers[2]({ status: 200, data: userTablePayload });
+    resolvers[1]({ status: 200, data: userTablePayload });
+    resolvers[3]({ status: 200, data: userTablePayload });
+    await pA2;
+    await pB;
+    await pA3;
+    await flushPromises();
+    data.dispose();
+  });
+
+  it('A→B→cached-A does not leave isBusy stuck true', async () => {
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+    const pA = data.loadDataNow(); // A (default params) in flight
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B in flight
+    // stale A completes while B is pending → caches A's response
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA;
+    await flushPromises();
+    // switch back to A (served from the <500ms cache)
+    data.perPage.value = 25;
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.isBusy.value).toBe(false); // cache hit cleared busy; not stuck from B
+    // let B settle (superseded — must not resurrect busy)
+    resolvers[1]({ status: 200, data: userTablePayload });
+    await pB;
+    await flushPromises();
+    expect(data.isBusy.value).toBe(false);
+    data.dispose();
   });
 });

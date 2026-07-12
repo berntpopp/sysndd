@@ -22,16 +22,28 @@ export interface CacheEntry<T = unknown> {
   refCount: number; // active subscribers
   insertedAt: number; // first creation time (informational)
   lastAccessAt: number; // for true LRU eviction — touched on every read/write
+  // Monotonic per-key fetch epoch, bumped on every beginFetch() and preserved by
+  // set/endFetch/subscribe. Consumers of a shared slot capture the epoch when they
+  // start awaiting; a later beginFetch (a newer fetch replacing the slot) advances
+  // it, so a stale consumer knows not to apply an out-of-date result even though it
+  // shares one activeToken with the newer fetch (#535 S5b cross-consumer ownership).
+  epoch: number;
 }
 
 interface CacheState {
   // Plain object keyed by string. We keep insertion order via insertedAt for LRU.
   entries: Record<string, CacheEntry>;
+  // Globally-monotonic, never-reused fetch epoch allocator. Using a store-wide
+  // counter (rather than a per-key increment) means invalidate()/invalidatePrefix()
+  // — which delete an entry and let the next fetch recreate it — can never make a
+  // recreated slot's epoch collide with an in-flight older fetch's captured epoch.
+  epochCounter: number;
 }
 
 export const useCacheStore = defineStore('cache', {
   state: (): CacheState => ({
     entries: Object.create(null),
+    epochCounter: 0,
   }),
   actions: {
     peek<T>(key: string): CacheEntry<T> | null {
@@ -61,6 +73,7 @@ export const useCacheStore = defineStore('cache', {
         refCount: existing?.refCount ?? 0,
         insertedAt: existing?.insertedAt ?? now,
         lastAccessAt: now,
+        epoch: existing?.epoch ?? 0,
       };
       this.evictIfNeeded();
     },
@@ -77,6 +90,9 @@ export const useCacheStore = defineStore('cache', {
         refCount: existing?.refCount ?? 0,
         insertedAt: existing?.insertedAt ?? now,
         lastAccessAt: now,
+        // Allocate a fresh globally-unique epoch so a stale consumer of the previous
+        // pending promise (or of a since-invalidated slot) can detect supersession.
+        epoch: (this.epochCounter += 1),
       };
     },
 
@@ -101,6 +117,7 @@ export const useCacheStore = defineStore('cache', {
           refCount: 1,
           insertedAt: now,
           lastAccessAt: now,
+          epoch: 0,
         };
         return;
       }

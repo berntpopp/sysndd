@@ -1,14 +1,31 @@
-import { nextTick, ref } from 'vue';
+import { getCurrentInstance, nextTick, onBeforeUnmount, ref } from 'vue';
 
 import { getUserTable, getRoleList, listUsersByRole } from '@/api/user';
 import type { UserTableResponse } from '@/api/user';
 import { useTableData, useExcelExport, useFilterPresets, useUrlParsing } from '@/composables';
 
-// Module-level dedup cache (preserves the existing semantics from ManageUser.vue line 760).
+// Module-level TRANSPORT dedup + 500ms response cache (preserves the existing
+// cross-instance semantics from ManageUser.vue line 760). The cached response is
+// keyed by its own params (`moduleLastApiResponseParams`) so it is never served
+// for a request whose params differ (#535 S5b). Consumer-state ownership is
+// instance-local (see `instanceGeneration`), so one instance cannot suppress
+// another's response or leave its `isBusy` stuck.
 let moduleLastApiParams: string | null = null;
 let moduleLastApiCallTime = 0;
 let moduleApiCallInProgress = false;
 let moduleLastApiResponse: unknown = null;
+let moduleLastApiResponseParams: string | null = null;
+// Module-wide monotonic per-fetch-START sequence + the latest start sequence PER
+// PARAMETER KEY (#535 S5b). Param-keying alone does NOT make late-completion order
+// irrelevant: two SAME-param fetches (A1, A2) both write under params A, so a
+// superseded A1 completing in EITHER order could poison the fresher A2. A completing
+// fetch may write the recent-response cache only when it is still the latest-STARTED
+// fetch for its own params (`moduleLatestStartSeqByParam.get(params) === mySeq`), so
+// no out-of-order stale same-param response can poison the cache, while a still-latest
+// fetch for DIFFERENT params (A vs B) is unaffected. The map is module-level so it
+// stays monotonic across instances that share the module cache.
+let moduleFetchSeq = 0;
+const moduleLatestStartSeqByParam = new Map<string, number>();
 
 /** Reset the module-level cache — for use in tests only. */
 export function __resetUserDataCache(): void {
@@ -16,6 +33,9 @@ export function __resetUserDataCache(): void {
   moduleLastApiCallTime = 0;
   moduleApiCallInProgress = false;
   moduleLastApiResponse = null;
+  moduleLastApiResponseParams = null;
+  moduleFetchSeq = 0;
+  moduleLatestStartSeqByParam.clear();
 }
 
 export interface FilterEntry {
@@ -61,6 +81,25 @@ export function useUserData(options: UseUserDataOptions = {}) {
   const isInitializing = ref(true);
   let loadDataDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Instance-local request ownership (#535 S5b). Two orthogonal signals:
+  //  - `latestIntent` is the params string of the most recent load intent, set the
+  //    moment a load is requested (loadData schedule / loadDataNow). An in-flight
+  //    response applies only if its params still equal `latestIntent`, which closes
+  //    the 50ms debounce window (refs already describe P2 while P1 is in flight)
+  //    WITHOUT orphaning a deduped identical request (same params → same intent).
+  //  - `startGeneration` is bumped only when a fetch actually starts, so among
+  //    same-params requests only the latest-started may apply (true A-B-A: A#1, B,
+  //    A2 all in flight → only A2 wins). `disposed` stops any late continuation
+  //    from mutating a torn-down instance.
+  let startGeneration = 0;
+  let latestIntent: string | null = null;
+  let disposed = false;
+  // Independent per-loader generations for the static option lists (#535 S5b MEDIUM):
+  // an older loadRoleList()/loadUserList() completing last must not overwrite the
+  // newer snapshot.
+  let roleListGeneration = 0;
+  let userListGeneration = 0;
+
   const filter = ref<ManageUserFilter>({
     any: { content: null, join_char: null, operator: 'contains' },
     user_name: { content: null, join_char: null, operator: 'contains' },
@@ -74,14 +113,20 @@ export function useUserData(options: UseUserDataOptions = {}) {
     comment: { content: null, join_char: null, operator: 'contains' },
   });
 
-  function applyApiResponse(data: UserTableResponse): void {
+  function buildUrlParam(): string {
+    return `sort=${tableData.sort.value}&filter=${tableData.filter_string.value}&page_after=${tableData.currentItemID.value}&page_size=${tableData.perPage.value}`;
+  }
+
+  function applyApiResponse(data: UserTableResponse, stillOwner: () => boolean): void {
     // meta is typed `unknown` on the envelope; it's a 1-element array of paging
     // scalars (Plumber may serialize numbers as strings, hence Number()).
     const meta = ((data.meta as Array<Record<string, unknown>>) ?? [])[0] ?? {};
     users.value = data.data as unknown as Array<Record<string, unknown>>;
     tableData.totalRows.value = Number(meta.totalItems) || 0;
     nextTick(() => {
-      tableData.currentPage.value = Number(meta.currentPage) || 0;
+      // The deferred write must re-check ownership: a newer request or an unmount
+      // may have superseded this response between the sync apply and this tick.
+      if (stillOwner()) tableData.currentPage.value = Number(meta.currentPage) || 0;
     });
     totalPages.value = Number(meta.totalPages) || 0;
     tableData.prevItemID.value = Number(meta.prevItemID) || 0;
@@ -93,17 +138,52 @@ export function useUserData(options: UseUserDataOptions = {}) {
   }
 
   async function doLoadData(): Promise<void> {
-    const urlParam = `sort=${tableData.sort.value}&filter=${tableData.filter_string.value}&page_after=${tableData.currentItemID.value}&page_size=${tableData.perPage.value}`;
+    const urlParam = buildUrlParam();
     const now = Date.now();
-    if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-      if (moduleLastApiResponse) applyApiResponse(moduleLastApiResponse as UserTableResponse);
+
+    // Recent-response cache: serve only a NON-NULL response stored under THESE
+    // params, and only if this instance still wants them.
+    if (
+      moduleLastApiResponseParams === urlParam &&
+      moduleLastApiResponse != null &&
+      now - moduleLastApiCallTime < 500
+    ) {
+      if (!disposed && urlParam === latestIntent) {
+        // A current cache hit is a completed current intent: apply, sync the URL,
+        // and clear busy — otherwise a still-pending superseded request (A→B→cached-A)
+        // could leave isBusy stuck true forever.
+        applyApiResponse(
+          moduleLastApiResponse as UserTableResponse,
+          () => !disposed && urlParam === latestIntent
+        );
+        updateBrowserUrl();
+        tableData.isBusy.value = false;
+      }
       return;
     }
+    // Transport dedup: an identical request is already in flight. Do NOT bump the
+    // start generation here — the in-flight request is the same intent.
     if (moduleApiCallInProgress && moduleLastApiParams === urlParam) return;
+
+    // A real fetch starts now → own the start generation. `stillOwner` combines it
+    // with the params intent so it stays stable across applyApiResponse's own ref
+    // mutations (latestIntent only moves on a new loadData/loadDataNow call).
+    const myGen = ++startGeneration;
+    // Module-wide start order, recorded as the latest start for THIS param key so the
+    // recent-response cache write guard below only lets the latest-started same-param
+    // fetch record the cache.
+    const mySeq = ++moduleFetchSeq;
+    moduleLatestStartSeqByParam.set(urlParam, mySeq);
+    const stillOwner = (): boolean =>
+      !disposed && myGen === startGeneration && urlParam === latestIntent;
+
     moduleLastApiParams = urlParam;
     moduleLastApiCallTime = now;
     moduleApiCallInProgress = true;
-    tableData.isBusy.value = true;
+    // A fresh request invalidates any stored response until this one records its own.
+    moduleLastApiResponse = null;
+    moduleLastApiResponseParams = null;
+    if (stillOwner()) tableData.isBusy.value = true;
 
     try {
       const data = await getUserTable({
@@ -112,19 +192,32 @@ export function useUserData(options: UseUserDataOptions = {}) {
         page_after: tableData.currentItemID.value,
         page_size: String(tableData.perPage.value),
       });
+      // Transport bookkeeping: the completing fetch clears the in-flight flag. The
+      // recent-response cache is written only if this fetch is still the latest-STARTED
+      // fetch for its own params, so a superseded same-param response completing in ANY
+      // order cannot overwrite (or transiently repopulate) the fresher cached value.
       moduleApiCallInProgress = false;
-      moduleLastApiResponse = data;
-      applyApiResponse(data);
+      if (moduleLatestStartSeqByParam.get(urlParam) === mySeq) {
+        moduleLastApiResponse = data;
+        moduleLastApiResponseParams = urlParam;
+      }
+      // Consumer apply: only the latest-started request for the current intent.
+      if (!stillOwner()) return;
+      applyApiResponse(data, stillOwner);
       updateBrowserUrl();
     } catch (e) {
       moduleApiCallInProgress = false;
+      if (!stillOwner()) return;
       onToast?.(e, 'Error', 'danger');
     } finally {
-      tableData.isBusy.value = false;
+      if (stillOwner()) tableData.isBusy.value = false;
     }
   }
 
   function loadData(): void {
+    // Record the new intent immediately (before the debounce) so an in-flight
+    // response for the previous intent is superseded even during the 50ms window.
+    latestIntent = buildUrlParam();
     if (loadDataDebounceTimer) clearTimeout(loadDataDebounceTimer);
     loadDataDebounceTimer = setTimeout(() => {
       loadDataDebounceTimer = null;
@@ -134,30 +227,39 @@ export function useUserData(options: UseUserDataOptions = {}) {
 
   // Bypasses debounce for tests + first-paint
   async function loadDataNow(): Promise<void> {
+    latestIntent = buildUrlParam();
     return doLoadData();
   }
 
   async function loadRoleList(): Promise<void> {
+    const myGen = ++roleListGeneration;
+    const stillCurrent = (): boolean => !disposed && myGen === roleListGeneration;
     try {
       const roles = await getRoleList();
+      if (!stillCurrent()) return; // superseded by a newer load or a torn-down instance
       role_options.value = roles.map((item) => ({
         value: item.role,
         text: item.role,
       }));
     } catch (e) {
+      if (!stillCurrent()) return;
       onToast?.(e, 'Error', 'danger');
     }
   }
 
   async function loadUserList(): Promise<void> {
+    const myGen = ++userListGeneration;
+    const stillCurrent = (): boolean => !disposed && myGen === userListGeneration;
     try {
       const list = await listUsersByRole({ roles: 'Curator,Reviewer' });
+      if (!stillCurrent()) return; // superseded by a newer load or a torn-down instance
       user_options.value = list.map((item) => ({
         value: item.user_id,
         text: item.user_name,
         role: item.user_role,
       }));
     } catch (e) {
+      if (!stillCurrent()) return;
       onToast?.(e, 'Error', 'danger');
     }
   }
@@ -278,6 +380,21 @@ export function useUserData(options: UseUserDataOptions = {}) {
     });
   }
 
+  // Teardown: cancel a pending debounce and invalidate ownership so a late
+  // response cannot apply rows or call history.replaceState() after the view has
+  // unmounted/navigated away. Guarded so a bare composable call (unit tests) does
+  // not warn about a lifecycle hook registered outside a component setup.
+  function dispose(): void {
+    disposed = true;
+    if (loadDataDebounceTimer) {
+      clearTimeout(loadDataDebounceTimer);
+      loadDataDebounceTimer = null;
+    }
+  }
+  if (getCurrentInstance()) {
+    onBeforeUnmount(dispose);
+  }
+
   return {
     // table-data passthrough (so the view doesn't need to re-pull useTableData)
     ...tableData,
@@ -314,5 +431,7 @@ export function useUserData(options: UseUserDataOptions = {}) {
     savePresetModalOpen,
     confirmSavePreset,
     setInitialized,
+    // Teardown hook (auto-invoked on unmount when mounted; exposed for tests).
+    dispose,
   };
 }
