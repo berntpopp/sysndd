@@ -35,7 +35,7 @@
 #'
 #' @export
 svc_admin_ontology_update_async <- function(req, res, pool, dw,
-                                             duplicate_check_fn = check_duplicate_job,
+                                             duplicate_check_fn = check_active_job_by_type,
                                              create_job_fn = create_job) {
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%

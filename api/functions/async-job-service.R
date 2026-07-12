@@ -423,6 +423,37 @@ async_job_service_duplicate <- function(job_type, request_payload, conn = NULL) 
   )
 }
 
+#' Find an active job of a given type (job-type single-flight).
+#'
+#' @param job_type Character job type.
+#' @param conn Optional DB connection or pool.
+#' @return Tibble with zero or one active duplicate row of that job_type.
+#' @export
+async_job_service_find_active_by_type <- function(job_type, conn = NULL) {
+  job_type <- .async_job_service_non_empty_string(job_type, "job_type")
+  async_job_repository_find_active_by_type(job_type = job_type, conn = conn)
+}
+
+#' Job-type single-flight duplicate check (#535 S2b HIGH-4).
+#'
+#' Unlike `async_job_service_duplicate()` (which keys on the payload hash and so
+#' cannot dedupe across a payload-schema change), this dedupes on job_type alone
+#' so destructive full-table-replace maintenance jobs (hgnc/comparisons/omim)
+#' never run concurrently — including across the deploy that drops db_config
+#' from their payloads.
+#'
+#' @param job_type Character job type.
+#' @param conn Optional DB connection or pool.
+#' @return list(duplicate = FALSE) or list(duplicate = TRUE, existing_job_id = ...).
+#' @export
+async_job_service_duplicate_by_type <- function(job_type, conn = NULL) {
+  active <- async_job_service_find_active_by_type(job_type, conn = conn)
+  if (nrow(active) == 0) {
+    return(list(duplicate = FALSE))
+  }
+  list(duplicate = TRUE, existing_job_id = active$job_id[[1]])
+}
+
 #' Legacy cancellation wrapper for endpoints not migrated yet
 #'
 #' @inheritParams async_job_service_cancel

@@ -360,6 +360,10 @@ job_endpoint_maintenance_env <- function(needs_pool) {
   } else {
     env$dw <- list(dbname = "sysndd_db", host = "db", user = "sysndd", password = "s3cr3t", port = 3306L)
   }
+  # hgnc/comparisons now dedupe via job-type single-flight (#535 S2b HIGH-4);
+  # ontology_update still uses check_duplicate_job. Provide a no-duplicate
+  # default for both seams so per-test overrides only set the case they exercise.
+  env$async_job_service_duplicate_by_type <- function(...) list(duplicate = FALSE)
   env
 }
 
@@ -376,6 +380,7 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     env <- job_endpoint_maintenance_env(job_endpoint_spec$needs_pool)
     dup_id <- paste0("dup-", job_endpoint_spec$op)
     env$check_duplicate_job <- function(...) list(duplicate = TRUE, existing_job_id = dup_id)
+    env$async_job_service_duplicate_by_type <- function(...) list(duplicate = TRUE, existing_job_id = dup_id)
     res <- job_endpoint_fake_res()
 
     out <- env[[job_endpoint_spec$fn]](res)
@@ -422,27 +427,29 @@ test_that("ontology update: create_job error surfaces as 503 with Retry-After", 
   expect_equal(out$error, "CAPACITY_EXCEEDED")
 })
 
-# Credential-free hash guard: db_config/password must never reach
-# check_duplicate_job()'s hash input for either credentialed maintenance job.
-job_endpoint_credential_free_specs <- list(
+# Job-type single-flight (#535 S2b HIGH-4): the destructive maintenance submits
+# dedupe on job_type ALONE — no db_config/password/payload reaches the dedup
+# path — so a payload-schema change (dropping db_config) cannot open a
+# deploy-window where two concurrent full-table-replace jobs run.
+job_endpoint_single_flight_specs <- list(
   list(fn = "svc_job_submit_hgnc_update", op = "hgnc_update"),
   list(fn = "svc_job_submit_comparisons_update", op = "comparisons_update")
 )
 
-for (job_endpoint_spec in job_endpoint_credential_free_specs) {
-  test_that(paste(job_endpoint_spec$op, ": duplicate check is credential-free (no db_config/password)"), {
+for (job_endpoint_spec in job_endpoint_single_flight_specs) {
+  test_that(paste(job_endpoint_spec$op, ": dedupe is job-type single-flight (no credential/payload)"), {
     env <- job_endpoint_maintenance_env(needs_pool = FALSE)
     captured <- NULL
-    env$check_duplicate_job <- function(operation, params) {
-      captured <<- params
+    env$async_job_service_duplicate_by_type <- function(...) {
+      captured <<- list(...)
       list(duplicate = TRUE, existing_job_id = paste0("dup-", job_endpoint_spec$op))
     }
     res <- job_endpoint_fake_res()
 
     env[[job_endpoint_spec$fn]](res)
 
-    expect_equal(captured, list(operation = job_endpoint_spec$op))
-    expect_false("db_config" %in% names(captured))
+    # Only the job_type is passed to the dedup path (no params/credentials).
+    expect_equal(captured[[1]], job_endpoint_spec$op)
     expect_false(any(grepl("s3cr3t", unlist(captured), fixed = TRUE)))
   })
 }

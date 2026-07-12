@@ -130,10 +130,11 @@ svc_job_submit_hgnc_update <- function(res) {
     port     = dw$port
   )
 
-  # Check for duplicate running job
-  # Use a stable identifier (operation name only) — db_config contains credentials
-  # and should NOT be included in the hash or stored longer than necessary.
-  dup_check <- check_duplicate_job("hgnc_update", list(operation = "hgnc_update"))
+  # Job-type single-flight (#535 S2b HIGH-4): hgnc_update fully replaces
+  # non_alt_loci_set, so only one may run at a time. Dedupe on job_type alone
+  # (not a payload hash) so removing db_config from the payload cannot open a
+  # deploy-window where a pre-deploy job and a post-deploy submission coexist.
+  dup_check <- async_job_service_duplicate_by_type("hgnc_update")
   if (dup_check$duplicate) {
     res$status <- 409
     res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
@@ -319,10 +320,11 @@ svc_job_submit_comparisons_update <- function(res) {
     port     = dw$port
   )
 
-  # Check for duplicate running job
-  # Use a stable identifier (operation name only) — db_config contains credentials
-  # and should NOT be included in the hash or stored longer than necessary.
-  dup_check <- check_duplicate_job("comparisons_update", list(operation = "comparisons_update"))
+  # Job-type single-flight (#535 S2b HIGH-4): comparisons_update replaces
+  # ndd_database_comparison per-list, so only one may run at a time. Dedupe on
+  # job_type alone (not a payload hash) so removing db_config from the payload
+  # cannot open a deploy-window with two concurrent refreshes.
+  dup_check <- async_job_service_duplicate_by_type("comparisons_update")
   if (dup_check$duplicate) {
     res$status <- 409
     res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
