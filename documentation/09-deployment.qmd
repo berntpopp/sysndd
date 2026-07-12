@@ -159,15 +159,16 @@ The curator GeneReviews coverage feature (`/api/genereviews`, Curator+) resolves
 
 ### Public analysis snapshots
 
-The `log-cleanup` Compose service prunes old rows from the operational request log table (`logging`) on a daily schedule so the table does not grow unbounded. It reuses the API image (so it shares the `renv` dependencies, `RMariaDB`, and the existing connection-pool/config helpers) and connects over the internal `backend` network only — it needs the database but no outbound egress. The service runs a small no-root scheduler loop that invokes `api/scripts/delete_old_logs.R` once per day; the script delegates to the unit-tested helpers in `api/functions/log-cleanup.R`.
+The `log-cleanup` Compose service prunes old rows from the operational request log table (`logging`) on a daily schedule so the table does not grow unbounded. It reuses the API image (so it shares the `renv` dependencies, `RMariaDB`, and the existing connection-pool/config helpers) and connects over the internal `backend` network only — it needs the database but no outbound egress. The service runs a small no-root scheduler loop that invokes `api/scripts/delete_old_logs.R` and then `api/scripts/delete_old_jobs.R` once per day; the scripts delegate to the unit-tested helpers in `api/functions/log-cleanup.R` and `api/functions/async-job-retention.R`.
 
 Configuration (environment variables, with defaults):
 
 - `LOG_RETENTION_DAYS=30` — delete `logging` rows whose `timestamp` is older than this many days. Validated to a positive integer before it reaches SQL.
+- `ASYNC_JOB_RETENTION_DAYS=90` — delete **terminal, non-retryable** `async_jobs` rows (`status IN ('completed','failed','cancelled')` and `active_request_hash IS NULL`) older than this many days (by both `submitted_at` and `updated_at`), in batches; `async_job_events` cascades. `ASYNC_JOB_RETENTION_DRY_RUN=1` counts only.
 - `LOG_CLEANUP_AT=03:00` — daily run time, `HH:MM` in container (UTC) time.
 - `LOG_CLEANUP_DRY_RUN=false` — when truthy (`1`/`true`/`yes`/`on`), count and log the candidate rows but delete nothing. Use this to verify scope before enabling deletion.
 
-Only the high-volume `logging` table is pruned. Low-volume audit tables (for example `llm_generation_log`, `async_job_events`) are intentionally left alone; `async_job_events` already cascades from `async_jobs`. The script exits non-zero on failure and the scheduler logs and continues to the next cycle rather than crash-looping.
+The high-volume `logging` table and the terminal `async_jobs` history are pruned (the latter cascades to `async_job_events`). `llm_generation_log` is intentionally left alone (lower volume; it warrants its own explicit retention policy since it holds prompts/responses). The script exits non-zero on failure and the scheduler logs and continues to the next cycle rather than crash-looping.
 
 ### PubtatorNDD nightly refresh (`pubtatornidd-cron`)
 
