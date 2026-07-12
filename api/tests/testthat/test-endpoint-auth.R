@@ -140,6 +140,14 @@ extract_post_signup <- function(envir) {
   )
 }
 
+extract_post_authenticate <- function(envir) {
+  extract_plumber_handler(
+    auth_file_path(),
+    decorator_regex = "^#\\*\\s+@post\\s+authenticate\\s*$",
+    envir = envir
+  )
+}
+
 extract_put_password_update <- function(envir) {
   extract_plumber_handler(
     user_file_path(),
@@ -227,6 +235,32 @@ test_that("signup handler rejects non-scalar required field values", {
   expect_no_error(handler(req = nested_req, res = nested_res))
   expect_equal(nested_res$status, 400L)
   expect_match(nested_res$body, "single string value")
+})
+
+test_that("authenticate handler requires a JSON object with scalar credentials", {
+  skip_if_not_installed("jsonlite")
+  calls <- 0L
+  env <- make_signup_sandbox()
+  env$pool <- NULL
+  env$dw <- list()
+  env$auth_signin <- function(...) {
+    calls <<- calls + 1L
+    list(access_token = "unused")
+  }
+  handler <- extract_post_authenticate(env)
+
+  non_json_res <- make_mock_res()
+  handler(make_mock_req('{"user_name":"validuser","password":"validpass"}', "text/plain"), non_json_res)
+  expect_equal(non_json_res$status, 415L)
+
+  invalid_shape_res <- make_mock_res()
+  handler(make_mock_req('["validuser","validpass"]', "application/json"), invalid_shape_res)
+  expect_equal(invalid_shape_res$status, 400L)
+
+  vector_res <- make_mock_res()
+  handler(make_mock_req('{"user_name":["validuser","other"],"password":"validpass"}', "application/json"), vector_res)
+  expect_equal(vector_res$status, 400L)
+  expect_equal(calls, 0L)
 })
 
 test_that("password update handler only accepts JSON request bodies", {

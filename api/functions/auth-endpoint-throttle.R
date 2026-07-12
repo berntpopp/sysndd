@@ -8,8 +8,11 @@ AUTH_ENDPOINT_PER_CALLER_MAX <-
   per_caller_throttle_env_int("AUTH_ENDPOINT_PER_CALLER_MAX", 5L, 1L, max_value = 1000L)
 AUTH_ENDPOINT_WINDOW_SECONDS <-
   per_caller_throttle_env_int("AUTH_ENDPOINT_WINDOW_SECONDS", 60L, 5L, max_value = 86400L)
-AUTH_ENDPOINT_MAX_TRACKED <-
-  per_caller_throttle_env_int("AUTH_ENDPOINT_MAX_TRACKED", 20000L, 100L, max_value = 200000L)
+AUTH_ENDPOINT_MAX_ENTRIES <- 2000000L
+AUTH_ENDPOINT_MAX_TRACKED <- min(
+  per_caller_throttle_env_int("AUTH_ENDPOINT_MAX_TRACKED", 20000L, 100L, max_value = 200000L),
+  as.integer(AUTH_ENDPOINT_MAX_ENTRIES %/% AUTH_ENDPOINT_PER_CALLER_MAX)
+)
 AUTH_ENDPOINT_TRUSTED_PROXY_CIDRS <- per_caller_throttle_parse_trusted_cidrs(
   Sys.getenv("AUTH_ENDPOINT_TRUSTED_PROXY_CIDRS", ""),
   "AUTH_ENDPOINT_TRUSTED_PROXY_CIDRS"
@@ -41,7 +44,10 @@ auth_endpoint_admission_guard <- function(req, res) {
       )
     },
     rate_limit_message = "Too many authentication requests from your client. Please retry shortly.",
-    unavailable_message = "Authentication throttling is temporarily unavailable. Please retry shortly."
+    unavailable_message = "Authentication throttling is temporarily unavailable. Please retry shortly.",
+    on_error = function(error) {
+      per_caller_throttle_warn("Authentication throttle failed; request denied with 503.")
+    }
   )
 }
 

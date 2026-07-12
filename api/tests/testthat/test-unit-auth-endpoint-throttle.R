@@ -34,6 +34,7 @@ test_that("auth adapter blocks N plus one and leaves another caller independent"
 
 test_that("auth guard emits only a generic 429 and Retry-After", {
   auth_endpoint_rate_limit_reset()
+  on.exit(auth_endpoint_rate_limit_reset(), add = TRUE)
   request <- list(HTTP_X_FORWARDED_FOR = "203.0.113.8", postBody = '{"password":"not-returned"}')
   for (i in seq_len(AUTH_ENDPOINT_PER_CALLER_MAX)) {
     expect_true(auth_endpoint_admission_guard(request, auth_throttle_res())$admitted)
@@ -44,9 +45,53 @@ test_that("auth guard emits only a generic 429 and Retry-After", {
   expect_false(denied$admitted)
   expect_equal(res$status, 429L)
   expect_true(nzchar(res$headers[["Retry-After"]]))
+  expect_match(res$headers[["Retry-After"]], "^[1-9][0-9]*$")
+  expect_gt(denied$response$retry_after, 0L)
   expect_equal(denied$response$error, "RATE_LIMITED")
   expect_false(grepl("not-returned", paste(unlist(denied$response), collapse = " "), fixed = TRUE))
-  auth_endpoint_rate_limit_reset()
+})
+
+test_that("real auth guard keeps independent client fingerprints isolated", {
+  store <- new.env(parent = emptyenv())
+  guard <- function(req, res) {
+    per_caller_admission_guard(
+      req,
+      res,
+      rate_limit = function(fingerprint) {
+        auth_endpoint_rate_limit(
+          fingerprint,
+          now = 1000,
+          max_n = 1L,
+          window_s = 60L,
+          store = store,
+          max_tracked = 10L
+        )
+      },
+      rate_limit_message = "Too many authentication requests."
+    )
+  }
+
+  client_a <- list(HTTP_X_FORWARDED_FOR = "203.0.113.8")
+  client_b <- list(HTTP_X_FORWARDED_FOR = "203.0.113.9")
+  expect_true(guard(client_a, auth_throttle_res())$admitted)
+  expect_false(guard(client_a, auth_throttle_res())$admitted)
+  expect_true(guard(client_b, auth_throttle_res())$admitted)
+})
+
+test_that("auth policy caps the aggregate timestamp budget", {
+  configured <- new.env(parent = globalenv())
+  withr::with_envvar(c(
+    AUTH_ENDPOINT_PER_CALLER_MAX = "1000",
+    AUTH_ENDPOINT_MAX_TRACKED = "200000"
+  ), {
+    sys.source(file.path(auth_throttle_dir, "functions", "per-caller-throttle.R"), envir = configured)
+    sys.source(file.path(auth_throttle_dir, "functions", "auth-endpoint-throttle.R"), envir = configured)
+  })
+
+  expect_lte(
+    configured$AUTH_ENDPOINT_PER_CALLER_MAX * configured$AUTH_ENDPOINT_MAX_TRACKED,
+    configured$AUTH_ENDPOINT_MAX_ENTRIES
+  )
 })
 
 test_that("malformed auth configuration falls back and never trusts invalid CIDRs", {

@@ -4,6 +4,9 @@
 # mechanics shared by public endpoints: validated client fingerprints, a bounded
 # sliding-window store, and fail-closed response handling.
 
+PER_CALLER_THROTTLE_MAX_XFF_BYTES <- 4096L
+PER_CALLER_THROTTLE_MAX_XFF_HOPS <- 32L
+
 # Parse a bounded positive integer env var. Bad values fall back to a secure
 # default; callers use a minimum >= 1 for limits so configuration cannot disable
 # admission controls.
@@ -163,18 +166,22 @@ per_caller_throttle_ip_trusted <- function(family, canonical, trusted_cidrs) {
 #' Invalid header values are never accepted as keys; they fall back to REMOTE_ADDR
 #' and finally one shared unknown bucket.
 per_caller_throttle_fingerprint <- function(req, trusted_cidrs = character(0)) {
+  remote <- per_caller_throttle_normalize_ip(tryCatch(req$REMOTE_ADDR, error = function(e) NULL))
   xff <- tryCatch(req$HTTP_X_FORWARDED_FOR, error = function(e) NULL)
-  if (!is.null(xff) && length(xff) == 1L && nzchar(xff)) {
+  xff_valid <- !is.null(xff) && length(xff) == 1L && !is.na(xff) && nzchar(xff) &&
+    nchar(as.character(xff), type = "bytes") <= PER_CALLER_THROTTLE_MAX_XFF_BYTES
+  if (isTRUE(xff_valid)) {
     hops <- trimws(strsplit(as.character(xff), ",", fixed = TRUE)[[1]])
     hops <- hops[nzchar(hops)]
-    for (i in rev(seq_along(hops))) {
-      candidate <- per_caller_throttle_ip_classify(hops[[i]])
-      if (is.na(candidate$family)) next
-      if (per_caller_throttle_ip_trusted(candidate$family, candidate$canonical, trusted_cidrs)) next
-      return(candidate$key)
+    if (length(hops) <= PER_CALLER_THROTTLE_MAX_XFF_HOPS) {
+      for (i in rev(seq_along(hops))) {
+        candidate <- per_caller_throttle_ip_classify(hops[[i]])
+        if (is.na(candidate$family)) next
+        if (per_caller_throttle_ip_trusted(candidate$family, candidate$canonical, trusted_cidrs)) next
+        return(candidate$key)
+      }
     }
   }
-  remote <- per_caller_throttle_normalize_ip(tryCatch(req$REMOTE_ADDR, error = function(e) NULL))
   if (!is.na(remote)) return(remote)
   "unknown"
 }
@@ -260,6 +267,16 @@ per_caller_rate_limit_reset <- function(store) {
   ))
 }
 
+per_caller_throttle_warn <- function(message) {
+  try({
+    if (base::exists("log_warn", mode = "function")) {
+      logger <- base::get("log_warn", mode = "function")
+      logger(message)
+    }
+  }, silent = TRUE)
+  invisible(NULL)
+}
+
 #' Translate a limiter decision to a safe Plumber response.
 #'
 #' The limiter closure is injected so route-specific policies retain separate
@@ -272,8 +289,12 @@ per_caller_admission_guard <- function(
     fingerprint = per_caller_throttle_fingerprint,
     rate_limit_message,
     unavailable_message = "Submission throttling is temporarily unavailable. Please retry shortly.",
-    unavailable_retry_after = 5L) {
-  decision <- tryCatch(rate_limit(fingerprint(req)), error = function(e) NULL)
+    unavailable_retry_after = 5L,
+    on_error = NULL) {
+  decision <- tryCatch(rate_limit(fingerprint(req)), error = function(e) {
+    if (is.function(on_error)) try(on_error(e), silent = TRUE)
+    NULL
+  })
   valid <- is.list(decision) && length(decision$allowed) == 1L &&
     is.logical(decision$allowed) && !is.na(decision$allowed)
   if (!valid) return(.per_caller_throttle_unavailable(res, unavailable_retry_after, unavailable_message))

@@ -56,6 +56,21 @@ test_that("generic fingerprint takes the rightmost untrusted XFF hop", {
   )
 })
 
+test_that("oversized or excessive-hop XFF falls back before expensive parsing", {
+  remote <- "198.51.100.44"
+  oversized <- list(
+    HTTP_X_FORWARDED_FOR = paste(rep("203.0.113.8", 400L), collapse = ","),
+    REMOTE_ADDR = remote
+  )
+  excessive_hops <- list(
+    HTTP_X_FORWARDED_FOR = paste(rep("203.0.113.8", 33L), collapse = ","),
+    REMOTE_ADDR = remote
+  )
+
+  expect_equal(per_caller_throttle_fingerprint(oversized), remote)
+  expect_equal(per_caller_throttle_fingerprint(excessive_hops), remote)
+})
+
 test_that("generic limiter isolates callers and bounds a rotation flood", {
   store <- new.env(parent = emptyenv())
   for (i in 1:2) {
@@ -101,4 +116,27 @@ test_that("generic guard fails closed without leaking request fields", {
   expect_equal(res$status, 503L)
   expect_equal(res$headers[["Retry-After"]], "5")
   expect_false(grepl(secret, paste(unlist(denied$response), collapse = " "), fixed = TRUE))
+})
+
+test_that("generic guard invokes a safe error observer before failing closed", {
+  res <- new.env(parent = emptyenv())
+  res$status <- 200L
+  res$headers <- list()
+  res$setHeader <- function(name, value) res$headers[[name]] <- value
+  observed <- 0L
+
+  denied <- per_caller_admission_guard(
+    req = list(REMOTE_ADDR = "203.0.113.8"),
+    res = res,
+    rate_limit = function(...) stop("internal sentinel"),
+    rate_limit_message = "Too many requests.",
+    on_error = function(error) {
+      expect_s3_class(error, "error")
+      observed <<- observed + 1L
+    }
+  )
+
+  expect_equal(observed, 1L)
+  expect_false(denied$admitted)
+  expect_equal(res$status, 503L)
 })

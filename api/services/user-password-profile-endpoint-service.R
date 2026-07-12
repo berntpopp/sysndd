@@ -197,12 +197,27 @@ svc_user_profile_update <- function(req, res) {
 #' @param res Plumber response (mutated with the shared response status).
 #' @return List response body.
 svc_user_password_reset_request <- function(req, res) {
+  content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
+  if (media_type != "application/json") {
+    res$status <- 415L
+    return(list(error = "Content-Type must be application/json."))
+  }
+
   # Parse email from JSON body (OWASP: sensitive data should not be in URLs)
   body <- tryCatch(
-    jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
+    jsonlite::fromJSON(req$postBody, simplifyVector = FALSE),
+    error = function(e) NULL
   )
+  if (!is.list(body) || is.null(names(body))) {
+    res$status <- 400L
+    return(list(error = "Request body must be a JSON object."))
+  }
   email_request <- body$email %||% ""
+  if (!is.character(email_request) || length(email_request) != 1L || is.na(email_request)) {
+    res$status <- 400L
+    return(list(error = "Email must be a single string value."))
+  }
 
   user_table <- pool %>%
     tbl("user") %>%

@@ -37,7 +37,10 @@ async_job_submit_admission_guard <- function(req, res) {
     res = res,
     rate_limit = function(fingerprint) async_job_submit_rate_limit(fingerprint),
     fingerprint = async_job_submit_fingerprint,
-    rate_limit_message = "Too many analysis submissions from your client. Please retry shortly."
+    rate_limit_message = "Too many analysis submissions from your client. Please retry shortly.",
+    on_error = function(error) {
+      per_caller_throttle_warn("Clustering submit throttle failed; request denied with 503.")
+    }
   )
 }
 
