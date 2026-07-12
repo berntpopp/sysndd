@@ -15,16 +15,17 @@ let moduleLastApiCallTime = 0;
 let moduleApiCallInProgress = false;
 let moduleLastApiResponse: unknown = null;
 let moduleLastApiResponseParams: string | null = null;
-// Module-wide monotonic per-fetch-START sequence + the sequence of the fetch that
-// last wrote the recent-response cache (#535 S5b). Param-keying alone does NOT make
-// late-completion order irrelevant: two SAME-param fetches (A1, A2) both write under
-// params A, so a superseded A1 completing after A2 would overwrite the fresher A2 in
-// the cache. Only a fetch whose START sequence is >= the last cache writer's may
-// record the cache, so an out-of-order stale same-param response cannot poison it.
-// The sequence is module-level so it stays monotonic across instances that share the
-// module cache.
+// Module-wide monotonic per-fetch-START sequence + the latest start sequence PER
+// PARAMETER KEY (#535 S5b). Param-keying alone does NOT make late-completion order
+// irrelevant: two SAME-param fetches (A1, A2) both write under params A, so a
+// superseded A1 completing in EITHER order could poison the fresher A2. A completing
+// fetch may write the recent-response cache only when it is still the latest-STARTED
+// fetch for its own params (`moduleLatestStartSeqByParam.get(params) === mySeq`), so
+// no out-of-order stale same-param response can poison the cache, while a still-latest
+// fetch for DIFFERENT params (A vs B) is unaffected. The map is module-level so it
+// stays monotonic across instances that share the module cache.
 let moduleFetchSeq = 0;
-let moduleLastResponseSeq = 0;
+const moduleLatestStartSeqByParam = new Map<string, number>();
 
 /** Reset the module-level cache — for use in tests only. */
 export function __resetUserDataCache(): void {
@@ -34,7 +35,7 @@ export function __resetUserDataCache(): void {
   moduleLastApiResponse = null;
   moduleLastApiResponseParams = null;
   moduleFetchSeq = 0;
-  moduleLastResponseSeq = 0;
+  moduleLatestStartSeqByParam.clear();
 }
 
 export interface FilterEntry {
@@ -168,8 +169,11 @@ export function useUserData(options: UseUserDataOptions = {}) {
     // with the params intent so it stays stable across applyApiResponse's own ref
     // mutations (latestIntent only moves on a new loadData/loadDataNow call).
     const myGen = ++startGeneration;
-    // Module-wide start order for the recent-response cache write guard below.
+    // Module-wide start order, recorded as the latest start for THIS param key so the
+    // recent-response cache write guard below only lets the latest-started same-param
+    // fetch record the cache.
     const mySeq = ++moduleFetchSeq;
+    moduleLatestStartSeqByParam.set(urlParam, mySeq);
     const stillOwner = (): boolean =>
       !disposed && myGen === startGeneration && urlParam === latestIntent;
 
@@ -189,14 +193,13 @@ export function useUserData(options: UseUserDataOptions = {}) {
         page_size: String(tableData.perPage.value),
       });
       // Transport bookkeeping: the completing fetch clears the in-flight flag. The
-      // recent-response cache is written only when NO later-started fetch has already
-      // recorded one (`mySeq >= moduleLastResponseSeq`), so a superseded same-param
-      // response completing out of order cannot overwrite the fresher cached value.
+      // recent-response cache is written only if this fetch is still the latest-STARTED
+      // fetch for its own params, so a superseded same-param response completing in ANY
+      // order cannot overwrite (or transiently repopulate) the fresher cached value.
       moduleApiCallInProgress = false;
-      if (mySeq >= moduleLastResponseSeq) {
+      if (moduleLatestStartSeqByParam.get(urlParam) === mySeq) {
         moduleLastApiResponse = data;
         moduleLastApiResponseParams = urlParam;
-        moduleLastResponseSeq = mySeq;
       }
       // Consumer apply: only the latest-started request for the current intent.
       if (!stillOwner()) return;

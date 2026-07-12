@@ -268,6 +268,44 @@ describe('useUserData', () => {
     data.dispose();
   });
 
+  it('a stale same-param response resolving BEFORE the newer one does not populate the cache', async () => {
+    // A1→B→A2 (A1, A2 share params A). Here the STALE A1 resolves FIRST, while A2 is
+    // still pending. A1 is not the latest-started A fetch, so it must not write the
+    // recent-response cache — a cache-serve attempt in that window must not return A1.
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+
+    const pA1 = data.loadDataNow(); // A1 (default params) — resolvers[0]
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B (params B) — resolvers[1]
+    data.perPage.value = 25;
+    const pA2 = data.loadDataNow(); // A2 (params A again, latest A start) — resolvers[2]
+
+    // Stale A1 resolves FIRST (totalItems 2), while A2 is still pending.
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA1;
+    await flushPromises();
+
+    // Cache-serve attempt for params A must NOT return the stale A1 (cache empty here).
+    data.totalRows.value = 555; // sentinel — a wrong cache-serve would overwrite this
+    const pA3 = data.loadDataNow(); // resolvers[3]
+    await Promise.resolve();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(555); // stale A1 was not served from the cache
+
+    // Settle the remaining requests so nothing leaks into the next test.
+    resolvers[2]({ status: 200, data: userTablePayload });
+    resolvers[1]({ status: 200, data: userTablePayload });
+    resolvers[3]({ status: 200, data: userTablePayload });
+    await pA2;
+    await pB;
+    await pA3;
+    await flushPromises();
+    data.dispose();
+  });
+
   it('A→B→cached-A does not leave isBusy stuck true', async () => {
     const axios = await getAxiosMock();
     const resolvers: Array<(v: unknown) => void> = [];
