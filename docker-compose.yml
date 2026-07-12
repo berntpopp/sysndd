@@ -177,10 +177,15 @@ services:
       CACHE_VERSION: ${CACHE_VERSION:-3}
       # #535 S6: per-caller throttle on the public clustering submit routes. Compose
       # uses explicit env maps, so these must be passed through to be tunable via .env.
+      # ASYNC_PUBLIC_JOB_CAP is the global queue-depth backstop (invalid -> default 8).
+      ASYNC_PUBLIC_JOB_CAP: ${ASYNC_PUBLIC_JOB_CAP:-8}
       CLUSTERING_SUBMIT_PER_CALLER_MAX: ${CLUSTERING_SUBMIT_PER_CALLER_MAX:-5}
       CLUSTERING_SUBMIT_WINDOW_SECONDS: ${CLUSTERING_SUBMIT_WINDOW_SECONDS:-60}
-      CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS: ${CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS:-1}
       CLUSTERING_SUBMIT_MAX_TRACKED: ${CLUSTERING_SUBMIT_MAX_TRACKED:-20000}
+      # Trusted reverse-proxy source CIDRs (comma-separated). Empty for the shipped
+      # single-Traefik direct-edge topology; set to the front-proxy CIDR(s) ONLY when an
+      # additional trusted proxy sits in front of Traefik (see 09-deployment.qmd).
+      CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS: ${CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS:-}
       # OMIM download key for genemap2.txt (required for ontology/comparisons)
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
       # NDDScore release source; defaults match api/config.yml.

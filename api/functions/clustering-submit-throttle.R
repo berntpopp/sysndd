@@ -44,10 +44,21 @@ CLUSTERING_SUBMIT_PER_CALLER_MAX <-
 # at a day.
 CLUSTERING_SUBMIT_WINDOW_SECONDS <-
   .async_job_submit_env_int("CLUSTERING_SUBMIT_WINDOW_SECONDS", 60L, 5L, max_value = 86400L)
-# Number of trusted reverse-proxy hops in front of the API (Traefik = 1). Clamped to
-# a small ceiling so a misconfiguration cannot index far into client-supplied XFF.
-CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS <-
-  .async_job_submit_env_int("CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS", 1L, 1L, max_value = 8L)
+# Trusted reverse-proxy source CIDRs (comma-separated; IPv4 CIDR or exact IP). The
+# fingerprint walks X-Forwarded-For right-to-left and selects the first address NOT in
+# this set — the address our nearest proxy appended, which is non-spoofable. Empty
+# (the default, single-Traefik direct-edge topology) trusts nothing upstream, so the
+# rightmost (Traefik-appended) hop is used. Set it to the front-proxy CIDR(s) only when
+# an additional trusted proxy sits in front of Traefik.
+CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS <- local({
+  raw <- trimws(Sys.getenv("CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS", ""))
+  if (!nzchar(raw)) {
+    character(0)
+  } else {
+    parts <- trimws(strsplit(raw, ",", fixed = TRUE)[[1]])
+    parts[nzchar(parts)]
+  }
+})
 # Hard cap on distinct tracked fingerprints — bounds memory against X-Forwarded-For
 # rotation (each spoofed value would otherwise create a permanent 1-entry bucket).
 CLUSTERING_SUBMIT_MAX_TRACKED <-
@@ -121,38 +132,74 @@ CLUSTERING_SUBMIT_MAX_TRACKED <-
   NA_character_
 }
 
+# TRUE when `ip` (a validated dotted IPv4, or an exact string) is inside one of the
+# trusted-proxy `cidrs` (IPv4 `a.b.c.d/n`, or an exact IP for non-IPv4). Prefix compare
+# uses integer division on the 32-bit value (no bitwAnd -> no 2^31 overflow).
+.async_job_submit_ip_trusted <- function(ip, cidrs) {
+  if (length(cidrs) == 0L || is.null(ip) || is.na(ip) || !nzchar(ip)) {
+    return(FALSE)
+  }
+  ip_num <- .async_job_submit_ipv4_num(ip)
+  for (c in cidrs) {
+    if (grepl("/", c, fixed = TRUE)) {
+      seg <- strsplit(c, "/", fixed = TRUE)[[1]]
+      if (length(seg) != 2L || is.na(ip_num)) next
+      bits <- suppressWarnings(as.integer(seg[[2]]))
+      net <- .async_job_submit_ipv4_num(seg[[1]])
+      if (is.na(bits) || bits < 0L || bits > 32L || is.na(net)) next
+      shift <- 2^(32 - bits)
+      if (floor(ip_num / shift) == floor(net / shift)) {
+        return(TRUE)
+      }
+    } else if (identical(tolower(trimws(c)), tolower(ip))) {
+      return(TRUE)
+    }
+  }
+  FALSE
+}
+
+# Dotted IPv4 -> numeric (0..2^32-1), or NA for anything else (incl. IPv6).
+.async_job_submit_ipv4_num <- function(ip) {
+  m <- regmatches(ip, regexec("^([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})$", ip))[[1]]
+  if (length(m) != 5L) {
+    return(NA_real_)
+  }
+  o <- as.numeric(m[2:5])
+  if (any(o < 0 | o > 255)) {
+    return(NA_real_)
+  }
+  o[[1]] * 16777216 + o[[2]] * 65536 + o[[3]] * 256 + o[[4]]
+}
+
 #' Resolve the client fingerprint for submit throttling.
 #'
-#' Returns the client IP the TRUSTED reverse proxy appended to `X-Forwarded-For`:
-#' the entry `trusted_hops` positions from the RIGHT. The proxy appends the address
-#' of the peer it actually saw, so that hop is not spoofable; the leftmost XFF
-#' entries are client-supplied and an attacker could rotate them to evade the limit
-#' (or exhaust memory), so they are never trusted. The selected value must validate
-#' as an IP (`.async_job_submit_normalize_ip()`); a non-IP token (header-alias
-#' injection, junk) is discarded rather than trusted. Falls back to a validated
-#' `REMOTE_ADDR` (the proxy's own address in the Compose topology — coarse but
-#' unspoofable), then a constant. Never throws: crafted headers degrade to the
-#' `"unknown"` bucket, they cannot fail the request. Assumes exactly `trusted_hops`
-#' proxies front the API.
+#' Walks `X-Forwarded-For` RIGHT-TO-LEFT and returns the first address that is NOT a
+#' known trusted proxy (`CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS`). Our nearest proxy
+#' appends the address of the peer it actually saw at the RIGHT, so the first untrusted
+#' address from the right is the real client and is NOT spoofable: an attacker can put
+#' anything in the leftmost entries, but the rightmost hop it cannot forge is the peer
+#' our proxy observed. With the default empty trust set (single-Traefik direct edge)
+#' this is simply the rightmost hop. Each candidate must validate as an IP
+#' (`.async_job_submit_normalize_ip()`); non-IP tokens (header-alias injection, junk)
+#' are skipped. Falls back to a validated `REMOTE_ADDR`, then a constant. Never throws:
+#' crafted headers degrade to the `"unknown"` bucket, they cannot fail the request.
 #'
 #' @param req Plumber request object.
-#' @param trusted_hops Number of trusted proxies in front of the API (default env).
+#' @param trusted_cidrs Trusted reverse-proxy source CIDRs (default env).
 #' @return Character fingerprint (never empty).
 #' @export
 async_job_submit_fingerprint <- function(req,
-                                         trusted_hops = CLUSTERING_SUBMIT_TRUSTED_PROXY_HOPS) {
-  candidate <- NA_character_
+                                         trusted_cidrs = CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS) {
   xff <- tryCatch(req$HTTP_X_FORWARDED_FOR, error = function(e) NULL)
   if (!is.null(xff) && length(xff) == 1L && nzchar(xff)) {
     parts <- trimws(strsplit(as.character(xff), ",", fixed = TRUE)[[1]])
     parts <- parts[nzchar(parts)]
-    idx <- length(parts) - as.integer(trusted_hops) + 1L
-    if (length(parts) > 0L && !is.na(idx) && idx >= 1L && idx <= length(parts)) {
-      candidate <- .async_job_submit_normalize_ip(parts[[idx]])
+    for (i in rev(seq_along(parts))) {
+      ip <- .async_job_submit_normalize_ip(parts[[i]])
+      if (is.na(ip)) next                                   # non-IP token -> ignore
+      if (.async_job_submit_ip_trusted(ip, trusted_cidrs)) next  # our own proxy hop
+      return(ip)                                            # first untrusted from right
     }
-  }
-  if (!is.na(candidate)) {
-    return(candidate)
   }
   addr <- .async_job_submit_normalize_ip(tryCatch(req$REMOTE_ADDR, error = function(e) NULL))
   if (!is.na(addr)) {
@@ -164,22 +211,29 @@ async_job_submit_fingerprint <- function(req,
 # Reserved store keys (control-char prefix -> never a valid IP / "unknown", so they
 # cannot collide with a real fingerprint). The overflow bucket collectively throttles
 # brand-new callers once the store is saturated with ACTIVE callers; the sweep marker
-# time-gates the reclaim scan.
+# time-gates the reclaim scan; the count marker holds the O(1) tracked-bucket count.
 .CLUSTERING_SUBMIT_OVERFLOW_KEY <- "\001overflow"
 .CLUSTERING_SUBMIT_SWEEP_KEY <- "\001sweep_at"
+.CLUSTERING_SUBMIT_COUNT_KEY <- "\001count"
 
-# Number of tracked fingerprint buckets (excludes the sweep marker). Uses
-# `length(env)` — O(bindings), with no name sort or character-vector allocation
-# (unlike `ls()`), so it is cheap even under a rotation flood.
+# O(1) tracked-caller count (real fingerprints, EXCLUDING the shared overflow and the
+# reserved markers). Maintained on insert/reclaim so the hot path never scans the env.
 .async_job_submit_size <- function(store) {
-  n <- length(store)
-  if (base::exists(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)) n - 1L else n
+  if (base::exists(.CLUSTERING_SUBMIT_COUNT_KEY, envir = store, inherits = FALSE)) {
+    base::get(.CLUSTERING_SUBMIT_COUNT_KEY, envir = store, inherits = FALSE)
+  } else {
+    0L
+  }
+}
+
+.async_job_submit_size_add <- function(store, delta) {
+  assign(.CLUSTERING_SUBMIT_COUNT_KEY, .async_job_submit_size(store) + as.integer(delta), envir = store)
 }
 
 #' Reclaim store space by dropping ONLY fully-idle fingerprints (every timestamp aged
 #' out) — an active caller's window is never evicted. Sort-free (`names()`, not the
 #' sorting `ls()`), and time-gated to at most once per window so a rotation flood
-#' cannot force an O(n) scan on every request.
+#' cannot force an O(n) scan on every request. Keeps the O(1) counter in sync.
 .async_job_submit_reclaim <- function(store, cutoff, now, window_s) {
   sweep_at <- if (base::exists(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)) {
     base::get(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)
@@ -189,15 +243,22 @@ async_job_submit_fingerprint <- function(req,
   if ((now - sweep_at) < window_s) {
     return(invisible(NULL))
   }
-  keys <- names(store)
-  keys <- keys[keys != .CLUSTERING_SUBMIT_SWEEP_KEY]
+  reserved <- c(.CLUSTERING_SUBMIT_SWEEP_KEY, .CLUSTERING_SUBMIT_COUNT_KEY)
+  keys <- setdiff(names(store), reserved)
+  removed_real <- 0L
   for (k in keys) {
     ts <- base::get(k, envir = store, inherits = FALSE)
     if (length(ts) == 0L || max(ts) <= cutoff) {
       rm(list = k, envir = store)
+      if (!identical(k, .CLUSTERING_SUBMIT_OVERFLOW_KEY)) {
+        removed_real <- removed_real + 1L
+      }
     }
   }
   assign(.CLUSTERING_SUBMIT_SWEEP_KEY, now, envir = store)
+  if (removed_real > 0L) {
+    .async_job_submit_size_add(store, -removed_real)
+  }
   invisible(NULL)
 }
 
@@ -209,6 +270,8 @@ async_job_submit_fingerprint <- function(req,
 #' fingerprint is routed into a single shared overflow bucket (collectively throttled)
 #' rather than evicting a legitimate caller's window — so an attacker rotating
 #' X-Forwarded-For values can neither exhaust memory nor reset an innocent caller.
+#' Invalid `max_n`/`window_s` FAIL CLOSED (`stop()`): the admission guard maps the
+#' error to a 503, so an internal misconfiguration can never silently admit.
 #'
 #' @param fingerprint Caller fingerprint (see async_job_submit_fingerprint()).
 #' @param now Current epoch-seconds (injected for tests).
@@ -227,21 +290,23 @@ async_job_submit_rate_limit <- function(fingerprint,
   if (is.null(fingerprint) || length(fingerprint) != 1L || is.na(fingerprint) || !nzchar(fingerprint)) {
     fingerprint <- "unknown"
   }
-  # A non-positive/invalid cap or window disables the limiter (always allow). Not
-  # reachable via env (the parser floors MAX at 1); only an explicit code caller.
-  if (is.na(max_n) || max_n <= 0L || is.na(window_s) || window_s <= 0L) {
-    return(list(allowed = TRUE, retry_after = 0L, count = 0L))
+  # Invalid limiter parameters are an internal error, not a disable switch: fail CLOSED
+  # so the admission guard returns 503 THROTTLE_UNAVAILABLE rather than silently admit.
+  if (length(max_n) != 1L || !is.finite(max_n) || max_n < 1L ||
+        length(window_s) != 1L || !is.finite(window_s) || window_s < 1L) {
+    stop("clustering submit throttle misconfigured: max_n and window_s must be finite and >= 1")
   }
   cutoff <- now - window_s
+  is_new <- !base::exists(fingerprint, envir = store, inherits = FALSE)
   # Bound the store BEFORE recording a brand-new fingerprint.
-  if (!base::exists(fingerprint, envir = store, inherits = FALSE) &&
-        .async_job_submit_size(store) >= max_tracked) {
+  if (is_new && .async_job_submit_size(store) >= max_tracked) {
     .async_job_submit_reclaim(store, cutoff, now, window_s)
     if (.async_job_submit_size(store) >= max_tracked) {
       fingerprint <- .CLUSTERING_SUBMIT_OVERFLOW_KEY # saturated -> shared bucket
+      is_new <- !base::exists(fingerprint, envir = store, inherits = FALSE)
     }
   }
-  prev <- if (base::exists(fingerprint, envir = store, inherits = FALSE)) {
+  prev <- if (!is_new) {
     base::get(fingerprint, envir = store, inherits = FALSE)
   } else {
     numeric(0)
@@ -254,6 +319,10 @@ async_job_submit_rate_limit <- function(fingerprint,
     return(list(allowed = FALSE, retry_after = retry_after, count = length(recent)))
   }
   assign(fingerprint, c(recent, now), envir = store)
+  # Count only real distinct callers (never the shared overflow) toward the bound.
+  if (is_new && !identical(fingerprint, .CLUSTERING_SUBMIT_OVERFLOW_KEY)) {
+    .async_job_submit_size_add(store, 1L)
+  }
   list(allowed = TRUE, retry_after = 0L, count = length(recent) + 1L)
 }
 

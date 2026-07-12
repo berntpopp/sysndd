@@ -52,11 +52,13 @@ test_that("distinct fingerprints are throttled independently", {
   expect_true(async_job_submit_rate_limit("b", now = 1000, max_n = 3L, window_s = 60L, store = st)$allowed)
 })
 
-test_that("a non-positive cap disables the limiter", {
+test_that("invalid limiter params FAIL CLOSED (stop), never silently allow", {
   st <- new.env(parent = emptyenv())
-  for (i in 1:100) {
-    expect_true(async_job_submit_rate_limit("x", now = 1000, max_n = 0L, window_s = 60L, store = st)$allowed)
-  }
+  # An internal misconfiguration (max_n / window_s non-positive or non-finite) must
+  # raise, so the admission guard maps it to a fail-closed 503 rather than admitting.
+  expect_error(async_job_submit_rate_limit("x", now = 1000, max_n = 0L, window_s = 60L, store = st))
+  expect_error(async_job_submit_rate_limit("x", now = 1000, max_n = 5L, window_s = 0L, store = st))
+  expect_error(async_job_submit_rate_limit("x", now = 1000, max_n = NA_integer_, window_s = 60L, store = st))
 })
 
 test_that("empty/NULL fingerprint collapses to a single 'unknown' bucket", {
@@ -65,19 +67,31 @@ test_that("empty/NULL fingerprint collapses to a single 'unknown' bucket", {
   expect_false(async_job_submit_rate_limit("", now = 1000, max_n = 1L, window_s = 60L, store = st)$allowed)
 })
 
-test_that("fingerprint uses the proxy-appended (rightmost) XFF hop, not the spoofable first", {
-  # Traefik (1 trusted hop) appends the real client as the LAST entry; leftmost
-  # entries are client-supplied and must not be trusted.
+test_that("fingerprint uses the proxy-appended (rightmost) XFF hop by default, not the spoofable first", {
+  # Single-Traefik direct edge (empty trust set): Traefik appends the real client as
+  # the LAST entry; leftmost entries are client-supplied and must not be trusted.
   req <- list(HTTP_X_FORWARDED_FOR = "9.9.9.9, 10.0.0.1", REMOTE_ADDR = "172.18.0.5")
-  expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "10.0.0.1")
+  expect_equal(async_job_submit_fingerprint(req), "10.0.0.1")
   # A spoofed leftmost value cannot change the appended hop.
   spoof <- list(HTTP_X_FORWARDED_FOR = "1.1.1.1, 10.0.0.1")
-  expect_equal(async_job_submit_fingerprint(spoof, trusted_hops = 1L), "10.0.0.1")
-  # Real 2-proxy chain: the edge appends the real client, Traefik appends the edge.
-  # XFF = "<spoof>, <real-client>, <edge-ip>"; 2 trusted hops -> the real client
-  # (the entry the OUTERMOST trusted proxy appended = 2nd from the right).
-  req2 <- list(HTTP_X_FORWARDED_FOR = "1.1.1.1, 2.2.2.2, 3.3.3.3")
-  expect_equal(async_job_submit_fingerprint(req2, trusted_hops = 2L), "2.2.2.2")
+  expect_equal(async_job_submit_fingerprint(spoof), "10.0.0.1")
+})
+
+test_that("fingerprint walks past TRUSTED proxies and is unspoofable under a front proxy", {
+  # A front proxy (10.9.0.0/24) sits in front of Traefik. Real chain reaching us:
+  # "<real-client>, <front-proxy-ip>". Walk right-to-left, skip the trusted front
+  # proxy, select the real client.
+  cidrs <- "10.9.0.0/24"
+  legit <- list(HTTP_X_FORWARDED_FOR = "203.0.113.7, 10.9.0.5")
+  expect_equal(async_job_submit_fingerprint(legit, trusted_cidrs = cidrs), "203.0.113.7")
+  # A DIRECT attacker (bypassing the front proxy) hits Traefik and forges a
+  # trusted-CIDR IP on the left; Traefik appends the attacker's real peer at the
+  # right. The rightmost UNTRUSTED hop (the attacker) is selected -> not spoofable.
+  attack <- list(HTTP_X_FORWARDED_FOR = "203.0.113.7, 10.9.0.5, 198.51.100.66")
+  expect_equal(async_job_submit_fingerprint(attack, trusted_cidrs = cidrs), "198.51.100.66")
+  # If every hop is a trusted proxy, fall back to REMOTE_ADDR.
+  allproxy <- list(HTTP_X_FORWARDED_FOR = "10.9.0.5", REMOTE_ADDR = "172.18.0.5")
+  expect_equal(async_job_submit_fingerprint(allproxy, trusted_cidrs = cidrs), "172.18.0.5")
 })
 
 test_that("fingerprint falls back to REMOTE_ADDR, then 'unknown'", {
@@ -91,18 +105,18 @@ test_that("a non-IP XFF token is rejected and falls back to a server-owned sourc
   # junk in the selected hop must NOT become a throttle key: it would let an
   # attacker rotate arbitrary strings to evade the limit and exhaust the store.
   req <- list(HTTP_X_FORWARDED_FOR = "evil-rotating-value", REMOTE_ADDR = "172.18.0.5")
-  expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "172.18.0.5")
+  expect_equal(async_job_submit_fingerprint(req), "172.18.0.5")
   # No valid IP anywhere -> stable constant, never the attacker string.
   req2 <- list(HTTP_X_FORWARDED_FOR = "not an ip")
-  expect_equal(async_job_submit_fingerprint(req2, trusted_hops = 1L), "unknown")
+  expect_equal(async_job_submit_fingerprint(req2), "unknown")
   # Out-of-range octets are not a valid IPv4.
   req3 <- list(HTTP_X_FORWARDED_FOR = "999.1.1.1", REMOTE_ADDR = "10.0.0.9")
-  expect_equal(async_job_submit_fingerprint(req3, trusted_hops = 1L), "10.0.0.9")
+  expect_equal(async_job_submit_fingerprint(req3), "10.0.0.9")
 })
 
 test_that("an IPv4 host:port is normalized to the bare IP", {
   req <- list(HTTP_X_FORWARDED_FOR = "203.0.113.7:54321")
-  expect_equal(async_job_submit_fingerprint(req, trusted_hops = 1L), "203.0.113.7")
+  expect_equal(async_job_submit_fingerprint(req), "203.0.113.7")
 })
 
 test_that("IPv6 rotation within a /64 collapses to one throttle bucket", {
@@ -185,13 +199,14 @@ test_that("the store is bounded against fingerprint rotation (memory-DoS guard)"
     async_job_submit_rate_limit(sprintf("ip-%d", i), now = 1000,
       max_n = 3L, window_s = 60L, store = st, max_tracked = 10L)
   }
-  # Bounded: 10 tracked buckets + overflow + sweep marker, never 50.
-  expect_lte(length(ls(envir = st, all.names = TRUE)), 12L)
+  # Bounded: <= 10 tracked callers (the 50 rotated IPs collapsed into the shared
+  # overflow bucket), and total bindings never approach 50.
+  expect_lte(.async_job_submit_size(st), 10L)
   expect_lt(length(ls(envir = st, all.names = TRUE)), 50L)
   # After the window, a fresh caller reclaims the fully-expired buckets.
   async_job_submit_rate_limit("newcomer", now = 2000,
     max_n = 3L, window_s = 60L, store = st, max_tracked = 10L)
-  expect_lte(length(ls(envir = st, all.names = TRUE)), 12L)
+  expect_lte(.async_job_submit_size(st), 10L)
 })
 
 test_that("saturation routes new fingerprints to a shared overflow bucket, never evicting an active caller", {
