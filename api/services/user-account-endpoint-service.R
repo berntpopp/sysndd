@@ -65,7 +65,9 @@ svc_user_approval_apply <- function(req, res, user_table, user_id_approval, stat
   user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
   user_update_password(user_id_approval, hashed_password)
 
-  log_info("User approved: user_id={user_id_approval}, user_name={user_table$user_name}, by={req$user_id}")
+  # Sanitize the stored user_name before logging: a legacy row predating the
+  # signup control-char guard could otherwise forge log lines (#535 S8).
+  log_info("User approved: user_id={user_id_approval}, user_name={sanitize_log_value(user_table$user_name)}, by={req$user_id}")
 
   # Generate and send email with error handling
   email_result <- tryCatch({

@@ -200,3 +200,32 @@ test_that("re-review email escapes batch_info (latent injection sink)", {
   expect_false(grepl("<img src=x onerror", out, fixed = TRUE))
   expect_true(grepl("&lt;img", out, fixed = TRUE))
 })
+
+# --- Codex round-3 folds (#535 S8): central address validation + log sink -------
+
+test_that("send_noreply_email centrally rejects malformed recipient/bcc addresses", {
+  # Legacy / admin-edited rows predate the anchored signup validator; the transport
+  # choke point must reject SMTP recipient grammar, not just control characters.
+  expect_error(
+    send_noreply_email("b", "s", "<a@example.com> NOTIFY=SUCCESS"),
+    "recipient"
+  )
+  expect_error(
+    send_noreply_email("b", "s", "a@b.com", email_blind_copy = "<x@y.com> NOTIFY"),
+    "bcc"
+  )
+  # An empty-string bcc means "no blind copy" and must not error at the guard.
+  err <- tryCatch(
+    send_noreply_email("b", "s", "a@b.com", email_blind_copy = ""),
+    error = function(e) conditionMessage(e)
+  )
+  expect_false(grepl("bcc", err))
+})
+
+test_that("sanitize_log_value neutralizes control chars for log sinks", {
+  # A stored user_name from a pre-guard/legacy row must not forge log lines when
+  # interpolated into a log message.
+  expect_equal(sanitize_log_value("admin\n[FATAL] forged"), "admin [FATAL] forged")
+  expect_equal(sanitize_log_value("a\r\nb\tc"), "a  b c")
+  expect_equal(sanitize_log_value("normal user"), "normal user")
+})

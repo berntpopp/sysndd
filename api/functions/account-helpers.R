@@ -114,6 +114,24 @@ account_field_has_control_char <- function(x) {
 }
 
 
+#' Neutralize control characters before a value is logged
+#'
+#' @description
+#' Replaces any control character (CR, LF, tab, etc.) in \code{x} with a space so
+#' that a stored user-controlled value (e.g. a legacy \code{user_name} that
+#' predates the signup control-char guard) cannot forge log lines when it is
+#' interpolated into a log message.
+#'
+#' @param x A value (coerced to character) about to be logged.
+#'
+#' @return A character vector with control characters replaced by spaces.
+#'
+#' @export
+sanitize_log_value <- function(x) {
+  gsub("[[:cntrl:]]", " ", as.character(x))
+}
+
+
 #' This function generates initials for an avatar based on the provided
 #' first name and family name. The initials are created by taking the first
 #' character of each name.
@@ -192,35 +210,35 @@ send_noreply_email <- function(
   html_content = FALSE
 ) {
   # Defense-in-depth: this is the single choke point every outbound account email
-  # passes through. Reject CR/LF and other control characters in any address or
-  # the subject before handing them to smtp_send(). A control char in a `to`/`bcc`
-  # address or the Subject header enables SMTP header injection (e.g. an injected
-  # Bcc: or spoofed header). Upstream validation should already prevent this;
-  # failing loudly here guarantees no caller can bypass it. The BCC may legitimately
-  # be a character vector (the curator notification list), so each element is
-  # checked; the `to` recipient must be a single address.
-  reject_control_chars <- function(value, what) {
-    value <- as.character(value)
-    if (length(value) == 0L || any(is.na(value)) ||
-      any(grepl("[[:cntrl:]]", value))) {
-      stop(
-        sprintf(
-          "send_noreply_email: %s contains disallowed control characters",
-          what
-        ),
-        call. = FALSE
-      )
-    }
-    invisible(value)
+  # passes through, so validate the transport headers here before smtp_send().
+  # is_valid_email() is scalar-only, NA-safe, control-char-free and anchored, so
+  # it rejects both SMTP header injection (CR/LF) AND SMTP recipient grammar such
+  # as `<a@b.com> NOTIFY=SUCCESS` that a legacy/admin-edited row (predating the
+  # anchored signup validator) could otherwise smuggle to the transport. The
+  # subject is not an address, so it is only checked for control characters.
+  if (!is_valid_email(email_recipient)) {
+    stop("send_noreply_email: recipient is not a valid email address",
+      call. = FALSE)
   }
-  if (length(as.character(email_recipient)) != 1L) {
-    stop("send_noreply_email: recipient must be a single address", call. = FALSE)
+  if (length(as.character(email_subject)) != 1L || is.na(email_subject) ||
+    grepl("[[:cntrl:]]", as.character(email_subject))) {
+    stop("send_noreply_email: subject contains disallowed control characters",
+      call. = FALSE)
   }
-  reject_control_chars(email_recipient, "recipient")
-  reject_control_chars(email_subject, "subject")
-  # BCC is optional: only validate (and later attach) it when a caller opts in.
+  # BCC is optional and may be a character vector (the curator notification list).
+  # Drop empty entries (an empty string means "no blind copy"); validate the rest.
   if (!is.null(email_blind_copy)) {
-    reject_control_chars(email_blind_copy, "bcc")
+    bcc <- as.character(email_blind_copy)
+    bcc <- bcc[nzchar(trimws(bcc))]
+    if (length(bcc) > 0L) {
+      if (!all(vapply(bcc, is_valid_email, logical(1)))) {
+        stop("send_noreply_email: bcc contains an invalid email address",
+          call. = FALSE)
+      }
+      email_blind_copy <- bcc
+    } else {
+      email_blind_copy <- NULL
+    }
   }
 
   if (html_content) {
