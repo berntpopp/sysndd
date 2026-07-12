@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.10] — 2026-07-12
+
+Security hardening (#535), wave 2 — the remaining frontend and API hardening slices from the adversarial repository audit. Each slice received a fresh multi-round adversarial diff review (which surfaced real credential-leak and request-ownership defects beyond the original scope), and the per-caller clustering-submit throttle was verified live against the running stack (independent per-client `X-Forwarded-For` fingerprint, non-spoofable rightmost trusted-proxy hop, `429` + `Retry-After`). Umbrella #535 remains open (design-only slices S1b and S3 are still pending human decisions).
+
+### Security
+
+- Admission-throttle the public clustering submit routes (`/api/jobs/clustering/submit`, `/api/jobs/phenotype_clustering/submit`): each caller — identified by a non-spoofable client fingerprint taken from the rightmost trusted-proxy `X-Forwarded-For` hop — is limited to a configurable number of submits per sliding window, returning `429` with `Retry-After` beyond it. The admission check runs first (a cache hit can no longer bypass the limit), the tracking store is bounded against a fingerprint-rotation memory DoS, the shared guard fails closed, and Traefik strips client-supplied `X-Forwarded-For` underscore aliases so the fingerprint cannot be spoofed (#547, #535 S6).
+- Keep credentials out of account emails: stop blind-copying password-reset links and plaintext temporary passwords to no-reply/curator mailboxes, generate temporary passwords with a bias-free CSPRNG, and HTML-escape every user-controlled field rendered into account-email HTML; additionally reject control characters in account fields and tighten email-address validation against header/log injection (#545, #535 S8).
+
+### Fixed
+
+- Request/response ownership for the in-house SWR and polling composables (`useResource`, `useAsyncJob`, `useUserData`, `useMetadataAdmin`): a stale, out-of-order, superseded, or cancelled async response can no longer overwrite a newer result or write into the wrong cache slot, closing per-slot and same-parameter cache-poisoning races during rapid navigation, filtering, and polling (#544, #535 S5b).
+
+### Added
+
+- Retention prune of terminal `async_jobs` rows via a fully-parameterized, batched, lock-safe delete wired into the log-cleanup sidecar (runs before the legacy log prune). It deletes only terminal, non-retryable rows (`active_request_hash IS NULL`) older than both age gates, fails closed on zero/negative/malformed/unset retention windows (default 90 days), and clamps batch size (≤1000) and lock-wait (≤30s) so a misconfiguration cannot widen the blast radius (#548, #535 S7).
+
 ## [0.29.9] — 2026-07-12
 
 Security hardening (#535) — remediation of an adversarial repository audit. This release closes credential-exposure, authorization, and token-revocation gaps and hardens the production build and database restore. Verified end-to-end against the running stack (endpoint authorization, live token-refresh revocation, durable-job payload credential-safety, and job-type single-flight) plus an independent adversarial security review.
