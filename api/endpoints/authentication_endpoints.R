@@ -102,6 +102,16 @@ function(req, res) {
     return(res)
   }
 
+  # Gate the email through the hardened, anchored validator (not the permissive
+  # `.+@.+\\..+` shape used below): SMTP recipient grammar such as
+  # `<a@example.com> NOTIFY=SUCCESS` must not create an account whose approval
+  # credentials are then handed to smtp_send() as a malformed/injectable address.
+  if (!is_valid_email(signup_body[["email"]])) {
+    res$status <- 400
+    res$body <- "Malformed JSON body: invalid email address."
+    return(res)
+  }
+
   user <- tibble::as_tibble(signup_body) %>%
     dplyr::mutate(
       terms_agreed = dplyr::case_when(

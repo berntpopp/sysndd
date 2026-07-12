@@ -166,8 +166,11 @@ generate_initials <- function(first_name, family_name) {
 #' @param email_subject A character string representing the subject of the email.
 #' @param email_recipient A character string representing the recipient's email
 #'   address.
-#' @param email_blind_copy A character string representing the blind copy
-#'   recipient's email address, with a default value of "noreply@sysndd.org".
+#' @param email_blind_copy Optional blind-copy recipient address(es). Defaults to
+#'   NULL (NO blind copy). Credential/token emails (account approval, password
+#'   reset) must NOT be blind-copied to a shared mailbox, so callers that need a
+#'   curator notification pass an explicit non-secret address; everything else
+#'   goes only to the recipient.
 #' @param html_content Logical. If TRUE, email_body is treated as complete HTML.
 #'   If FALSE (default), email_body is treated as markdown/plain text.
 #'
@@ -185,7 +188,7 @@ send_noreply_email <- function(
   email_body,
   email_subject,
   email_recipient,
-  email_blind_copy = "noreply@sysndd.org",
+  email_blind_copy = NULL,
   html_content = FALSE
 ) {
   # Defense-in-depth: this is the single choke point every outbound account email
@@ -193,8 +196,9 @@ send_noreply_email <- function(
   # the subject before handing them to smtp_send(). A control char in a `to`/`bcc`
   # address or the Subject header enables SMTP header injection (e.g. an injected
   # Bcc: or spoofed header). Upstream validation should already prevent this;
-  # failing loudly here guarantees no caller can bypass it. Addresses may be a
-  # character vector (e.g. the curator BCC list), so each element is checked.
+  # failing loudly here guarantees no caller can bypass it. The BCC may legitimately
+  # be a character vector (the curator notification list), so each element is
+  # checked; the `to` recipient must be a single address.
   reject_control_chars <- function(value, what) {
     value <- as.character(value)
     if (length(value) == 0L || any(is.na(value)) ||
@@ -209,9 +213,15 @@ send_noreply_email <- function(
     }
     invisible(value)
   }
+  if (length(as.character(email_recipient)) != 1L) {
+    stop("send_noreply_email: recipient must be a single address", call. = FALSE)
+  }
   reject_control_chars(email_recipient, "recipient")
   reject_control_chars(email_subject, "subject")
-  reject_control_chars(email_blind_copy, "bcc")
+  # BCC is optional: only validate (and later attach) it when a caller opts in.
+  if (!is.null(email_blind_copy)) {
+    reject_control_chars(email_blind_copy, "bcc")
+  }
 
   if (html_content) {
     # Use full HTML content directly (from email-templates.R)

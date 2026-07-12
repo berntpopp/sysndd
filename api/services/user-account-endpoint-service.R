@@ -75,11 +75,13 @@ svc_user_approval_apply <- function(req, res, user_table, user_id_approval, stat
       login_url = paste0(dw$base_url, "/Login")
     )
 
+    # The approval email carries the temporary password; deliver it to the USER
+    # ONLY. BCCing it to the shared curator mailbox would let any reader there
+    # sign in as the newly approved user (#535 S8).
     send_noreply_email(
       email_body = email_html,
       email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
       email_recipient = user_table$email,
-      email_blind_copy = "curator@sysndd.org",
       html_content = TRUE
     )
 
@@ -272,11 +274,12 @@ svc_user_update_details <- function(req, res) {
           login_url = paste0(dw$base_url, "/Login")
         )
 
+        # Temporary-password email goes to the USER ONLY (never BCC the shared
+        # curator mailbox with a credential — see #535 S8).
         send_noreply_email(
           email_body = email_html,
           email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
           email_recipient = user_table$email,
-          email_blind_copy = "curator@sysndd.org",
           html_content = TRUE
         )
       }

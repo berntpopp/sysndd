@@ -315,12 +315,15 @@ email_rereview_request <- function(user_info, batch_info = NULL) {
   email_e <- email_escape(user_info$email)
   orcid_e <- email_escape(user_info$orcid)
   orcid_attr_e <- email_escape_attr(user_info$orcid)
+  # batch_info is optional free text; escape it so a future caller cannot inject
+  # markup into the email body (latent same-class sink — no current caller).
+  batch_info_e <- email_escape(batch_info)
 
   batch_section <- if (!is.null(batch_info)) {
     glue::glue('
 <div class="info-box" style="background-color: #e3f2fd; border-left: 4px solid {SYSNDD_PRIMARY}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
   <p style="margin: 0 0 8px 0; color: {SYSNDD_TEXT}; font-size: 14px;"><strong>Batch Details:</strong></p>
-  <p style="margin: 0; color: {SYSNDD_TEXT}; font-size: 14px;">{batch_info}</p>
+  <p style="margin: 0; color: {SYSNDD_TEXT}; font-size: 14px;">{batch_info_e}</p>
 </div>
 ', .open = "{", .close = "}")
   } else {

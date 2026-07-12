@@ -136,3 +136,67 @@ test_that("greeting templates tolerate NA/empty/vector user_name without error",
   out2 <- email_notification("Subj", "<p>hi</p>", "Ada")
   expect_true(grepl("Ada", out2, fixed = TRUE))
 })
+
+# --- Codex round-2 folds (#535 S8): credential/token BCC leaks + strict address ---
+
+test_that("send_noreply_email does not blind-copy by default (token/credential leak)", {
+  # BLOCKER: the password-reset send relies on the default BCC. A non-NULL default
+  # blind-copies the bearer reset URL to a shared mailbox -> account takeover. The
+  # default must be NULL so no credential/token email is BCCed unless a caller
+  # explicitly opts in (curator notifications still pass an explicit address).
+  expect_null(formals(send_noreply_email)$email_blind_copy)
+})
+
+test_that("send_noreply_email permits a NULL bcc (guard does not reject it)", {
+  # A NULL bcc must pass the control-char guard; the call then fails later on the
+  # absent SMTP stack in this pure env, NOT at the bcc guard.
+  err <- tryCatch(
+    send_noreply_email("body", "Subject", "a@b.com", email_blind_copy = NULL),
+    error = function(e) conditionMessage(e)
+  )
+  expect_false(grepl("bcc", err))
+})
+
+test_that("send_noreply_email requires a scalar recipient", {
+  expect_error(
+    send_noreply_email("body", "Subject", c("a@b.com", "c@d.com")),
+    "recipient"
+  )
+})
+
+test_that("is_valid_email rejects SMTP recipient-grammar / space-bearing values", {
+  # Signup used a permissive .+@.+\\..+ regex; structured values reach SMTP
+  # recipient grammar (libcurl accepts post-address DSN params). Reject them.
+  expect_false(is_valid_email("<a@example.com> NOTIFY=SUCCESS"))
+  expect_false(is_valid_email("a@example.com NOTIFY=SUCCESS"))
+  expect_false(is_valid_email("a@b .com"))
+  expect_false(is_valid_email("a b@example.com"))
+  expect_true(is_valid_email("a@example.com"))
+})
+
+test_that("credential/approval emails are never BCCed to the shared curator mailbox", {
+  # HIGH: email_account_approved embeds the temp password; BCCing it to the shared
+  # curator mailbox lets any reader impersonate the newly approved user. Both of
+  # these services send ONLY that credential email, so neither may reference the
+  # curator BCC address at all.
+  for (rel in c(
+    file.path("services", "user-account-endpoint-service.R"),
+    file.path("services", "user-service.R")
+  )) {
+    p <- file.path(api_dir, rel)
+    if (!file.exists(p)) {
+      skip(paste("source not present in this harness:", rel))
+    }
+    src <- paste(readLines(p, warn = FALSE), collapse = "\n")
+    expect_false(grepl("curator@sysndd.org", src, fixed = TRUE), info = rel)
+  }
+})
+
+test_that("re-review email escapes batch_info (latent injection sink)", {
+  out <- email_rereview_request(
+    list(user_name = "u", email = "a@b.c", orcid = "0000-0001-2345-6789"),
+    batch_info = "<img src=x onerror=alert(1)>"
+  )
+  expect_false(grepl("<img src=x onerror", out, fixed = TRUE))
+  expect_true(grepl("&lt;img", out, fixed = TRUE))
+})
