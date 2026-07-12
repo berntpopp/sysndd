@@ -134,13 +134,52 @@ test_that("create_job and production source have no dead executor or timeout API
     1L
   )
 
-  source_files <- list.files(
-    get_api_dir(),
-    pattern = "\\.R$",
-    recursive = TRUE,
-    full.names = TRUE
+  repository_production_source_files <- function(api_dir) {
+    production_dirs <- file.path(
+      api_dir,
+      c("bootstrap", "core", "endpoints", "functions", "scripts", "services")
+    )
+    production_dirs <- production_dirs[dir.exists(production_dirs)]
+    nested_sources <- unlist(lapply(production_dirs, function(source_dir) {
+      list.files(
+        source_dir,
+        pattern = "\\.R$",
+        recursive = TRUE,
+        full.names = TRUE
+      )
+    }))
+    top_level_sources <- list.files(
+      api_dir,
+      pattern = "\\.R$",
+      recursive = FALSE,
+      full.names = TRUE
+    )
+    sort(unique(c(top_level_sources, nested_sources)))
+  }
+
+  fixture_root <- withr::local_tempdir()
+  dir.create(file.path(fixture_root, "functions"), recursive = TRUE)
+  dir.create(file.path(fixture_root, "renv", "library", "Dependency", "R"), recursive = TRUE)
+  production_offender <- file.path(fixture_root, "functions", "offender.R")
+  dependency_template <- file.path(
+    fixture_root, "renv", "library", "Dependency", "R", "get@PKGNAME@.R"
   )
-  source_files <- source_files[!grepl("/tests/", source_files, fixed = TRUE)]
+  writeLines("create_job('x', list(), NULL)", production_offender)
+  writeLines(".onLoad <- function(...) @PKGNAME@", dependency_template)
+
+  fixture_sources <- repository_production_source_files(fixture_root)
+  expect_contains(fixture_sources, production_offender)
+  expect_false(dependency_template %in% fixture_sources)
+  offender_expression <- parse(production_offender, keep.source = FALSE)
+  expect_length(
+    collect_invalid_create_job_arity(
+      offender_expression,
+      alias_names = collect_create_job_aliases(offender_expression)
+    ),
+    1L
+  )
+
+  source_files <- repository_production_source_files(get_api_dir())
   offenders <- unlist(lapply(source_files, function(source_file) {
     paste(
       source_file,
