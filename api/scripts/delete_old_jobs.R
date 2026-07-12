@@ -50,15 +50,15 @@ main <- function() {
 
   assign("pool", pool, envir = .GlobalEnv)
 
-  count_fn <- function(sql) {
-    res <- db_execute_query(sql)
+  count_fn <- function(sql, params = list()) {
+    res <- db_execute_query(sql, params)
     if (is.data.frame(res) && nrow(res) >= 1L && "n" %in% names(res)) {
       return(as.integer(res$n[[1]]))
     }
     0L
   }
-  execute_fn <- function(sql) {
-    as.integer(db_execute_statement(sql))
+  execute_fn <- function(sql, params = list()) {
+    as.integer(db_execute_statement(sql, params))
   }
 
   run_async_job_retention(

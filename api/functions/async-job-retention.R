@@ -15,6 +15,13 @@
 #### never deletes a job that is queued, running, cancel-requested, or retry-pending.
 #### Deleting parent rows cascades to `async_job_events`.
 ####
+#### SQL SAFETY: the WHERE clause is a FIXED literal template; the retention window
+#### and batch size are passed as BOUND parameters (`TIMESTAMPADD(DAY, ?, ...)` and
+#### `LIMIT ?`), so no value is ever interpolated into the statement. They are also
+#### independently range/type-validated via validate_retention_days() (defense in
+#### depth: a 0 / negative / unset window fails closed to the default, never
+#### "delete everything"). Verified end-to-end against a live MySQL/RMariaDB DB.
+####
 #### Depends on validate_retention_days() from functions/log-cleanup.R (sourced
 #### before this file by the entrypoint script and the tests).
 
@@ -33,55 +40,62 @@ ASYNC_JOB_RETENTION_BATCH_SIZE <- 1000L
 #' pruned per run; any remainder is left for the next daily run.
 ASYNC_JOB_RETENTION_MAX_BATCHES <- 1000L
 
-#' The terminal + non-retryable predicate shared by the count and delete builders.
-#' Age is gated on BOTH submitted_at (indexed, prunes the bulk) AND updated_at (the
-#' last state change — i.e. when the row became/stayed terminal), so a job that was
-#' submitted long ago but only just completed is not deleted immediately after its
-#' terminal write. `%1$d` interpolates the one validated retention-day integer.
-.async_job_retention_predicate <- paste(
+#' Wall-clock ceiling (seconds) for one invocation's batch loop. Complements the
+#' batch cap: whichever bound trips first stops the run and leaves the remainder
+#' for the next daily run, so the destructive loop can never run unbounded.
+ASYNC_JOB_RETENTION_MAX_SECONDS <- 600L
+
+#' The terminal + non-retryable WHERE clause shared by the count and delete
+#' builders, as a PARAMETERIZED template. Age is gated on BOTH submitted_at
+#' (indexed, prunes the bulk) AND updated_at (the last state change — i.e. when
+#' the row became/stayed terminal), so a job submitted long ago but only just
+#' completed is not deleted immediately after its terminal write. The two `?`
+#' placeholders bind the (negative) retention-day offset for TIMESTAMPADD.
+.async_job_retention_where <- paste(
   "status IN ('completed', 'failed', 'cancelled')",
   "AND active_request_hash IS NULL",
-  "AND submitted_at < (NOW() - INTERVAL %1$d DAY)",
-  "AND updated_at < (NOW() - INTERVAL %1$d DAY)"
+  "AND submitted_at < TIMESTAMPADD(DAY, ?, CURRENT_TIMESTAMP(6))",
+  "AND updated_at < TIMESTAMPADD(DAY, ?, CURRENT_TIMESTAMP(6))"
 )
 
-#' Build the COUNT(*) query for prunable terminal jobs.
+#' Build the parameterized COUNT(*) query for prunable terminal jobs.
 #'
 #' @param retention_days Validated positive integer day count.
-#' @return A single SQL string.
+#' @return A list `{sql, params}` for `db_execute_query()`.
 #' @export
 build_async_job_retention_count_sql <- function(retention_days = ASYNC_JOB_RETENTION_DEFAULT_DAYS) {
   retention_days <- validate_retention_days(retention_days, ASYNC_JOB_RETENTION_DEFAULT_DAYS)
-  sprintf(
-    paste("SELECT COUNT(*) AS n FROM async_jobs WHERE", .async_job_retention_predicate),
-    retention_days
+  offset <- -retention_days
+  list(
+    sql = paste("SELECT COUNT(*) AS n FROM async_jobs WHERE", .async_job_retention_where),
+    params = list(offset, offset)
   )
 }
 
-#' Build the DELETE statement that prunes terminal jobs older than the window.
+#' Build the parameterized DELETE that prunes terminal jobs older than the window.
 #'
-#' The retention day count is interpolated only as a validated integer; every
-#' other token is a fixed literal. No untrusted value reaches the SQL.
+#' The retention window and batch size are BOUND parameters; every other token is
+#' a fixed literal. No untrusted (or trusted) value is interpolated into the SQL.
+#' When batching, rows are deleted oldest-first via `ORDER BY submitted_at, job_id`
+#' (job_id is the PK, a deterministic tiebreaker) which also makes `DELETE ...
+#' LIMIT` safe for statement-based binlog replication.
 #'
 #' @param retention_days Validated positive integer day count.
-#' @return A single SQL string.
+#' @param batch_size Optional validated positive integer LIMIT for one batch.
+#' @return A list `{sql, params}` for `db_execute_statement()`.
 #' @export
 build_async_job_retention_delete_sql <- function(retention_days = ASYNC_JOB_RETENTION_DEFAULT_DAYS,
                                                  batch_size = NULL) {
   retention_days <- validate_retention_days(retention_days, ASYNC_JOB_RETENTION_DEFAULT_DAYS)
-  sql <- sprintf(
-    paste("DELETE FROM async_jobs WHERE", .async_job_retention_predicate),
-    retention_days
-  )
+  offset <- -retention_days
+  sql <- paste("DELETE FROM async_jobs WHERE", .async_job_retention_where)
+  params <- list(offset, offset)
   if (!is.null(batch_size)) {
     batch_size <- validate_retention_days(batch_size, ASYNC_JOB_RETENTION_BATCH_SIZE)
-    # Deterministic oldest-first deletion via the existing
-    # idx_async_jobs_history(submitted_at) index. ORDER BY also makes
-    # `DELETE ... LIMIT` replication-safe (statement-based binlog otherwise flags
-    # an unordered LIMIT delete as non-deterministic).
-    sql <- sprintf("%s ORDER BY submitted_at LIMIT %d", sql, batch_size)
+    sql <- paste(sql, "ORDER BY submitted_at, job_id LIMIT ?")
+    params <- c(params, list(batch_size))
   }
-  sql
+  list(sql = sql, params = params)
 }
 
 #' Resolve the dry-run flag with a fail-safe bias for this DESTRUCTIVE prune.
@@ -140,36 +154,40 @@ async_job_retention_config_from_env <- function(getenv = Sys.getenv) {
 
 #' Run the async-job retention prune.
 #'
-#' Counts prunable terminal rows, then (unless dry-run) deletes them, returning a
-#' structured summary. The DB layer is injected so the routine is fully testable
-#' without a live database.
+#' In dry-run mode, counts the prunable terminal rows and deletes nothing. In a
+#' destructive run it skips the (unnecessary, extra-scan) pre-count and deletes in
+#' bounded batches, returning a structured summary. Both the batch count and the
+#' wall-clock time are bounded so one invocation can never run unbounded. The DB
+#' layer is injected so the routine is fully testable without a live database.
 #'
 #' @param config A config list (see `async_job_retention_config_from_env()`).
-#' @param count_fn Function(sql) -> integer count.
-#' @param execute_fn Function(sql) -> integer rows affected.
+#' @param count_fn Function(sql, params) -> integer count.
+#' @param execute_fn Function(sql, params) -> integer rows affected.
 #' @param logger Function(msg) for human-readable progress.
 #' @param max_batches Hard cap on DELETE batches per invocation (see
 #'   `ASYNC_JOB_RETENTION_MAX_BATCHES`); the remainder is left for the next run.
+#' @param max_seconds Wall-clock ceiling (seconds) for the batch loop.
+#' @param now_fn Clock function (injectable for tests).
 #' @return Invisibly, a summary list (retention_days, dry_run, candidate_rows,
-#'   deleted_rows, batch_cap_reached).
+#'   deleted_rows, batch_cap_reached, time_cap_reached).
 #' @export
 run_async_job_retention <- function(config, count_fn, execute_fn, logger = message,
-                                    max_batches = ASYNC_JOB_RETENTION_MAX_BATCHES) {
+                                    max_batches = ASYNC_JOB_RETENTION_MAX_BATCHES,
+                                    max_seconds = ASYNC_JOB_RETENTION_MAX_SECONDS,
+                                    now_fn = Sys.time) {
   stopifnot(is.list(config), is.function(count_fn), is.function(execute_fn))
   max_batches <- validate_retention_days(max_batches, ASYNC_JOB_RETENTION_MAX_BATCHES)
 
-  count_sql <- build_async_job_retention_count_sql(config$retention_days)
-  candidate_rows <- as.integer(count_fn(count_sql))
-  if (length(candidate_rows) != 1L || is.na(candidate_rows)) {
-    candidate_rows <- 0L
-  }
-
-  logger(sprintf(
-    "[job-retention] table=async_jobs retention_days=%d candidates=%d dry_run=%s",
-    config$retention_days, candidate_rows, tolower(as.character(config$dry_run))
-  ))
-
   if (isTRUE(config$dry_run)) {
+    count_spec <- build_async_job_retention_count_sql(config$retention_days)
+    candidate_rows <- as.integer(count_fn(count_spec$sql, count_spec$params))
+    if (length(candidate_rows) != 1L || is.na(candidate_rows)) {
+      candidate_rows <- 0L
+    }
+    logger(sprintf(
+      "[job-retention] table=async_jobs retention_days=%d candidates=%d dry_run=true",
+      config$retention_days, candidate_rows
+    ))
     logger(sprintf(
       "[job-retention] DRY RUN: would delete %d terminal job row(s); no rows removed",
       candidate_rows
@@ -177,22 +195,29 @@ run_async_job_retention <- function(config, count_fn, execute_fn, logger = messa
     return(invisible(list(
       retention_days = config$retention_days, dry_run = TRUE,
       candidate_rows = candidate_rows, deleted_rows = 0L,
-      batch_cap_reached = FALSE
+      batch_cap_reached = FALSE, time_cap_reached = FALSE
     )))
   }
 
-  # Delete in bounded batches, each its own auto-committed statement, so a large
-  # first-run backlog never becomes one giant transaction / lock set. A hard
-  # `max_batches` cap guarantees the loop terminates within one invocation even
-  # if qualifying rows keep appearing; the remainder is pruned on the next run.
+  # Destructive run: skip the extra pre-count scan and delete in bounded batches,
+  # each its own auto-committed statement, so a large first-run backlog never
+  # becomes one giant transaction / lock set. A hard `max_batches` cap AND a
+  # `max_seconds` wall-clock cap each guarantee the loop terminates within one
+  # invocation even if qualifying rows keep appearing; the remainder is pruned on
+  # the next run.
+  logger(sprintf(
+    "[job-retention] table=async_jobs retention_days=%d dry_run=false",
+    config$retention_days
+  ))
   batch_size <- ASYNC_JOB_RETENTION_BATCH_SIZE
   deleted_rows <- 0L
   batches <- 0L
   batch_cap_reached <- FALSE
+  time_cap_reached <- FALSE
+  started_at <- now_fn()
   repeat {
-    n <- as.integer(execute_fn(
-      build_async_job_retention_delete_sql(config$retention_days, batch_size)
-    ))
+    del_spec <- build_async_job_retention_delete_sql(config$retention_days, batch_size)
+    n <- as.integer(execute_fn(del_spec$sql, del_spec$params))
     if (length(n) != 1L || is.na(n)) {
       n <- 0L
     }
@@ -203,6 +228,10 @@ run_async_job_retention <- function(config, count_fn, execute_fn, logger = messa
     }
     if (batches >= max_batches) {
       batch_cap_reached <- TRUE
+      break
+    }
+    if (as.numeric(difftime(now_fn(), started_at, units = "secs")) >= max_seconds) {
+      time_cap_reached <- TRUE
       break
     }
   }
@@ -217,10 +246,16 @@ run_async_job_retention <- function(config, count_fn, execute_fn, logger = messa
       max_batches
     ))
   }
+  if (time_cap_reached) {
+    logger(sprintf(
+      "[job-retention] time cap reached (%.0fs); remaining eligible rows will be pruned on the next run",
+      max_seconds
+    ))
+  }
 
   invisible(list(
     retention_days = config$retention_days, dry_run = FALSE,
-    candidate_rows = candidate_rows, deleted_rows = deleted_rows,
-    batch_cap_reached = batch_cap_reached
+    candidate_rows = NA_integer_, deleted_rows = deleted_rows,
+    batch_cap_reached = batch_cap_reached, time_cap_reached = time_cap_reached
   ))
 }

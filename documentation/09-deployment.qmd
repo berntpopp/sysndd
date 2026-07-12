@@ -164,7 +164,7 @@ The `log-cleanup` Compose service prunes old rows from the operational request l
 Configuration (environment variables, with defaults):
 
 - `LOG_RETENTION_DAYS=30` — delete `logging` rows whose `timestamp` is older than this many days. Validated to a positive integer before it reaches SQL.
-- `ASYNC_JOB_RETENTION_DAYS=90` — delete **terminal, non-retryable** `async_jobs` rows (`status IN ('completed','failed','cancelled')` and `active_request_hash IS NULL`) older than this many days (by both `submitted_at` and `updated_at`), oldest-first in bounded batches (up to 1M rows per run; the remainder is pruned on the next run); `async_job_events` cascades. `ASYNC_JOB_RETENTION_DRY_RUN=1` counts only — an **unrecognized** value fails safe to dry-run (no deletion) rather than deleting.
+- `ASYNC_JOB_RETENTION_DAYS=90` — delete **terminal, non-retryable** `async_jobs` rows (`status IN ('completed','failed','cancelled')` and `active_request_hash IS NULL`) older than this many days (by both `submitted_at` and `updated_at`, passed as **bound** parameters — never interpolated). Deletes oldest-first (`ORDER BY submitted_at, job_id`) in bounded batches, capped per run by both a batch count (up to 1M rows) and a wall-clock ceiling (10 min); any remainder is pruned on the next run. `async_job_events` cascades. `ASYNC_JOB_RETENTION_DRY_RUN=1` counts only — an **unrecognized** value fails safe to dry-run (no deletion) rather than deleting.
 - `LOG_CLEANUP_AT=03:00` — daily run time, `HH:MM` in container (UTC) time.
 - `LOG_CLEANUP_DRY_RUN=false` — when truthy (`1`/`true`/`yes`/`on`), count and log the candidate rows but delete nothing. Use this to verify scope before enabling deletion.
 
