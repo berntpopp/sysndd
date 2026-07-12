@@ -22,6 +22,12 @@ export interface CacheEntry<T = unknown> {
   refCount: number; // active subscribers
   insertedAt: number; // first creation time (informational)
   lastAccessAt: number; // for true LRU eviction — touched on every read/write
+  // Monotonic per-key fetch epoch, bumped on every beginFetch() and preserved by
+  // set/endFetch/subscribe. Consumers of a shared slot capture the epoch when they
+  // start awaiting; a later beginFetch (a newer fetch replacing the slot) advances
+  // it, so a stale consumer knows not to apply an out-of-date result even though it
+  // shares one activeToken with the newer fetch (#535 S5b cross-consumer ownership).
+  epoch: number;
 }
 
 interface CacheState {
@@ -61,6 +67,7 @@ export const useCacheStore = defineStore('cache', {
         refCount: existing?.refCount ?? 0,
         insertedAt: existing?.insertedAt ?? now,
         lastAccessAt: now,
+        epoch: existing?.epoch ?? 0,
       };
       this.evictIfNeeded();
     },
@@ -77,6 +84,9 @@ export const useCacheStore = defineStore('cache', {
         refCount: existing?.refCount ?? 0,
         insertedAt: existing?.insertedAt ?? now,
         lastAccessAt: now,
+        // Each new fetch advances the slot epoch so a stale consumer of the
+        // previous pending promise can detect it has been superseded.
+        epoch: (existing?.epoch ?? 0) + 1,
       };
     },
 
@@ -101,6 +111,7 @@ export const useCacheStore = defineStore('cache', {
           refCount: 1,
           insertedAt: now,
           lastAccessAt: now,
+          epoch: 0,
         };
         return;
       }

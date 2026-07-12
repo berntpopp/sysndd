@@ -158,4 +158,70 @@ describe('useUserData', () => {
     data.removeFilters();
     expect(data.filter.value.user_name.content).toBeNull();
   });
+
+  // --- S5b request ownership -------------------------------------------------
+
+  it('an out-of-order stale response does not apply over the newer request', async () => {
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+    const p1 = data.loadDataNow(); // P1 (default params)
+    data.perPage.value = 50; // params change → P2 differs
+    const p2 = data.loadDataNow(); // P2 (latest)
+    // resolve the newer P2 first, then the stale P1 LAST
+    resolvers[1]({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 99 }] },
+    });
+    await p2;
+    await flushPromises();
+    resolvers[0]({ status: 200, data: userTablePayload }); // stale P1 (totalItems 2)
+    await p1;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(99); // P2 retained; stale P1 ignored
+  });
+
+  it('the 500ms cache never serves a response cached under different params', async () => {
+    const axios = await getAxiosMock();
+    axios.get.mockResolvedValueOnce({ status: 200, data: userTablePayload }); // P1: totalItems 2
+    const data = useUserData();
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(2);
+
+    data.perPage.value = 50; // params → P2
+    let resolveB!: (v: unknown) => void;
+    axios.get.mockImplementationOnce(() => new Promise((res) => (resolveB = res)));
+    const pB = data.loadDataNow(); // P2 in flight
+    data.totalRows.value = 999; // sentinel — a wrong cache-serve would overwrite this
+    await data.loadDataNow(); // 2nd identical P2 while pending
+    await Promise.resolve();
+    expect(data.totalRows.value).toBe(999); // must NOT serve P1's cached response for P2
+
+    resolveB({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 7 }] },
+    });
+    await pB;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(7); // the real P2 response applies
+  });
+
+  it('a response arriving after dispose() does not apply', async () => {
+    const axios = await getAxiosMock();
+    let resolve!: (v: unknown) => void;
+    axios.get.mockImplementation(() => new Promise((res) => (resolve = res)));
+    const data = useUserData();
+    const p = data.loadDataNow();
+    data.totalRows.value = 555; // sentinel
+    data.dispose(); // simulate unmount/navigation
+    resolve({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 42 }] },
+    });
+    await p;
+    await flushPromises();
+    expect(data.totalRows.value).toBe(555); // disposed → late response ignored
+  });
 });

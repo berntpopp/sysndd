@@ -113,6 +113,15 @@ export function useAsyncJob(
   const startTime = ref<number | null>(null);
   const elapsedSeconds = ref<number>(0);
 
+  // Request-ownership generation (#535 S5b). Bumped whenever the tracked job
+  // changes or polling is cancelled (startJob / stopPolling / reset / unmount),
+  // so an in-flight poll whose response arrives after the job changed is ignored
+  // and cannot stop/fail the new job. `inFlightGeneration` provides single-flight
+  // per generation so two overlapping polls of the SAME job cannot let an older
+  // response overwrite a terminal result.
+  let pollGeneration = 0;
+  let inFlightGeneration: number | null = null;
+
   // Polling controls (VueUse auto-cleanup on unmount via tryOnCleanup)
   const {
     pause: pausePolling,
@@ -217,11 +226,21 @@ export function useAsyncJob(
   async function checkJobStatus(): Promise<void> {
     if (!jobId.value) return;
 
+    const myGen = pollGeneration;
+    // Single-flight per generation: if a poll for this job generation is already
+    // in flight, skip this tick (a newer job generation is always allowed through).
+    if (inFlightGeneration === myGen) return;
+    inFlightGeneration = myGen;
+
     try {
       // Auth for polling is injected by the shared api client interceptor.
       // Durable job state means polling no longer depends on sticky-session
       // routing or container-local ownership.
       const data = await apiClient.get<JobStatusPayload>(statusEndpoint(jobId.value));
+
+      // Ignore a response that arrived after the tracked job changed or polling
+      // was cancelled — it must not mutate state or stop the new job's polling.
+      if (myGen !== pollGeneration) return;
 
       // Handle job not found error
       if (data.error === 'JOB_NOT_FOUND') {
@@ -256,6 +275,8 @@ export function useAsyncJob(
         }
       }
     } catch (err) {
+      // A stale poll's rejection must not fail or stop the new job.
+      if (myGen !== pollGeneration) return;
       stopPolling();
       // Handle 404 JOB_NOT_FOUND errors from the API
       if (axios.isAxiosError(err) && err.response?.status === 404) {
@@ -268,6 +289,9 @@ export function useAsyncJob(
       }
       error.value = 'Failed to check job status';
       status.value = 'failed';
+    } finally {
+      // Release single-flight only if this poll still owns the generation slot.
+      if (inFlightGeneration === myGen) inFlightGeneration = null;
     }
   }
 
@@ -275,6 +299,9 @@ export function useAsyncJob(
    * Start tracking a job by its ID
    */
   function startJob(newJobId: string): void {
+    // New job → new generation, so a poll still in flight for the previous job
+    // is ignored when it resolves and cannot touch this job's state.
+    pollGeneration += 1;
     jobId.value = newJobId;
     status.value = 'accepted';
     step.value = 'Job submitted, starting...';
@@ -291,6 +318,10 @@ export function useAsyncJob(
    * Stop all polling and timers
    */
   function stopPolling(): void {
+    // Cancellation (public stop, terminal state, reset, or unmount) invalidates
+    // any in-flight poll: bumping the generation makes its late response a no-op
+    // so it cannot re-mutate state or resume/stop the shared interval.
+    pollGeneration += 1;
     pausePolling();
     pauseTimer();
   }

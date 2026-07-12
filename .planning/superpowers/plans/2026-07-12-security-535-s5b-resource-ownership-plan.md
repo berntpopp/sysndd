@@ -254,9 +254,64 @@ it('the 500ms cache does not serve a prior params response for new params', asyn
 - [ ] **Step 3 — open PR** against master (do-not-auto-merge, security-critical), `Closes` line refs
   #535 on its own line. Do NOT auto-merge.
 
+## Codex plan-review corrections folded — Plan v2 (2026-07-12)
+
+Full review: `.planning/reviews/2026-07-12-security-535-s5b-plan-codex-review.md` (Verdict FIX-FIRST).
+These **override** Tasks 1-4 above.
+
+- **Task 1 (useResource) — use a shared cache-slot epoch, not a per-instance fetch generation.**
+  `pending === promise` guards cache **writes** only; consumer refs need a cross-consumer signal.
+  Add `epoch: number` to `cacheStore` `CacheEntry`, incremented in `beginFetch`, preserved by
+  `set`/`endFetch`/`subscribe`. In `doFetch`, capture `myEpoch` (network branch: after `beginFetch`;
+  subscribe branch: the pending's epoch). Consumer-ref writes (`data`/`error`/`isStale`) and the
+  foreground `loading` clear are gated on `myToken === activeToken && peek(key)?.epoch === myEpoch`
+  in BOTH branches. Cache writes stay gated on `ownsSlot()` (`pending === promise`). This subsumes
+  the earlier per-instance generation. **Also (HIGH #4):** `activate()` (cache-hit + null-key
+  branches) and `abort()` synchronously set `loading.value = false` so a superseded foreground fetch
+  cannot leave `loading` stuck. Tests: concurrent refresh (stale loses), stale rejection **while the
+  newer fetch is still pending** (assert `cache.pending`/`loading` stay owned by the newer fetch,
+  then resolve it), A→cached-B / A→SWR-B / explicit-abort clear `loading`.
+- **Task 2 (useAsyncJob) — add generation-scoped single-flight + make cancellation bump generation.**
+  Keep `pollGeneration` (bumped in `startJob`). Add `inFlightGeneration: number | null`: at the top
+  of `checkJobStatus`, `if (inFlightGeneration === myGen) return;` (single-flight for this job
+  generation) else set it; clear in `finally` only if still `=== myGen`. **`stopPolling()` bumps
+  `pollGeneration`** (so public cancel / terminal / `reset` / unmount invalidate an in-flight poll).
+  Guard success (incl. 200 `JOB_NOT_FOUND`/terminal) and catch with `if (myGen !== pollGeneration)
+  return;` immediately after `await` / first in catch. Tests: stale success, stale rejection
+  (deferred gate via a "handler entered" signal — start timer advance WITHOUT awaiting, await the
+  entered signal, supersede, release, then await), overlapping same-job single-flight, j1→j2→j1.
+- **Task 3 (useUserData) — instance-local consumer ownership + module transport, unmount cleanup.**
+  Keep transport dedup + 500 ms response cache **module-level** (`moduleApiCallInProgress`,
+  `moduleLastApiParams`, `moduleLastApiResponse`, `moduleLastApiResponseParams`). Make **consumer
+  ownership instance-local**: `let instanceGeneration = 0; let disposed = false;`. Extract
+  `buildUrlParam()`. Bump `instanceGeneration` in `loadData()` (at debounce SCHEDULE time — closes
+  the 50 ms window) and `loadDataNow()`; `doLoadData()` captures `myGen`. `stillOwner()` =
+  `!disposed && myGen === instanceGeneration`. The completing fetch always clears
+  `moduleApiCallInProgress` and records the param-keyed response (transport); apply/URL run only when
+  `stillOwner()` **and** `buildUrlParam() === urlParam` (checked BEFORE `applyApiResponse` mutates
+  refs); `isBusy` clear + recent-cache serve gate on `stillOwner()` (generation only — our own apply
+  legitimately changes params). Recent-cache branch requires a **non-null** response whose
+  `moduleLastApiResponseParams === urlParam`; a fresh request nulls the cached response. Pass
+  `stillOwner` into `applyApiResponse` and guard its `nextTick(currentPage)` write. `onBeforeUnmount`
+  sets `disposed = true` and clears the debounce timer. Tests: out-of-order apply, cache-param
+  sentinel test (cache P1, defer P2, set a sentinel, second identical P2 while pending, assert P1
+  not reapplied, then resolve P2), stuck-isBusy on supersede.
+- **Task 3b (NEW — adjacent, folded per review HIGH #9): `useMetadataAdmin` wrong-vocabulary race.**
+  `app/src/views/admin/composables/useMetadataAdmin.ts`. `loadRows()` captures
+  `const mySlug = activeSlug.value; const myGen = ++rowsGeneration;`, fetches `mySlug`, and applies
+  `rows`/`listMeta` only if `myGen === rowsGeneration && mySlug === activeSlug.value` (guard success,
+  catch, and the `loadingRows` finally). Prevents late vocabulary-A rows from populating the B table
+  (which would let an edit mutate the wrong vocabulary with an A row id). Extend/create its spec.
+- **Deferred to S5c follow-up (review 10, 16, 17):** whole-workflow load ownership
+  (`useEntityInfo`, `useReviewData`) and read-composable ownership (`useAdminTrendData`,
+  `usePubtatorGenePublications`, `useNetworkData`, `usePubtatorAdmin`). Larger, multi-call; tracked in
+  the final report, not built in S5b.
+
 ## Self-review
-- Spec coverage: §2.1→Task1, §2.2→Task2, §2.3→Task3; deterministic deferred-promise races in each.
-- Consistency: uniform "capture identity at start; mutate only if still owner/latest"; `useResource`
-  splits per-instance freshness (fetchGeneration+activeToken) from transport-slot ownership
-  (`pending === promise`), exactly as the S5 Codex review prescribed.
-- No public signature changes; no placeholders; each fix shows exact guarded code.
+- Spec coverage: §2.1→Task1, §2.2→Task2, §2.3→Task3; adjacent §review-9→Task3b; deterministic
+  deferred-promise races in each.
+- Consistency: uniform "capture identity at start; mutate only if still owner/latest". useResource =
+  cache-slot epoch (cross-consumer) + activeToken (key) for refs, `pending === promise` for cache.
+  useAsyncJob = pollGeneration + single-flight. useUserData = instance generation (consumer) + module
+  transport. useMetadataAdmin = rowsGeneration + slug.
+- No public signature changes; no placeholders.

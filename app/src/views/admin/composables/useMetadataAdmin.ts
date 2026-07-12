@@ -43,6 +43,13 @@ export function useMetadataAdmin(options: UseMetadataAdminOptions) {
   const deleting = ref(false);
   const loadError = ref<string | null>(null);
 
+  // Request ownership for row loads (#535 S5b). Switching vocabulary A→B while
+  // A's rows are still in flight must not let A's late response populate the B
+  // table — a subsequent edit would then send an A row id with activeSlug=B and
+  // mutate the WRONG vocabulary. Capture slug + generation and apply only if both
+  // are still current.
+  let rowsGeneration = 0;
+
   const activeVocabulary = computed<MetadataVocabulary | null>(
     () => catalog.value.find((v) => v.slug === activeSlug.value) ?? null
   );
@@ -71,17 +78,23 @@ export function useMetadataAdmin(options: UseMetadataAdminOptions) {
 
   async function loadRows(): Promise<void> {
     if (!activeSlug.value) return;
+    const mySlug = activeSlug.value;
+    const myGen = ++rowsGeneration;
+    const stillCurrent = (): boolean =>
+      myGen === rowsGeneration && mySlug === activeSlug.value;
     loadingRows.value = true;
     loadError.value = null;
     try {
-      const response = await fetchMetadataRows(activeSlug.value);
+      const response = await fetchMetadataRows(mySlug);
+      if (!stillCurrent()) return; // a newer vocabulary/reload superseded this one
       rows.value = response.data ?? [];
       listMeta.value = response.meta ?? null;
     } catch (err) {
+      if (!stillCurrent()) return;
       loadError.value = extractApiErrorMessage(err, 'Failed to load vocabulary entries.');
       onToast(loadError.value, 'Error', 'danger');
     } finally {
-      loadingRows.value = false;
+      if (stillCurrent()) loadingRows.value = false;
     }
   }
 
