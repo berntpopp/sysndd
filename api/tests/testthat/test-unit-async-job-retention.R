@@ -37,6 +37,53 @@ test_that("delete supports a bounded batch LIMIT", {
   expect_false(grepl("LIMIT", build_async_job_retention_delete_sql(90L), fixed = TRUE))
 })
 
+test_that("batched delete is deterministic (ORDER BY submitted_at before LIMIT)", {
+  # A batched DELETE must delete oldest-first via the existing
+  # idx_async_jobs_history(submitted_at) index and be binlog-deterministic.
+  sql <- build_async_job_retention_delete_sql(90L, 1000L)
+  expect_true(grepl("ORDER BY submitted_at LIMIT 1000", sql, fixed = TRUE))
+  # ORDER BY must precede LIMIT (MySQL syntax) and only appear when batching.
+  expect_lt(regexpr("ORDER BY", sql, fixed = TRUE), regexpr("LIMIT", sql, fixed = TRUE))
+  expect_false(grepl("ORDER BY", build_async_job_retention_delete_sql(90L), fixed = TRUE))
+})
+
+test_that("the run loop is bounded by a max-batches cap", {
+  # Every execution reports a full batch (would loop forever without a cap).
+  calls <- 0L
+  summary <- run_async_job_retention(
+    config = list(retention_days = 90L, dry_run = FALSE),
+    count_fn = function(sql) 1e9,
+    execute_fn = function(sql) {
+      calls <<- calls + 1L
+      ASYNC_JOB_RETENTION_BATCH_SIZE # always a full batch
+    },
+    logger = function(msg) invisible(NULL),
+    max_batches = 3L
+  )
+  expect_equal(calls, 3L) # stops at the cap, not indefinitely
+  expect_equal(summary$deleted_rows, 3L * ASYNC_JOB_RETENTION_BATCH_SIZE)
+  expect_true(isTRUE(summary$batch_cap_reached))
+})
+
+test_that("dry-run is fail-safe: an unrecognized flag never deletes", {
+  # A typo'd dry-run flag (e.g. `treu`) must NOT silently enable deletion.
+  expect_warning(res <- async_job_retention_resolve_dry_run("treu"))
+  expect_true(res)
+  # Explicit truthy / falsy / unset keep intuitive semantics.
+  expect_true(async_job_retention_resolve_dry_run("yes"))
+  expect_false(async_job_retention_resolve_dry_run("off"))
+  expect_false(async_job_retention_resolve_dry_run("false"))
+  expect_false(async_job_retention_resolve_dry_run(""))
+  expect_false(async_job_retention_resolve_dry_run(NULL))
+})
+
+test_that("config_from_env fails safe for an unrecognized dry-run flag", {
+  cfg <- suppressWarnings(async_job_retention_config_from_env(getenv = function(k, d = "") {
+    switch(k, ASYNC_JOB_RETENTION_DRY_RUN = "treu", d)
+  }))
+  expect_true(cfg$dry_run) # never deletes on an ambiguous flag
+})
+
 test_that("the run loop deletes in batches until under a full batch", {
   returns <- c(1000L, 1000L, 3L) # ASYNC_JOB_RETENTION_BATCH_SIZE is 1000
   i <- 0L
