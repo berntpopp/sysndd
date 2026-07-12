@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.9] — 2026-07-12
+
+Security hardening (#535) — remediation of an adversarial repository audit. This release closes credential-exposure, authorization, and token-revocation gaps and hardens the production build and database restore. Verified end-to-end against the running stack (endpoint authorization, live token-refresh revocation, durable-job payload credential-safety, and job-type single-flight) plus an independent adversarial security review.
+
+### Security
+
+- Gate the draft-exposing `/api/review` routes (list, detail, phenotypes, variation, publications) and the `/api/status/<id>` detail route at Reviewer+; anonymous requests now receive `403` with no draft rows or curator identities in the body. The public `/api/status/_list` status-category vocabulary stays open by design (#537, #535 P0-1).
+- Revocable, role-current token refresh via a per-user `session_epoch` (migration `043`). Every issued JWT carries the epoch; privilege and state mutations increment it atomically in the same SQL statement; and `auth_refresh` reads current account state under a row lock and mints claims from the database row. Demotion, deactivation, password change, deletion, or a pre-deploy (epoch-less) token therefore lose refresh capability immediately (#538, #535 P0-2).
+- Keep database credentials out of durable backup jobs — no credentials in process arguments, shell, or the persisted job payload — and scrub credentials from terminal job payloads (#539, #535 P1-1).
+- Resolve database credentials at run time for all durable job families instead of persisting them in job payloads, and add job-type single-flight for destructive maintenance jobs (HGNC, comparisons, OMIM, force-apply) (#542, #535 S2b).
+- Never emit production source maps or the bundle-analyzer report, and make the database restore path fail-closed (#540, #535 S4).
+
+### Fixed
+
+- Generation-based request ownership for faceted tables and search suggestions, preventing stale or out-of-order responses from overwriting current results during rapid filter, sort, and pagination changes (#541, #535 S5).
+
+### Added
+
+- Security-hardening specification, implementation plans, and adversarial code-review records under `.planning/` (#536).
+
 ## [0.29.8] — 2026-07-11
 
 Bugfix — a pre-existing, app-wide cursor-pagination bug that silently dropped one row on the first→second page transition of every cursor-paginated table. This is an intentional behavior change (it flips the buggy cursor value), verified live against the running dev stack across multiple tables, not only in unit tests.
