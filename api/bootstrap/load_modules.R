@@ -65,6 +65,7 @@ bootstrap_load_modules <- function() {
     "functions/async-job-db-config.R",
     "functions/async-job-payload-scrub.R",
     "functions/async-job-service.R",
+    "functions/clustering-submit-throttle.R",
     "functions/analysis-snapshot-presets.R",
     "functions/analysis-snapshot-repository.R",
     "functions/analysis-snapshot-coherence.R",

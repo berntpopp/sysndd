@@ -5,11 +5,11 @@ if (exists("get_api_dir")) {
   api_dir <- get_api_dir()
 } else {
   api_dir <- normalizePath(file.path(getwd(), "..", ".."), mustWork = FALSE)
-  if (!file.exists(file.path(api_dir, "functions", "async-job-service.R"))) {
+  if (!file.exists(file.path(api_dir, "functions", "clustering-submit-throttle.R"))) {
     api_dir <- normalizePath(file.path(getwd()), mustWork = FALSE)
   }
 }
-source(file.path(api_dir, "functions", "async-job-service.R"), local = FALSE)
+source(file.path(api_dir, "functions", "clustering-submit-throttle.R"), local = FALSE)
 
 test_that("allows up to max_n submissions in the window, then throttles", {
   st <- new.env(parent = emptyenv())
