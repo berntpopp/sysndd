@@ -68,17 +68,24 @@ make_mock_req <- function(
   req
 }
 
+endpoint_auth_api_dir <- function() {
+  staged_api_dir <- Sys.getenv("SYSNDD_API_DIR", "")
+  if (nzchar(staged_api_dir)) return(staged_api_dir)
+  get_api_dir()
+}
+
 auth_file_path <- function() {
-  file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
+  file.path(endpoint_auth_api_dir(), "endpoints", "authentication_endpoints.R")
 }
 
 user_file_path <- function() {
-  file.path(get_api_dir(), "endpoints", "user_endpoints.R")
+  file.path(endpoint_auth_api_dir(), "endpoints", "user_endpoints.R")
 }
 
 make_signup_sandbox <- function() {
   env <- new.env(parent = globalenv())
   env$`%||%` <- `%||%`
+  env$auth_endpoint_admission_guard <- function(...) list(admitted = TRUE)
   env$db_execute_statement <- function(...) {
     stop("db_execute_statement should not be called for request validation tests")
   }

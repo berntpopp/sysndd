@@ -194,6 +194,9 @@ function(req, res) {
 #* @tag user
 #* @post password/reset/request
 function(req, res) {
+  admission <- auth_endpoint_admission_guard(req, res)
+  if (!admission$admitted) return(admission$response)
+
   svc_user_password_reset_request(req, res)
 }
 

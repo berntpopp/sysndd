@@ -42,6 +42,9 @@
 #*
 #* @post signup
 function(req, res) {
+  admission <- auth_endpoint_admission_guard(req, res)
+  if (!admission$admitted) return(admission$response)
+
   content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
   if (media_type != "application/json") {
@@ -221,6 +224,9 @@ function(req, res) {
 #*
 #* @post authenticate
 function(req, res) {
+  admission <- auth_endpoint_admission_guard(req, res)
+  if (!admission$admitted) return(admission$response)
+
   # Parse credentials from JSON body (OWASP: secrets MUST NOT be in URLs)
   body <- tryCatch(
     jsonlite::fromJSON(req$postBody),

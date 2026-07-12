@@ -1,0 +1,104 @@
+# Tests for the reusable, bounded per-caller admission limiter (#550).
+
+staged_api_dir <- Sys.getenv("SYSNDD_API_DIR", "")
+if (nzchar(staged_api_dir)) {
+  api_dir <- staged_api_dir
+} else if (exists("get_api_dir")) {
+  api_dir <- get_api_dir()
+} else {
+  api_dir <- normalizePath(file.path(getwd(), "..", ".."), mustWork = FALSE)
+  if (!file.exists(file.path(api_dir, "functions", "per-caller-throttle.R"))) {
+    api_dir <- normalizePath(getwd(), mustWork = FALSE)
+  }
+}
+source(file.path(api_dir, "functions", "per-caller-throttle.R"), local = FALSE)
+
+test_that("generic limiter allows N then returns a retry time for N plus one", {
+  store <- new.env(parent = emptyenv())
+  for (i in 1:2) {
+    decision <- per_caller_rate_limit(
+      fingerprint = "203.0.113.8",
+      now = 1000,
+      max_n = 2L,
+      window_s = 60L,
+      store = store,
+      max_tracked = 10L
+    )
+    expect_true(decision$allowed)
+  }
+
+  denied <- per_caller_rate_limit(
+    fingerprint = "203.0.113.8",
+    now = 1000,
+    max_n = 2L,
+    window_s = 60L,
+    store = store,
+    max_tracked = 10L
+  )
+
+  expect_false(denied$allowed)
+  expect_equal(denied$retry_after, 60L)
+})
+
+test_that("generic fingerprint takes the rightmost untrusted XFF hop", {
+  trusted <- "10.9.0.0/24"
+  legit <- list(HTTP_X_FORWARDED_FOR = "203.0.113.8, 10.9.0.5")
+  expect_equal(
+    per_caller_throttle_fingerprint(legit, trusted_cidrs = trusted),
+    "203.0.113.8"
+  )
+
+  # The attacker can forge the left side, but never Traefik's appended right side.
+  spoofed <- list(HTTP_X_FORWARDED_FOR = "203.0.113.8, 10.9.0.5, 198.51.100.44")
+  expect_equal(
+    per_caller_throttle_fingerprint(spoofed, trusted_cidrs = trusted),
+    "198.51.100.44"
+  )
+})
+
+test_that("generic limiter isolates callers and bounds a rotation flood", {
+  store <- new.env(parent = emptyenv())
+  for (i in 1:2) {
+    per_caller_rate_limit("203.0.113.8", now = 1000, max_n = 2L,
+                          window_s = 60L, store = store, max_tracked = 2L)
+  }
+  expect_false(per_caller_rate_limit("203.0.113.8", now = 1000, max_n = 2L,
+                                      window_s = 60L, store = store, max_tracked = 2L)$allowed)
+  expect_true(per_caller_rate_limit("203.0.113.9", now = 1000, max_n = 2L,
+                                     window_s = 60L, store = store, max_tracked = 2L)$allowed)
+
+  for (i in 1:50) {
+    per_caller_rate_limit(
+      paste0("198.51.100.", i),
+      now = 1000,
+      max_n = 2L,
+      window_s = 60L,
+      store = store,
+      max_tracked = 2L
+    )
+  }
+
+  expect_lte(per_caller_rate_limit_size(store), 2L)
+  expect_false(per_caller_rate_limit("203.0.113.8", now = 1000, max_n = 2L,
+                                      window_s = 60L, store = store, max_tracked = 2L)$allowed)
+})
+
+test_that("generic guard fails closed without leaking request fields", {
+  res <- new.env(parent = emptyenv())
+  res$status <- 200L
+  res$headers <- list()
+  res$setHeader <- function(name, value) res$headers[[name]] <- value
+  secret <- "never-return-this-password"
+
+  denied <- per_caller_admission_guard(
+    req = list(HTTP_X_FORWARDED_FOR = "203.0.113.8", postBody = secret),
+    res = res,
+    rate_limit = function(...) stop("limiter unavailable"),
+    rate_limit_message = "Too many requests. Please retry shortly."
+  )
+
+  expect_false(denied$admitted)
+  expect_equal(res$status, 503L)
+  expect_equal(res$headers[["Retry-After"]], "5")
+  expect_false(grepl(secret, paste(unlist(denied$response), collapse = " "), fixed = TRUE))
+})

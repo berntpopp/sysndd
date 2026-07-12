@@ -1,0 +1,82 @@
+Reading prompt from stdin...
+OpenAI Codex v0.144.1
+--------
+workdir: /home/bernt-popp/development/sysndd/.claude/worktrees/535-auth-endpoint-rate-limit
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f572c-f7d6-7990-a9aa-529ccf726a4d
+--------
+user
+Do not call tools. Give a concise final adversarial plan review based only on this
+implementation proposal for #550:
+
+1. Move all S6 generic internals (safe integer config parser; IPv4/IPv6 parser,
+CIDR trust matching; rightmost-XFF non-spoofable fingerprint; bounded active
+caller store with idle reclaim/overflow; injected-clock sliding-window decision;
+failure-safe admission result) from clustering-submit-throttle.R into a new
+per-caller-throttle.R.
+2. Keep clustering wrappers and the exact current S6 config/API/response shape.
+3. New auth-endpoint-throttle.R gets a separate store plus AUTH_ENDPOINT_* config
+(max, window, max tracked, trusted proxy CIDRs) and turns limiter errors into
+503 THROTTLE_UNAVAILABLE + Retry-After. Excess returns 429 RATE_LIMITED +
+positive Retry-After.
+4. Source generic before S6 and auth adapter in bootstrap/load_modules.R.
+5. First executable line of POST /api/auth/signup, POST /api/auth/authenticate,
+and POST /api/user/password/reset/request calls the auth guard and returns on
+denial, before JSON parsing/DB/email/password work. Inputs remain JSON body only.
+6. Deterministic tests check N/N+1 status/header, independent client fingerprint,
+spoofed leftmost XFF, bounded rotation, failure closed, and that denied handlers
+cannot call auth/DB/email services. Deployment docs provide env controls.
+
+Find security defects or missing tests that would permit bypass, spoofing, state
+DoS, resource exhaustion, information disclosure, invalid Retry-After, altered
+S6 behavior, source-order/masked base::get failure, or problem+json regression.
+Rank only concrete blocker/high/medium/low issues. End exactly with
+`Verdict: SHIP` if there are no blocker/high findings, otherwise
+`Verdict: FIX-FIRST`.
+
+codex
+High
+
+- The bounded-store overflow policy is unspecified. If a full store evicts active callers, rotating fingerprints resets buckets and bypasses the limiter. Overflow must deny safely without evicting live entries, with a test proving a hot caller remains limited during sustained churn.
+- A process-local store permits bypass across API replicas, R worker processes, restarts, and rolling deployments; the effective allowance becomes `max × instances`. Either use shared atomic state or explicitly guarantee and test single-process deployment.
+- Per-caller-only limiting does not prevent credential stuffing or reset-email flooding through rotating IPs. Authentication and password reset need an additional normalized account/email-target bucket after JSON parsing but before DB/auth/email work, with enumeration-safe responses.
+- XFF processing itself is an unauthenticated first-line workload. Without strict header-length and hop-count limits, oversized or highly fragmented XFF values can consume disproportionate parsing CPU/memory. Tests should cover limits and cheap rejection.
+- The extraction lacks explicit S6 characterization tests. Preserve exact defaults, config precedence, fingerprinting, window boundaries, overflow behavior, response body/content type, and headers before and after extraction; otherwise the “exact current S6 behavior” requirement is unverifiable.
+
+Medium
+
+- Proxy tests are incomplete. Add direct-untrusted-peer XFF ignoring, trusted multi-proxy peeling, all-trusted chains, malformed/multiple XFF headers, IPv4-mapped IPv6, canonical IPv6 equivalence, whitespace, ports, and invalid CIDR configuration. Misconfiguration must fail closed, never silently broaden trust.
+- Retry-After needs protocol-level assertions: positive integer delta-seconds, ceiling of fractional remaining time, minimum 1, correct exact-boundary behavior, and safe handling of clock rollback. Test it on both 429 and 503.
+- The plan does not require actual endpoint-level `application/problem+json` assertions. Verify content type and the established problem schema for both 429 and 503, including existing request/correlation metadata.
+- A single shared auth store can let traffic to signup or reset exhaust authentication capacity for the same caller/NAT. Include the endpoint identity in the key or define intentional independent budgets.
+- Full-bootstrap testing is missing. Source the real module sequence and verify helpers use qualified `base::get`, `base::exists`, `base::assign`, and related primitives so globally sourced functions cannot mask them.
+- Configuration tests should cover unset, empty, zero, negative, fractional, overflow-sized, and non-numeric values for every `AUTH_ENDPOINT_*` setting, confirming invalid security configuration yields 503 rather than disabling or weakening enforcement.
+- Denial tests must exercise the real Plumber handlers, not only adapters: malformed or oversized JSON should still be denied before body parsing, and spies must prove no auth, DB, hashing, email, or audit side effects occur.
+
+Verdict: FIX-FIRST
+tokens used
+14,920
+High
+
+- The bounded-store overflow policy is unspecified. If a full store evicts active callers, rotating fingerprints resets buckets and bypasses the limiter. Overflow must deny safely without evicting live entries, with a test proving a hot caller remains limited during sustained churn.
+- A process-local store permits bypass across API replicas, R worker processes, restarts, and rolling deployments; the effective allowance becomes `max × instances`. Either use shared atomic state or explicitly guarantee and test single-process deployment.
+- Per-caller-only limiting does not prevent credential stuffing or reset-email flooding through rotating IPs. Authentication and password reset need an additional normalized account/email-target bucket after JSON parsing but before DB/auth/email work, with enumeration-safe responses.
+- XFF processing itself is an unauthenticated first-line workload. Without strict header-length and hop-count limits, oversized or highly fragmented XFF values can consume disproportionate parsing CPU/memory. Tests should cover limits and cheap rejection.
+- The extraction lacks explicit S6 characterization tests. Preserve exact defaults, config precedence, fingerprinting, window boundaries, overflow behavior, response body/content type, and headers before and after extraction; otherwise the “exact current S6 behavior” requirement is unverifiable.
+
+Medium
+
+- Proxy tests are incomplete. Add direct-untrusted-peer XFF ignoring, trusted multi-proxy peeling, all-trusted chains, malformed/multiple XFF headers, IPv4-mapped IPv6, canonical IPv6 equivalence, whitespace, ports, and invalid CIDR configuration. Misconfiguration must fail closed, never silently broaden trust.
+- Retry-After needs protocol-level assertions: positive integer delta-seconds, ceiling of fractional remaining time, minimum 1, correct exact-boundary behavior, and safe handling of clock rollback. Test it on both 429 and 503.
+- The plan does not require actual endpoint-level `application/problem+json` assertions. Verify content type and the established problem schema for both 429 and 503, including existing request/correlation metadata.
+- A single shared auth store can let traffic to signup or reset exhaust authentication capacity for the same caller/NAT. Include the endpoint identity in the key or define intentional independent budgets.
+- Full-bootstrap testing is missing. Source the real module sequence and verify helpers use qualified `base::get`, `base::exists`, `base::assign`, and related primitives so globally sourced functions cannot mask them.
+- Configuration tests should cover unset, empty, zero, negative, fractional, overflow-sized, and non-numeric values for every `AUTH_ENDPOINT_*` setting, confirming invalid security configuration yields 503 rather than disabling or weakening enforcement.
+- Denial tests must exercise the real Plumber handlers, not only adapters: malformed or oversized JSON should still be denied before body parsing, and spies must prove no auth, DB, hashing, email, or audit side effects occur.
+
+Verdict: FIX-FIRST
