@@ -544,7 +544,7 @@ services:
       - -lc
       - >
           set -u;
-          at="$${LOG_CLEANUP_AT:-03:00}";
+          at="$${LOG_CLEANUP_AT:-04:00}";
           if ! printf '%s' "$$at" | grep -Eq '^([01][0-9]|2[0-3]):[0-5][0-9]$$'; then
             echo "[log-cleanup] FATAL: invalid LOG_CLEANUP_AT '$$at' (expected HH:MM, 00:00-23:59); refusing to start to avoid a tight destructive-cleanup loop";
             exit 1;
@@ -576,7 +576,9 @@ services:
       # Retention window in days (rows older than this are deleted).
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
       # Daily run time, HH:MM in container (UTC) time.
-      LOG_CLEANUP_AT: ${LOG_CLEANUP_AT:-03:00}
+      # 04:00 (not 03:00) so the daily prune does not compete with the 03:00
+      # mysql-cron-backup dump for DB I/O.
+      LOG_CLEANUP_AT: ${LOG_CLEANUP_AT:-04:00}
       # Set to 1/true to count-only and never delete (safe verification).
       LOG_CLEANUP_DRY_RUN: ${LOG_CLEANUP_DRY_RUN:-false}
       # #535 S7: same daily loop also prunes terminal async_jobs rows older than
