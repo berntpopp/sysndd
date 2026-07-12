@@ -125,14 +125,13 @@ pubtatornidd_nightly_resolve_query <- function(requested_query = NULL,
 #' Run the nightly PubtatorNDD refresh orchestrator
 #'
 #' @param pool_obj The global database pool.
-#' @param dw_config The resolved config block (host/port/dbname/user/password).
 #' @param progress_fn Optional progress reporter.
 #' @param payload Parsed job payload (may carry `query` / `max_pages`).
 #' @return Structured run-summary list. `skipped = TRUE` for the benign
 #'   locked/no-query cases (still a job success); `success = FALSE` when a
 #'   refresh step failed (the handler turns that into a failed job).
 #' @export
-pubtatornidd_nightly_run <- function(pool_obj, dw_config, progress_fn = NULL, payload = list()) {
+pubtatornidd_nightly_run <- function(pool_obj, progress_fn = NULL, payload = list()) {
   report <- function(step, message, current = NULL, total = NULL) {
     if (!is.null(progress_fn) && is.function(progress_fn)) {
       tryCatch(progress_fn(step, message, current = current, total = total),
@@ -186,16 +185,10 @@ pubtatornidd_nightly_run <- function(pool_obj, dw_config, progress_fn = NULL, pa
   # existing fetch path which only fetches pages not already cached).
   report("update", sprintf("Updating publications for query '%s'...", query),
          current = 0, total = 1)
-  db_config <- list(
-    db_host = dw_config$host,
-    db_port = dw_config$port,
-    db_name = dw_config$dbname,
-    db_user = dw_config$user,
-    db_password = dw_config$password
-  )
+  # pubtator_db_update_async resolves DB creds at run time (#535 S2b); no
+  # in-process db_config marshaling needed.
   update_res <- tryCatch(
     pubtator_db_update_async(
-      db_config = db_config,
       query = query,
       max_pages = max_pages,
       do_full_update = FALSE,
@@ -283,7 +276,6 @@ pubtatornidd_nightly_job_run <- function(job, payload, progress_reporter_fn) {
 
   result <- pubtatornidd_nightly_run(
     pool_obj = base::get("pool", envir = .GlobalEnv, inherits = FALSE),
-    dw_config = base::get("dw", envir = .GlobalEnv, inherits = FALSE),
     progress_fn = progress,
     payload = payload
   )

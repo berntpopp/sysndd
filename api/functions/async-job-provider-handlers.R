@@ -107,7 +107,6 @@
   progress("init", "Initializing PubTator fetch...", current = 0, total = payload$max_pages)
 
   result <- pubtator_db_update_async(
-    db_config = payload$db_config,
     query = payload$query,
     max_pages = payload$max_pages,
     do_full_update = payload$clear_old,
