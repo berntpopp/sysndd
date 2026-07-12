@@ -53,9 +53,19 @@ job_endpoint_maintenance_env <- function(needs_pool) {
 # Table-driven: the three maintenance types share duplicate/new-submit flow,
 # differing only in operation name and Retry-After (30 / 60 / 30 seconds).
 job_endpoint_maintenance_specs <- list(
-  list(fn = "svc_job_submit_ontology_update", op = "ontology_update", retry_after = "30", needs_pool = TRUE),
-  list(fn = "svc_job_submit_hgnc_update", op = "hgnc_update", retry_after = "60", needs_pool = FALSE),
-  list(fn = "svc_job_submit_comparisons_update", op = "comparisons_update", retry_after = "30", needs_pool = FALSE)
+  list(
+    fn = "svc_job_submit_ontology_update", op = "ontology_update",
+    retry_after = "30", needs_pool = TRUE,
+    payload_names = c("hgnc_list", "mode_of_inheritance_list")
+  ),
+  list(
+    fn = "svc_job_submit_hgnc_update", op = "hgnc_update",
+    retry_after = "60", needs_pool = FALSE, payload_names = character()
+  ),
+  list(
+    fn = "svc_job_submit_comparisons_update", op = "comparisons_update",
+    retry_after = "30", needs_pool = FALSE, payload_names = character()
+  )
 )
 
 for (job_endpoint_spec in job_endpoint_maintenance_specs) {
@@ -77,9 +87,11 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     env <- job_endpoint_maintenance_env(job_endpoint_spec$needs_pool)
     env$check_duplicate_job <- function(...) list(duplicate = FALSE)
     new_job_id <- paste0(job_endpoint_spec$op, "-1")
-    create_job_executor <- NULL
-    env$create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
-      create_job_executor <<- executor_fn
+    create_job_operation <- NULL
+    create_job_params <- NULL
+    env$create_job <- function(operation, params) {
+      create_job_operation <<- operation
+      create_job_params <<- params
       list(job_id = new_job_id, status = "accepted", estimated_seconds = 30)
     }
 
@@ -91,16 +103,10 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     expect_equal(res$status, 202)
     expect_equal(res$headers[["Retry-After"]], job_endpoint_spec$retry_after)
     expect_equal(out$job_id, new_job_id)
-    if (identical(job_endpoint_spec$op, "ontology_update")) {
-      # ontology_update carries no DB credential in its payload, so it keeps its
-      # inline executor closure (unchanged by #535 S2b).
-      expect_true(is.function(create_job_executor))
-      expect_equal(names(formals(create_job_executor)), "params")
-    } else {
-      # hgnc_update / comparisons_update resolve DB creds at run time (#535 S2b)
-      # and pass executor_fn = NULL (create_job ignores it).
-      expect_null(create_job_executor)
-    }
+    expect_equal(create_job_operation, job_endpoint_spec$op)
+    actual_payload_names <- names(create_job_params)
+    if (is.null(actual_payload_names)) actual_payload_names <- character()
+    expect_setequal(actual_payload_names, job_endpoint_spec$payload_names)
   })
 }
 

@@ -4,19 +4,12 @@
 # api/endpoints/admin_endpoints.R (issue #346, Wave 3).
 #
 # `create_job()` (functions/job-manager.R) is a durable-job compatibility
-# facade: it always routes through `async_job_service_submit(job_type =
-# operation, request_payload = params)` and never references its
-# `executor_fn` formal. The ~90-line inline `executor_fn` this endpoint used
-# to pass (PubMed fetch + UPDATE + Sys.sleep(0.35) rate limiting) was
-# therefore dead code -- unreachable, and already diverged from the live
-# implementation (missing the `publication_date_source` column write). The
-# real, currently-executed handler is
+# facade: it routes through `async_job_service_submit(job_type = operation,
+# request_payload = params)`. The real, currently-executed handler is
 # `.async_job_run_publication_refresh()` in functions/async-job-handlers.R
 # (registered in `async_job_handler_registry`), which already has the
 # publication_date_source fix, the same 350ms rate limit, and its own DB
-# connection lifecycle -- mirroring the pattern already documented in
-# AGENTS.md for `comparisons_update`'s dead `executor_fn`. Dropping the dead
-# copy here does not change observable behavior; it was never called.
+# connection lifecycle.
 #
 # `require_role(req, res, "Administrator")` stays inline in the endpoint
 # shell. All DB-facing collaborators are injectable (default = the real
@@ -164,8 +157,7 @@ svc_admin_publication_refresh_submit <- function(req, res,
 
   result <- create_job_fn(
     operation = "publication_refresh",
-    params = list(pmids = pmids),
-    timeout_ms = 7200000 # 2 hours timeout for large batches (4547 pubs ~27 min)
+    params = list(pmids = pmids)
   )
 
   # Check for capacity error

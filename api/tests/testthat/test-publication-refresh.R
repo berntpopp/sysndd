@@ -167,14 +167,8 @@ test_that("publications stats queries return non-negative counts", {
 # ============================================================================
 #
 # `create_job()` (functions/job-manager.R) is a durable-job compatibility
-# facade: it always routes through async_job_service_submit() and never
-# references its `executor_fn` formal. The inline `executor_fn` this endpoint
-# used to pass here (PubMed fetch + UPDATE + Sys.sleep(0.35)) was therefore
-# dead code -- unreachable, and already diverged from the live implementation
-# (missing the publication_date_source column write; see
-# test-unit-publication-refresh-source.R). It was removed from
-# admin_endpoints.R (#346 Wave 3, admin-publication-refresh-endpoint-service.R
-# extraction). The real, currently-executed handler is
+# facade: it routes through async_job_service_submit(). The real,
+# currently-executed handler is
 # `.async_job_run_publication_refresh()` in functions/async-job-handlers.R
 # (registered in async_job_handler_registry) -- these checks now target that
 # file instead of the (removed) dead copy.

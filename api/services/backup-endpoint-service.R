@@ -12,8 +12,8 @@
 # functions/job-progress.R (create_progress_reporter), and
 # functions/backup-functions.R (list_backup_files, get_backup_metadata,
 # is_valid_backup_filename). These svc_ functions only SUBMIT durable jobs:
-# create_job() ignores executor_fn and enqueues a durable async job that the
-# worker executes via the registered handlers .async_job_run_backup_create /
+# create_job() enqueues a durable async job that the worker executes via the
+# registered handlers .async_job_run_backup_create /
 # .async_job_run_backup_restore (functions/async-job-maintenance-handlers.R).
 # The job payload carries NO DB credential (#535 P1-1); the worker resolves it
 # at run time via async_job_worker_db_config().
@@ -141,15 +141,14 @@ svc_backup_create <- function(req, res) {
   backup_filename <- sprintf("manual_%s.sql", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"))
 
   # No DB credential in the job payload (#535 P1-1): the durable handler
-  # .async_job_run_backup_create resolves it from runtime config. create_job()
-  # ignores executor_fn/timeout_ms; execution is the registered durable handler.
+  # .async_job_run_backup_create resolves it from runtime config; execution is
+  # delegated to the registered durable handler.
   result <- create_job(
     operation = "backup_create",
     params = list(
       backup_dir = "/backup",
       backup_filename = backup_filename
-    ),
-    executor_fn = NULL
+    )
   )
 
   .svc_backup_job_response(res, result)
@@ -201,15 +200,14 @@ svc_backup_restore <- function(req, res) {
 
   # No DB credential in the job payload (#535 P1-1): the durable handler
   # .async_job_run_backup_restore resolves it from runtime config and performs
-  # the pre-restore safety backup (BKUP-05). create_job() ignores
-  # executor_fn/timeout_ms; execution is the registered durable handler.
+  # the pre-restore safety backup (BKUP-05); execution is delegated to the
+  # registered durable handler.
   result <- create_job(
     operation = "backup_restore",
     params = list(
       restore_file = backup_path,
       backup_dir = "/backup"
-    ),
-    executor_fn = NULL
+    )
   )
 
   .svc_backup_job_response(res, result)

@@ -35,8 +35,7 @@ test_that("create_job delegates to async_job_service_submit and preserves accept
 
   result <- runtime$create_job(
     operation = "hgnc_update",
-    params = list(refresh = TRUE),
-    executor_fn = function(params) params
+    params = list(refresh = TRUE)
   )
 
   expect_equal(submit_call$job_type, "hgnc_update")
@@ -44,6 +43,168 @@ test_that("create_job delegates to async_job_service_submit and preserves accept
   expect_equal(result$job_id, "job-created")
   expect_equal(result$status, "accepted")
   expect_equal(result$estimated_seconds, 30)
+})
+
+test_that("create_job and production source have no dead executor or timeout API", {
+  runtime <- load_job_manager_runtime()
+
+  expect_identical(as.list(formals(runtime$create_job)), alist(operation =, params =))
+
+  dead_arguments <- c("executor_fn", "timeout_ms")
+  collect_dead_symbols <- function(expression) {
+    found <- character()
+    visit <- function(node) {
+      if (is.name(node) && as.character(node) %in% dead_arguments) {
+        found <<- c(found, as.character(node))
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        node_parts <- as.list(node)
+        found <<- c(found, intersect(names(node_parts), dead_arguments))
+        lapply(node_parts, visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(found)
+  }
+
+  collect_create_job_aliases <- function(expression) {
+    aliases <- "create_job"
+    visit <- function(node) {
+      if (is.call(node) && identical(node[[1]], as.name("function"))) {
+        formal_defaults <- as.list(node[[2L]])
+        create_job_defaults <- vapply(
+          formal_defaults,
+          function(default) is.name(default) && identical(default, as.name("create_job")),
+          logical(1)
+        )
+        aliases <<- c(aliases, names(formal_defaults)[create_job_defaults])
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        lapply(as.list(node), visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(aliases)
+  }
+
+  collect_invalid_create_job_arity <- function(expression, alias_names) {
+    found <- character()
+    visit <- function(node) {
+      if (is.call(node)) {
+        node_parts <- as.list(node)
+        call_name <- as.character(node[[1]])[[1L]]
+        if (call_name %in% alias_names && length(node_parts) != 3L) {
+          found <<- c(found, deparse1(node))
+        }
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        lapply(as.list(node), visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(found)
+  }
+
+  expect_setequal(
+    collect_dead_symbols(quote(submit_fn(timeout_ms = 1, executor_fn = NULL))),
+    dead_arguments
+  )
+  expect_setequal(
+    collect_dead_symbols(quote(function(executor_fn, timeout_ms = 1) NULL)),
+    dead_arguments
+  )
+  expect_length(
+    collect_invalid_create_job_arity(
+      quote(create_job("x", list(), NULL)),
+      alias_names = "create_job"
+    ),
+    1L
+  )
+  injected_alias_example <- quote(
+    function(submit_fn = create_job) submit_fn("x", list(), NULL)
+  )
+  expect_length(
+    collect_invalid_create_job_arity(
+      injected_alias_example,
+      alias_names = collect_create_job_aliases(injected_alias_example)
+    ),
+    1L
+  )
+
+  repository_production_source_files <- function(api_dir) {
+    production_dirs <- file.path(
+      api_dir,
+      c("bootstrap", "core", "endpoints", "functions", "scripts", "services")
+    )
+    production_dirs <- production_dirs[dir.exists(production_dirs)]
+    nested_sources <- unlist(lapply(production_dirs, function(source_dir) {
+      list.files(
+        source_dir,
+        pattern = "\\.R$",
+        recursive = TRUE,
+        full.names = TRUE
+      )
+    }))
+    top_level_sources <- list.files(
+      api_dir,
+      pattern = "\\.R$",
+      recursive = FALSE,
+      full.names = TRUE
+    )
+    sort(unique(c(top_level_sources, nested_sources)))
+  }
+
+  fixture_root <- withr::local_tempdir()
+  dir.create(file.path(fixture_root, "functions"), recursive = TRUE)
+  dir.create(file.path(fixture_root, "renv", "library", "Dependency", "R"), recursive = TRUE)
+  production_offender <- file.path(fixture_root, "functions", "offender.R")
+  dependency_template <- file.path(
+    fixture_root, "renv", "library", "Dependency", "R", "get@PKGNAME@.R"
+  )
+  writeLines("create_job('x', list(), NULL)", production_offender)
+  writeLines(".onLoad <- function(...) @PKGNAME@", dependency_template)
+
+  fixture_sources <- repository_production_source_files(fixture_root)
+  expect_contains(fixture_sources, production_offender)
+  expect_false(dependency_template %in% fixture_sources)
+  offender_expression <- parse(production_offender, keep.source = FALSE)
+  expect_length(
+    collect_invalid_create_job_arity(
+      offender_expression,
+      alias_names = collect_create_job_aliases(offender_expression)
+    ),
+    1L
+  )
+
+  source_files <- repository_production_source_files(get_api_dir())
+  offenders <- unlist(lapply(source_files, function(source_file) {
+    paste(
+      source_file,
+      collect_dead_symbols(parse(source_file, keep.source = FALSE)),
+      sep = ":"
+    )
+  }))
+  offenders <- offenders[!endsWith(offenders, ":")]
+
+  expect_equal(length(offenders), 0L, info = paste(offenders, collapse = ", "))
+
+  arity_offenders <- unlist(lapply(source_files, function(source_file) {
+    source_expression <- parse(source_file, keep.source = FALSE)
+    invalid_calls <- collect_invalid_create_job_arity(
+      source_expression,
+      alias_names = collect_create_job_aliases(source_expression)
+    )
+    paste(source_file, invalid_calls, sep = ":")
+  }))
+  arity_offenders <- arity_offenders[!endsWith(arity_offenders, ":")]
+  expect_equal(
+    length(arity_offenders),
+    0L,
+    info = paste(arity_offenders, collapse = ", ")
+  )
 })
 
 test_that("get_job_status translates durable rows into the legacy polling contract", {

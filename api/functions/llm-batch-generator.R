@@ -106,11 +106,11 @@ llm_should_skip_cached <- function(cached, force = FALSE) {
 #' - Checks is_gemini_configured() before proceeding
 #' - Creates job with operation="llm_generation"
 #' - Passes clusters, cluster_type, parent_job_id, and force to executor
-#' - Timeout set to 1 hour for large batches
+#' - Durable worker execution is governed by the async-job lease lifecycle
 #'
 #' @examples
 #' \dontrun{
-#' # Called from job-manager.R promise callback
+#' # Called after durable clustering jobs complete
 #' result <- trigger_llm_batch_generation(
 #'   clusters = clustering_result$clusters,
 #'   cluster_type = "functional",
@@ -171,10 +171,10 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
     return(list(skipped = TRUE, reason = "create_job function not available"))
   }
 
-  message("[LLM-Batch] About to call create_job() with llm_batch_executor")
+  message("[LLM-Batch] About to submit llm_generation job")
 
-  # Create job with llm_batch_executor. The durable handler resolves DB creds at
-  # run time via async_job_db_connect() (#535 S2b) — no db_config in the payload.
+  # The registered durable handler resolves DB creds at run time via
+  # async_job_db_connect() (#535 S2b) — no db_config in the payload.
   tryCatch(
     {
       result <- create_job(
@@ -184,9 +184,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
           cluster_type = cluster_type,
           parent_job_id = parent_job_id,
           force = isTRUE(force)
-        ),
-        executor_fn = llm_batch_executor,
-        timeout_ms = 3600000  # 1 hour for large batches
+        )
       )
       message("[LLM-Batch] Job created successfully: ", result$job_id %||% "unknown")
       log_info("[LLM-Batch] Job created: {result$job_id %||% 'unknown'}")
@@ -214,7 +212,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #'   - clusters: Tibble of cluster data
 #'   - cluster_type: Character, "functional" or "phenotype"
 #'   - parent_job_id: Character, UUID of parent clustering job
-#'   - .__job_id__: Character, UUID of this job (injected by create_job)
+#'   - .__job_id__: Character, UUID injected by the durable handler
 #'
 #' @return List with summary statistics:
 #'   - total: Integer, total clusters processed
@@ -237,7 +235,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #'
 #' @export
 llm_batch_executor <- function(params) {
-  # File-based debug logging for mirai daemon visibility
+  # File-based debug logging for durable worker visibility
   debug_log_file <- "/tmp/llm_executor_debug.log"
   log_debug <- function(...) {
     cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), " ", ..., "\n", file = debug_log_file, append = TRUE)

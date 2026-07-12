@@ -411,8 +411,8 @@ test_that("async submit returns 202 with Location/Retry-After and the job body o
   seen_args <- NULL
   out <- svc_publication_pubtator_update_submit(
     list(), res, "epilepsy", 10L, FALSE, "hash123",
-    submit_fn = function(operation, params, timeout_ms, executor_fn = NULL) {
-      seen_args <<- list(operation = operation, params = params, executor_fn = executor_fn)
+    submit_fn = function(operation, params) {
+      seen_args <<- list(operation = operation, params = params)
       list(job_id = "job-abc", status = "accepted", estimated_seconds = 30)
     }
   )
@@ -424,13 +424,12 @@ test_that("async submit returns 202 with Location/Retry-After and the job body o
   expect_equal(out$max_pages, 10L)
   expect_match(out$status_url, "/api/jobs/job-abc/status")
 
-  # The job is submitted with the right operation/params, no DB credential, and
-  # no executor closure — the durable handler resolves creds at run time (#535 S2b).
+  # The job is submitted with the right operation/params and no DB credential;
+  # the durable handler resolves creds at run time (#535 S2b).
   expect_equal(seen_args$operation, "pubtator_update")
   expect_equal(seen_args$params$query, "epilepsy")
   expect_equal(seen_args$params$query_hash, "hash123")
   expect_null(seen_args$params$db_config)
-  expect_null(seen_args$executor_fn)
 })
 
 # =============================================================================

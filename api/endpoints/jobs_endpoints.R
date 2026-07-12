@@ -1,7 +1,7 @@
 # api/endpoints/jobs_endpoints.R
 #
 # Async job submission and status polling endpoints.
-# Uses mirai for background execution, returns HTTP 202 Accepted for long-running operations.
+# Submits durable worker jobs and returns HTTP 202 Accepted for long-running operations.
 #
 # Endpoints:
 #   POST /api/jobs/clustering/submit - Submit functional clustering job
@@ -11,7 +11,7 @@
 # Dependencies:
 #   - pool (global database connection pool)
 #   - create_job, get_job_status, check_duplicate_job (from job-manager.R)
-#   - gen_string_clust_obj, gen_mca_clust_obj (analysis functions - loaded in daemons via everywhere())
+#   - durable handlers registered in functions/async-job-handlers.R
 #
 # Handler bodies were extracted to services/job-*-service.R (issue #346, Wave
 # 3, Task 5) to keep this file a thin route table. Each shell below keeps its

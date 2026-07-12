@@ -8,7 +8,7 @@
 #' @author SysNDD Team
 
 # Load required packages for this module
-# Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
+# Note: uuid, digest, and durable async-job helpers are loaded at bootstrap.
 
 # NOTE: LLM batch generator loaded at END of file (after create_job is defined)
 
@@ -18,29 +18,22 @@
 
 #' Create a new async job
 #'
-#' Validates capacity, generates job ID, creates mirai task,
-#' stores job state, and attaches completion callback.
+#' Submits a durable job for execution by its registered worker handler.
 #'
 #' @param operation Character string identifying the operation type
 #'   (e.g., "clustering", "phenotype_clustering", "ontology_update")
-#' @param params List of parameters for the executor function
-#' @param executor_fn Function to execute in background daemon
-#' @param timeout_ms Timeout in milliseconds for the mirai task. Default 1800000 (30 min).
-#'   Long-running jobs like HGNC update with gnomAD enrichment should set a higher value.
+#' @param params List of payload parameters for the registered handler.
 #'
-#' @return List with either:
-#'   - On success: job_id, status="accepted", estimated_seconds=30
-#'   - On capacity exceeded: error="CAPACITY_EXCEEDED", message, retry_after=60
+#' @return List with job_id, status="accepted", and estimated_seconds=30.
 #'
 #' @examples
 #' \dontrun{
 #' result <- create_job(
 #'   operation = "clustering",
-#'   params = list(genes = c("BRCA1", "TP53")),
-#'   executor_fn = function(params) gen_string_clust_obj(params$genes)
+#'   params = list(genes = c("BRCA1", "TP53"))
 #' )
 #' }
-create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
+create_job <- function(operation, params) {
   submitted <- async_job_service_submit(
     job_type = operation,
     request_payload = params
@@ -57,8 +50,7 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
 
 #' Get the status of a job
 #'
-#' Checks if job exists, determines current status by checking
-#' mirai resolution state, and returns appropriate response.
+#' Reads the persisted durable-job state and returns the polling response.
 #'
 #' @param job_id Character string - the UUID of the job
 #' @param result_mode Character string - "summary" omits stored result JSON,

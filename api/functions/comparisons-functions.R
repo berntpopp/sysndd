@@ -250,7 +250,7 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 #' or "partial" (some failed), recorded in comparisons_metadata.
 #'
 #' @param params List containing:
-#'   - .__job_id__: Job ID for progress reporting (injected by create_job)
+#'   - .__job_id__: Job ID for progress reporting, injected by the durable handler
 #'   DB creds are resolved at run time via `async_job_db_connect()` (#535 S2b);
 #'   the payload no longer carries `db_config`.
 #'

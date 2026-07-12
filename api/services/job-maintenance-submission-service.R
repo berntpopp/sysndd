@@ -18,7 +18,8 @@
 # dedupe via job-type single-flight (`async_job_service_duplicate_by_type()`),
 # not a payload hash, so a full-table-replace maintenance job never runs
 # concurrently — including across a deploy that changes its payload schema.
-# `create_job()`'s `executor_fn` is dead (ignored); these submits pass `NULL`.
+# `create_job()` submits only the operation and payload; registered durable
+# handlers execute the work.
 #
 # This is an ENDPOINT service: it is sourced by the shared bootstrap loader
 # (api/bootstrap/load_modules.R) like any other services/* file, and only ever
@@ -31,7 +32,7 @@
 #' @return List payload for the `json` serializer.
 #' @export
 svc_job_submit_ontology_update <- function(res) {
-  # CRITICAL: Extract all database data BEFORE mirai
+  # Extract all database data before durable submission.
   # Database connections cannot cross process boundaries
 
   # Get HGNC list
@@ -66,31 +67,7 @@ svc_job_submit_ontology_update <- function(res) {
     params = list(
       hgnc_list = hgnc_list,
       mode_of_inheritance_list = mode_of_inheritance_list
-    ),
-    executor_fn = function(params) {
-      # This runs in mirai daemon
-      # The process_combine_ontology function handles:
-      # - Downloading MONDO ontology
-      # - Downloading OMIM genemap2
-      # - Processing and combining data
-      # - Saving results to CSV
-
-      # Call the ontology processing function
-      disease_ontology_set <- process_combine_ontology(
-        hgnc_list = params$hgnc_list,
-        mode_of_inheritance_list = params$mode_of_inheritance_list,
-        max_file_age = 0, # Force regeneration
-        output_path = "data/"
-      )
-
-      # Return summary
-      list(
-        status = "completed",
-        rows_processed = nrow(disease_ontology_set),
-        sources = c("MONDO", "OMIM"),
-        output_file = paste0("data/disease_ontology_set.", format(Sys.Date(), "%Y-%m-%d"), ".csv")
-      )
-    }
+    )
   )
 
   # Check capacity
@@ -139,9 +116,7 @@ svc_job_submit_hgnc_update <- function(res) {
   # gnomAD enrichment now uses bulk TSV download (~10s), Ensembl/STRINGdb are the bottleneck
   result <- create_job(
     operation = "hgnc_update",
-    params = list(),
-    timeout_ms = 1800000, # 30 minutes (bulk TSV approach makes gnomAD fast)
-    executor_fn = NULL
+    params = list()
   )
 
   # Check capacity
@@ -190,9 +165,7 @@ svc_job_submit_comparisons_update <- function(res) {
   # Downloads from 7+ sources can take 5-30 minutes depending on network
   result <- create_job(
     operation = "comparisons_update",
-    params = list(),
-    timeout_ms = 1800000, # 30 minutes
-    executor_fn = NULL
+    params = list()
   )
 
   # Check capacity
