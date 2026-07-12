@@ -77,14 +77,23 @@ correspondingly job-type agnostic and redacts both `$.db_config.password` and
 `$.db_config.db_password` for historical terminal rows.
 
 **Deploy note (S2b payload-schema change):** dropping `db_config` changes the
-request-payload hash of `hgnc_update`/`comparisons_update`/`omim_update`. These
-destructive full-table-replace jobs now dedupe by **job type** (single-flight),
-so steady state is safe, but during the single deploy that lands S2b an
-in-flight pre-deploy job (old hash) will not dedupe against a newly-submitted
-post-deploy job. Prefer draining any in-flight maintenance job before deploying
-(these are admin/cron-triggered singletons; each is a full replace, so even a
-rare overlap converges to a consistent state). The scrub only touches terminal,
-non-retryable rows, so it never races an active job.
+request-payload hash of `hgnc_update`/`comparisons_update`/`omim_update`/
+`force_apply_ontology`. These destructive full-table-replace jobs now dedupe by
+**job type** (best-effort submit-time single-flight), which returns a clean 409
+for a same-type resubmit even across the deploy. Concurrency safety for
+destructive execution does **not** rely on this dedup: the durable **maintenance
+lane runs on a single worker** that claims and runs jobs strictly sequentially
+(one `worker-maintenance` container), so two destructive jobs never execute
+concurrently — even if a rare non-atomic double-submit enqueues two. The scrub
+only touches terminal, non-retryable rows, so it never races an active job.
+
+If you ever scale the maintenance lane beyond one worker, add a hard, atomic
+**cross-type conflict-group mutex** first (advisory lock over check+insert, or a
+generated conflict-key unique index grouping `omim_update`/`force_apply_ontology`
+on `disease_ontology_set` and `pubtator_enrichment_refresh`/`pubtatornidd_nightly`
+on the enrichment snapshot) — the submit-time single-flight alone is not
+sufficient for concurrent workers. Draining in-flight maintenance jobs before
+deploying is prudent regardless.
 
 ### `MIRAI_WORKERS`
 

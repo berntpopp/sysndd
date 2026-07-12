@@ -1,8 +1,9 @@
 # tests/testthat/test-unit-async-job-payload-scrub.R
-# #535 P1-1: the historical-payload scrub is backup + terminal scoped, single
-# path, idempotent, and recomputes request_hash so it no longer encodes the
-# password. The statement-shape test is host-runnable; the idempotency test
-# needs the test DB.
+# #535 P1-1 + S2b: the historical-payload scrub is TERMINAL + non-retryable
+# scoped, job-type AGNOSTIC, DUAL-PATH ($.db_config.password AND
+# $.db_config.db_password via JSON_REPLACE), idempotent, and recomputes
+# request_hash so it no longer encodes the password. The statement-shape test is
+# host-runnable; the redaction/idempotency tests need the test DB.
 
 library(testthat)
 

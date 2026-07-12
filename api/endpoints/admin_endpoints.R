@@ -82,7 +82,7 @@ function(req, res) {
 #* @put update_ontology_async
 function(req, res) {
   require_role(req, res, "Administrator")
-  svc_admin_ontology_update_async(req, res, pool, dw)
+  svc_admin_ontology_update_async(req, res, pool)
 }
 
 #* Force-apply a blocked ontology update
@@ -117,14 +117,18 @@ function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
   }
 
   prepared <- svc_admin_force_apply_ontology_prepare(
-    req, res, blocked_job_id, assigned_user_id, pool, dw
+    req, res, blocked_job_id, assigned_user_id, pool
   )
   if (!is.null(prepared$early_return)) {
     return(prepared$early_return)
   }
 
-  # Check for duplicate job
-  dup_check <- check_duplicate_job("force_apply_ontology", list())
+  # Job-type single-flight (#535 S2b): force_apply_ontology replaces
+  # disease_ontology_set (like omim_update), and its payload hash changed when
+  # db_config was dropped — so dedupe by job type, not a payload hash. Best-effort
+  # submit-time guard; concurrency safety comes from the single sequential
+  # maintenance worker (see async_job_service_duplicate_by_type).
+  dup_check <- check_active_job_by_type("force_apply_ontology", list())
   if (dup_check$duplicate) {
     return(list(
       job_id = dup_check$existing_job_id,
@@ -340,7 +344,7 @@ function(req, res) {
 #* @post /publications/refresh
 function(req, res) {
   require_role(req, res, "Administrator")
-  svc_admin_publication_refresh_submit(req, res, dw)
+  svc_admin_publication_refresh_submit(req, res)
 }
 
 ## Administration section

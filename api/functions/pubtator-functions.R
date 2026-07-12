@@ -280,15 +280,15 @@ pubtator_db_update <- function(
 
 #------------------------------------------------------------------------------
 # ASYNC VERSION: pubtator_db_update_async
-#   - Designed for mirai daemons (no pool dependency)
-#   - Creates its own database connection
+#   - Durable-worker handler (no pool dependency)
+#   - Opens its own connection via async_job_db_connect() (#535 S2b)
 #   - Transaction handling via DBI directly
 #------------------------------------------------------------------------------
-#' Store PubTator results in DB (async/daemon version with direct connection)
+#' Store PubTator results in DB (durable-worker version with direct connection)
 #'
-#' This version is designed for use in mirai daemons where the global pool
-#' is not available. It creates its own database connection and uses direct
-#' DBI operations instead of pool-based helpers.
+#' This version runs in the durable async worker. It opens its own database
+#' connection via `async_job_db_connect()` (resolving creds from the worker
+#' runtime config) and uses direct DBI operations instead of pool-based helpers.
 #'
 #' @param query The PubTator query string
 #' @param max_pages Max pages to fetch

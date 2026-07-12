@@ -21,7 +21,7 @@
 #' submits (or returns the existing) `omim_update` durable job.
 #'
 #' @export
-svc_admin_ontology_update_async <- function(req, res, pool, dw,
+svc_admin_ontology_update_async <- function(req, res, pool,
                                              duplicate_check_fn = check_active_job_by_type,
                                              create_job_fn = create_job) {
   mode_of_inheritance_list <- pool %>%
@@ -82,7 +82,7 @@ svc_admin_ontology_update_async <- function(req, res, pool, dw,
 #'   `create_job(operation = "force_apply_ontology", params = ...)`).
 #' @export
 svc_admin_force_apply_ontology_prepare <- function(req, res, blocked_job_id, assigned_user_id,
-                                                     pool, dw, job_status_fn = get_job_status) {
+                                                     pool, job_status_fn = get_job_status) {
   assigned_user_id <- if (!is.null(assigned_user_id) && assigned_user_id != "") {
     as.integer(assigned_user_id)
   } else {

@@ -443,8 +443,7 @@ test_that("submit returns 400 on an invalid not_updated_since date", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(not_updated_since = "not-a-date")), res = res,
-    dw = list()
+    req = list(body = list(not_updated_since = "not-a-date")), res = res
   )
 
   expect_equal(res$status, 400)
@@ -455,7 +454,7 @@ test_that("submit returns 400 when no PMIDs and no filter/all flag are given (em
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list()), res = res, dw = list()
+    req = list(body = list()), res = res
   )
 
   expect_equal(res$status, 400)
@@ -466,7 +465,7 @@ test_that("submit returns 200 'no match' when the date filter matches nothing", 
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(not_updated_since = "2024-01-01")), res = res, dw = list(),
+    req = list(body = list(not_updated_since = "2024-01-01")), res = res,
     query_fn = function(sql, params = list()) {
       data.frame(publication_id = character(0))
     }
@@ -481,7 +480,7 @@ test_that("submit returns 200 when explicit PMIDs don't intersect the date filte
 
   result <- svc_admin_publication_refresh_submit(
     req = list(body = list(pmids = list("999999"), not_updated_since = "2024-01-01")),
-    res = res, dw = list(),
+    res = res,
     query_fn = function(sql, params = list()) data.frame(publication_id = c("111", "222"))
   )
 
@@ -493,7 +492,7 @@ test_that("submit returns 'already_running' when a duplicate job exists", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(pmids = list("12345"))), res = res, dw = list(),
+    req = list(body = list(pmids = list("12345"))), res = res,
     duplicate_check_fn = function(operation, params) {
       expect_equal(operation, "publication_refresh")
       list(duplicate = TRUE, existing_job_id = "existing-job")
@@ -509,7 +508,7 @@ test_that("submit returns 503 when job submission reports capacity exceeded", {
   res <- fake_res()
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(pmids = list("12345"))), res = res, dw = list(),
+    req = list(body = list(pmids = list("12345"))), res = res,
     duplicate_check_fn = function(...) list(duplicate = FALSE),
     create_job_fn = function(operation, params, ...) {
       list(error = "CAPACITY_EXCEEDED", message = "Too many jobs", retry_after = 60)
@@ -526,7 +525,6 @@ test_that("submit succeeds with 202 and the 350ms-per-PMID estimate", {
 
   result <- svc_admin_publication_refresh_submit(
     req = list(body = list(pmids = list("1", "2", "3"))), res = res,
-    dw = list(dbname = "d", user = "u", password = "p", server = "s", host = "h", port = 3306L),
     duplicate_check_fn = function(...) list(duplicate = FALSE),
     create_job_fn = function(operation, params, ...) {
       seen_params <<- params
@@ -556,7 +554,7 @@ test_that("submit resolves an opt-in all=true full-corpus refresh server-side", 
   seen_sql <- NULL
 
   result <- svc_admin_publication_refresh_submit(
-    req = list(body = list(all = TRUE)), res = res, dw = list(),
+    req = list(body = list(all = TRUE)), res = res,
     query_fn = function(sql, params = list()) {
       seen_sql <<- sql
       data.frame(publication_id = c("1", "2"))

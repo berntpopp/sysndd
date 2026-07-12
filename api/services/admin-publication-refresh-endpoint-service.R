@@ -114,7 +114,7 @@ svc_admin_publication_refresh_estimate_seconds <- function(pmids) {
 #' resolve (400/200 per the original contract).
 #'
 #' @export
-svc_admin_publication_refresh_submit <- function(req, res, dw,
+svc_admin_publication_refresh_submit <- function(req, res,
                                                    query_fn = db_execute_query,
                                                    duplicate_check_fn = check_duplicate_job,
                                                    create_job_fn = create_job) {

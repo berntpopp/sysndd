@@ -207,7 +207,8 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
 #' LLM batch executor for processing clusters
 #'
 #' Processes each cluster with cache-first lookup, retry logic, and progress reporting.
-#' Executed in mirai daemon as part of async job.
+#' Executed by the durable async worker; opens its DB connection via
+#' async_job_db_connect() (#535 S2b).
 #'
 #' @param params List containing:
 #'   - clusters: Tibble of cluster data

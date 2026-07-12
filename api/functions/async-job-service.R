@@ -437,10 +437,23 @@ async_job_service_find_active_by_type <- function(job_type, conn = NULL) {
 #' Job-type single-flight duplicate check (#535 S2b HIGH-4).
 #'
 #' Unlike `async_job_service_duplicate()` (which keys on the payload hash and so
-#' cannot dedupe across a payload-schema change), this dedupes on job_type alone
-#' so destructive full-table-replace maintenance jobs (hgnc/comparisons/omim)
-#' never run concurrently — including across the deploy that drops db_config
-#' from their payloads.
+#' cannot dedupe across a payload-schema change), this dedupes on job_type alone,
+#' so a destructive full-table-replace maintenance job (hgnc/comparisons/omim/
+#' force_apply) resubmitted while one is in flight gets a clean 409 even across
+#' the deploy that drops db_config from its payload.
+#'
+#' NOTE (scope): this is a **best-effort, submit-time** guard — the check and the
+#' subsequent insert are NOT atomic, so a rare concurrent double-submit can still
+#' enqueue two jobs. That is acceptable because the durable **maintenance lane
+#' runs on a single worker** (`async_job_worker_main` claims+runs jobs
+#' sequentially; Compose runs one `worker-maintenance` container), so two
+#' destructive jobs never execute concurrently regardless of dedup. A hard,
+#' atomic **cross-type conflict-group mutex** (e.g. an advisory lock covering
+#' check+insert, or a generated conflict-key unique index grouping
+#' omim_update/force_apply_ontology and pubtator_enrichment_refresh/
+#' pubtatornidd_nightly) is defense-in-depth needed only if the maintenance lane
+#' is ever scaled beyond one worker — tracked as a follow-up, not part of this
+#' credential fix.
 #'
 #' @param job_type Character job type.
 #' @param conn Optional DB connection or pool.
