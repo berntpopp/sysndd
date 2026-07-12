@@ -15,6 +15,16 @@ let moduleLastApiCallTime = 0;
 let moduleApiCallInProgress = false;
 let moduleLastApiResponse: unknown = null;
 let moduleLastApiResponseParams: string | null = null;
+// Module-wide monotonic per-fetch-START sequence + the sequence of the fetch that
+// last wrote the recent-response cache (#535 S5b). Param-keying alone does NOT make
+// late-completion order irrelevant: two SAME-param fetches (A1, A2) both write under
+// params A, so a superseded A1 completing after A2 would overwrite the fresher A2 in
+// the cache. Only a fetch whose START sequence is >= the last cache writer's may
+// record the cache, so an out-of-order stale same-param response cannot poison it.
+// The sequence is module-level so it stays monotonic across instances that share the
+// module cache.
+let moduleFetchSeq = 0;
+let moduleLastResponseSeq = 0;
 
 /** Reset the module-level cache — for use in tests only. */
 export function __resetUserDataCache(): void {
@@ -23,6 +33,8 @@ export function __resetUserDataCache(): void {
   moduleApiCallInProgress = false;
   moduleLastApiResponse = null;
   moduleLastApiResponseParams = null;
+  moduleFetchSeq = 0;
+  moduleLastResponseSeq = 0;
 }
 
 export interface FilterEntry {
@@ -81,6 +93,11 @@ export function useUserData(options: UseUserDataOptions = {}) {
   let startGeneration = 0;
   let latestIntent: string | null = null;
   let disposed = false;
+  // Independent per-loader generations for the static option lists (#535 S5b MEDIUM):
+  // an older loadRoleList()/loadUserList() completing last must not overwrite the
+  // newer snapshot.
+  let roleListGeneration = 0;
+  let userListGeneration = 0;
 
   const filter = ref<ManageUserFilter>({
     any: { content: null, join_char: null, operator: 'contains' },
@@ -151,6 +168,8 @@ export function useUserData(options: UseUserDataOptions = {}) {
     // with the params intent so it stays stable across applyApiResponse's own ref
     // mutations (latestIntent only moves on a new loadData/loadDataNow call).
     const myGen = ++startGeneration;
+    // Module-wide start order for the recent-response cache write guard below.
+    const mySeq = ++moduleFetchSeq;
     const stillOwner = (): boolean =>
       !disposed && myGen === startGeneration && urlParam === latestIntent;
 
@@ -169,12 +188,16 @@ export function useUserData(options: UseUserDataOptions = {}) {
         page_after: tableData.currentItemID.value,
         page_size: String(tableData.perPage.value),
       });
-      // Transport bookkeeping: the completing fetch clears the in-flight flag and
-      // records its param-keyed response regardless of which intent is now current
-      // (param-keying makes late-completion order irrelevant to correctness).
+      // Transport bookkeeping: the completing fetch clears the in-flight flag. The
+      // recent-response cache is written only when NO later-started fetch has already
+      // recorded one (`mySeq >= moduleLastResponseSeq`), so a superseded same-param
+      // response completing out of order cannot overwrite the fresher cached value.
       moduleApiCallInProgress = false;
-      moduleLastApiResponse = data;
-      moduleLastApiResponseParams = urlParam;
+      if (mySeq >= moduleLastResponseSeq) {
+        moduleLastApiResponse = data;
+        moduleLastApiResponseParams = urlParam;
+        moduleLastResponseSeq = mySeq;
+      }
       // Consumer apply: only the latest-started request for the current intent.
       if (!stillOwner()) return;
       applyApiResponse(data, stillOwner);
@@ -206,26 +229,34 @@ export function useUserData(options: UseUserDataOptions = {}) {
   }
 
   async function loadRoleList(): Promise<void> {
+    const myGen = ++roleListGeneration;
+    const stillCurrent = (): boolean => !disposed && myGen === roleListGeneration;
     try {
       const roles = await getRoleList();
+      if (!stillCurrent()) return; // superseded by a newer load or a torn-down instance
       role_options.value = roles.map((item) => ({
         value: item.role,
         text: item.role,
       }));
     } catch (e) {
+      if (!stillCurrent()) return;
       onToast?.(e, 'Error', 'danger');
     }
   }
 
   async function loadUserList(): Promise<void> {
+    const myGen = ++userListGeneration;
+    const stillCurrent = (): boolean => !disposed && myGen === userListGeneration;
     try {
       const list = await listUsersByRole({ roles: 'Curator,Reviewer' });
+      if (!stillCurrent()) return; // superseded by a newer load or a torn-down instance
       user_options.value = list.map((item) => ({
         value: item.user_id,
         text: item.user_name,
         role: item.user_role,
       }));
     } catch (e) {
+      if (!stillCurrent()) return;
       onToast?.(e, 'Error', 'danger');
     }
   }

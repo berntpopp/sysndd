@@ -228,6 +228,46 @@ describe('useUserData', () => {
     expect(data.totalRows.value).toBe(555); // disposed → late response ignored
   });
 
+  it('a superseded same-param response completing last does not poison the recent cache', async () => {
+    // A1→B→A2 all in flight; A1 and A2 share params A. A2 (latest) completes first
+    // and caches fresh A; the stale A1 then completes LAST. A subsequent cache hit
+    // for A must serve A2's data, never the stale A1 (param-keying alone does not
+    // protect same-param out-of-order; the module write-sequence guard does).
+    const axios = await getAxiosMock();
+    const resolvers: Array<(v: unknown) => void> = [];
+    axios.get.mockImplementation(() => new Promise((res) => resolvers.push(res)));
+    const data = useUserData();
+
+    const pA1 = data.loadDataNow(); // A1 (default params) — resolvers[0]
+    data.perPage.value = 50;
+    const pB = data.loadDataNow(); // B (params B) — resolvers[1]
+    data.perPage.value = 25; // back to default params A
+    const pA2 = data.loadDataNow(); // A2 (params A again) — resolvers[2]
+
+    // A2 (latest) completes first → caches fresh A (totalItems 77).
+    resolvers[2]({
+      status: 200,
+      data: { ...userTablePayload, meta: [{ ...userTablePayload.meta[0], totalItems: 77 }] },
+    });
+    await pA2;
+    await flushPromises();
+    // Stale A1 completes LAST (totalItems 2) — must NOT overwrite the cached A2.
+    resolvers[0]({ status: 200, data: userTablePayload });
+    await pA1;
+    await flushPromises();
+
+    // Trigger a cache hit for params A: it must serve A2 (77), not the stale A1 (2).
+    await data.loadDataNow();
+    await flushPromises();
+    expect(data.totalRows.value).toBe(77);
+
+    // let B settle so no timer/promise leaks into the next test
+    resolvers[1]({ status: 200, data: userTablePayload });
+    await pB;
+    await flushPromises();
+    data.dispose();
+  });
+
   it('A→B→cached-A does not leave isBusy stuck true', async () => {
     const axios = await getAxiosMock();
     const resolvers: Array<(v: unknown) => void> = [];

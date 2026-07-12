@@ -49,6 +49,9 @@ export function useMetadataAdmin(options: UseMetadataAdminOptions) {
   // mutate the WRONG vocabulary. Capture slug + generation and apply only if both
   // are still current.
   let rowsGeneration = 0;
+  // Ownership for catalog loads (#535 S5b): an older loadCatalog() completing after a
+  // newer one must not overwrite the fresher catalog or clear loadingCatalog early.
+  let catalogGeneration = 0;
 
   const activeVocabulary = computed<MetadataVocabulary | null>(
     () => catalog.value.find((v) => v.slug === activeSlug.value) ?? null
@@ -61,18 +64,41 @@ export function useMetadataAdmin(options: UseMetadataAdminOptions) {
   const isAnchored = computed(() => activeVocabulary.value?.editable === 'anchored');
 
   async function loadCatalog(): Promise<void> {
+    const myGen = ++catalogGeneration;
+    const stillCurrent = (): boolean => myGen === catalogGeneration;
     loadingCatalog.value = true;
     loadError.value = null;
     try {
-      catalog.value = await fetchMetadataCatalog();
-      if (!activeSlug.value && catalog.value.length > 0) {
-        await selectVocabulary(catalog.value[0].slug);
+      const fetched = await fetchMetadataCatalog();
+      if (!stillCurrent()) return; // a newer loadCatalog() superseded this one
+      catalog.value = fetched;
+      // Reconcile the active selection with the accepted catalog: if the active slug
+      // is absent or no longer present in this (possibly newer) catalog, (re)select
+      // the first entry or clear when empty. Routing through selectVocabulary bumps
+      // rowsGeneration, so an older catalog-initiated row load cannot populate rows
+      // under a newer catalog (and an edit can never target a vocabulary that left
+      // the catalog).
+      const slugs = fetched.map((v) => v.slug);
+      if (!activeSlug.value || !slugs.includes(activeSlug.value)) {
+        if (fetched.length > 0) {
+          await selectVocabulary(fetched[0].slug);
+        } else {
+          // Empty catalog: bump rowsGeneration so any in-flight row load is superseded
+          // (its finally can no longer clear the spinner), and clear loadingRows here so
+          // the table does not hang on a stuck spinner.
+          rowsGeneration += 1;
+          activeSlug.value = null;
+          rows.value = [];
+          listMeta.value = null;
+          loadingRows.value = false;
+        }
       }
     } catch (err) {
+      if (!stillCurrent()) return;
       loadError.value = extractApiErrorMessage(err, 'Failed to load metadata vocabularies.');
       onToast(loadError.value, 'Error', 'danger');
     } finally {
-      loadingCatalog.value = false;
+      if (stillCurrent()) loadingCatalog.value = false;
     }
   }
 

@@ -87,15 +87,21 @@ export function useResource<T>(
     // If another consumer already has a fetch in flight for this key, subscribe to it.
     const existing = cache.peek<T>(key);
     if (existing?.pending && !force) {
+      const subEpoch = existing.epoch; // the shared fetch this subscriber is awaiting
       try {
         if (!background) loading.value = true;
         const value = (await existing.pending) as T;
         if (!consumerCurrent()) return; // this instance switched keys or refetched
+        // The shared slot advanced past the fetch we awaited: a newer fetch (started
+        // by ANOTHER consumer) superseded it. Applying `value` would strand this
+        // subscriber on stale data forever, so follow the current slot instead.
+        if (cache.peek<T>(key)?.epoch !== subEpoch) return followCurrentSlot(key, background);
         data.value = value;
         error.value = null;
         isStale.value = false;
       } catch (e) {
         if (!consumerCurrent()) return;
+        if (cache.peek<T>(key)?.epoch !== subEpoch) return followCurrentSlot(key, background);
         error.value = e instanceof Error ? e : new Error(String(e));
       } finally {
         if (consumerCurrent() && !background) loading.value = false;
@@ -121,17 +127,41 @@ export function useResource<T>(
       const value = await promise;
       if (slotCurrent()) cache.set<T>(key, value, ttlMs); // only the latest fetch records
       if (!consumerCurrent()) return;
+      // Another consumer superseded this slot with a newer fetch while ours was in
+      // flight (e.g. it called refresh() on the same key): our value is stale, so
+      // follow the current slot instead of applying it to this instance's refs.
+      if (!slotCurrent()) return followCurrentSlot(key, background);
       data.value = value;
       error.value = null;
       isStale.value = false;
     } catch (e) {
       if (slotCurrent()) cache.endFetch(key);
       if (!consumerCurrent()) return;
+      if (!slotCurrent()) return followCurrentSlot(key, background); // superseded: adopt the newer outcome
       error.value = e instanceof Error ? e : new Error(String(e));
     } finally {
       if (slotCurrent()) cache.endFetch(key);
       if (consumerCurrent() && !background) loading.value = false;
     }
+  }
+
+  // A subscriber's shared pending was superseded by a newer fetch on the same slot.
+  // Adopt the newer outcome instead of the stale value: hydrate from the resolved
+  // cache entry if the newer fetch already completed, else re-subscribe to (or start)
+  // the current fetch. Never applies the stale value; never leaves loading stuck (the
+  // re-entered doFetch bumps fetchGeneration, so the caller's finally yields loading
+  // ownership to it).
+  async function followCurrentSlot(key: ResourceKey, background: boolean): Promise<void> {
+    const cur = cache.peek<T>(key);
+    if (cur && cur.fetchedAt !== 0 && !cur.pending) {
+      // The superseding fetch already resolved into the cache — adopt it, no refetch.
+      data.value = cur.value;
+      error.value = null;
+      isStale.value = cache.isStale(key);
+      return;
+    }
+    // Superseding fetch still in flight (or the slot was invalidated): follow/restart it.
+    return doFetch(key, false, background);
   }
 
   async function activate(key: ResourceKey | null): Promise<void> {
