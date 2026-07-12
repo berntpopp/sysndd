@@ -169,11 +169,45 @@ test_that("the store is bounded against fingerprint rotation (memory-DoS guard)"
     async_job_submit_rate_limit(sprintf("ip-%d", i), now = 1000,
       max_n = 3L, window_s = 60L, store = st, max_tracked = 10L)
   }
-  expect_lte(length(ls(envir = st)), 10L) # hard-capped, not 50
-  # After the window, a fresh caller sweeps out the fully-expired buckets.
+  # Bounded: 10 tracked buckets + overflow + sweep marker, never 50.
+  expect_lte(length(ls(envir = st, all.names = TRUE)), 12L)
+  expect_lt(length(ls(envir = st, all.names = TRUE)), 50L)
+  # After the window, a fresh caller reclaims the fully-expired buckets.
   async_job_submit_rate_limit("newcomer", now = 2000,
     max_n = 3L, window_s = 60L, store = st, max_tracked = 10L)
-  expect_lte(length(ls(envir = st)), 10L)
+  expect_lte(length(ls(envir = st, all.names = TRUE)), 12L)
+})
+
+test_that("saturation routes new fingerprints to a shared overflow bucket, never evicting an active caller", {
+  st <- new.env(parent = emptyenv())
+  # Establish an active caller that has already spent 2 of 3 submissions.
+  async_job_submit_rate_limit("1.2.3.4", now = 1000, max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  async_job_submit_rate_limit("1.2.3.4", now = 1001, max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  # Saturate with distinct rotating callers within the same window.
+  for (i in 1:30) {
+    async_job_submit_rate_limit(sprintf("10.0.0.%d", i), now = 1002,
+      max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  }
+  # The active caller's window was NOT reset by the flood: it still has its 3rd (last)
+  # submission available, then the 4th is throttled.
+  r3 <- async_job_submit_rate_limit("1.2.3.4", now = 1003, max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  expect_true(r3$allowed)
+  r4 <- async_job_submit_rate_limit("1.2.3.4", now = 1004, max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  expect_false(r4$allowed)
+  # The rotating callers collapsed into ONE overflow bucket that is itself throttled.
+  denied <- async_job_submit_rate_limit("10.0.0.99", now = 1005, max_n = 3L, window_s = 60L, store = st, max_tracked = 3L)
+  expect_false(denied$allowed)
+})
+
+test_that("admission guard fails CLOSED (503) on a malformed (non-NULL) decision", {
+  orig <- async_job_submit_rate_limit
+  async_job_submit_rate_limit <<- function(...) list(nonsense = TRUE) # no valid $allowed
+  on.exit(async_job_submit_rate_limit <<- orig, add = TRUE)
+  res <- mock_res()
+  adm <- async_job_submit_admission_guard(list(REMOTE_ADDR = "10.0.0.1"), res)
+  expect_false(adm$admitted)
+  expect_equal(res$status, 503L)
+  expect_equal(adm$response$error, "THROTTLE_UNAVAILABLE")
 })
 
 test_that("invalid env values fall back to safe defaults (not disable/corrupt)", {

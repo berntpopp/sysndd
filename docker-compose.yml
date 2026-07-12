@@ -231,6 +231,16 @@ services:
       - "traefik.http.routers.api.rule=Host(`sysndd.dbmr.unibe.ch`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.routers.api.priority=100"
+      # #535 S6: strip client-supplied X-Forwarded-For *underscore aliases* so only
+      # Traefik's canonical (hyphenated) X-Forwarded-For chain reaches the API. Plumber
+      # folds `X_Forwarded_For` (and mixed `X-Forwarded_For` / `X_Forwarded-For`) into
+      # the SAME CGI field as the canonical header; without this an attacker could
+      # inject a rotating IP that collides with the proxy-owned value and defeats the
+      # per-caller submit throttle. Empty value = delete the header before forwarding.
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded_For="
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X-Forwarded_For="
+      - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded-For="
+      - "traefik.http.routers.api.middlewares=api-strip-xff-alias@docker"
       - "traefik.http.services.api.loadbalancer.server.port=7777"
       # Sticky sessions for job state consistency across scaled API containers
       - "traefik.http.services.api.loadbalancer.sticky.cookie=true"

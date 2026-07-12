@@ -41,6 +41,18 @@ submit rate limit. Kept intentionally small and self-contained.
   `async_jobs` row; the phenotype path collects five tables and builds the wide MCA matrix). It is
   layered on the global capacity cap that still runs after.
 
+### Store bounding under rotation (no active-caller eviction)
+Memory is capped at `CLUSTERING_SUBMIT_MAX_TRACKED` fingerprints. When the store is saturated with
+**active** callers, a brand-new fingerprint is routed into a single shared **overflow bucket**
+(collectively throttled) instead of evicting a legitimate caller's window — so X-Forwarded-For
+rotation can neither exhaust memory nor reset an innocent caller's limit. Reclaim drops only
+**fully-idle** buckets, is sort-free (`names()`, not the sorting `ls()`), and is time-gated to at
+most once per window so a flood cannot force an O(n) scan on every request. There is **no env
+kill-switch**: `CLUSTERING_SUBMIT_PER_CALLER_MAX` floors at 1 (a stray `=0`/invalid → default), all
+limits clamp to sane ceilings, and the guard **fails closed** (`503 THROTTLE_UNAVAILABLE`) on any
+internal error. The sibling `ASYNC_PUBLIC_JOB_CAP` parse was hardened the same way (an invalid value
+no longer parses to `NA` and silently disables the DB-backed backstop).
+
 ### Why in-memory / process-local (documented trade-off)
 The store is an in-process environment, so a caller's window is per API process. In the single-API
 Compose topology this is exact; with multiple API replicas each enforces independently while the

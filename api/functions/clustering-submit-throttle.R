@@ -35,10 +35,11 @@
 }
 
 # Max submissions per caller per window, and the window length (seconds). Read once
-# at source/startup; changing the env var requires an API restart. MAX accepts an
-# explicit 0 (disable) and is clamped to a sane ceiling; WINDOW must be >= 1.
+# at source/startup; changing the env var requires an API restart. MAX floors at 1 so
+# a stray `=0` (or any invalid value) falls back to the default rather than SILENTLY
+# disabling the control; it is clamped to a sane ceiling. WINDOW must be >= 1.
 CLUSTERING_SUBMIT_PER_CALLER_MAX <-
-  .async_job_submit_env_int("CLUSTERING_SUBMIT_PER_CALLER_MAX", 5L, 0L, max_value = 10000L)
+  .async_job_submit_env_int("CLUSTERING_SUBMIT_PER_CALLER_MAX", 5L, 1L, max_value = 10000L)
 CLUSTERING_SUBMIT_WINDOW_SECONDS <-
   .async_job_submit_env_int("CLUSTERING_SUBMIT_WINDOW_SECONDS", 60L, 1L, max_value = 86400L)
 # Number of trusted reverse-proxy hops in front of the API (Traefik = 1). Clamped to
@@ -146,35 +147,54 @@ async_job_submit_fingerprint <- function(req,
   "unknown"
 }
 
-#' Bound the throttle store: drop fully-idle fingerprints (all timestamps aged out),
-#' then, if still at/over the cap, evict the least-recently-active until under it.
-#' Keeps memory O(max_tracked) regardless of X-Forwarded-For rotation.
-.async_job_submit_sweep <- function(store, cutoff, max_tracked) {
-  keys <- ls(envir = store)
-  if (length(keys) < max_tracked) {
+# Reserved store keys (control-char prefix -> never a valid IP / "unknown", so they
+# cannot collide with a real fingerprint). The overflow bucket collectively throttles
+# brand-new callers once the store is saturated with ACTIVE callers; the sweep marker
+# time-gates the reclaim scan.
+.CLUSTERING_SUBMIT_OVERFLOW_KEY <- "\001overflow"
+.CLUSTERING_SUBMIT_SWEEP_KEY <- "\001sweep_at"
+
+# Number of tracked fingerprint buckets (excludes the sweep marker). Uses
+# `length(env)` — O(bindings), with no name sort or character-vector allocation
+# (unlike `ls()`), so it is cheap even under a rotation flood.
+.async_job_submit_size <- function(store) {
+  n <- length(store)
+  if (base::exists(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)) n - 1L else n
+}
+
+#' Reclaim store space by dropping ONLY fully-idle fingerprints (every timestamp aged
+#' out) — an active caller's window is never evicted. Sort-free (`names()`, not the
+#' sorting `ls()`), and time-gated to at most once per window so a rotation flood
+#' cannot force an O(n) scan on every request.
+.async_job_submit_reclaim <- function(store, cutoff, now, window_s) {
+  sweep_at <- if (base::exists(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)) {
+    base::get(.CLUSTERING_SUBMIT_SWEEP_KEY, envir = store, inherits = FALSE)
+  } else {
+    -Inf
+  }
+  if ((now - sweep_at) < window_s) {
     return(invisible(NULL))
   }
-  last_seen <- vapply(keys, function(k) {
+  keys <- names(store)
+  keys <- keys[keys != .CLUSTERING_SUBMIT_SWEEP_KEY]
+  for (k in keys) {
     ts <- base::get(k, envir = store, inherits = FALSE)
-    if (length(ts) == 0L) -Inf else max(ts)
-  }, numeric(1))
-  expired <- keys[last_seen <= cutoff]
-  if (length(expired) > 0L) {
-    rm(list = expired, envir = store)
+    if (length(ts) == 0L || max(ts) <= cutoff) {
+      rm(list = k, envir = store)
+    }
   }
-  remaining <- setdiff(keys, expired)
-  if (length(remaining) >= max_tracked) {
-    n_evict <- length(remaining) - max_tracked + 1L
-    victims <- names(sort(last_seen[remaining]))[seq_len(n_evict)]
-    rm(list = victims, envir = store)
-  }
+  assign(.CLUSTERING_SUBMIT_SWEEP_KEY, now, envir = store)
   invisible(NULL)
 }
 
 #' Sliding-window per-caller submit rate limit.
 #'
 #' Pure except for the module-level `store`; the clock is injected so tests are
-#' deterministic. Records the attempt when allowed. Bounds memory via the sweep.
+#' deterministic. Records the attempt when allowed. Memory is bounded at `max_tracked`
+#' fingerprints: once the store is saturated with ACTIVE callers, a brand-new
+#' fingerprint is routed into a single shared overflow bucket (collectively throttled)
+#' rather than evicting a legitimate caller's window — so an attacker rotating
+#' X-Forwarded-For values can neither exhaust memory nor reset an innocent caller.
 #'
 #' @param fingerprint Caller fingerprint (see async_job_submit_fingerprint()).
 #' @param now Current epoch-seconds (injected for tests).
@@ -193,11 +213,20 @@ async_job_submit_rate_limit <- function(fingerprint,
   if (is.null(fingerprint) || length(fingerprint) != 1L || is.na(fingerprint) || !nzchar(fingerprint)) {
     fingerprint <- "unknown"
   }
-  # A non-positive/invalid cap or window disables the limiter (always allow).
+  # A non-positive/invalid cap or window disables the limiter (always allow). Not
+  # reachable via env (the parser floors MAX at 1); only an explicit code caller.
   if (is.na(max_n) || max_n <= 0L || is.na(window_s) || window_s <= 0L) {
     return(list(allowed = TRUE, retry_after = 0L, count = 0L))
   }
   cutoff <- now - window_s
+  # Bound the store BEFORE recording a brand-new fingerprint.
+  if (!base::exists(fingerprint, envir = store, inherits = FALSE) &&
+        .async_job_submit_size(store) >= max_tracked) {
+    .async_job_submit_reclaim(store, cutoff, now, window_s)
+    if (.async_job_submit_size(store) >= max_tracked) {
+      fingerprint <- .CLUSTERING_SUBMIT_OVERFLOW_KEY # saturated -> shared bucket
+    }
+  }
   prev <- if (base::exists(fingerprint, envir = store, inherits = FALSE)) {
     base::get(fingerprint, envir = store, inherits = FALSE)
   } else {
@@ -209,10 +238,6 @@ async_job_submit_rate_limit <- function(fingerprint,
     retry_after <- max(1L, as.integer(ceiling((recent[[1]] + window_s) - now)))
     assign(fingerprint, recent, envir = store) # persist the prune
     return(list(allowed = FALSE, retry_after = retry_after, count = length(recent)))
-  }
-  # Bound memory before recording a (possibly brand-new) allowed fingerprint.
-  if (!base::exists(fingerprint, envir = store, inherits = FALSE)) {
-    .async_job_submit_sweep(store, cutoff, max_tracked)
   }
   assign(fingerprint, c(recent, now), envir = store)
   list(allowed = TRUE, retry_after = 0L, count = length(recent) + 1L)
@@ -234,32 +259,51 @@ async_job_submit_rate_limit <- function(fingerprint,
 #' @param res Plumber response (mutated in place on a block).
 #' @return list(admitted = TRUE) or list(admitted = FALSE, response = <payload>).
 #' @export
+# Emit the fail-closed 503 on a fresh `res`. Kept as one non-throwing helper so every
+# error/malformed-decision path routes through exactly one place.
+.async_job_submit_unavailable <- function(res) {
+  res$status <- 503L
+  res$setHeader("Retry-After", "5")
+  list(admitted = FALSE, response = list(
+    error = "THROTTLE_UNAVAILABLE",
+    message = "Submission throttling is temporarily unavailable. Please retry shortly.",
+    retry_after = 5L
+  ))
+}
+
 async_job_submit_admission_guard <- function(req, res) {
   decision <- tryCatch(
     async_job_submit_rate_limit(async_job_submit_fingerprint(req)),
     error = function(e) {
-      if (base::exists("log_warn", mode = "function")) {
-        log_warn("clustering submit throttle failed (fail-closed 503): {conditionMessage(e)}")
-      }
+      # Logging must never itself fail the request (log_warn may be absent in a
+      # library-light env, or a glue interpolation could throw) -> swallow it.
+      try(
+        if (base::exists("log_warn", mode = "function")) {
+          log_warn("clustering submit throttle failed (fail-closed 503): {conditionMessage(e)}")
+        },
+        silent = TRUE
+      )
       NULL
     }
   )
-  if (is.null(decision)) {
-    res$status <- 503
-    res$setHeader("Retry-After", "5")
-    return(list(admitted = FALSE, response = list(
-      error = "THROTTLE_UNAVAILABLE",
-      message = "Submission throttling is temporarily unavailable. Please retry shortly.",
-      retry_after = 5L
-    )))
+  # Fail CLOSED on a NULL OR malformed decision (schema-validate before use, so a bad
+  # shape can never reach setHeader() with an invalid value and 500 the endpoint).
+  valid <- is.list(decision) &&
+    length(decision$allowed) == 1L && is.logical(decision$allowed) && !is.na(decision$allowed)
+  if (!valid) {
+    return(.async_job_submit_unavailable(res))
   }
   if (!isTRUE(decision$allowed)) {
-    res$status <- 429
-    res$setHeader("Retry-After", as.character(decision$retry_after))
+    retry_after <- suppressWarnings(as.integer(decision$retry_after))
+    if (length(retry_after) != 1L || is.na(retry_after) || retry_after < 1L) {
+      retry_after <- 1L
+    }
+    res$status <- 429L
+    res$setHeader("Retry-After", as.character(retry_after))
     return(list(admitted = FALSE, response = list(
       error = "RATE_LIMITED",
       message = "Too many analysis submissions from your client. Please retry shortly.",
-      retry_after = decision$retry_after
+      retry_after = retry_after
     )))
   }
   list(admitted = TRUE)
@@ -268,6 +312,6 @@ async_job_submit_admission_guard <- function(req, res) {
 #' Reset the in-memory submit-throttle store (tests only).
 #' @export
 async_job_submit_rate_limit_reset <- function(store = .clustering_submit_history) {
-  rm(list = ls(envir = store), envir = store)
+  rm(list = ls(envir = store, all.names = TRUE), envir = store)
   invisible(NULL)
 }

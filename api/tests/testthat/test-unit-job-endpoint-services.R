@@ -28,8 +28,14 @@ library(tidyr)
 ## -------------------------------------------------------------------##
 
 #' Source a service file into a fresh child-of-globalenv environment.
+#'
+#' The two public clustering submit services now call `async_job_submit_admission_guard()`
+#' FIRST (#535 S6) before any DB/cache work; stub it to "admit" by default so these
+#' isolated tests exercise the downstream request/response logic. A test can override
+#' `env$async_job_submit_admission_guard` to exercise the throttle-block path.
 job_endpoint_source_service <- function(filename) {
   env <- new.env(parent = globalenv())
+  env$async_job_submit_admission_guard <- function(req, res) list(admitted = TRUE)
   sys.source(file.path(get_api_dir(), "services", filename), envir = env)
   env
 }
@@ -178,6 +184,36 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   # The mirai executor closure is preserved anonymously/inline.
   expect_true(is.function(create_job_executor))
   expect_equal(names(formals(create_job_executor)), "params")
+})
+
+test_that("functional clustering: admission throttle runs FIRST, before any DB/cache work", {
+  # #535 S6 BLOCKER fix: a throttle block must short-circuit before the cache/dup/DB
+  # path so an abusive caller cannot bypass the limit or grow async_jobs via cache
+  # hits. The guard returning admitted=FALSE must return its response and touch nothing.
+  req <- list(argsBody = list(genes = list("HGNC:1")), user = list(user_id = NULL))
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  pool_touched <- FALSE
+  env$pool <- structure(list(), class = "trap_pool")
+  env$tbl.trap_pool <- function(src, from, ...) {
+    pool_touched <<- TRUE
+    stop("DB must not be touched when the throttle blocks")
+  }
+  create_job_called <- FALSE
+  env$create_job <- function(...) {
+    create_job_called <<- TRUE
+    NULL
+  }
+  env$async_job_submit_admission_guard <- function(req, res) {
+    res$status <- 429
+    res$setHeader("Retry-After", "42")
+    list(admitted = FALSE, response = list(error = "RATE_LIMITED", retry_after = 42L))
+  }
+  res <- job_endpoint_fake_res()
+  out <- env$svc_job_submit_functional_clustering(req, res)
+  expect_equal(res$status, 429)
+  expect_equal(out$error, "RATE_LIMITED")
+  expect_false(pool_touched)
+  expect_false(create_job_called)
 })
 
 ## -------------------------------------------------------------------##
@@ -336,6 +372,34 @@ test_that("phenotype clustering service source keeps is_primary filters paired w
     }
   }
   succeed()
+})
+
+test_that("phenotype clustering: admission throttle runs FIRST, before collecting tables", {
+  # #535 S6 BLOCKER fix: the phenotype path otherwise collects five whole tables and
+  # builds the MCA matrix before admission. A blocked caller must touch nothing.
+  env <- job_endpoint_source_service("job-phenotype-submission-service.R")
+  pool_touched <- FALSE
+  env$pool <- structure(list(), class = "trap_pool")
+  env$tbl.trap_pool <- function(src, from, ...) {
+    pool_touched <<- TRUE
+    stop("DB must not be touched when the throttle blocks")
+  }
+  create_job_called <- FALSE
+  env$create_job <- function(...) {
+    create_job_called <<- TRUE
+    NULL
+  }
+  env$async_job_submit_admission_guard <- function(req, res) {
+    res$status <- 429
+    res$setHeader("Retry-After", "42")
+    list(admitted = FALSE, response = list(error = "RATE_LIMITED", retry_after = 42L))
+  }
+  res <- job_endpoint_fake_res()
+  out <- env$svc_job_submit_phenotype_clustering(list(user = list(user_id = NULL)), res)
+  expect_equal(res$status, 429)
+  expect_equal(out$error, "RATE_LIMITED")
+  expect_false(pool_touched)
+  expect_false(create_job_called)
 })
 
 ## -------------------------------------------------------------------##
