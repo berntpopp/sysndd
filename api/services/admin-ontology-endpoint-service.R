@@ -15,19 +15,6 @@
 # (default = the real global function) so unit tests can supply fakes without
 # a live database; see test-unit-admin-endpoint-services.R.
 
-#' Build the mirai/async job db_config list from the global `dw` config.
-#' @keywords internal
-.svc_admin_ontology_db_config <- function(dw) {
-  list(
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-}
-
 #' PUT /admin/update_ontology_async body.
 #'
 #' Pre-fetches the tables the daemon worker cannot reach directly, then
@@ -75,8 +62,7 @@ svc_admin_ontology_update_async <- function(req, res, pool, dw,
       non_alt_loci_set = non_alt_loci_set,
       ndd_entity_view = ndd_entity_view,
       disease_ontology_set_current = disease_ontology_set_current,
-      ndd_entity = ndd_entity,
-      db_config = .svc_admin_ontology_db_config(dw)
+      ndd_entity = ndd_entity
     )
   )
 
@@ -174,8 +160,7 @@ svc_admin_force_apply_ontology_prepare <- function(req, res, blocked_job_id, ass
       critical_entities_raw = job_result$critical_entities,
       disease_ontology_set_current = disease_ontology_set_current,
       ndd_entity_view = ndd_entity_view,
-      requesting_user_id = requesting_user_id,
-      db_config = .svc_admin_ontology_db_config(dw)
+      requesting_user_id = requesting_user_id
     )
   )
 }

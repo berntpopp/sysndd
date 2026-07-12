@@ -209,27 +209,19 @@ test_that("svc_admin_force_apply_ontology_prepare 410s when the pending CSV is s
   expect_match(result$early_return$error, "stale")
 })
 
-test_that("svc_admin_force_apply_ontology_prepare threads db_config into the job params (#346 C1)", {
-  # Regression guard: the durable force_apply_ontology handler
-  # (.async_job_run_force_apply_ontology) opens its own DB connection from
-  # payload$db_config; the Wave 3 extraction must keep building it (like the
-  # sibling omim_update), or Force Apply fails at connect time with a NULL host.
-  expect_true("dw" %in% names(formals(svc_admin_force_apply_ontology_prepare)),
-              info = "prepare() must accept dw to build db_config")
-
+test_that("svc_admin_force_apply_ontology_prepare does NOT marshal db_config into the job params (#535 S2b)", {
+  # Post-S2b: the durable force_apply_ontology handler
+  # (.async_job_run_force_apply_ontology) resolves DB creds at run time via
+  # async_job_db_connect() from the worker's runtime config — no credential is
+  # written into async_jobs.request_payload_json. The prior helper
+  # .svc_admin_ontology_db_config() is removed.
   svc_src <- paste(
     deparse(body(svc_admin_force_apply_ontology_prepare)), collapse = "\n"
   )
-  expect_match(svc_src, "db_config = .svc_admin_ontology_db_config(dw)", fixed = TRUE,
-               info = "success-path params must wire db_config via the helper")
-
-  # And the helper returns the full connection descriptor the handler consumes.
-  dw <- list(dbname = "d", user = "u", password = "p", server = "s",
-             host = "h", port = 3306L)
-  cfg <- .svc_admin_ontology_db_config(dw)
-  expect_equal(cfg$dbname, "d")
-  expect_equal(cfg$host, "h")
-  expect_equal(cfg$port, 3306L)
+  expect_false(grepl("db_config", svc_src, fixed = TRUE),
+               info = "force_apply params must NOT carry db_config (creds resolved at run time)")
+  expect_false(grepl(".svc_admin_ontology_db_config", svc_src, fixed = TRUE),
+               info = "the credential-marshaling helper must no longer be referenced")
 })
 
 ## -------------------------------------------------------------------##

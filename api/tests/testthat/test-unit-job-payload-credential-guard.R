@@ -40,6 +40,16 @@ library(testthat)
   sort(out)
 }
 
+# Positive control: a migrated durable-handler file must open its worker
+# connection via the run-time resolver, not a payload-supplied credential.
+.expect_resolves_creds <- function(rel) {
+  blob <- paste(readLines(file.path("../..", rel), warn = FALSE), collapse = "\n")
+  expect_true(
+    grepl("async_job_db_connect\\(", blob),
+    info = paste(rel, "must open its worker connection via async_job_db_connect()")
+  )
+}
+
 test_that("the fixed backup path carries no DB credential in its job payload", {
   bs <- readLines("../../services/backup-endpoint-service.R", warn = FALSE)
   blob <- paste(bs, collapse = "\n")
@@ -56,10 +66,8 @@ test_that("the fixed backup path carries no DB credential in its job payload", {
 
 test_that("credential-in-payload line set matches the frozen S2b-pending list", {
   expected <- sort(c(
-    "admin-ontology-endpoint-service.R | password = dw$password,",
     "admin-publication-refresh-endpoint-service.R | password = dw$password,",
     "admin_publications_endpoints.R | password = dw$password,",
-    "async-job-omim-apply.R | password = db_config$password,",
     "async-job-provider-handlers.R | password = db_config$password,",
     "comparisons-functions.R | password = db_config$password,",
     "job-maintenance-submission-service.R | password = dw$password,",
@@ -82,6 +90,11 @@ test_that("credential-in-payload line set matches the frozen S2b-pending list", 
     )
   )
   expect_false(any(grepl("backup", actual)))
+})
+
+test_that("migrated durable handlers resolve DB creds at run time via the resolver", {
+  .expect_resolves_creds("functions/async-job-omim-apply.R")
+  .expect_resolves_creds("functions/async-job-provider-handlers.R")
 })
 
 test_that("no site passes a raw dw/config object as a db_config (bypass tripwire)", {

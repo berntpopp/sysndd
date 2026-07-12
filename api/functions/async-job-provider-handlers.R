@@ -341,8 +341,7 @@
   progress("write", "Writing ontology update to the database...", 5, 5)
   auto_fixes_applied <- .async_job_omim_db_write(
     disease_ontology_set_update = disease_ontology_set_update,
-    safeguard = safeguard,
-    db_config = payload$db_config
+    safeguard = safeguard
   )
 
   list(
@@ -386,15 +385,8 @@
     tibble::tibble()
   }
 
-  sysndd_db <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = payload$db_config$dbname,
-    user = payload$db_config$user,
-    password = payload$db_config$password,
-    server = payload$db_config$server,
-    host = payload$db_config$host,
-    port = payload$db_config$port
-  )
+  # Resolve DB creds from the worker runtime config at run time (#535 S2b).
+  sysndd_db <- async_job_db_connect()
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
   result <- tryCatch(
