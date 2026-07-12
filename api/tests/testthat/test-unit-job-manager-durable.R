@@ -50,6 +50,33 @@ test_that("create_job and production source have no dead executor or timeout API
 
   expect_setequal(names(formals(runtime$create_job)), c("operation", "params"))
 
+  dead_arguments <- c("executor_fn", "timeout_ms")
+  collect_dead_symbols <- function(expression) {
+    found <- character()
+    visit <- function(node) {
+      if (is.name(node) && as.character(node) %in% dead_arguments) {
+        found <<- c(found, as.character(node))
+      }
+      if (is.call(node) || is.expression(node) || is.pairlist(node)) {
+        node_parts <- as.list(node)
+        found <<- c(found, intersect(names(node_parts), dead_arguments))
+        lapply(node_parts, visit)
+      }
+      invisible(NULL)
+    }
+    visit(expression)
+    unique(found)
+  }
+
+  expect_setequal(
+    collect_dead_symbols(quote(submit_fn(timeout_ms = 1, executor_fn = NULL))),
+    dead_arguments
+  )
+  expect_setequal(
+    collect_dead_symbols(quote(function(executor_fn, timeout_ms = 1) NULL)),
+    dead_arguments
+  )
+
   source_files <- list.files(
     get_api_dir(),
     pattern = "\\.R$",
@@ -57,14 +84,12 @@ test_that("create_job and production source have no dead executor or timeout API
     full.names = TRUE
   )
   source_files <- source_files[!grepl("/tests/", source_files, fixed = TRUE)]
-  dead_arguments <- c("executor_fn", "timeout_ms")
   offenders <- unlist(lapply(source_files, function(source_file) {
-    source_symbols <- all.names(
-      parse(source_file, keep.source = FALSE),
-      functions = TRUE,
-      unique = TRUE
+    paste(
+      source_file,
+      collect_dead_symbols(parse(source_file, keep.source = FALSE)),
+      sep = ":"
     )
-    paste(source_file, intersect(source_symbols, dead_arguments), sep = ":")
   }))
   offenders <- offenders[!endsWith(offenders, ":")]
 
