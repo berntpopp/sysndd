@@ -38,8 +38,14 @@ random_password <- function() {
   # create a vector of possible characters
   possible_characters <- c(0:9, letters, LETTERS, "!", "$")
 
-  # use paste and sample to generate a random password of length 12
-  password <- paste(sample(possible_characters, 12), collapse = "")
+  # Draw from a CSPRNG (openssl::rand_bytes), NOT sample()/Mersenne-Twister, which
+  # is seedable and predictable and must never generate credentials. The alphabet
+  # is exactly 64 characters and 256 %% 64 == 0, so mapping a uniform random byte
+  # with `%% 64` is bias-free (no rejection sampling needed). Keep the alphabet at
+  # 64 entries or this invariant no longer holds.
+  n_chars <- 12L
+  idx <- as.integer(openssl::rand_bytes(n_chars)) %% length(possible_characters) + 1L
+  password <- paste(possible_characters[idx], collapse = "")
 
   # return password
   return(password)
