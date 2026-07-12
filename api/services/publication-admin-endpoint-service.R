@@ -302,10 +302,6 @@ svc_publication_pubtator_update <- function(req, res, query,
 #' @export
 svc_publication_pubtator_update_submit <- function(req, res, query, max_pages, clear_old, q_hash,
                                                      submit_fn = create_job) {
-  # Each page ~6s (350ms rate limit + 2s fetch + 3s DB), plus a 2-minute
-  # buffer for gene-symbol computation at the end.
-  timeout_ms <- max(120000, (max_pages * 6000) + 120000)
-
   result <- submit_fn(
     operation = "pubtator_update",
     params = list(
@@ -313,9 +309,7 @@ svc_publication_pubtator_update_submit <- function(req, res, query, max_pages, c
       max_pages = max_pages,
       clear_old = clear_old,
       query_hash = q_hash
-    ),
-    timeout_ms = timeout_ms,
-    executor_fn = NULL
+    )
   )
 
   if (!is.null(result$error)) {

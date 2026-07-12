@@ -80,7 +80,7 @@ make_service_sandbox <- function() {
   env$check_duplicate_job <- function(operation, params) {
     list(duplicate = FALSE, existing_job_id = NULL)
   }
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
+  env$create_job <- function(operation, params) {
     list(job_id = "job-fixture-1234", error = NULL)
   }
   env$list_backup_files <- function(dir) {
@@ -213,7 +213,7 @@ test_that("svc_backup_create returns 409 when a backup is already running", {
 
 test_that("svc_backup_create returns 503 + Retry-After when job capacity is exceeded", {
   env <- make_service_sandbox()
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
+  env$create_job <- function(operation, params) {
     list(error = "CAPACITY_EXCEEDED", retry_after = 30L, message = "All workers busy")
   }
   res <- make_mock_res()
@@ -281,7 +281,7 @@ test_that("svc_backup_restore returns 409 when a restore is already running for 
 test_that("svc_backup_restore returns 503 + Retry-After when job capacity is exceeded", {
   env <- make_service_sandbox()
   env$file.exists <- function(path) TRUE
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
+  env$create_job <- function(operation, params) {
     list(error = "CAPACITY_EXCEEDED", retry_after = 15L)
   }
   res <- make_mock_res()
@@ -307,7 +307,7 @@ test_that("svc_backup_restore returns 202 with job id on success", {
 #
 # Backup jobs execute in the durable handlers .async_job_run_backup_create /
 # .async_job_run_backup_restore (registered in async_job_handler_registry);
-# create_job() IGNORES executor_fn. The submit params must therefore carry NO
+# create_job() submits the durable payload. The submit params must therefore carry NO
 # database credential — the worker resolves it from runtime config via
 # async_job_worker_db_config(). The restore-ordering / pre-backup-abort safety
 # contract is now verified against the real durable handler in
@@ -317,7 +317,7 @@ test_that("svc_backup_restore returns 202 with job id on success", {
 test_that("svc_backup_create submits NO DB credential in job params (#535 P1-1)", {
   env <- make_service_sandbox()
   captured <- new.env()
-  env$create_job <- function(operation, params, executor_fn = NULL, timeout_ms = NULL) {
+  env$create_job <- function(operation, params) {
     captured$params <- params
     list(job_id = "job-fixture-1234", error = NULL)
   }
@@ -333,7 +333,7 @@ test_that("svc_backup_restore submits NO DB credential in job params (#535 P1-1)
   env <- make_service_sandbox()
   env$file.exists <- function(path) TRUE
   captured <- new.env()
-  env$create_job <- function(operation, params, executor_fn = NULL, timeout_ms = NULL) {
+  env$create_job <- function(operation, params) {
     captured$params <- params
     list(job_id = "job-fixture-1234", error = NULL)
   }

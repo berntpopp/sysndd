@@ -43,26 +43,6 @@ test_that("metadata refresh runtime code does not use TRUNCATE", {
   expect_length(violations, 0)
 })
 
-test_that("admin ontology job submissions do not keep dead inline executors", {
-  admin_path <- file.path(get_api_dir(), "endpoints", "admin_endpoints.R")
-  admin_body <- paste(readLines(admin_path, warn = FALSE), collapse = "\n")
-
-  expect_false(
-    grepl(
-      "operation\\s*=\\s*\"omim_update\"[\\s\\S]{0,8000}executor_fn\\s*=\\s*function",
-      admin_body,
-      perl = TRUE
-    )
-  )
-  expect_false(
-    grepl(
-      "operation\\s*=\\s*\"force_apply_ontology\"[\\s\\S]{0,8000}executor_fn\\s*=\\s*function",
-      admin_body,
-      perl = TRUE
-    )
-  )
-})
-
 test_that("metadata-refresh.R dispatches log_warn via base::get (config::get mask, LOW-7)", {
   path <- file.path(get_api_dir(), "functions", "metadata-refresh.R")
   src <- paste(readLines(path, warn = FALSE), collapse = "\n")

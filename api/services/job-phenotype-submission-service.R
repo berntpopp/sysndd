@@ -6,17 +6,12 @@
 # `svc_job_submit_phenotype_clustering()` mutates `res` (status + headers)
 # exactly as the inline handler used to, and returns the JSON payload.
 #
-# CRITICAL (mirai): database connections cannot cross process boundaries, so
-# every value the anonymous `executor_fn` closure below needs is fetched from
-# `pool` and captured in `params` BEFORE `create_job()` is called. Keep that
-# closure anonymous/inline (do not extract it to a named helper) — it is what
-# `create_job()` serializes into the mirai daemon call.
+# The durable handler receives serialized input, not a database connection, so
+# all values it needs are fetched from `pool` before `create_job()` is called.
 #
 # This is an ENDPOINT service: it is sourced by the shared bootstrap loader
-# (api/bootstrap/load_modules.R) like any other services/* file, but it is
-# never registered as an async job handler and the worker never calls it
-# directly — the worker only ever invokes the `executor_fn` closure that
-# `create_job()` hands to `async_job_service_submit()`.
+# (api/bootstrap/load_modules.R) like any other services/* file. The worker
+# executes the registered `phenotype_clustering` handler, never this submitter.
 
 #' Submit a phenotype (MCA/HCPC) clustering job.
 #'
@@ -221,63 +216,7 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
       phenotype_list_tbl = phenotype_list_tbl,
       id_phenotype_ids = id_phenotype_ids,
       categories = categories
-    ),
-    executor_fn = function(params) {
-      # This runs in mirai daemon
-      # Replicate phenotype_clustering logic
-      sysndd_db_phenotypes <- params$ndd_entity_view_tbl %>%
-        dplyr::left_join(params$ndd_review_phenotype_connect_tbl, by = "entity_id") %>%
-        dplyr::left_join(params$modifier_list_tbl, by = "modifier_id") %>%
-        dplyr::left_join(params$phenotype_list_tbl, by = "phenotype_id") %>%
-        dplyr::mutate(ndd_phenotype = dplyr::case_when(
-          ndd_phenotype == 1 ~ "Yes",
-          ndd_phenotype == 0 ~ "No"
-        )) %>%
-        dplyr::filter(ndd_phenotype == "Yes") %>%
-        dplyr::filter(category %in% params$categories) %>%
-        dplyr::filter(modifier_name == "present") %>%
-        dplyr::filter(review_id %in% params$ndd_entity_review_tbl$review_id) %>%
-        dplyr::select(
-          entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
-          HPO_term, hgnc_id
-        ) %>%
-        dplyr::group_by(entity_id) %>%
-        dplyr::mutate(
-          phenotype_non_id_count = sum(!(phenotype_id %in% params$id_phenotype_ids)),
-          phenotype_id_count = sum(phenotype_id %in% params$id_phenotype_ids)
-        ) %>%
-        dplyr::ungroup() %>%
-        unique()
-
-      sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
-        dplyr::mutate(present = "yes") %>%
-        dplyr::select(-phenotype_id) %>%
-        tidyr::pivot_wider(names_from = HPO_term, values_from = present) %>%
-        dplyr::group_by(hgnc_id) %>%
-        dplyr::mutate(gene_entity_count = dplyr::n()) %>%
-        dplyr::ungroup() %>%
-        dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
-        dplyr::select(-hgnc_id)
-
-      sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
-        dplyr::select(-entity_id) %>%
-        as.data.frame()
-
-      row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
-
-      # Use non-memoized version (memoized not available in daemon)
-      phenotype_clusters <- gen_mca_clust_obj(sysndd_db_phenotypes_wider_df)
-
-      # Add back identifiers
-      ndd_entity_view_tbl_sub <- params$ndd_entity_view_tbl %>%
-        dplyr::select(entity_id, hgnc_id, symbol)
-
-      phenotype_clusters %>%
-        tidyr::unnest(identifiers) %>%
-        dplyr::mutate(entity_id = as.integer(entity_id)) %>%
-        dplyr::left_join(ndd_entity_view_tbl_sub, by = "entity_id") %>%
-        tidyr::nest(identifiers = c(entity_id, hgnc_id, symbol))
-    }
+    )
   )
 
   if (!is.null(result$error)) {

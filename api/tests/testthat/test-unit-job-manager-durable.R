@@ -35,8 +35,7 @@ test_that("create_job delegates to async_job_service_submit and preserves accept
 
   result <- runtime$create_job(
     operation = "hgnc_update",
-    params = list(refresh = TRUE),
-    executor_fn = function(params) params
+    params = list(refresh = TRUE)
   )
 
   expect_equal(submit_call$job_type, "hgnc_update")
@@ -44,6 +43,32 @@ test_that("create_job delegates to async_job_service_submit and preserves accept
   expect_equal(result$job_id, "job-created")
   expect_equal(result$status, "accepted")
   expect_equal(result$estimated_seconds, 30)
+})
+
+test_that("create_job and production source have no dead executor or timeout API", {
+  runtime <- load_job_manager_runtime()
+
+  expect_setequal(names(formals(runtime$create_job)), c("operation", "params"))
+
+  source_files <- list.files(
+    get_api_dir(),
+    pattern = "\\.R$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  source_files <- source_files[!grepl("/tests/", source_files, fixed = TRUE)]
+  dead_arguments <- c("executor_fn", "timeout_ms")
+  offenders <- unlist(lapply(source_files, function(source_file) {
+    source_symbols <- all.names(
+      parse(source_file, keep.source = FALSE),
+      functions = TRUE,
+      unique = TRUE
+    )
+    paste(source_file, intersect(source_symbols, dead_arguments), sep = ":")
+  }))
+  offenders <- offenders[!endsWith(offenders, ":")]
+
+  expect_equal(length(offenders), 0L, info = paste(offenders, collapse = ", "))
 })
 
 test_that("get_job_status translates durable rows into the legacy polling contract", {

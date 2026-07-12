@@ -30,165 +30,7 @@
 
 library(testthat)
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
-
-# -----------------------------------------------------------------------------
-# Handler extraction + sandbox helpers
-# -----------------------------------------------------------------------------
-
-extract_plumber_handler <- function(file_path, decorator_regex, envir) {
-  src_lines <- readLines(file_path, warn = FALSE)
-  dec_line <- grep(decorator_regex, src_lines)
-  if (length(dec_line) == 0L) {
-    stop("Decorator not found: ", decorator_regex)
-  }
-  dec_line <- dec_line[[1L]]
-
-  parsed <- parse(file = file_path, keep.source = TRUE)
-  srcrefs <- attr(parsed, "srcref")
-  if (is.null(srcrefs)) {
-    stop("Unable to read source refs for ", file_path)
-  }
-
-  handler_expr <- NULL
-  for (i in seq_along(parsed)) {
-    start_line <- srcrefs[[i]][1L]
-    if (start_line > dec_line) {
-      handler_expr <- parsed[[i]]
-      break
-    }
-  }
-  if (is.null(handler_expr)) {
-    stop("No top-level expression found after decorator line ", dec_line)
-  }
-
-  eval(handler_expr, envir = envir)
-}
-
-# Mock plumber `res` — only the fields our handlers touch.
-make_mock_res <- function() {
-  res <- new.env(parent = emptyenv())
-  res$status <- 200L
-  res$body <- NULL
-  res$headers <- list()
-  res$setHeader <- function(name, value) {
-    res$headers[[name]] <- value
-    invisible(NULL)
-  }
-  res$serializer <- NULL
-  res
-}
-
-backup_file_path <- function() {
-  file.path(get_api_dir(), "endpoints", "backup_endpoints.R")
-}
-
-# is_valid_backup_filename() was extracted into functions/backup-functions.R as
-# a shared validator (used by /restore, /download, /delete). The extracted
-# handlers call it, so load the REAL (pure, no-DB) validator once into an
-# isolated env and inject only that function into each sandbox below — sourcing
-# the whole module into globalenv would also pull in DB-touching backup
-# functions the sandbox deliberately stubs.
-.backup_functions_env <- new.env()
-source_api_file("functions/backup-functions.R", local = FALSE, envir = .backup_functions_env)
-
-# Build a sandbox with the stubs every backup handler tends to reach for.
-# Individual tests can override fields on the returned env before calling
-# the handler.
-make_backup_sandbox <- function(role = "Administrator") {
-  env <- new.env(parent = globalenv())
-  env$`%||%` <- function(a, b) if (is.null(a)) b else a
-
-  # require_role stub: succeed for Administrator, 403 otherwise.
-  env$require_role <- function(req, res, min_role) {
-    actual_role <- req$user_role %||% "none"
-    if (actual_role != "Administrator" && min_role == "Administrator") {
-      res$status <- 403
-      stop("Forbidden: requires Administrator role")
-    }
-    invisible(TRUE)
-  }
-
-  env$log_error <- function(...) invisible(NULL)
-  env$log_info <- function(...) invisible(NULL)
-  env$logger <- list(
-    log_error = function(...) invisible(NULL),
-    log_info = function(...) invisible(NULL)
-  )
-  # Note: `logger::log_*` syntax in the handler won't hit our stub because
-  # `::` looks up the real package. Logger is always installed in the API
-  # container, so we don't fake it — tests that trip an error path that
-  # calls `logger::log_error` simply get a real log line on stderr.
-
-  # Plumber's `serializer_json()` is only available when Plumber is loaded
-  # as a package (via `library(plumber)` or the plumber router). Our sandbox
-  # extracts handler function literals directly via `extract_plumber_handler`,
-  # so Plumber is NOT loaded and `serializer_json()` is undefined. The
-  # GET /download/<filename> error branches (400 path traversal, 400 invalid
-  # extension, 404 missing) call `res$serializer <- serializer_json()` to
-  # switch the response from octet to JSON before returning. For tests, we
-  # stub it to a no-op: the assertion is on `res$status` and `result$error`,
-  # not the serializer identity.
-  env$serializer_json <- function(...) identity
-
-  env$dw <- list(
-    dbname = "sysndd_test",
-    host = "127.0.0.1",
-    user = "test",
-    password = "test",
-    port = 3306L
-  )
-
-  # Default: no duplicate job.
-  env$check_duplicate_job <- function(operation, params) {
-    list(duplicate = FALSE, existing_job_id = NULL)
-  }
-
-  # Default: create_job succeeds with a canned job id.
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
-    list(job_id = "job-fixture-1234", error = NULL)
-  }
-
-  # Default: empty backup directory.
-  env$list_backup_files <- function(dir) {
-    data.frame(
-      filename = character(0),
-      size_bytes = integer(0),
-      created_at = as.POSIXct(character(0)),
-      table_count = integer(0),
-      stringsAsFactors = FALSE
-    )
-  }
-  env$get_backup_metadata <- function(dir) {
-    list(total_count = 0L, total_size_bytes = 0L)
-  }
-
-  # Real shared filename validator (path-traversal / extension policy).
-  env$is_valid_backup_filename <- .backup_functions_env$is_valid_backup_filename
-
-  # Handlers now delegate to svc_backup_* (#346 Wave 3 Task 9); source the
-  # real service into this env so its free variables resolve to the stubs above.
-  source_api_file("services/backup-endpoint-service.R", local = FALSE, envir = env)
-
-  env
-}
-
-admin_req <- function(body = NULL, path_args = list()) {
-  req <- list(
-    user_id = 42L,
-    user_role = "Administrator",
-    user_name = "admin_test",
-    PATH_INFO = "/api/backup/list",
-    argsBody = body %||% list()
-  )
-  req
-}
-
-viewer_req <- function(body = NULL) {
-  req <- admin_req(body = body)
-  req$user_role <- "Viewer"
-  req
-}
+source("backup-endpoint-fixtures.R", local = TRUE)
 
 # -----------------------------------------------------------------------------
 # Route-surface assertions (structural)
@@ -338,7 +180,7 @@ test_that("POST /create returns 409 when backup already running", {
 
 test_that("POST /create returns 503 when job capacity exceeded", {
   env <- make_backup_sandbox()
-  env$create_job <- function(operation, params, timeout_ms, executor_fn) {
+  env$create_job <- function(operation, params) {
     list(
       error = "CAPACITY_EXCEEDED",
       retry_after = 30L,
@@ -459,35 +301,6 @@ extract_get_download <- function(envir) {
     decorator_regex = "^#\\*\\s+@get\\s+/download/<filename>\\s*$",
     envir = envir
   )
-}
-
-# Point file.exists and file.info/file/readBin at a withr::local_tempdir()
-# fixture so the download handler operates on a real-but-isolated file.
-install_download_fixture <- function(env, tmpdir, filename, content_bytes) {
-  fake_path <- file.path(tmpdir, filename)
-  writeBin(content_bytes, fake_path)
-  fake_info <- file.info(fake_path)
-  fake_size <- fake_info$size
-
-  env$file.exists <- function(path) {
-    endsWith(path, paste0("/", filename))
-  }
-  env$file.info <- function(path) {
-    if (endsWith(path, paste0("/", filename))) {
-      data.frame(size = fake_size)
-    } else {
-      data.frame(size = NA_real_)
-    }
-  }
-  env$file <- function(description, open = "") {
-    # Open the real fixture path, not the "/backup/..." path the handler
-    # computes.
-    base::file(fake_path, open = open)
-  }
-  env$readBin <- function(con, what, n, ...) {
-    base::readBin(con, what = what, n = n, ...)
-  }
-  invisible(fake_path)
 }
 
 test_that("GET /download/<filename> happy path returns raw bytes", {

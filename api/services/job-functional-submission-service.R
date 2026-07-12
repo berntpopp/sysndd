@@ -6,17 +6,12 @@
 # `svc_job_submit_functional_clustering()` mutates `res` (status + headers)
 # exactly as the inline handler used to, and returns the JSON payload.
 #
-# CRITICAL (mirai): database connections cannot cross process boundaries, so
-# every value the anonymous `executor_fn` closure below needs is fetched from
-# `pool` and captured in `params` BEFORE `create_job()` is called. Keep that
-# closure anonymous/inline (do not extract it to a named helper) — it is
-# what `create_job()` serializes into the mirai daemon call.
+# The durable handler receives serialized input, not a database connection, so
+# all values it needs are fetched from `pool` before `create_job()` is called.
 #
 # This is an ENDPOINT service: it is sourced by the shared bootstrap loader
-# (api/bootstrap/load_modules.R) like any other services/* file, but it is
-# never registered as an async job handler and the worker never calls it
-# directly — the worker only ever invokes the `executor_fn` closure that
-# `create_job()` hands to `async_job_service_submit()`.
+# (api/bootstrap/load_modules.R) like any other services/* file. The worker
+# executes the registered `clustering` durable handler, never this submitter.
 
 #' Submit a functional (STRING-db) clustering job.
 #'
@@ -221,43 +216,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
       algorithm = algorithm,
       category_links = category_links,
       string_id_table = string_id_table
-    ),
-    executor_fn = function(params) {
-      # This runs in mirai daemon
-      # Pass pre-fetched string_id_table since daemon can't access pool
-      clusters <- gen_string_clust_obj(
-        params$genes,
-        algorithm = params$algorithm,
-        string_id_table = params$string_id_table
-      )
-
-      # Generate categories from clusters
-      categories <- clusters %>%
-        dplyr::select(term_enrichment) %>%
-        tidyr::unnest(cols = c(term_enrichment)) %>%
-        dplyr::select(category) %>%
-        unique() %>%
-        dplyr::arrange(category) %>%
-        dplyr::mutate(
-          text = dplyr::case_when(
-            nchar(category) <= 5 ~ category,
-            nchar(category) > 5 ~ stringr::str_to_sentence(category)
-          )
-        ) %>%
-        dplyr::select(value = category, text) %>%
-        dplyr::left_join(params$category_links, by = c("value"))
-
-      # Return both clusters and categories
-      list(
-        clusters = clusters,
-        categories = categories,
-        meta = list(
-          algorithm = params$algorithm,
-          gene_count = length(params$genes),
-          cluster_count = nrow(clusters)
-        )
-      )
-    }
+    )
   )
 
   # Check capacity

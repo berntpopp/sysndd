@@ -147,8 +147,7 @@ read_job_progress <- function(job_id) {
 
 #' Clean up progress file for a completed/failed job
 #'
-#' Called from the promise callback in create_job() after
-#' the mirai task resolves.
+#' Used when terminal job cleanup removes persisted progress state.
 #'
 #' @param job_id Character UUID of the job
 #'

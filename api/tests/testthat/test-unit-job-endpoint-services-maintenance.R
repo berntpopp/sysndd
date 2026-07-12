@@ -77,9 +77,9 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     env <- job_endpoint_maintenance_env(job_endpoint_spec$needs_pool)
     env$check_duplicate_job <- function(...) list(duplicate = FALSE)
     new_job_id <- paste0(job_endpoint_spec$op, "-1")
-    create_job_executor <- NULL
-    env$create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
-      create_job_executor <<- executor_fn
+    create_job_operation <- NULL
+    env$create_job <- function(operation, params) {
+      create_job_operation <<- operation
       list(job_id = new_job_id, status = "accepted", estimated_seconds = 30)
     }
 
@@ -91,16 +91,7 @@ for (job_endpoint_spec in job_endpoint_maintenance_specs) {
     expect_equal(res$status, 202)
     expect_equal(res$headers[["Retry-After"]], job_endpoint_spec$retry_after)
     expect_equal(out$job_id, new_job_id)
-    if (identical(job_endpoint_spec$op, "ontology_update")) {
-      # ontology_update carries no DB credential in its payload, so it keeps its
-      # inline executor closure (unchanged by #535 S2b).
-      expect_true(is.function(create_job_executor))
-      expect_equal(names(formals(create_job_executor)), "params")
-    } else {
-      # hgnc_update / comparisons_update resolve DB creds at run time (#535 S2b)
-      # and pass executor_fn = NULL (create_job ignores it).
-      expect_null(create_job_executor)
-    }
+    expect_equal(create_job_operation, job_endpoint_spec$op)
   })
 }
 

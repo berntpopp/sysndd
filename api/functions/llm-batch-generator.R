@@ -110,7 +110,7 @@ llm_should_skip_cached <- function(cached, force = FALSE) {
 #'
 #' @examples
 #' \dontrun{
-#' # Called from job-manager.R promise callback
+#' # Called after durable clustering jobs complete
 #' result <- trigger_llm_batch_generation(
 #'   clusters = clustering_result$clusters,
 #'   cluster_type = "functional",
@@ -171,10 +171,10 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
     return(list(skipped = TRUE, reason = "create_job function not available"))
   }
 
-  message("[LLM-Batch] About to call create_job() with llm_batch_executor")
+  message("[LLM-Batch] About to submit llm_generation job")
 
-  # Create job with llm_batch_executor. The durable handler resolves DB creds at
-  # run time via async_job_db_connect() (#535 S2b) — no db_config in the payload.
+  # The registered durable handler resolves DB creds at run time via
+  # async_job_db_connect() (#535 S2b) — no db_config in the payload.
   tryCatch(
     {
       result <- create_job(
@@ -184,9 +184,7 @@ trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id, 
           cluster_type = cluster_type,
           parent_job_id = parent_job_id,
           force = isTRUE(force)
-        ),
-        executor_fn = llm_batch_executor,
-        timeout_ms = 3600000  # 1 hour for large batches
+        )
       )
       message("[LLM-Batch] Job created successfully: ", result$job_id %||% "unknown")
       log_info("[LLM-Batch] Job created: {result$job_id %||% 'unknown'}")

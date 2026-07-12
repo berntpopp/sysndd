@@ -49,7 +49,7 @@ test_that("trigger_llm_batch_generation threads force into the job params", {
   env <- source_batch_generator_env()
   captured <- new.env()
   env$is_gemini_configured <- function() TRUE
-  env$create_job <- function(operation, params, executor_fn, timeout_ms) {
+  env$create_job <- function(operation, params) {
     captured$params <- params
     list(job_id = "job-1")
   }
