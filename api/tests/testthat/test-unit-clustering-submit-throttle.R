@@ -94,6 +94,35 @@ test_that("fingerprint walks past TRUSTED proxies and is unspoofable under a fro
   expect_equal(async_job_submit_fingerprint(allproxy, trusted_cidrs = cidrs), "172.18.0.5")
 })
 
+test_that("an IPv6 trusted proxy is matched on the FULL address, not the /64 key", {
+  # A front proxy in 2001:db8:abcd::/48 appended the real IPv6 client. The trust check
+  # must evaluate the full proxy address (not the /64-collapsed bucket key) or the
+  # proxy is treated as a client and everyone behind it shares one quota.
+  cidr6 <- "2001:db8:abcd::/48"
+  legit <- list(HTTP_X_FORWARDED_FOR = "2001:4860:4860::8888, 2001:db8:abcd:1::5")
+  # Real client is grouped to its /64; the trusted proxy hop is skipped.
+  expect_equal(async_job_submit_fingerprint(legit, trusted_cidrs = cidr6), "2001:4860:4860:0::/64")
+  # Exact IPv6 trusted address also matches.
+  expect_equal(
+    async_job_submit_fingerprint(legit, trusted_cidrs = "2001:db8:abcd:1::5"),
+    "2001:4860:4860:0::/64"
+  )
+  # A direct IPv6 attacker forging a trusted-CIDR hop on the left cannot be skipped:
+  # the rightmost untrusted hop (its real address) is selected.
+  attack <- list(HTTP_X_FORWARDED_FOR = "2001:db8:abcd:1::5, 2001:dead:beef::9")
+  expect_equal(async_job_submit_fingerprint(attack, trusted_cidrs = cidr6), "2001:dead:beef:0::/64")
+})
+
+test_that(".async_job_submit_valid_cidr accepts valid IPv4/IPv6 CIDRs and rejects junk", {
+  expect_true(.async_job_submit_valid_cidr("10.9.0.0/24"))
+  expect_true(.async_job_submit_valid_cidr("192.168.1.1"))
+  expect_true(.async_job_submit_valid_cidr("2001:db8::/32"))
+  expect_true(.async_job_submit_valid_cidr("2001:db8:abcd:1::5"))
+  expect_false(.async_job_submit_valid_cidr("10.9.0.0/33"))
+  expect_false(.async_job_submit_valid_cidr("nonsense"))
+  expect_false(.async_job_submit_valid_cidr("2001:db8::/129"))
+})
+
 test_that("fingerprint falls back to REMOTE_ADDR, then 'unknown'", {
   expect_equal(async_job_submit_fingerprint(list(REMOTE_ADDR = "172.18.0.5")), "172.18.0.5")
   expect_equal(async_job_submit_fingerprint(list()), "unknown")

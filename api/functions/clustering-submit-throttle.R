@@ -67,97 +67,6 @@ CLUSTERING_SUBMIT_MAX_TRACKED <-
 # fingerprint -> numeric vector of recent submit epoch-seconds.
 .clustering_submit_history <- new.env(parent = emptyenv())
 
-#' Validate + canonicalize a candidate client identifier into a bounded throttle
-#' key, or return NA when it is not a plausible IP.
-#'
-#' Rejecting non-IP tokens (e.g. an attacker-injected `X_Forwarded_For` header-alias
-#' value colliding with the proxy's `X-Forwarded-For`) stops arbitrary strings from
-#' becoming rotating throttle keys that would both evade the limit and exhaust the
-#' store. IPv4 is kept verbatim (a `:port` suffix is dropped); IPv6 is grouped to its
-#' `/64` network prefix so a single ISP allocation is ONE caller, not 2^64 buckets.
-#' The result is always short (bounded key length regardless of input).
-#'
-#' @param token Candidate identifier (an XFF hop or REMOTE_ADDR).
-#' @return Normalized IP/subnet string, or NA_character_ if not a valid IP.
-.async_job_submit_normalize_ip <- function(token) {
-  if (is.null(token) || length(token) != 1L || is.na(token)) {
-    return(NA_character_)
-  }
-  token <- trimws(as.character(token))
-  token <- sub("^\\[(.*)\\]$", "\\1", token) # [::1]:port already portless -> ::1
-  if (!nzchar(token) || nchar(token) > 64L) {
-    return(NA_character_)
-  }
-  # IPv4, optionally with a :port we drop: four 0-255 octets.
-  ipv4 <- sub(":[0-9]+$", "", token)
-  if (grepl("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$", ipv4)) {
-    octets <- suppressWarnings(as.integer(strsplit(ipv4, ".", fixed = TRUE)[[1]]))
-    if (!anyNA(octets) && all(octets >= 0L & octets <= 255L)) {
-      return(ipv4)
-    }
-    return(NA_character_)
-  }
-  # IPv6 (hex + colons only): fully expand "::" to the exact zero run, validate the
-  # eight hextets, then key on the /64 (first four hextets, leading zeros stripped) so
-  # the SAME address in any compression maps to one bucket and a whole allocation is
-  # one caller. Malformed input (bad hextet, >8 groups, >1 "::") is rejected -> NA.
-  if (grepl(":", token, fixed = TRUE) && grepl("^[0-9a-fA-F:]+$", token)) {
-    low <- tolower(token)
-    if (grepl(":::", low, fixed = TRUE)) {
-      return(NA_character_) # three-or-more consecutive colons is invalid
-    }
-    dbl <- gregexpr("::", low, fixed = TRUE)[[1]]
-    if (length(dbl) == 1L && dbl[[1]] != -1L) {
-      left <- sub("::.*$", "", low)
-      right <- sub("^.*::", "", low)
-      lg <- if (nzchar(left)) strsplit(left, ":", fixed = TRUE)[[1]] else character(0)
-      rg <- if (nzchar(right)) strsplit(right, ":", fixed = TRUE)[[1]] else character(0)
-      zeros <- 8L - length(lg) - length(rg)
-      if (zeros < 1L) {
-        return(NA_character_) # "::" must stand in for at least one zero group
-      }
-      groups <- c(lg, rep("0", zeros), rg)
-    } else if (length(dbl) == 1L && dbl[[1]] == -1L) {
-      groups <- strsplit(low, ":", fixed = TRUE)[[1]]
-    } else {
-      return(NA_character_) # more than one "::" is invalid
-    }
-    if (length(groups) != 8L || !all(grepl("^[0-9a-f]{1,4}$", groups))) {
-      return(NA_character_)
-    }
-    prefix <- sub("^0+", "", groups[1:4])
-    prefix[!nzchar(prefix)] <- "0"
-    return(paste0(paste(prefix, collapse = ":"), "::/64"))
-  }
-  NA_character_
-}
-
-# TRUE when `ip` (a validated dotted IPv4, or an exact string) is inside one of the
-# trusted-proxy `cidrs` (IPv4 `a.b.c.d/n`, or an exact IP for non-IPv4). Prefix compare
-# uses integer division on the 32-bit value (no bitwAnd -> no 2^31 overflow).
-.async_job_submit_ip_trusted <- function(ip, cidrs) {
-  if (length(cidrs) == 0L || is.null(ip) || is.na(ip) || !nzchar(ip)) {
-    return(FALSE)
-  }
-  ip_num <- .async_job_submit_ipv4_num(ip)
-  for (c in cidrs) {
-    if (grepl("/", c, fixed = TRUE)) {
-      seg <- strsplit(c, "/", fixed = TRUE)[[1]]
-      if (length(seg) != 2L || is.na(ip_num)) next
-      bits <- suppressWarnings(as.integer(seg[[2]]))
-      net <- .async_job_submit_ipv4_num(seg[[1]])
-      if (is.na(bits) || bits < 0L || bits > 32L || is.na(net)) next
-      shift <- 2^(32 - bits)
-      if (floor(ip_num / shift) == floor(net / shift)) {
-        return(TRUE)
-      }
-    } else if (identical(tolower(trimws(c)), tolower(ip))) {
-      return(TRUE)
-    }
-  }
-  FALSE
-}
-
 # Dotted IPv4 -> numeric (0..2^32-1), or NA for anything else (incl. IPv6).
 .async_job_submit_ipv4_num <- function(ip) {
   m <- regmatches(ip, regexec("^([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})$", ip))[[1]]
@@ -170,6 +79,194 @@ CLUSTERING_SUBMIT_MAX_TRACKED <-
   }
   o[[1]] * 16777216 + o[[2]] * 65536 + o[[3]] * 256 + o[[4]]
 }
+
+# Expand an IPv6 string to its eight integer hextets (0..65535), or NULL when invalid
+# (bad hextet, wrong group count, >1 or malformed "::"). Fully expands "::" to the
+# exact zero run so the SAME address in any compression yields identical hextets.
+.async_job_submit_ipv6_hextets <- function(token) {
+  low <- tolower(token)
+  if (!grepl(":", low, fixed = TRUE) || !grepl("^[0-9a-f:]+$", low) ||
+        grepl(":::", low, fixed = TRUE)) {
+    return(NULL)
+  }
+  dbl <- gregexpr("::", low, fixed = TRUE)[[1]]
+  if (length(dbl) == 1L && dbl[[1]] != -1L) {
+    left <- sub("::.*$", "", low)
+    right <- sub("^.*::", "", low)
+    lg <- if (nzchar(left)) strsplit(left, ":", fixed = TRUE)[[1]] else character(0)
+    rg <- if (nzchar(right)) strsplit(right, ":", fixed = TRUE)[[1]] else character(0)
+    zeros <- 8L - length(lg) - length(rg)
+    if (zeros < 1L) {
+      return(NULL)
+    }
+    groups <- c(lg, rep("0", zeros), rg)
+  } else if (length(dbl) == 1L && dbl[[1]] == -1L) {
+    groups <- strsplit(low, ":", fixed = TRUE)[[1]]
+  } else {
+    return(NULL)
+  }
+  if (length(groups) != 8L || !all(grepl("^[0-9a-f]{1,4}$", groups))) {
+    return(NULL)
+  }
+  strtoi(groups, base = 16L)
+}
+
+#' Classify a candidate client identifier into (family, canonical full IP, bucket key),
+#' or family = NA when it is not a plausible IP.
+#'
+#' Rejecting non-IP tokens (an attacker-injected `X_Forwarded_For` header-alias value,
+#' junk) stops arbitrary strings from becoming rotating throttle keys. `canonical` is
+#' the FULL address (used for trusted-proxy matching); `key` is the bucket key: the bare
+#' IPv4, or the IPv6 `/64` prefix so a whole allocation is ONE caller. `/64` grouping is
+#' applied ONLY to the key, never to the trust check — so an IPv6 trusted proxy still
+#' matches its configured CIDR/address.
+#'
+#' @param token Candidate identifier (an XFF hop or REMOTE_ADDR).
+#' @return list(family = "v4"/"v6"/NA, canonical, key).
+.async_job_submit_ip_classify <- function(token) {
+  na <- list(family = NA_character_, canonical = NA_character_, key = NA_character_)
+  if (is.null(token) || length(token) != 1L || is.na(token)) {
+    return(na)
+  }
+  token <- trimws(as.character(token))
+  token <- sub("^\\[(.*)\\]$", "\\1", token) # [::1]:port already portless -> ::1
+  if (!nzchar(token) || nchar(token) > 64L) {
+    return(na)
+  }
+  ipv4 <- sub(":[0-9]+$", "", token) # IPv4 may carry a :port we drop
+  if (grepl("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$", ipv4)) {
+    octets <- suppressWarnings(as.integer(strsplit(ipv4, ".", fixed = TRUE)[[1]]))
+    if (!anyNA(octets) && all(octets >= 0L & octets <= 255L)) {
+      return(list(family = "v4", canonical = ipv4, key = ipv4))
+    }
+    return(na)
+  }
+  hex <- .async_job_submit_ipv6_hextets(token)
+  if (!is.null(hex)) {
+    hx <- sprintf("%x", hex) # canonical hextets, leading zeros stripped
+    return(list(
+      family = "v6",
+      canonical = paste(hx, collapse = ":"),
+      key = paste0(paste(hx[1:4], collapse = ":"), "::/64")
+    ))
+  }
+  na
+}
+
+#' Bucket key for a candidate identifier (bare IPv4 / IPv6 `/64`), or NA if not an IP.
+.async_job_submit_normalize_ip <- function(token) {
+  .async_job_submit_ip_classify(token)$key
+}
+
+# TRUE when the IPv4 `ip` matches CIDR `c` (`a.b.c.d/n`) or an exact IPv4. Prefix compare
+# uses integer division on the 32-bit value (no bitwAnd -> no 2^31 overflow).
+.async_job_submit_v4_match <- function(ip, c) {
+  ip_num <- .async_job_submit_ipv4_num(ip)
+  if (is.na(ip_num)) {
+    return(FALSE)
+  }
+  if (grepl("/", c, fixed = TRUE)) {
+    seg <- strsplit(c, "/", fixed = TRUE)[[1]]
+    if (length(seg) != 2L) {
+      return(FALSE)
+    }
+    bits <- suppressWarnings(as.integer(seg[[2]]))
+    net <- .async_job_submit_ipv4_num(seg[[1]])
+    if (is.na(bits) || bits < 0L || bits > 32L || is.na(net)) {
+      return(FALSE)
+    }
+    shift <- 2^(32 - bits)
+    return(floor(ip_num / shift) == floor(net / shift))
+  }
+  identical(.async_job_submit_ipv4_num(c), ip_num)
+}
+
+# TRUE when the IPv6 `ip_canonical` matches CIDR `c` (`.../n`, 0..128) or an exact IPv6.
+# Compares full hextets, then the boundary hextet under a mask (values <=65535, so no
+# bitwAnd overflow).
+.async_job_submit_v6_match <- function(ip_canonical, c) {
+  ih <- .async_job_submit_ipv6_hextets(ip_canonical)
+  if (is.null(ih)) {
+    return(FALSE)
+  }
+  if (grepl("/", c, fixed = TRUE)) {
+    seg <- strsplit(c, "/", fixed = TRUE)[[1]]
+    if (length(seg) != 2L) {
+      return(FALSE)
+    }
+    bits <- suppressWarnings(as.integer(seg[[2]]))
+    nh <- .async_job_submit_ipv6_hextets(seg[[1]])
+    if (is.na(bits) || bits < 0L || bits > 128L || is.null(nh)) {
+      return(FALSE)
+    }
+    full <- bits %/% 16L
+    rem <- bits %% 16L
+    if (full > 0L && !all(ih[seq_len(full)] == nh[seq_len(full)])) {
+      return(FALSE)
+    }
+    if (rem > 0L) {
+      mask <- 65536L - as.integer(2^(16L - rem))
+      if (bitwAnd(ih[[full + 1L]], mask) != bitwAnd(nh[[full + 1L]], mask)) {
+        return(FALSE)
+      }
+    }
+    return(TRUE)
+  }
+  nh <- .async_job_submit_ipv6_hextets(c)
+  !is.null(nh) && all(ih == nh)
+}
+
+# TRUE when the classified candidate (family + canonical full IP) is inside one of the
+# trusted-proxy `cidrs`. IPv4 candidates match only IPv4 CIDRs/addresses and IPv6 only
+# IPv6 — evaluated on the CANONICAL address, never the /64 bucket key.
+.async_job_submit_ip_trusted <- function(family, canonical, cidrs) {
+  if (length(cidrs) == 0L || is.null(family) || is.na(family)) {
+    return(FALSE)
+  }
+  for (c in cidrs) {
+    c <- trimws(c)
+    cidr_is_v6 <- grepl(":", c, fixed = TRUE)
+    if (family == "v4" && !cidr_is_v6 && .async_job_submit_v4_match(canonical, c)) {
+      return(TRUE)
+    }
+    if (family == "v6" && cidr_is_v6 && .async_job_submit_v6_match(canonical, c)) {
+      return(TRUE)
+    }
+  }
+  FALSE
+}
+
+# TRUE when `c` is a syntactically valid IPv4/IPv6 CIDR or exact address.
+.async_job_submit_valid_cidr <- function(c) {
+  c <- trimws(c)
+  if (grepl(":", c, fixed = TRUE)) {
+    if (grepl("/", c, fixed = TRUE)) {
+      seg <- strsplit(c, "/", fixed = TRUE)[[1]]
+      bits <- if (length(seg) == 2L) suppressWarnings(as.integer(seg[[2]])) else NA_integer_
+      return(!is.na(bits) && bits >= 0L && bits <= 128L &&
+               !is.null(.async_job_submit_ipv6_hextets(seg[[1]])))
+    }
+    return(!is.null(.async_job_submit_ipv6_hextets(c)))
+  }
+  if (grepl("/", c, fixed = TRUE)) {
+    seg <- strsplit(c, "/", fixed = TRUE)[[1]]
+    bits <- if (length(seg) == 2L) suppressWarnings(as.integer(seg[[2]])) else NA_integer_
+    return(!is.na(bits) && bits >= 0L && bits <= 32L && !is.na(.async_job_submit_ipv4_num(seg[[1]])))
+  }
+  !is.na(.async_job_submit_ipv4_num(c))
+}
+
+# Surface (but do not fail boot on) malformed trusted-proxy CIDRs: an invalid entry
+# simply never matches (safe — it trusts nothing), so log it for visibility.
+local({
+  bad <- Filter(function(c) !.async_job_submit_valid_cidr(c), CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS)
+  if (length(bad) > 0L && base::exists("log_warn", mode = "function")) {
+    log_warn(paste0(
+      "CLUSTERING_SUBMIT_TRUSTED_PROXY_CIDRS has invalid entries (ignored): ",
+      paste(bad, collapse = ", ")
+    ))
+  }
+})
 
 #' Resolve the client fingerprint for submit throttling.
 #'
@@ -195,10 +292,10 @@ async_job_submit_fingerprint <- function(req,
     parts <- trimws(strsplit(as.character(xff), ",", fixed = TRUE)[[1]])
     parts <- parts[nzchar(parts)]
     for (i in rev(seq_along(parts))) {
-      ip <- .async_job_submit_normalize_ip(parts[[i]])
-      if (is.na(ip)) next                                   # non-IP token -> ignore
-      if (.async_job_submit_ip_trusted(ip, trusted_cidrs)) next  # our own proxy hop
-      return(ip)                                            # first untrusted from right
+      p <- .async_job_submit_ip_classify(parts[[i]])
+      if (is.na(p$family)) next                                        # non-IP -> ignore
+      if (.async_job_submit_ip_trusted(p$family, p$canonical, trusted_cidrs)) next # our proxy
+      return(p$key)                                                    # first untrusted from right
     }
   }
   addr <- .async_job_submit_normalize_ip(tryCatch(req$REMOTE_ADDR, error = function(e) NULL))
