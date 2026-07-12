@@ -11,7 +11,7 @@ vi.mock('@/composables/useToast', () => ({
   default: () => ({ makeToast: mocks.makeToast }),
 }));
 
-vi.mock('@/composables', () => ({
+vi.mock('@/composables/useExcelExport', () => ({
   useExcelExport: () => ({ isExporting: false, exportToExcel: mocks.exportToExcel }),
 }));
 

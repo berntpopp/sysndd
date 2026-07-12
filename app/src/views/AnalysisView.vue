@@ -56,7 +56,7 @@
  */
 
 import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
-import { useFilterSync, type AnalysisTab } from '@/composables';
+import { useFilterSync, type AnalysisTab } from '@/composables/useFilterSync';
 import AnalysisTabs from '@/components/navigation/AnalysisTabs.vue';
 
 // Get filter state and actions from composable

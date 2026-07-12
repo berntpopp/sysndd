@@ -247,7 +247,7 @@
 <script setup lang="ts">
 import { BButton, BBadge, BDropdown, BDropdownItemButton, BDropdownDivider } from 'bootstrap-vue-next';
 import type { NetworkMetadata } from '@/api/analysis';
-import type { CategoryFilter } from '@/composables';
+import type { CategoryFilter } from '@/composables/useNetworkFilters';
 import type {
   CategoryOptionWithCount,
   LegendCluster,

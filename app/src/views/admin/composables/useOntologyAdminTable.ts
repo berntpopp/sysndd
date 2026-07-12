@@ -13,7 +13,10 @@
 // moved. Every network call goes through the typed `@/api/ontology` client.
 
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue';
-import { useToast, useUrlParsing, useTableData, useExcelExport } from '@/composables';
+import useToast from '@/composables/useToast';
+import useUrlParsing from '@/composables/useUrlParsing';
+import useTableData from '@/composables/useTableData';
+import { useExcelExport } from '@/composables/useExcelExport';
 import { useUiStore } from '@/stores/ui';
 import {
   listVariantOntology,

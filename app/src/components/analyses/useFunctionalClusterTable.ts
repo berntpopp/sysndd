@@ -8,7 +8,9 @@
 // cluster's rows through props and reports table events back through `emit`.
 
 import { computed, reactive, ref, watch } from 'vue';
-import { useToast, useWildcardSearch, useExcelExport } from '@/composables';
+import useToast from '@/composables/useToast';
+import { useWildcardSearch } from '@/composables/useWildcardSearch';
+import { useExcelExport } from '@/composables/useExcelExport';
 import { getClusterColor as getClusterColorUtil } from '@/utils/clusterColors';
 import { filterFunctionalClusterRows, sortFunctionalClusterRows } from './functionalClusterTable';
 import type { FunctionalClusterTableType } from './functionalClusterTable';

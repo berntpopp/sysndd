@@ -28,8 +28,8 @@
  * curation metadata vocabularies"): the update payload shape
  * (`{ ontology_details: {...} }`) and role gate are unchanged by this
  * extraction, only re-verified here. `useToast`/`useExcelExport` are
- * spied via a partial `@/composables` mock (`vi.importActual` for
- * everything else) so `useTableData`/`useUrlParsing` stay real — this
+ * spied at their direct composable module paths, while `useTableData` and
+ * `useUrlParsing` stay real — this
  * matches the useGenesTable/useEntitiesTable Wave 2 spec pattern.
  */
 
@@ -51,14 +51,13 @@ import ManageOntology from './ManageOntology.vue';
 const makeToastSpy = vi.fn();
 const exportToExcelSpy = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('@/composables', async () => {
-  const actual = await vi.importActual<typeof import('@/composables')>('@/composables');
-  return {
-    ...actual,
-    useToast: () => ({ makeToast: makeToastSpy }),
-    useExcelExport: () => ({ isExporting: ref(false), exportToExcel: exportToExcelSpy }),
-  };
-});
+vi.mock('@/composables/useToast', () => ({
+  default: () => ({ makeToast: makeToastSpy }),
+}));
+
+vi.mock('@/composables/useExcelExport', () => ({
+  useExcelExport: () => ({ isExporting: ref(false), exportToExcel: exportToExcelSpy }),
+}));
 
 interface OntologyFilterFieldVm {
   content: string | string[] | null;

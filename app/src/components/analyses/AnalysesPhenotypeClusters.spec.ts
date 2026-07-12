@@ -24,7 +24,7 @@ vi.mock('@/composables/useToast', () => ({
   default: () => ({ makeToast: mocks.makeToast }),
 }));
 
-vi.mock('@/composables', () => ({
+vi.mock('@/composables/usePhenotypeCytoscape', () => ({
   usePhenotypeCytoscape: () => ({
     isInitialized: { value: false },
     destroy: vi.fn(),
@@ -34,6 +34,9 @@ vi.mock('@/composables', () => ({
     exportPNG: vi.fn(() => ''),
     exportSVG: vi.fn(() => ''),
   }),
+}));
+
+vi.mock('@/composables/useExcelExport', () => ({
   useExcelExport: () => ({
     isExporting: false,
     exportToExcel: vi.fn(),

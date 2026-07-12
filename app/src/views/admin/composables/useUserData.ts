@@ -2,7 +2,10 @@ import { getCurrentInstance, nextTick, onBeforeUnmount, ref } from 'vue';
 
 import { getUserTable, getRoleList, listUsersByRole } from '@/api/user';
 import type { UserTableResponse } from '@/api/user';
-import { useTableData, useExcelExport, useFilterPresets, useUrlParsing } from '@/composables';
+import useTableData from '@/composables/useTableData';
+import { useExcelExport } from '@/composables/useExcelExport';
+import { useFilterPresets } from '@/composables/useFilterPresets';
+import useUrlParsing from '@/composables/useUrlParsing';
 
 // Module-level TRANSPORT dedup + 500ms response cache (preserves the existing
 // cross-instance semantics from ManageUser.vue line 760). The cached response is
