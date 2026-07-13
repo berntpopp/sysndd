@@ -22,6 +22,8 @@ HOST_R_ENV_LD_LIBRARY_PATH := $(shell printf '%s' "$${LD_LIBRARY_PATH-}")
 HOST_R_LD_LIBRARY_PATH ?= $(if $(wildcard $(HOST_R_MARIADB_LIB_DIR)/libmariadb.so*),$(HOST_R_MARIADB_LIB_DIR)$(if $(HOST_R_ENV_LD_LIBRARY_PATH),:$(HOST_R_ENV_LD_LIBRARY_PATH)),$(HOST_R_ENV_LD_LIBRARY_PATH))
 HOST_RSCRIPT := env LD_LIBRARY_PATH="$(HOST_R_LD_LIBRARY_PATH)" Rscript --no-init-file
 
+include $(ROOT_DIR)/make/mcp-select-principal.mk
+
 # =============================================================================
 # ANSI Color Codes
 # =============================================================================

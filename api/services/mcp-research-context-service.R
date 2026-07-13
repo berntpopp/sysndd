@@ -2,16 +2,9 @@
 #
 # Gene-level MCP research context aggregation over curated and analysis sections.
 
-# Recoverable snapshot-unavailability codes that should surface as a single
-# "temporarily_unavailable" section status in the research-context aggregator.
-# The specific code (snapshot_missing | snapshot_stale | source_version_mismatch)
-# stays in the section value payload's error.code for callers that need it
-# (issue #353: previously stale/mismatch fell through to a generic "error").
 MCP_SECTION_UNAVAILABLE_CODES <- c(
   "temporarily_unavailable",
-  "snapshot_missing",
-  "snapshot_stale",
-  "source_version_mismatch"
+  "snapshot_missing"
 )
 
 mcp_section_call <- function(name, fn) {
@@ -49,8 +42,8 @@ mcp_research_phenotype_status <- function(mode) {
   tryCatch(
     switch(
       mode,
-      correlations = if (isTRUE(mcp_analysis_repo_phenotype_correlations_cache_hit())) available else unavailable,
-      clusters = if (isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit())) available else unavailable,
+      correlations = if (isTRUE(mcp_analysis_repo_public_snapshot_available("phenotype_correlations", list()))) available else unavailable,
+      clusters = if (isTRUE(mcp_analysis_repo_public_snapshot_available("phenotype_clusters", list()))) available else unavailable,
       phenotype_functional_correlations = {
         if (isTRUE(mcp_analysis_repo_public_snapshot_available("phenotype_functional_correlations", list()))) {
           available
@@ -89,7 +82,7 @@ mcp_gene_external_identifier_refs <- function(hgnc_id) {
       mcp_analysis_provenance(
         "external_reference_identifier",
         "SysNDD gene metadata",
-        "non_alt_loci_set",
+        "mcp_public_gene",
         "sysndd_import_pipeline"
       ),
       list(field = field, value = value)
@@ -204,7 +197,7 @@ mcp_get_gene_research_context <- function(gene,
         dry_run = TRUE,
         include_diagnostics = include_diagnostics,
         llm_generation = "never",
-        cached_llm_summaries = if (isTRUE(include_cached_llm_summaries)) "validated cache only" else "not_requested",
+        cached_llm_summaries = if (isTRUE(include_cached_llm_summaries)) "validated stored summaries only" else "not_requested",
         live_external_provider_calls = "never"
       )
     )
@@ -350,7 +343,7 @@ mcp_get_gene_research_context <- function(gene,
       dry_run = FALSE,
       include_diagnostics = include_diagnostics,
       llm_generation = "never",
-      cached_llm_summaries = if (isTRUE(include_cached_llm_summaries)) "validated cache only" else "not_requested",
+      cached_llm_summaries = if (isTRUE(include_cached_llm_summaries)) "validated stored summaries only" else "not_requested",
       live_external_provider_calls = "never"
     )
   )

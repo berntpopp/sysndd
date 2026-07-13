@@ -527,25 +527,9 @@ analysis_snapshot_public_current <- function(analysis_type,
 
 analysis_snapshot_source_data_version <- function(conn = NULL) {
   result <- db_execute_query(
-    "SELECT SHA2(CONCAT_WS('|',
-       (SELECT COUNT(*) FROM ndd_entity_view),
-       (SELECT COUNT(*) FROM ndd_entity_review WHERE is_primary = 1 AND review_approved = 1),
-       COALESCE((SELECT DATE_FORMAT(MAX(review_date), '%Y-%m-%dT%H:%i:%s.%f')
-                   FROM ndd_entity_review
-                  WHERE is_primary = 1 AND review_approved = 1), 'none'),
-       (SELECT COUNT(*)
-          FROM ndd_review_phenotype_connect rpc
-          JOIN ndd_entity_review r ON r.review_id = rpc.review_id
-         WHERE rpc.is_active = 1 AND r.is_primary = 1 AND r.review_approved = 1),
-       COALESCE((SELECT DATE_FORMAT(MAX(rpc.phenotype_date), '%Y-%m-%dT%H:%i:%s.%f')
-                   FROM ndd_review_phenotype_connect rpc
-                   JOIN ndd_entity_review r ON r.review_id = rpc.review_id
-                  WHERE rpc.is_active = 1 AND r.is_primary = 1 AND r.review_approved = 1), 'none'),
-       (SELECT COUNT(*) FROM ndd_entity_status WHERE is_active = 1 AND status_approved = 1),
-       COALESCE((SELECT DATE_FORMAT(MAX(status_date), '%Y-%m-%dT%H:%i:%s.%f')
-                   FROM ndd_entity_status
-                  WHERE is_active = 1 AND status_approved = 1), 'none')
-     ), 256) AS source_data_version",
+    "SELECT source_data_version
+       FROM mcp_public_analysis_source_version
+      LIMIT 1",
     conn = conn
   )
 

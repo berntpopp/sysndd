@@ -35,7 +35,8 @@ test_that("MCP analysis data-class envelopes distinguish curated, derived, ML, a
     generated_by = "admin_llm_workflow"
   )
   expect_true(llm$not_evidence_tier)
-  expect_match(llm$limitations[[1]], "Cache-only", fixed = TRUE)
+  expect_match(llm$limitations[[1]], "validated stored projection", fixed = TRUE)
+  expect_false(grepl("cache", llm$limitations[[1]], ignore.case = TRUE))
 })
 
 test_that("MCP analysis response budgets support auto, diagnostics, and truncation metadata", {
@@ -173,7 +174,7 @@ test_that("curation comparison plot modes return documented invalid_input errors
   expect_true("browse" %in% err$error$allowed_values)
 })
 
-test_that("MCP LLM summary service returns cached validated summaries and never generates", {
+test_that("MCP LLM summary service returns allowlisted validated summaries and never generates", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
@@ -186,7 +187,10 @@ test_that("MCP LLM summary service returns cached validated summaries and never 
       cluster_hash = "abc",
       model_name = "gemini-3-flash",
       prompt_version = "1.0",
-      summary_json = "{\"summary\":\"cached summary\"}",
+      summary_json = paste0(
+        "{\"summary\":\"stored summary\",\"key_themes\":[\"synaptic\"],",
+        "\"judge_reasoning\":\"forbidden\",\"unknown\":\"forbidden\"}"
+      ),
       tags = "[\"synaptic\"]",
       is_current = 1L,
       validation_status = "validated",
@@ -200,11 +204,13 @@ test_that("MCP LLM summary service returns cached validated summaries and never 
 
   expect_true(result[[1]]$summary_available)
   expect_equal(result[[1]]$data_class, "llm_generated_summary")
-  expect_true(result[[1]]$cache_only)
-  expect_equal(result[[1]]$summary$summary, "cached summary")
+  expect_true(result[[1]]$stored_summary_only)
+  expect_equal(result[[1]]$summary$summary, "stored summary")
+  expect_equal(names(result[[1]]$summary), c("summary", "key_themes"))
+  expect_null(result[[1]]$summary$judge_reasoning)
 })
 
-test_that("MCP LLM summary service reports cache miss without generation", {
+test_that("MCP LLM summary service reports stored-summary miss without generation", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
@@ -215,7 +221,7 @@ test_that("MCP LLM summary service reports cache miss without generation", {
   result <- mcp_get_cached_llm_summaries("phenotype", cluster_numbers = 1L)
 
   expect_false(result[[1]]$summary_available)
-  expect_true(result[[1]]$cache_only)
+  expect_true(result[[1]]$stored_summary_only)
   expect_equal(result[[1]]$data_class, "llm_generated_summary")
 })
 
@@ -369,7 +375,7 @@ test_that("public snapshot availability reads manifest only", {
   })
 
   expect_true(mcp_analysis_repo_public_snapshot_available("phenotype_correlations", list()))
-  expect_true(grepl("analysis_snapshot_manifest", seen_query, fixed = TRUE))
+  expect_true(grepl("mcp_public_analysis_manifest", seen_query, fixed = TRUE))
 })
 
 test_that("gene network context raises snapshot_missing when public snapshot is absent", {
@@ -468,7 +474,7 @@ test_that("gene network context budget accounts for nodes and metadata", {
   expect_true(result$budget$truncated)
 })
 
-test_that("phenotype clusters tool surfaces read-only validation + db_release", {
+test_that("phenotype clusters expose validation but ignore unprojected db_release", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
@@ -495,9 +501,9 @@ test_that("phenotype clusters tool surfaces read-only validation + db_release", 
   result <- mcp_get_phenotype_analysis_context(mode = "clusters", limit = 10L)
 
   expect_equal(result$meta$validation$partition_scope, "visible_top_level")
-  expect_equal(result$meta$db_release$version, "v3.2.0")
+  expect_null(result$meta$db_release)
   expect_equal(result$meta$data_classes$validation, "curated_derived_analysis")
-  expect_equal(result$meta$data_classes$db_release, "operational_metadata")
+  expect_null(result$meta$data_classes$db_release)
   # Additive null-calibrated separation diagnostics surface read-only as their own
   # operational_metadata block (validation schema >= 2.0), never recomputed on MCP.
   expect_equal(result$meta$separation_statistics$separation_z, 3.1)

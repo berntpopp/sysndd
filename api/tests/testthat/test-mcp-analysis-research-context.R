@@ -127,21 +127,18 @@ test_that("gene research dry-run probes section availability instead of assuming
   expect_equal(result$section_status$nddscore, "temporarily_unavailable")
 })
 
-test_that("gene research dry-run reports phenotype cache unavailability explicitly", {
+test_that("gene research dry-run reports projection snapshot unavailability explicitly", {
   source_mcp_analysis_repository()
   source("../../services/mcp-research-context-service.R")
 
   old_gene <- mcp_get_gene_context
-  old_cluster_hit <- mcp_analysis_repo_phenotype_cluster_cache_hit
   old_snapshot_available <- mcp_analysis_repo_public_snapshot_available
   assign("mcp_get_gene_context", function(gene, ...) {
     list(schema_version = MCP_SCHEMA_VERSION, gene = list(hgnc_id = "HGNC:61", symbol = "ABCD1"), entities = list())
   }, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_phenotype_cluster_cache_hit", function(...) FALSE, envir = .GlobalEnv)
   assign("mcp_analysis_repo_public_snapshot_available", function(...) FALSE, envir = .GlobalEnv)
   withr::defer({
     assign("mcp_get_gene_context", old_gene, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_phenotype_cluster_cache_hit", old_cluster_hit, envir = .GlobalEnv)
     assign("mcp_analysis_repo_public_snapshot_available", old_snapshot_available, envir = .GlobalEnv)
   })
 
@@ -186,7 +183,11 @@ test_that("gene research cached LLM section can derive phenotype cluster numbers
   }, envir = .GlobalEnv)
   assign("mcp_get_cached_llm_summaries", function(cluster_type, cluster_numbers = NULL, ...) {
     seen_cluster_numbers <<- cluster_numbers
-    list(list(data_class = "llm_generated_summary", cache_only = TRUE, cluster_number = cluster_numbers[[1]]))
+    list(list(
+      data_class = "llm_generated_summary",
+      stored_summary_only = TRUE,
+      cluster_number = cluster_numbers[[1]]
+    ))
   }, envir = .GlobalEnv)
   withr::defer({
     assign("mcp_get_gene_context", old_gene, envir = .GlobalEnv)

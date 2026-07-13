@@ -1,17 +1,18 @@
 analysis_snapshot_test_wd <- getwd()
-setwd(get_api_dir())
+analysis_snapshot_test_api_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
+setwd(analysis_snapshot_test_api_dir)
 withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "044_mcp_public_read_projections.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 42L)
 })
 
 test_that("migration 041 adds the reproducibility bundle table", {
   migration_path <- file.path(
-    get_api_dir(), "..", "db", "migrations",
+    analysis_snapshot_test_api_dir, "..", "db", "migrations",
     "041_add_analysis_reproducibility.sql"
   )
   expect_true(file.exists(migration_path))
@@ -29,7 +30,7 @@ test_that("migration 041 adds the reproducibility bundle table", {
 
 test_that("migration 037 adds validation + db release columns", {
   sql <- paste(readLines(file.path(
-    get_api_dir(), "..", "db", "migrations",
+    analysis_snapshot_test_api_dir, "..", "db", "migrations",
     "037_add_analysis_snapshot_validation.sql"
   )), collapse = "\n")
   expect_match(sql, "validation_json")

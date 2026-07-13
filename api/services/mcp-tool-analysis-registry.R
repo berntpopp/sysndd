@@ -172,7 +172,10 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
     ),
     ellmer::tool(
       get_gene_research_context_fun,
-      mcp_analysis_tool_description("gene research context.", "Cached LLM summaries are admin-generated cache-only and clearly labeled."),
+      mcp_analysis_tool_description(
+        "gene research context.",
+        "Validated stored LLM summaries are admin-generated and clearly labeled."
+      ),
       arguments = list(
         gene = ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID."),
         sections = ellmer::type_array(ellmer::type_string("Section name."), description = "Optional sections: curated, comparison, nddscore, phenotype_clusters, phenotype_correlations, phenotype_functional_correlations, gene_network, cached_llm_summaries, external_identifiers.", required = FALSE),
@@ -181,7 +184,9 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
         budget_strategy = ellmer::type_string("section_fair or scarcity_first; default section_fair.", required = FALSE),
         entity_limit = ellmer::type_integer("Curated entity cap, default 10, max 25.", required = FALSE),
         publication_limit = ellmer::type_integer("Curated publication cap per entity, default 5, max 25.", required = FALSE),
-        include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
+        include_cached_llm_summaries = ellmer::type_boolean(
+          "Use admin-generated validated stored summaries only; default true.", required = FALSE
+        ),
         include_diagnostics = ellmer::type_boolean("Include diagnostics and section availability metadata; default false.", required = FALSE),
         dry_run = ellmer::type_boolean("Preflight section status without heavy payloads; default false.", required = FALSE)
       ),
@@ -227,7 +232,13 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
     ),
     ellmer::tool(
       get_phenotype_analysis_context_fun,
-      mcp_analysis_tool_description("phenotype analysis context.", "Correlation and cluster rows come from public-ready snapshots; cached LLM summaries are admin-generated cache-only when included."),
+      mcp_analysis_tool_description(
+        "phenotype analysis context.",
+        paste(
+          "Correlation and cluster rows come from public-ready snapshots;",
+          "validated stored LLM summaries are admin-generated when included."
+        )
+      ),
       arguments = list(
         mode = ellmer::type_string("correlations, clusters, or phenotype_functional_correlations."),
         gene = ellmer::type_string("Optional gene identifier.", required = FALSE),
@@ -237,7 +248,9 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
         triangle_only = ellmer::type_boolean("For correlation mode, return one matrix triangle only; default false.", required = FALSE),
         cluster_id = ellmer::type_integer("Optional cluster identifier.", required = FALSE),
         limit = ellmer::type_integer("Record cap, default 25, max 50.", required = FALSE),
-        include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
+        include_cached_llm_summaries = ellmer::type_boolean(
+          "Use admin-generated validated stored summaries only; default true.", required = FALSE
+        ),
         response_mode = ellmer::type_string("minimal, compact, standard, full, or diagnostics; default compact.", required = FALSE),
         max_response_chars = ellmer::type_string("auto or an integer character budget; default auto.", required = FALSE),
         include_diagnostics = ellmer::type_boolean("Include diagnostics metadata; default false.", required = FALSE),
@@ -253,7 +266,9 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
         cluster_type = ellmer::type_string("Fixed stored snapshot key: clusters. Omit unless confirming fixed-key compatibility.", required = FALSE),
         min_confidence = ellmer::type_integer("Fixed stored snapshot key: 400. Other values return unsupported_parameter.", required = FALSE),
         max_edges = ellmer::type_integer("Response edge trim cap, default 100, max 250.", required = FALSE),
-        include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
+        include_cached_llm_summaries = ellmer::type_boolean(
+          "Use admin-generated validated stored summaries only; default true.", required = FALSE
+        ),
         response_mode = ellmer::type_string("minimal, compact, standard, full, or diagnostics; default compact.", required = FALSE),
         max_response_chars = ellmer::type_string("auto or an integer character budget; default auto.", required = FALSE),
         include_diagnostics = ellmer::type_boolean("Include diagnostics metadata; default false.", required = FALSE),

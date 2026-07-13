@@ -30,17 +30,20 @@ test_that("MCP search fallback scores use the same 100-1000 scale as repository 
   expect_equal(mcp_score_for_tier("contains"), 600)
 })
 
-test_that("MCP capabilities document snapshot stale and source-mismatch recoverable errors", {
+test_that("MCP capabilities expose only projection-safe snapshot diagnostics", {
   api_dir <- get_api_dir()
   source(file.path(api_dir, "services", "mcp-service.R"), local = TRUE)
   source(file.path(api_dir, "services", "mcp-capabilities-service.R"), local = TRUE)
 
   caps <- mcp_get_sysndd_capabilities()
 
-  expect_true("snapshot_stale" %in% caps$error_codes)
-  expect_true("source_version_mismatch" %in% caps$error_codes)
-  expect_equal(caps$error_examples$snapshot_stale$error$code, "snapshot_stale")
-  expect_equal(caps$error_examples$source_version_mismatch$error$code, "source_version_mismatch")
+  expect_true("snapshot_missing" %in% caps$error_codes)
+  expect_false("snapshot_stale" %in% caps$error_codes)
+  expect_false("source_version_mismatch" %in% caps$error_codes)
+  expect_null(caps$error_examples$snapshot_stale)
+  expect_null(caps$error_examples$source_version_mismatch)
+  expect_false("result_cache" %in% names(caps))
+  expect_false(grepl("cache_ttl_seconds|in-process result cache", paste(capture.output(str(caps)), collapse = "\n"), fixed = FALSE))
 })
 
 test_that("MCP search zero-result response includes diagnostics", {
@@ -69,17 +72,14 @@ test_that("MCP search expands phrase tokens across non-gene result types", {
   source(file.path(api_dir, "functions", "mcp-repository.R"), local = TRUE)
 
   old_db <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
-  old_has_column <- mcp_repo_table_has_column
   calls <- list()
   assign("db_execute_query", function(query, params = list(), conn = NULL) {
     calls[[length(calls) + 1L]] <<- list(query = query, params = params)
     tibble::tibble()
   }, envir = .GlobalEnv)
-  assign("mcp_repo_table_has_column", function(...) FALSE, envir = .GlobalEnv)
   on.exit(
     {
       if (is.null(old_db)) rm("db_execute_query", envir = .GlobalEnv) else assign("db_execute_query", old_db, envir = .GlobalEnv)
-      assign("mcp_repo_table_has_column", old_has_column, envir = .GlobalEnv)
     },
     add = TRUE
   )

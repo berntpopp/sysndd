@@ -73,8 +73,12 @@ test_that("compose mounts API runtime config read-only", {
     compose[start:end]
   }
 
-  for (service in c("api", "worker", "mcp")) {
+  for (service in c("api", "worker")) {
     block <- service_block(service)
     expect_true(any(grepl("./api/config.yml:/app/config.yml:ro", block, fixed = TRUE)), info = service)
   }
+
+  mcp_block <- service_block("mcp")
+  expect_false(any(grepl("./api/config.yml:/app/config.yml", mcp_block, fixed = TRUE)))
+  expect_true(any(grepl("target: /run/secrets/mcp_db_password", mcp_block, fixed = TRUE)))
 })

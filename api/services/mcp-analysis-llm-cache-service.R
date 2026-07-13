@@ -1,9 +1,9 @@
 ## -------------------------------------------------------------------##
 # api/services/mcp-analysis-llm-cache-service.R
 #
-# MCP analysis LLM-summary cache reads (extracted from mcp-analysis-service.R
-# to keep that file under the 600-line ceiling; #459). Read-only, cache-hit
-# only: MCP exposes current/validated admin-generated cluster summaries and
+# MCP analysis LLM-summary reads (extracted from mcp-analysis-service.R to keep
+# that file under the 600-line ceiling; #459). MCP exposes only validated,
+# eligible, admin-generated cluster summaries from the dedicated projection and
 # never triggers Gemini/LLM generation. All payloads are labelled
 # `llm_generated_summary`.
 ## -------------------------------------------------------------------##
@@ -18,12 +18,29 @@ mcp_parse_json_field <- function(value, default = list()) {
   )
 }
 
+mcp_llm_summary_allowlist <- function(summary) {
+  allowed <- if (base::exists("mcp_readonly_llm_summary_json_keys", mode = "function")) {
+    mcp_readonly_llm_summary_json_keys()
+  } else {
+    c(
+      "summary", "key_themes", "pathways", "tags", "clinical_relevance", "confidence",
+      "key_phenotype_themes", "notably_absent", "clinical_pattern", "syndrome_hints",
+      "inheritance_patterns", "syndromicity", "data_quality_note"
+    )
+  }
+  if (!is.list(summary) || is.null(names(summary))) return(list())
+  summary[intersect(allowed, names(summary))]
+}
+
 mcp_llm_cache_miss <- function(cluster_type, cluster_hash = NULL, cluster_number = NULL) {
   c(
-    mcp_analysis_provenance("llm_generated_summary", "SysNDD LLM summary cache", "llm_cluster_summary_cache", "admin_llm_workflow"),
+    mcp_analysis_provenance(
+      "llm_generated_summary", "SysNDD validated LLM summary",
+      "mcp_public_llm_cluster_summary", "admin_llm_workflow"
+    ),
     list(
       summary_available = FALSE,
-      cache_only = TRUE,
+      stored_summary_only = TRUE,
       cluster_type = cluster_type,
       cluster_hash = cluster_hash,
       cluster_number = cluster_number
@@ -57,11 +74,14 @@ mcp_get_cached_llm_summaries <- function(cluster_type,
   lapply(seq_len(nrow(rows)), function(i) {
     row <- mcp_row_to_list(rows[i, , drop = FALSE])
     c(
-      mcp_analysis_provenance("llm_generated_summary", "SysNDD LLM summary cache", "llm_cluster_summary_cache", "admin_llm_workflow"),
+      mcp_analysis_provenance(
+        "llm_generated_summary", "SysNDD validated LLM summary",
+        "mcp_public_llm_cluster_summary", "admin_llm_workflow"
+      ),
       list(
         summary_available = TRUE,
-        cache_only = TRUE,
-        cache_id = row$cache_id,
+        stored_summary_only = TRUE,
+        summary_id = row$cache_id,
         cluster_type = row$cluster_type,
         cluster_number = row$cluster_number,
         cluster_hash = row$cluster_hash,
@@ -71,7 +91,7 @@ mcp_get_cached_llm_summaries <- function(cluster_type,
         created_at = row$created_at,
         validated_at = row$validated_at,
         tags = mcp_parse_json_field(row$tags, list()),
-        summary = mcp_parse_json_field(row$summary_json, list())
+        summary = mcp_llm_summary_allowlist(mcp_parse_json_field(row$summary_json, list()))
       )
     )
   })

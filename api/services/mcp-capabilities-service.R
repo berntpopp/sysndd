@@ -61,17 +61,17 @@ mcp_get_sysndd_capabilities <- function() {
       get_publications_context = list(max_pmids = 20L, max_abstract_chars = 4000L)
     ),
     performance = list(
-      note = "cache_ttl_seconds is the in-process result cache window; cost_tier is a rough latency hint.",
-      get_sysndd_stats = list(cache_ttl_seconds = 300L, cost_tier = "cheap"),
-      search_sysndd = list(cache_ttl_seconds = 60L, cost_tier = "cheap"),
-      get_gene_context = list(cache_ttl_seconds = 300L, cost_tier = "moderate"),
-      get_entity_context = list(cache_ttl_seconds = 300L, cost_tier = "moderate"),
-      get_publication_context = list(cache_ttl_seconds = 1800L, cost_tier = "moderate"),
-      get_sysndd_analysis_catalog = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
-      get_gene_research_context = list(cache_ttl_seconds = 0L, cost_tier = "moderate", cheap_path = "dry_run=true"),
-      get_nddscore_context = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
-      get_gene_network_context = list(cache_ttl_seconds = 0L, cost_tier = "snapshot_only"),
-      get_sysndd_capabilities = list(cache_ttl_seconds = 0L, cost_tier = "cheap")
+      note = "cost_tier is a rough latency hint; each call reads the approved public projections.",
+      get_sysndd_stats = list(cost_tier = "cheap"),
+      search_sysndd = list(cost_tier = "cheap"),
+      get_gene_context = list(cost_tier = "moderate"),
+      get_entity_context = list(cost_tier = "moderate"),
+      get_publication_context = list(cost_tier = "moderate"),
+      get_sysndd_analysis_catalog = list(cost_tier = "cheap"),
+      get_gene_research_context = list(cost_tier = "moderate", cheap_path = "dry_run=true"),
+      get_nddscore_context = list(cost_tier = "cheap"),
+      get_gene_network_context = list(cost_tier = "snapshot_only"),
+      get_sysndd_capabilities = list(cost_tier = "cheap")
     ),
     citation_contract = list(
       use_recommended_citation_verbatim = TRUE,
@@ -95,17 +95,16 @@ mcp_get_sysndd_capabilities <- function() {
       curated_sysndd_evidence = list(curation_effect = "curated_evidence", not_evidence_tier = FALSE),
       curated_derived_analysis = list(curation_effect = "none", not_evidence_tier = TRUE),
       ml_prediction = list(curation_effect = "none", not_evidence_tier = TRUE, note = "NDDScore ML prediction is separate from curated SysNDD evidence."),
-      llm_generated_summary = list(curation_effect = "none", not_evidence_tier = TRUE, note = "Admin-generated validated cache only; MCP never generates summaries."),
+      llm_generated_summary = list(curation_effect = "none", not_evidence_tier = TRUE, note = "Admin-generated validated stored summaries only; MCP never generates summaries."),
       external_reference_identifier = list(curation_effect = "none", not_evidence_tier = TRUE, note = "Stored identifiers only; no live external provider calls.")
     ),
     analysis_tools = list(
       catalog = "get_sysndd_analysis_catalog documents available analysis sections, data classes, and limits.",
-      gene_research = "get_gene_research_context aggregates curated, ML prediction, public-ready snapshot analysis, cache-only LLM summaries, and stored external identifiers with section_status labels.",
+      gene_research = "get_gene_research_context aggregates curated, ML prediction, public-ready snapshot analysis, validated stored LLM summaries, and stored external identifiers with section_status labels.",
       snapshot_reads = "Derived analysis tools read public-ready snapshots only and never compute STRING, phenotype clustering, fCoSE layouts, or correlations on request.",
       phenotype_correlations = "MCP phenotype correlations are global snapshot context; omit gene for mode='correlations' and use phenotype or clusters for focused follow-up.",
       network_snapshot = "get_gene_network_context supports only the stored clusters/min_confidence=400/max_edges=10000 snapshot key; max_edges is a response trim cap.",
       cluster_validation = "get_phenotype_analysis_context(mode='clusters') meta.validation reports read-only cluster-stability metrics (per-cluster bootstrap-Jaccard, mean silhouette for phenotype, data-driven k); functional cluster validation reports weighted modularity. Data class curated_derived_analysis. partition_scope='visible_top_level' scopes per-cluster Jaccard to the stored post-min_size clusters; modularity_scope='full_partition' reports modularity on the full optimized partition.",
-      db_release = "Analysis snapshots carry a human-facing DB release label meta.db_release = {version, commit} (operational_metadata; literal 'unknown' when the db_version surface is unavailable). get_phenotype_analysis_context(mode='clusters') and get_gene_network_context surface it read-only.",
       guardrails = "No Gemini, no prompt/query exposure, no live external providers, no writes, no raw SQL/R tools."
     ),
     resources = list(
@@ -143,9 +142,7 @@ mcp_get_sysndd_capabilities <- function() {
       "ambiguous_query",
       "temporarily_unavailable",
       "unsupported_parameter",
-      "snapshot_missing",
-      "snapshot_stale",
-      "source_version_mismatch"
+      "snapshot_missing"
     ),
     error_examples = list(
       invalid_input = list(schema_version = MCP_SCHEMA_VERSION, error = list(
@@ -170,13 +167,6 @@ mcp_get_sysndd_capabilities <- function() {
       )),
       snapshot_missing = list(schema_version = MCP_SCHEMA_VERSION, error = list(
         code = "snapshot_missing", message = "Supported public-ready analysis snapshot is not currently available."
-      )),
-      snapshot_stale = list(schema_version = MCP_SCHEMA_VERSION, error = list(
-        code = "snapshot_stale", message = "The active public analysis snapshot is stale and should be refreshed."
-      )),
-      source_version_mismatch = list(schema_version = MCP_SCHEMA_VERSION, error = list(
-        code = "source_version_mismatch",
-        message = "The active public analysis snapshot was built from a different public source-data version."
       ))
     ),
     error_handling_note = "Recoverable errors arrive as a tool result with isError=true and an error.code; retry ambiguous_query by calling again with one of error.choices.",
@@ -184,7 +174,7 @@ mcp_get_sysndd_capabilities <- function() {
       scope = "Read-only approved public SysNDD evidence for research review; not clinical decision support.",
       live_external_calls_disabled = TRUE,
       llm_generation_disabled = TRUE,
-      cached_llm_summaries = "Admin-generated validated cache only; never represented as curated SysNDD evidence.",
+      llm_summaries = "Admin-generated validated stored summaries only; never represented as curated SysNDD evidence.",
       exclusions = c("draft reviews", "admin/user/job/log data", "raw SQL", "raw R", "Gemini", "external provider calls", "database writes")
     )
   )

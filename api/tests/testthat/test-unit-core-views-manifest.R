@@ -6,24 +6,25 @@
 # Uses get_api_dir() (from helper-paths.R) to locate the migrations directory
 # portably across cwd contexts (api/, tests/testthat/, Docker /app).
 
-source_api_file("functions/migration-manifest.R", local = FALSE)
-source_api_file("functions/migration-runner.R", local = FALSE)
+migration_test_api_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
+source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), local = FALSE)
+source(file.path(migration_test_api_dir, "functions", "migration-runner.R"), local = FALSE)
 
-test_that("manifest expects migration 043 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "043_add_user_session_epoch.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 41L)
+test_that("manifest expects migration 044 as latest", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "044_mcp_public_read_projections.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 42L)
 })
 
 test_that("migration manifest validates against db/migrations", {
-  migrations_dir <- file.path(get_api_dir(), "..", "db", "migrations")
+  migrations_dir <- file.path(migration_test_api_dir, "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "043_add_user_session_epoch.sql")
+  expect_identical(res$latest, "044_mcp_public_read_projections.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {
   migration_path <- file.path(
-    get_api_dir(), "..", "db", "migrations",
+    migration_test_api_dir, "..", "db", "migrations",
     "036_add_disease_ontology_mappings.sql"
   )
   expect_true(file.exists(migration_path))
@@ -51,7 +52,7 @@ test_that("migration 036 file exists and contains disease_ontology_mapping table
 
 test_that("migration 026 adds a last_update column derived from curation dates", {
   migration_path <- file.path(
-    get_api_dir(), "..", "db", "migrations",
+    migration_test_api_dir, "..", "db", "migrations",
     "026_add_entity_last_update.sql"
   )
   expect_true(file.exists(migration_path))

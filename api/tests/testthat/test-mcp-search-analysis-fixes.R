@@ -164,7 +164,7 @@ test_that("find_entities_by_disease echoes the term and resolution flag on zero 
   expect_equal(result$resolved_diseases, list())
 })
 
-test_that("research-context sections map all snapshot-unavailable codes to temporarily_unavailable", {
+test_that("research-context sections map projection unavailability to temporarily_unavailable", {
   api_dir <- get_api_dir()
   source(file.path(api_dir, "services", "mcp-service.R"), local = .GlobalEnv)
   source(file.path(api_dir, "services", "mcp-research-context-service.R"), local = .GlobalEnv)
@@ -175,11 +175,16 @@ test_that("research-context sections map all snapshot-unavailable codes to tempo
     })
   }
 
-  for (code in c("snapshot_missing", "snapshot_stale", "source_version_mismatch", "temporarily_unavailable")) {
+  for (code in c("snapshot_missing", "temporarily_unavailable")) {
     section <- make_section(code)
     expect_equal(section$status, "temporarily_unavailable")
     # The specific code is preserved in the section value for callers that need it.
     expect_equal(section$value$error$code, code)
+  }
+
+  for (filtered_code in c("snapshot_stale", "source_version_mismatch")) {
+    filtered <- make_section(filtered_code)
+    expect_equal(filtered$status, "error")
   }
 
   # A non-snapshot recoverable error still surfaces as "error".
