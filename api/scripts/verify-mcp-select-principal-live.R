@@ -30,14 +30,14 @@ required_env <- function(name) {
   value
 }
 
-admin_connect <- function() {
+admin_connect <- function(config = mcp_readonly_admin_config()) {
   DBI::dbConnect(
     RMariaDB::MariaDB(),
-    host = required_env("MCP_ADMIN_DB_HOST"),
-    port = as.integer(required_env("MCP_ADMIN_DB_PORT")),
-    dbname = required_env("MCP_ADMIN_DB_NAME"),
-    user = required_env("MCP_ADMIN_DB_USER"),
-    password = required_env("MCP_ADMIN_DB_PASSWORD")
+    host = config$host,
+    port = config$port,
+    dbname = config$dbname,
+    user = config$user,
+    password = config$password
   )
 }
 
@@ -270,7 +270,11 @@ run_bootstrap <- function() {
     stop("Reverse PROXY fixture did not assume reader authority", call. = FALSE)
   }
   reverse_session_id <- reverse_identity$connection_id[[1L]]
-  reconcile(conn, expected_definer)
+  if (!identical(expected_definer, required_env("MCP_EXPECTED_VIEW_DEFINER"))) {
+    stop("Verifier migration definer differs from provisioner input", call. = FALSE)
+  }
+  source("scripts/provision-mcp-readonly-principal.R", local = environment())
+  mcp_readonly_provision_from_environment()
   reverse_error <- tryCatch({
     DBI::dbGetQuery(reverse_session, "SELECT CURRENT_USER()")
     NULL
@@ -507,13 +511,14 @@ assert_all_tools <- function(forbidden_secrets) {
 run_verify <- function() {
   secret_path <- required_env("MCP_DB_PASSWORD_FILE")
   reader_secret <- readChar(secret_path, file.info(secret_path)$size)
-  admin <- admin_connect()
+  admin_config <- mcp_readonly_admin_config()
+  admin <- admin_connect(admin_config)
   reader <- reader_connect()
   on.exit(DBI::dbDisconnect(admin), add = TRUE)
   on.exit(DBI::dbDisconnect(reader), add = TRUE)
   assert_reader_boundary(admin, reader)
   secrets <- c(
-    required_env("MCP_ADMIN_DB_PASSWORD"),
+    admin_config$password,
     required_env("MCP_CREDENTIAL_SENTINEL"),
     reader_secret
   )

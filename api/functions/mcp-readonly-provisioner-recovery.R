@@ -55,14 +55,14 @@ mcp_readonly_recover_incomplete <- function(
   on.exit(try(disconnect_fn(recovery_conn), silent = TRUE), add = TRUE)
   recovered <- tryCatch(
     {
-      mcp_readonly_quarantine_reader(
+      quarantine <- mcp_readonly_quarantine_reader(
         recovery_conn,
         query_fn,
         execute_fn,
         quote_account_fn,
-        best_effort = FALSE
+        best_effort = TRUE
       )
-      TRUE
+      isTRUE(attr(quarantine, "quarantine_succeeded", exact = TRUE))
     },
     error = function(e) FALSE
   )

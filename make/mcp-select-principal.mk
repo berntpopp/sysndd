@@ -24,18 +24,29 @@ verify-mcp-select-principal-live: check-docker ## [test] Run disposable SELECT-o
 	sentinel="mcp-secret-sentinel-$$(openssl rand -hex 12)"
 	log_file="$$(mktemp)"
 	config_file="$$(mktemp)"
+	reader_secret_file="$$(mktemp)"
+	mcp_log_file="$$(mktemp)"
+	sanitized_log_file="$$(mktemp)"
+	root_pattern_file="$$(mktemp)"
+	sentinel_pattern_file="$$(mktemp)"
+	chmod 0600 "$$reader_secret_file" "$$mcp_log_file" "$$sanitized_log_file" \
+		"$$root_pattern_file" "$$sentinel_pattern_file"
+	printf '%s' "$$root_password" >"$$root_pattern_file"
+	printf '%s' "$$sentinel" >"$$sentinel_pattern_file"
 	cleanup() {
 		$(verify_mcp_select_assert_labels)
 		MCP_SELECT_VERIFY_ID="$$verify_id" MCP_VERIFY_ROOT_PASSWORD="$$root_password" MCP_VERIFY_SENTINEL="$$sentinel" \
 			docker compose --project-name "$$project" --file "$(MCP_SELECT_VERIFY_COMPOSE)" down --volumes --remove-orphans >/dev/null 2>&1 || true
-		rm -f "$$log_file" "$$config_file"
+		rm -f "$$log_file" "$$config_file" "$$reader_secret_file" \
+			"$$mcp_log_file" "$$sanitized_log_file" "$$root_pattern_file" \
+			"$$sentinel_pattern_file"
 	}
 	trap cleanup EXIT INT TERM
 	$(verify_mcp_select_assert_labels)
 	MCP_SELECT_VERIFY_ID="$$verify_id" MCP_VERIFY_ROOT_PASSWORD="$$root_password" MCP_VERIFY_SENTINEL="$$sentinel" \
 		docker compose --project-name "$$project" --file "$(MCP_SELECT_VERIFY_COMPOSE)" config --no-interpolate >"$$config_file"
-	for secret in "$$root_password" "$$sentinel"; do
-		if grep -Fq -- "$$secret" "$$config_file"; then
+	for pattern_file in "$$root_pattern_file" "$$sentinel_pattern_file"; do
+		if grep -Fq -f "$$pattern_file" "$$config_file"; then
 			printf 'Credential sentinel leaked into Compose rendering\n' >&2
 			exit 1
 		fi
@@ -67,38 +78,41 @@ verify-mcp-select-principal-live: check-docker ## [test] Run disposable SELECT-o
 		[ "$$(docker inspect --format '{{.State.Health.Status}}' "$$mcp_id")" = healthy ] || run_failed=1
 	fi
 	[ "$$run_failed" -ne 0 ] || compose run --rm --no-deps verify >>"$$log_file" 2>&1 || run_failed=1
-	if [ "$$run_failed" -eq 0 ]; then
-		log_dir="$$(dirname "$$log_file")"
-		log_name="$$(basename "$$log_file")"
-		compose run --rm --no-deps -T \
-			-e MCP_VERIFY_LOG_NAME="$$log_name" \
-			-v "$$log_dir:/verify-logs:ro" \
-			verify sh -eu -c '
-				reader_secret=$$(cat "$$MCP_DB_PASSWORD_FILE")
-				if grep -Fq -- "$$reader_secret" "/verify-logs/$$MCP_VERIFY_LOG_NAME"; then
-					printf "generated reader password leaked into verifier logs\n" >&2
-					exit 1
-				fi
-			' >>"$$log_file" 2>&1 || run_failed=1
+	compose run --rm --no-deps -T verify sh -eu -c \
+		'cat "$$MCP_DB_PASSWORD_FILE"' >"$$reader_secret_file" 2>/dev/null || true
+	if [ -s "$$reader_secret_file" ]; then
+		if grep -Fq -f "$$reader_secret_file" "$$log_file"; then
+			printf 'generated reader password leaked into verifier logs\n' >&2
+			run_failed=1
+		fi
+		compose logs --no-color mcp >"$$mcp_log_file" 2>/dev/null || true
+		if grep -Fq -f "$$reader_secret_file" "$$mcp_log_file"; then
+			printf 'generated reader password leaked into MCP logs\n' >&2
+			run_failed=1
+		fi
 	fi
-	if [ "$$run_failed" -eq 0 ]; then
-		compose logs --no-color mcp | compose run --rm --no-deps -T verify sh -eu -c '
-			reader_secret=$$(cat "$$MCP_DB_PASSWORD_FILE")
-			if grep -Fq -- "$$reader_secret"; then
-				printf "generated reader password leaked into MCP logs\n" >&2
-				exit 1
-			fi
-		' >>"$$log_file" 2>&1 || run_failed=1
-	fi
-	for secret in "$$root_password" "$$sentinel"; do
-		if grep -Fq -- "$$secret" "$$log_file"; then
+	for pattern_file in "$$root_pattern_file" "$$sentinel_pattern_file"; do
+		if grep -Fq -f "$$pattern_file" "$$log_file"; then
 			printf 'Credential sentinel leaked into verifier logs\n' >&2
 			exit 1
 		fi
 	done
 	if [ "$$run_failed" -ne 0 ]; then
+		reader_secret="$$(cat "$$reader_secret_file" 2>/dev/null || true)"
+		while IFS= read -r line; do
+			case "$$line" in
+				*"$$root_password"*|*"$$sentinel"*) printf '%s\n' '[credential-bearing log line redacted]' ;;
+				*)
+					if [ -n "$$reader_secret" ] && [ "$${line#*"$$reader_secret"}" != "$$line" ]; then
+						printf '%s\n' '[credential-bearing log line redacted]'
+					else
+						printf '%s\n' "$$line"
+					fi
+					;;
+			esac
+		done <"$$log_file" >"$$sanitized_log_file"
 		printf 'MCP SELECT-only live verification failed; sanitized tail follows\n' >&2
-		tail -n 80 "$$log_file" >&2
+		tail -n 80 "$$sanitized_log_file" >&2
 		exit 1
 	fi
 	[ "$$(grep -c '^MCP_SELECT_VERIFY_OK$$' "$$log_file")" -eq 1 ]

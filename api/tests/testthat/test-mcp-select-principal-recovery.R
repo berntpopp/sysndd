@@ -93,3 +93,59 @@ test_that("reconcile wires independent recovery before final unlock", {
     regexpr("ACCOUNT UNLOCK", reconcile_body, fixed = TRUE)[[1L]]
   )
 })
+
+test_that("independent recovery continues after a malformed catalog row", {
+  primary <- structure(list(id = "primary"), class = "mcp_test_conn")
+  recovery <- structure(list(id = "recovery"), class = "mcp_test_conn")
+  executed <- character()
+
+  query_fn <- function(conn, sql, params) {
+    if (identical(conn$id, "primary")) stop("connection lost")
+    if (grepl("FROM mysql.user", sql, fixed = TRUE)) {
+      return(data.frame(User = "sysndd_mcp", Host = "%"))
+    }
+    if (grepl("role_edges", sql, fixed = TRUE)) {
+      return(data.frame(
+        FROM_USER = I(list(7, "surviving'role")),
+        FROM_HOST = I(list("%", "%")),
+        TO_USER = I(list("sysndd_mcp", "sysndd_mcp")),
+        TO_HOST = I(list("%", "%"))
+      ))
+    }
+    if (grepl("proxies_priv", sql, fixed = TRUE)) return(data.frame())
+    if (grepl("PROCESSLIST", sql, fixed = TRUE)) {
+      return(data.frame(ID = integer()))
+    }
+    stop("unexpected recovery query")
+  }
+  execute_fn <- function(conn, sql, params) {
+    if (identical(conn$id, "primary")) stop("connection lost")
+    executed <<- c(executed, sql)
+    1L
+  }
+  quote_account_fn <- function(conn, user, host) {
+    mcp_readonly_quote_account(DBI::ANSI(), user, host)
+  }
+
+  expect_warning(
+    result <- mcp_readonly_recover_incomplete(
+      conn = primary,
+      password_output_path = "/absent/reader-password",
+      query_fn = query_fn,
+      execute_fn = execute_fn,
+      quote_account_fn = quote_account_fn,
+      recovery_conn_factory = function() recovery,
+      disconnect_fn = function(conn) invisible(TRUE),
+      remove_secret_fn = function(path) invisible(TRUE)
+    ),
+    "quarantine failed"
+  )
+
+  expect_false(result)
+  expect_true(any(executed == paste(
+    "REVOKE 'surviving''role'@'%' FROM 'sysndd_mcp'@'%'"
+  )))
+  expect_true(any(executed == paste(
+    "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'sysndd_mcp'@'%'"
+  )))
+})

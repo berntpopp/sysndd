@@ -1180,3 +1180,32 @@ before the branch can proceed to final DIFF review.
 
 Round 29 must verify these corrections and find no unresolved BLOCKER/HIGH
 before the branch can proceed to final DIFF review.
+
+## Round 29 findings and disposition
+
+**Verdict:** `REJECT — unresolved BLOCKER/HIGH findings remain.`
+
+**Evidence:** `/tmp/535-mcp-select-principal-plan-round29.out`
+
+- **HIGH — privileged entry point still accepted a direct administrator
+  password:** accepted. Administrator configuration is file-only and rejects
+  direct `MCP_ADMIN_DB_PASSWORD`; the file must be regular, non-symlink,
+  owner-only, bounded, and contain exactly one nonempty line.
+- **HIGH — hostile catalog account parts could abort quarantine:** accepted.
+  Catalog-derived account values have separate type/length validation and
+  connection-aware quoting. Best-effort compensation isolates each malformed
+  account/role/PROXY/session row so later valid cleanup still executes and the
+  recovery result records incomplete quarantine.
+- **MEDIUM — disposable proof bypassed the production provisioner path:**
+  accepted. The verifier injects the administrator secret by file and executes
+  the actual operator provisioner script before starting MCP.
+- **MEDIUM — generated-password scan was success-only:** accepted. The gate
+  retrieves the reader secret best-effort whenever it exists, scans verifier and
+  MCP logs with a pattern file, and never emits the retained raw failure log.
+
+Round 30 would normally verify these corrections.
+
+At the user's explicit direction, no additional Codex review round was run.
+Instead, all Round 29 findings were implemented and verified by the focused
+419-expectation suite, `make lint-api`, `make code-quality-audit`, the full API
+fast lane, and the disposable MySQL/MCP live gate.

@@ -8,7 +8,8 @@ x-verifier-environment: &verifier-environment
   MCP_ADMIN_DB_PORT: "3306"
   MCP_ADMIN_DB_NAME: sysndd_verify
   MCP_ADMIN_DB_USER: root
-  MCP_ADMIN_DB_PASSWORD: ${MCP_VERIFY_ROOT_PASSWORD:?root password required}
+  MCP_ADMIN_DB_PASSWORD_FILE: /run/mcp-admin/password
+  MCP_EXPECTED_VIEW_DEFINER: root@%
   MCP_DB_HOST: mysql
   MCP_DB_PORT: "3306"
   MCP_DB_NAME: sysndd_verify
@@ -26,10 +27,20 @@ services:
     user: "0:0"
     labels: *verify-labels
     network_mode: none
+    environment:
+      MCP_VERIFY_ROOT_PASSWORD: ${MCP_VERIFY_ROOT_PASSWORD:?root password required}
     entrypoint: ["sh", "-c"]
-    command: ["chown 1000:1000 /run/mcp-reader && chmod 0700 /run/mcp-reader"]
+    command:
+      - >-
+        umask 077 &&
+        printf '%s' "$${MCP_VERIFY_ROOT_PASSWORD}" > /run/mcp-admin/password &&
+        chown 1000:1000 /run/mcp-reader /run/mcp-admin /run/mcp-admin/password &&
+        chmod 0700 /run/mcp-reader &&
+        chmod 0700 /run/mcp-admin &&
+        chmod 0600 /run/mcp-admin/password
     volumes:
       - verify_secret:/run/mcp-reader
+      - verify_admin_secret:/run/mcp-admin
 
   mysql:
     image: mysql:8.4.10
@@ -72,6 +83,7 @@ services:
       - ./db/migrations:/workspace/db/migrations:ro
       - ./api/scripts:/app/scripts:ro
       - verify_secret:/run/mcp-reader
+      - verify_admin_secret:/run/mcp-admin:ro
 
   mcp:
     build:
@@ -122,6 +134,7 @@ services:
       - ./db/migrations:/workspace/db/migrations:ro
       - ./api/scripts:/app/scripts:ro
       - verify_secret:/run/mcp-reader:ro
+      - verify_admin_secret:/run/mcp-admin:ro
 
 networks:
   verify_backend:
@@ -131,4 +144,6 @@ volumes:
   verify_mysql:
     labels: *verify-labels
   verify_secret:
+    labels: *verify-labels
+  verify_admin_secret:
     labels: *verify-labels

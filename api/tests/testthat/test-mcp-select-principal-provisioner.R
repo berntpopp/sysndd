@@ -74,6 +74,42 @@ test_that("account variants are normalized without weakening host matching", {
   )
 })
 
+test_that("catalog account names retain their type and MySQL length bounds", {
+  expect_error(
+    mcp_readonly_reader_variants(data.frame(User = 7, Host = "%")),
+    "account user"
+  )
+  expect_error(
+    mcp_readonly_reader_variants(data.frame(User = "sysndd_mcp", Host = 7)),
+    "account host"
+  )
+  expect_error(
+    mcp_readonly_reader_variants(data.frame(User = strrep("u", 33L), Host = "%")),
+    "account user.*32"
+  )
+  expect_error(
+    mcp_readonly_reader_variants(data.frame(
+      User = "sysndd_mcp", Host = strrep("h", 256L)
+    )),
+    "account host.*255"
+  )
+})
+
+test_that("account quoting uses the active connection and contains SQL metacharacters", {
+  quoted <- mcp_readonly_quote_account(
+    DBI::ANSI(), "role'; DROP USER root; --", "host' OR '1'='1"
+  )
+
+  expect_identical(
+    quoted,
+    "'role''; DROP USER root; --'@'host'' OR ''1''=''1'"
+  )
+  expect_error(
+    mcp_readonly_quote_account(DBI::ANSI(), strrep("u", 33L), "%"),
+    "account user.*32"
+  )
+})
+
 test_that("generated password results require the fixed reader identity", {
   result <- data.frame(
     user = "sysndd_mcp",
@@ -160,59 +196,6 @@ test_that("grant attestation rejects every authority outside exact view SELECT",
     "sysndd_db",
     projections
   ))
-})
-
-test_that("administrator configuration has no ordinary database fallback", {
-  values <- c(
-    MCP_ADMIN_DB_HOST = "db-admin.internal",
-    MCP_ADMIN_DB_PORT = "3307",
-    MCP_ADMIN_DB_NAME = "sysndd_db",
-    MCP_ADMIN_DB_USER = "security_operator",
-    MCP_ADMIN_DB_PASSWORD = "operator-secret",
-    MCP_EXPECTED_VIEW_DEFINER = "schema_migrator@%",
-    MYSQL_USER = "must-not-be-used",
-    MYSQL_PASSWORD = "must-not-be-used"
-  )
-  config <- mcp_readonly_admin_config(getenv = .provisioner_env(values))
-
-  expect_identical(config$host, "db-admin.internal")
-  expect_identical(config$port, 3307L)
-  expect_identical(config$dbname, "sysndd_db")
-  expect_identical(config$user, "security_operator")
-  expect_identical(config$password, "operator-secret")
-  expect_identical(config$expected_definer, "schema_migrator@%")
-
-  expect_error(
-    mcp_readonly_admin_config(getenv = .provisioner_env(values[FALSE])),
-    "MCP_ADMIN_DB_HOST"
-  )
-})
-
-test_that("administrator secret environment and file inputs are exclusive", {
-  base <- c(
-    MCP_ADMIN_DB_HOST = "mysql",
-    MCP_ADMIN_DB_PORT = "3306",
-    MCP_ADMIN_DB_NAME = "sysndd_db",
-    MCP_ADMIN_DB_USER = "root",
-    MCP_EXPECTED_VIEW_DEFINER = "schema_migrator@%"
-  )
-  secret <- tempfile()
-  writeLines("file-secret", secret, useBytes = TRUE)
-  withr::defer(unlink(secret))
-
-  file_config <- mcp_readonly_admin_config(
-    getenv = .provisioner_env(c(base, MCP_ADMIN_DB_PASSWORD_FILE = secret))
-  )
-  expect_identical(file_config$password, "file-secret")
-
-  expect_error(
-    mcp_readonly_admin_config(getenv = .provisioner_env(c(
-      base,
-      MCP_ADMIN_DB_PASSWORD = "env-secret",
-      MCP_ADMIN_DB_PASSWORD_FILE = secret
-    ))),
-    "exactly one"
-  )
 })
 
 test_that("stored projection definitions require the trusted query and definer", {
@@ -587,4 +570,22 @@ test_that("operator provisioner accepts secrets only through environment injecti
   expect_false(grepl("reader_password|IDENTIFIED BY \\?", text))
   expect_false(grepl("commandArgs|system2|system\\(", text))
   expect_false(grepl("MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD", text, fixed = TRUE))
+})
+
+test_that("disposable proof executes the file-only operator provisioner", {
+  root <- dirname(get_api_dir())
+  compose <- paste(readLines(
+    file.path(root, "docker-compose.mcp-select-verify.yml"), warn = FALSE
+  ), collapse = "\n")
+  verifier <- paste(readLines(file.path(
+    get_api_dir(), "scripts", "verify-mcp-select-principal-live.R"
+  ), warn = FALSE), collapse = "\n")
+
+  expect_match(compose, "MCP_ADMIN_DB_PASSWORD_FILE:", fixed = TRUE)
+  expect_false(grepl("MCP_ADMIN_DB_PASSWORD:", compose, fixed = TRUE))
+  expect_match(verifier, "mcp_readonly_admin_config", fixed = TRUE)
+  expect_match(
+    verifier, 'source("scripts/provision-mcp-readonly-principal.R"', fixed = TRUE
+  )
+  expect_false(grepl('required_env("MCP_ADMIN_DB_PASSWORD")', verifier, fixed = TRUE))
 })

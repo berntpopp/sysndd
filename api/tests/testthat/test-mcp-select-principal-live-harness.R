@@ -42,6 +42,14 @@ test_that("the disposable verifier is isolated and wired through make", {
   expect_match(make_fragment, "verify-mcp-select-principal-live")
   expect_match(make_fragment, "verify_mcp_select_assert_labels")
   expect_match(make_fragment, "openssl rand")
+  expect_match(make_fragment, "reader_secret_file")
+  expect_match(make_fragment, "grep -Fq -f")
+  expect_match(make_fragment, "sanitized_log_file")
+  expect_false(grepl('tail -n 80 "$$log_file"', make_fragment, fixed = TRUE))
+  expect_lt(
+    regexpr("reader_secret_file", make_fragment, fixed = TRUE)[[1L]],
+    regexpr("MCP SELECT-only live verification failed", make_fragment, fixed = TRUE)[[1L]]
+  )
   expect_match(root_make, "make/mcp-select-principal.mk", fixed = TRUE)
 })
 

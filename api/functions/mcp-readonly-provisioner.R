@@ -17,6 +17,23 @@
   value
 }
 
+.mcp_readonly_account_name <- function(value, label, max_length) {
+  value <- .mcp_readonly_scalar_text(value, label)
+  length <- nchar(value, type = "chars", allowNA = TRUE, keepNA = TRUE)
+  if (is.na(length) || length > max_length) {
+    .mcp_readonly_abort(paste0(label, " must be at most ", max_length, " characters"))
+  }
+  value
+}
+
+mcp_readonly_validate_account_user <- function(value) {
+  .mcp_readonly_account_name(value, "account user", 32L)
+}
+
+mcp_readonly_validate_account_host <- function(value) {
+  .mcp_readonly_account_name(value, "account host", 255L)
+}
+
 mcp_readonly_reader_identity <- function() {
   list(user = "sysndd_mcp", host = "%")
 }
@@ -39,26 +56,54 @@ mcp_readonly_validate_expected_definer <- function(value) {
   .mcp_readonly_scalar_text(.mcp_readonly_env_value(getenv, name), name)
 }
 
-.mcp_readonly_secret <- function(getenv, value_name, file_name) {
-  value <- .mcp_readonly_env_value(getenv, value_name)
-  path <- .mcp_readonly_env_value(getenv, file_name)
-  supplied <- c(nzchar(value), nzchar(path))
-  if (sum(supplied) != 1L) {
-    .mcp_readonly_abort(paste0(
-      "exactly one of ", value_name, " or ", file_name, " is required"
-    ))
+.mcp_readonly_admin_password_file <- function(getenv) {
+  if (nzchar(.mcp_readonly_env_value(getenv, "MCP_ADMIN_DB_PASSWORD"))) {
+    .mcp_readonly_abort(
+      "MCP_ADMIN_DB_PASSWORD is not supported; use MCP_ADMIN_DB_PASSWORD_FILE"
+    )
   }
-  if (nzchar(value)) return(.mcp_readonly_scalar_text(value, value_name))
-
-  path <- .mcp_readonly_scalar_text(path, file_name)
-  if (!file.exists(path) || dir.exists(path)) {
-    .mcp_readonly_abort(paste0(file_name, " must name a readable file"))
+  path <- .mcp_readonly_required_env(getenv, "MCP_ADMIN_DB_PASSWORD_FILE")
+  if (nchar(path, type = "bytes") > 4096L) {
+    .mcp_readonly_abort("MCP_ADMIN_DB_PASSWORD_FILE path is too long")
   }
-  lines <- readLines(path, warn = FALSE)
-  if (length(lines) != 1L) {
-    .mcp_readonly_abort(paste0(file_name, " must contain exactly one line"))
+  if (nzchar(Sys.readlink(path))) {
+    .mcp_readonly_abort("MCP_ADMIN_DB_PASSWORD_FILE must not be a symbolic link")
   }
-  .mcp_readonly_scalar_text(lines[[1L]], file_name)
+  normalized <- tryCatch(
+    normalizePath(path, mustWork = TRUE),
+    error = function(e) {
+      .mcp_readonly_abort("MCP_ADMIN_DB_PASSWORD_FILE is not readable")
+    }
+  )
+  info <- file.info(normalized)
+  current_user <- unname(Sys.info()[["user"]])
+  unsafe_mode <- is.na(info$mode[[1L]]) ||
+    bitwAnd(as.integer(info$mode[[1L]]), as.integer(as.octmode("077"))) != 0L
+  if (nrow(info) != 1L || !isTRUE(file_test("-f", normalized)) ||
+      is.na(info$uname[[1L]]) || !identical(info$uname[[1L]], current_user) ||
+      is.na(info$size[[1L]]) || info$size[[1L]] < 1L ||
+      info$size[[1L]] > 4096L || unsafe_mode) {
+    .mcp_readonly_abort(
+      paste(
+        "MCP_ADMIN_DB_PASSWORD_FILE must be an owner-only regular file",
+        "containing one nonempty line of 1-4096 bytes"
+      )
+    )
+  }
+  connection <- file(normalized, open = "rb")
+  on.exit(try(close(connection), silent = TRUE), add = TRUE)
+  bytes <- tryCatch(
+    readBin(connection, what = "raw", n = 4097L),
+    error = function(e) .mcp_readonly_abort("MCP_ADMIN_DB_PASSWORD_FILE is not readable")
+  )
+  close(connection)
+  if (length(bytes) < 1L || length(bytes) > 4096L ||
+      any(bytes %in% as.raw(c(0L, 10L, 13L)))) {
+    .mcp_readonly_abort(
+      "MCP_ADMIN_DB_PASSWORD_FILE must contain one nonempty line of at most 4096 bytes"
+    )
+  }
+  rawToChar(bytes)
 }
 
 mcp_readonly_admin_config <- function(getenv = Sys.getenv) {
@@ -79,11 +124,7 @@ mcp_readonly_admin_config <- function(getenv = Sys.getenv) {
     port = port,
     dbname = dbname,
     user = user,
-    password = .mcp_readonly_secret(
-      getenv,
-      "MCP_ADMIN_DB_PASSWORD",
-      "MCP_ADMIN_DB_PASSWORD_FILE"
-    ),
+    password = .mcp_readonly_admin_password_file(getenv),
     expected_definer = mcp_readonly_validate_expected_definer(
       .mcp_readonly_required_env(getenv, "MCP_EXPECTED_VIEW_DEFINER")
     )
@@ -116,17 +157,16 @@ mcp_readonly_reader_variants <- function(rows) {
   if (!is.data.frame(rows) || !all(required %in% names(rows))) {
     .mcp_readonly_abort("account rows must contain User and Host")
   }
-  for (value in c(rows$User, rows$Host)) {
-    .mcp_readonly_scalar_text(value, "account identity")
-  }
+  users <- vapply(rows$User, mcp_readonly_validate_account_user, character(1))
+  hosts <- vapply(rows$Host, mcp_readonly_validate_account_host, character(1))
   reader <- mcp_readonly_reader_identity()$user
-  selected <- rows[rows$User == reader, required, drop = FALSE]
-  if (nrow(selected) == 0L) {
+  selected <- users == reader
+  if (!any(selected)) {
     return(data.frame(user = character(), host = character(), stringsAsFactors = FALSE))
   }
   data.frame(
-    user = as.character(selected$User),
-    host = as.character(selected$Host),
+    user = unname(users[selected]),
+    host = unname(hosts[selected]),
     stringsAsFactors = FALSE
   )
 }
@@ -264,10 +304,11 @@ mcp_readonly_dependencies_are_exact <- function(rows, expected_dependencies) {
 }
 
 mcp_readonly_quote_account <- function(conn, user, host) {
-  user <- .mcp_readonly_scalar_text(user, "account user")
-  host <- .mcp_readonly_scalar_text(host, "account host")
-  quoted <- DBI::dbQuoteString(conn, c(user, host))
-  paste0(as.character(quoted[[1L]]), "@", as.character(quoted[[2L]]))
+  user <- mcp_readonly_validate_account_user(user)
+  host <- mcp_readonly_validate_account_host(host)
+  quoted_user <- DBI::dbQuoteString(conn, user)
+  quoted_host <- DBI::dbQuoteString(conn, host)
+  paste0(as.character(quoted_user), "@", as.character(quoted_host))
 }
 
 .mcp_readonly_query <- function(query_fn, conn, sql, params = list()) {

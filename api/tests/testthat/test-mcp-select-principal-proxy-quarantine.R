@@ -104,6 +104,70 @@ test_that("quarantine revokes role edges in both reader directions", {
   expect_true(any(executed == "REVOKE 'sysndd_mcp'@'%' FROM 'role_consumer'@'%'"))
 })
 
+test_that("best-effort quarantine isolates malformed and hostile catalog rows", {
+  executed <- character()
+  session_query <- NULL
+  query_fn <- function(conn, sql, params = list()) {
+    if (grepl("FROM mysql.user", sql, fixed = TRUE)) {
+      return(data.frame(
+        User = I(list("sysndd_mcp", "sysndd_mcp", "sysndd_mcp")),
+        Host = I(list("%", 7, "local'host"))
+      ))
+    }
+    if (grepl("mysql.role_edges", sql, fixed = TRUE)) {
+      return(data.frame(
+        FROM_USER = I(list(7, "safe'role")),
+        FROM_HOST = I(list("%", "%")),
+        TO_USER = I(list("sysndd_mcp", "sysndd_mcp")),
+        TO_HOST = I(list("%", "%"))
+      ))
+    }
+    if (grepl("mysql.proxies_priv", sql, fixed = TRUE)) {
+      return(data.frame(
+        Host = I(list("%", "proxy'host")),
+        User = I(list(7, "safe'proxy")),
+        Proxied_host = I(list("%", "%")),
+        Proxied_user = I(list("sysndd_mcp", "sysndd_mcp"))
+      ))
+    }
+    if (grepl("PROCESSLIST_ID", sql, fixed = TRUE)) {
+      session_query <<- list(sql = sql, params = params)
+      return(data.frame(ID = I(list("not-an-id", "42"))))
+    }
+    stop("unexpected query: ", sql)
+  }
+  execute_fn <- function(conn, sql, params = list()) {
+    executed <<- c(executed, sql)
+    0L
+  }
+
+  variants <- expect_silent(mcp_readonly_quarantine_reader(
+    conn = DBI::ANSI(),
+    query_fn = query_fn,
+    execute_fn = execute_fn,
+    quote_account_fn = mcp_readonly_quote_account,
+    best_effort = TRUE
+  ))
+
+  expect_true(any(executed == "ALTER USER 'sysndd_mcp'@'local''host' ACCOUNT LOCK"))
+  expect_true(any(executed == "REVOKE 'safe''role'@'%' FROM 'sysndd_mcp'@'%'"))
+  expect_true(any(executed == paste(
+    "REVOKE PROXY ON 'sysndd_mcp'@'%'",
+    "FROM 'safe''proxy'@'proxy''host'"
+  )))
+  expect_true(any(executed == "KILL 42"))
+  expect_true(any(executed == paste(
+    "REVOKE ALL PRIVILEGES, GRANT OPTION FROM",
+    "'sysndd_mcp'@'local''host'"
+  )))
+  expect_identical(
+    session_query$params,
+    list("sysndd_mcp", "'safe''proxy'@'proxy''host'")
+  )
+  expect_false(isTRUE(attr(variants, "quarantine_succeeded", exact = TRUE)))
+  expect_identical(attr(variants, "quarantined_session_ids", exact = TRUE), 42L)
+})
+
 .proxy_reconcile_fixture <- function() {
   migration <- file.path(
     get_api_dir(), "..", "db", "migrations",
