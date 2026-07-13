@@ -1,8 +1,8 @@
 # functions/mcp-repository.R
 #
 # Read-only repository helpers for the SysNDD MCP sidecar. These helpers only
-# issue bounded SELECT statements and enforce the public-data gate:
-# active approved entities from ndd_entity_view plus primary approved reviews.
+# issue bounded SELECT statements against database-enforced approved-public
+# projections only.
 
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
@@ -13,7 +13,7 @@ mcp_repo_resolve_gene <- function(normalized_gene) {
     sql <- "
       SELECT hgnc_id, symbol, name, omim_id, ensembl_gene_id, uniprot_ids,
              STRING_id, mgd_id, rgd_id, mane_select
-      FROM non_alt_loci_set
+      FROM mcp_public_gene
       WHERE hgnc_id = ?
       LIMIT 2"
     return(db_execute_query(sql, list(normalized_gene$value)))
@@ -22,7 +22,7 @@ mcp_repo_resolve_gene <- function(normalized_gene) {
   sql <- "
     SELECT hgnc_id, symbol, name, omim_id, ensembl_gene_id, uniprot_ids,
            STRING_id, mgd_id, rgd_id, mane_select
-    FROM non_alt_loci_set
+    FROM mcp_public_gene
     WHERE UPPER(symbol) = UPPER(?)
     LIMIT 2"
   db_execute_query(sql, list(normalized_gene$value))
@@ -67,8 +67,8 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                  ELSE 'contains'
                END AS match_tier,
                0 AS token_matches
-          FROM non_alt_loci_set nal
-          LEFT JOIN hgnc_symbol_lookup hsl
+          FROM mcp_public_gene nal
+          LEFT JOIN mcp_public_hgnc_symbol hsl
             ON hsl.hgnc_id = nal.hgnc_id
          WHERE UPPER(nal.symbol) LIKE UPPER(?)
             OR nal.hgnc_id = ?
@@ -106,7 +106,7 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                  WHEN UPPER(symbol) LIKE UPPER(?) THEN 'prefix'
                  ELSE 'contains'
                END AS match_tier
-        FROM ndd_entity_view
+        FROM mcp_public_entity
         WHERE CAST(entity_id AS CHAR) = ?
            OR UPPER(symbol) LIKE UPPER(?)
            OR UPPER(disease_ontology_name) LIKE UPPER(?)
@@ -119,7 +119,7 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
 
   if ("disease" %in% types) {
     token_filter <- mcp_search_token_filter(
-      c("result", "disease_ontology_id_version", "disease_ontology_name"),
+      c("disease_ontology_id_version", "disease_ontology_name"),
       token_like
     )
     token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
@@ -136,35 +136,24 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                  WHEN UPPER(disease_ontology_name) LIKE UPPER(?) THEN 'prefix'
                  ELSE 'contains'
                END AS match_tier
-        FROM search_disease_ontology_set
-        WHERE UPPER(result) LIKE UPPER(?)
+        FROM mcp_public_disease
+        WHERE (UPPER(disease_ontology_id_version) LIKE UPPER(?)
+           OR UPPER(disease_ontology_name) LIKE UPPER(?))
            ", token_sql, "
         LIMIT ?"
       ),
-      c(list(query, query, prefix, like), token_filter$params, list(candidate_limit))
+      c(list(query, query, prefix, like, like), token_filter$params, list(candidate_limit))
     )
   }
 
   if ("phenotype" %in% types) {
-    synonym_enabled <- mcp_repo_table_has_column("phenotype_list", "HPO_term_synonyms")
-    synonym_select <- if (isTRUE(synonym_enabled)) {
-      "WHEN UPPER(HPO_term_synonyms) LIKE UPPER(?) THEN 'synonym'"
-    } else {
-      ""
-    }
-    synonym_where <- if (isTRUE(synonym_enabled)) {
-      "OR UPPER(HPO_term_synonyms) LIKE UPPER(?)"
-    } else {
-      ""
-    }
-    token_columns <- c("phenotype_id", "HPO_term")
-    if (isTRUE(synonym_enabled)) {
-      token_columns <- c(token_columns, "HPO_term_synonyms")
-    }
+    synonym_select <- "WHEN UPPER(HPO_term_synonyms) LIKE UPPER(?) THEN 'synonym'"
+    synonym_where <- "OR UPPER(HPO_term_synonyms) LIKE UPPER(?)"
+    token_columns <- c("phenotype_id", "HPO_term", "HPO_term_synonyms")
     token_filter <- mcp_search_token_filter(token_columns, token_like)
     token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
-    synonym_case_params <- if (isTRUE(synonym_enabled)) list(like) else list()
-    synonym_where_params <- if (isTRUE(synonym_enabled)) list(like) else list()
+    synonym_case_params <- list(like)
+    synonym_where_params <- list(like)
     results$phenotype <- db_execute_query(
       paste0(
         "
@@ -185,7 +174,7 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                  ", synonym_select, "
                  ELSE 'contains'
                END AS match_tier
-        FROM phenotype_list
+        FROM mcp_public_phenotype
         WHERE UPPER(phenotype_id) LIKE UPPER(?)
            OR UPPER(HPO_term) LIKE UPPER(?)
            ", synonym_where, "
@@ -221,9 +210,8 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                  WHEN UPPER(vario_name) LIKE UPPER(?) THEN 'prefix'
                  ELSE 'contains'
                END AS match_tier
-        FROM variation_ontology_list
-        WHERE is_active <> 0
-          AND (UPPER(vario_id) LIKE UPPER(?) OR UPPER(vario_name) LIKE UPPER(?)
+        FROM mcp_public_variation
+        WHERE (UPPER(vario_id) LIKE UPPER(?) OR UPPER(vario_name) LIKE UPPER(?)
                ", token_sql, ")
         LIMIT ?"
       ),
@@ -259,11 +247,8 @@ mcp_repo_get_gene_entities <- function(hgnc_id,
       SELECT ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_id_version,
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term_name,
              ev.category, ev.ndd_phenotype_word, er.synopsis, er.review_date
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
+      FROM mcp_public_entity ev
+      JOIN mcp_public_review er ON er.entity_id = ev.entity_id
       WHERE ", paste(filters, collapse = " AND "), "
       ORDER BY ev.symbol, ev.entity_id
       LIMIT ? OFFSET ?"
@@ -284,7 +269,7 @@ mcp_repo_count_gene_entities <- function(hgnc_id, category = NULL, ndd_phenotype
     filters <- c(filters, "ndd_phenotype = 0")
   }
 
-  sql <- paste0("SELECT COUNT(*) AS total FROM ndd_entity_view WHERE ", paste(filters, collapse = " AND "))
+  sql <- paste0("SELECT COUNT(*) AS total FROM mcp_public_entity WHERE ", paste(filters, collapse = " AND "))
   result <- db_execute_query(sql, params)
   as.integer(result$total[[1]] %||% 0L)
 }
@@ -294,7 +279,7 @@ mcp_repo_get_gene_comparisons <- function(hgnc_id, limit = 25L) {
     "
       SELECT hgnc_id, disease_ontology_id, inheritance, category,
              pathogenicity_mode, `list`, version
-      FROM ndd_database_comparison_view
+      FROM mcp_public_comparison
       WHERE hgnc_id = ?
       ORDER BY `list`, category
       LIMIT ?",
@@ -309,11 +294,8 @@ mcp_repo_get_entity_context <- function(entity_id) {
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term,
              ev.hpo_mode_of_inheritance_term_name, ev.category, ev.category_id,
              ev.ndd_phenotype, ev.ndd_phenotype_word, er.synopsis, er.review_date
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
+      FROM mcp_public_entity ev
+      JOIN mcp_public_review er ON er.entity_id = ev.entity_id
       WHERE ev.entity_id = ?
       LIMIT 1",
     list(entity_id)
@@ -323,20 +305,10 @@ mcp_repo_get_entity_context <- function(entity_id) {
 mcp_repo_get_entity_phenotypes <- function(entity_id) {
   db_execute_query(
     "
-      SELECT pc.entity_id, pc.phenotype_id, pl.HPO_term, ml.modifier_name
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_review_phenotype_connect pc
-        ON pc.review_id = er.review_id
-       AND pc.entity_id = ev.entity_id
-       AND pc.is_active = 1
-      JOIN phenotype_list pl ON pl.phenotype_id = pc.phenotype_id
-      LEFT JOIN modifier_list ml ON ml.modifier_id = pc.modifier_id
-      WHERE ev.entity_id = ?
-      ORDER BY pl.HPO_term
+      SELECT entity_id, phenotype_id, HPO_term, modifier_name
+      FROM mcp_public_review_phenotype
+      WHERE entity_id = ?
+      ORDER BY HPO_term
       LIMIT 100",
     list(entity_id)
   )
@@ -345,20 +317,10 @@ mcp_repo_get_entity_phenotypes <- function(entity_id) {
 mcp_repo_get_entity_variation <- function(entity_id) {
   db_execute_query(
     "
-      SELECT vc.entity_id, vc.vario_id, vol.vario_name, ml.modifier_name
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_review_variation_ontology_connect vc
-        ON vc.review_id = er.review_id
-       AND vc.entity_id = ev.entity_id
-       AND vc.is_active = 1
-      JOIN variation_ontology_list vol ON vol.vario_id = vc.vario_id
-      LEFT JOIN modifier_list ml ON ml.modifier_id = vc.modifier_id
-      WHERE ev.entity_id = ?
-      ORDER BY vol.vario_name
+      SELECT entity_id, vario_id, vario_name, modifier_name
+      FROM mcp_public_review_variation
+      WHERE entity_id = ?
+      ORDER BY vario_name
       LIMIT 100",
     list(entity_id)
   )
@@ -367,22 +329,12 @@ mcp_repo_get_entity_variation <- function(entity_id) {
 mcp_repo_get_entity_publications <- function(entity_id, limit = 10L) {
   db_execute_query(
     "
-      SELECT rpj.entity_id, p.publication_id, p.Title, p.Journal,
-             p.Publication_date, p.publication_date_source, p.Lastname,
-             p.Firstname, p.Abstract,
-             rpj.publication_type, er.review_date AS curation_review_date
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_review_publication_join rpj
-        ON rpj.review_id = er.review_id
-       AND rpj.entity_id = ev.entity_id
-       AND rpj.is_reviewed = 1
-      JOIN publication p ON p.publication_id = rpj.publication_id
-      WHERE ev.entity_id = ?
-      ORDER BY p.Publication_date DESC, p.publication_id
+      SELECT entity_id, publication_id, Title, Journal,
+             Publication_date, publication_date_source, Lastname,
+             Firstname, Abstract, publication_type, curation_review_date
+      FROM mcp_public_review_publication
+      WHERE entity_id = ?
+      ORDER BY Publication_date DESC, publication_id
       LIMIT ?",
     list(entity_id, limit)
   )
@@ -391,22 +343,13 @@ mcp_repo_get_entity_publications <- function(entity_id, limit = 10L) {
 mcp_repo_get_publication_context <- function(publication_id) {
   db_execute_query(
     "
-      SELECT p.publication_id, p.Title, p.Abstract, p.Journal, p.Publication_date,
-             p.publication_date_source, p.Lastname, p.Firstname, p.Keywords,
+      SELECT rp.publication_id, rp.Title, rp.Abstract, rp.Journal, rp.Publication_date,
+             rp.publication_date_source, rp.Lastname, rp.Firstname, rp.Keywords,
              ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_name,
-             ev.category, rpj.publication_type, er.review_date AS curation_review_date
-      FROM publication p
-      JOIN ndd_review_publication_join rpj
-        ON rpj.publication_id = p.publication_id
-       AND rpj.is_reviewed = 1
-      JOIN ndd_entity_review er
-        ON er.review_id = rpj.review_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_entity_view ev
-        ON ev.entity_id = rpj.entity_id
-       AND ev.entity_id = er.entity_id
-      WHERE p.publication_id = ?
+             ev.category, rp.publication_type, rp.curation_review_date
+      FROM mcp_public_review_publication rp
+      JOIN mcp_public_entity ev ON ev.entity_id = rp.entity_id
+      WHERE rp.publication_id = ?
       LIMIT 50",
     list(publication_id)
   )
@@ -422,22 +365,13 @@ mcp_repo_find_entities_by_phenotype <- function(phenotype,
     "
       SELECT ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_id_version,
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term_name,
-             ev.category, ev.ndd_phenotype_word, pc.phenotype_id, pl.HPO_term,
-             ml.modifier_name
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_review_phenotype_connect pc
-        ON pc.review_id = er.review_id
-       AND pc.entity_id = ev.entity_id
-       AND pc.is_active = 1
-      JOIN phenotype_list pl ON pl.phenotype_id = pc.phenotype_id
-      LEFT JOIN modifier_list ml ON ml.modifier_id = pc.modifier_id
-      WHERE (UPPER(pc.phenotype_id) = UPPER(?) OR UPPER(pl.HPO_term) LIKE UPPER(?))
+             ev.category, ev.ndd_phenotype_word, rp.phenotype_id, rp.HPO_term,
+             rp.modifier_name
+      FROM mcp_public_entity ev
+      JOIN mcp_public_review_phenotype rp ON rp.entity_id = ev.entity_id
+      WHERE (UPPER(rp.phenotype_id) = UPPER(?) OR UPPER(rp.HPO_term) LIKE UPPER(?))
         AND (? IS NULL OR ev.category = ?)
-        AND (? IS NULL OR UPPER(ml.modifier_name) = UPPER(?))
+        AND (? IS NULL OR UPPER(rp.modifier_name) = UPPER(?))
       ORDER BY ev.symbol, ev.entity_id
       LIMIT ? OFFSET ?",
     list(phenotype, like, category, category, modifier, modifier, limit, offset)
@@ -451,20 +385,11 @@ mcp_repo_count_entities_by_phenotype <- function(phenotype,
   result <- db_execute_query(
     "
       SELECT COUNT(*) AS total
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
-      JOIN ndd_review_phenotype_connect pc
-        ON pc.review_id = er.review_id
-       AND pc.entity_id = ev.entity_id
-       AND pc.is_active = 1
-      JOIN phenotype_list pl ON pl.phenotype_id = pc.phenotype_id
-      LEFT JOIN modifier_list ml ON ml.modifier_id = pc.modifier_id
-      WHERE (UPPER(pc.phenotype_id) = UPPER(?) OR UPPER(pl.HPO_term) LIKE UPPER(?))
+      FROM mcp_public_entity ev
+      JOIN mcp_public_review_phenotype rp ON rp.entity_id = ev.entity_id
+      WHERE (UPPER(rp.phenotype_id) = UPPER(?) OR UPPER(rp.HPO_term) LIKE UPPER(?))
         AND (? IS NULL OR ev.category = ?)
-        AND (? IS NULL OR UPPER(ml.modifier_name) = UPPER(?))",
+        AND (? IS NULL OR UPPER(rp.modifier_name) = UPPER(?))",
     list(phenotype, like, category, category, modifier, modifier)
   )
   if (!"total" %in% names(result) || nrow(result) == 0L) {
@@ -480,11 +405,7 @@ mcp_repo_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L)
       SELECT ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_id_version,
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term_name,
              ev.category, ev.ndd_phenotype_word
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
+      FROM mcp_public_entity ev
       WHERE UPPER(ev.disease_ontology_id_version) = UPPER(?)
          OR UPPER(ev.disease_ontology_name) LIKE UPPER(?)
       ORDER BY ev.symbol, ev.entity_id
@@ -498,11 +419,7 @@ mcp_repo_count_entities_by_disease <- function(disease) {
   result <- db_execute_query(
     "
       SELECT COUNT(*) AS total
-      FROM ndd_entity_view ev
-      JOIN ndd_entity_review er
-        ON er.entity_id = ev.entity_id
-       AND er.is_primary = 1
-       AND er.review_approved = 1
+      FROM mcp_public_entity ev
       WHERE UPPER(ev.disease_ontology_id_version) = UPPER(?)
          OR UPPER(ev.disease_ontology_name) LIKE UPPER(?)",
     list(disease, like)
@@ -516,21 +433,18 @@ mcp_repo_count_entities_by_disease <- function(disease) {
 mcp_repo_get_stats <- function() {
   db_execute_query(
     "
-      SELECT 'entities' AS metric, COUNT(*) AS value FROM ndd_entity_view
+      SELECT 'entities' AS metric, COUNT(*) AS value FROM mcp_public_entity
       UNION ALL
-      SELECT 'genes' AS metric, COUNT(DISTINCT hgnc_id) AS value FROM ndd_entity_view
+      SELECT 'genes' AS metric, COUNT(DISTINCT hgnc_id) AS value FROM mcp_public_entity
       UNION ALL
-      SELECT CONCAT('category:', category) AS metric, COUNT(*) AS value FROM ndd_entity_view GROUP BY category
+      SELECT CONCAT('category:', category) AS metric, COUNT(*) AS value FROM mcp_public_entity GROUP BY category
       UNION ALL
       SELECT CONCAT('ndd_phenotype:', ndd_phenotype_word) AS metric, COUNT(*) AS value
-      FROM ndd_entity_view
+      FROM mcp_public_entity
       GROUP BY ndd_phenotype_word
       UNION ALL
-      SELECT 'publications' AS metric, COUNT(DISTINCT p.publication_id) AS value
-      FROM publication p
-      JOIN ndd_review_publication_join rpj ON rpj.publication_id = p.publication_id AND rpj.is_reviewed = 1
-      JOIN ndd_entity_review er ON er.review_id = rpj.review_id AND er.is_primary = 1 AND er.review_approved = 1
-      JOIN ndd_entity_view ev ON ev.entity_id = rpj.entity_id AND ev.entity_id = er.entity_id
+      SELECT 'publications' AS metric, COUNT(DISTINCT publication_id) AS value
+      FROM mcp_public_review_publication
       LIMIT 100"
   )
 }

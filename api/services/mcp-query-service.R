@@ -16,8 +16,7 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
     unique(utils::head(tokens[nchar(tokens) > 1L | grepl("^[0-9]+$", tokens)], 6L))
   }
 
-  mcp_cached("search_sysndd", list(query = query, types = types, limit = limit), MCP_CACHE_TTLS$search_sysndd, function() {
-    rows_all <- mcp_repo_search(query, types, limit + 1L)
+  rows_all <- mcp_repo_search(query, types, limit + 1L)
     total <- nrow(rows_all)
     rows <- rows_all[seq_len(min(total, limit)), , drop = FALSE]
     records <- lapply(mcp_rows_to_records(rows), function(item) {
@@ -48,7 +47,7 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
         )
       )
     })
-    list(
+  list(
       schema_version = MCP_SCHEMA_VERSION,
       query = query,
       matches = records,
@@ -70,8 +69,7 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
           NULL
         }
       )
-    )
-  })
+  )
 }
 
 mcp_resolve_gene_one <- function(gene) {
@@ -102,22 +100,7 @@ mcp_get_gene_context <- function(gene,
   expand <- mcp_validate_mode(expand, c("none", "entities"), "expand", "none")
   publication_limit <- mcp_validate_limit(publication_limit, default = 10L, max = 25L, name = "publication_limit")
   abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", mcp_default_abstract_mode(response_mode))
-  mcp_cached("get_gene_context", list(
-    gene = gene,
-    include_entities = include_entities,
-    include_comparisons = include_comparisons,
-    entity_limit = entity_limit,
-    response_mode = response_mode,
-    synopsis_mode = synopsis_mode,
-    expand = expand,
-    include_publications = include_publications,
-    include_phenotypes = include_phenotypes,
-    include_variants = include_variants,
-    publication_limit = publication_limit,
-    abstract_mode = abstract_mode,
-    dedupe_publications = dedupe_publications
-  ), MCP_CACHE_TTLS$get_gene_context, function() {
-    gene_row <- mcp_resolve_gene_one(gene)
+  gene_row <- mcp_resolve_gene_one(gene)
     gene_obj <- mcp_row_to_list(gene_row)
 
     fetch_entities <- isTRUE(include_entities) || identical(expand, "entities")
@@ -210,8 +193,7 @@ mcp_get_gene_context <- function(gene,
       )
     )
     if (!is.null(entity_details)) result$entity_details <- entity_details
-    result
-  })
+  result
 }
 
 mcp_get_genes_context <- function(genes,

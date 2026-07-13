@@ -31,6 +31,18 @@ get_db_connection <- function() {
     return(base::get("pool", envir = .GlobalEnv))
   }
 
+  # The MCP sidecar must never fall through to the ordinary API MYSQL_* or
+  # config.yml credentials. Its dedicated, attested pool is the only boundary.
+  if (identical(tolower(base::Sys.getenv("SYSNDD_RUNTIME", "")), "mcp")) {
+    stop(structure(
+      list(
+        message = "dedicated MCP pool is unavailable",
+        call = NULL
+      ),
+      class = c("mcp_database_boundary_error", "error", "condition")
+    ))
+  }
+
   # If daemon_db_conn exists in global environment, validate and use it
   if (base::exists("daemon_db_conn", envir = .GlobalEnv) && !is.null(base::get("daemon_db_conn", envir = .GlobalEnv))) {
     conn <- base::get("daemon_db_conn", envir = .GlobalEnv)

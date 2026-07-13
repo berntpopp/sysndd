@@ -461,6 +461,7 @@ services:
           path: ./api/renv.lock
 
   mcp:
+    profiles: ["mcp"]
     image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
@@ -484,25 +485,28 @@ services:
       - ./api/core:/app/core:ro
       - ./api/services:/app/services:ro
       - ./api/bootstrap:/app/bootstrap:ro
-      - ./api/config:/app/config:ro
+      - ./api/config/mcp:/app/config/mcp:ro
       - ./api/scripts:/app/scripts:ro
-      # #514: read-only data mount so the MCP cache-probe fingerprint
-      # (analysis_string_cache_fingerprint -> exp+db file size:mtime) matches the
-      # writer's. Without it MCP computes an "absent" fingerprint and its cache probes
-      # always MISS (safe — never stale — but zero hit rate on analysis cache reads).
-      - ./api/data:/app/data:ro
-      - api_cache:/app/cache:ro
-      - ./api/config.yml:/app/config.yml:ro
+      - type: bind
+        source: ${MCP_DB_PASSWORD_OUTPUT_FILE:-./secrets/mcp-db-password}
+        target: /run/secrets/mcp_db_password
+        read_only: true
+        bind:
+          create_host_path: false
       - ./api/version_spec.json:/app/version_spec.json:ro
       - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
     environment:
       ENVIRONMENT: production
       SYSNDD_RUNTIME: mcp
+      MCP_DB_HOST: ${MCP_DB_HOST:-mysql}
+      MCP_DB_PORT: ${MCP_DB_PORT:-3306}
+      MCP_DB_NAME: ${MCP_DB_NAME:-sysndd_db}
+      MCP_DB_USER: sysndd_mcp
+      MCP_DB_PASSWORD_FILE: /run/secrets/mcp_db_password
       MCP_DB_POOL_SIZE: ${MCP_DB_POOL_SIZE:-2}
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8787
       MCP_OUTPUT_MODE: ${MCP_OUTPUT_MODE:-json_text}
-      CACHE_VERSION: ${CACHE_VERSION:-3}
     networks:
       # Internal-only by default: no Traefik labels are set for mcp.
       # Operators may add a protected /mcp proxy route explicitly later.
@@ -531,6 +535,43 @@ services:
           target: /app/bootstrap
         - action: rebuild
           path: ./api/renv.lock
+
+  # Explicit one-off operator path for creating/rotating the SELECT-only MCP
+  # principal. This service never starts with the application or MCP profiles.
+  mcp-provisioner:
+    profiles: ["mcp-provision"]
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command: ["Rscript", "scripts/provision-mcp-readonly-principal.R"]
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./db/migrations:/app/db/migrations:ro
+      - type: bind
+        source: ./secrets
+        target: /run/secrets/sysndd
+        read_only: false
+        bind:
+          create_host_path: false
+    environment:
+      MCP_PROVISION_SERIALIZED: "true"
+      MCP_ADMIN_DB_HOST: ${MCP_ADMIN_DB_HOST:-mysql}
+      MCP_ADMIN_DB_PORT: ${MCP_ADMIN_DB_PORT:-3306}
+      MCP_ADMIN_DB_NAME: ${MCP_ADMIN_DB_NAME:-sysndd_db}
+      MCP_ADMIN_DB_USER: ${MCP_ADMIN_DB_USER:-root}
+      MCP_ADMIN_DB_PASSWORD_FILE: /run/secrets/sysndd/mcp-admin-db-password
+      MCP_EXPECTED_VIEW_DEFINER: ${MCP_EXPECTED_VIEW_DEFINER:-}
+      MCP_DB_PASSWORD_OUTPUT_FILE: /run/secrets/sysndd/mcp-db-password
+      MCP_MIGRATION_PATH: /app/db/migrations/044_mcp_public_read_projections.sql
+    networks:
+      - backend
 
   # Scheduled retention cleanup of the operational request log table (`logging`).
   # Reuses the API image so renv deps + RMariaDB + the existing DB connection

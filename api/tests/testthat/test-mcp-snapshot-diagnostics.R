@@ -25,7 +25,7 @@ test_that("MCP phenotype correlations reject gene in global mode", {
   expect_equal(unclass(err)$error$code, "invalid_input")
 })
 
-test_that("MCP snapshot diagnostics distinguish stale snapshots", {
+test_that("MCP snapshot diagnostics collapse filtered states to snapshot_missing", {
   api_dir <- get_api_dir()
   source(file.path(api_dir, "functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path(api_dir, "services", "mcp-service.R"), local = TRUE)
@@ -43,26 +43,29 @@ test_that("MCP snapshot diagnostics distinguish stale snapshots", {
   })
 
   dry_run <- mcp_get_gene_network_context(dry_run = TRUE)
-  expect_equal(dry_run$section_status, "snapshot_stale")
+  expect_equal(dry_run$section_status, "snapshot_missing")
   expect_false(dry_run$meta$snapshot_available)
 
   err <- expect_error(
     mcp_get_gene_network_context(),
     class = "mcp_tool_error"
   )
-  expect_equal(unclass(err)$error$code, "snapshot_stale")
+  expect_equal(unclass(err)$error$code, "snapshot_missing")
 })
 
-test_that("MCP snapshot status helper detects source version mismatch without loading payloads", {
+test_that("MCP snapshot status reads only the eligible manifest projection", {
   api_dir <- get_api_dir()
   source(file.path(api_dir, "functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path(api_dir, "functions", "analysis-snapshot-repository.R"), local = TRUE)
   source(file.path(api_dir, "functions", "mcp-analysis-cache-repository.R"), local = TRUE)
+  source(file.path(api_dir, "functions", "mcp-analysis-repository.R"), local = TRUE)
 
   old_db <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
   old_get_public <- get0("analysis_snapshot_get_public", envir = .GlobalEnv, ifnotfound = NULL)
+  sql_seen <- character()
   assign("db_execute_query", function(query, params = list(), conn = NULL) {
-    tibble::tibble(snapshot_id = 1L, source_data_version = "old-source", stale_after = Sys.time() + 3600)
+    sql_seen <<- c(sql_seen, query)
+    tibble::tibble()
   }, envir = .GlobalEnv)
   assign("analysis_snapshot_get_public", function(...) stop("full snapshot getter called"), envir = .GlobalEnv)
   withr::defer({
@@ -84,5 +87,7 @@ test_that("MCP snapshot status helper detects source version mismatch without lo
     current_source_data_version = "new-source"
   )
 
-  expect_equal(status, "source_version_mismatch")
+  expect_equal(status, "snapshot_missing")
+  expect_true(any(grepl("mcp_public_analysis_manifest", sql_seen, fixed = TRUE)))
+  expect_false(any(grepl("analysis_snapshot_manifest", sql_seen, fixed = TRUE)))
 })

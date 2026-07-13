@@ -1,6 +1,6 @@
 # services/mcp-analysis-service.R
 #
-# Read-only MCP analysis services for NDDScore, comparisons, phenotype context, networks, and cached LLM summaries.
+# Read-only MCP analysis services.
 
 mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
                                             response_mode = "compact") {
@@ -63,7 +63,7 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       analysis_id = "cached_llm_summaries",
       tool = "get_gene_research_context",
       data_class = "llm_generated_summary",
-      availability = "cache_only",
+      availability = "validated_stored_only",
       estimated_latency_class = "fast",
       default_limits = list(limit = 5L, max_limit = 20L, max_response_chars = "auto"),
       example_call = list(gene = "HGNC:61", sections = list("phenotype_clusters", "cached_llm_summaries"))
@@ -85,7 +85,7 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
     ),
     contract = list(
       llm_generation = "never",
-      llm_summaries = "current validated cache only",
+      llm_summaries = "current validated stored summaries only",
       live_external_providers = "never",
       analysis_reads = "public_ready_snapshots_only",
       evidence_boundary = "ML and LLM outputs do not change curated SysNDD evidence"
@@ -142,7 +142,7 @@ mcp_get_nddscore_context <- function(gene = NULL,
   if (is.null(release) || nrow(release) == 0L) {
     stop(mcp_error("temporarily_unavailable", "No active NDDScore release is available.", list(argument = "release")))
   }
-  envelope <- mcp_analysis_provenance("ml_prediction", "NDDScore", "nddscore_*_current", "nddscore_model")
+  envelope <- mcp_analysis_provenance("ml_prediction", "NDDScore", "mcp_public_nddscore_*", "nddscore_model")
   release_record <- mcp_nddscore_release_record(release)
 
   if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
@@ -255,7 +255,10 @@ mcp_get_curation_comparison_context <- function(gene = NULL,
   hgnc_id <- mcp_analysis_hgnc_filter(gene)
   total <- mcp_analysis_repo_count_comparison_rows(hgnc_id = hgnc_id, sources = sources, category = category)
   meta <- mcp_analysis_repo_get_comparison_metadata()
-  envelope <- mcp_analysis_provenance("curated_derived_analysis", "SysNDD comparison view", "ndd_database_comparison_view", "sysndd_import_pipeline")
+  envelope <- mcp_analysis_provenance(
+    "curated_derived_analysis", "SysNDD comparison view",
+    "mcp_public_comparison", "sysndd_import_pipeline"
+  )
 
   if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
     return(c(envelope, list(
@@ -299,15 +302,12 @@ mcp_analysis_snapshot_status <- function(analysis_type, params = list()) {
   } else {
     "snapshot_missing"
   }
-  as.character(status %||% "snapshot_missing")[1]
+  status <- as.character(status %||% "snapshot_missing")[1]
+  if (identical(status, "available")) "available" else "snapshot_missing"
 }
 
 mcp_analysis_snapshot_error_message <- function(status, label) {
-  switch(status,
-    snapshot_stale = sprintf("%s snapshot exists but is past its freshness policy.", label),
-    source_version_mismatch = sprintf("%s snapshot exists but was built from a different public source-data version.", label),
-    sprintf("%s is supported but no public-ready snapshot is available.", label)
-  )
+  sprintf("%s is supported but no public-ready snapshot is available.", label)
 }
 
 mcp_stop_analysis_snapshot_unavailable <- function(status, label, argument, retry_with = NULL) {
@@ -434,14 +434,12 @@ mcp_get_phenotype_analysis_context <- function(mode,
   }
 
   # The clusters reader threads snapshot meta as list(records, meta) so the
-  # partition-level cluster-validation metrics + DB release label surface
-  # read-only; other modes return a bare rows tibble.
+  # partition-level cluster-validation metrics surface read-only; other modes
+  # return a bare rows tibble.
   cluster_validation <- NULL
-  cluster_db_release <- NULL
   if (identical(mode, "clusters")) {
     snapshot_meta <- reader_result$meta$snapshot %||% list()
     cluster_validation <- snapshot_meta$validation %||% NULL
-    cluster_db_release <- snapshot_meta$db_release %||% NULL
     records <- reader_result$records
   } else {
     records <- reader_result
@@ -467,14 +465,9 @@ mcp_get_phenotype_analysis_context <- function(mode,
     snapshot_status = snapshot_status
   )
   if (identical(mode, "clusters")) {
-    # validation is curated_derived_analysis; db_release/partition_scope/
-    # modularity_scope are operational_metadata. Read-only.
+    # Validation is curated_derived_analysis. Read-only.
     meta$validation <- cluster_validation
-    meta$db_release <- cluster_db_release
-    meta$data_classes <- list(
-      validation = "curated_derived_analysis",
-      db_release = "operational_metadata"
-    )
+    meta$data_classes <- list(validation = "curated_derived_analysis")
     # Additive null-calibrated separation diagnostics (validation schema >= 2.0)
     # surface as their own operational_metadata block, read-through from the same
     # validation object. Absent on pre-refresh snapshots -> omitted entirely.
@@ -571,9 +564,6 @@ mcp_get_gene_network_context <- function(gene = NULL,
   }
   edge_records <- mcp_rows_to_records(network$edges)
   trimmed <- mcp_analysis_trim_records(edge_records, max_records = max_edges, budget = budget, label = "gene_network_edges")
-  # gene_network_edges has no cluster validation; surface only the db_release
-  # label (operational_metadata) from the snapshot meta, read-only.
-  network_db_release <- (network$metadata$snapshot$db_release) %||% NULL
   payload <- list(
     nodes = mcp_rows_to_records(network$nodes),
     edges = trimmed$records,
@@ -583,9 +573,7 @@ mcp_get_gene_network_context <- function(gene = NULL,
       max_edges = max_edges,
       stored_snapshot_params = normalized$params,
       snapshot_status = snapshot_status,
-      include_cached_llm_summaries = include_cached_llm_summaries,
-      db_release = network_db_release,
-      data_classes = list(db_release = "operational_metadata")
+      include_cached_llm_summaries = include_cached_llm_summaries
     ))
   )
   trimmed$budget <- mcp_analysis_finalize_budget(payload, trimmed$budget)

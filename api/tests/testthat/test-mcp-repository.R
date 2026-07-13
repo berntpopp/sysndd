@@ -1,4 +1,4 @@
-test_that("MCP repository queries use approved public views and primary approved review gates", {
+test_that("MCP repository queries use only least-privilege public projections", {
   source("../../functions/mcp-repository.R")
   captured <- list()
 
@@ -17,15 +17,15 @@ test_that("MCP repository queries use approved public views and primary approved
 
   sql <- paste(vapply(captured, `[[`, character(1), "sql"), collapse = "\n")
 
-  expect_match(sql, "ndd_entity_view")
-  expect_match(sql, "is_primary\\s*=\\s*1")
-  expect_match(sql, "review_approved\\s*=\\s*1")
-  expect_false(grepl("LEFT\\s+JOIN\\s+ndd_review_publication_join|LEFT\\s+JOIN\\s+ndd_entity_review|LEFT\\s+JOIN\\s+ndd_entity_view", sql, ignore.case = TRUE))
+  expect_match(sql, "mcp_public_entity")
+  expect_match(sql, "mcp_public_review")
+  expect_match(sql, "mcp_public_review_publication")
+  expect_false(grepl("\\bndd_entity_view\\b|\\bndd_entity_review\\b|\\bpublication\\b", sql, ignore.case = TRUE))
   expect_false(grepl("INSERT|UPDATE|DELETE|DROP|ALTER", sql, ignore.case = TRUE))
   expect_true(all(vapply(captured, function(x) is.list(x$params), logical(1))))
 })
 
-test_that("MCP repository search and lookup helpers use bounded SELECT queries", {
+test_that("MCP repository search and lookup helpers use bounded projection SELECTs", {
   source("../../functions/mcp-search-repository.R")
   source("../../functions/mcp-repository.R")
   captured <- list()
@@ -50,6 +50,27 @@ test_that("MCP repository search and lookup helpers use bounded SELECT queries",
 
   expect_match(sql, "LIMIT")
   expect_match(sql, "COUNT\\(\\*\\) AS total")
-  expect_match(sql, "ndd_entity_view")
+  expect_match(sql, "mcp_public_entity")
+  expect_match(sql, "mcp_public_review_phenotype")
   expect_false(grepl("SELECT \\*", sql, ignore.case = TRUE))
+})
+
+test_that("all MCP repository relations are approved mcp_public projections", {
+  repository_paths <- file.path(
+    "../../functions",
+    c("mcp-repository.R", "mcp-search-repository.R", "mcp-analysis-repository.R")
+  )
+  source_text <- paste(unlist(lapply(repository_paths, readLines, warn = FALSE)), collapse = "\n")
+  relations <- unlist(regmatches(
+    source_text,
+    gregexpr("(?i)\\b(?:FROM|JOIN)\\s+`?([a-z][a-z0-9_]*)`?", source_text, perl = TRUE)
+  ))
+  relations <- sub("(?i)^(?:FROM|JOIN)\\s+`?", "", relations, perl = TRUE)
+  relations <- sub("`.*$", "", relations)
+
+  expect_gt(length(relations), 0L)
+  expect_true(all(grepl("^mcp_public_[a-z0-9_]+$", relations)))
+  expect_false(grepl("INFORMATION_SCHEMA", source_text, fixed = TRUE))
+  expect_false(grepl("analysis_snapshot_get_public", source_text, fixed = TRUE))
+  expect_false(grepl("nddscore_repo_", source_text, fixed = TRUE))
 })

@@ -1,0 +1,149 @@
+x-verify-labels: &verify-labels
+  com.sysndd.mcp-select-verify-id: ${MCP_SELECT_VERIFY_ID:?verification id required}
+
+x-verifier-environment: &verifier-environment
+  MCP_VERIFY_PHASE: ${MCP_VERIFY_PHASE:-verify}
+  MCP_VERIFY_ID: ${MCP_SELECT_VERIFY_ID:?verification id required}
+  MCP_ADMIN_DB_HOST: mysql
+  MCP_ADMIN_DB_PORT: "3306"
+  MCP_ADMIN_DB_NAME: sysndd_verify
+  MCP_ADMIN_DB_USER: root
+  MCP_ADMIN_DB_PASSWORD_FILE: /run/mcp-admin/password
+  MCP_EXPECTED_VIEW_DEFINER: root@%
+  MCP_DB_HOST: mysql
+  MCP_DB_PORT: "3306"
+  MCP_DB_NAME: sysndd_verify
+  MCP_DB_USER: sysndd_mcp
+  MCP_DB_PASSWORD_FILE: /run/mcp-reader/password
+  MCP_DB_PASSWORD_OUTPUT_FILE: /run/mcp-reader/password
+  MCP_MIGRATION_PATH: /workspace/db/migrations/044_mcp_public_read_projections.sql
+  MCP_MIGRATIONS_DIR: /workspace/db/migrations
+  MCP_PROVISION_SERIALIZED: "true"
+  MCP_CREDENTIAL_SENTINEL: ${MCP_VERIFY_SENTINEL:?sentinel required}
+
+services:
+  secret-init:
+    image: mysql:8.4.10
+    user: "0:0"
+    labels: *verify-labels
+    network_mode: none
+    environment:
+      MCP_VERIFY_ROOT_PASSWORD: ${MCP_VERIFY_ROOT_PASSWORD:?root password required}
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        umask 077 &&
+        printf '%s' "$${MCP_VERIFY_ROOT_PASSWORD}" > /run/mcp-admin/password &&
+        chown 1000:1000 /run/mcp-reader /run/mcp-admin /run/mcp-admin/password &&
+        chmod 0700 /run/mcp-reader &&
+        chmod 0700 /run/mcp-admin &&
+        chmod 0600 /run/mcp-admin/password
+    volumes:
+      - verify_secret:/run/mcp-reader
+      - verify_admin_secret:/run/mcp-admin
+
+  mysql:
+    image: mysql:8.4.10
+    labels: *verify-labels
+    command:
+      - --authentication-policy=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: sysndd_verify
+      MYSQL_ROOT_PASSWORD: ${MCP_VERIFY_ROOT_PASSWORD:?root password required}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+    networks:
+      - verify_backend
+    volumes:
+      - verify_mysql:/var/lib/mysql
+      - ./api/scripts/verify-mcp-select-principal-mysql-init.sql:/docker-entrypoint-initdb.d/10-mcp-proxy-fixture.sql:ro
+
+  bootstrap:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    labels: *verify-labels
+    environment:
+      <<: *verifier-environment
+      MCP_VERIFY_PHASE: bootstrap
+    command: ["Rscript", "scripts/verify-mcp-select-principal-live.R"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      secret-init:
+        condition: service_completed_successfully
+    networks:
+      - verify_backend
+    volumes:
+      - ./db/migrations:/workspace/db/migrations:ro
+      - ./api/scripts:/app/scripts:ro
+      - verify_secret:/run/mcp-reader
+      - verify_admin_secret:/run/mcp-admin:ro
+
+  mcp:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    labels: *verify-labels
+    environment:
+      MCP_DB_HOST: mysql
+      MCP_DB_PORT: "3306"
+      MCP_DB_NAME: sysndd_verify
+      MCP_DB_USER: sysndd_mcp
+      MCP_DB_PASSWORD_FILE: /run/mcp-reader/password
+      MCP_DB_POOL_SIZE: "2"
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8787"
+    command: ["Rscript", "start_sysndd_mcp.R"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "Rscript", "scripts/mcp-healthcheck.R"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    networks:
+      - verify_backend
+    volumes:
+      - ./api/scripts:/app/scripts:ro
+      - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
+      - verify_secret:/run/mcp-reader:ro
+
+  verify:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    labels: *verify-labels
+    environment:
+      <<: *verifier-environment
+      MCP_VERIFY_PHASE: verify
+      MCP_VERIFY_MCP_URL: http://mcp:8787/mcp
+    command: ["Rscript", "scripts/verify-mcp-select-principal-live.R"]
+    depends_on:
+      mcp:
+        condition: service_healthy
+    networks:
+      - verify_backend
+    volumes:
+      - ./db/migrations:/workspace/db/migrations:ro
+      - ./api/scripts:/app/scripts:ro
+      - verify_secret:/run/mcp-reader:ro
+      - verify_admin_secret:/run/mcp-admin:ro
+
+networks:
+  verify_backend:
+    labels: *verify-labels
+
+volumes:
+  verify_mysql:
+    labels: *verify-labels
+  verify_secret:
+    labels: *verify-labels
+  verify_admin_secret:
+    labels: *verify-labels

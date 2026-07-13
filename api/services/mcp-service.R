@@ -9,19 +9,9 @@ MCP_MAX_ENTITY_BATCH_IDS <- 20L
 MCP_MAX_GENE_BATCH <- 10L
 MCP_ENTITY_PHENOTYPE_CAP <- 100L
 MCP_ENTITY_VARIATION_CAP <- 100L
-MCP_CACHE_TTLS <- list(
-  get_sysndd_stats = 300L,
-  search_sysndd = 60L,
-  get_gene_context = 300L,
-  get_entity_context = 300L,
-  get_publication_context = 1800L
-)
-
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
 }
-
-.mcp_cache <- new.env(parent = emptyenv())
 
 mcp_error <- function(code, message, fields = list()) {
   structure(
@@ -365,23 +355,4 @@ mcp_publication_ref <- function(pub) {
     recommended_citation = pub$recommended_citation,
     resource_uri = pub$resource_uri
   )
-}
-
-mcp_cache_key <- function(name, args) {
-  paste(name, jsonlite::toJSON(args, auto_unbox = TRUE, null = "null"), sep = ":")
-}
-
-mcp_cached <- function(name, args, ttl, fn) {
-  key <- mcp_cache_key(name, args)
-  cached <- .mcp_cache[[key]]
-  now <- as.numeric(Sys.time())
-  if (!is.null(cached) && cached$expires_at > now) {
-    return(cached$value)
-  }
-
-  value <- fn()
-  if (!inherits(value, "mcp_tool_error")) {
-    .mcp_cache[[key]] <- list(value = value, expires_at = now + ttl)
-  }
-  value
 }

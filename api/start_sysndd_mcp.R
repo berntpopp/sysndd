@@ -8,42 +8,46 @@
 
 source("bootstrap/init_libraries.R", local = FALSE)
 source("bootstrap/load_modules.R", local = FALSE)
-source("bootstrap/create_pool.R", local = FALSE)
-source("bootstrap/init_cache.R", local = FALSE)
+source("functions/mcp-readonly-config.R", local = FALSE)
+source("bootstrap/create_mcp_pool.R", local = FALSE)
+source("functions/mcp-readonly-attestation.R", local = FALSE)
+source("functions/mcp-readonly-contract.R", local = FALSE)
 source("bootstrap/init_globals.R", local = FALSE)
 
 bootstrap_init_libraries()
+Sys.setenv(SYSNDD_RUNTIME = "mcp")
 
-env_mode <- Sys.getenv("ENVIRONMENT", "local")
-message(paste("ENVIRONMENT set to:", env_mode))
-
-if (tolower(env_mode) == "production") {
-  Sys.setenv(API_CONFIG = "sysndd_db")
-} else if (tolower(env_mode) == "development") {
-  Sys.setenv(API_CONFIG = "sysndd_db_dev")
-} else {
-  Sys.setenv(API_CONFIG = "sysndd_db_local")
-}
-
-dw <- config::get(Sys.getenv("API_CONFIG"))
-if (is.list(dw$secret)) {
-  dw$secret <- as.character(dw$secret[[1]])
-}
-
-if (!is.null(dw$workdir)) {
-  message(paste("Setting working directory to:", dw$workdir))
-  setwd(dw$workdir)
-}
+config_fn <- base::get("mcp_readonly_config", envir = .GlobalEnv, mode = "function")
+dw <- config_fn()
 
 bootstrap_load_modules()
-bootstrap_bind_memoised(
-  cache_dir = Sys.getenv("MCP_CACHE_DIR", "/app/cache"),
-  envir = .GlobalEnv
+pool_fn <- base::get("bootstrap_create_mcp_pool", envir = .GlobalEnv, mode = "function")
+pool <- pool_fn(dw)
+if (!base::exists(
+  "mcp_readonly_projection_names",
+  envir = .GlobalEnv,
+  mode = "function",
+  inherits = FALSE
+)) {
+  stop("MCP projection contract is unavailable")
+}
+projection_names_fn <- base::get(
+  "mcp_readonly_projection_names",
+  envir = .GlobalEnv,
+  mode = "function"
 )
-
-Sys.setenv(SYSNDD_RUNTIME = "mcp")
-Sys.setenv(DB_POOL_SIZE = Sys.getenv("MCP_DB_POOL_SIZE", "2"))
-pool <- bootstrap_create_pool(dw)
+attest_fn <- base::get("mcp_readonly_attest", envir = .GlobalEnv, mode = "function")
+tryCatch(
+  attest_fn(
+    conn = pool,
+    dbname = dw$dbname,
+    projection_names = projection_names_fn()
+  ),
+  error = function(e) {
+    try(pool::poolClose(pool), silent = TRUE)
+    stop(e)
+  }
+)
 globals <- bootstrap_init_globals()
 
 registry <- mcp_build_tool_registry(output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text"))

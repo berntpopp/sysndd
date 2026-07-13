@@ -17,8 +17,7 @@ mcp_get_entity_context <- function(entity_id,
   abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", mcp_default_abstract_mode(response_mode))
   synopsis_mode <- mcp_validate_mode(synopsis_mode, c("none", "excerpt", "full"), "synopsis_mode", mcp_default_synopsis_mode(response_mode))
 
-  mcp_cached("get_entity_context", list(entity_id = entity_id, include_publications = include_publications, include_phenotypes = include_phenotypes, include_variants = include_variants, publication_limit = publication_limit, response_mode = response_mode, abstract_mode = abstract_mode, synopsis_mode = synopsis_mode), MCP_CACHE_TTLS$get_entity_context, function() {
-    row <- mcp_first_row(mcp_repo_get_entity_context(entity_id), "Entity not found")
+  row <- mcp_first_row(mcp_repo_get_entity_context(entity_id), "Entity not found")
     entity <- mcp_row_to_list(row)
     synopsis_parts <- mcp_apply_synopsis_mode(entity, synopsis_mode, 2500L)
     entity <- synopsis_parts$entity
@@ -33,7 +32,7 @@ mcp_get_entity_context <- function(entity_id,
     phenotypes <- if (isTRUE(include_phenotypes)) mcp_compact_phenotypes(mcp_repo_get_entity_phenotypes(entity_id)) else list()
     variation_terms <- if (isTRUE(include_variants)) mcp_rows_to_records(mcp_repo_get_entity_variation(entity_id)) else list()
 
-    list(
+  list(
       schema_version = MCP_SCHEMA_VERSION,
       entity = entity,
       status = list(category = entity$category, category_id = entity$category_id),
@@ -60,8 +59,7 @@ mcp_get_entity_context <- function(entity_id,
         variation_returned = length(variation_terms),
         variation_may_be_truncated = isTRUE(include_variants) && length(variation_terms) >= MCP_ENTITY_VARIATION_CAP
       )
-    )
-  })
+  )
 }
 
 mcp_get_entities_context <- function(entity_ids,
@@ -189,8 +187,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
   publication_id <- mcp_normalize_pmid(pmid)
   abstract_max_chars <- mcp_validate_limit(abstract_max_chars, default = 2000L, max = 4000L, name = "abstract_max_chars")
   abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", "metadata")
-  mcp_cached("get_publication_context", list(pmid = publication_id, abstract_max_chars = abstract_max_chars, abstract_mode = abstract_mode), MCP_CACHE_TTLS$get_publication_context, function() {
-    rows <- mcp_repo_get_publication_context(publication_id)
+  rows <- mcp_repo_get_publication_context(publication_id)
     first <- mcp_first_row(rows, "Publication not found")
     pub <- mcp_row_to_list(first)
     # publication_type is a per-link attribute that varies per linked entity, so the
@@ -214,7 +211,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
       item
     })
     publication_type_values <- if ("publication_type" %in% names(rows)) rows$publication_type else character()
-    c(
+  c(
       list(schema_version = MCP_SCHEMA_VERSION),
       mcp_publication_record(pub, abstract_mode = abstract_mode, abstract_max_chars = abstract_max_chars, include_keywords = TRUE, date_quality = date_quality),
       list(
@@ -228,8 +225,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
           sysndd_curation_date = "Primary approved SysNDD review date on linked entities."
         )
       )
-    )
-  })
+  )
 }
 
 mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L, abstract_mode = "metadata") {
@@ -330,9 +326,7 @@ mcp_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
 }
 
 mcp_get_sysndd_stats <- function() {
-  mcp_cached("get_sysndd_stats", list(), MCP_CACHE_TTLS$get_sysndd_stats, function() {
-    rows <- mcp_repo_get_stats()
-    values <- stats::setNames(as.list(rows$value), rows$metric)
-    list(schema_version = MCP_SCHEMA_VERSION, counts = values, generated_at = as.character(Sys.time()))
-  })
+  rows <- mcp_repo_get_stats()
+  values <- stats::setNames(as.list(rows$value), rows$metric)
+  list(schema_version = MCP_SCHEMA_VERSION, counts = values, generated_at = as.character(Sys.time()))
 }

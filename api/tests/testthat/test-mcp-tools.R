@@ -367,7 +367,8 @@ test_that("capabilities expose error examples, performance, prompts, categories"
 
   caps <- mcp_get_sysndd_capabilities()
   expect_true(!is.null(caps$error_examples$ambiguous_query$error$choices))
-  expect_true(!is.null(caps$performance$get_publication_context$cache_ttl_seconds))
+  expect_null(caps$performance$get_publication_context$cache_ttl_seconds)
+  expect_match(caps$performance$note, "projections", fixed = TRUE)
   expect_true(!is.null(caps$performance$get_publication_context$cost_tier))
   expect_true(!is.null(caps$mode_resolution))
   expect_true("not applicable" %in% caps$entity_categories$returned_values)
@@ -395,9 +396,23 @@ test_that("capabilities document analysis workflows and guardrails", {
   expect_false(is.null(caps$canonical_workflows$gene_research))
   expect_false(is.null(caps$analysis_data_classes$ml_prediction))
   expect_true(caps$analysis_data_classes$ml_prediction$not_evidence_tier)
-  expect_match(caps$analysis_data_classes$llm_generated_summary$note, "cache", ignore.case = TRUE)
+  expect_match(caps$analysis_data_classes$llm_generated_summary$note, "validated stored", ignore.case = TRUE)
   expect_match(caps$analysis_tools$phenotype_correlations, "global snapshot context", ignore.case = TRUE)
+  expect_null(caps$analysis_tools$db_release)
   expect_true(caps$safety$live_external_calls_disabled)
   expect_true(caps$safety$llm_generation_disabled)
   expect_match(caps$analysis_tools$guardrails, "No Gemini", fixed = TRUE)
+})
+
+test_that("MCP analysis tool descriptions make no result-cache claims", {
+  text <- paste(
+    c(
+      readLines("../../services/mcp-tool-analysis-registry.R", warn = FALSE),
+      readLines("../../services/mcp-tool-resources.R", warn = FALSE)
+    ),
+    collapse = "\n"
+  )
+
+  expect_false(grepl("cache-only|cached LLM|local cache|cache-safe", text, ignore.case = TRUE))
+  expect_match(text, "validated stored", ignore.case = TRUE)
 })

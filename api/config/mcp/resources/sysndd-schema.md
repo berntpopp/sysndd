@@ -2,7 +2,7 @@
 
 SysNDD represents approved public gene-disease-inheritance entities for neurodevelopmental disorder curation. An entity joins a gene, disease ontology term, inheritance term, NDD phenotype flag, public category/status, primary approved review synopsis, HPO phenotype terms, variation ontology terms, and linked publications. Entities are not genes: one gene can have multiple entities.
 
-MCP v1 is read-only. It uses active records from `ndd_entity_view` and review-derived evidence only from primary approved reviews.
+MCP v1 is read-only. It uses the dedicated approved-public entity projection and review-derived evidence only from primary approved reviews.
 
 # sysndd://schema/tool-guide
 
@@ -26,10 +26,10 @@ Use `find_entities_by_phenotype` and `find_entities_by_disease` for constrained 
 
 Use `get_sysndd_analysis_catalog` before analysis exploration. The low-token workflow is catalog, then `get_gene_research_context` with `dry_run:true`, `include_diagnostics:true`, and `response_mode:"compact"`, then focused follow-up tools with `max_response_chars:"auto"`. Analysis payloads expose `budget`, `meta`, optional `recovery`, and `dropped_summary` when rows or sections are omitted by budget.
 
-Use `get_gene_research_context` for labeled gene-level sections: curated SysNDD context, NDDScore, comparison-source rows, phenotype analysis, local-cache gene network status, cache-only LLM summaries, and stored external identifier references. `section_status` distinguishes available, temporarily unavailable, disabled, not requested, and budget-dropped sections.
+Use `get_gene_research_context` for labeled gene-level sections: curated SysNDD context, NDDScore, comparison-source rows, phenotype analysis, public-ready gene network status, validated stored LLM summaries, and stored external identifier references. `section_status` distinguishes available, temporarily unavailable, disabled, not requested, and budget-dropped sections.
 
-Analysis `data_class` values separate evidence boundaries. `curated_sysndd_evidence` is approved SysNDD evidence. `curated_derived_analysis` is deterministic analysis over approved public data and does not change classifications. `ml_prediction` covers NDDScore; it is model-derived, separate from curated SysNDD evidence, and not an evidence tier. `llm_generated_summary` is admin-generated validated cache only; MCP never generates summaries and never exposes prompts or generation queries. `external_reference_identifier` is a stored identifier only; MCP makes no live external provider calls.
+Analysis `data_class` values separate evidence boundaries. `curated_sysndd_evidence` is approved SysNDD evidence. `curated_derived_analysis` is deterministic analysis over approved public data and does not change classifications. `ml_prediction` covers NDDScore; it is model-derived, separate from curated SysNDD evidence, and not an evidence tier. `llm_generated_summary` is an admin-generated validated stored summary; MCP never generates summaries and never exposes prompts or generation queries. `external_reference_identifier` is a stored identifier only; MCP makes no live external provider calls.
 
-Use `get_nddscore_context` for NDDScore release, gene, or ranked-gene views. Use `get_curation_comparison_context` for source cross-references. Use `get_phenotype_analysis_context` for supported local analysis modes. Use `get_gene_network_context` only as cache-safe network context; when the local network cache is absent, dry-run reports cache status and normal calls return a recoverable `temporarily_unavailable` tool error.
+Use `get_nddscore_context` for NDDScore release, gene, or ranked-gene views. Use `get_curation_comparison_context` for source cross-references. Use `get_phenotype_analysis_context` for supported public-ready analysis modes. Use `get_gene_network_context` only for eligible public-ready network projections; unavailable, stale, or source-mismatched data is uniformly reported as `snapshot_missing`.
 
 Tools advertise read-only annotations and output schemas. Errors use stable JSON envelopes with `schema_version` and `error.code`, including `invalid_input`, `not_found`, `ambiguous_query`, and `temporarily_unavailable`; recoverable tool errors are returned as tool results with `isError = true` rather than JSON-RPC internal errors.

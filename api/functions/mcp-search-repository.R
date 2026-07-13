@@ -78,18 +78,3 @@ mcp_rank_search_candidates <- function(rows, query_tokens = NULL, query = NULL) 
   rownames(ranked) <- NULL
   ranked
 }
-
-mcp_repo_table_has_column <- function(table, column) {
-  result <- tryCatch(
-    db_execute_query(
-      "SELECT COUNT(*) AS has_column
-         FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?",
-      list(table, column)
-    ),
-    error = function(e) NULL
-  )
-  !is.null(result) && nrow(result) > 0L && as.integer(result$has_column[[1]] %||% 0L) > 0L
-}

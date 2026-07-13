@@ -58,7 +58,7 @@ mcp_server_instructions <- function() {
     "Call get_sysndd_capabilities for workflows, limits, payload modes, citation rules, resources, errors, and v1 exclusions.",
     "Use response_mode, abstract_mode, synopsis_mode, include_* flags, expand=entities, and dedupe_publications to control token cost and round trips.",
     "For analysis workflows, call get_sysndd_analysis_catalog, then get_gene_research_context with dry_run=true or response_mode=compact, then focused analysis tools.",
-    "NDDScore is ML prediction, not curated evidence; cached LLM summaries are admin-generated cache-only; MCP performs no LLM generation or live external provider calls.",
+    "NDDScore is ML prediction, not curated evidence; LLM summaries are validated stored public projections; MCP performs no LLM generation or live external provider calls.",
     "Publication outputs include recommended_citation and publication-date confidence flags; paste recommended_citation verbatim.",
     "Static docs are sysndd://schema/overview and sysndd://schema/tool-guide; payload sysndd://gene/entity/publication URIs are stable identifiers and tools are the v1 record retrieval path.",
     "Tool errors use JSON envelopes with error.code values such as invalid_input, not_found, ambiguous_query, and temporarily_unavailable.",

@@ -81,3 +81,6 @@ ratings-final-raw.json
 
 # Runtime worker output: blocked omim_update pending ontology CSVs (#470)
 api/data/pending_ontology/
+
+# Operator-generated runtime secrets (never commit).
+secrets/

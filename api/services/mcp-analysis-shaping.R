@@ -52,7 +52,10 @@ mcp_analysis_provenance <- function(data_class,
       "ML prediction; model-derived; separate from curated SysNDD evidence; Not an evidence tier."
     ),
     llm_generated_summary = list(
-      "LLM-generated cached summary; admin-generated; Cache-only; does not change curated SysNDD evidence."
+      paste(
+        "LLM-generated summary; admin-generated; validated stored projection only;",
+        "does not change curated SysNDD evidence."
+      )
     ),
     curated_derived_analysis = list(
       "Derived analysis for hypothesis generation; correlations, clusters, and networks are not causal claims."
