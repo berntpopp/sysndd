@@ -46,7 +46,7 @@ RUN if [ "${SEO_GENERATE}" = "true" ]; then \
 # fholzer/nginx-brotli has brotli pre-compiled - no 5 min compilation!
 # Source: https://hub.docker.com/r/fholzer/nginx-brotli
 # Pin to specific version for reproducible builds and supply chain security
-FROM fholzer/nginx-brotli:v1.31.1 AS production
+FROM fholzer/nginx-brotli:v1.31.2 AS production
 
 # Configure for non-root operation (similar to nginx-unprivileged)
 # Create nginx user if not exists and set permissions
