@@ -71,6 +71,7 @@ bootstrap_load_modules <- function() {
     "functions/analysis-snapshot-presets.R",
     "functions/analysis-snapshot-repository.R",
     "functions/analysis-snapshot-coherence.R",
+    "functions/analysis-snapshot-dependencies.R",
     "functions/analysis-snapshot-builder.R",
     "functions/analysis-reproducibility.R",
     "functions/async-job-analysis-snapshot-handlers.R",

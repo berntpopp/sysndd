@@ -1,22 +1,10 @@
 # functions/analysis-snapshot-builder.R
-
-if (!exists("%||%", mode = "function")) {
-  `%||%` <- function(x, y) if (is.null(x)) y else x
-}
-
+if (!exists("%||%", mode = "function")) `%||%` <- function(x, y) if (is.null(x)) y else x
 analysis_snapshot_hash_json <- function(value) {
-  if (exists("analysis_snapshot_canonical_json", mode = "function")) {
-    return(analysis_snapshot_canonical_json(value))
-  }
-
+  if (exists("analysis_snapshot_canonical_json", mode = "function")) return(analysis_snapshot_canonical_json(value))
   as.character(jsonlite::toJSON(
-    value,
-    auto_unbox = TRUE,
-    null = "null",
-    na = "null",
-    dataframe = "rows",
-    POSIXt = "ISO8601",
-    Date = "ISO8601"
+    value, auto_unbox = TRUE, null = "null", na = "null", dataframe = "rows",
+    POSIXt = "ISO8601", Date = "ISO8601"
   ))
 }
 
@@ -451,10 +439,16 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       list(kind = "correlations", raw = rows, correlations = built$correlations, row_counts = built$row_counts)
     },
     phenotype_functional_correlations = {
-      result <- generate_phenotype_functional_cluster_correlation()
-      rows <- result$correlation_melted %||% result
+      result <- analysis_snapshot_build_dependency_bound_pc_fc_correlation(conn = conn)
+      rows <- result$rows
       built <- analysis_snapshot_build_correlation_rows(rows, correlation_kind = "phenotype_functional")
-      list(kind = "correlations", raw = rows, correlations = built$correlations, row_counts = built$row_counts)
+      list(
+        kind = "correlations",
+        raw = rows,
+        correlations = built$correlations,
+        row_counts = built$row_counts,
+        dependencies = result$dependencies
+      )
     },
     gene_network_edges = {
       network <- generate_network_edges_response(
@@ -508,11 +502,15 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     payload_hash <- analysis_snapshot_payload_hash(
       payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility"))]
     )
-    input_hash <- analysis_snapshot_input_hash(list(
+    input_provenance <- list(
       analysis_type = normalized$analysis_type,
       params = normalized$params,
       source_data_version = source_data_version
-    ))
+    )
+    if (!is.null(payload$dependencies)) {
+      input_provenance$dependencies <- payload$dependencies
+    }
+    input_hash <- analysis_snapshot_input_hash(input_provenance)
 
     # Human-facing DB release label (#22 / #459). Policy: when the db_version
     # surface is unavailable, store the literal "unknown" (never omit).
@@ -520,6 +518,14 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
                     error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
     db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
     db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
+    source_versions <- list(
+      sysndd_public_data = source_data_version,
+      db_release_version = db_release_version,
+      db_release_commit = db_release_commit
+    )
+    if (!is.null(payload$dependencies)) {
+      source_versions$dependencies <- payload$dependencies
+    }
 
     write_result <- analysis_snapshot_with_write_transaction(refresh_conn, function(txn_conn) {
       snapshot_id <- analysis_snapshot_create_manifest(
@@ -531,9 +537,7 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
           status = "pending",
           generated_by_job_id = job_id,
           stale_after = stale_after,
-          source_versions = list(sysndd_public_data = source_data_version,
-                                 db_release_version = db_release_version,
-                                 db_release_commit  = db_release_commit),
+          source_versions = source_versions,
           source_data_version = source_data_version,
           parameters_json = normalized$parameters_json,
           input_hash = input_hash,
@@ -587,6 +591,7 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
       payload_hash = payload_hash,
       input_hash = input_hash,
       source_data_version = source_data_version,
+      dependencies = payload$dependencies,
       stale_after = stale_after,
       pruned = write_result$pruned,
       llm_generation = llm_generation

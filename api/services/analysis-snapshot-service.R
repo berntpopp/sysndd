@@ -81,6 +81,10 @@ service_analysis_snapshot_status_message <- function(status_code) {
       "The active public analysis snapshot was built from a different",
       "public source-data version and should be refreshed before serving."
     ),
+    dependency_snapshot_mismatch = paste(
+      "The active phenotype-functional correlation snapshot was built from",
+      "different cluster memberships and must be refreshed before serving."
+    ),
     snapshot_missing = "No public analysis snapshot is currently available for this supported parameter set.",
     "The active public analysis snapshot is not currently available."
   )
@@ -316,6 +320,9 @@ service_analysis_snapshot_shape_clusters <- function(snapshot, cluster_kind) {
 service_analysis_snapshot_meta <- function(snapshot) {
   manifest <- tibble::as_tibble(snapshot$manifest)
   row <- manifest[1, , drop = FALSE]
+  source_versions <- service_analysis_snapshot_parse_json_object(
+    service_analysis_snapshot_column_value(row, "source_versions_json")
+  )
   list(
     snapshot = list(
       snapshot_id = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$snapshot_id)),
@@ -332,6 +339,7 @@ service_analysis_snapshot_meta <- function(snapshot) {
       source_data_version = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_scalar_value(row$source_data_version)
       ),
+      dependencies = source_versions$dependencies %||% NULL,
       # Lineage hashes (W3C-PROV / FAIR provenance per issue #347 output
       # contract): input_hash binds the snapshot to its supported parameter set
       # plus the public source-data version; payload_hash binds it to the
