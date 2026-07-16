@@ -336,6 +336,14 @@ analysis_snapshot_get_public <- function(analysis_type,
 
   manifest <- manifest[1, , drop = FALSE]
   status_code <- analysis_snapshot_status_code(manifest)
+  if (identical(status_code, "available") &&
+      identical(as.character(analysis_type[[1]]), "phenotype_functional_correlations")) {
+    if (!exists("analysis_snapshot_dependency_status_code", mode = "function")) {
+      status_code <- "dependency_snapshot_mismatch"
+    } else {
+      status_code <- analysis_snapshot_dependency_status_code(manifest, conn = conn)
+    }
+  }
   if (!identical(status_code, "available")) {
     return(list(
       manifest = manifest,

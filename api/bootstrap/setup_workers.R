@@ -126,6 +126,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/async-job-network-layout-handlers.R", local = FALSE)
     source("/app/functions/analysis-snapshot-presets.R", local = FALSE)
     source("/app/functions/analysis-snapshot-repository.R", local = FALSE)
+    source("/app/functions/analysis-snapshot-dependencies.R", local = FALSE)
     source("/app/functions/analysis-snapshot-builder.R", local = FALSE)
     source("/app/functions/analysis-reproducibility.R", local = FALSE)
     source("/app/functions/async-job-analysis-snapshot-handlers.R", local = FALSE)
