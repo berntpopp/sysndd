@@ -25,6 +25,7 @@ release_build_test_wd <- getwd()
 setwd(get_api_dir())
 withr::defer(setwd(release_build_test_wd), testthat::teardown_env())
 
+source(file.path("core", "errors.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-dependencies.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-coherence.R"), local = TRUE)
@@ -47,11 +48,16 @@ FUNC_HASH <- analysis_release_sha256("functional-payload")
 PHEN_HASH <- analysis_release_sha256("phenotype-payload")
 CORR_HASH <- analysis_release_sha256("correlation-payload")
 
+DB_RELEASE_VERSION <- "1.0.0"
+DB_RELEASE_COMMIT <- "abc1234"
+
 make_manifest <- function(analysis_type, snapshot_id, payload_hash,
                           source_data_version = SRC_V,
                           input_hash = analysis_release_sha256(paste0(analysis_type, "-input")),
                           schema_version = "1.2",
-                          source_versions_json = NA_character_) {
+                          source_versions_json = NA_character_,
+                          db_release_version = DB_RELEASE_VERSION,
+                          db_release_commit = DB_RELEASE_COMMIT) {
   data.frame(
     analysis_type = analysis_type,
     snapshot_id = as.integer(snapshot_id),
@@ -60,6 +66,8 @@ make_manifest <- function(analysis_type, snapshot_id, payload_hash,
     source_data_version = source_data_version,
     schema_version = schema_version,
     source_versions_json = source_versions_json,
+    db_release_version = db_release_version,
+    db_release_commit = db_release_commit,
     stringsAsFactors = FALSE
   )
 }
@@ -293,6 +301,50 @@ test_that("build refuses a correlation snapshot whose dependency lineage is stal
   )
 })
 
+test_that("build rejects an unknown requested layer (selection, not redefinition) with 400", {
+  expect_error(
+    analysis_snapshot_release_build(
+      conn = NULL, publish = TRUE, layers = list(list(analysis_type = "not_a_layer")),
+      loader = make_loader(), reproducibility_loader = present_repro_loader,
+      coherence_assert = pass_coherence
+    ),
+    class = "error_400"
+  )
+})
+
+test_that("build rejects a reproducibility bundle whose bytes do not hash to reproducibility_hash (H2)", {
+  # The stored reproducibility_hash is present but LIES about the bytes (corrupt/restored bundle).
+  corrupt_repro_loader <- function(snapshot_id, conn = NULL) {
+    row <- present_repro_loader(snapshot_id, conn)
+    if (is.null(row)) {
+      return(NULL)
+    }
+    row$reproducibility_hash <- analysis_release_sha256("this-hash-does-not-match-the-bytes")
+    row
+  }
+  expect_error(
+    analysis_snapshot_release_build(
+      conn = NULL, publish = TRUE,
+      loader = make_loader(), reproducibility_loader = corrupt_repro_loader,
+      coherence_assert = pass_coherence
+    ),
+    class = "release_reproducibility_missing"
+  )
+})
+
+test_that("build refuses to proceed unlocked when the advisory lock cannot be acquired (H3a)", {
+  # Inject a lock seam that reports acquisition FAILED (a source preset is mid-refresh).
+  failing_lock <- function(conn, lock_names) list(ok = FALSE, acquired = character(0), skipped = FALSE)
+  expect_error(
+    analysis_snapshot_release_build(
+      conn = NULL, publish = TRUE,
+      loader = make_loader(), reproducibility_loader = present_repro_loader,
+      coherence_assert = pass_coherence, lock_acquire = failing_lock
+    ),
+    class = "release_lock_unavailable"
+  )
+})
+
 test_that("build refuses a functional snapshot whose served channel != validation channel", {
   # Real coherence default reads validation_json; membership (combined_score) was
   # clustered on a different STRING channel than the validation scored (exp+db).
@@ -454,6 +506,43 @@ test_that("pre-insert re-read catches a source snapshot refreshed mid-build (fre
     )
     # nothing was persisted (the mismatch fired before insert):
     expect_identical(0L, length(analysis_release_list(status = "published", conn = conn)))
+  })
+})
+
+test_that("build head + manifest carry the DB release provenance from the source snapshots (M1)", {
+  with_release_build_db(function(conn) {
+    result <- analysis_snapshot_release_build(
+      conn = conn, publish = TRUE,
+      loader = make_loader(), reproducibility_loader = present_repro_loader,
+      coherence_assert = pass_coherence
+    )
+    expect_equal(result$release$db_release_version, DB_RELEASE_VERSION)
+    expect_equal(result$release$db_release_commit, DB_RELEASE_COMMIT)
+
+    manifest_file <- analysis_release_get_file(result$release$release_id, "manifest.json", include_draft = TRUE, conn = conn)
+    manifest <- jsonlite::fromJSON(rawToChar(manifest_file$bytes), simplifyVector = FALSE)
+    expect_equal(manifest$source$db_release$version, DB_RELEASE_VERSION)
+    expect_equal(manifest$source$db_release$commit, DB_RELEASE_COMMIT)
+  })
+})
+
+test_that("insert duplicate-key race resolves to idempotent created=FALSE, no double insert (H3b)", {
+  with_release_build_db(function(conn) {
+    # The inserter simulates the concurrent WINNER: it stores the identical
+    # release, then this build's own insert loses the PK race (dup-key error).
+    dup_inserter <- function(head, members, files, conn) {
+      analysis_release_insert(head, members, files, conn)
+      stop("Duplicate entry 'asr_xxxx' for key 'PRIMARY'")
+    }
+    result <- analysis_snapshot_release_build(
+      conn = conn, publish = TRUE,
+      loader = make_loader(), reproducibility_loader = present_repro_loader,
+      coherence_assert = pass_coherence, inserter = dup_inserter
+    )
+    expect_false(result$created)
+    expect_match(result$release$release_id, "^asr_[0-9a-f]{16}$")
+    # exactly one row total -- the release was NOT double-inserted:
+    expect_identical(1L, length(analysis_release_list(status = NULL, conn = conn)))
   })
 })
 

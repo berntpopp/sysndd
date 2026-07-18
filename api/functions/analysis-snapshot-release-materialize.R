@@ -54,6 +54,25 @@ if (!exists("%||%", mode = "function")) {
   if (is.null(value)) default else value
 }
 
+#' Take a consistent scalar of `field` across the loaded layer manifests.
+#'
+#' Returns the single distinct non-empty value when the layers agree, else the
+#' FIRST non-NA/non-empty value (a benign provenance disagreement never blocks a
+#' build). NA when no layer carries it. Used for `db_release_version`/`_commit`.
+#' @noRd
+.analysis_release_consistent_manifest_value <- function(loaded, field) {
+  values <- vapply(
+    loaded,
+    function(e) as.character(.analysis_release_manifest_scalar(e$manifest, field, NA_character_)),
+    character(1)
+  )
+  values <- values[!is.na(values) & nzchar(values)]
+  if (length(values) == 0L) {
+    return(NA_character_)
+  }
+  values[[1]]
+}
+
 #' Coerce a possibly-NULL child tibble to a plain data.frame for serialization.
 #' @noRd
 .analysis_release_rows <- function(x) {
@@ -282,6 +301,9 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
 #' Assemble one materialized artifact with its own sha256 + byte_size.
 #' @noRd
 .analysis_release_artifact <- function(path, bytes, media_type) {
+  # Every materialized file path flows through here — assert containment at this
+  # single choke point (defense-in-depth alongside analysis_release_build_tar_gz).
+  .analysis_release_assert_safe_path(path)
   list(
     path = path,
     bytes = bytes,

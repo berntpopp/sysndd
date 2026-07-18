@@ -94,6 +94,29 @@ if (!exists("%||%", mode = "function")) {
   invisible(TRUE)
 }
 
+#' Default `lock_acquire` seam: acquire every per-preset lock (all-or-nothing).
+#'
+#' @return `list(ok, acquired, skipped)`. On a non-DBIConnection the locks are
+#'   skipped (`ok = TRUE, skipped = TRUE`) — the test/mirai path. On a real
+#'   connection, a failed acquisition releases any partially-held locks and
+#'   returns `ok = FALSE` so the caller raises `release_lock_unavailable`.
+#' @noRd
+.analysis_release_acquire_preset_locks <- function(conn, lock_names, timeout_seconds = 5L) {
+  if (!inherits(conn, "DBIConnection")) {
+    return(list(ok = TRUE, acquired = character(0), skipped = TRUE))
+  }
+  acquired <- character(0)
+  for (lock_name in lock_names) {
+    if (.analysis_release_get_lock(conn, lock_name, timeout_seconds)) {
+      acquired <- c(acquired, lock_name)
+    } else {
+      for (held in acquired) .analysis_release_release_named_lock(conn, held)
+      return(list(ok = FALSE, acquired = character(0), skipped = FALSE))
+    }
+  }
+  list(ok = TRUE, acquired = acquired, skipped = FALSE)
+}
+
 #' Fresh pre-insert re-read: re-load each layer via the loader seam (NOT the
 #' cached step-1 `loaded`) and confirm each layer's {snapshot_id, payload_hash}
 #' and the correlation dependencies still equal the pinned lineage. Throws a
@@ -155,11 +178,16 @@ if (!exists("%||%", mode = "function")) {
 #' @param publish If TRUE the inserted draft is flipped to `published`.
 #' @param created_by Optional user id recorded on the head row.
 #' @param conn A real DBIConnection (required for persistence; A5 checks one out).
-#' @param loader,reproducibility_loader,coherence_assert Injectable seams (see file
-#'   header); call-time defaults are the real functions.
+#' @param layers Optional SELECTION of layers to include (NULL = full registry);
+#'   resolved to authoritative registry entries by
+#'   `analysis_snapshot_release_resolve_layers()` (caller cannot override policy).
+#' @param loader,reproducibility_loader,coherence_assert,lock_acquire,inserter
+#'   Injectable seams (see file header); call-time defaults are the real
+#'   functions. `lock_acquire` returns `list(ok, acquired, skipped)`; `inserter`
+#'   persists the head/members/files.
 #' @return `list(release = <head>, created = TRUE|FALSE)`.
 #' @export
-analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_layers(),
+analysis_snapshot_release_build <- function(layers = NULL,
                                             title = NULL,
                                             scope_statement = NULL,
                                             license = "CC-BY-4.0",
@@ -168,7 +196,14 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
                                             conn = NULL,
                                             loader = analysis_snapshot_get_public,
                                             reproducibility_loader = analysis_snapshot_get_reproducibility,
-                                            coherence_assert = analysis_snapshot_release_assert_coherent) {
+                                            coherence_assert = analysis_snapshot_release_assert_coherent,
+                                            lock_acquire = .analysis_release_acquire_preset_locks,
+                                            inserter = analysis_release_insert) {
+  # B1: a caller `layers` request is a SELECTION, never a policy redefinition —
+  # resolve each selector to the AUTHORITATIVE registry entry (params /
+  # files_prefix / has_reproducibility come from the registry, never the caller).
+  layers <- analysis_snapshot_release_resolve_layers(layers)
+
   # Resolve (analysis_type, parameter_hash) per layer once (pure; validates params).
   layer_specs <- lapply(layers, function(layer) {
     at <- as.character(layer$analysis_type[[1]])
@@ -179,23 +214,29 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
     )
   })
 
-  # --- Step 0: per-preset TOCTOU advisory locks (best-effort) --------------
+  # --- Step 0: per-preset TOCTOU advisory locks ----------------------------
   # Acquire the SAME per-preset lock the axis refresh holds, so a mid-flight
-  # refresh of a source preset serializes against this read. Released on exit.
-  if (inherits(conn, "DBIConnection")) {
-    acquired_locks <- character(0)
-    for (spec in layer_specs) {
-      lock_name <- .analysis_release_preset_lock_name(spec$analysis_type, spec$parameter_hash)
-      if (.analysis_release_get_lock(conn, lock_name, 5L)) {
-        acquired_locks <- c(acquired_locks, lock_name)
-      }
-    }
-    if (length(acquired_locks) > 0L) {
-      on.exit(
-        for (lock_name in acquired_locks) .analysis_release_release_named_lock(conn, lock_name),
-        add = TRUE
-      )
-    }
+  # refresh of a source preset serializes against this read. On a REAL
+  # DBIConnection a failed acquisition MUST NOT proceed unlocked (H3): it raises
+  # `release_lock_unavailable`, which the service maps to 503 + Retry-After.
+  # A non-DBI/test conn skips the lock (lock_state$skipped).
+  lock_names <- vapply(
+    layer_specs,
+    function(spec) .analysis_release_preset_lock_name(spec$analysis_type, spec$parameter_hash),
+    character(1)
+  )
+  lock_state <- lock_acquire(conn, lock_names)
+  if (length(lock_state$acquired %||% character(0)) > 0L) {
+    on.exit(
+      for (lock_name in lock_state$acquired) .analysis_release_release_named_lock(conn, lock_name),
+      add = TRUE
+    )
+  }
+  if (!isTRUE(lock_state$ok)) {
+    stop(.analysis_release_condition(
+      "release_lock_unavailable",
+      "source analysis snapshots are being refreshed; retry the release build shortly"
+    ))
   }
 
   # --- Step 1/1b/1c: load + gate each layer --------------------------------
@@ -272,6 +313,11 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
     loaded, function(e) as.character(e$source_data_version), character(1)
   ))[[1]]
 
+  # M1: DB release provenance — carried on each pinned snapshot manifest. Take a
+  # consistent value across layers (assert equal; else the first non-NA/non-empty).
+  shared_db_release_version <- .analysis_release_consistent_manifest_value(loaded, "db_release_version")
+  shared_db_release_commit <- .analysis_release_consistent_manifest_value(loaded, "db_release_commit")
+
   # For the correlation layer, pin the actual dependency lineage into its entry.
   corr <- loaded[["phenotype_functional_correlations"]]
   if (!is.null(corr)) {
@@ -295,6 +341,21 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
 
     if (isTRUE(layer$has_reproducibility)) {
       repro_bytes <- charToRaw(analysis_reproducibility_decode_raw(entry$reproducibility_bundle))
+      # H2: the LOCKED equality `sha256(reproducibility.json) == reproducibility_hash`
+      # must HOLD, not merely be present — verify the decoded bytes hash to the
+      # stored hash (a corrupt/restored bundle whose bytes drifted from its hash
+      # is rejected, not published).
+      computed_repro_hash <- analysis_release_sha256(repro_bytes)
+      if (!identical(computed_repro_hash, entry$reproducibility_hash)) {
+        stop(.analysis_release_condition(
+          "release_reproducibility_missing",
+          sprintf(
+            "layer %s reproducibility bytes do not hash to the stored reproducibility_hash (bundle corrupt)",
+            at
+          ),
+          analysis_type = at
+        ))
+      }
       artifacts[[length(artifacts) + 1L]] <- .analysis_release_artifact(
         paste0(prefix, "/reproducibility.json"), repro_bytes, "application/json"
       )
@@ -360,6 +421,10 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
     ),
     source = list(
       source_data_version = shared_source_version,
+      db_release = list(
+        version = if (is.na(shared_db_release_version)) NULL else shared_db_release_version,
+        commit = if (is.na(shared_db_release_commit)) NULL else shared_db_release_commit
+      ),
       snapshots = lapply(layer_entries, function(e) {
         list(analysis_type = e$analysis_type, snapshot_id = e$snapshot_id, parameter_hash = e$parameter_hash)
       })
@@ -406,6 +471,8 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
     bundle_sha256 = bundle_sha256,
     bundle_gzip = bundle_gzip,
     source_data_version = shared_source_version,
+    db_release_version = if (is.na(shared_db_release_version)) NULL else shared_db_release_version,
+    db_release_commit = if (is.na(shared_db_release_commit)) NULL else shared_db_release_commit,
     scope_statement = scope_statement,
     license = license %||% "CC-BY-4.0",
     created_by_user_id = created_by
@@ -434,7 +501,33 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
     )
   })
 
-  analysis_release_insert(release_head, members, insert_files, conn)
+  # H3(b): a concurrent identical build can win the insert race (both passed the
+  # step-6 idempotency probe). On a DB duplicate-key error, re-read by release_id:
+  # if the stored content_digest matches, this build is a no-op (idempotent 200);
+  # otherwise it is a genuine identity anomaly (re-raise -> 500).
+  insert_created <- tryCatch(
+    {
+      inserter(release_head, members, insert_files, conn)
+      TRUE
+    },
+    error = function(e) {
+      if (!is.null(conn) && analysis_release_exists(release_id, conn = conn)) {
+        existing <- analysis_release_get(release_id, include_draft = TRUE, conn = conn)
+        if (!is.null(existing) && identical(as.character(existing$content_digest), content_digest)) {
+          return(FALSE) # idempotent: the concurrent winner stored the identical release
+        }
+      }
+      stop(e)
+    }
+  )
+
+  if (!isTRUE(insert_created)) {
+    return(list(
+      release = analysis_release_get(release_id, include_draft = TRUE, conn = conn),
+      created = FALSE
+    ))
+  }
+
   if (isTRUE(publish)) {
     analysis_release_publish(release_id, conn = conn)
   }

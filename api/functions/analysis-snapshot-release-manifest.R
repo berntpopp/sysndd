@@ -47,6 +47,72 @@ analysis_snapshot_release_layers <- function() {
   )
 }
 
+#' Resolve a caller-supplied `layers` request to authoritative REGISTRY entries.
+#'
+#' `layers` in a build request is a SELECTION, never a policy redefinition: each
+#' requested entry is read ONLY for its `analysis_type` (accepting either a bare
+#' string or a `{analysis_type, ...}` object), matched against the authoritative
+#' `analysis_snapshot_release_layers()` registry, and the REGISTRY entry is
+#' returned — so the caller can never override `params`, `files_prefix`, or the
+#' gate-controlling `has_reproducibility` (which would let an Admin skip the hard
+#' coherence / reproducibility gates, or path-traverse via `files_prefix`).
+#'
+#' NULL/absent `requested` -> the full registry unchanged. An unknown or
+#' duplicated `analysis_type` -> 400 (`stop_for_bad_request`).
+#'
+#' @param requested NULL, or a list of selectors (strings or `{analysis_type}`).
+#' @return list of registry layer entries (a subset of the registry, in request
+#'   order).
+analysis_snapshot_release_resolve_layers <- function(requested = NULL) {
+  registry <- analysis_snapshot_release_layers()
+  if (is.null(requested) || length(requested) == 0L) {
+    return(registry)
+  }
+
+  registry_types <- vapply(registry, function(layer) layer$analysis_type, character(1))
+  registry_by_type <- stats::setNames(registry, registry_types)
+
+  seen <- character(0)
+  lapply(requested, function(entry) {
+    analysis_type <- if (is.list(entry)) entry$analysis_type else entry
+    analysis_type <- as.character(analysis_type %||% "")[[1]]
+    if (!nzchar(analysis_type)) {
+      stop_for_bad_request("release layer selector is missing analysis_type")
+    }
+    if (analysis_type %in% seen) {
+      stop_for_bad_request(sprintf("duplicate release layer: %s", analysis_type))
+    }
+    seen <<- c(seen, analysis_type)
+    match <- registry_by_type[[analysis_type]]
+    if (is.null(match)) {
+      stop_for_bad_request(sprintf("unknown release layer: %s", analysis_type))
+    }
+    match
+  })
+}
+
+#' Reject an archive-relative file path that could escape the archive root.
+#'
+#' Defense-in-depth against path traversal: rejects any path that is empty,
+#' absolute (leading `/` or a Windows drive), contains a backslash separator, or
+#' contains a `..` segment. Called for every materialized file path AND every
+#' path written into the tar archive (`analysis_release_build_tar_gz`).
+#'
+#' @param path chr, an archive-relative file path.
+#' @return invisibly TRUE; throws on an unsafe path.
+.analysis_release_assert_safe_path <- function(path) {
+  p <- as.character(path)[[1]]
+  segments <- strsplit(p, "/", fixed = TRUE)[[1]]
+  if (!nzchar(p) ||
+    startsWith(p, "/") ||
+    grepl("^[A-Za-z]:[\\\\/]", p) ||
+    grepl("\\\\", p) ||
+    any(segments == "..")) {
+    stop(sprintf("unsafe release file path: %s", p), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 #' UTF-8 raw bytes of the canonical JSON serialization of `obj`.
 #'
 #' Uses the SAME serializer as the public snapshot API
@@ -88,7 +154,9 @@ analysis_release_sha256 <- function(raw_or_chr) {
 #' @return chr, a 64-character lowercase hex sha256 digest.
 analysis_release_content_digest <- function(layer_entries, source_data_version, manifest_schema_version) {
   analysis_types <- vapply(layer_entries, function(entry) entry$analysis_type, character(1))
-  sorted_entries <- layer_entries[order(analysis_types)]
+  # method = "radix" is locale-invariant: the content identity must not depend on
+  # the builder's LC_COLLATE (de-risks cross-host #574 reproducibility).
+  sorted_entries <- layer_entries[order(analysis_types, method = "radix")]
 
   identity_layers <- lapply(sorted_entries, function(entry) {
     entry[c("analysis_type", "input_hash", "payload_hash", "reproducibility_hash", "dependencies")]
@@ -181,6 +249,11 @@ analysis_release_build_tar_gz <- function(named_raw_list) {
   stopifnot(
     "named_raw_list must be a non-empty named list" = length(paths) > 0 && all(nzchar(paths))
   )
+  # Containment: refuse any path that could escape the archive root before it is
+  # written under the scratch dir with file.path(src_dir, path).
+  for (path in paths) {
+    .analysis_release_assert_safe_path(path)
+  }
   paths <- sort(paths)
 
   src_dir <- tempfile("analysis-release-src-")

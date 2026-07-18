@@ -10,8 +10,62 @@ analysis_release_manifest_test_wd <- getwd()
 setwd(get_api_dir())
 withr::defer(setwd(analysis_release_manifest_test_wd), testthat::teardown_env())
 
+source(file.path("core", "errors.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-release-manifest.R"), local = TRUE)
+
+# --------------------------------------------------------------------------- #
+# B1: `layers` is a SELECTION, never a policy redefinition.
+# --------------------------------------------------------------------------- #
+
+test_that("resolve_layers returns the full registry when nothing is requested", {
+  expect_identical(analysis_snapshot_release_resolve_layers(NULL), analysis_snapshot_release_layers())
+  expect_identical(analysis_snapshot_release_resolve_layers(list()), analysis_snapshot_release_layers())
+})
+
+test_that("resolve_layers ignores caller policy fields and returns REGISTRY entries", {
+  registry <- analysis_snapshot_release_layers()
+  reg_functional <- Filter(function(l) identical(l$analysis_type, "functional_clusters"), registry)[[1]]
+
+  # A hostile selector: tries to disable the reproducibility gate + path-traverse.
+  resolved <- analysis_snapshot_release_resolve_layers(list(
+    list(analysis_type = "functional_clusters", has_reproducibility = FALSE, files_prefix = "../evil", params = list(x = 1))
+  ))
+  expect_length(resolved, 1L)
+  expect_identical(resolved[[1]]$files_prefix, reg_functional$files_prefix)
+  expect_true(resolved[[1]]$has_reproducibility) # registry value, NOT the caller's FALSE
+  expect_identical(resolved[[1]]$params, reg_functional$params)
+})
+
+test_that("resolve_layers accepts a bare-string selector and preserves request order", {
+  resolved <- analysis_snapshot_release_resolve_layers(list("phenotype_clusters", "functional_clusters"))
+  expect_equal(
+    vapply(resolved, function(l) l$analysis_type, character(1)),
+    c("phenotype_clusters", "functional_clusters")
+  )
+})
+
+test_that("resolve_layers rejects an unknown or duplicate analysis_type with 400", {
+  expect_error(
+    analysis_snapshot_release_resolve_layers(list(list(analysis_type = "not_a_layer"))),
+    class = "error_400"
+  )
+  expect_error(
+    analysis_snapshot_release_resolve_layers(list("functional_clusters", "functional_clusters")),
+    class = "error_400"
+  )
+})
+
+test_that("build_tar_gz rejects a path-traversal archive path", {
+  expect_error(
+    analysis_release_build_tar_gz(list("../x.json" = charToRaw("{}"))),
+    "unsafe release file path"
+  )
+  expect_error(
+    analysis_release_build_tar_gz(list("/etc/passwd" = charToRaw("x"))),
+    "unsafe release file path"
+  )
+})
 
 test_that("release manifest module exposes the expected public API", {
   expect_true(is.character(ANALYSIS_RELEASE_MANIFEST_SCHEMA_VERSION))
