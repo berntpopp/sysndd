@@ -37,6 +37,11 @@ library(DBI)
 
 source_api_file("core/errors.R", local = FALSE)
 source_api_file("functions/clustering-gene-universe.R", local = FALSE)
+# The resolver's `is.null(selector)` (NULL/default) branch calls
+# `generate_ndd_hgnc_ids()` directly (it does NOT take `conn` on that path --
+# see clustering-gene-universe.R), so it must be sourced here too, or Test 3
+# below throws "could not find function" instead of exercising the branch.
+source_api_file("functions/analyses-functions.R", local = FALSE)
 
 #' Probe the live `ndd_entity_view` for one real, currently-active category
 #' with >=2 distinct NDD (`ndd_phenotype = 1`) genes.
@@ -144,13 +149,28 @@ test_that("clustering_resolve_category_universe(NULL) matches the default all-ND
     )
 
     # `generate_ndd_hgnc_ids()` (analyses-functions.R) reads the package-global
-    # `pool`, which is not bound in this test process. Rather than mutate a
-    # global for one assertion, we compare directly against the equivalent
-    # SELECT -- exactly what generate_ndd_hgnc_ids() runs and what the
-    # resolver's NULL branch calls it for -- per the D3 brief's own documented
-    # fallback for this case.
+    # `pool` directly -- the resolver's `is.null(selector)` branch does NOT
+    # forward `conn` to it (see clustering-gene-universe.R). Bind the global
+    # `pool` to this transaction's connection for the duration of the call so
+    # the NULL/default branch is exercised for real against the live view,
+    # then restore whatever `pool` held before (mirrors the
+    # test-unit-panels-endpoint.R / test-unit-endpoint-functions.R idiom).
+    old_pool <- if (exists("pool", envir = .GlobalEnv)) get("pool", envir = .GlobalEnv) else NULL
+    assign("pool", conn, envir = .GlobalEnv)
+    withr::defer({
+      if (is.null(old_pool)) {
+        if (exists("pool", envir = .GlobalEnv)) rm(pool, envir = .GlobalEnv)
+      } else {
+        assign("pool", old_pool, envir = .GlobalEnv)
+      }
+    })
+
     resolved <- clustering_resolve_category_universe(NULL, conn = conn)
 
+    # Meaningful, not tautological: compares against a DIRECT query against
+    # the real view, not against calling generate_ndd_hgnc_ids() a second
+    # time -- proves the NULL/default branch resolves the all-NDD universe
+    # correctly, independent of the resolver's own implementation.
     direct <- DBI::dbGetQuery(
       conn,
       "SELECT DISTINCT hgnc_id FROM ndd_entity_view WHERE ndd_phenotype = 1"

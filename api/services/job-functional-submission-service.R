@@ -222,15 +222,16 @@ svc_job_submit_functional_clustering <- function(req, res) {
 
     # Splice the base cache-hit fields with `provenance` (already assembled
     # above as selector/resolved_gene_count/gene_list_sha256/
-    # intended_fingerprint/source_data_version) instead of re-listing the same
-    # five fields as duplicate literals -- keeps the two in lockstep by
-    # construction. `effective_fingerprint` is added last: it is only knowable
-    # from the computed result (`cached_clusters`), so it is not part of the
-    # cheap-path `provenance` list.
+    # intended_fingerprint/source_data_version) via the shared
+    # `clustering_result_meta()` helper (clustering-gene-universe.R) instead of
+    # re-listing the same fields as duplicate literals -- keeps this shape in
+    # lockstep with the worker-run handler's result meta by construction.
+    # `effective_fingerprint` is only knowable from the computed result
+    # (`cached_clusters`), so it is not part of the cheap-path `provenance` list.
     cache_result <- list(
       clusters = cached_clusters,
       categories = categories,
-      meta = c(
+      meta = clustering_result_meta(
         list(
           algorithm = algorithm,
           gene_count = length(genes_list),
@@ -238,7 +239,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
           cache_hit = TRUE
         ),
         provenance,
-        list(effective_fingerprint = list(weight_channel = attr(cached_clusters, "weight_channel")))
+        attr(cached_clusters, "weight_channel")
       )
     )
     cache_request_payload <- list(

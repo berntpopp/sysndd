@@ -36,6 +36,11 @@
   source_api_file("functions/async-job-maintenance-handlers.R", local = FALSE, envir = e)
   source_api_file("functions/async-job-network-layout-handlers.R", local = FALSE, envir = e)
   source_api_file("functions/async-job-analysis-snapshot-handlers.R", local = FALSE, envir = e)
+  # `.async_job_run_clustering()`'s result-`meta` assembly calls
+  # `clustering_result_meta()` (#574 D3 fix wave 1), the shared helper defined
+  # in clustering-gene-universe.R -- source it too or the handler errors with
+  # "could not find function".
+  source_api_file("functions/clustering-gene-universe.R", local = FALSE, envir = e)
   source_api_file("functions/async-job-handlers.R", local = FALSE, envir = e)
 
   # Stub the heavy clustering computation: returns a minimal tibble carrying
@@ -93,6 +98,11 @@ test_that(".async_job_run_clustering echoes payload provenance + effective_finge
   expect_identical(meta$algorithm, "leiden")
   expect_identical(meta$gene_count, 2L)
   expect_identical(meta$cluster_count, 1L)
+  # Shape parity with the cache-hit path's meta (job-functional-submission-
+  # service.R), which always carries cache_hit = TRUE: a worker-run job must
+  # carry cache_hit = FALSE so callers can distinguish the two without an
+  # absent-field check.
+  expect_identical(meta$cache_hit, FALSE)
   expect_identical(meta$selector$kind, "category")
   expect_identical(meta$gene_list_sha256, "abc")
   expect_identical(meta$source_data_version, "srcv-1")

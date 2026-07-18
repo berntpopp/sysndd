@@ -113,21 +113,24 @@
 
   progress("complete", "Functional clustering complete", current = 1, total = 1)
 
-  # Mirror the cache-hit result meta shape (job-functional-submission-service.R):
-  # base fields, then the request's cheap-path `provenance` (selector/
+  # Mirror the cache-hit result meta shape (job-functional-submission-service.R)
+  # via the shared `clustering_result_meta()` helper (clustering-gene-universe.R):
+  # base fields (incl. cache_hit = FALSE, for shape parity with the cache-hit
+  # path), then the request's cheap-path `provenance` (selector/
   # resolved_gene_count/gene_list_sha256/intended_fingerprint/
   # source_data_version) when present, then the `effective_fingerprint` --
   # only knowable now that `clusters` has actually been computed -- so a
   # silent exp+db -> combined-score STRING fallback on a worker-run job is
   # visible in the stored result too, not just a cache hit's.
-  meta <- c(
+  meta <- clustering_result_meta(
     list(
       algorithm = algorithm,
       gene_count = length(genes),
-      cluster_count = nrow(clusters)
+      cluster_count = nrow(clusters),
+      cache_hit = FALSE
     ),
-    if (!is.null(provenance)) provenance else list(),
-    list(effective_fingerprint = list(weight_channel = attr(clusters, "weight_channel")))
+    provenance,
+    attr(clusters, "weight_channel")
   )
 
   list(
