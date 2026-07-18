@@ -182,6 +182,35 @@ make_loader <- function(overrides = list()) {
   function(analysis_type, parameter_hash, conn = NULL) snaps[[analysis_type]]
 }
 
+# A functional cluster snapshot whose manifest validation_json carries the served
+# membership channel + the validation channel (the exp+db-vs-text-mining #514 case).
+make_functional_snap_with_channels <- function(membership_channel, validation_channel) {
+  snap <- make_cluster_snap("functional_clusters", "functional", FUNC_ID, FUNC_HASH)
+  snap$manifest$validation_json <- analysis_snapshot_canonical_json(list(
+    weight_channel = validation_channel,
+    membership_weight_channel = membership_channel
+  ))
+  snap
+}
+
+# A STATEFUL loader: returns the original snapshot on the first read of each
+# preset, then a DIFFERENT {snapshot_id, payload_hash} for `changed_type` on the
+# pre-insert re-read — simulating a concurrent axis refresh mid-build. Proves the
+# pre-insert re-read is a FRESH DB read, not a tautological re-check of `loaded`.
+make_stateful_loader <- function(changed_type = "functional_clusters") {
+  counts <- new.env(parent = emptyenv())
+  base <- make_loader()
+  function(analysis_type, parameter_hash, conn = NULL) {
+    n <- (counts[[analysis_type]] %||% 0L) + 1L
+    counts[[analysis_type]] <- n
+    snap <- base(analysis_type, parameter_hash, conn)
+    if (identical(analysis_type, changed_type) && n >= 2L) {
+      snap$manifest <- make_manifest(analysis_type, 999L, analysis_release_sha256("refreshed-payload"))
+    }
+    snap
+  }
+}
+
 # --------------------------------------------------------------------------- #
 # Gate tests (no DB: they fail before any persistence; conn = NULL).
 # --------------------------------------------------------------------------- #
@@ -264,6 +293,24 @@ test_that("build refuses a correlation snapshot whose dependency lineage is stal
   )
 })
 
+test_that("build refuses a functional snapshot whose served channel != validation channel", {
+  # Real coherence default reads validation_json; membership (combined_score) was
+  # clustered on a different STRING channel than the validation scored (exp+db).
+  loader <- make_loader(list(
+    functional_clusters = make_functional_snap_with_channels(
+      membership_channel = "combined_score", validation_channel = "experimental_database"
+    )
+  ))
+  expect_error(
+    analysis_snapshot_release_build(
+      conn = NULL, publish = TRUE,
+      loader = loader, reproducibility_loader = present_repro_loader,
+      coherence_assert = analysis_snapshot_release_assert_coherent # the REAL default
+    ),
+    class = "release_source_incoherent"
+  )
+})
+
 # --------------------------------------------------------------------------- #
 # Real default coherence seam: pass when internally consistent, throw
 # release_source_incoherent when a visible cluster lacks a stability score.
@@ -281,6 +328,22 @@ test_that("analysis_snapshot_release_assert_coherent gates stored-snapshot integ
     analysis_snapshot_release_assert_coherent(incoherent, "functional"),
     class = "release_source_incoherent"
   )
+})
+
+test_that("analysis_snapshot_release_assert_coherent enforces the functional channel match", {
+  # Both channels present + equal -> passes; present + differ -> throws; absent -> skip.
+  matched <- make_functional_snap_with_channels("experimental_database", "experimental_database")
+  expect_invisible(analysis_snapshot_release_assert_coherent(matched, "functional"))
+
+  mismatched <- make_functional_snap_with_channels("combined_score", "experimental_database")
+  expect_error(
+    analysis_snapshot_release_assert_coherent(mismatched, "functional"),
+    class = "release_source_incoherent"
+  )
+
+  # No validation_json -> channel comparison skipped (older snapshots still pass).
+  no_channels <- make_cluster_snap("functional_clusters", "functional", FUNC_ID, FUNC_HASH)
+  expect_invisible(analysis_snapshot_release_assert_coherent(no_channels, "functional"))
 })
 
 # --------------------------------------------------------------------------- #
@@ -372,6 +435,25 @@ test_that("build is idempotent by content: same sources -> same release_id, no d
 
     published <- analysis_release_list(status = "published", conn = conn)
     expect_identical(1L, length(published))
+  })
+})
+
+test_that("pre-insert re-read catches a source snapshot refreshed mid-build (fresh, not tautological)", {
+  with_release_build_db(function(conn) {
+    # The stateful loader returns snapshot_id 101 on the first functional read but
+    # snapshot_id 999 on the pre-insert re-read: if the re-read were tautological
+    # (re-checking the cached `loaded`) this would build; a FRESH read must catch it.
+    expect_error(
+      analysis_snapshot_release_build(
+        conn = conn, publish = TRUE,
+        loader = make_stateful_loader("functional_clusters"),
+        reproducibility_loader = present_repro_loader,
+        coherence_assert = pass_coherence
+      ),
+      class = "release_dependency_lineage_mismatch"
+    )
+    # nothing was persisted (the mismatch fired before insert):
+    expect_identical(0L, length(analysis_release_list(status = "published", conn = conn)))
   })
 })
 

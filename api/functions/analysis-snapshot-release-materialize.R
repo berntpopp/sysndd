@@ -92,16 +92,38 @@ if (!exists("%||%", mode = "function")) {
 # --------------------------------------------------------------------------- #
 # Default coherence seam (best-effort HARD re-check over the STORED snapshot).
 #
-# NOTE (documented uncertainty): the STORED public snapshot is already the joined
-# membership+validation product, so a fresh membership-vs-validation recompute is
-# not possible from it alone. This default therefore re-checks stored-snapshot
-# INTEGRITY: every visible cluster (by cluster_kind) must appear in the membership
-# AND carry a non-NA stability score (jaccard_mean) in its metadata_json —
-# directly catching the #514 symptom ("real clusters with n/a stability") in
-# stored form. Runs with require_coherence = TRUE (HARD), ignoring the
-# ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE downgrade. The true build-time
-# membership-vs-validation recompute path is exercised by the dev-stack e2e.
+# Two of the three #514 coherence components ARE reconstructable from the stored
+# public snapshot and are re-checked here (HARD, require_coherence = TRUE,
+# ignoring the ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE downgrade):
+#   1. Cluster-set integrity: every visible cluster (by cluster_kind) must appear
+#      in the membership AND carry a non-NA stability score (jaccard_mean) in its
+#      metadata_json — directly catching the #514 symptom ("real clusters with n/a
+#      stability") in stored form.
+#   2. Channel match (functional axis): the served membership channel
+#      (`membership_weight_channel`) and the validation channel (`weight_channel`)
+#      are both persisted in the manifest `validation_json`; when both are present
+#      they must agree, else the served membership was clustered on a different
+#      STRING channel than the validation scored (the #514 text-mining-vs-exp+db
+#      case that slips through when cluster-id labels coincide).
+# The THIRD component — full member-set equality — is genuinely NOT
+# reconstructable: the validator's `reference_members` is a sibling of `partition`
+# and is never persisted. That check is left to the build-time gate; the dev-stack
+# e2e exercises the true membership-vs-validation recompute path.
 # --------------------------------------------------------------------------- #
+
+#' Parse the manifest `validation_json` column to a plain list (or empty list).
+#' @noRd
+.analysis_release_parse_validation_json <- function(manifest) {
+  raw <- suppressWarnings(as.character(.analysis_release_manifest_scalar(manifest, "validation_json", NA_character_)))
+  if (length(raw) == 0L || is.na(raw[[1]]) || !nzchar(raw[[1]])) {
+    return(list())
+  }
+  parsed <- tryCatch(jsonlite::fromJSON(raw[[1]], simplifyVector = TRUE), error = function(e) NULL)
+  if (is.null(parsed) || !is.list(parsed)) {
+    return(list())
+  }
+  parsed
+}
 
 #' @noRd
 .analysis_release_cluster_has_stability <- function(metadata_json) {
@@ -144,9 +166,23 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
   }
   per_cluster <- tibble::tibble(cluster_id = valid_ids)
 
+  # Channel match (functional axis only): both channels live in validation_json;
+  # when both are present they must agree. Absent/older snapshots skip this
+  # comparison (assert_partition_coherent only fires channel_mismatch when BOTH
+  # membership_channel and validation_channel are non-NULL).
+  membership_channel <- NULL
+  validation_channel <- NULL
+  if (identical(kind, "functional")) {
+    validation <- .analysis_release_parse_validation_json(snapshot$manifest)
+    membership_channel <- validation$membership_weight_channel
+    validation_channel <- validation$weight_channel
+  }
+
   tryCatch(
     analysis_snapshot_assert_partition_coherent(
       membership, per_cluster, kind,
+      membership_channel = membership_channel,
+      validation_channel = validation_channel,
       require_coherence = TRUE
     ),
     error = function(e) {

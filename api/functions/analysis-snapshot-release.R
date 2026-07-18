@@ -39,45 +39,107 @@ if (!exists("%||%", mode = "function")) {
 # separate so both stay under the 600-line ceiling). Registered together in
 # bootstrap/load_modules.R (Task A8) and sourced together by the integration test.
 
-ANALYSIS_RELEASE_LOCK_NAME <- "asr:release_build"
+# --------------------------------------------------------------------------- #
+# Advisory locks (TOCTOU): serialize a build against a concurrent axis refresh.
+#
+# The build acquires the SAME per-preset advisory lock the axis refresh holds —
+# `analysis_snapshot_lock_name(analysis_type, parameter_hash)` — so a mid-flight
+# refresh of a source preset blocks the read (MySQL 8 lets one session hold many
+# named GET_LOCKs). Best-effort: engaged only on a real DBIConnection (a
+# pooled/NULL conn cannot hold a session-scoped GET_LOCK meaningfully), and a
+# lock-acquire timeout does NOT abort — the fresh pre-insert re-read below is the
+# invariant that always catches a snapshot that changed under us.
+# --------------------------------------------------------------------------- #
 
-# --------------------------------------------------------------------------- #
-# Advisory lock (TOCTOU): serialize a build against a concurrent axis refresh.
-# Best-effort — engaged only on a real DBIConnection (a pooled/NULL conn cannot
-# hold a session-scoped GET_LOCK meaningfully; the immediate pre-insert lineage
-# re-assert is the invariant that always holds).
-# --------------------------------------------------------------------------- #
+#' Per-preset lock name — identical to the axis-refresh lock so they collide.
+#' @noRd
+.analysis_release_preset_lock_name <- function(analysis_type, parameter_hash) {
+  if (exists("analysis_snapshot_lock_name", mode = "function")) {
+    return(analysis_snapshot_lock_name(analysis_type, parameter_hash))
+  }
+  # Byte-identical fallback for minimal/test envs where the repository file that
+  # defines analysis_snapshot_lock_name() is not sourced.
+  paste0("asr:", substr(as.character(parameter_hash[[1]]), 1, 56))
+}
 
 #' @noRd
-.analysis_release_acquire_lock <- function(conn, timeout_seconds = 10L) {
+.analysis_release_get_lock <- function(conn, name, timeout_seconds = 5L) {
   if (!inherits(conn, "DBIConnection")) {
     return(FALSE)
   }
-  acquired <- tryCatch(
+  tryCatch(
     {
       rows <- DBI::dbGetQuery(
         conn, "SELECT GET_LOCK(?, ?) AS acquired",
-        params = unname(list(ANALYSIS_RELEASE_LOCK_NAME, as.integer(timeout_seconds)))
+        params = unname(list(name, as.integer(timeout_seconds)))
       )
       isTRUE(as.integer(rows$acquired[[1]]) == 1L)
     },
     error = function(e) FALSE
   )
-  acquired
 }
 
 #' @noRd
-.analysis_release_release_lock <- function(conn) {
+.analysis_release_release_named_lock <- function(conn, name) {
   if (!inherits(conn, "DBIConnection")) {
     return(invisible(FALSE))
   }
   tryCatch(
     DBI::dbGetQuery(
       conn, "SELECT RELEASE_LOCK(?) AS released",
-      params = unname(list(ANALYSIS_RELEASE_LOCK_NAME))
+      params = unname(list(name))
     ),
     error = function(e) NULL
   )
+  invisible(TRUE)
+}
+
+#' Fresh pre-insert re-read: re-load each layer via the loader seam (NOT the
+#' cached step-1 `loaded`) and confirm each layer's {snapshot_id, payload_hash}
+#' and the correlation dependencies still equal the pinned lineage. Throws a
+#' classed gate error if a source snapshot changed between the first read and the
+#' insert (the real TOCTOU catch).
+#' @noRd
+.analysis_release_verify_lineage_unchanged <- function(layer_specs, loaded, loader, conn) {
+  for (spec in layer_specs) {
+    at <- spec$analysis_type
+    entry <- loaded[[at]]
+    fresh <- loader(at, spec$parameter_hash, conn = conn)
+    status_code <- if (is.null(fresh)) "snapshot_missing" else (fresh$status_code %||% "snapshot_missing")
+    if (!identical(status_code, "available")) {
+      stop(.analysis_release_condition(
+        "release_snapshot_not_available",
+        sprintf("layer %s became unavailable before insert: %s", at, status_code),
+        analysis_type = at, status_code = status_code
+      ))
+    }
+    fresh_id <- suppressWarnings(as.integer(.analysis_release_manifest_scalar(fresh$manifest, "snapshot_id")))
+    fresh_hash <- as.character(.analysis_release_manifest_scalar(fresh$manifest, "payload_hash", NA_character_))
+    if (!identical(fresh_id, suppressWarnings(as.integer(entry$snapshot_id))) ||
+      !identical(fresh_hash, entry$payload_hash)) {
+      stop(.analysis_release_condition(
+        "release_dependency_lineage_mismatch",
+        sprintf(
+          "layer %s snapshot changed between read and insert (was snapshot_id %s, now %s)",
+          at, as.character(entry$snapshot_id), as.character(fresh_id)
+        ),
+        analysis_type = at
+      ))
+    }
+    if (identical(at, "phenotype_functional_correlations") &&
+      !is.null(loaded[["functional_clusters"]]) && !is.null(loaded[["phenotype_clusters"]])) {
+      fresh_deps <- analysis_snapshot_manifest_dependencies(fresh$manifest)
+      ok <- .analysis_release_dep_matches(fresh_deps, "functional_clusters", loaded[["functional_clusters"]]) &&
+        .analysis_release_dep_matches(fresh_deps, "phenotype_clusters", loaded[["phenotype_clusters"]])
+      if (!ok) {
+        stop(.analysis_release_condition(
+          "release_dependency_lineage_mismatch",
+          "correlation dependency lineage changed between read and insert",
+          analysis_type = at
+        ))
+      }
+    }
+  }
   invisible(TRUE)
 }
 
@@ -107,16 +169,41 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
                                             loader = analysis_snapshot_get_public,
                                             reproducibility_loader = analysis_snapshot_get_reproducibility,
                                             coherence_assert = analysis_snapshot_release_assert_coherent) {
-  # --- Step 0: TOCTOU advisory lock (best-effort) --------------------------
-  if (.analysis_release_acquire_lock(conn)) {
-    on.exit(.analysis_release_release_lock(conn), add = TRUE)
+  # Resolve (analysis_type, parameter_hash) per layer once (pure; validates params).
+  layer_specs <- lapply(layers, function(layer) {
+    at <- as.character(layer$analysis_type[[1]])
+    list(
+      analysis_type = at,
+      layer = layer,
+      parameter_hash = analysis_snapshot_normalize_params(at, layer$params %||% list())$parameter_hash
+    )
+  })
+
+  # --- Step 0: per-preset TOCTOU advisory locks (best-effort) --------------
+  # Acquire the SAME per-preset lock the axis refresh holds, so a mid-flight
+  # refresh of a source preset serializes against this read. Released on exit.
+  if (inherits(conn, "DBIConnection")) {
+    acquired_locks <- character(0)
+    for (spec in layer_specs) {
+      lock_name <- .analysis_release_preset_lock_name(spec$analysis_type, spec$parameter_hash)
+      if (.analysis_release_get_lock(conn, lock_name, 5L)) {
+        acquired_locks <- c(acquired_locks, lock_name)
+      }
+    }
+    if (length(acquired_locks) > 0L) {
+      on.exit(
+        for (lock_name in acquired_locks) .analysis_release_release_named_lock(conn, lock_name),
+        add = TRUE
+      )
+    }
   }
 
   # --- Step 1/1b/1c: load + gate each layer --------------------------------
   loaded <- list()
-  for (layer in layers) {
-    at <- as.character(layer$analysis_type[[1]])
-    parameter_hash <- analysis_snapshot_normalize_params(at, layer$params %||% list())$parameter_hash
+  for (spec in layer_specs) {
+    layer <- spec$layer
+    at <- spec$analysis_type
+    parameter_hash <- spec$parameter_hash
 
     snapshot <- loader(at, parameter_hash, conn = conn)
     status_code <- if (is.null(snapshot)) "snapshot_missing" else (snapshot$status_code %||% "snapshot_missing")
@@ -302,7 +389,11 @@ analysis_snapshot_release_build <- function(layers = analysis_snapshot_release_l
   bundle_sha256 <- analysis_release_sha256(bundle_gzip)
 
   # --- Step 2 (re-assert immediately before insert) ------------------------
+  # A FRESH DB re-read via the loader seam (not the cached `loaded`) so a source
+  # snapshot that was refreshed between the first read and now is caught. Combined
+  # with the per-preset locks above, this closes the TOCTOU window.
   .analysis_release_assert_lineage(loaded)
+  .analysis_release_verify_lineage_unchanged(layer_specs, loaded, loader, conn)
 
   # --- Step 10: persist ----------------------------------------------------
   release_head <- list(
