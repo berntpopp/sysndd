@@ -38,12 +38,13 @@ The fixed public snapshot GET (`GET /api/analysis/functional_clustering`) is **u
 
 ## 4. Semantics (exact)
 
-- **Mutual exclusion**: supplying **both** `genes` and a non-empty `category_filter` → **400** (`stop_for_bad_request`, problem+json). Supplying **neither** → the current all-NDD-genes default (preserved byte-for-byte).
+- **Presence vs value (critical)**: "`category_filter` was supplied" is decided by **raw presence** — `!is.null(req$argsBody$category_filter)` — NOT by whether it normalizes to a non-empty set. A supplied-but-empty selector (`[]`, `["  "]`, `[""]`) is an **error (400)**, never a silent fall-through to the all-NDD default. Only an **absent** field (`NULL`) means "use the default universe".
+- **Mutual exclusion**: `genes` supplied (non-empty) **and** `category_filter` supplied (present, regardless of value) → **400** (`stop_for_bad_request`, problem+json). Supplying **neither** → the current all-NDD-genes default (preserved byte-for-byte).
 - **Entity-level resolution (the correctness core)**: `["Definitive"]` selects **genes with ≥1 NDD entity whose status category is Definitive**. Because `ndd_entity_view` is **one row per entity**, this is achieved by filtering *entity rows* (`filter(category %in% cats, ndd_phenotype == 1)`) then `distinct(hgnc_id)`. A gene with a Definitive entity **and** a Limited entity **is included**; a gene with only a Limited entity **is excluded**. The resolver **must not** use any gene-level aggregated/display category (a per-gene "max category" label). Filtering entity rows makes the entity-level OR semantics automatic — do not group-to-gene before filtering.
 - **Multi-value** `category_filter` = **union**: a gene qualifies if it has ≥1 NDD entity in **any** listed category (`category %in% cats`).
-- **Validation**: every token must be an **active** curated status category (`ndd_entity_status_categories_list` where `is_active = 1`). The allowlist is read **live** from the DB, not hardcoded — so a vocabulary edit via `/ManageMetadata` is honored automatically and no code carries stale category strings. Any unknown/inactive token → 400 listing the offending token(s) and the allowed set.
-- **Empty / contradictory**: an empty `category_filter` array (or one that normalizes to empty) → 400 (`empty selector`). A selector that validates but resolves to **zero** NDD genes, or fewer than the clustering minimum, → 400 (`empty_or_too_small_universe`) rather than submitting a job over an empty graph.
-- **Normalization**: `selector_normalized = sort(unique(trimws(tokens)))`. Used for validation, dedup identity, and provenance.
+- **Validation**: every token must be an **active** curated status category (`ndd_entity_status_categories_list` where `is_active = 1`). The allowlist is read **live** from the DB, not hardcoded — so a vocabulary edit via `/ManageMetadata` is honored automatically and no code carries stale category strings. Any unknown/inactive token → 400 with the offending token(s) **and the allowed set in the error _message_** (see §9 — the RFC-9457 handler serializes `conditionMessage`, not `detail`, so the allowed set must be in the message, not a `detail` field).
+- **Empty / too-small universe**: a supplied selector that normalizes to empty → 400 (`empty selector`). A validated selector that resolves to **fewer than 2** NDD genes (a clustering graph needs ≥2 nodes to have an edge) → 400 (`empty_or_too_small_universe`) rather than submitting a job over an empty/degenerate graph.
+- **Normalization**: `selector_normalized = sort(unique(trimws(tokens)))`, with the absent-vs-empty distinction preserved (absent → `NULL`; supplied-but-empty → `character(0)`, which the resolver rejects). Used for validation, dedup identity, and provenance.
 
 ## 5. Resolver design
 
@@ -60,14 +61,17 @@ The endpoint refactors submit lines 67–76 to call `clustering_resolve_category
 
 ## 6. Provenance & result contract
 
-Compute at submit time and thread into **both** the durable payload and the result `meta`:
+**Selector object (always recorded in provenance):** `selector = { kind: "category" | "explicit" | "all_ndd", category_filter: selector_normalized|null }`. `kind` distinguishes an explicit list that happens to equal the all-NDD universe from a no-arg default (both resolve to the same genes but are different provenance). This object is a **string vector-plus-scalar**, so the plan must persist the full object, not just the character vector.
 
-- `selector`: `{ kind: "category" | "explicit" | "all_ndd", category_filter: selector_normalized|null }`
-- `resolved_gene_count`: distinct HGNC count
-- `gene_list_sha256`: `sha256(canonical(sort(unique(hgnc_ids))))` (sorted for order-independent identity; the issue's "sorted-HGNC-list SHA-256")
-- `analysis_fingerprint`: `{ cluster_logic_version: CLUSTER_LOGIC_VERSION (currently "2026-07-06.510-expdb"), source_data_version: analysis_snapshot_source_data_version(), string_weight_channel: attr(clusters, "weight_channel") (exp+db per #510, or "combined_score" fallback), score_threshold: 400 (the fixed `build_string_subgraph` default), algorithm, seed: 42 (the hard-coded `set.seed(42)` in `gen_string_clust_obj`) }`. These are pulled from the existing constants/attrs — #574 does not change any of them; the seed/threshold/channel stay fixed unless explicitly versioned.
+**Two fingerprints — intended (submit-time) and effective (post-compute)** — because the STRING weight channel is only known *after* clustering (`build_string_subgraph` can fall back exp+db → `combined_score`):
+- `intended_fingerprint` (submit-time, part of the **identity/payload**): `analysis_string_cache_fingerprint()` (the existing helper — encodes `CLUSTER_LOGIC_VERSION` + intended STRING channel + exp+db edge-file identity `size:mtime`) plus `{ score_threshold: 400, algorithm, seed: 42 (the `set.seed(42)` in `gen_string_clust_obj`) }`. This is what the run *asked for*.
+- `effective_fingerprint` (post-compute, in the result `meta` only): `{ weight_channel: attr(clusters, "weight_channel") ("experimental_database" or the "combined_score" fallback), cluster_count, ... }`. This is what the run *actually used* — so a silent exp+db→combined fallback is visible in the recorded provenance, not hidden.
+- `source_data_version`: fetched via a **cached** read of `analysis_snapshot_source_data_version()` **after** the admission guards (see §7/§9 — its backing view runs global counts/joins, so it must not run before capacity/dup admission on this unauthenticated path). On lookup failure, **fail closed** (503 `provenance_unavailable`), never record `NA` (a category sensitivity run must be reproducible or not run).
 
-The interactive clustering job **currently records none** of these (only `{algorithm, gene_count, cluster_count}`; async-job-handlers.R:111-119) — the determinism lives only in the disk memoise key and the separate snapshot manifest. #574 adds them to the result `meta` **and** the durable payload so a category-scoped sensitivity run is self-describing and reproducible. The durable **payload already carries `genes = <resolved list>`**, so the exact gene universe is an immutable, retrievable job-input record (auditable even after curation changes). The result `meta` is extended from `{algorithm, gene_count, cluster_count, cache_hit}` to also carry `selector`, `resolved_gene_count`, `gene_list_sha256`, and `analysis_fingerprint`. **No credentials** enter the payload (#535). Results are **never** activated as `public_ready` snapshots (confirmed: neither submit service touches `analysis_snapshot_*`/`public_ready`; interactive results live in `async_jobs.result_json`, the public snapshot in `analysis_snapshot_manifest` — distinct tables/lifecycles).
+- `resolved_gene_count`: distinct HGNC count.
+- `gene_list_sha256`: `sha256(canonical(sort(unique(hgnc_ids))))` (sorted → order-independent; the issue's "sorted-HGNC-list SHA-256").
+
+The interactive clustering job **currently records none** of this (only `{algorithm, gene_count, cluster_count}`; async-job-handlers.R:111-119). #574 threads the selector + `resolved_gene_count` + `gene_list_sha256` + `intended_fingerprint` into the durable payload (identity), and the result `meta` additionally carries `selector`, `resolved_gene_count`, `gene_list_sha256`, `intended_fingerprint`, `source_data_version`, and the `effective_fingerprint`. The durable **payload already carries `genes = <resolved list>`**, so the exact gene universe is an immutable, retrievable job-input record. **No credentials** (#535). Results are **never** activated as `public_ready` (confirmed: interactive results live in `async_jobs.result_json`, the public snapshot in `analysis_snapshot_manifest` — distinct tables/lifecycles).
 
 ## 7. Dedup identity (the crux — grounded in the actual two-hash mechanism)
 
@@ -78,14 +82,16 @@ There are **two** dedup hashes today, and they key on **different** inputs:
 
 **These two hashes can never be equal** (subset JSON ≠ full-payload JSON), so the preflight's `request_hash` lookup effectively never matches a stored full-payload hash — the **preflight 409 path is largely unreachable for clustering, and real dedup rides the DB `active_request_hash` unique constraint over the full payload.** (Because `category_links` is a constant and `string_id_table` changes only when `non_alt_loci_set` changes, the full-payload hash is in practice a function of `{genes, algorithm}` — so today two *identical* concurrent `{genes, algorithm}` submits dedup via the DB constraint, and the historical/inactive case is intentionally allowed to re-run.) This is a **pre-existing inconsistency**, flagged (§12), not introduced by #574.
 
-**#574 fix (works with the authoritative DB-constraint mechanism):** add the normalized selector to the durable `create_job` payload as `category_filter = selector_normalized`. Then:
-- Two **identical** selectors → identical full payload → identical `active_request_hash` → the second concurrent submit dedups (DB constraint). ✔
-- `["Definitive"]` vs `["Definitive","Moderate"]` that resolve to the **same** genes → **different** `category_filter` in the payload → **different** hash → **two distinct jobs** with honest provenance (Codex MEDIUM finding). ✔
-- A curation change (same selector, different resolved genes) → different `genes` in the payload → new job. ✔
+**#574 fix (works with the authoritative DB-constraint mechanism):** add `category_filter = selector_normalized` to the durable `create_job` payload **only when a category selector was used** (omit it for explicit-`genes` and no-arg submits, so *their* payload/hash stays byte-identical to today — satisfying the AC "existing explicit-list and no-list submissions retain their current results/contracts"). Then:
+- `["Definitive"]` vs `["Definitive","Moderate"]` that resolve to the **same** genes → **different** `category_filter` in the payload → **different** `request_hash` → distinct identities with honest provenance (Codex finding). ✔
+- Two **identical** category submits → identical payload → identical `request_hash`. ✔
+- A curation change (same selector, different resolved genes) → different `genes` → different `request_hash`. ✔
 
-Also pass `category_filter = selector_normalized` to the preflight `check_duplicate_job("clustering", list(genes, algorithm, category_filter))` for **consistency** (so if the preflight/stored-hash scopes are ever unified, the selector is already part of both). The **cache-first** path keeps keying `gen_string_clust_obj_mem(genes, algorithm)` (shared partition cache — identical genes reuse the computed clustering), so distinct-selector jobs over identical genes each get their own **job record + provenance** while sharing the **computed result** (efficient and honest).
+Also pass `category_filter` to the preflight `check_duplicate_job("clustering", list(genes, algorithm, category_filter))` for consistency.
 
-**Regression tests** (integration, DB-backed): two identical `["Definitive"]` concurrent submits → one active job; `["Definitive"]` and a `["Definitive","Moderate"]` that resolves to the same genes → two jobs, each recording its own `category_filter`.
+**What #574 does NOT change (and must not claim):** the existing dedup is **active-only and best-effort**. The preflight subset-hash can't match the stored full-payload hash; on a cache **miss** the DB race handler catches the unique-constraint violation but `create_job()` currently **discards** the `duplicate` signal and returns 202; on a cache **hit**, `store_completed()` writes a *completed* row whose generated `active_request_hash` is `NULL`, so repeated warm-cache submits each create a row. So there is **no HTTP 409 for an identical clustering resubmit** and #574 does not add one — the earlier "identical submit → 409" framing was wrong. #574's contribution is purely that the **identity (`request_hash`) is now selector-aware**, so two different selectors are never conflated. The **cache-first** path keeps keying `gen_string_clust_obj_mem(genes, algorithm)` (shared partition cache), so distinct-selector jobs over identical genes share the **computed result** while recording their own **provenance**.
+
+**Regression tests** (DB-backed): assert `async_job_service_request_hash("clustering", <payload>)` **differs** for `["Definitive"]` vs a same-gene `["Definitive","Moderate"]`, and is **equal** for two identical category payloads; assert an explicit-`genes` and a no-arg submit produce a payload with **no** `category_filter` key (byte-identical identity to pre-#574). Do **not** assert an HTTP 409 on resubmit.
 
 ## 8. Edge cases (enumerated)
 
@@ -95,21 +101,22 @@ Also pass `category_filter = selector_normalized` to the preflight `check_duplic
 4. `["Definitive","Moderate"]` → union of both. (test)
 5. Unknown token `["Definative"]` (typo) → 400 with allowed set. (test)
 6. Inactive category (soft-deleted in the vocabulary) → 400. (test)
-7. `category_filter: []` → 400 empty. `category_filter` with duplicates/whitespace → normalized then validated. (test)
-8. Valid category resolving to 0 genes → 400 empty-universe (no empty-graph job). (test)
-9. Both `genes` and `category_filter` → 400 mutual exclusion. (test)
-10. Neither → all NDD genes, byte-identical to today (same resolver, `NULL` selector). (test — backward compat)
-11. Two identical `["Definitive"]` submits → second 409 (dedup). (test)
-12. `["Definitive"]` and `["Definitive","Moderate"]` resolving to the same genes → **two** jobs, distinct provenance. (test)
+7. `category_filter: []`, `[""]`, `["   "]` → **400 empty** (supplied-but-empty is an error, never the default; presence via `!is.null`). Duplicates/whitespace → normalized then validated. (test)
+8. Valid category resolving to **< 2** NDD genes → 400 `empty_or_too_small_universe` (no empty/degenerate-graph job). (test)
+9. Both `genes` and `category_filter` (present) → 400 mutual exclusion. (test)
+10. Neither → all NDD genes, byte-identical to today (same resolver `NULL` branch → `generate_ndd_hgnc_ids()`; **no `category_filter` key in the payload** → identical `request_hash` to pre-#574). (test — backward compat)
+11. Two identical `["Definitive"]` payloads → **equal** `request_hash` (no HTTP 409 asserted; §7). (test)
+12. `["Definitive"]` and a `["Definitive","Moderate"]` resolving to the same genes → **different** `request_hash` (distinct identity/provenance). (test)
 13. Capacity exceeded → 503 (unchanged). Admission throttle → unchanged.
 14. SQL-injection attempt in a token (`Definitive' OR 1=1`) → rejected by the allowlist (not in active vocabulary) → 400; never reaches SQL as a literal (dbplyr `%in%` parameterization is the second layer). (test)
 15. `algorithm` invalid → coerced to `leiden` (unchanged); dedup identity uses the coerced value.
 
 ## 9. Error contract
 
-- Category validation / mutual-exclusion / empty-universe → **400 problem+json** via `stop_for_bad_request` (routed through `mount_endpoint`'s RFC 9457 handler). This is the documented repo standard; the new validation path adopts it even though the pre-existing dup/capacity responses use direct `res$status` plain-JSON bodies (those are left as-is — not in scope to refactor).
-- Duplicate → **409** direct-status (unchanged pattern).
-- Capacity → **503** direct-status (unchanged).
+- Category validation / mutual-exclusion / empty-universe → **400 problem+json** via `stop_for_bad_request`. **The error handler (`core/filters.R`) serializes `conditionMessage(err)`, not the `detail` field** — so the offending tokens **and the allowed active-category set must be in the `stop_for_bad_request` _message_ string**, not a `detail` arg (verify against `filters.R` at implementation; this is the same class of trap as the #573 problem+json detail handling). Confirm the jobs sub-router is wrapped by `mount_endpoint()` so a thrown `error_400` becomes problem+json and not an opaque 500 (if it is not, the new 400 path must set `res$status <- 400` + a plain-JSON body to match the endpoint's existing direct-status style).
+- **Provenance unavailable** (source-data-version lookup fails) → **503** `provenance_unavailable`, fetched only **after** admission (throttle → capacity → dup) so the expensive backing view is never run for a request that would be rejected anyway.
+- Duplicate → **409** direct-status **only if the (largely unreachable) preflight matches** (§7) — unchanged, not relied upon.
+- Capacity → **503** direct-status (unchanged). Per-caller admission throttle (unchanged) runs first.
 
 ## 10. Non-goals / out of scope
 
