@@ -248,7 +248,10 @@ test_that("public analysis-release read routes serve a published release and hid
   manifest_res <- release_endpoint_fake_res()
   manifest_bytes <- manifest_handler(release_id = TEST_RELEASE_ID, res = manifest_res)
   expect_equal(analysis_release_sha256(manifest_bytes), head$manifest_sha256)
-  expect_equal(manifest_res$headers[["Content-Type"]], "application/json")
+  # Content-Type (application/json) is set by the octet serializer annotation,
+  # not a manual header (see the duplicate-header regression guard below); the
+  # handler-extraction harness does not run the serializer, so the live
+  # dev-stack check + the static guard verify the header.
 
   manifest_draft_err <- tryCatch(
     manifest_handler(release_id = TEST_DRAFT_RELEASE_ID, res = release_endpoint_fake_res()),
@@ -269,7 +272,10 @@ test_that("public analysis-release read routes serve a published release and hid
   # the FILE's own content_sha256 (matches the manifest files[] entry),
   # NOT the layer's snapshot payload_hash.
   expect_equal(analysis_release_sha256(file_bytes), payload_file$content_sha256)
-  expect_equal(file_res$headers[["Content-Type"]], "application/json")
+  # The per-file route sets its (per-file) media type by assigning a dynamic
+  # octet serializer to res$serializer (avoiding a duplicate Content-Type); the
+  # handler-extraction harness can at least confirm the handler installed it.
+  expect_true(is.function(file_res$serializer))
 
   # the brief's own worked path example (functional_clusters/reproducibility.json):
   # same arbitrary-path -> own content_sha256 mechanism, a different file.
@@ -328,4 +334,27 @@ test_that("releases/latest is declared before releases/<release_id> (plumber dec
   expect_length(latest_idx, 1L)
   expect_length(detail_idx, 1L)
   expect_lt(latest_idx[[1L]], detail_idx[[1L]])
+})
+
+test_that("byte-serving release routes set Content-Type via the serializer, never a duplicate manual header", {
+  # Regression guard (found in live dev-stack verification): combining
+  # `@serializer octet` with a manual res$setHeader("Content-Type", ...) emits
+  # TWO Content-Type headers (the serializer's application/octet-stream + the
+  # manual one). The routes must instead set the type THROUGH the serializer:
+  # a static `@serializer octet list(type = ...)` for manifest.json/bundle, and
+  # a dynamic res$serializer for the per-file route. The handler-extraction
+  # tests above cannot observe serializer output, so this scans the source.
+  src <- readLines(file.path("endpoints", "analysis_endpoints.R"), warn = FALSE)
+  joined <- paste(src, collapse = "\n")
+
+  # No release route may manually set Content-Type (it duplicates the serializer's).
+  expect_false(
+    any(grepl("setHeader\\(\\s*[\"']Content-Type[\"']", src)),
+    info = "a release byte-route sets Content-Type manually -> duplicate header"
+  )
+  # manifest.json + bundle carry the type on the serializer annotation.
+  expect_true(grepl('@serializer octet list(type = "application/json")', joined, fixed = TRUE))
+  expect_true(grepl('@serializer octet list(type = "application/gzip")', joined, fixed = TRUE))
+  # The per-file route sets its (per-file) type dynamically on res$serializer.
+  expect_true(grepl("res$serializer <- plumber::serializer_octet(type = content$media_type)", joined, fixed = TRUE))
 })

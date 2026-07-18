@@ -470,7 +470,7 @@ function(release_id, res) {
 #* `sha256(bytes) == manifest_sha256` on the release head.
 #*
 #* @tag analysis
-#* @serializer octet
+#* @serializer octet list(type = "application/json")
 #* @param release_id Release id.
 #*
 #* @response 200 OK. Raw manifest.json bytes, Content-Type application/json.
@@ -479,7 +479,8 @@ function(release_id, res) {
 #* @get releases/<release_id>/manifest.json
 function(release_id, res) {
   content <- svc_release_manifest(release_id, conn = pool)
-  res$setHeader("Content-Type", content$media_type)
+  # Content-Type is set by the octet serializer (application/json) -- do NOT also
+  # res$setHeader() it, which would emit a duplicate Content-Type header.
   content$bytes
 }
 
@@ -503,7 +504,10 @@ function(release_id, res) {
 function(release_id, path = "", res) {
   file_path <- analysis_endpoint_scalar(path, "")
   content <- svc_release_file(release_id, file_path, conn = pool)
-  res$setHeader("Content-Type", content$media_type)
+  # The stored media type is per-file (usually application/json), so set the
+  # serializer's type dynamically rather than res$setHeader()-ing a second
+  # Content-Type alongside the octet serializer's default.
+  res$serializer <- plumber::serializer_octet(type = content$media_type)
   content$bytes
 }
 
@@ -511,7 +515,7 @@ function(release_id, path = "", res) {
 #* Download a published release's whole archive (`bundle.tar.gz`) verbatim
 #*
 #* @tag analysis
-#* @serializer octet
+#* @serializer octet list(type = "application/gzip")
 #* @param release_id Release id.
 #*
 #* @response 200 OK. Raw gzip tar bytes, served as an attachment download.
@@ -520,7 +524,8 @@ function(release_id, path = "", res) {
 #* @get releases/<release_id>/bundle
 function(release_id, res) {
   bundle <- svc_release_bundle(release_id, conn = pool)
-  res$setHeader("Content-Type", "application/gzip")
+  # Content-Type (application/gzip) is set by the octet serializer -- do NOT also
+  # res$setHeader() it (duplicate header). Content-Disposition/Length are distinct.
   res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', bundle$filename))
   res$setHeader("Content-Length", as.character(length(bundle$bytes)))
   bundle$bytes
