@@ -34,7 +34,7 @@ Two companions ride along because the user grouped all three issues and each is 
 
 ### 2.3 Reusable building blocks
 
-- **Byte-streaming download**: `backup_endpoints.R` + `services/backup-endpoint-service.R` (`@serializer octet`, `Content-Type`, `Content-Disposition: attachment`, `Content-Length`, path-traversal guard, `readBin` stream). Template for `/bundle` and `/files/<path>`.
+- **Byte-streaming download**: `backup_endpoints.R` + `services/backup-endpoint-service.R` (`@serializer octet`, `Content-Type`, `Content-Disposition: attachment`, `Content-Length`, path-traversal guard, `readBin` stream). Template for `/bundle` and `/file?path=`.
 - **Checksum helpers**: `digest::digest(..., algo="sha256", serialize=FALSE)` (repo-wide), `digest::digest(file=path, algo="sha256")` (`nddscore-release-source.R:224`).
 - **Zenodo download/verify precedent (consumer side)**: `nddscore-release-source.R` (`nddscore_fetch_zenodo_metadata`, `nddscore_verify_archive_checksum`, `nddscore_extract_and_verify` per-file SHA-256). The producer script mirrors the `../nddscore` upload flow.
 - **`mount_endpoint()`** (RFC 9457 problem+json), `require_role()`, `with_test_db_transaction()`, cheap-route / external-budget static guards.
@@ -85,7 +85,7 @@ Three tables (mirroring `nddscore_release` conventions: `utf8mb4_unicode_ci`, ge
 ### `analysis_snapshot_release` (head)
 | column | type | notes |
 |---|---|---|
-| `release_id` | VARCHAR(64) PK | content-addressed, `asr_<content_digest[:12]>` |
+| `release_id` | VARCHAR(64) PK | content-addressed, `asr_<content_digest[:16]>` (full 64-char `content_digest` also stored) |
 | `release_version` | VARCHAR(32) | human date-version, e.g. `2026.07.18` (metadata, not in hash) |
 | `title` | VARCHAR(255) | |
 | `status` | ENUM('draft','published') NOT NULL DEFAULT 'draft' | drafts are admin-only; publishing exposes publicly and freezes |
@@ -122,13 +122,13 @@ Keys: PK `release_id`; `KEY (status, created_at)`; `KEY (content_digest)`. No si
 - `phenotype_clusters` (`{}`) → files `phenotype_clusters/payload.json`, `phenotype_clusters/reproducibility.json`
 - `phenotype_functional_correlations` (`{algorithm:"leiden"}`) → file `phenotype_functional_correlations/payload.json` (+ its dependency lineage on the two cluster layers)
 
-**File set per release** (all canonical JSON via `analysis_snapshot_canonical_json`, deterministic bytes):
-- per-layer `payload.json` = the **complete** snapshot payload, i.e. the exact object the snapshot's `payload_hash` is computed over (`payload` minus `raw`/`partition_validation`/`reproducibility`), serialized with `analysis_snapshot_canonical_json`. This is the full result set (all clusters/members/correlation rows), **not** a paginated GET page. Consequence: `content_sha256(payload.json) == payload_hash` of the pinned snapshot — a direct cryptographic tie between the release file and the live snapshot manifest. (Build reads the stored/reconstructed payload, not the paginated public endpoint.)
-- per-cluster-layer `reproducibility.json` = the decoded reproducibility bundle (`analysis_reproducibility_decode`); `content_sha256(reproducibility.json)` relates to the snapshot's `reproducibility_hash` (same canonical serializer as `analysis_reproducibility_canonical_json`; the plan pins whichever serializer keeps the equality exact).
+**File set per release** (canonical JSON; each file carries its own SHA-256):
+- per-layer `payload.json` = the **complete** stored snapshot payload rows returned by `analysis_snapshot_get_public()` (all clusters + members, or correlation rows, or network nodes + edges — **not** a paginated GET page), serialized with `analysis_snapshot_canonical_json`. Its `content_sha256` is the **file's own hash** (verifies the download). It is **not** equal to the snapshot's `payload_hash`: `payload_hash` is computed over the in-memory build object *before* DB storage, and the child tables round-trip through `DECIMAL(8,7)`/`DECIMAL(8,5)` columns, so a reconstructed byte-for-byte match is neither guaranteed nor attempted. **Instead, `payload_hash` (and `input_hash`, `snapshot_id`) are recorded in the manifest as the cross-checkable lineage anchor** — a client verifies the release pins the exact snapshot the public API served by comparing them to the live `/api/analysis/*` `meta.snapshot.{payload_hash,input_hash,snapshot_id}`.
+- per-cluster-layer `reproducibility.json` = the **exact pre-gzip canonical bytes** of the stored bundle. **Critical:** do **not** use `analysis_reproducibility_decode()` — it runs `jsonlite::fromJSON()` and returns a *parsed R object*; re-serializing it drops the bundle's `digits = NA` full-precision contract (`analysis-reproducibility.R:31`) and the SHA-256 no longer matches. Instead take the raw string with `memDecompress(bundle_gzip_json, type = "gzip", asChar = TRUE)` (add a small `analysis_reproducibility_decode_raw()` helper) and store/hash **those bytes verbatim**. Then the equality holds exactly: `content_sha256(reproducibility.json) == reproducibility_hash`. This is the scientific-reproduction anchor (recompute modularity/silhouette from it).
 - `README.md` = generated human scope + verification instructions
 - `manifest.json` = the release manifest (below)
 - `checksums.sha256` = `"<sha256>  <path>"` for every file **except `checksums.sha256` itself** (includes `manifest.json`)
-- `bundle.tar.gz` = deterministic tar (sorted entries, mtime=0, uid/gid=0, mode 0644) of all the above, gzipped; built once, stored on the release row, served verbatim — so its own SHA-256 is fixed and citeable.
+- `bundle.tar.gz` = a tar of all the above, gzipped; **built once at release time, stored on the release row, and served verbatim**, so `bundle_sha256` is the hash of the stored bytes and is trivially fixed/citeable. Byte-level *rebuild* determinism (tar mtime/order, gzip header timestamp via `memCompress`) is **not required and not relied upon**: the verification anchors are the per-file `checksums.sha256` + `manifest.json`, which a client recomputes per file. (Build with sorted entries + fixed mtime as a courtesy, but correctness does not depend on it.)
 
 **`manifest.json` (the verifiability core):**
 ```jsonc
@@ -166,19 +166,22 @@ Keys: PK `release_id`; `KEY (status, created_at)`; `KEY (content_digest)`. No si
 ```
 - `files[]` excludes `manifest.json` and `checksums.sha256` (Frictionless-style, mirrors `../nddscore` `datapackage.json`).
 - `manifest_sha256` (row) = SHA-256 of the exact `manifest.json` bytes — served in LIST/HEAD so a client can verify the manifest itself.
-- `content_digest` = `sha256(canonical({ manifest_schema_version, source_data_version, layers:[sorted {analysis_type, input_hash, payload_hash, reproducibility_hash, dependencies}] }))`. **Excludes `created_at`, `title`, and DOI** so identity is a pure function of scientific content. `release_id = "asr_" + content_digest[:12]`.
+- `content_digest` = `sha256(canonical({ manifest_schema_version, source_data_version, layers:[sorted {analysis_type, input_hash, payload_hash, reproducibility_hash, dependencies}] }))`. **Excludes `created_at`, `title`, and DOI** so identity is a pure function of scientific content. The full 64-char `content_digest` is the true identity and is stored + in the manifest; `release_id = "asr_" + content_digest[:16]` (64-bit readable handle). Insert is guarded: if a row with that `release_id` exists but its stored `content_digest` differs (astronomically unlikely at 64 bits), the build fails loudly rather than colliding.
 
 ## 7. Build path — `analysis_snapshot_release_build()` (admin, synchronous, DB-only)
 
 New `api/functions/analysis-snapshot-release.R` (registered in `bootstrap/load_modules.R`) + service `api/services/analysis-snapshot-release-service.R`.
 
-1. **Load + gate each layer**: for each registry layer, `analysis_snapshot_get_public(analysis_type, parameter_hash)` and require `status_code == "available"`. This reuses (a) the coherence gate for clusters and (b) the #571 dependency gate for the correlation. Any `snapshot_missing | snapshot_stale | source_version_mismatch | schema_version_mismatch | dependency_snapshot_mismatch` → **reject build** with HTTP 409 + that exact reason.
-2. **Cross-layer coherence** (belt-and-suspenders): assert all layers share one `source_data_version`; assert the correlation's stored `dependencies` point at exactly the pinned functional + phenotype `snapshot_id`+`payload_hash`. Mismatch → 409.
-3. **Materialize files**: copy each served payload + decoded reproducibility bundle to canonical-JSON bytes; generate `README.md`; compute per-file `content_sha256` + `byte_size`.
-4. **Assemble manifest** (§6), compute `content_digest` → `release_id`. If a release with that `release_id` already exists → 409 `release_already_exists` (idempotent content-addressing; returns the existing head).
-5. **Build `checksums.sha256`** and the deterministic **`bundle.tar.gz`**; compute `manifest_sha256`, `bundle_sha256`.
-6. **Persist in one transaction**: insert release (status per `publish` flag), members, files. `DBI::dbBind` with `unname()`; blobs bound as `list(raw)`.
-7. Return the release head. **No external calls, no clustering recompute, no LLM, no cache writes.**
+1. **Load + gate each layer** under one read connection: for each registry layer, `analysis_snapshot_get_public(analysis_type, parameter_hash, conn)` and require `status_code == "available"`. Note `status_code` only checks **freshness/schema/source-version** (+ the #571 dependency gate for the correlation) — it does **not** re-run the #514 coherence gate, and that gate can be downgraded to a warning via `ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE=false` at snapshot build. So `available` is necessary but **not** proof of coherence. Any `snapshot_missing | snapshot_stale | source_version_mismatch | schema_version_mismatch | dependency_snapshot_mismatch` → **reject build** with **HTTP 400** (`stop_for_bad_request`) whose `detail` names the failing `analysis_type` + `status_code`. (The existing error contract has only `error_400/401/403/404/500`; a "sources not ready" rejection is a 400, not a new 409 class — no error-handler change.)
+2. **Hard coherence re-check (per cluster layer)**: independently re-assert partition coherence on the loaded snapshot with `analysis_snapshot_assert_partition_coherent(..., require_coherence = TRUE)` (membership cluster-set == validation cluster-set, channel match, per-cluster member-set equality), **ignoring** the env downgrade, so an incoherent-but-`public_ready` snapshot can never be frozen into a release. Failure → 400 `release_source_incoherent`.
+3. **Reproducibility presence (per cluster layer)**: require a stored reproducibility bundle (`analysis_snapshot_get_reproducibility(snapshot_id)` non-empty with a `reproducibility_hash`). The snapshot builder makes the bundle **best-effort** (a failed build returns `NULL` yet the snapshot still activates; `reproducibility_hash` is nullable), but the release makes `reproducibility.json` mandatory — so a missing bundle → 400 `release_reproducibility_missing`, never a crash or a non-reproducible release.
+4. **Cross-layer coherence** (belt-and-suspenders): assert all layers share one `source_data_version`; assert the correlation's stored `dependencies` point at exactly the pinned functional + phenotype `snapshot_id`+`payload_hash`. Mismatch → 400 with detail.
+5. **TOCTOU guard**: take the standard analysis-snapshot advisory lock (or read all layers within a single consistent transaction/`REPEATABLE READ` snapshot) so a concurrent axis refresh cannot swap an active snapshot between the per-layer reads and the dependency check. Re-assert the correlation's active dependencies immediately before insert.
+6. **Materialize files**: canonical-JSON of each layer's stored payload rows (own `content_sha256`) + the verbatim raw reproducibility bytes (`memDecompress(..., asChar = TRUE)`, **not** the parsing `decode()`); generate `README.md`; compute per-file `content_sha256` + `byte_size`.
+7. **Assemble manifest** (§6), compute `content_digest` → `release_id`. If a release with that `release_id` already exists → **idempotent HTTP 200** returning the existing head (content-addressed create is idempotent; identical sources never duplicate). A same-id row with a *different* stored `content_digest` (impossible short of a 64-bit collision) → 500 to surface the anomaly.
+8. **Build `checksums.sha256`** (over all files incl. `manifest.json`, excl. `checksums.sha256` itself) and the **`bundle.tar.gz`** (built once, stored); compute `manifest_sha256`, `bundle_sha256`.
+9. **Persist in one transaction**: insert release (status per `publish` flag), members, files. `DBI::dbBind` with `unname()`; blobs bound as `list(raw)`. Blob size is a few MB gzipped — well within `max_allowed_packet` (verify the dev value ≥ 16 MB; the migration/docs note the requirement).
+10. Return the release head. **No external calls, no clustering recompute, no LLM, no cache writes.**
 
 `POST /api/admin/analysis/releases` body: `{ layers?: [...], title?, scope_statement?, license?, publish?: true }` (default `publish:true`; `false` stages a draft for review before a Zenodo run). Administrator-gated.
 
@@ -192,7 +195,7 @@ Mounted in the same sub-router as the reproducibility routes (Plumber cannot mou
 | `GET /releases/latest` | newest published release head (same shape as detail) |
 | `GET /releases/<release_id>` | release head + full manifest object |
 | `GET /releases/<release_id>/manifest.json` | the **exact stored** `manifest.json` bytes (Content-Type `application/json`), so `sha256(bytes)==manifest_sha256` |
-| `GET /releases/<release_id>/files/<path>` | one content-addressed file; decompress `content_gzip`; `media_type`; path looked up by exact `(release_id, file_path)` — **anything not in the table → 404** (no filesystem, no traversal surface) |
+| `GET /releases/<release_id>/file?path=<file_path>` | one content-addressed file; decompress `content_gzip`; `media_type`; resolved by **exact `(release_id, file_path)` DB lookup** — **anything not in the table → 404** (no filesystem, no traversal surface). A **query param** is used, not a nested `<path>` segment: Plumber 1.3.2 only supports named, typed, single-segment path params (`<id>`, `<id:int>`) — `<path:.*>` does not exist and would 404 every nested file URL. The manifest's `files[].path` values are the caller's index into this route. |
 | `GET /releases/<release_id>/bundle` | `@serializer octet`, `Content-Disposition: attachment; filename="<release_id>.tar.gz"`, stream `bundle_gzip` verbatim (backup-endpoint template) |
 
 - Unknown or `draft` release → 404 (drafts never public).
@@ -209,7 +212,7 @@ Mounted in the same sub-router as the reproducibility routes (Plumber cannot mou
 
 | Route | Purpose |
 |---|---|
-| `POST /releases` | build (+optionally publish) from current coherent snapshots → 201 head / 409 reason |
+| `POST /releases` | build (+optionally publish) from current coherent snapshots → 201 head (new) / 200 head (idempotent, identical content) / 400 with the failing-layer reason |
 | `GET /releases` | list all incl. drafts + status |
 | `GET /releases/<id>` | admin detail (incl. draft) |
 | `POST /releases/<id>/publish` | publish a draft |
@@ -299,7 +302,7 @@ No new code (PR #571 is on `master`). The plan sequences this **before** the fir
 
 ## 14. Testing & hardening strategy
 
-- **R unit** (`api/tests/testthat/`): manifest determinism (same snapshots → same `content_digest`/`release_id`/`manifest.json` bytes); per-file checksum correctness; canonical-JSON byte-equality with served payloads; immutability (a rebuild after a snapshot refresh mints a new release; the prior release stays byte-identical); **rejection** of incoherent / stale / `source_version_mismatch` / `dependency_snapshot_mismatch` sources with the specific reason; `release_already_exists` idempotency; `latest` route ordering; `/files/<path>` unknown-path → 404 (no traversal); draft never public; DOI patch stays outside the content hash.
+- **R unit** (`api/tests/testthat/`): manifest determinism (same snapshots → same `content_digest`/`release_id`/`manifest.json` bytes); per-file `content_sha256` correctness; `content_sha256(reproducibility.json) == reproducibility_hash` (exact); `payload_hash`/`input_hash`/`snapshot_id` recorded as manifest lineage anchors matching the live `meta.snapshot`; immutability (a rebuild after a snapshot refresh mints a new release; the prior release stays byte-identical); **400 rejection** of incoherent / stale / `source_version_mismatch` / `schema_version_mismatch` / `dependency_snapshot_mismatch` sources with the specific reason; **idempotent 200** on an identical rebuild (no duplicate row); `latest` route ordering; `/file?path=` unknown-path → 404 (exact PK lookup, no traversal); reproducibility-bundle-missing source → 400; incoherent source (hard re-check) → 400; draft never public; DOI patch stays outside the content hash.
 - **Integration** (`with_test_db_transaction()`): build → list → fetch manifest/files/bundle → verify checksums via the router; admin auth (public write routes forbidden; drafts hidden from public).
 - **Static guards**: `mount_endpoint` wrapping (problem+json) for the new sub-routers; extend cheap-route/external-budget isolation guards to the release routes (DB-only, no external fetcher); bound-parameter SQL only (no interpolation of `<release_id>`/`<path>`); confirm release payloads contain only approved-public snapshot data.
 - **#574**: the unit + integration coverage in §13.
@@ -338,7 +341,7 @@ Each slice = its own branch + PR + Codex diff review, following the repo's plan�
 
 | #573 AC | Design element |
 |---|---|
-| Admin creates a release only from coherent, public-ready snapshots | §7 build gate (coherence + #571 dependency + staleness), 409 on failure |
+| Admin creates a release only from coherent, public-ready snapshots | §7 build gate (public-ready + staleness + schema + hard coherence re-check + mandatory reproducibility + #571 dependency + TOCTOU lock), 400 on failure |
 | Public list / manifest / immutable download via stable URLs | §8 routes |
 | Manifest has enough lineage + checksums to verify every file locally | §6 manifest + `checksums.sha256` + reproducibility hashes |
 | Later refresh leaves prior release byte-identical + retrievable | §5 frozen copies, §9 no-prune |
