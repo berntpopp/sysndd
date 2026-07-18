@@ -89,12 +89,28 @@ svc_release_build <- function(res,
 
   result <- tryCatch(
     do.call(analysis_snapshot_release_build, build_args),
+    # `release_lock_unavailable` (H3): sources are mid-refresh — a transient 503
+    # with Retry-After, NOT a 400. Handled here (like the public capacity guard)
+    # via a direct res mutation because there is no 5xx classed error helper.
+    release_lock_unavailable = function(e) {
+      res$status <- 503L
+      res$setHeader("Retry-After", "5")
+      list(
+        error = "release_lock_unavailable",
+        message = conditionMessage(e)
+      )
+    },
     release_snapshot_not_available = function(e) stop_for_bad_request(conditionMessage(e)),
     release_source_incoherent = function(e) stop_for_bad_request(conditionMessage(e)),
     release_reproducibility_missing = function(e) stop_for_bad_request(conditionMessage(e)),
     release_source_version_mismatch = function(e) stop_for_bad_request(conditionMessage(e)),
     release_dependency_lineage_mismatch = function(e) stop_for_bad_request(conditionMessage(e))
   )
+
+  # The 503 handler already set res$status + body; return it verbatim.
+  if (!is.null(res$status) && identical(as.integer(res$status), 503L)) {
+    return(result)
+  }
 
   res$status <- if (isTRUE(result$created)) 201L else 200L
   result$release
@@ -169,13 +185,41 @@ svc_release_delete_draft <- function(release_id, conn = NULL) {
 
 #' List published releases (newest first).
 #'
-#' @param limit,offset Pagination.
+#' `limit` is clamped to `[1, 100]` and `offset` to `>= 0` (L1: public
+#' pagination must never be unbounded or negative — this is the single source of
+#' the clamp). Each returned head is projected to the PUBLIC allowlist
+#' (`analysis_release_public_head`) so operational columns never leak.
+#'
+#' @param limit,offset Pagination (clamped).
 #' @param conn A real DBIConnection.
-#' @return Whatever shape `analysis_release_list()` returns (a list of
-#'   release-head-plus-layers entries); never includes drafts.
+#' @return A list of public-projected release-head-plus-layers entries; never
+#'   includes drafts.
 #' @export
 svc_release_list <- function(limit = 50, offset = 0, conn = NULL) {
-  analysis_release_list(status = "published", limit = limit, offset = offset, conn = conn)
+  limit <- svc_release_clamp_limit(limit)
+  offset <- svc_release_clamp_offset(offset)
+  rows <- analysis_release_list(status = "published", limit = limit, offset = offset, conn = conn)
+  lapply(rows, analysis_release_public_head)
+}
+
+#' Clamp a public list `limit` into `[1, 100]` (non-numeric -> default 50).
+#' @noRd
+svc_release_clamp_limit <- function(limit) {
+  value <- suppressWarnings(as.integer(limit))
+  if (length(value) == 0L || is.na(value)) {
+    value <- 50L
+  }
+  min(100L, max(1L, value))
+}
+
+#' Clamp a public list `offset` to `>= 0` (non-numeric -> 0).
+#' @noRd
+svc_release_clamp_offset <- function(offset) {
+  value <- suppressWarnings(as.integer(offset))
+  if (length(value) == 0L || is.na(value)) {
+    value <- 0L
+  }
+  max(0L, value)
 }
 
 #' Fetch one published release's head + parsed manifest.
@@ -193,7 +237,7 @@ svc_release_get <- function(release_id, conn = NULL) {
   if (is.null(head)) {
     stop_for_not_found("Release not found")
   }
-  head
+  analysis_release_public_head(head)
 }
 
 #' Fetch a published release's stored `manifest.json` file.

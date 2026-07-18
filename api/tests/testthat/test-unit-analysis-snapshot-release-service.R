@@ -32,6 +32,10 @@ analysis_release_get_bundle <- function(...) stop("stub: analysis_release_get_bu
 analysis_release_publish <- function(...) stop("stub: analysis_release_publish not mocked")
 analysis_release_set_doi <- function(...) stop("stub: analysis_release_set_doi not mocked")
 analysis_release_delete_draft <- function(...) stop("stub: analysis_release_delete_draft not mocked")
+# Identity stand-in for the PUBLIC projection: the REAL allowlist behaviour is
+# covered against the real function in the repository integration test; here the
+# service tests only verify svc_release_list/get ROUTE through it.
+analysis_release_public_head <- function(head) head
 
 source_api_file("services/analysis-snapshot-release-service.R", local = FALSE)
 
@@ -65,10 +69,16 @@ release_condition <- function(class_name, message) {
   )
 }
 
-#' Minimal Plumber-response stand-in: just needs a settable `$status`.
+#' Minimal Plumber-response stand-in: a settable `$status` + a `setHeader()`
+#' that records headers (needed for the 503 + Retry-After lock path).
 release_fake_res <- function() {
   res <- new.env()
   res$status <- NULL
+  res$headers <- list()
+  res$setHeader <- function(name, value) {
+    res$headers[[name]] <- value
+    invisible(NULL)
+  }
   res
 }
 
@@ -208,6 +218,22 @@ test_that("build maps release_dependency_lineage_mismatch to a 400 carrying the 
   )
 })
 
+test_that("build maps release_lock_unavailable to a 503 + Retry-After (NOT a 400)", {
+  res <- release_fake_res()
+  with_release_mocks(
+    list(analysis_snapshot_release_build = function(...) {
+      stop(release_condition("release_lock_unavailable", "sources are being refreshed; retry shortly"))
+    }),
+    {
+      out <- svc_release_build(res)
+      expect_equal(res$status, 503L)
+      expect_equal(res$headers[["Retry-After"]], "5")
+      expect_equal(out$error, "release_lock_unavailable")
+      expect_match(out$message, "refreshed", fixed = TRUE)
+    }
+  )
+})
+
 test_that("build lets a non-release_* error propagate unmapped (500 path)", {
   res <- release_fake_res()
   with_release_mocks(
@@ -341,7 +367,7 @@ test_that("delete_draft: draft release deletes and returns deleted=TRUE", {
 # svc_release_list (public)
 # =============================================================================
 
-test_that("list: reads only status='published' from the repository and returns it verbatim", {
+test_that("list: reads only status='published' from the repository and projects each head", {
   captured <- NULL
   rows <- list(list(release_id = "asr_1"), list(release_id = "asr_2"))
   with_release_mocks(
@@ -351,10 +377,45 @@ test_that("list: reads only status='published' from the repository and returns i
     }),
     {
       out <- svc_release_list(limit = 10, offset = 5)
-      expect_identical(out, rows)
+      expect_identical(out, rows) # identity projection stub -> verbatim
       expect_equal(captured$status, "published")
-      expect_equal(captured$limit, 10)
-      expect_equal(captured$offset, 5)
+      expect_equal(captured$limit, 10L)
+      expect_equal(captured$offset, 5L)
+    }
+  )
+})
+
+test_that("list: clamps limit to [1,100] and offset to >=0 (L1)", {
+  captured <- NULL
+  capture_loader <- function(status, limit, offset, conn = NULL) {
+    captured <<- list(limit = limit, offset = offset)
+    list()
+  }
+  cases <- list(
+    list(in_limit = -1, in_offset = -5, out_limit = 1L, out_offset = 0L),
+    list(in_limit = 1e6, in_offset = 10, out_limit = 100L, out_offset = 10L),
+    list(in_limit = "abc", in_offset = "xyz", out_limit = 50L, out_offset = 0L)
+  )
+  with_release_mocks(list(analysis_release_list = capture_loader), {
+    for (case in cases) {
+      svc_release_list(limit = case$in_limit, offset = case$in_offset)
+      expect_equal(captured$limit, case$out_limit)
+      expect_equal(captured$offset, case$out_offset)
+    }
+  })
+})
+
+test_that("list + get route heads through analysis_release_public_head (H1)", {
+  marker <- list(release_id = "asr_projected", projected = TRUE)
+  with_release_mocks(
+    list(
+      analysis_release_list = function(...) list(list(release_id = "asr_raw", created_by_user_id = 9L)),
+      analysis_release_get = function(...) list(release_id = "asr_raw", created_by_user_id = 9L),
+      analysis_release_public_head = function(head) marker
+    ),
+    {
+      expect_identical(svc_release_list()[[1]], marker)
+      expect_identical(svc_release_get("asr_raw"), marker)
     }
   )
 })

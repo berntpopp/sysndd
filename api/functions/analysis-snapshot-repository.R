@@ -581,7 +581,13 @@ analysis_snapshot_prune <- function(analysis_type,
   # Never prune a snapshot a release (#573) still references (its LIVE
   # reproducibility endpoint would 503). analysis_release_referenced_snapshot_ids()
   # is the single source of truth for this -- do not inline a NOT IN subquery.
-  referenced_ids <- as.numeric(analysis_release_referenced_snapshot_ids(conn = conn))
+  # exists()-guarded for mirai-pool parity (the release repository file is not
+  # sourced on the legacy mirai worker), mirroring the lock-name guard.
+  referenced_ids <- if (exists("analysis_release_referenced_snapshot_ids", mode = "function")) {
+    as.numeric(analysis_release_referenced_snapshot_ids(conn = conn))
+  } else {
+    numeric()
+  }
 
   delete_ids <- setdiff(as.numeric(candidates$snapshot_id %||% numeric()), union(keep_ids, referenced_ids))
   if (length(delete_ids) == 0L) {

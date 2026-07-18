@@ -189,6 +189,49 @@ analysis_release_insert <- function(release_head, members = list(), files = list
 }
 
 # --------------------------------------------------------------------------- #
+# Public projection
+# --------------------------------------------------------------------------- #
+
+#' Project a release head to the PUBLIC allowlist (#573 H1).
+#'
+#' The raw head carries operational columns — `created_by_user_id`,
+#' `last_error_message`, `updated_at` — that must never reach the public
+#' list/detail/latest surface. This projects to an explicit allowlist and groups
+#' the DOI fields under `zenodo`. Public-safe derived members (`layers` from
+#' `analysis_release_list()`, the parsed `manifest` from `analysis_release_get()`)
+#' are carried through when present. The ADMIN surface keeps the raw head.
+#'
+#' @param head A named list (a raw head from the repository read functions), or NULL.
+#' @return The projected named list, or NULL when `head` is NULL.
+#' @export
+analysis_release_public_head <- function(head) {
+  if (is.null(head)) {
+    return(NULL)
+  }
+  nullify <- function(x) if (is.null(x) || (length(x) == 1L && is.na(x))) NULL else x
+
+  allowlist <- c(
+    "release_id", "release_version", "title", "status", "content_digest",
+    "created_at", "published_at", "source_data_version",
+    "db_release_version", "db_release_commit", "manifest_sha256",
+    "bundle_sha256", "license", "file_count", "total_bytes"
+  )
+  projected <- head[intersect(allowlist, names(head))]
+  projected$zenodo <- list(
+    record_url = nullify(head$zenodo_record_url),
+    version_doi = nullify(head$version_doi),
+    concept_doi = nullify(head$concept_doi)
+  )
+  if (!is.null(head$layers)) {
+    projected$layers <- head$layers
+  }
+  if (!is.null(head$manifest)) {
+    projected$manifest <- head$manifest
+  }
+  projected
+}
+
+# --------------------------------------------------------------------------- #
 # Read
 # --------------------------------------------------------------------------- #
 

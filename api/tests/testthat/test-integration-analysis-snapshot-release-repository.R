@@ -234,6 +234,41 @@ test_that("analysis-snapshot release repository round-trips insert/get/list/get_
   expect_true(all(c(101L, 202L) %in% snap_ids))
 })
 
+test_that("analysis_release_public_head drops operational columns and groups zenodo (H1)", {
+  raw_head <- list(
+    release_id = "asr_pub", release_version = "v1", title = "T", status = "published",
+    content_digest = "digest", created_at = "2026-07-18", published_at = "2026-07-18",
+    source_data_version = "srcv", db_release_version = "1.0.0", db_release_commit = "abc",
+    manifest_sha256 = "m", bundle_sha256 = "b", license = "CC-BY-4.0",
+    file_count = 5L, total_bytes = 100,
+    zenodo_record_url = "https://zenodo.org/records/1", version_doi = "10.5281/zenodo.1",
+    concept_doi = NA_character_,
+    # operational columns that MUST NOT leak publicly:
+    created_by_user_id = 42L, last_error_message = "secret internal error", updated_at = "2026-07-18",
+    layers = list(list(analysis_type = "functional_clusters")),
+    manifest = list(release_id = "asr_pub")
+  )
+
+  projected <- analysis_release_public_head(raw_head)
+
+  expect_false("created_by_user_id" %in% names(projected))
+  expect_false("last_error_message" %in% names(projected))
+  expect_false("updated_at" %in% names(projected))
+  # allowlisted fields survive:
+  expect_equal(projected$release_id, "asr_pub")
+  expect_equal(projected$db_release_version, "1.0.0")
+  expect_equal(projected$file_count, 5L)
+  # zenodo grouped; NA concept_doi -> NULL (dropped from the group):
+  expect_equal(projected$zenodo$record_url, "https://zenodo.org/records/1")
+  expect_equal(projected$zenodo$version_doi, "10.5281/zenodo.1")
+  expect_null(projected$zenodo$concept_doi)
+  # public-safe derived members carried through:
+  expect_false(is.null(projected$layers))
+  expect_false(is.null(projected$manifest))
+
+  expect_null(analysis_release_public_head(NULL))
+})
+
 test_that("analysis_release_delete_draft removes a draft release and its file/member children", {
   skip_if_no_test_db()
 
