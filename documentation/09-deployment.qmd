@@ -266,7 +266,7 @@ Analysis-snapshot **releases** are immutable, content-addressed, independently-v
 >    ```
 >    Both `functional_clusters` and `phenotype_clusters` entries must report a `snapshot_id` and a `payload_hash`.
 > 4. Verify the gate fails closed: force-refresh only one cluster axis (e.g. `analysis_type=functional_clusters&force=true`) and confirm the correlation read now returns `503` `dependency_snapshot_mismatch` until the correlation preset is rebuilt against the new axis.
-> 5. Notify manuscript/analysis maintainers that the verified live snapshot is ready to regenerate from.
+> 5. Notify downstream analysis-release stakeholders that the verified live snapshot is ready to build a release from.
 > 6. **Gate:** do not run `POST /api/admin/analysis/releases` for the first production release until steps 2–4 pass. No new code ships with this step — PR #571 (dependency lineage) is already on `master`; this is purely an operational verification.
 
 **Build a release** (Administrator; synchronous, DB-only — the worker does not need to be involved, only the currently active public-ready snapshots):
