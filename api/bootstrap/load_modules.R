@@ -74,6 +74,21 @@ bootstrap_load_modules <- function() {
     "functions/analysis-snapshot-dependencies.R",
     "functions/analysis-snapshot-builder.R",
     "functions/analysis-reproducibility.R",
+    # Immutable, content-addressed public analysis-snapshot releases (#573
+    # Slice A). Synchronous admin/API-only build path (svc_release_build(),
+    # called directly from the admin endpoint) -- NOT a durable async-job
+    # handler and NOT a mirai daemon job, so (unlike the sibling
+    # analysis-snapshot-*.R files above) these are intentionally absent from
+    # bootstrap/setup_workers.R's mirai everywhere() block. Registered here
+    # only, which still covers the durable worker (start_async_worker.R) and
+    # the MCP sidecar (start_sysndd_mcp.R) via this shared loader. Order:
+    # manifest (content digest / canonical JSON / tar.gz) -> repository (DB
+    # CRUD) -> materialize (coherence assertions + file/README building) ->
+    # release (orchestrator, depends on all three).
+    "functions/analysis-snapshot-release-manifest.R",
+    "functions/analysis-snapshot-release-repository.R",
+    "functions/analysis-snapshot-release-materialize.R",
+    "functions/analysis-snapshot-release.R",
     "functions/async-job-analysis-snapshot-handlers.R",
     "functions/async-job-network-layout-handlers.R",
     "functions/nddscore-import.R",
@@ -210,6 +225,7 @@ bootstrap_load_modules <- function() {
     "services/seo-service.R",
     "services/analysis-snapshot-service.R",
     "services/analysis-snapshot-refresh-service.R",
+    "services/analysis-snapshot-release-service.R",
     "services/disease-ontology-mapping-service.R",
     "services/mcp-service.R",
     "services/mcp-analysis-shaping.R",

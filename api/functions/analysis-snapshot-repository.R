@@ -567,13 +567,17 @@ analysis_snapshot_prune <- function(analysis_type,
 
   cutoff_time <- as.POSIXct(Sys.time() - (keep_superseded_days * 86400), tz = "UTC")
   cutoff <- format(cutoff_time, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
+  # Exclude anything a release (#573 Slice A) still references: the release's
+  # own frozen files don't need the source row, but its LIVE reproducibility
+  # endpoint would 503 if the still-cited manifest row vanished.
   candidates <- db_execute_query(
     "SELECT snapshot_id
        FROM analysis_snapshot_manifest
       WHERE analysis_type = ?
         AND parameter_hash = ?
         AND status = 'superseded'
-        AND COALESCE(superseded_at, updated_at, created_at) < ?",
+        AND COALESCE(superseded_at, updated_at, created_at) < ?
+        AND snapshot_id NOT IN (SELECT snapshot_id FROM analysis_snapshot_release_member)",
     unname(list(analysis_type, parameter_hash, cutoff)),
     conn = conn
   )

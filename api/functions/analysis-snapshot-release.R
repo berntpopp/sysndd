@@ -37,7 +37,7 @@ if (!exists("%||%", mode = "function")) {
 
 # Materialization / gate / coherence helpers live in the sibling file (kept
 # separate so both stay under the 600-line ceiling). Registered together in
-# bootstrap/load_modules.R (Task A8) and sourced together by the integration test.
+# bootstrap/load_modules.R -- Task A8 -- and sourced together by the integration test.
 
 # --------------------------------------------------------------------------- #
 # Advisory locks (TOCTOU): serialize a build against a concurrent axis refresh.

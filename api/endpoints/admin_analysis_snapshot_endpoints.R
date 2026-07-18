@@ -21,11 +21,9 @@
 # `include_draft = TRUE` / `status = NULL` -- the sibling
 # svc_release_list()/svc_release_get() in the service layer are
 # PUBLISHED-ONLY by design (the public routes in analysis_endpoints.R use
-# those), so this file bypasses them for the two admin listings. Neither the
-# service file nor the repository file is wired into
-# bootstrap/load_modules.R yet -- Task A8; until then these routes exist in
-# source but would fail at runtime against a live API process (expected,
-# intentional slicing, matching the A6 read-route report).
+# those), so this file bypasses them for the two admin listings. The service
+# file and the four release function files are wired into
+# bootstrap/load_modules.R by Task A8, so these routes are live.
 ## -------------------------------------------------------------------##
 
 if (!exists("%||%", mode = "function")) {

@@ -4,7 +4,8 @@
 # RELEASES (#573 Slice A / Task A5). Shapes the A4 build orchestrator
 # (`functions/analysis-snapshot-release.R`) and the A3 repository
 # (`functions/analysis-snapshot-release-repository.R`) into problem+json HTTP
-# semantics for the (not-yet-wired, Task A8) endpoint layer.
+# semantics for the endpoint layer (wired into `bootstrap/load_modules.R` by
+# Task A8).
 #
 # ERROR CONTRACT. Only the FOUR existing error classes exist in this repo:
 # 400 (`stop_for_bad_request`), 401, 403 (`stop_for_forbidden`, enforced by

@@ -212,6 +212,57 @@ ensure_test_release_schema <- function(conn) {
 }
 
 
+test_analysis_snapshot_manifest_migration_path <- function() {
+  candidates <- c(
+    file.path(get_api_dir(), "..", "db", "migrations", "024_add_public_analysis_snapshots.sql"),
+    file.path(get_api_dir(), "db", "migrations", "024_add_public_analysis_snapshots.sql")
+  )
+
+  for (candidate in candidates) {
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
+  }
+
+  candidates[[1]]
+}
+
+
+apply_test_analysis_snapshot_manifest_migration <- function(conn) {
+  if (!exists("split_sql_statements", mode = "function")) {
+    source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
+  }
+
+  migration_path <- test_analysis_snapshot_manifest_migration_path()
+  if (!file.exists(migration_path)) {
+    stop("public-analysis-snapshot migration file is missing: ", migration_path)
+  }
+
+  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
+  for (statement in split_sql_statements(sql)) {
+    DBI::dbExecute(conn, statement, immediate = TRUE)
+  }
+
+  invisible(TRUE)
+}
+
+
+#' Ensure the public analysis-snapshot manifest schema (migration 024) exists
+#'
+#' Idempotent (`CREATE TABLE IF NOT EXISTS`); `analysis_snapshot_manifest` has
+#' no external FK dependencies (its child tables reference it, not the other
+#' way around), so no fixture table is required first. Call this on its OWN
+#' plain connection, separate from (and before) any `with_test_db_transaction()`
+#' block -- DDL auto-commits, mirroring `ensure_test_release_schema()` above.
+#'
+#' @param conn DBI connection to the test database
+#' @return Invisibly TRUE
+ensure_test_analysis_snapshot_manifest_schema <- function(conn) {
+  apply_test_analysis_snapshot_manifest_migration(conn)
+  invisible(TRUE)
+}
+
+
 #' Run code with test database transaction (auto-rollback)
 #'
 #' Wraps code in a transaction that is always rolled back,

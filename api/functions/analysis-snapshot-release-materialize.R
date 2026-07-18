@@ -10,7 +10,7 @@
 # materialization (payload / reproducibility / README). No DB access, no network.
 #
 # Sourced together with `analysis-snapshot-release.R` (both registered in
-# `bootstrap/load_modules.R` by Task A8, and both sourced by the direct-source
+# `bootstrap/load_modules.R` -- Task A8 -- and both sourced by the direct-source
 # integration test).
 
 if (!exists("%||%", mode = "function")) {
