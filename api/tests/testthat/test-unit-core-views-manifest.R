@@ -10,16 +10,16 @@ migration_test_api_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
 source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), local = FALSE)
 source(file.path(migration_test_api_dir, "functions", "migration-runner.R"), local = FALSE)
 
-test_that("manifest expects migration 044 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "044_mcp_public_read_projections.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 42L)
+test_that("manifest expects migration 045 as latest", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "045_add_analysis_snapshot_release.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 43L)
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(migration_test_api_dir, "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "044_mcp_public_read_projections.sql")
+  expect_identical(res$latest, "045_add_analysis_snapshot_release.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {

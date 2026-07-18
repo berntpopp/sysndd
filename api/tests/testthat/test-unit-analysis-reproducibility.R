@@ -166,3 +166,83 @@ test_that("decode rejects a non-raw blob", {
     "not a raw gzip blob"
   )
 })
+
+# --------------------------------------------------------------------------- #
+# analysis_reproducibility_decode_raw (#573 Task A4): the RAW pre-gzip string.
+#
+# The release build materializes reproducibility.json from the EXACT pre-gzip
+# bytes so its content_sha256 equals the stored reproducibility_hash bit-for-bit.
+# Decoding via analysis_reproducibility_decode() (which parses + could be
+# re-serialized) would drop the `digits = NA` precision and break that hash;
+# decode_raw() returns the verbatim string instead.
+# --------------------------------------------------------------------------- #
+
+# analysis_release_sha256() / analysis_release_canonical_bytes() are the pure
+# manifest helpers (no DB, no igraph); source them for these tests.
+source_api_file("functions/analysis-snapshot-presets.R", local = FALSE, envir = globalenv())
+source_api_file("functions/analysis-snapshot-release-manifest.R", local = FALSE, envir = globalenv())
+
+# A functional payload built as PLAIN data (no igraph) so these tests run even
+# where the optional {igraph} clustering dep is absent. The serializer only
+# needs edges/membership/params/served_modularity — never a live graph.
+build_plain_functional_payload <- function(served_modularity = 0.123456789012345) {
+  edges <- data.frame(
+    source = c("1", "2", "3"),
+    target = c("2", "3", "1"),
+    combined_score = c(0.987654321098765, 0.5, 0.6543210987654321),
+    stringsAsFactors = FALSE
+  )
+  membership <- data.frame(
+    node = c("1", "2", "3"),
+    cluster = c(1L, 1L, 2L),
+    stringsAsFactors = FALSE
+  )
+  list(
+    edges = edges,
+    membership = membership,
+    served_modularity = served_modularity,
+    params = list(seed = 42L, weight_channel = "combined_score", resolution = 1.0)
+  )
+}
+
+test_that("decode_raw returns the verbatim pre-gzip string that hashes to reproducibility_hash", {
+  # A payload whose served metric carries far more precision than jsonlite's
+  # default digits = 4 would keep, so a parse+reserialize path would drift.
+  payload <- build_plain_functional_payload()
+  enc <- analysis_reproducibility_bundle("functional", payload)
+
+  raw_json <- analysis_reproducibility_decode_raw(enc$bundle_gzip_json)
+  expect_type(raw_json, "character")
+  expect_length(raw_json, 1L)
+
+  # THE whole point: the raw bytes hash EXACTLY to the stored reproducibility_hash.
+  expect_identical(
+    analysis_release_sha256(charToRaw(raw_json)),
+    enc$reproducibility_hash
+  )
+
+  # A DBI blob column comes back as a list-of-raw; decode_raw must accept that too.
+  raw_json_from_list <- analysis_reproducibility_decode_raw(list(enc$bundle_gzip_json))
+  expect_identical(raw_json_from_list, raw_json)
+})
+
+test_that("decode_raw preserves precision the parse-then-reserialize path drops", {
+  payload <- build_plain_functional_payload()
+  enc <- analysis_reproducibility_bundle("functional", payload)
+
+  raw_hash <- analysis_release_sha256(charToRaw(analysis_reproducibility_decode_raw(enc$bundle_gzip_json)))
+  expect_identical(raw_hash, enc$reproducibility_hash)
+
+  # Re-serializing the PARSED bundle with the default (non-NA-digits) release
+  # serializer drops precision, so its hash must NOT equal reproducibility_hash.
+  parsed <- analysis_reproducibility_decode(enc$bundle_gzip_json)
+  reserialized_hash <- analysis_release_sha256(analysis_release_canonical_bytes(parsed))
+  expect_false(identical(reserialized_hash, enc$reproducibility_hash))
+})
+
+test_that("decode_raw rejects a non-raw blob (same guard as decode)", {
+  expect_error(
+    analysis_reproducibility_decode_raw("not-a-blob"),
+    "not a raw gzip blob"
+  )
+})

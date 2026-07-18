@@ -146,6 +146,52 @@ async_job_service_submit(
 
 Use `analysis_snapshot_refresh("functional_clusters", list(algorithm = "leiden"))` only for a deliberate local one-off where the R session owns a valid DB connection. After snapshot or MCP analysis changes, run `make test-mcp-smoke` against a running MCP sidecar in addition to the focused MCP unit tests.
 
+### Analysis-Snapshot Releases (#573)
+
+Analysis-snapshot **releases** (`api/functions/analysis-snapshot-release*.R`, `api/services/analysis-snapshot-release-service.R`, migration `045_add_analysis_snapshot_release.sql`) freeze the currently active public-ready snapshots above into an immutable, content-addressed, independently-downloadable artifact. They are a separate layer on top of snapshots, not a replacement — building one requires snapshots to already be `available`.
+
+Run focused release checks while iterating:
+
+```bash
+cd api
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-release-migration.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-release-manifest.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-release-service.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-integration-analysis-snapshot-release-build.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-integration-analysis-release-admin-endpoints.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-integration-analysis-release-endpoints.R')"
+```
+
+**Building a release locally.** Once `make dev` has current public-ready snapshots (see above), mint one with the admin build endpoint (Administrator token):
+
+```bash
+curl -sS -X POST http://localhost/api/admin/analysis/releases \
+  -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" \
+  -d '{"title": "local dev release", "publish": true}'
+```
+
+A gate failure (a layer not `available`, missing its reproducibility bundle, incoherent, or with mismatched source-data version/dependency lineage) returns a 400 naming the failing layer — that is expected until every source snapshot is genuinely `available` and coherent, not a bug in the release build itself.
+
+**Verifying a bundle end-to-end.** This is the same recipe a public consumer runs, and it is worth exercising after touching any release code:
+
+```bash
+release_id=asr_<...>   # from the build response above
+curl -sS "http://localhost/api/analysis/releases/$release_id/manifest.json" -o manifest.json
+curl -sS "http://localhost/api/analysis/releases/$release_id/bundle" -o bundle.tar.gz
+sha256sum manifest.json bundle.tar.gz
+mkdir -p /tmp/asr-verify && tar -xzf bundle.tar.gz -C /tmp/asr-verify
+(cd /tmp/asr-verify && sha256sum -c checksums.sha256)
+```
+
+`sha256sum -c checksums.sha256` must report every extracted file as `OK`; the standalone `manifest.json` download's own SHA-256 must equal the release head's `manifest_sha256` field.
+
+**Manifest schema summary** (`manifest_schema_version` `"1.0"`, built by `analysis_release_build_manifest()` in `api/functions/analysis-snapshot-release-manifest.R`): `release_id`, `release_version`, `title`, `created_at`, `license`, `scope_statement`, `generator` (API/schema/cluster-logic versions), `source` (`source_data_version` + DB release label), `layers[]` (one entry per pinned snapshot: `analysis_type`, `snapshot_id`, `parameter_hash`, `schema_version`, `input_hash`, `payload_hash`, `reproducibility_hash`, and — for the correlation layer — `dependencies` naming both cluster axes' `snapshot_id`/`payload_hash`), `files[]` (`path`, `sha256`, `bytes`, excluding `manifest.json` and `checksums.sha256` themselves, which cannot describe their own checksum), and `content_digest`.
+
+**Two hashing facts that are easy to get backwards:**
+
+- `sha256(reproducibility.json)` (each cluster layer's file) equals its `reproducibility_hash` **exactly** — this is the raw pre-gzip bundle bytes read via `analysis_reproducibility_decode_raw()`, never the parsing `analysis_reproducibility_decode()`, whose `jsonlite::fromJSON()` round-trip drops the bundle's full-precision contract and breaks the equality.
+- `payload_hash` (and `input_hash`, `snapshot_id`) recorded per layer in the manifest is a **lineage anchor**, cross-checkable against the live `meta.snapshot.{payload_hash,input_hash,snapshot_id}` block on the corresponding `/api/analysis/*` endpoint — it is **not** the SHA-256 of that layer's own `payload.json` file in the bundle (that file has its own, separately-computed `content_sha256` in `files[]`). The stored payload round-trips through DB column types before a release freezes it, so a byte-for-byte reconstruction of the original in-memory payload is neither guaranteed nor attempted.
+
 ### Category-Selected Clustering (#574)
 
 `POST /api/jobs/clustering/submit` accepts an optional `category_filter` JSON body array (e.g. `["Definitive"]`) as an alternative gene-universe selector to the existing `genes` array; supplying neither keeps the pre-#574 default all-NDD-genes universe, and supplying both is a 400. A category run resolves entity-level against the live `ndd_entity_view` (any gene with >=1 `ndd_phenotype = 1` entity in a selected category qualifies) and validates the selector against the live active `ndd_entity_status_categories_list` — an unknown/inactive category or a universe under 2 genes is a 400 naming the allowed active categories. Category runs are NOT `public_ready`; they are the same ephemeral job-result mechanism as an explicit-`genes` submit, just with a curated-category-derived universe.

@@ -544,49 +544,7 @@ analysis_snapshot_source_data_version <- function(conn = NULL) {
   as.character(result$source_data_version[[1]])
 }
 
-analysis_snapshot_prune <- function(analysis_type,
-                                    parameter_hash,
-                                    keep_public_ready = 3L,
-                                    keep_superseded_days = 14L,
-                                    conn = NULL) {
-  keep_public_ready <- max(1L, as.integer(keep_public_ready))
-  keep_superseded_days <- max(0L, as.integer(keep_superseded_days))
-
-  keep_rows <- db_execute_query(
-    "SELECT snapshot_id
-       FROM analysis_snapshot_manifest
-      WHERE analysis_type = ?
-        AND parameter_hash = ?
-        AND status IN ('public_ready', 'superseded')
-      ORDER BY COALESCE(activated_at, generated_at, created_at) DESC, snapshot_id DESC
-      LIMIT ?",
-    unname(list(analysis_type, parameter_hash, keep_public_ready)),
-    conn = conn
-  )
-  keep_ids <- as.numeric(keep_rows$snapshot_id %||% numeric())
-
-  cutoff_time <- as.POSIXct(Sys.time() - (keep_superseded_days * 86400), tz = "UTC")
-  cutoff <- format(cutoff_time, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
-  candidates <- db_execute_query(
-    "SELECT snapshot_id
-       FROM analysis_snapshot_manifest
-      WHERE analysis_type = ?
-        AND parameter_hash = ?
-        AND status = 'superseded'
-        AND COALESCE(superseded_at, updated_at, created_at) < ?",
-    unname(list(analysis_type, parameter_hash, cutoff)),
-    conn = conn
-  )
-
-  delete_ids <- setdiff(as.numeric(candidates$snapshot_id %||% numeric()), keep_ids)
-  if (length(delete_ids) == 0L) {
-    return(invisible(0L))
-  }
-
-  placeholders <- paste(rep("?", length(delete_ids)), collapse = ", ")
-  db_execute_statement(
-    paste0("DELETE FROM analysis_snapshot_manifest WHERE snapshot_id IN (", placeholders, ")"),
-    unname(as.list(delete_ids)),
-    conn = conn
-  )
-}
+# analysis_snapshot_prune() was extracted to
+# functions/analysis-snapshot-prune-helpers.R (#573 round-3 CI1) to keep this
+# file under the 600-line ceiling. It is sourced immediately after this file in
+# both bootstrap/load_modules.R and bootstrap/setup_workers.R.

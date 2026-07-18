@@ -112,7 +112,12 @@ adds the disease cross-ontology mapping foundation tables (`mondo_term`,
 `mondo_xref`, `disease_ontology_mapping`, `disease_ontology_mapping_meta`) plus
 five new columns on `disease_ontology_set` (`UMLS`, `MedGen`, `NCIT`, `GARD`,
 `ontology_mapping_release`) as the schema contract for the cross-ontology mapping
-feature (see `.superpowers/sdd/briefs/wp-a-brief.md`).
+feature (see `.superpowers/sdd/briefs/wp-a-brief.md`), and
+`045_add_analysis_snapshot_release.sql` which adds the immutable, content-addressed
+public analysis-snapshot release tables (`analysis_snapshot_release`,
+`analysis_snapshot_release_member`, `analysis_snapshot_release_file`) that freeze
+canonical-JSON copies of the active coherent public snapshots with per-file SHA-256
+checksums and dependency lineage for issue #573.
 
 ## 4. Adding a new migration
 
