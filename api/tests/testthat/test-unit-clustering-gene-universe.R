@@ -15,6 +15,101 @@
 # testthat 3.3.2 that aborts with "No packages loaded with pkgload" because
 # globalenv() has no package namespace. A child-env override sidesteps this.
 
+## -------------------------------------------------------------------------##
+## clustering_cached_source_data_version() TTL cache (#574 D2 review fix)
+## -------------------------------------------------------------------------##
+#
+# These tests stub `analysis_snapshot_source_data_version()` directly -- no DB
+# connection is ever opened -- so they are placed BEFORE the file-wide
+# `skip_if_not_installed("RSQLite")` gate below and run unconditionally, even
+# when {RSQLite} is unavailable.
+
+# Sources ONLY core/errors.R + the module under test into a fresh child env.
+# A fresh env means a fresh `.clustering_source_data_version_cache` (it is
+# created top-level by the sourced file), so there is nothing left over from
+# a prior test -- `.reset_source_data_version_cache()` below is still applied
+# defensively so the reset mechanism itself stays covered/documented.
+.source_data_version_env <- function() {
+  e <- new.env(parent = globalenv())
+  source_api_file("core/errors.R", local = FALSE, envir = e)
+  source_api_file("functions/clustering-gene-universe.R", local = FALSE, envir = e)
+  e
+}
+
+# Clears the module-level TTL cache env so cached state never leaks across
+# assertions sharing the same sourced env `e`.
+.reset_source_data_version_cache <- function(e) {
+  cache_env <- e$.clustering_source_data_version_cache
+  keys <- ls(cache_env, all.names = TRUE)
+  if (length(keys) > 0L) rm(list = keys, envir = cache_env)
+}
+
+test_that("clustering_cached_source_data_version: TTL hit avoids a second underlying fetch", {
+  e <- .source_data_version_env()
+  .reset_source_data_version_cache(e)
+  calls <- 0L
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) {
+    calls <<- calls + 1L
+    "v1"
+  }
+
+  first <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300)
+  second <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300)
+
+  expect_identical(first, "v1")
+  expect_identical(second, "v1")
+  expect_identical(calls, 1L) # second call served from cache, underlying fn NOT re-invoked
+})
+
+test_that("clustering_cached_source_data_version: TTL expiry (ttl_seconds = 0) forces a refetch", {
+  # `diff < ttl_seconds` is the staleness check; `diff` (elapsed seconds since
+  # the last successful fetch) is always >= 0, so `ttl_seconds = 0` makes
+  # `diff < 0` FALSE on every subsequent call -- deterministically always-stale,
+  # regardless of clock resolution between the two calls.
+  e <- .source_data_version_env()
+  .reset_source_data_version_cache(e)
+  calls <- 0L
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) {
+    calls <<- calls + 1L
+    paste0("v", calls)
+  }
+
+  first <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 0)
+  second <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 0)
+
+  expect_identical(first, "v1")
+  expect_identical(second, "v2")
+  expect_identical(calls, 2L) # both calls hit the underlying fn -- cache never served a hit
+})
+
+test_that("clustering_cached_source_data_version: an error propagates and never poisons the cache", {
+  e <- .source_data_version_env()
+  .reset_source_data_version_cache(e)
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) stop("boom")
+
+  expect_error(
+    e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300),
+    "boom"
+  )
+  # Nothing was written to the cache by the failed call.
+  expect_null(e$.clustering_source_data_version_cache$value)
+  expect_null(e$.clustering_source_data_version_cache$cached_at)
+
+  # Swap to a success stub: the NEXT call must refetch (not serve a stale/NA
+  # value left over from the failed attempt) and the cache must now work.
+  .reset_source_data_version_cache(e)
+  calls <- 0L
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) {
+    calls <<- calls + 1L
+    "v-success"
+  }
+
+  result <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300)
+
+  expect_identical(result, "v-success")
+  expect_identical(calls, 1L)
+})
+
 testthat::skip_if_not_installed("RSQLite")
 
 # Source the code under test into a child env so the NULL-branch dependency
