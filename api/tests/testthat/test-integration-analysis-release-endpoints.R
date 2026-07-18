@@ -213,6 +213,15 @@ test_that("public analysis-release read routes serve a published release and hid
   expect_true(TEST_RELEASE_ID %in% listed_ids)
   expect_false(TEST_DRAFT_RELEASE_ID %in% listed_ids)
 
+  # L2: the pagination object echoes the EFFECTIVE (clamped) values, not the raw request.
+  clamped_result <- list_handler(limit = "1000000", offset = "-1", res = release_endpoint_fake_res())
+  expect_equal(clamped_result$pagination$limit, 100L)
+  expect_equal(clamped_result$pagination$offset, 0L)
+
+  # Public list heads must NOT leak operational columns (H1, via the real service).
+  expect_false("created_by_user_id" %in% names(list_result$releases[[1]]))
+  expect_false("last_error_message" %in% names(list_result$releases[[1]]))
+
   # =========================================================================
   # releases/latest
   # =========================================================================

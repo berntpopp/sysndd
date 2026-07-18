@@ -417,11 +417,13 @@ function(limit = "50", offset = "0", res) {
   limit_int <- analysis_release_query_int(limit, 50L)
   offset_int <- analysis_release_query_int(offset, 0L)
   releases <- svc_release_list(limit = limit_int, offset = offset_int, conn = pool)
+  # L2: echo the EFFECTIVE (clamped) pagination the service actually queried,
+  # not the caller's raw values (svc_release_clamp_* is the single clamp source).
   list(
     releases = releases,
     pagination = list(
-      limit = limit_int,
-      offset = offset_int,
+      limit = svc_release_clamp_limit(limit_int),
+      offset = svc_release_clamp_offset(offset_int),
       count = length(releases)
     )
   )
