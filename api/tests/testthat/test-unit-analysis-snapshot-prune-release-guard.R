@@ -31,6 +31,7 @@ source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-release-manifest.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-release-repository.R"), local = TRUE)
 source(file.path("functions", "analysis-snapshot-repository.R"), local = TRUE)
+source(file.path("functions", "analysis-snapshot-prune-helpers.R"), local = TRUE)
 
 # Test-only ids namespaced so a rerun only ever touches its own rows.
 PRUNE_TEST_ANALYSIS_TYPE <- "functional_clusters"

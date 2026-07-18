@@ -5,12 +5,13 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("snapshot repository exposes expected public API", {
   source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path("functions", "analysis-snapshot-repository.R"), local = TRUE)
+  source(file.path("functions", "analysis-snapshot-prune-helpers.R"), local = TRUE)
 
   expect_true(exists("analysis_snapshot_lock_name", mode = "function"))
   expect_true(exists("analysis_snapshot_get_public", mode = "function"))
   expect_true(exists("analysis_snapshot_create_manifest", mode = "function"))
   expect_true(exists("analysis_snapshot_activate", mode = "function"))
-  expect_true(exists("analysis_snapshot_prune", mode = "function"))
+  expect_true(exists("analysis_snapshot_prune", mode = "function")) # now in prune-helpers.R
 })
 
 test_that("snapshot lock names are scoped by hash and fit MySQL's 64-char GET_LOCK limit", {
@@ -348,6 +349,7 @@ test_that("snapshot activation supersedes old public row before activating targe
 test_that("snapshot prune binds UTC timestamp text and never targets active public rows", {
   env <- new.env(parent = globalenv())
   source(file.path("functions", "analysis-snapshot-repository.R"), local = env)
+  source(file.path("functions", "analysis-snapshot-prune-helpers.R"), local = env)
 
   fake_conn <- structure(list(label = "conn"), class = "DBIConnection")
   seen_candidate_sql <- NULL
