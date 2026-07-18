@@ -259,6 +259,8 @@ Operator-run, never in-app auto-upload. R script `api/scripts/package-analysis-r
 
 # PART 2 — #574 Category-selected gene universes (companion)
 
+> **Superseded by the dedicated, independently-reviewed design:** `.planning/superpowers/specs/2026-07-18-category-clustering-universes-574-design.md` (+ plan `…-category-clustering-universes-574-plan.md`, + Codex review). That doc is the source of truth for #574 (entity-level resolution, the live `is_active` vocabulary, the DB-`active_request_hash` dedup mechanism, provenance fingerprint, and 15 enumerated edge cases). The summary below is retained for program context only.
+
 ## 13. Scope
 
 Extend `POST /api/jobs/clustering/submit` (and `/api/jobs/phenotype_clustering/submit` only if trivially symmetric; else defer) with a server-side `category_filter`. Keep the explicit `genes` pathway and the fixed public GET snapshot unchanged.
