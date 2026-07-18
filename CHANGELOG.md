@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.29.12] — 2026-07-18
+
+Routine dependency maintenance — consolidates six Dependabot updates into a
+single, fully-tested patch release. No runtime behaviour changes. All frontend
+CI gates (ESLint, `type-check`, `type-check:strict`, Vitest, production build +
+public-route bundle budget, SEO prerender) were verified green against the
+combined dependency tree before release.
+
+### Changed
+
+- Frontend production dependencies (production-minor-patch group, #565):
+  `@unhead/vue` 3.1.7 → 3.1.8, `bootstrap-vue-next` 0.45.7 → 0.45.8,
+  `dompurify` 3.4.11 → 3.4.12, `vue-chartjs` 5.3.3 → 5.3.4.
+- Frontend dev dependencies (dev-dependencies group, #566): `@types/node`
+  26.1.0 → 26.1.1, `eslint` 10.6.0 → 10.7.0, `msw` 2.14.6 → 2.15.0, `postcss`
+  8.5.16 → 8.5.19, `prettier` 3.9.4 → 3.9.5, `typescript-eslint` 8.62.1 →
+  8.63.0, `vue-tsc` 3.3.6 → 3.3.7.
+- CI: `actions/setup-node` 6 → 7 (#570).
+- Dev/Playwright mail sink: `axllent/mailpit` v1.30.3 → v1.30.4 (#568).
+- Frontend runtime image base: `fholzer/nginx-brotli` v1.31.1 → v1.31.2 (#569).
+
+### Not included
+
+- Dependabot #567 (`typescript` 6.0.3 → 7.0.2) is intentionally held back.
+  TypeScript 7 is the native-port major line; it removes the `typescript/lib/tsc`
+  export subpath that `vue-tsc` requires (breaking `type-check` and `build`), and
+  no published `typescript-eslint` yet supports it (peer `typescript <6.1.0`).
+  It will be picked up once the Vue/ESLint toolchain ships TS 7 support.
+
 ## [0.29.11] — 2026-07-13
 
 Security hardening (#535), final accepted wave. Public authentication now has
@@ -1123,7 +1152,8 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.16.2...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.29.12...HEAD
+[0.29.12]: https://github.com/berntpopp/sysndd/compare/v0.29.11...v0.29.12
 [0.16.2]: https://github.com/berntpopp/sysndd/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/berntpopp/sysndd/compare/v0.16.0...v0.16.1
 [0.11.14]: https://github.com/berntpopp/sysndd/compare/v0.11.13...v0.11.14
