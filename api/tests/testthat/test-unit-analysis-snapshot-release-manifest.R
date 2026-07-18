@@ -26,7 +26,7 @@ test_that("release manifest module exposes the expected public API", {
   expect_true(exists("analysis_release_build_tar_gz", mode = "function"))
 })
 
-test_that("analysis_snapshot_release_layers() registers the 3 default manuscript layers", {
+test_that("analysis_snapshot_release_layers() registers the 3 default analysis layers", {
   layers <- analysis_snapshot_release_layers()
   expect_equal(length(layers), 3)
 
@@ -87,7 +87,7 @@ test_that("analysis_release_build_manifest excludes manifest.json and checksums.
     title = "SysNDD Analysis Release",
     created_at = "2026-07-18T00:00:00Z",
     license = "CC-BY-4.0",
-    scope_statement = "manuscript-locked analysis layers",
+    scope_statement = "default analysis layers",
     generator = "sysndd-api",
     source = list(source_data_version = "srcv1"),
     layers = list(),

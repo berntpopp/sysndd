@@ -15,7 +15,7 @@
 
 ANALYSIS_RELEASE_MANIFEST_SCHEMA_VERSION <- "1.0"
 
-#' Default manuscript analysis layers bundled into a release.
+#' Default analysis layers bundled into a release.
 #'
 #' Registry-driven (a list, single source of truth): which analysis types are
 #' included, the locked snapshot params used to select their source snapshot,
