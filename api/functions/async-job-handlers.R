@@ -96,6 +96,11 @@
   algorithm <- .async_job_payload_scalar(payload, "algorithm")
   string_id_table <- .async_job_payload_field(payload, "string_id_table", required = FALSE)
   category_links <- .async_job_payload_field(payload, "category_links", required = FALSE)
+  # #574 D3: the cheap-path selector/fingerprint provenance the submit
+  # service (job-functional-submission-service.R) recorded in the payload.
+  # Absent on legacy/explicit-genes payloads pre-dating #574 (required =
+  # FALSE) so a worker-run job for those still completes normally.
+  provenance <- .async_job_payload_field(payload, "provenance", required = FALSE)
   progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
 
   progress("cluster", "Running functional clustering...", current = 0, total = 1)
@@ -108,14 +113,27 @@
 
   progress("complete", "Functional clustering complete", current = 1, total = 1)
 
-  list(
-    clusters = clusters,
-    categories = .async_job_functional_categories(clusters, category_links),
-    meta = list(
+  # Mirror the cache-hit result meta shape (job-functional-submission-service.R):
+  # base fields, then the request's cheap-path `provenance` (selector/
+  # resolved_gene_count/gene_list_sha256/intended_fingerprint/
+  # source_data_version) when present, then the `effective_fingerprint` --
+  # only knowable now that `clusters` has actually been computed -- so a
+  # silent exp+db -> combined-score STRING fallback on a worker-run job is
+  # visible in the stored result too, not just a cache hit's.
+  meta <- c(
+    list(
       algorithm = algorithm,
       gene_count = length(genes),
       cluster_count = nrow(clusters)
-    )
+    ),
+    if (!is.null(provenance)) provenance else list(),
+    list(effective_fingerprint = list(weight_channel = attr(clusters, "weight_channel")))
+  )
+
+  list(
+    clusters = clusters,
+    categories = .async_job_functional_categories(clusters, category_links),
+    meta = meta
   )
 }
 
