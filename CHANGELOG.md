@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-07-18
+
+Immutable public analysis-snapshot releases (#573, Slice A). SysNDD's derived
+cluster analyses (functional STRING/Leiden clusters, phenotype MCA/HCPC
+clusters, and the phenotype-functional cross-cluster correlation) can now be
+frozen into content-addressed, independently-verifiable releases — the same
+"immutable dataset release" pattern already used for NDDScore/Zenodo, applied
+to the analysis layer.
+
+### Added
+
+- **Content-addressed release identity**: `content_digest` is a SHA-256 over
+  the invariant scientific content only (each pinned layer's `input_hash` /
+  `payload_hash` / `reproducibility_hash` plus the shared source-data
+  version) and deliberately **excludes** `created_at`, `title`, and DOI, so
+  release identity is a pure function of the underlying data. The public
+  handle is `release_id = "asr_" + content_digest[:16]`; the full 64-char
+  digest is stored and collision-checked on insert.
+- **Public retrieval-only routes** (DB-only, unauthenticated) under
+  `/api/analysis`: `GET /releases` (published, newest first), `GET
+  /releases/latest`, `GET /releases/<release_id>`, `GET
+  /releases/<release_id>/manifest.json` (the exact stored manifest bytes),
+  `GET /releases/<release_id>/file?path=<file_path>` (an exact
+  `(release_id, file_path)` lookup — no filesystem access, no path
+  traversal), and `GET /releases/<release_id>/bundle` (streams the frozen
+  `bundle.tar.gz` verbatim). A draft release is indistinguishable from an
+  unknown release id on every public route (plain 404).
+- **Admin build/publish/DOI routes** (Administrator) under
+  `/api/admin/analysis`: `POST /releases` builds (and, by default,
+  publishes) a release from the currently active public-ready snapshots —
+  201 for a genuinely new release, 200 for an idempotent rebuild of
+  identical content, 400 naming the failing layer/reason otherwise; `GET
+  /releases` (including drafts), `GET /releases/<id>`, `POST
+  /releases/<id>/publish`, `PATCH /releases/<id>/doi` (additive Zenodo/DOI
+  provenance, outside the content hash), and `DELETE /releases/<id>`
+  (draft-only — a published release can never be deleted).
+- **Fail-closed build gate**: a release is only ever minted from sources that
+  are available, pass a hard partition-coherence re-check (ignoring any
+  local coherence-gate downgrade), carry a stored reproducibility bundle,
+  share one source-data version, and — for the correlation layer — pin the
+  exact dependency lineage (`snapshot_id` + `payload_hash`) of both cluster
+  axes. A TOCTOU advisory lock plus a fresh pre-insert re-read close the race
+  between reading sources and persisting the release.
+- **Verifiable checksums and lineage**: every file carries its own
+  `content_sha256`; `sha256(reproducibility.json) == reproducibility_hash`
+  exactly (raw bundle bytes, not a re-serialized parse); and
+  `payload_hash`/`input_hash`/`snapshot_id` are recorded as cross-checkable
+  lineage anchors against the live `meta.snapshot` on the corresponding
+  public analysis endpoint — not equal to a hash of the release's own
+  `payload.json` file, since the payload round-trips through DB column
+  types before storage.
+- **Immutability and retention**: published releases are never auto-pruned;
+  a later snapshot refresh mints a new release with a new
+  `content_digest`/`release_id` while every prior release stays
+  byte-identical (each holds its own frozen, self-contained copy). The
+  snapshot prune guard now skips any `snapshot_id` still referenced by a
+  release member, so a pinned snapshot's live reproducibility endpoint keeps
+  working too.
+- Migration `045_add_analysis_snapshot_release.sql` adds the three backing
+  tables (`analysis_snapshot_release`, `_member`, `_file`).
+
 ## [0.29.12] — 2026-07-18
 
 Routine dependency maintenance — consolidates six Dependabot updates into a

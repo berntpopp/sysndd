@@ -95,6 +95,7 @@ cd app && npm run test:unit
 **Backend:**
 - R/Plumber API
 - Optional read-only MCP sidecar for approved public SysNDD data
+- Immutable, content-addressed public analysis-snapshot releases with verifiable checksums and lineage
 - MySQL 8.0
 
 **Infrastructure:**

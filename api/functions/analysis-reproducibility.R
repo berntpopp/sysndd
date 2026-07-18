@@ -126,6 +126,31 @@ analysis_reproducibility_decode <- function(bundle_gzip_json) {
   jsonlite::fromJSON(json, simplifyVector = TRUE)
 }
 
+#' Decode a stored bundle blob back to its RAW pre-gzip canonical-JSON string.
+#'
+#' Identical blob-unwrap to `analysis_reproducibility_decode()`, but returns the
+#' verbatim `memDecompress(..., asChar = TRUE)` string WITHOUT parsing. This is
+#' the exact byte content the `reproducibility_hash` was computed over
+#' (`digest::digest(json, algo = "sha256", serialize = FALSE)`), so
+#' `sha256(charToRaw(<this>)) == reproducibility_hash` bit-for-bit. The immutable
+#' release (#573) materializes `reproducibility.json` from THIS string, never from
+#' `analysis_reproducibility_decode()` — a parse + re-serialize round-trip drops
+#' the `digits = NA` precision and would break the content-address hash.
+#'
+#' Accepts either a raw gzip vector or a DBI blob column value (list-of-raw).
+#' @return chr(1), the pre-gzip canonical JSON.
+#' @export
+analysis_reproducibility_decode_raw <- function(bundle_gzip_json) {
+  raw_blob <- bundle_gzip_json
+  if (is.list(raw_blob) && length(raw_blob) >= 1L) {
+    raw_blob <- raw_blob[[1]]
+  }
+  if (!is.raw(raw_blob)) {
+    stop("reproducibility bundle is not a raw gzip blob", call. = FALSE)
+  }
+  memDecompress(raw_blob, type = "gzip", asChar = TRUE)
+}
+
 # --------------------------------------------------------------------------- #
 # Heavy payload builders (worker/heavy-path only).
 # --------------------------------------------------------------------------- #

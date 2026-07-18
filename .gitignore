@@ -84,3 +84,6 @@ api/data/pending_ontology/
 
 # Operator-generated runtime secrets (never commit).
 secrets/
+
+# Superpowers SDD scratch (ledger, task briefs, review packages)
+.superpowers/

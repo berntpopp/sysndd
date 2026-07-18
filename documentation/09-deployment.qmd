@@ -148,6 +148,8 @@ The `api`, `worker`, and `worker-maintenance` services bind-mount `./api/data`. 
 4. Force-refresh both clustering presets: `POST /api/admin/analysis/snapshots/refresh?analysis_type=functional_clusters&force=true` and `…phenotype_clusters&force=true`; watch `GET /api/admin/analysis/snapshots/status` until each reports `available`.
 5. Verify coherence: `GET /api/analysis/functional_clustering` shows agreeing membership + metrics, `meta.snapshot.validation.weight_channel == "experimental_database"`, and `membership_weight_channel` matches it. Regenerate LLM summaries only if the cluster hashes changed (`POST /api/llm/regenerate?...&force=true`).
 
+**Analysis-snapshot RELEASE coherence attestation (#573 H4):** the snapshot builder additively persists the validator's reference member sets (in the stored `cluster_member` id space — `hgnc_id` for functional, `entity_id` for phenotype) into `validation_json` so an immutable public release can *independently* re-prove full member-set coherence before freezing a snapshot. This builder code is **worker-executed**, so it only takes effect after a `worker`/`worker-maintenance` restart **and** a snapshot rebuild (a force-refresh of both clustering presets, per steps 3–4 above). Until a snapshot carries the attestation, a release build **gracefully degrades** to the channel + stability coherence check and emits a `warning()` that full member-set verification is unavailable for that snapshot — it does **not** hard-reject legacy snapshots. After the first post-#573 rebuild, releases enforce the full member-set proof and refuse (`release_source_incoherent` → 400) any snapshot whose served membership differs in member content from the validated reference.
+
 External genomic proxy caches live under `/app/cache/external/{static,stable,dynamic}` by default and can be relocated with `EXTERNAL_PROXY_CACHE_DIR`. The proxy layer caches successful and true not-found responses, but transient upstream errors (`error = TRUE`, mapped to 503) are evicted immediately so a timeout does not poison the cache for the full 7/14/30-day source TTL.
 
 External provider request budgets default to short fail-fast values: `EXTERNAL_PROXY_TIMEOUT_SECONDS=6`, `EXTERNAL_PROXY_MAX_SECONDS=10`, `EXTERNAL_PROXY_MAX_TRIES=2`, and `EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS=12`. Override per source with names such as `EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS`, `EXTERNAL_PROXY_MGI_MAX_SECONDS`, and `EXTERNAL_PROXY_MGI_MAX_TRIES`. The same per-source pattern covers the two-step and batch providers: `EXTERNAL_PROXY_UNIPROT_*` (its features fetch now uses the budget instead of a 30–120s window), `EXTERNAL_PROXY_GENEREVIEWS_*` (NCBI E-utilities), and `EXTERNAL_PROXY_GNOMAD_BATCH_*` (worker-only batch path, higher defaults of 20s timeout / 30s window / 3 tries). The aggregate external gene route remains serial and returns `partial = TRUE` with `skipped_sources` when the aggregate budget is exhausted.
@@ -245,6 +247,73 @@ Snapshot status meanings:
 - `source_version_mismatch`: the stored source version no longer matches current public data; public REST reports the mismatch while MCP collapses it to `snapshot_missing`.
 
 Available snapshot responses carry a `meta.snapshot` provenance block sourced from the public-ready manifest row: `snapshot_id`, `analysis_type`, `parameter_hash`, `schema_version`, `data_class`, `generated_at`, `stale_after`, `source_data_version`, `input_hash`, `payload_hash`, and `record_counts`. `input_hash` binds the snapshot to its supported parameter set plus the public source-data version; `payload_hash` binds it to the materialized result; `record_counts` reports the stored payload row counts (it excludes generated network metadata). These fields let operators and downstream clients audit lineage and completeness without a second query.
+
+### Analysis-snapshot releases (#573)
+
+Analysis-snapshot **releases** are immutable, content-addressed, independently-verifiable exports of the public-ready snapshots above (functional clusters, phenotype clusters, and the phenotype-functional correlation). A release freezes its own copies of every layer's payload plus (for the two cluster layers) the raw reproducibility bundle, a generated README, `manifest.json`, `checksums.sha256`, and a pre-built `bundle.tar.gz` — so it stays byte-identical across later snapshot refreshes and pruning. Migration `045_add_analysis_snapshot_release.sql` adds the three backing tables.
+
+> **PRODUCTION PREREQUISITE — #572 lineage runbook.** Do this once, **before building the first production release**, and do it before any subsequent release build after a cluster-axis methodology change. A release built from a phenotype-functional correlation snapshot that predates PR #571 would lack the dependency lineage (`snapshot_id`/`payload_hash` for both cluster axes) the release format requires as a manifest anchor.
+>
+> 1. Deploy current `master`; restart `api`, `worker`, and `worker-maintenance` (worker-executed code is sourced at startup).
+> 2. As Administrator, force-refresh the correlation preset:
+>    ```bash
+>    curl -sS -X POST https://<host>/api/admin/analysis/snapshots/refresh \
+>      -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" \
+>      -d '{"analysis_type": "phenotype_functional_correlations", "force": true}'
+>    ```
+> 3. Verify the resulting snapshot carries dependency lineage for **both** cluster axes:
+>    ```bash
+>    curl -sS https://<host>/api/analysis/phenotype_functional_cluster_correlation \
+>      | jq '.meta.snapshot.dependencies'
+>    ```
+>    Both `functional_clusters` and `phenotype_clusters` entries must report a `snapshot_id` and a `payload_hash`.
+> 4. Verify the gate fails closed: force-refresh only one cluster axis (e.g. `analysis_type=functional_clusters&force=true`) and confirm the correlation read now returns `503` `dependency_snapshot_mismatch` until the correlation preset is rebuilt against the new axis.
+> 5. Notify downstream analysis-release stakeholders that the verified live snapshot is ready to build a release from.
+> 6. **Gate:** do not run `POST /api/admin/analysis/releases` for the first production release until steps 2–4 pass. No new code ships with this step — PR #571 (dependency lineage) is already on `master`; this is purely an operational verification.
+
+**Build a release** (Administrator; synchronous, DB-only — the worker does not need to be involved, only the currently active public-ready snapshots):
+
+```bash
+curl -sS -X POST https://<host>/api/admin/analysis/releases \
+  -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" \
+  -d '{"title": "SysNDD analysis-snapshot release 2026.07", "publish": true}'
+```
+
+The body is optional in every field: `layers` overrides the default registry (functional clusters, phenotype clusters, phenotype-functional correlation), `title`/`scope_statement`/`license` are presentation metadata, and `publish` (default `true`) either publishes immediately or stages a `draft` for review before a Zenodo run. The response is **201** for a genuinely new release, **200** with the existing head for an idempotent rebuild of identical content (no duplicate row), or **400** naming the specific failing layer and reason when a source snapshot is not `available`, fails the hard coherence re-check, is missing its reproducibility bundle, disagrees on source-data version, or has stale dependency lineage.
+
+**Inspect releases:**
+
+```bash
+# All releases including drafts (Administrator):
+curl -sS https://<host>/api/admin/analysis/releases -H "Authorization: Bearer <admin-token>" | jq
+
+# Public catalog (published only, no auth):
+curl -sS https://<host>/api/analysis/releases | jq
+curl -sS https://<host>/api/analysis/releases/latest | jq
+```
+
+**Publish a draft** (staged with `publish: false` above):
+
+```bash
+curl -sS -X POST https://<host>/api/admin/analysis/releases/<release_id>/publish \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+**Record a DOI** after an out-of-band Zenodo archival run (additive; never changes the release's `content_digest`/`manifest_sha256` — the bytes a consumer already downloaded stay valid):
+
+```bash
+curl -sS -X PATCH https://<host>/api/admin/analysis/releases/<release_id>/doi \
+  -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" \
+  -d '{"zenodo_record_id": "...", "zenodo_record_url": "...", "version_doi": "...", "concept_doi": "..."}'
+```
+
+**Retention.** Published releases are immutable and retained indefinitely; there is no automatic pruning, and `DELETE /api/admin/analysis/releases/<id>` only accepts a `draft` (a failed/aborted build). A later snapshot refresh followed by a fresh build mints a **new** release with a new `content_digest`/`release_id`; every prior release stays byte-identical because each holds its own frozen, self-contained copy — it does not depend on the source snapshot still existing. `analysis_snapshot_prune()` additionally skips any snapshot still referenced by a release member, so a pinned snapshot's live reproducibility endpoint keeps working for as long as any release cites it.
+
+**Reproducibility boundary.** A release reproduces the served separation metrics (functional modularity, phenotype silhouette) and the phenotype-functional cross-cluster correlation from the bundled reproducibility inputs — recompute them per the "Verify" instructions in the release's own `README.md`. LLM cluster summaries and precomputed fCoSE network-layout coordinates are **served-only** and are intentionally excluded from releases; they are not part of the reproducible scientific content.
+
+**Public download surface** (no auth): `GET /api/analysis/releases/<release_id>/manifest.json` returns the exact stored manifest bytes (`sha256(bytes) == manifest_sha256` on the release head); `GET /api/analysis/releases/<release_id>/file?path=<file_path>` returns one content-addressed file by its exact manifest path (e.g. `path=functional_clusters/payload.json`); `GET /api/analysis/releases/<release_id>/bundle` streams the whole frozen `bundle.tar.gz`.
+
+**Zenodo packaging/upload.** The operator-run archival flow that packages a published release into a Zenodo-ready dataset (mirroring the existing NDDScore Zenodo release scripts) is planned for a later slice of this program; it is not part of this deploy. Until then, `PATCH .../doi` accepts a manually-recorded DOI once an operator has archived a release through any equivalent process.
 
 ### Disease cross-ontology mapping refresh (`ontology-mapping-cron`)
 
