@@ -158,6 +158,60 @@ ensure_test_async_job_schema <- function(conn, reset = FALSE) {
 }
 
 
+test_analysis_snapshot_release_migration_path <- function() {
+  candidates <- c(
+    file.path(get_api_dir(), "..", "db", "migrations", "045_add_analysis_snapshot_release.sql"),
+    file.path(get_api_dir(), "db", "migrations", "045_add_analysis_snapshot_release.sql")
+  )
+
+  for (candidate in candidates) {
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
+  }
+
+  candidates[[1]]
+}
+
+
+apply_test_analysis_snapshot_release_migration <- function(conn) {
+  if (!exists("split_sql_statements", mode = "function")) {
+    source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
+  }
+
+  migration_path <- test_analysis_snapshot_release_migration_path()
+  if (!file.exists(migration_path)) {
+    stop("analysis-snapshot-release migration file is missing: ", migration_path)
+  }
+
+  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
+  for (statement in split_sql_statements(sql)) {
+    DBI::dbExecute(conn, statement, immediate = TRUE)
+  }
+
+  invisible(TRUE)
+}
+
+
+#' Ensure the analysis-snapshot RELEASE schema (migration 045) exists
+#'
+#' Idempotent: migration 045's `CREATE TABLE IF NOT EXISTS` statements are a
+#' no-op when the three release tables already exist. `analysis_snapshot_release`
+#' has an FK to `user(user_id)`, so the minimal user fixture table is ensured
+#' first. Call this on its OWN plain connection, separate from (and before)
+#' any `with_test_db_transaction()` block — DDL auto-commits and cannot be
+#' rolled back, so mixing it into a transactional test connection would break
+#' isolation (see the `with_test_db_transaction()` docs above).
+#'
+#' @param conn DBI connection to the test database
+#' @return Invisibly TRUE
+ensure_test_release_schema <- function(conn) {
+  ensure_test_user_table(conn)
+  apply_test_analysis_snapshot_release_migration(conn)
+  invisible(TRUE)
+}
+
+
 #' Run code with test database transaction (auto-rollback)
 #'
 #' Wraps code in a transaction that is always rolled back,
