@@ -421,6 +421,20 @@ test_that("analysis_snapshot_release_assert_coherent runs the H4 member-set proo
   )
 })
 
+test_that("a PARTIAL/incomplete reference attestation is treated as incoherent, not degraded (MC2)", {
+  # served cluster_members have clusters 1 AND 2; the attestation omits cluster 2.
+  # It must NOT slip through the intersection-only proof as "legacy-absent" — a
+  # present-but-partial attestation is INCOHERENT (release_source_incoherent).
+  partial_ref <- list("1" = c("HGNC:1", "HGNC:2", "HGNC:3")) # missing served cluster "2"
+  snap <- make_functional_snap_with_reference(partial_ref)
+  # If it were mis-treated as legacy-absent it would degrade + PASS; expect_error
+  # proves it hard-fails instead.
+  expect_error(
+    analysis_snapshot_release_assert_coherent(snap, "functional"),
+    class = "release_source_incoherent"
+  )
+})
+
 test_that("build refuses an attested snapshot whose member set differs from the reference (H4)", {
   loader <- make_loader(list(
     functional_clusters = make_functional_snap_with_reference(

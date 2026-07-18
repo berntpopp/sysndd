@@ -199,3 +199,18 @@ test_that("join attaches the store-space reference attestation for the builder t
   expect_false(is.null(attest))
   expect_setequal(names(attest), c("1", "2"))
 })
+
+test_that("reference_members_store_space expands a one-to-many STRING_id to ALL its hgnc_ids (MC1)", {
+  # A STRING protein that joins two hgnc records: the served cluster_members hold
+  # BOTH, so the mapped reference must hold BOTH (a first-wins dict false-rejects).
+  membership <- tibble::tibble(
+    cluster = 1L,
+    identifiers = list(tibble::tibble(
+      STRING_id = c("9606.A", "9606.A", "9606.B"),
+      hgnc_id = c("HGNC:1", "HGNC:1b", "HGNC:2")
+    ))
+  )
+  ref <- list("1" = c("9606.A", "9606.B"))
+  out <- analysis_snapshot_reference_members_store_space(ref, membership, "functional")
+  expect_setequal(out[["1"]], c("HGNC:1", "HGNC:1b", "HGNC:2"))
+})

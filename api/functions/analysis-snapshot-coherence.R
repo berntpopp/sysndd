@@ -136,16 +136,21 @@ analysis_snapshot_assert_partition_coherent <- function(membership, per_cluster,
   ))
 }
 
-#' Partition-independent STRING_id -> hgnc_id dictionary from served identifiers.
+#' Partition-independent STRING_id -> {hgnc_id...} dictionary from served identifiers.
 #'
 #' Each served membership identifier row carries the fixed (STRING_id, hgnc_id)
 #' gene pairing (from the STRING id table join); this pairing is a property of the
 #' gene set, NOT of the partition, so it is reliable even for a stale membership.
+#' One STRING protein can join MULTIPLE hgnc records (`non_alt_loci_set` has no
+#' STRING_id uniqueness), and the served cluster_members then contain ALL of those
+#' hgnc ids — so this returns a named LIST mapping each STRING_id to the SET of all
+#' its hgnc_ids (MC1: a first-wins scalar dict would drop the others and
+#' false-reject a coherent snapshot).
+#' @return named list: STRING_id -> character vector of hgnc_ids.
 #' @noRd
 .analysis_snapshot_string_to_hgnc_dict <- function(membership) {
-  empty <- stats::setNames(character(0), character(0))
   if (is.null(membership) || !("identifiers" %in% names(membership))) {
-    return(empty)
+    return(list())
   }
   pairs <- lapply(membership$identifiers, function(df) {
     if (is.data.frame(df) && all(c("STRING_id", "hgnc_id") %in% names(df))) {
@@ -160,12 +165,14 @@ analysis_snapshot_assert_partition_coherent <- function(membership, per_cluster,
   })
   pairs <- pairs[!vapply(pairs, is.null, logical(1))]
   if (length(pairs) == 0L) {
-    return(empty)
+    return(list())
   }
   pairs <- do.call(rbind, pairs)
   pairs <- pairs[!is.na(pairs$STRING_id) & !is.na(pairs$hgnc_id), , drop = FALSE]
-  pairs <- pairs[!duplicated(pairs$STRING_id), , drop = FALSE]
-  stats::setNames(pairs$hgnc_id, pairs$STRING_id)
+  if (nrow(pairs) == 0L) {
+    return(list())
+  }
+  lapply(split(pairs$hgnc_id, pairs$STRING_id), function(h) unique(as.character(h)))
 }
 
 #' Express the validator's reference member sets in the STORED cluster_member id
@@ -192,8 +199,14 @@ analysis_snapshot_reference_members_store_space <- function(reference_members, m
   dict <- .analysis_snapshot_string_to_hgnc_dict(membership)
   lapply(reference_members, function(sids) {
     sids <- as.character(sids)
-    mapped <- unname(dict[sids])
-    unique(as.character(ifelse(is.na(mapped), sids, mapped)))
+    # Expand each STRING_id to the SET (union) of all its hgnc_ids so the mapped
+    # reference set equals the served cluster_members set; an UNMAPPED STRING_id is
+    # kept verbatim (fail-closed — it cannot equal a stored hgnc_id).
+    mapped <- unlist(lapply(sids, function(s) {
+      hg <- dict[[s]]
+      if (is.null(hg) || length(hg) == 0L) s else hg
+    }), use.names = FALSE)
+    unique(as.character(mapped))
   })
 }
 

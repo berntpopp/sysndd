@@ -226,9 +226,26 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
   validation_members <- validation$reference_members
   if (!is.null(validation_members) && length(validation_members) > 0L) {
     validation_members <- lapply(validation_members, function(v) unique(as.character(v)))
+    # MC2: a PRESENT attestation must be COMPLETE — its cluster-id key set must
+    # equal the served membership cluster set. A partial/malformed attestation
+    # (missing a served cluster that would otherwise mismatch) must NOT slip
+    # through the intersection-only same-partition proof: it is INCOHERENT, not
+    # legacy-absent. (The served set == the validated per_cluster set is enforced
+    # separately by the missing/orphan checks in assert_partition_coherent.)
+    served_cluster_ids <- if (!is.null(membership_members)) names(membership_members) else membership_ids
+    if (!setequal(names(validation_members), served_cluster_ids)) {
+      stop(.analysis_release_condition(
+        "release_source_incoherent",
+        sprintf(
+          "%s snapshot reference attestation is partial/malformed: cluster set does not cover the served membership",
+          kind
+        ),
+        kind = kind
+      ))
+    }
   } else {
     validation_members <- NULL
-    membership_members <- NULL # no reference to prove against
+    membership_members <- NULL # fully-absent (legacy) -> no reference to prove against
     warning(sprintf(
       paste0(
         "release coherence: %s snapshot carries no persisted reference member sets ",
