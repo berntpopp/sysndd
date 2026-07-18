@@ -48,6 +48,30 @@ job_endpoint_functional_pool <- function(env, ndd_entity_view = NULL) {
   job_endpoint_fake_pool(env, tables)
 }
 
+#' Default no-arg (all-NDD) universe stub for `clustering_resolve_category_universe()`
+#' (#574 D2): reads `ndd_phenotype == 1` rows straight off `env$pool`'s fake
+#' `ndd_entity_view`, mirroring what the real resolver's NULL branch
+#' (`generate_ndd_hgnc_ids()`) would compute -- without needing the real
+#' function (and its DB-query internals) sourced into these isolated envs.
+job_endpoint_stub_all_ndd_universe <- function(env) {
+  env$clustering_resolve_category_universe <- function(category_filter, conn = NULL) {
+    testthat::expect_null(category_filter)
+    tbl <- env$pool$tables$ndd_entity_view
+    hgnc_ids <- unique(dplyr::pull(dplyr::filter(tbl, ndd_phenotype == 1), hgnc_id))
+    list(hgnc_ids = hgnc_ids, selector = NULL, resolved_gene_count = length(hgnc_ids))
+  }
+}
+
+#' Cheap provenance stubs (#574 D2): every submit path that reaches past dedup
+#' now computes `intended_fingerprint`/`gene_list_sha256`/`source_data_version`
+#' regardless of selector kind, so any test reaching that far needs these
+#' three bare globals stubbed even when it does not care about their values.
+job_endpoint_stub_clustering_provenance <- function(env) {
+  env$analysis_string_cache_fingerprint <- function() "fp-test"
+  env$clustering_gene_list_sha256 <- function(hgnc_ids) paste0("sha-", length(hgnc_ids))
+  env$clustering_cached_source_data_version <- function(...) "srcv-test"
+}
+
 test_that("functional clustering: default genes are drawn from ndd_entity_view when omitted", {
   env <- job_endpoint_source_service("job-functional-submission-service.R")
   env$pool <- job_endpoint_functional_pool(env, tibble::tibble(
@@ -55,6 +79,7 @@ test_that("functional clustering: default genes are drawn from ndd_entity_view w
     hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
     ndd_phenotype = c(1L, 0L, 1L)
   ))
+  job_endpoint_stub_all_ndd_universe(env)
   captured <- NULL
   env$check_duplicate_job <- function(operation, params) {
     captured <<- params
@@ -97,6 +122,7 @@ test_that("functional clustering: cache hit stores a completed job without calli
   )
   env <- job_endpoint_source_service("job-functional-submission-service.R")
   env$pool <- job_endpoint_functional_pool(env)
+  job_endpoint_stub_clustering_provenance(env)
   env$gen_string_clust_obj_mem <- function(genes, algorithm = "leiden") {
     tibble::tibble(term_enrichment = list(tibble::tibble(category = "HPO")))
   }
@@ -128,6 +154,7 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
 
   env <- job_endpoint_source_service("job-functional-submission-service.R")
   env$pool <- job_endpoint_functional_pool(env)
+  job_endpoint_stub_clustering_provenance(env)
   env$check_duplicate_job <- function(...) list(duplicate = FALSE)
   env$async_job_capacity_exceeded <- function(...) TRUE
   env$async_job_active_count <- function(...) 99L
@@ -153,8 +180,11 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   expect_equal(create_job_operation, "clustering")
   expect_setequal(
     names(create_job_params),
-    c("genes", "algorithm", "category_links", "string_id_table")
+    # #574 D2: every submit path now carries a `provenance` block; explicit/
+    # no-arg submits still omit `category_filter` (asserted separately below).
+    c("genes", "algorithm", "category_links", "string_id_table", "provenance")
   )
+  expect_false("category_filter" %in% names(create_job_params))
 })
 
 test_that("functional clustering: admission throttle runs FIRST, before any DB/cache work", {
@@ -184,6 +214,151 @@ test_that("functional clustering: admission throttle runs FIRST, before any DB/c
   expect_equal(res$status, 429)
   expect_equal(out$error, "RATE_LIMITED")
   expect_false(pool_touched)
+  expect_false(create_job_called)
+})
+
+## -------------------------------------------------------------------##
+## job-functional-submission-service.R: category_filter (#574 D2)
+## -------------------------------------------------------------------##
+
+test_that("functional clustering: genes and category_filter are mutually exclusive -> error_400", {
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  # stop_for_bad_request() lives in core/errors.R, not sourced by the isolated
+  # service env by default -- source it here so the real (non-stubbed)
+  # mutual-exclusion guard in the service body can raise it.
+  source_api_file("core/errors.R", local = FALSE, envir = env)
+  env$pool <- job_endpoint_functional_pool(env)
+  req <- list(
+    argsBody = list(genes = list("HGNC:1"), category_filter = list("Definitive")),
+    user = list(user_id = NULL)
+  )
+  res <- job_endpoint_fake_res()
+
+  expect_error(
+    env$svc_job_submit_functional_clustering(req, res),
+    class = "error_400"
+  )
+})
+
+test_that("functional clustering: category_filter resolves the universe and records the selector object + provenance in the durable payload", {
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  env$pool <- job_endpoint_functional_pool(env)
+  job_endpoint_stub_clustering_provenance(env)
+  env$clustering_resolve_category_universe <- function(category_filter, conn = NULL) {
+    expect_identical(category_filter, list("Definitive"))
+    list(hgnc_ids = c("HGNC:1", "HGNC:5"), selector = "Definitive", resolved_gene_count = 2L)
+  }
+  env$check_duplicate_job <- function(operation, params) {
+    expect_true("category_filter" %in% names(params))
+    expect_identical(params$category_filter, "Definitive")
+    list(duplicate = FALSE)
+  }
+  env$async_job_capacity_exceeded <- function(...) FALSE
+  env$async_job_active_count <- function(...) 0L
+  captured <- NULL
+  env$create_job <- function(operation, params) {
+    captured <<- params
+    list(job_id = "j1", status = "accepted", estimated_seconds = 5)
+  }
+  req <- list(argsBody = list(category_filter = list("Definitive")), user = list(user_id = NULL))
+  res <- job_endpoint_fake_res()
+
+  out <- env$svc_job_submit_functional_clustering(req, res)
+
+  expect_equal(res$status, 202)
+  expect_identical(captured$category_filter, "Definitive")
+  expect_identical(captured$genes, c("HGNC:1", "HGNC:5"))
+  expect_identical(captured$provenance$selector$kind, "category")
+  expect_identical(captured$provenance$selector$category_filter, "Definitive")
+  expect_true(all(
+    c("resolved_gene_count", "gene_list_sha256", "intended_fingerprint", "source_data_version") %in%
+      names(captured$provenance)
+  ))
+})
+
+test_that("functional clustering: explicit genes and no-arg submits keep a category_filter-free payload (byte-identical identity to pre-#574)", {
+  # Explicit genes.
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  env$pool <- job_endpoint_functional_pool(env)
+  job_endpoint_stub_clustering_provenance(env)
+  env$check_duplicate_job <- function(...) list(duplicate = FALSE)
+  env$async_job_capacity_exceeded <- function(...) FALSE
+  env$async_job_active_count <- function(...) 0L
+  captured_explicit <- NULL
+  env$create_job <- function(operation, params) {
+    captured_explicit <<- params
+    list(job_id = "j2", status = "accepted", estimated_seconds = 5)
+  }
+  req_explicit <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
+  env$svc_job_submit_functional_clustering(req_explicit, job_endpoint_fake_res())
+
+  expect_false("category_filter" %in% names(captured_explicit))
+  expect_identical(captured_explicit$provenance$selector$kind, "explicit")
+  expect_null(captured_explicit$provenance$selector$category_filter)
+
+  # No-arg (all-NDD default).
+  env2 <- job_endpoint_source_service("job-functional-submission-service.R")
+  env2$pool <- job_endpoint_functional_pool(env2, tibble::tibble(
+    entity_id = 1:2, hgnc_id = c("HGNC:1", "HGNC:2"), ndd_phenotype = c(1L, 1L)
+  ))
+  job_endpoint_stub_clustering_provenance(env2)
+  job_endpoint_stub_all_ndd_universe(env2)
+  env2$check_duplicate_job <- function(...) list(duplicate = FALSE)
+  env2$async_job_capacity_exceeded <- function(...) FALSE
+  env2$async_job_active_count <- function(...) 0L
+  captured_no_arg <- NULL
+  env2$create_job <- function(operation, params) {
+    captured_no_arg <<- params
+    list(job_id = "j3", status = "accepted", estimated_seconds = 5)
+  }
+  req_no_arg <- list(argsBody = list(), user = list(user_id = NULL))
+  env2$svc_job_submit_functional_clustering(req_no_arg, job_endpoint_fake_res())
+
+  expect_false("category_filter" %in% names(captured_no_arg))
+  expect_identical(captured_no_arg$provenance$selector$kind, "all_ndd")
+  expect_null(captured_no_arg$provenance$selector$category_filter)
+})
+
+test_that("functional clustering: request_hash is selector-aware for category_filter", {
+  # Pure-function coverage of the underlying dedup identity: sourced directly
+  # (not via the service env) since these are free functions in
+  # functions/async-job-service.R, not bare globals the service references.
+  hash_env <- new.env(parent = globalenv())
+  sys.source(file.path(get_api_dir(), "functions", "async-job-service.R"), envir = hash_env)
+
+  h <- function(genes, algo, cf) {
+    payload <- c(list(genes = genes, algorithm = algo), if (!is.null(cf)) list(category_filter = cf))
+    hash_env$async_job_service_request_hash(
+      "clustering",
+      hash_env$async_job_service_payload_json(payload)
+    )
+  }
+  g <- c("HGNC:1", "HGNC:5")
+
+  expect_false(identical(h(g, "leiden", "Definitive"), h(g, "leiden", c("Definitive", "Moderate"))))
+  expect_identical(h(g, "leiden", "Definitive"), h(g, "leiden", "Definitive"))
+  expect_identical(h(g, "leiden", NULL), h(g, "leiden", NULL)) # explicit/no-arg unchanged
+})
+
+test_that("functional clustering: a failing source-data-version lookup returns 503 PROVENANCE_UNAVAILABLE", {
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  env$pool <- job_endpoint_functional_pool(env)
+  env$analysis_string_cache_fingerprint <- function() "fp-test"
+  env$clustering_gene_list_sha256 <- function(hgnc_ids) "sha-test"
+  env$clustering_cached_source_data_version <- function(...) stop("boom")
+  env$check_duplicate_job <- function(...) list(duplicate = FALSE)
+  create_job_called <- FALSE
+  env$create_job <- function(...) {
+    create_job_called <<- TRUE
+    NULL
+  }
+  req <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
+  res <- job_endpoint_fake_res()
+
+  out <- env$svc_job_submit_functional_clustering(req, res)
+
+  expect_equal(res$status, 503L)
+  expect_equal(out$error, "PROVENANCE_UNAVAILABLE")
   expect_false(create_job_called)
 })
 
