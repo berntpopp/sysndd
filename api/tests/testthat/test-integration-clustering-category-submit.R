@@ -155,7 +155,11 @@ test_that("clustering_resolve_category_universe(NULL) matches the default all-ND
     # the NULL/default branch is exercised for real against the live view,
     # then restore whatever `pool` held before (mirrors the
     # test-unit-panels-endpoint.R / test-unit-endpoint-functions.R idiom).
-    old_pool <- if (exists("pool", envir = .GlobalEnv)) get("pool", envir = .GlobalEnv) else NULL
+    # base::get(), not bare get(): a fully-loaded API/worker R session has
+    # `config::get` masking `get` (no `envir` argument there), which would
+    # error "unused argument (envir = .GlobalEnv)" (Codex review fix; see
+    # AGENTS.md "config::get masks base::get").
+    old_pool <- if (exists("pool", envir = .GlobalEnv)) base::get("pool", envir = .GlobalEnv) else NULL
     assign("pool", conn, envir = .GlobalEnv)
     withr::defer({
       if (is.null(old_pool)) {
@@ -180,4 +184,23 @@ test_that("clustering_resolve_category_universe(NULL) matches the default all-ND
     expect_null(resolved$selector)
     expect_identical(resolved$resolved_gene_count, length(direct))
   })
+})
+
+test_that("pool lookup uses base::get() so config::get masking (loaded API/worker env) cannot break it", {
+  # Static source guard, not a runtime probe -- reproducing the mask requires
+  # `library(config)` attached ahead of base on the search path (only true
+  # inside a fully-booted API/worker R session, not host `testthat`; see
+  # AGENTS.md "config::get masks base::get"). This file's own NULL-branch
+  # `pool` swap (three tests above) must always use the masking-safe form
+  # (Codex review fix: previously a bare `get("pool", envir = .GlobalEnv)`).
+  # Targets the specific `old_pool <-` assignment line only -- not the whole
+  # file body -- so this guard cannot accidentally match its own literals.
+  src <- readLines(
+    file.path(get_api_dir(), "tests", "testthat", "test-integration-clustering-category-submit.R"),
+    warn = FALSE
+  )
+  pool_swap_line <- src[grepl("old_pool <-.*envir = \\.GlobalEnv", src)]
+
+  expect_length(pool_swap_line, 1L)
+  expect_match(pool_swap_line, "base::get\\(", fixed = FALSE)
 })

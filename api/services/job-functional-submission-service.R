@@ -58,9 +58,16 @@ svc_job_submit_functional_clustering <- function(req, res) {
   # falling through to the all-NDD default.
   genes_in <- req$argsBody$genes
   category_supplied <- !is.null(req$argsBody$category_filter)
+  # Mutual exclusion is gated on KEY PRESENCE (`genes_supplied`), not a length
+  # check -- `{"genes":[], "category_filter":["X"]}` supplies BOTH keys and
+  # must 400 even though the `genes` array is empty (Codex review fix: an
+  # empty-but-present `genes` array previously bypassed this guard because
+  # `has_genes` -- used below for the LATER branch-selection decision, kept
+  # unchanged -- is also FALSE on an empty array).
+  genes_supplied <- !is.null(genes_in)
   has_genes <- !is.null(genes_in) && length(genes_in) > 0
 
-  if (has_genes && category_supplied) {
+  if (genes_supplied && category_supplied) {
     stop_for_bad_request("Provide either genes or category_filter, not both")
   }
 
@@ -140,6 +147,14 @@ svc_job_submit_functional_clustering <- function(req, res) {
     seed = 42L
   )
   gene_sha <- clustering_gene_list_sha256(genes_list)
+  # `gene_list_sha256` hashes sort(unique(...)); the provenance/meta gene
+  # count must agree with it, so it is computed from the SAME dedup -- an
+  # explicit payload with duplicate genes (e.g. `["HGNC:1","HGNC:1"]`) must
+  # not report a resolved count that disagrees with a singleton sha256. This
+  # never dedups the payload `genes` list itself (`genes_list` stays
+  # byte-identical to the raw request) -- only the reported COUNT (Codex
+  # review fix).
+  resolved_count <- length(unique(genes_list))
 
   # Source-data version: a CACHED, fail-closed read, fetched only now that a
   # payload is actually about to be built -- its backing view runs global
@@ -160,7 +175,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
 
   provenance <- list(
     selector = selector_obj,
-    resolved_gene_count = length(genes_list),
+    resolved_gene_count = resolved_count,
     gene_list_sha256 = gene_sha,
     intended_fingerprint = intended_fingerprint,
     source_data_version = src_ver
@@ -234,7 +249,7 @@ svc_job_submit_functional_clustering <- function(req, res) {
       meta = clustering_result_meta(
         list(
           algorithm = algorithm,
-          gene_count = length(genes_list),
+          gene_count = resolved_count,
           cluster_count = nrow(cached_clusters),
           cache_hit = TRUE
         ),

@@ -110,6 +110,46 @@ test_that("clustering_cached_source_data_version: an error propagates and never 
   expect_identical(calls, 1L)
 })
 
+test_that("clustering_cached_source_data_version: NA_character_ from the underlying fetch is rejected and never cached (Codex review fix)", {
+  # Fail-closed contract: the TTL cache must never cache/return NA. A
+  # malformed underlying value must stop() (mapped to 503 by the caller's
+  # tryCatch), exactly like a hard fetch error above -- not be cached and
+  # served as broken provenance.
+  e <- .source_data_version_env()
+  .reset_source_data_version_cache(e)
+  calls <- 0L
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) {
+    calls <<- calls + 1L
+    NA_character_
+  }
+
+  expect_error(e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300))
+  # Nothing was written to the cache by the invalid-value call.
+  expect_null(e$.clustering_source_data_version_cache$value)
+  expect_null(e$.clustering_source_data_version_cache$cached_at)
+
+  # Swap to a now-valid stub: the NEXT call must refetch (never serve the
+  # invalid value from a poisoned cache) and the counter must increment.
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) {
+    calls <<- calls + 1L
+    "v-valid"
+  }
+  result <- e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300)
+
+  expect_identical(result, "v-valid")
+  expect_identical(calls, 2L)
+})
+
+test_that("clustering_cached_source_data_version: an empty string from the underlying fetch is rejected and never cached (Codex review fix)", {
+  e <- .source_data_version_env()
+  .reset_source_data_version_cache(e)
+  e$analysis_snapshot_source_data_version <- function(conn = NULL) ""
+
+  expect_error(e$clustering_cached_source_data_version(conn = NULL, ttl_seconds = 300))
+  expect_null(e$.clustering_source_data_version_cache$value)
+  expect_null(e$.clustering_source_data_version_cache$cached_at)
+})
+
 testthat::skip_if_not_installed("RSQLite")
 
 # Source the code under test into a child env so the NULL-branch dependency

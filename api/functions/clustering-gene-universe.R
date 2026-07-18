@@ -90,6 +90,17 @@ clustering_resolve_category_universe <- function(category_filter, conn = pool) {
 # clustering submit while still self-refreshing.
 .clustering_source_data_version_cache <- new.env(parent = emptyenv())
 
+#' Predicate: is `v` a valid source-data-version value?
+#'
+#' The fail-closed contract requires a single non-NA, non-empty character
+#' scalar. Anything else (`NULL`, `NA_character_`, `""`, a non-character
+#' value, or a non-scalar) must never be cached or served as provenance
+#' (Codex review fix -- the TTL cache previously cached/returned an invalid
+#' underlying value verbatim).
+.clustering_valid_source_version <- function(v) {
+  is.character(v) && length(v) == 1L && !is.na(v) && nzchar(v)
+}
+
 #' Cached, fail-closed read of the current analysis source-data version.
 #'
 #' D2 (#574) provenance helper: the clustering submit service calls this
@@ -99,7 +110,11 @@ clustering_resolve_category_universe <- function(category_filter, conn = pool) {
 #' `analysis_snapshot_source_data_version()` in a tryCatch here -- an error
 #' PROPAGATES to the caller (never cached, never coerced to NA), so a
 #' transient DB problem fails the submit closed (503) instead of recording
-#' broken provenance.
+#' broken provenance. The fetched value is additionally validated by
+#' `.clustering_valid_source_version()`: an invalid value (NA/empty/
+#' non-scalar) is likewise NEVER cached or returned -- it `stop()`s instead,
+#' so the caller's `tryCatch` maps it to the same 503 PROVENANCE_UNAVAILABLE
+#' path as a hard fetch error.
 #'
 #' @param conn DB connection/pool. Defaults to the package-global `pool`.
 #' @param ttl_seconds Cache TTL in seconds. Default 300 (5 minutes).
@@ -108,12 +123,20 @@ clustering_resolve_category_universe <- function(category_filter, conn = pool) {
 clustering_cached_source_data_version <- function(conn = pool, ttl_seconds = 300) {
   now <- Sys.time()
   cached_at <- .clustering_source_data_version_cache$cached_at
-  if (!is.null(cached_at) &&
+  cached_value <- .clustering_source_data_version_cache$value
+  if (!is.null(cached_at) && .clustering_valid_source_version(cached_value) &&
         as.numeric(difftime(now, cached_at, units = "secs")) < ttl_seconds) {
-    return(.clustering_source_data_version_cache$value)
+    return(cached_value)
   }
 
   value <- analysis_snapshot_source_data_version(conn = conn)
+
+  if (!.clustering_valid_source_version(value)) {
+    stop(
+      "clustering_cached_source_data_version: analysis_snapshot_source_data_version() ",
+      "returned an invalid (NULL/NA/empty/non-scalar) value; refusing to cache or serve it"
+    )
+  }
 
   .clustering_source_data_version_cache$value <- value
   .clustering_source_data_version_cache$cached_at <- now
