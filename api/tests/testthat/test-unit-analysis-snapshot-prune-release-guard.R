@@ -37,6 +37,12 @@ PRUNE_TEST_ANALYSIS_TYPE <- "functional_clusters"
 PRUNE_TEST_PARAMETER_HASH <- analysis_release_sha256("prune-release-guard-test-params")
 PRUNE_TEST_RELEASE_ID <- "asr_prunetest00000001"
 
+# Second, isolated (analysis_type, parameter_hash) scope used by the
+# empty-member-table case below, so it never shares manifest rows with the
+# release-referenced case above.
+PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE <- "phenotype_clusters"
+PRUNE_TEST_NO_RELEASE_PARAMETER_HASH <- analysis_release_sha256("prune-release-guard-test-params-no-release")
+
 .prune_guard_cleanup <- function(conn) {
   DBI::dbExecute(
     conn,
@@ -45,12 +51,18 @@ PRUNE_TEST_RELEASE_ID <- "asr_prunetest00000001"
   )
   DBI::dbExecute(
     conn,
-    "DELETE FROM analysis_snapshot_manifest WHERE analysis_type = ? AND parameter_hash = ?",
-    params = unname(list(PRUNE_TEST_ANALYSIS_TYPE, PRUNE_TEST_PARAMETER_HASH))
+    "DELETE FROM analysis_snapshot_manifest WHERE (analysis_type = ? AND parameter_hash = ?)
+        OR (analysis_type = ? AND parameter_hash = ?)",
+    params = unname(list(
+      PRUNE_TEST_ANALYSIS_TYPE, PRUNE_TEST_PARAMETER_HASH,
+      PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE, PRUNE_TEST_NO_RELEASE_PARAMETER_HASH
+    ))
   )
 }
 
-.insert_prune_test_manifest_row <- function(conn, status, superseded_at, activated_at, generated_at, label) {
+.insert_prune_test_manifest_row <- function(conn, status, superseded_at, activated_at, generated_at, label,
+                                             analysis_type = PRUNE_TEST_ANALYSIS_TYPE,
+                                             parameter_hash = PRUNE_TEST_PARAMETER_HASH) {
   DBI::dbExecute(
     conn,
     "INSERT INTO analysis_snapshot_manifest
@@ -61,7 +73,7 @@ PRUNE_TEST_RELEASE_ID <- "asr_prunetest00000001"
              ?, ?, ?, ?,
              '{}', ?, ?)",
     params = unname(list(
-      PRUNE_TEST_ANALYSIS_TYPE, PRUNE_TEST_PARAMETER_HASH, status,
+      analysis_type, parameter_hash, status,
       if (status == "public_ready") 1L else 0L,
       activated_at, generated_at, superseded_at,
       analysis_release_sha256(paste0("input-", label)),
@@ -153,5 +165,61 @@ test_that("analysis_snapshot_prune never deletes a snapshot a release still refe
   expect_true(referenced_id %in% surviving_ids)
   # The unreferenced superseded snapshot IS pruned (baseline prune behavior
   # unchanged for a snapshot no release cites).
+  expect_false(unreferenced_id %in% surviving_ids)
+})
+
+test_that("analysis_snapshot_prune still prunes normally with NO release rows at all (empty release_member table for this snapshot)", {
+  # Regression guard for the reuse-the-repository-helper fix: with zero
+  # releases referencing anything -- the state right after migration 045
+  # lands and before any release has ever been built, i.e. the majority
+  # production state -- analysis_release_referenced_snapshot_ids() returns
+  # an empty set and pruning must behave exactly as it did before the #573
+  # guard existed: an old, unreferenced superseded snapshot is still pruned.
+  skip_if_no_test_db()
+
+  schema_conn <- get_test_db_connection()
+  ensure_test_analysis_snapshot_manifest_schema(schema_conn)
+  ensure_test_release_schema(schema_conn)
+  DBI::dbDisconnect(schema_conn)
+
+  conn <- get_test_db_connection()
+  withr::defer(DBI::dbDisconnect(conn))
+  .prune_guard_cleanup(conn) # pre-clean any leftovers from a crashed run
+  withr::defer(.prune_guard_cleanup(conn))
+
+  now <- Sys.time()
+  old_superseded <- format(now - (30 * 86400), "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
+
+  .insert_prune_test_manifest_row(
+    conn, "public_ready",
+    superseded_at = NA_character_, activated_at = format(now, "%Y-%m-%d %H:%M:%OS6", tz = "UTC"),
+    generated_at = format(now, "%Y-%m-%d %H:%M:%OS6", tz = "UTC"), label = "no-release-kept-recent",
+    analysis_type = PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE,
+    parameter_hash = PRUNE_TEST_NO_RELEASE_PARAMETER_HASH
+  )
+  unreferenced_id <- .insert_prune_test_manifest_row(
+    conn, "superseded",
+    superseded_at = old_superseded, activated_at = NA_character_, generated_at = old_superseded,
+    label = "no-release-unreferenced",
+    analysis_type = PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE,
+    parameter_hash = PRUNE_TEST_NO_RELEASE_PARAMETER_HASH
+  )
+
+  # No analysis_release_insert() call here: this snapshot's id is never
+  # written to analysis_snapshot_release_member.
+
+  analysis_snapshot_prune(
+    PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE, PRUNE_TEST_NO_RELEASE_PARAMETER_HASH,
+    keep_public_ready = 1L, keep_superseded_days = 14L,
+    conn = conn
+  )
+
+  surviving_ids <- DBI::dbGetQuery(
+    conn,
+    "SELECT snapshot_id FROM analysis_snapshot_manifest
+      WHERE analysis_type = ? AND parameter_hash = ?",
+    params = unname(list(PRUNE_TEST_NO_RELEASE_ANALYSIS_TYPE, PRUNE_TEST_NO_RELEASE_PARAMETER_HASH))
+  )$snapshot_id
+
   expect_false(unreferenced_id %in% surviving_ids)
 })
