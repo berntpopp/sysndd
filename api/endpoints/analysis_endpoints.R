@@ -372,5 +372,159 @@ function(res) {
   analysis_reproducibility_endpoint("phenotype_clusters", res)
 }
 
+
+## -------------------------------------------------------------------##
+## Analysis-snapshot RELEASES: public read routes (#573 Slice A / Task A6)
+## -------------------------------------------------------------------##
+#
+# Immutable, content-addressed public releases of the analysis snapshots
+# above (see services/analysis-snapshot-release-service.R for the full
+# contract). DB-only, published-only: every svc_release_* read is pinned to
+# status = "published", so an unknown release id and a draft release id are
+# indistinguishable to the caller -- both resolve to a plain 404. `conn =
+# pool` mirrors the established global-pool endpoint pattern (see
+# endpoints/seo_endpoints.R) -- the A3 release repository requires an
+# explicit connection on every call (no NULL/global-pool fallback), unlike
+# the sibling analysis-snapshot-repository.R.
+#
+# DECLARATION ORDER IS LOAD-BEARING: `releases/latest` MUST stay declared
+# before `releases/<release_id>` below -- Plumber matches routes in
+# declaration order, so the dynamic `<release_id>` segment would otherwise
+# shadow the literal "latest" segment (the same class of bug documented in
+# AGENTS.md's `/status/_list` vs `/status/<status_id_requested>` lesson). A
+# static test (test-integration-analysis-release-endpoints.R) guards this
+# ordering directly against this source file.
+
+analysis_release_query_int <- function(value, default) {
+  parsed <- suppressWarnings(as.integer(analysis_endpoint_scalar(value, default)))
+  if (is.na(parsed)) default else parsed
+}
+
+#* List published analysis-snapshot releases
+#*
+#* Immutable, content-addressed public releases (newest first). Draft
+#* releases are never returned.
+#*
+#* @tag analysis
+#* @serializer json list(na="string", auto_unbox=TRUE)
+#* @param limit:str Max releases to return (default "50")
+#* @param offset:str Offset into the published list (default "0")
+#*
+#* @response 200 OK. Returns { releases, pagination }.
+#*
+#* @get releases
+function(limit = "50", offset = "0", res) {
+  limit_int <- analysis_release_query_int(limit, 50L)
+  offset_int <- analysis_release_query_int(offset, 0L)
+  releases <- svc_release_list(limit = limit_int, offset = offset_int, conn = pool)
+  list(
+    releases = releases,
+    pagination = list(
+      limit = limit_int,
+      offset = offset_int,
+      count = length(releases)
+    )
+  )
+}
+
+
+#* Get the newest published analysis-snapshot release
+#*
+#* MUST stay declared before `releases/<release_id>` (see the ordering note
+#* above this section).
+#*
+#* @tag analysis
+#* @serializer json list(na="string", auto_unbox=TRUE)
+#*
+#* @response 200 OK. Returns the release head + `manifest` (same shape as the detail route).
+#* @response 404 Not Found. No published release exists yet.
+#*
+#* @get releases/latest
+function(res) {
+  newest <- svc_release_list(limit = 1, offset = 0, conn = pool)
+  if (length(newest) == 0L) {
+    stop_for_not_found("No published analysis-snapshot release exists yet")
+  }
+  svc_release_get(as.character(newest[[1]]$release_id), conn = pool)
+}
+
+
+#* Get one published analysis-snapshot release
+#*
+#* @tag analysis
+#* @serializer json list(na="string", auto_unbox=TRUE)
+#* @param release_id Release id (`asr_<16 hex>`).
+#*
+#* @response 200 OK. Returns the release head + `manifest`.
+#* @response 404 Not Found. Unknown release id, or the release is still a draft.
+#*
+#* @get releases/<release_id>
+function(release_id, res) {
+  svc_release_get(release_id, conn = pool)
+}
+
+
+#* Get a published release's stored `manifest.json` bytes verbatim
+#*
+#* Serves the EXACT stored bytes (never re-serialized), so
+#* `sha256(bytes) == manifest_sha256` on the release head.
+#*
+#* @tag analysis
+#* @serializer octet
+#* @param release_id Release id.
+#*
+#* @response 200 OK. Raw manifest.json bytes, Content-Type application/json.
+#* @response 404 Not Found. Unknown release id, or the release is still a draft.
+#*
+#* @get releases/<release_id>/manifest.json
+function(release_id, res) {
+  content <- svc_release_manifest(release_id, conn = pool)
+  res$setHeader("Content-Type", content$media_type)
+  content$bytes
+}
+
+
+#* Get one content file from a published release by its exact archive path
+#*
+#* `path` is a QUERY parameter, not a path segment -- Plumber 1.3.2 has no
+#* `<path:.*>` multi-segment param type, so a nested path segment would 404.
+#* Resolved by an exact `(release_id, file_path)` primary-key lookup, so
+#* there is no path-traversal surface.
+#*
+#* @tag analysis
+#* @serializer octet
+#* @param release_id Release id.
+#* @param path:str Exact archive-relative file path, e.g. "functional_clusters/payload.json".
+#*
+#* @response 200 OK. Raw file bytes, Content-Type from the stored file's media type.
+#* @response 404 Not Found. Unknown release id, draft release, or unknown file path.
+#*
+#* @get releases/<release_id>/file
+function(release_id, path = "", res) {
+  file_path <- analysis_endpoint_scalar(path, "")
+  content <- svc_release_file(release_id, file_path, conn = pool)
+  res$setHeader("Content-Type", content$media_type)
+  content$bytes
+}
+
+
+#* Download a published release's whole archive (`bundle.tar.gz`) verbatim
+#*
+#* @tag analysis
+#* @serializer octet
+#* @param release_id Release id.
+#*
+#* @response 200 OK. Raw gzip tar bytes, served as an attachment download.
+#* @response 404 Not Found. Unknown release id, or the release is still a draft.
+#*
+#* @get releases/<release_id>/bundle
+function(release_id, res) {
+  bundle <- svc_release_bundle(release_id, conn = pool)
+  res$setHeader("Content-Type", "application/gzip")
+  res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', bundle$filename))
+  res$setHeader("Content-Length", as.character(length(bundle$bytes)))
+  bundle$bytes
+}
+
 ## Analyses endpoints
 ## -------------------------------------------------------------------##
