@@ -201,6 +201,18 @@ make_functional_snap_with_channels <- function(membership_channel, validation_ch
   snap
 }
 
+# A functional cluster snapshot whose validation_json carries the H4 reference
+# member-set attestation (in the stored hgnc_id space) + matching channels.
+make_functional_snap_with_reference <- function(reference_members) {
+  snap <- make_cluster_snap("functional_clusters", "functional", FUNC_ID, FUNC_HASH)
+  snap$manifest$validation_json <- analysis_snapshot_canonical_json(list(
+    weight_channel = "experimental_database",
+    membership_weight_channel = "experimental_database",
+    reference_members = reference_members
+  ))
+  snap
+}
+
 # A STATEFUL loader: returns the original snapshot on the first read of each
 # preset, then a DIFFERENT {snapshot_id, payload_hash} for `changed_type` on the
 # pre-insert re-read — simulating a concurrent axis refresh mid-build. Proves the
@@ -379,6 +391,65 @@ test_that("analysis_snapshot_release_assert_coherent gates stored-snapshot integ
   expect_error(
     analysis_snapshot_release_assert_coherent(incoherent, "functional"),
     class = "release_source_incoherent"
+  )
+})
+
+test_that("analysis_snapshot_release_assert_coherent runs the H4 member-set proof when attested", {
+  # served functional cluster_members: cluster 1 = {HGNC:1,2,3}, cluster 2 = {HGNC:4,5}.
+  coherent_ref <- list("1" = c("HGNC:1", "HGNC:2", "HGNC:3"), "2" = c("HGNC:4", "HGNC:5"))
+  incoherent_ref <- list("1" = c("HGNC:1", "HGNC:2", "HGNC:99"), "2" = c("HGNC:4", "HGNC:5"))
+
+  # (b) coherent attestation -> passes, no member-set warning.
+  expect_invisible(
+    analysis_snapshot_release_assert_coherent(make_functional_snap_with_reference(coherent_ref), "functional")
+  )
+
+  # (a) attested snapshot whose served members differ in CONTENT (same cluster-ids)
+  #     -> refuse, EVEN with the build-time coherence env downgraded to false.
+  withr::with_envvar(list(ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE = "false"), {
+    expect_error(
+      analysis_snapshot_release_assert_coherent(make_functional_snap_with_reference(incoherent_ref), "functional"),
+      class = "release_source_incoherent"
+    )
+  })
+
+  # (c) legacy snapshot WITHOUT the attestation -> degrades + warns (never refuses).
+  legacy <- make_cluster_snap("functional_clusters", "functional", FUNC_ID, FUNC_HASH)
+  expect_warning(
+    expect_invisible(analysis_snapshot_release_assert_coherent(legacy, "functional")),
+    "member-set verification is unavailable"
+  )
+})
+
+test_that("build refuses an attested snapshot whose member set differs from the reference (H4)", {
+  loader <- make_loader(list(
+    functional_clusters = make_functional_snap_with_reference(
+      list("1" = c("HGNC:1", "HGNC:2", "HGNC:99"), "2" = c("HGNC:4", "HGNC:5"))
+    )
+  ))
+  withr::with_envvar(list(ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE = "false"), {
+    expect_error(
+      analysis_snapshot_release_build(
+        conn = NULL, publish = TRUE,
+        loader = loader, reproducibility_loader = present_repro_loader,
+        coherence_assert = analysis_snapshot_release_assert_coherent # REAL default
+      ),
+      class = "release_source_incoherent"
+    )
+  })
+})
+
+test_that("build rejects layers with conflicting db_release provenance (M2)", {
+  phen <- make_cluster_snap("phenotype_clusters", "phenotype", PHEN_ID, PHEN_HASH)
+  phen$manifest$db_release_version <- "9.9.9" # conflicts with functional's 1.0.0
+  loader <- make_loader(list(phenotype_clusters = phen))
+  expect_error(
+    analysis_snapshot_release_build(
+      conn = NULL, publish = TRUE,
+      loader = loader, reproducibility_loader = present_repro_loader,
+      coherence_assert = pass_coherence
+    ),
+    class = "release_source_version_mismatch"
   )
 })
 

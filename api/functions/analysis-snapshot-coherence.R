@@ -136,6 +136,84 @@ analysis_snapshot_assert_partition_coherent <- function(membership, per_cluster,
   ))
 }
 
+#' Partition-independent STRING_id -> hgnc_id dictionary from served identifiers.
+#'
+#' Each served membership identifier row carries the fixed (STRING_id, hgnc_id)
+#' gene pairing (from the STRING id table join); this pairing is a property of the
+#' gene set, NOT of the partition, so it is reliable even for a stale membership.
+#' @noRd
+.analysis_snapshot_string_to_hgnc_dict <- function(membership) {
+  empty <- stats::setNames(character(0), character(0))
+  if (is.null(membership) || !("identifiers" %in% names(membership))) {
+    return(empty)
+  }
+  pairs <- lapply(membership$identifiers, function(df) {
+    if (is.data.frame(df) && all(c("STRING_id", "hgnc_id") %in% names(df))) {
+      data.frame(
+        STRING_id = as.character(df$STRING_id),
+        hgnc_id = as.character(df$hgnc_id),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      NULL
+    }
+  })
+  pairs <- pairs[!vapply(pairs, is.null, logical(1))]
+  if (length(pairs) == 0L) {
+    return(empty)
+  }
+  pairs <- do.call(rbind, pairs)
+  pairs <- pairs[!is.na(pairs$STRING_id) & !is.na(pairs$hgnc_id), , drop = FALSE]
+  pairs <- pairs[!duplicated(pairs$STRING_id), , drop = FALSE]
+  stats::setNames(pairs$hgnc_id, pairs$STRING_id)
+}
+
+#' Express the validator's reference member sets in the STORED cluster_member id
+#' space so a RELEASE can independently verify member-set coherence (#573 H4).
+#'
+#' The stored `analysis_snapshot_cluster_member` table keeps `hgnc_id` (functional)
+#' or `entity_id` (phenotype). The validator's `reference_members` are STRING
+#' protein ids (functional) / entity ids (phenotype). This maps them into the
+#' stored space: phenotype is already entity_id; functional STRING_ids are mapped
+#' to hgnc_id via the partition-independent gene dictionary, and any UNMAPPED
+#' STRING_id is kept verbatim (fail-closed — it cannot equal a stored hgnc_id, so
+#' an incoherent membership is never silently masked).
+#'
+#' @return A named list keyed by cluster_id (string) -> member-id character vector.
+#' @noRd
+analysis_snapshot_reference_members_store_space <- function(reference_members, membership, kind) {
+  reference_members <- reference_members %||% list()
+  if (length(reference_members) == 0L) {
+    return(list())
+  }
+  if (identical(kind, "phenotype")) {
+    return(lapply(reference_members, function(ids) unique(as.character(ids))))
+  }
+  dict <- .analysis_snapshot_string_to_hgnc_dict(membership)
+  lapply(reference_members, function(sids) {
+    sids <- as.character(sids)
+    mapped <- unname(dict[sids])
+    unique(as.character(ifelse(is.na(mapped), sids, mapped)))
+  })
+}
+
+#' Attach the additive partition provenance the join computed onto `partition`.
+#'
+#' Copies the served membership channel (#514, functional only — NA on the
+#' phenotype axis is not stored) and the H4 reference member-set attestation
+#' (#573, both axes) from the joined-tibble attributes onto `val$partition`, which
+#' the builder persists into `validation_json`. `partition_validation` is excluded
+#' from `payload_hash`, so this never churns `cluster_hash`.
+#' @export
+analysis_snapshot_attach_partition_provenance <- function(partition, joined) {
+  channel <- attr(joined, "membership_weight_channel")
+  if (!is.null(channel) && !all(is.na(channel))) {
+    partition$membership_weight_channel <- channel
+  }
+  partition$reference_members <- attr(joined, "reference_members_store_space")
+  partition
+}
+
 #' Gate then join the validator's per-cluster scores onto the served membership.
 #'
 #' Single choke-point for the builder's two clustering presets: it asserts partition
@@ -186,5 +264,12 @@ analysis_snapshot_join_validated_clusters <- function(membership, val, kind) {
   )
   joined <- dplyr::select(joined, -cluster_id)
   attr(joined, "membership_weight_channel") <- membership_channel %||% NA_character_
+  # #573 H4: carry the validator's reference member sets, expressed in the STORED
+  # cluster_member id space, so the builder can persist them into validation_json
+  # and a RELEASE can later re-prove member-set coherence independently. Attached
+  # as an attribute (not mutated onto `val`, which is a by-value copy here).
+  attr(joined, "reference_members_store_space") <- analysis_snapshot_reference_members_store_space(
+    val$reference_members, membership, kind
+  )
   joined
 }

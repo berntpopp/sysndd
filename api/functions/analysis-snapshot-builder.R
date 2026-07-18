@@ -397,10 +397,9 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       # validation, or a channel disagreement) BEFORE joining. Also carries the served
       # membership channel forward as a `membership_weight_channel` attribute.
       clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "functional")
-      # Additive provenance (partition_validation is excluded from payload_hash, so no
-      # cluster_hash churn): expose the channel the SERVED membership was clustered on
-      # alongside the validator's `weight_channel`.
-      val$partition$membership_weight_channel <- attr(clusters, "membership_weight_channel")
+      # Additive provenance (#514 channel + #573 H4 reference member sets) into
+      # validation_json; excluded from payload_hash, so no cluster_hash churn.
+      val$partition <- analysis_snapshot_attach_partition_provenance(val$partition, clusters)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
       # #512: additive self-reproducing bundle (LCC edge list + full membership +
       # served modularity). Best-effort; a NULL bundle never blocks the refresh.
@@ -421,6 +420,7 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       )
       # #514: same coherence gate as the functional axis (phenotype has no channel).
       clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "phenotype")
+      val$partition <- analysis_snapshot_attach_partition_provenance(val$partition, clusters)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
       # #512: additive bundle (MCA coords + membership + served silhouette).
       reproducibility <- analysis_snapshot_phenotype_reproducibility(

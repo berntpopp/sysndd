@@ -56,11 +56,13 @@ if (!exists("%||%", mode = "function")) {
 
 #' Take a consistent scalar of `field` across the loaded layer manifests.
 #'
-#' Returns the single distinct non-empty value when the layers agree, else the
-#' FIRST non-NA/non-empty value (a benign provenance disagreement never blocks a
-#' build). NA when no layer carries it. Used for `db_release_version`/`_commit`.
+#' NA when no layer carries it. When `strict = TRUE` (M2), distinct non-empty
+#' values that DISAGREE across layers raise `release_source_version_mismatch`
+#' (mirroring the source_data_version gate — the service maps it to 400); empty
+#' NA values are ignored (not a conflict). When `strict = FALSE`, a disagreement
+#' silently takes the first non-empty value.
 #' @noRd
-.analysis_release_consistent_manifest_value <- function(loaded, field) {
+.analysis_release_consistent_manifest_value <- function(loaded, field, strict = FALSE) {
   values <- vapply(
     loaded,
     function(e) as.character(.analysis_release_manifest_scalar(e$manifest, field, NA_character_)),
@@ -69,6 +71,16 @@ if (!exists("%||%", mode = "function")) {
   values <- values[!is.na(values) & nzchar(values)]
   if (length(values) == 0L) {
     return(NA_character_)
+  }
+  distinct <- unique(values)
+  if (isTRUE(strict) && length(distinct) > 1L) {
+    stop(.analysis_release_condition(
+      "release_source_version_mismatch",
+      sprintf(
+        "release layers disagree on %s (found: %s)",
+        field, paste(distinct, collapse = ", ")
+      )
+    ))
   }
   values[[1]]
 }
@@ -185,6 +197,8 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
   }
   per_cluster <- tibble::tibble(cluster_id = valid_ids)
 
+  validation <- .analysis_release_parse_validation_json(snapshot$manifest)
+
   # Channel match (functional axis only): both channels live in validation_json;
   # when both are present they must agree. Absent/older snapshots skip this
   # comparison (assert_partition_coherent only fires channel_mismatch when BOTH
@@ -192,9 +206,37 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
   membership_channel <- NULL
   validation_channel <- NULL
   if (identical(kind, "functional")) {
-    validation <- .analysis_release_parse_validation_json(snapshot$manifest)
     membership_channel <- validation$membership_weight_channel
     validation_channel <- validation$weight_channel
+  }
+
+  # H4: MEMBER-SET proof. Reconstruct the served membership member sets from the
+  # stored cluster_members (grouped by cluster_id, in the stored id space:
+  # hgnc_id for functional / entity_id for phenotype) and compare them against the
+  # persisted validator reference sets (validation_json$reference_members, same
+  # stored space). When the attestation is ABSENT (legacy pre-#573 snapshot),
+  # GRACEFULLY DEGRADE to the channel + stability check and WARN — never hard
+  # reject a legacy snapshot (that would block every release until a full rebuild).
+  member_col <- if (identical(kind, "functional")) "hgnc_id" else "entity_id"
+  membership_members <- NULL
+  if (all(c("cluster_id", member_col) %in% names(members)) && nrow(members) > 0L) {
+    grouped <- split(as.character(members[[member_col]]), as.character(members$cluster_id))
+    membership_members <- lapply(grouped, function(v) unique(v[!is.na(v) & nzchar(v)]))
+  }
+  validation_members <- validation$reference_members
+  if (!is.null(validation_members) && length(validation_members) > 0L) {
+    validation_members <- lapply(validation_members, function(v) unique(as.character(v)))
+  } else {
+    validation_members <- NULL
+    membership_members <- NULL # no reference to prove against
+    warning(sprintf(
+      paste0(
+        "release coherence: %s snapshot carries no persisted reference member sets ",
+        "(legacy snapshot); full member-set verification is unavailable, degraded to ",
+        "channel + stability check. Rebuild the snapshot (worker-executed) to attest coherence."
+      ),
+      kind
+    ), call. = FALSE)
   }
 
   tryCatch(
@@ -202,6 +244,8 @@ analysis_snapshot_release_assert_coherent <- function(snapshot, kind) {
       membership, per_cluster, kind,
       membership_channel = membership_channel,
       validation_channel = validation_channel,
+      membership_members = membership_members,
+      validation_members = validation_members,
       require_coherence = TRUE
     ),
     error = function(e) {

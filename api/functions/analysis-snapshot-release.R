@@ -313,10 +313,11 @@ analysis_snapshot_release_build <- function(layers = NULL,
     loaded, function(e) as.character(e$source_data_version), character(1)
   ))[[1]]
 
-  # M1: DB release provenance — carried on each pinned snapshot manifest. Take a
-  # consistent value across layers (assert equal; else the first non-NA/non-empty).
-  shared_db_release_version <- .analysis_release_consistent_manifest_value(loaded, "db_release_version")
-  shared_db_release_commit <- .analysis_release_consistent_manifest_value(loaded, "db_release_commit")
+  # M1/M2: DB release provenance — carried on each pinned snapshot manifest.
+  # strict = TRUE: distinct non-empty values that DISAGREE across layers reject
+  # the build (release_source_version_mismatch -> 400), like source_data_version.
+  shared_db_release_version <- .analysis_release_consistent_manifest_value(loaded, "db_release_version", strict = TRUE)
+  shared_db_release_commit <- .analysis_release_consistent_manifest_value(loaded, "db_release_commit", strict = TRUE)
 
   # For the correlation layer, pin the actual dependency lineage into its entry.
   corr <- loaded[["phenotype_functional_correlations"]]

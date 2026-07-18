@@ -160,3 +160,42 @@ test_that("join helper enforces member content coherence end to end (functional 
   expect_error(analysis_snapshot_join_validated_clusters(mbad, v, kind = "functional"),
                "content", ignore.case = TRUE)
 })
+
+# --- #573 H4: reference member sets expressed in the STORED id space ---
+
+test_that("reference_members_store_space maps functional STRING_id -> hgnc_id via served identifiers", {
+  membership <- tibble::tibble(
+    cluster = c(1L, 2L),
+    identifiers = list(
+      tibble::tibble(STRING_id = c("9606.A", "9606.B"), hgnc_id = c("HGNC:1", "HGNC:2")),
+      tibble::tibble(STRING_id = c("9606.C"), hgnc_id = c("HGNC:3"))
+    )
+  )
+  ref <- list("1" = c("9606.A", "9606.B"), "2" = c("9606.C"))
+  out <- analysis_snapshot_reference_members_store_space(ref, membership, "functional")
+  expect_setequal(out[["1"]], c("HGNC:1", "HGNC:2"))
+  expect_setequal(out[["2"]], "HGNC:3")
+
+  # an UNMAPPED STRING_id is kept verbatim (fail-closed: cannot equal a stored hgnc_id)
+  ref2 <- list("1" = c("9606.A", "9606.UNKNOWN"))
+  out2 <- analysis_snapshot_reference_members_store_space(ref2, membership, "functional")
+  expect_setequal(out2[["1"]], c("HGNC:1", "9606.UNKNOWN"))
+})
+
+test_that("reference_members_store_space passes phenotype entity ids through unchanged", {
+  ref <- list("1" = c("10", "11"), "2" = c("12"))
+  out <- analysis_snapshot_reference_members_store_space(ref, NULL, "phenotype")
+  expect_setequal(out[["1"]], c("10", "11"))
+  expect_setequal(out[["2"]], "12")
+  expect_equal(length(analysis_snapshot_reference_members_store_space(list(), NULL, "phenotype")), 0L)
+})
+
+test_that("join attaches the store-space reference attestation for the builder to persist", {
+  members <- list("1" = c("9606.A", "9606.B"), "2" = c("9606.C", "9606.D"))
+  m <- mk_membership_with_members(members, id_col = "STRING_id")
+  v <- mk_val_with_members(members)
+  joined <- analysis_snapshot_join_validated_clusters(m, v, kind = "functional")
+  attest <- attr(joined, "reference_members_store_space")
+  expect_false(is.null(attest))
+  expect_setequal(names(attest), c("1", "2"))
+})
