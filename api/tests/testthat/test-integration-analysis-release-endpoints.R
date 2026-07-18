@@ -178,12 +178,14 @@ test_that("public analysis-release read routes serve a published release and hid
   .delete_test_a6_releases(conn) # pre-clean any leftovers from a crashed run
   withr::defer(.delete_test_a6_releases(conn)) # post-clean
 
-  # --- seed one published release with 2 files (manifest.json + a layer payload) ---
+  # --- seed one published release: manifest.json + a layer payload + a
+  #     reproducibility.json (the brief's own worked path example) ---------
   payload_text <- "{\"a\":1}"
   payload_file <- make_gzip_file("functional_clusters/payload.json", payload_text)
+  repro_file <- make_gzip_file("functional_clusters/reproducibility.json", "{\"modularity\":0.42}")
   manifest_file <- make_manifest_file(TEST_RELEASE_ID, payload_file)
   head <- make_release_head(TEST_RELEASE_ID, manifest_file)
-  analysis_release_insert(head, list(make_member()), list(manifest_file, payload_file), conn)
+  analysis_release_insert(head, list(make_member()), list(manifest_file, payload_file, repro_file), conn)
   expect_true(analysis_release_publish(TEST_RELEASE_ID, conn = conn))
 
   # --- seed one DRAFT release (never published) -----------------------------
@@ -248,6 +250,12 @@ test_that("public analysis-release read routes serve a published release and hid
   expect_equal(analysis_release_sha256(manifest_bytes), head$manifest_sha256)
   expect_equal(manifest_res$headers[["Content-Type"]], "application/json")
 
+  manifest_draft_err <- tryCatch(
+    manifest_handler(release_id = TEST_DRAFT_RELEASE_ID, res = release_endpoint_fake_res()),
+    error = function(e) e
+  )
+  expect_s3_class(manifest_draft_err, "error_404")
+
   # =========================================================================
   # releases/<release_id>/file?path=...
   # =========================================================================
@@ -263,11 +271,31 @@ test_that("public analysis-release read routes serve a published release and hid
   expect_equal(analysis_release_sha256(file_bytes), payload_file$content_sha256)
   expect_equal(file_res$headers[["Content-Type"]], "application/json")
 
+  # the brief's own worked path example (functional_clusters/reproducibility.json):
+  # same arbitrary-path -> own content_sha256 mechanism, a different file.
+  repro_res <- release_endpoint_fake_res()
+  repro_bytes <- file_handler(
+    release_id = TEST_RELEASE_ID,
+    path = "functional_clusters/reproducibility.json",
+    res = repro_res
+  )
+  expect_equal(analysis_release_sha256(repro_bytes), repro_file$content_sha256)
+
   garbage_err <- tryCatch(
     file_handler(release_id = TEST_RELEASE_ID, path = "does/not/exist.json", res = release_endpoint_fake_res()),
     error = function(e) e
   )
   expect_s3_class(garbage_err, "error_404")
+
+  file_draft_err <- tryCatch(
+    file_handler(
+      release_id = TEST_DRAFT_RELEASE_ID,
+      path = "functional_clusters/payload.json",
+      res = release_endpoint_fake_res()
+    ),
+    error = function(e) e
+  )
+  expect_s3_class(file_draft_err, "error_404")
 
   # =========================================================================
   # releases/<release_id>/bundle
