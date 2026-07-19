@@ -274,6 +274,68 @@ test_that("async_job_service_submit defaults queue + priority from the job type"
   expect_equal(created_job$priority, 10L)
 })
 
+test_that("async_job_service_submit hashes hash_payload when supplied, not the full payload (#574 Codex round 3)", {
+  runtime <- load_async_job_service_runtime()
+  created_job <- NULL
+
+  runtime$async_job_repository_create <- function(job, conn = NULL) {
+    created_job <<- job
+    job$job_id
+  }
+  runtime$async_job_repository_get <- function(job_id, include_result = FALSE, conn = NULL) {
+    tibble::tibble(job_id = job_id, request_hash = created_job$request_hash,
+                   request_payload_json = created_job$request_payload_json)
+  }
+
+  full_payload <- list(genes = c("HGNC:1", "HGNC:5"), algorithm = "leiden",
+                       provenance = list(source_data_version = "2026-07-18T00:00:00Z"))
+  subset_payload <- list(genes = c("HGNC:1", "HGNC:5"), algorithm = "leiden")
+
+  runtime$async_job_service_submit(
+    job_type = "clustering",
+    request_payload = full_payload,
+    hash_payload = subset_payload,
+    job_id = "job-hash-override"
+  )
+
+  # request_hash is computed over hash_payload (the subset), not the full payload.
+  expect_equal(
+    created_job$request_hash,
+    runtime$async_job_service_request_hash(
+      "clustering",
+      runtime$async_job_service_payload_json(subset_payload)
+    )
+  )
+  expect_false(identical(
+    created_job$request_hash,
+    runtime$async_job_service_request_hash(
+      "clustering",
+      runtime$async_job_service_payload_json(full_payload)
+    )
+  ))
+
+  # request_payload_json (the DURABLY STORED payload) is always the FULL payload,
+  # provenance included -- only the dedup hash excludes it.
+  expect_equal(
+    jsonlite::fromJSON(created_job$request_payload_json, simplifyVector = TRUE)$provenance$source_data_version,
+    "2026-07-18T00:00:00Z"
+  )
+
+  # Default behavior (no hash_payload) is unchanged: hash the full payload.
+  runtime$async_job_service_submit(
+    job_type = "clustering",
+    request_payload = full_payload,
+    job_id = "job-hash-default"
+  )
+  expect_equal(
+    created_job$request_hash,
+    runtime$async_job_service_request_hash(
+      "clustering",
+      runtime$async_job_service_payload_json(full_payload)
+    )
+  )
+})
+
 test_that("async_job_service_submit still honors explicit queue + priority overrides", {
   runtime <- load_async_job_service_runtime()
   created_job <- NULL

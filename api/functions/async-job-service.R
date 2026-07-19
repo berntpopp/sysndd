@@ -214,6 +214,13 @@ async_job_service_request_hash <- function(job_type, request_payload_json) {
 #' @param scheduled_at Optional schedule time.
 #' @param job_id Optional explicit job id for tests.
 #' @param conn Optional DB connection or pool.
+#' @param hash_payload Optional named list or JSON payload string. When
+#'   supplied, the dedup `request_hash` is computed over THIS payload instead
+#'   of `request_payload`, while `request_payload_json` (the durably stored
+#'   payload) is always the FULL `request_payload`. `NULL` (default) hashes
+#'   `request_payload` exactly as before, so existing callers are unaffected.
+#'   Used by clustering submits (#574) to exclude time-varying `provenance`
+#'   metadata from the dedup identity while still persisting it.
 #'
 #' @return List containing the stored job row and duplicate/create flags.
 #' @export
@@ -226,7 +233,8 @@ async_job_service_submit <- function(
   max_attempts = 1L,
   scheduled_at = Sys.time(),
   job_id = uuid::UUIDgenerate(),
-  conn = NULL
+  conn = NULL,
+  hash_payload = NULL
 ) {
   job_type <- .async_job_service_non_empty_string(job_type, "job_type")
   job_id <- .async_job_service_non_empty_string(job_id, "job_id")
@@ -240,7 +248,8 @@ async_job_service_submit <- function(
   }
   queue_name <- .async_job_service_non_empty_string(queue_name, "queue_name")
   payload_json <- async_job_service_payload_json(request_payload)
-  request_hash <- async_job_service_request_hash(job_type, payload_json)
+  hash_payload_json <- if (is.null(hash_payload)) payload_json else async_job_service_payload_json(hash_payload)
+  request_hash <- async_job_service_request_hash(job_type, hash_payload_json)
   submitted_at <- Sys.time()
 
   stored_job <- tryCatch(
@@ -292,6 +301,11 @@ async_job_service_submit <- function(
 #' @param submitted_at Optional submission timestamp.
 #' @param completed_at Optional completion timestamp.
 #' @param conn Optional DB connection or pool.
+#' @param hash_payload Optional named list or JSON payload string. When
+#'   supplied, the dedup `request_hash` is computed over THIS payload instead
+#'   of `request_payload`, while `request_payload_json` (the durably stored
+#'   payload) is always the FULL `request_payload`. `NULL` (default) hashes
+#'   `request_payload` exactly as before, so existing callers are unaffected.
 #'
 #' @return Tibble with the stored completed job row.
 #' @export
@@ -305,12 +319,14 @@ async_job_service_store_completed <- function(
   job_id = uuid::UUIDgenerate(),
   submitted_at = Sys.time(),
   completed_at = submitted_at,
-  conn = NULL
+  conn = NULL,
+  hash_payload = NULL
 ) {
   job_type <- .async_job_service_non_empty_string(job_type, "job_type")
   job_id <- .async_job_service_non_empty_string(job_id, "job_id")
   queue_name <- .async_job_service_non_empty_string(queue_name, "queue_name")
   payload_json <- async_job_service_payload_json(request_payload)
+  hash_payload_json <- if (is.null(hash_payload)) payload_json else async_job_service_payload_json(hash_payload)
   result_json <- async_job_service_payload_json(result)
 
   async_job_repository_create(
@@ -320,7 +336,7 @@ async_job_service_store_completed <- function(
       queue_name = queue_name,
       priority = as.integer(priority),
       status = "completed",
-      request_hash = async_job_service_request_hash(job_type, payload_json),
+      request_hash = async_job_service_request_hash(job_type, hash_payload_json),
       request_payload_json = payload_json,
       submitted_by = if (is.null(submitted_by)) NULL else as.integer(submitted_by),
       submitted_at = submitted_at,

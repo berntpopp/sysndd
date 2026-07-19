@@ -24,8 +24,16 @@
 #' (`async_job_capacity_exceeded()`, 503 + `Retry-After`) before submitting a
 #' new durable job via `create_job()`.
 #'
-#' @param req Plumber request (reads `req$argsBody$genes`/`algorithm` and
-#'   `req$user$user_id`).
+#' The clustering gene universe (#574) is one of: an explicit `genes` list, a
+#' curated-category selection via `category_filter` (resolved through
+#' `clustering_resolve_category_universe()`), or -- when neither is supplied
+#' -- the existing default all-NDD-genes universe. `genes` and
+#' `category_filter` are mutually exclusive (400 if both are present). Every
+#' submit records selector + fingerprint provenance in the durable payload
+#' and (on a cache hit) the result meta; see `clustering-gene-universe.R`.
+#'
+#' @param req Plumber request (reads `req$argsBody$genes`/`algorithm`/
+#'   `category_filter` and `req$user$user_id`).
 #' @param res Plumber response, mutated in place (status + headers).
 #' @return List payload for the `json` serializer.
 #' @export
@@ -41,10 +49,28 @@ svc_job_submit_functional_clustering <- function(req, res) {
 
   # Extract request data before durable submission.
 
-  # Connection objects cannot cross process boundaries
-  genes_list <- NULL
-  if (!is.null(req$argsBody$genes)) {
-    genes_list <- req$argsBody$genes
+  # Connection objects cannot cross process boundaries. `genes` and
+  # `category_filter` are mutually exclusive gene-universe selectors (#574):
+  # an explicit gene list, a curated-category selection, or (both absent) the
+  # existing default all-NDD-genes universe.
+  genes_in <- req$argsBody$genes
+  has_genes <- !is.null(genes_in) && length(genes_in) > 0
+
+  # Selector presence is gated on JSON KEY PRESENCE (`names(req$argsBody)`), not
+  # value-nullness or length: `!is.null()` cannot distinguish an ABSENT key from
+  # an explicit JSON `null` (both parse to NULL in R). So a present `genes` key
+  # (`{"genes":null,...}` / `{"genes":[],...}`) and a present `category_filter`
+  # key each drive their guard regardless of value (Codex rounds 2 & 4). Mutual
+  # exclusion 400s when BOTH keys are present; a present-but-null/empty
+  # `category_filter` is a supplied-empty 400 (in the branch below), never a
+  # silent fall-through to the all-NDD default. `has_genes` (value-based,
+  # non-empty) still selects the explicit-genes branch.
+  body_names <- names(req$argsBody)
+  genes_key <- "genes" %in% body_names
+  category_key <- "category_filter" %in% body_names
+
+  if (genes_key && category_key) {
+    stop_for_bad_request("Provide either genes or category_filter, not both")
   }
 
   # Extract algorithm parameter (default: leiden)
@@ -62,17 +88,32 @@ svc_job_submit_functional_clustering <- function(req, res) {
     }
   }
 
-  # If no genes provided, use default (all NDD genes)
-  # This matches current functional_clustering endpoint behavior
-  if (is.null(genes_list) || length(genes_list) == 0) {
-    genes_list <- pool %>%
-      dplyr::tbl("ndd_entity_view") %>%
-      dplyr::arrange(entity_id) %>%
-      dplyr::filter(ndd_phenotype == 1) %>%
-      dplyr::select(hgnc_id) %>%
-      dplyr::collect() %>%
-      unique() %>%
-      dplyr::pull(hgnc_id)
+  # Resolve the clustering gene universe + selector provenance (#574). The
+  # explicit-genes and no-arg (all-NDD) branches are unchanged in substance
+  # from before this feature: `clustering_resolve_category_universe(NULL)`
+  # calls the same `generate_ndd_hgnc_ids()` query the old inline block used,
+  # so cache parity (memoise key = gene set + algorithm) is preserved.
+  selector_chr <- NULL
+  if (has_genes) {
+    genes_list <- as.character(unlist(genes_in))
+    kind <- "explicit"
+  } else if (category_key) {
+    # A present category_filter key means a category run. A present-but-null
+    # value is supplied-but-empty (a NULL would otherwise hit the resolver's
+    # absent->default branch), so it is coerced to an empty selector here and
+    # delegated to the resolver -- the resolver's supplied-empty branch 400s
+    # it (with the allowed active-category set in the message), keeping the
+    # 400 message construction in the single resolver source of truth.
+    cf <- req$argsBody$category_filter
+    if (is.null(cf)) cf <- list()
+    universe <- clustering_resolve_category_universe(cf)
+    genes_list <- universe$hgnc_ids
+    selector_chr <- universe$selector
+    kind <- "category"
+  } else {
+    universe <- clustering_resolve_category_universe(NULL)
+    genes_list <- universe$hgnc_ids
+    kind <- "all_ndd"
   }
 
   # Pre-fetch the STRING ID table because DB connections cannot cross the
@@ -83,8 +124,14 @@ svc_job_submit_functional_clustering <- function(req, res) {
     dplyr::select(symbol, hgnc_id, STRING_id) %>%
     dplyr::collect()
 
-  # Check for duplicate job (include algorithm in check)
-  dup_check <- check_duplicate_job("clustering", list(genes = genes_list, algorithm = algorithm))
+  # Check for duplicate job (include algorithm in check). The selector is
+  # folded into the dedup identity ONLY for category runs -- explicit/no-arg
+  # submits keep the pre-#574 dedup identity byte-identical.
+  dup_params <- list(genes = genes_list, algorithm = algorithm)
+  if (!is.null(selector_chr)) {
+    dup_params$category_filter <- selector_chr
+  }
+  dup_check <- check_duplicate_job("clustering", dup_params)
   if (dup_check$duplicate) {
     res$status <- 409
     res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
@@ -95,6 +142,54 @@ svc_job_submit_functional_clustering <- function(req, res) {
       status_url = paste0("/api/jobs/", dup_check$existing_job_id, "/status")
     ))
   }
+
+  # Cheap-path provenance (no expensive query yet). `selector_obj` records
+  # WHICH universe was resolved; `intended_fingerprint` records the STRING
+  # cache identity + fixed clustering params this submit intends to run
+  # with. The *effective* fingerprint (e.g. the STRING weight channel a
+  # computed result actually used) is only knowable from a computed result,
+  # so it is recorded separately in the cache-hit result meta below.
+  selector_obj <- list(kind = kind, category_filter = selector_chr)
+  intended_fingerprint <- list(
+    string_cache_fingerprint = analysis_string_cache_fingerprint(),
+    score_threshold = 400L,
+    algorithm = algorithm,
+    seed = 42L
+  )
+  gene_sha <- clustering_gene_list_sha256(genes_list)
+  # `gene_list_sha256` hashes sort(unique(...)); the provenance/meta gene
+  # count must agree with it, so it is computed from the SAME dedup -- an
+  # explicit payload with duplicate genes (e.g. `["HGNC:1","HGNC:1"]`) must
+  # not report a resolved count that disagrees with a singleton sha256. This
+  # never dedups the payload `genes` list itself (`genes_list` stays
+  # byte-identical to the raw request) -- only the reported COUNT (Codex
+  # review fix).
+  resolved_count <- length(unique(genes_list))
+
+  # Source-data version: a CACHED, fail-closed read, fetched only now that a
+  # payload is actually about to be built -- its backing view runs global
+  # counts/joins, so it must never run before admission/dedup. A lookup
+  # failure must never silently record NA/broken provenance; fail the
+  # request closed instead.
+  src_ver <- tryCatch(
+    clustering_cached_source_data_version(conn = pool),
+    error = function(e) e
+  )
+  if (inherits(src_ver, "error")) {
+    res$status <- 503L
+    return(list(
+      error = "PROVENANCE_UNAVAILABLE",
+      message = "Snapshot source-data version unavailable; retry shortly."
+    ))
+  }
+
+  provenance <- list(
+    selector = selector_obj,
+    resolved_gene_count = resolved_count,
+    gene_list_sha256 = gene_sha,
+    intended_fingerprint = intended_fingerprint,
+    source_data_version = src_ver
+  )
 
   # Define category links (needed for result)
   category_links <- tibble::tibble(
@@ -150,28 +245,57 @@ svc_job_submit_functional_clustering <- function(req, res) {
       dplyr::select(value = category, text) %>%
       dplyr::left_join(category_links, by = c("value"))
 
+    # Splice the base cache-hit fields with `provenance` (already assembled
+    # above as selector/resolved_gene_count/gene_list_sha256/
+    # intended_fingerprint/source_data_version) via the shared
+    # `clustering_result_meta()` helper (clustering-gene-universe.R) instead of
+    # re-listing the same fields as duplicate literals -- keeps this shape in
+    # lockstep with the worker-run handler's result meta by construction.
+    # `effective_fingerprint` is only knowable from the computed result
+    # (`cached_clusters`), so it is not part of the cheap-path `provenance` list.
     cache_result <- list(
       clusters = cached_clusters,
       categories = categories,
-      meta = list(
-        algorithm = algorithm,
-        gene_count = length(genes_list),
-        cluster_count = nrow(cached_clusters),
-        cache_hit = TRUE
+      meta = clustering_result_meta(
+        list(
+          algorithm = algorithm,
+          gene_count = resolved_count,
+          cluster_count = nrow(cached_clusters),
+          cache_hit = TRUE
+        ),
+        provenance,
+        attr(cached_clusters, "weight_channel")
       )
     )
+    cache_request_payload <- list(
+      genes = genes_list,
+      algorithm = algorithm,
+      category_links = category_links,
+      string_id_table = string_id_table,
+      provenance = provenance
+    )
+    if (!is.null(selector_chr)) {
+      cache_request_payload$category_filter <- selector_chr
+    }
+    # Dedup identity EXCLUDES provenance (Codex round 3): `provenance`
+    # carries a time-varying `source_data_version` and STRING cache
+    # `intended_fingerprint`, so hashing the full payload would make the
+    # active-job uniqueness guard admit duplicate concurrent clustering work
+    # across a deploy/cache-TTL change and break the byte-identical
+    # explicit/no-arg `request_hash` contract predating #574. Removing the
+    # `provenance` key preserves the leading `genes, algorithm,
+    # category_links, string_id_table[, category_filter]` key order -- it was
+    # appended last, so deleting it does not reorder the rest.
+    cache_hash_payload <- cache_request_payload
+    cache_hash_payload$provenance <- NULL
     completed_job <- async_job_service_store_completed(
       job_type = "clustering",
-      request_payload = list(
-        genes = genes_list,
-        algorithm = algorithm,
-        category_links = category_links,
-        string_id_table = string_id_table
-      ),
+      request_payload = cache_request_payload,
       result = cache_result,
       submitted_by = req$user$user_id %||% NULL,
       queue_name = "analysis",
-      priority = 50L
+      priority = 50L,
+      hash_payload = cache_hash_payload
     )
     job_id <- completed_job$job_id[[1]]
 
@@ -209,32 +333,46 @@ svc_job_submit_functional_clustering <- function(req, res) {
   }
 
   # Cache miss - create async job
-  result <- create_job(
-    operation = "clustering",
-    params = list(
-      genes = genes_list,
-      algorithm = algorithm,
-      category_links = category_links,
-      string_id_table = string_id_table
-    )
+  job_params <- list(
+    genes = genes_list,
+    algorithm = algorithm,
+    category_links = category_links,
+    string_id_table = string_id_table,
+    provenance = provenance
   )
-
-  # Check capacity
-  if (!is.null(result$error)) {
-    res$status <- 503
-    res$setHeader("Retry-After", as.character(result$retry_after))
-    return(result)
+  if (!is.null(selector_chr)) {
+    job_params$category_filter <- selector_chr
   }
+  # See the cache-hit branch above: dedup identity EXCLUDES provenance so the
+  # active-job uniqueness guard is not defeated by its time-varying fields,
+  # and explicit/no-arg submits stay byte-identical to pre-#574.
+  #
+  # `create_job()` carries a deliberately guarded 2-arg contract
+  # (`operation`, `params`) -- it cannot take a hash override. This path
+  # calls `async_job_service_submit()` directly instead (mirroring the
+  # cache-hit branch above, which already calls
+  # `async_job_service_store_completed()` directly for the same reason), so
+  # `hash_payload` can diverge from the stored `request_payload` without
+  # touching `create_job()`'s contract.
+  hash_params <- job_params
+  hash_params$provenance <- NULL
+  submitted <- async_job_service_submit(
+    job_type = "clustering",
+    request_payload = job_params,
+    hash_payload = hash_params,
+    submitted_by = req$user$user_id %||% NULL
+  )
+  job_id <- if (nrow(submitted$job) > 0) submitted$job$job_id[[1]] else NULL
 
   # Success - return HTTP 202 Accepted
   res$status <- 202
-  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
   res$setHeader("Retry-After", "5")
 
   list(
-    job_id = result$job_id,
-    status = result$status,
-    estimated_seconds = result$estimated_seconds,
-    status_url = paste0("/api/jobs/", result$job_id, "/status")
+    job_id = job_id,
+    status = "accepted",
+    estimated_seconds = 30,
+    status_url = paste0("/api/jobs/", job_id, "/status")
   )
 }
