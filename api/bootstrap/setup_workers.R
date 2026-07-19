@@ -135,6 +135,8 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/async-job-force-apply-payload.R", local = FALSE)
     source("/app/functions/async-job-provider-handlers.R", local = FALSE)
     source("/app/functions/async-job-maintenance-handlers.R", local = FALSE)
+    # #574: .async_job_run_clustering uses clustering_result_meta() (source before the handlers).
+    source("/app/functions/clustering-gene-universe.R", local = FALSE)
     source("/app/functions/async-job-handlers.R", local = FALSE)
     source("/app/functions/async-job-worker.R", local = FALSE)
     # Source transitional progress shim for legacy mirai async code paths

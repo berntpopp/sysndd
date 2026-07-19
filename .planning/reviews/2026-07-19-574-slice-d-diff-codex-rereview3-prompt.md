@@ -1,0 +1,9 @@
+Third-pass review of feature #574 (category-selected gene universes for functional clustering). Run `git diff origin/master...HEAD -- ':(exclude).planning/**'`. Read touched files in full.
+
+Your round-2 review returned NO-SHIP with 1 HIGH + 1 MEDIUM. Both were addressed:
+1. HIGH — mutual exclusion now uses JSON key-presence via `names(req$argsBody)` (`genes_key && category_key` → 400), so `{"genes":null,"category_filter":[...]}` AND `{"genes":[],"category_filter":[...]}` both 400, while `{"genes":null}` / `{"genes":[]}` alone still default, and `{"genes":["X"]}` alone is still explicit. VERIFY this is correct and that no valid single-selector request now wrongly 400s.
+2. MEDIUM — `.async_job_run_clustering` now sets `gene_count = length(unique(genes))`, matching the cache-hit path's `resolved_count`. VERIFY both paths now agree for duplicate genes and that `nrow(clusters)`/payload `genes` were not changed.
+
+Confirm explicitly whether each is resolved. Then do a final adversarial pass for anything still lurking — but do NOT invent speculative or stylistic findings; only report a finding you can tie to a concrete failure scenario (specific inputs → wrong output/crash/contract violation). Re-confirm the locked contract holds: entity-level resolution; NULL/absent→default cache parity; supplied-empty category→400; <2 genes→400; allowed set in the error MESSAGE; selector-aware dedup additive-only (explicit/no-arg request_hash byte-identical); provenance + effective_fingerprint on both cache-hit and worker paths; fail-closed source_data_version (never NA, 503 on failure); never public_ready; dbplyr `%in%` not string interpolation; `dplyr::`/`base::get` namespacing; touched files < 600 lines.
+
+Output: for each finding, severity (BLOCKER/HIGH/MEDIUM/LOW), file:line, concrete failure scenario, fix. Final line: **VERDICT: SHIP** (zero BLOCKER/HIGH) or **VERDICT: NO-SHIP** with the count.

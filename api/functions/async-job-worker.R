@@ -72,6 +72,22 @@ if (!exists("async_job_get_handler", mode = "function")) {
     }
   }
 
+  # .async_job_run_clustering assembles its result meta via clustering_result_meta()
+  # (clustering-gene-universe.R, #574); source it BEFORE async-job-handlers.R so a
+  # directly-loaded worker's fallback path can run a clustering job without a
+  # "could not find function" crash (the standard bootstrap already loads it first).
+  clustering_universe_candidates <- c(
+    "functions/clustering-gene-universe.R",
+    "/app/functions/clustering-gene-universe.R"
+  )
+
+  for (path in clustering_universe_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
   handler_candidates <- c(
     "functions/async-job-handlers.R",
     "/app/functions/async-job-handlers.R"

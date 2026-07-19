@@ -17,6 +17,103 @@ Zenodo archival operator scripts for analysis-snapshot releases (#573, Slice C).
 - Two Make targets, `analysis-release-zenodo-package` and `analysis-release-zenodo-upload-draft`, wrap the scripts for local operator use; the Makefile itself never passes `--publish`.
 - Operator runbook documented in `documentation/09-deployment.qmd` under "Zenodo archival (operator scripts, #573 Slice C)".
 
+## [0.30.2] — 2026-07-19
+
+Public + Administrator UI for the immutable analysis-snapshot releases added in
+0.30.0 (#573, Slice B). The frozen, content-addressed release artifacts are now
+browsable, downloadable, and verifiable from the app, and an operator can build,
+publish, and DOI-tag them without SSH or `docker exec`.
+
+> Note: 0.30.1 is reserved for the category-selected clustering universes work
+> (#574, Slice D); this Slice-B UI release assumes that lands first.
+
+### Added
+
+- **Public `/DataReleases` page** (`views/analyses/DataReleases.vue`,
+  discoverable from the Analyses navbar dropdown): lists published releases in a
+  table (with the dotted `zenodo.*` keys flattened to flat field keys so
+  BootstrapVueNext's `BTable` can render them), and shows a
+  `ReleaseManifestPanel` provenance card (styled like the NDDScore model card)
+  with the release identity, the three integrity hashes (`content_digest`,
+  `manifest_sha256`, `bundle_sha256`) with copy buttons, per-layer
+  `snapshot_id`/`payload_hash`/`input_hash`/`reproducibility_hash`, the
+  correlation layer's pinned dependency lineage, and DOI links. Download buttons
+  for the whole `bundle.tar.gz`, the exact `manifest.json` bytes, and each
+  individual manifest file, plus a "How to verify" disclosure explaining the
+  hashing model (including that `payload_hash`/`input_hash`/`snapshot_id` are
+  cross-checkable lineage anchors, not a hash of the release's own
+  `payload.json`).
+- **Administrator `Manage releases` page**
+  (`views/admin/ManageAnalysisReleases.vue`): synchronous, DB-only build /
+  publish / record-DOI / delete-draft flows over a co-located
+  `useAnalysisReleaseAdmin` composable. The Build action is disabled unless all
+  three release layers (`functional_clusters`, `phenotype_clusters`,
+  `phenotype_functional_correlations`) report `available` from the snapshot
+  status endpoint, and the transient `release_lock_unavailable` (HTTP 503,
+  sources mid-refresh) response is surfaced distinctly from the 400 gate
+  failures.
+- **Typed API clients** for the release surface: the public
+  `analysis_releases.ts` (re-exported from `analysis.ts`) and the
+  Administrator-only `admin_analysis_release.ts`, both mirroring the exact
+  backend contracts (the public 14-field head allowlist that never exposes
+  `created_by_user_id`/`last_error_message`; the admin raw head with flat DOI
+  columns).
+
+### Fixed
+
+- `release_version`/`title` are typed as nullable everywhere in the release
+  clients — `release_version` is a reserved `VARCHAR` the builder currently
+  always inserts as `NULL`, so the always-empty "Version" column was dropped
+  from the public table and made conditional in the manifest panel, and the
+  release label falls back to `release_id` when the title is null.
+
+## [0.30.1] — 2026-07-19
+
+Category-selected gene universes for functional clustering (#574). The public
+clustering submit endpoint can now resolve its gene universe from a curated
+SysNDD confidence category instead of an explicit gene list, with an auditable
+provenance record on every job.
+
+### Added
+
+- **`category_filter` on `POST /api/jobs/clustering/submit`**: an optional JSON
+  body array (e.g. `["Definitive"]`) selecting the clustering gene universe
+  from curated confidence categories. Resolution is **entity-level** against
+  `ndd_entity_view` — a gene qualifies if it has ≥1 `ndd_phenotype = 1` entity
+  whose status `category` is in the selector — via the new
+  `clustering_resolve_category_universe()`
+  (`api/functions/clustering-gene-universe.R`). Omitting the selector keeps the
+  byte-identical pre-#574 default (all NDD genes via `generate_ndd_hgnc_ids()`,
+  cache parity preserved); supplying both `genes` and `category_filter` is a
+  400.
+- **Provenance on every clustering job**: each submit records a `selector`
+  (`kind`: `explicit` / `category` / `all_ndd`), `resolved_gene_count`,
+  a sort-order-independent `gene_list_sha256`, an **intended** analysis
+  fingerprint (STRING cache fingerprint + score threshold + algorithm + seed),
+  and a cached, fail-closed `source_data_version` in the durable payload; the
+  result `meta` additionally carries an **effective** `effective_fingerprint`
+  (the STRING `weight_channel` the computed result actually used), on both the
+  cache-hit response and a worker-run job, so a silent exp+db→combined-score
+  fallback is observable either way.
+
+### Changed
+
+- Clustering-job **dedup identity is now selector-aware**: the normalized
+  `category_filter` enters the durable payload and preflight dedup key **only**
+  for category selectors, so `["Definitive"]` and `["Definitive","Moderate"]`
+  that happen to resolve to the same current genes are not collapsed, while
+  explicit-`genes` and no-arg submits keep a byte-identical `request_hash` and
+  payload shape to pre-#574. Category-filtered results remain ephemeral job
+  results and are **never** `public_ready`.
+
+### Validated
+
+- The selector is validated live against
+  `ndd_entity_status_categories_list WHERE is_active = 1` (no hardcoded
+  category strings, no interpolated SQL): an unknown/inactive category, a
+  supplied-but-empty selector, or a resolved universe under 2 genes is a 400
+  naming the allowed active categories in the error message.
+
 ## [0.30.0] — 2026-07-18
 
 Immutable public analysis-snapshot releases (#573, Slice A). SysNDD's derived
