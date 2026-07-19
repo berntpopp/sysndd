@@ -41,7 +41,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data analysis-release-zenodo-package analysis-release-zenodo-upload-draft
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -374,6 +374,34 @@ preflight: check-docker ## [quality] Run production preflight validation
 	@printf "  - Containers start without errors\n"
 	@printf "  - /api/health/ready returns 200\n"
 	@printf "  - Database connectivity verified\n"
+
+# ARGS/UPLOAD_ARGS are passed through to the analysis-release Zenodo operator
+# scripts below (e.g. ARGS="--release-id asr_..." or UPLOAD_ARGS="--sandbox");
+# default empty so --warn-undefined-variables stays quiet.
+ARGS ?=
+UPLOAD_ARGS ?=
+
+analysis-release-zenodo-package: check-r ## [quality] Package a published analysis-snapshot release into a Zenodo staging dir + tarball
+	@printf "$(CYAN)==> Packaging analysis-snapshot release for Zenodo...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(HOST_RSCRIPT) api/scripts/package-analysis-release-zenodo.R $(ARGS) && \
+		printf "$(GREEN)✓ analysis-release-zenodo-package complete (see outputs/analysis-release-zenodo/latest.env)$(RESET)\n" || \
+		(printf "$(RED)✗ analysis-release-zenodo-package failed$(RESET)\n" && exit 1)
+
+analysis-release-zenodo-upload-draft: check-r ## [quality] Upload the last-packaged release to a Zenodo DRAFT (never publishes)
+	@if [ -z "$${ZENODO_TOKEN:-}" ]; then \
+		printf "$(RED)✗ ZENODO_TOKEN is not set (export it in your shell or .env before running this target)$(RESET)\n"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(ROOT_DIR)/outputs/analysis-release-zenodo/latest.env" ]; then \
+		printf "$(RED)✗ outputs/analysis-release-zenodo/latest.env not found -- run 'make analysis-release-zenodo-package' first$(RESET)\n"; \
+		exit 1; \
+	fi
+	@printf "$(CYAN)==> Uploading last-packaged analysis-snapshot release to a Zenodo DRAFT (never publishes)...$(RESET)\n"
+	@. "$(ROOT_DIR)/outputs/analysis-release-zenodo/latest.env" && \
+		cd $(ROOT_DIR) && $(HOST_RSCRIPT) api/scripts/upload-analysis-release-zenodo.R \
+			--archive "$$ARCHIVE_PATH" --metadata "$$METADATA_PATH" --release-id "$$RELEASE_ID" $(UPLOAD_ARGS) && \
+		printf "$(GREEN)✓ analysis-release-zenodo-upload-draft complete -- DRAFT only; publishing is a deliberate manual step (see documentation/09-deployment.qmd)$(RESET)\n" || \
+		(printf "$(RED)✗ analysis-release-zenodo-upload-draft failed$(RESET)\n" && exit 1)
 
 # =============================================================================
 # Docker Targets

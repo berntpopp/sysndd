@@ -70,6 +70,31 @@ source(
 #' bottom of this file, which only calls this when the script is run
 #' directly (`Rscript package-analysis-release-zenodo.R`), never when
 #' `source()`d (e.g. by a test).
+#' Write/overwrite the stable `outputs/analysis-release-zenodo/latest.env`
+#' pointer file the `analysis-release-zenodo-upload-draft` Make target reads
+#' to find this run's content-addressed archive (releases are `asr_<16
+#' hex>`-named, not date-versioned, so the Makefile cannot hardcode a
+#' filename). Fixed, CWD-relative location regardless of `--staging-dir`/
+#' `--archive-dir` overrides -- deliberately NOT under `staging_dir`/
+#' `archive_dir` so the marker's location never depends on those flags.
+#' Paths are written `normalizePath()`-resolved (absolute) so the marker is
+#' still correct if the upload step runs from a different CWD than the
+#' package step.
+.write_package_analysis_release_zenodo_marker <- function(result) {
+  marker_path <- "outputs/analysis-release-zenodo/latest.env"
+  dir.create(dirname(marker_path), recursive = TRUE, showWarnings = FALSE)
+  cat(
+    sprintf(
+      "ARCHIVE_PATH=%s\nMETADATA_PATH=%s\nRELEASE_ID=%s\n",
+      normalizePath(result$archive_path, mustWork = FALSE),
+      normalizePath(result$zenodo_metadata_path, mustWork = FALSE),
+      result$release_id
+    ),
+    file = marker_path
+  )
+  marker_path
+}
+
 run_package_analysis_release_zenodo_cli <- function() {
   args <- commandArgs(trailingOnly = TRUE)
 
@@ -108,14 +133,17 @@ run_package_analysis_release_zenodo_cli <- function() {
     version = version
   )
 
+  marker_path <- .write_package_analysis_release_zenodo_marker(result)
+
   cat(sprintf("Release ID:           %s\n", result$release_id))
   cat(sprintf("Staging dir:          %s\n", result$staging_dir))
   cat(sprintf("Archive path:         %s\n", result$archive_path))
   cat(sprintf("Archive sha256 path:  %s\n", result$archive_sha256_path))
   cat(sprintf("Zenodo metadata path: %s\n", result$zenodo_metadata_path))
+  cat(sprintf("Marker file:          %s\n", marker_path))
   cat(sprintf(
-    "\nNext: Rscript api/scripts/upload-analysis-release-zenodo.R --archive %s --metadata %s\n",
-    result$archive_path, result$zenodo_metadata_path
+    "\nNext: make analysis-release-zenodo-upload-draft (or: Rscript api/scripts/upload-analysis-release-zenodo.R --archive %s --metadata %s --release-id %s)\n",
+    result$archive_path, result$zenodo_metadata_path, result$release_id
   ))
 
   invisible(result)
