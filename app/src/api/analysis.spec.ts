@@ -285,6 +285,28 @@ function makeReleaseHead(overrides: Partial<ReleaseHead> = {}): ReleaseHead {
   };
 }
 
+/**
+ * `manifest.generator`/`manifest.source` are nested objects on the wire
+ * (api/functions/analysis-snapshot-release.R), not strings — see the
+ * `ReleaseManifestGenerator`/`ReleaseManifestSource` types.
+ */
+function makeManifestGeneratorSource() {
+  return {
+    generator: {
+      name: 'sysndd-analysis-snapshot-release-build',
+      manifest_schema_version: '1.0',
+      reproducibility_schema_version: '1.2',
+    },
+    source: {
+      source_data_version: '2026-07-01',
+      db_release: { version: '11.4.0', commit: 'deadbeef' },
+      snapshots: [
+        { analysis_type: 'functional_clusters', snapshot_id: 101, parameter_hash: 'fp-hash' },
+      ],
+    },
+  };
+}
+
 describe('api/analysis — listReleases', () => {
   it('returns the releases envelope on 200', async () => {
     server.use(
@@ -324,7 +346,10 @@ describe('api/analysis — listReleases', () => {
   it('throws AxiosError on non-2xx', async () => {
     server.use(
       http.get('/api/analysis/releases', () =>
-        HttpResponse.json({ message: 'boom' }, { status: 500 })
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Internal Server Error', status: 500, detail: 'boom' },
+          { status: 500 }
+        )
       )
     );
     let caught: unknown;
@@ -349,8 +374,7 @@ describe('api/analysis — getLatestRelease', () => {
         created_at: '2026-07-01T00:00:00Z',
         license: 'CC-BY-4.0',
         scope_statement: 'Public derived analysis only.',
-        generator: 'sysndd-api',
-        source: 'sysndd',
+        ...makeManifestGeneratorSource(),
         layers: [],
         files: [{ path: 'functional_clusters/payload.json', sha256: 'd'.repeat(64), bytes: 100 }],
         content_digest: 'a'.repeat(64),
@@ -365,7 +389,15 @@ describe('api/analysis — getLatestRelease', () => {
   it('throws AxiosError 404 when no published release exists', async () => {
     server.use(
       http.get('/api/analysis/releases/latest', () =>
-        HttpResponse.json({ message: 'No published analysis-snapshot release exists yet' }, { status: 404 })
+        HttpResponse.json(
+          {
+            type: 'about:blank',
+            title: 'Not Found',
+            status: 404,
+            detail: 'No published analysis-snapshot release exists yet',
+          },
+          { status: 404 }
+        )
       )
     );
     let caught: unknown;
@@ -393,8 +425,7 @@ describe('api/analysis — getRelease', () => {
         created_at: '2026-07-01T00:00:00Z',
         license: 'CC-BY-4.0',
         scope_statement: 'Public derived analysis only.',
-        generator: 'sysndd-api',
-        source: 'sysndd',
+        ...makeManifestGeneratorSource(),
         layers: [],
         files: [],
         content_digest: 'a'.repeat(64),
@@ -415,7 +446,10 @@ describe('api/analysis — getRelease', () => {
   it('throws AxiosError 404 for an unknown/draft release id', async () => {
     server.use(
       http.get('/api/analysis/releases/:releaseId', () =>
-        HttpResponse.json({ message: 'not found' }, { status: 404 })
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
       )
     );
     let caught: unknown;
@@ -445,7 +479,10 @@ describe('api/analysis — downloadReleaseManifest', () => {
   it('throws AxiosError on non-2xx', async () => {
     server.use(
       http.get('/api/analysis/releases/:releaseId/manifest.json', () =>
-        HttpResponse.json({ message: 'not found' }, { status: 404 })
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
       )
     );
     let caught: unknown;
@@ -476,7 +513,10 @@ describe('api/analysis — downloadReleaseFile', () => {
   it('throws AxiosError on non-2xx (unknown file path)', async () => {
     server.use(
       http.get('/api/analysis/releases/:releaseId/file', () =>
-        HttpResponse.json({ message: 'not found' }, { status: 404 })
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
       )
     );
     let caught: unknown;
@@ -506,7 +546,10 @@ describe('api/analysis — downloadReleaseBundle', () => {
   it('throws AxiosError on non-2xx', async () => {
     server.use(
       http.get('/api/analysis/releases/:releaseId/bundle', () =>
-        HttpResponse.json({ message: 'not found' }, { status: 404 })
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
       )
     );
     let caught: unknown;

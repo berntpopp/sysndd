@@ -183,6 +183,15 @@ const selectedRelease = ref<ReleaseDetail | null>(null);
 const detailLoading = ref(true);
 const detailError = ref<string | null>(null);
 
+/**
+ * MEDIUM (#573 Slice B Codex round-1 review): monotonic request token
+ * guarding against a stale-response race. If the mount-time
+ * `getLatestRelease()` resolves AFTER the user has since clicked "View
+ * manifest" on another row (a newer `getRelease(id)` request), the late
+ * response must not overwrite `selectedRelease` with the wrong release.
+ */
+let detailRequestSeq = 0;
+
 async function loadList(): Promise<void> {
   listLoading.value = true;
   listError.value = null;
@@ -203,17 +212,23 @@ async function loadList(): Promise<void> {
  * SectionCard's `empty` prop.
  */
 async function loadDetail(fetcher: () => Promise<ReleaseDetail>): Promise<void> {
+  const token = ++detailRequestSeq;
   detailLoading.value = true;
   detailError.value = null;
   try {
-    selectedRelease.value = await fetcher();
+    const result = await fetcher();
+    if (token !== detailRequestSeq) return; // a newer request has since started; discard
+    selectedRelease.value = result;
   } catch (err) {
+    if (token !== detailRequestSeq) return; // a newer request has since started; discard
     selectedRelease.value = null;
     if (!(isApiError(err) && err.response?.status === 404)) {
       detailError.value = extractApiErrorMessage(err, 'Failed to load the release manifest.');
     }
   } finally {
-    detailLoading.value = false;
+    if (token === detailRequestSeq) {
+      detailLoading.value = false;
+    }
   }
 }
 

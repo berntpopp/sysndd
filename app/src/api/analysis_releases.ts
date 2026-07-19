@@ -127,6 +127,39 @@ export interface ReleaseManifestFile {
 }
 
 /**
+ * Build provenance recorded on `manifest.generator`
+ * (api/functions/analysis-snapshot-release.R, the `analysis_release_build_manifest()`
+ * call site). `reproducibility_schema_version` is absent/`null` if the
+ * `ANALYSIS_REPRODUCIBILITY_SCHEMA_VERSION` constant is not defined at build
+ * time.
+ */
+export interface ReleaseManifestGenerator {
+  name: string;
+  manifest_schema_version: string;
+  reproducibility_schema_version: string | null;
+}
+
+/** `manifest.source.db_release`: the DB release identity pinned at build time, if known. */
+export interface ReleaseManifestSourceDbRelease {
+  version: string | null;
+  commit: string | null;
+}
+
+/** One entry of `manifest.source.snapshots[]` — the pinned source snapshot per layer. */
+export interface ReleaseManifestSourceSnapshot {
+  analysis_type: string;
+  snapshot_id: number;
+  parameter_hash: string;
+}
+
+/** `manifest.source`: the shared source-data identity every layer in the release was built from. */
+export interface ReleaseManifestSource {
+  source_data_version: string;
+  db_release: ReleaseManifestSourceDbRelease;
+  snapshots: ReleaseManifestSourceSnapshot[];
+}
+
+/**
  * The release `manifest.json` shape, built by
  * `analysis_release_build_manifest()` (api/functions/analysis-snapshot-release-manifest.R).
  * Present on the detail (`GET /releases/<id>`) and `latest` routes only —
@@ -140,9 +173,10 @@ export interface ReleaseManifest {
   title: string | null;
   created_at: string;
   license: string;
-  scope_statement: string;
-  generator: string;
-  source: string;
+  /** Nullable — the build param defaults to `NULL` when the caller omits a scope statement. */
+  scope_statement: string | null;
+  generator: ReleaseManifestGenerator;
+  source: ReleaseManifestSource;
   layers: ReleaseManifestLayer[];
   files: ReleaseManifestFile[];
   content_digest: string;

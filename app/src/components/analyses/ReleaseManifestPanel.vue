@@ -158,13 +158,14 @@
           <dt>Version DOI</dt>
           <dd>
             <a
-              v-if="release.zenodo.version_doi"
-              :href="doiUrl(release.zenodo.version_doi)"
+              v-if="safeVersionDoiHref"
+              :href="safeVersionDoiHref"
               target="_blank"
               rel="noopener noreferrer"
             >
               {{ release.zenodo.version_doi }}
             </a>
+            <span v-else-if="release.zenodo.version_doi">{{ release.zenodo.version_doi }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
@@ -172,27 +173,36 @@
           <dt>Concept DOI</dt>
           <dd>
             <a
-              v-if="release.zenodo.concept_doi"
-              :href="doiUrl(release.zenodo.concept_doi)"
+              v-if="safeConceptDoiHref"
+              :href="safeConceptDoiHref"
               target="_blank"
               rel="noopener noreferrer"
             >
               {{ release.zenodo.concept_doi }}
             </a>
+            <span v-else-if="release.zenodo.concept_doi">{{ release.zenodo.concept_doi }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
         <div>
           <dt>Zenodo record</dt>
           <dd>
+            <!--
+              HIGH (#573 Slice B Codex round-1): `zenodo.record_url` is an
+              admin-authored string with no backend URL validation, so it is
+              never bound to `:href` unguarded — `safeHttpUrl` only allows
+              http(s), rendering anything else (e.g. `javascript:...`) as
+              inert plain text instead of a clickable anchor.
+            -->
             <a
-              v-if="release.zenodo.record_url"
-              :href="release.zenodo.record_url"
+              v-if="safeRecordUrl"
+              :href="safeRecordUrl"
               target="_blank"
               rel="noopener noreferrer"
             >
               Record
             </a>
+            <span v-else-if="release.zenodo.record_url">{{ release.zenodo.record_url }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
@@ -205,6 +215,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { BBadge } from 'bootstrap-vue-next';
 import type { ReleaseDetail, ReleaseManifestLayer } from '@/api/analysis';
+import { safeHttpUrl } from '@/utils/safe-url';
 
 defineOptions({
   name: 'ReleaseManifestPanel',
@@ -224,6 +235,19 @@ const displayTitle = computed(() => props.release.title || props.release.release
 function doiUrl(doi: string): string {
   return `https://doi.org/${doi}`;
 }
+
+// HIGH (#573 Slice B Codex round-1): `zenodo.record_url` is admin-authored
+// and unvalidated by the backend, so it is guarded before ever reaching a
+// bound `:href` (see the template note above). The `doiUrl(...)`-constructed
+// DOI hrefs are guarded too, defensively — belt-and-suspenders, since the
+// scheme there is currently always the hardcoded `https://doi.org/` prefix.
+const safeRecordUrl = computed<string | null>(() => safeHttpUrl(props.release.zenodo.record_url));
+const safeVersionDoiHref = computed<string | null>(() =>
+  props.release.zenodo.version_doi ? safeHttpUrl(doiUrl(props.release.zenodo.version_doi)) : null
+);
+const safeConceptDoiHref = computed<string | null>(() =>
+  props.release.zenodo.concept_doi ? safeHttpUrl(doiUrl(props.release.zenodo.concept_doi)) : null
+);
 
 const integrityHashes = computed(() => [
   { key: 'content_digest', label: 'Content digest', value: props.release.content_digest },

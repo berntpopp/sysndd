@@ -305,6 +305,84 @@ describe('ManageAnalysisReleases.vue', () => {
     expect(readinessPanel.find('[data-testid="action-error"]').exists()).toBe(false);
   });
 
+  // LOW (#573 Slice B Codex round-1 review): the rejected-Publish test above
+  // was the only DOI-save/delete failure-path coverage. Add the missing two.
+  it('surfaces a failed DOI-save action error co-located in the Releases panel and keeps the DOI form open', async () => {
+    const release = makeRelease({ release_id: 'asr_doifail', status: 'published' });
+    listAdminReleasesMock.mockResolvedValue({
+      releases: [release],
+      pagination: { limit: 50, offset: 0, count: 1 },
+    });
+    recordReleaseDoiMock.mockRejectedValue({
+      response: { data: { detail: 'invalid DOI format' } },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="toggle-doi-asr_doifail"]').trigger('click');
+    await flushPromises();
+
+    const versionInput = wrapper.find('[data-testid="doi-version-input-asr_doifail"]');
+    expect(versionInput.exists()).toBe(true);
+    await versionInput.setValue('not-a-real-doi');
+
+    await wrapper.find('[data-testid="save-doi-asr_doifail"]').trigger('click');
+    await flushPromises();
+
+    expect(recordReleaseDoiMock).toHaveBeenCalledWith('asr_doifail', {
+      version_doi: 'not-a-real-doi',
+    });
+
+    const panels = wrapper.findAll('[data-testid="admin-operation-panel"]');
+    const releasesPanel = panels[2];
+    const errorInReleasesPanel = releasesPanel.find('[data-testid="action-error"]');
+    expect(errorInReleasesPanel.exists()).toBe(true);
+    expect(errorInReleasesPanel.text()).toContain('invalid DOI format');
+
+    // A failed save must not silently collapse the form the operator was
+    // editing — the row stays expanded so the error is visible next to it.
+    expect(wrapper.find('[data-testid="doi-form-asr_doifail"]').exists()).toBe(true);
+  });
+
+  it('surfaces a failed draft-deletion action error and resets the confirm state without removing the row', async () => {
+    const release = makeRelease({ release_id: 'asr_delfail', status: 'draft' });
+    listAdminReleasesMock.mockResolvedValue({
+      releases: [release],
+      pagination: { limit: 50, offset: 0, count: 1 },
+    });
+    deleteDraftReleaseMock.mockRejectedValue({
+      response: { data: { detail: 'release has published dependents' } },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-asr_delfail"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="confirm-delete-asr_delfail"]').exists()).toBe(true);
+
+    await wrapper.find('[data-testid="confirm-delete-asr_delfail"]').trigger('click');
+    await flushPromises();
+
+    expect(deleteDraftReleaseMock).toHaveBeenCalledWith('asr_delfail');
+
+    const panels = wrapper.findAll('[data-testid="admin-operation-panel"]');
+    const releasesPanel = panels[2];
+    const errorInReleasesPanel = releasesPanel.find('[data-testid="action-error"]');
+    expect(errorInReleasesPanel.exists()).toBe(true);
+    expect(errorInReleasesPanel.text()).toContain('release has published dependents');
+
+    // Sane failure handling: the confirm flow resets to the initial
+    // "Delete draft" affordance (not stuck showing "Confirm delete" forever)
+    // AND the row is not silently removed (loadReleases() only re-runs on a
+    // successful delete) — the operator sees the error next to a
+    // still-present, retryable row, not a vanished one.
+    expect(wrapper.find('[data-testid="confirm-delete-asr_delfail"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="delete-asr_delfail"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('asr_delfail');
+  });
+
   it('deletes a draft only after the two-step in-page confirm, never via a blocking dialog', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
     const release = makeRelease({ release_id: 'asr_draft2', status: 'draft' });

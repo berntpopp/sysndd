@@ -32,8 +32,19 @@ function makeReleaseDetail(): ReleaseDetail {
       created_at: '2026-07-01T00:00:00Z',
       license: 'CC-BY-4.0',
       scope_statement: 'Public derived analysis only.',
-      generator: 'sysndd-api',
-      source: 'sysndd',
+      generator: {
+        name: 'sysndd-analysis-snapshot-release-build',
+        manifest_schema_version: '1.0',
+        reproducibility_schema_version: '1.2',
+      },
+      source: {
+        source_data_version: '2026-07-01',
+        db_release: { version: '11.4.0', commit: 'deadbeef' },
+        snapshots: [
+          { analysis_type: 'functional_clusters', snapshot_id: 101, parameter_hash: 'fp-hash' },
+          { analysis_type: 'phenotype_clusters', snapshot_id: 202, parameter_hash: 'pp-hash' },
+        ],
+      },
       layers: [
         {
           analysis_type: 'functional_clusters',
@@ -107,6 +118,48 @@ describe('ReleaseManifestPanel', () => {
     release.zenodo = { record_url: null, version_doi: null, concept_doi: null };
     const wrapper = mount(ReleaseManifestPanel, { props: { release } });
     expect(wrapper.text()).toContain('not yet assigned');
+  });
+
+  // HIGH (#573 Slice B Codex round-1 review): the DOI PATCH endpoint stores
+  // `zenodo.record_url` with no backend URL validation, so an admin-authored
+  // `javascript:` string must never become a clickable `<a href>` for an
+  // unauthenticated /DataReleases visitor.
+  it('does not render a clickable link for a javascript:-scheme record_url (renders plain text instead)', () => {
+    const release = makeReleaseDetail();
+    release.zenodo = {
+      ...release.zenodo,
+      record_url: 'javascript:alert(document.cookie)',
+    };
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+
+    const maliciousAnchor = wrapper
+      .findAll('a')
+      .find((anchor) => (anchor.attributes('href') ?? '').startsWith('javascript:'));
+    expect(maliciousAnchor).toBeUndefined();
+
+    // The value itself is not lost — it is still shown, just as inert text.
+    expect(wrapper.text()).toContain('javascript:alert(document.cookie)');
+  });
+
+  it('does not render a clickable link for a data:-scheme record_url either', () => {
+    const release = makeReleaseDetail();
+    release.zenodo = {
+      ...release.zenodo,
+      record_url: 'data:text/html,<script>alert(1)</script>',
+    };
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+
+    const dataAnchor = wrapper
+      .findAll('a')
+      .find((anchor) => (anchor.attributes('href') ?? '').startsWith('data:'));
+    expect(dataAnchor).toBeUndefined();
+  });
+
+  it('still renders a normal https record_url as a clickable link', () => {
+    const wrapper = mount(ReleaseManifestPanel, { props: { release: makeReleaseDetail() } });
+    const link = wrapper.find('a[href="https://zenodo.org/records/1234"]');
+    expect(link.exists()).toBe(true);
+    expect(link.text()).toBe('Record');
   });
 
   it('omits the Version row when release_version is null (the current, always-null default)', () => {
