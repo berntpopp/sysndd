@@ -66,38 +66,21 @@ test_that("missingness_sensitivity is EXCLUDED from payload_hash (additive, no c
   expect_identical(hash_of(base_payload), hash_of(variant))
 })
 
-test_that("validate_phenotype_clusters attaches missingness_sensitivity additively", {
-  testthat::skip_if_not_installed("FactoMineR")
-  testthat::skip_if_not_installed("cluster")
-  source_api_file("functions/analysis-phenotype-mca-prep.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-null-models.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-missingness.R", local = FALSE, envir = globalenv())
-
-  # Small synthetic encoded matrix with a 2-cluster positive structure and the real
-  # 4 leading supplementary columns, so gen_mca_clust_obj/HCPC produce >= 2 clusters.
-  lv <- c("absent", "present"); f <- function(x) factor(x, lv)
-  n <- 40
-  grp <- rep(1:2, each = n / 2)
-  m <- data.frame(
-    inh = rep("AD", n),
-    phenotype_non_id_count = 1, phenotype_id_count = 1, gene_entity_count = 1,
-    Seizures     = f(ifelse(grp == 1, "present", "absent")),
-    ID           = f(ifelse(grp == 1, "present", "absent")),
-    Microcephaly = f(ifelse(grp == 2, "present", "absent")),
-    Ataxia       = f(ifelse(grp == 2, "present", "absent"))
-  )
-  rownames(m) <- paste0("e", seq_len(n))
-  attr(m, "mca_provenance") <- list(kept_terms = c("Seizures", "ID", "Microcephaly", "Ataxia"))
-
-  val <- tryCatch(
-    validate_phenotype_clusters(m, quali_sup_var = 1:1, quanti_sup_var = 2:4,
-                                min_size = 5, n_resamples = 2),
-    error = function(e) NULL
-  )
-  testthat::skip_if(is.null(val), "phenotype validator unavailable on host")
-  ms <- val$partition$missingness_sensitivity
-  expect_false(is.null(ms))
-  expect_true(all(c("adjusted_rand_index", "per_cluster_max_jaccard",
-                    "silhouette_served_partition") %in% names(ms)))
+# Static integration guard: prove validate_phenotype_clusters WIRES the additive
+# missingness sensitivity into its partition return, without bootstrapping the entire app
+# (the full FactoMineR/HCPC path needs post_db_hash + the whole module graph; a
+# skip-on-error behavioral test would silently never run). The orchestrator's real behavior
+# — including the FactoMineR/cluster paths — is proven in test-unit-phenotype-missingness.R.
+# Mirrors the existing source-guard pattern above (build_string_subgraph).
+test_that("validate_phenotype_clusters wires the additive missingness sensitivity", {
+  src <- readLines(file.path(get_api_dir(), "functions", "analysis-cluster-validation.R"))
+  body <- paste(src, collapse = "\n")
+  # the env gate is honored
+  expect_match(body, "ANALYSIS_PHENOTYPE_MISSINGNESS_SENSITIVITY")
+  # the orchestrator is called with the served matrix + reference members
+  expect_match(body, "phenotype_missingness_sensitivity\\(\\s*wide_phenotypes_df,\\s*ref_members")
+  # and the result is attached to the partition_validation block
+  expect_match(body, "missingness_sensitivity\\s*=\\s*missingness")
+  # best-effort: a failure degrades to a status field, never fails the refresh
+  expect_match(body, "status = \"error\", message = conditionMessage\\(e\\)")
 })
