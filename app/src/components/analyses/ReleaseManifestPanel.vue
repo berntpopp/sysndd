@@ -14,7 +14,7 @@
     <header class="release-manifest-panel__header">
       <div>
         <h2 id="release-manifest-panel-title" class="release-manifest-panel__title">
-          {{ release.title }}
+          {{ displayTitle }}
         </h2>
         <p class="release-manifest-panel__subtitle">
           Immutable, content-addressed export. Verify a download against the hashes below.
@@ -32,13 +32,13 @@
           <dt>Release ID</dt>
           <dd class="release-manifest-panel__mono">{{ release.release_id }}</dd>
         </div>
-        <div>
+        <div v-if="release.release_version">
           <dt>Version</dt>
           <dd>{{ release.release_version }}</dd>
         </div>
         <div>
           <dt>Title</dt>
-          <dd>{{ release.title }}</dd>
+          <dd>{{ displayTitle }}</dd>
         </div>
         <div>
           <dt>Status</dt>
@@ -217,6 +217,9 @@ const props = defineProps<{
 function displayValue(value: string | number | null | undefined): string {
   return value === null || value === undefined || value === '' ? '—' : String(value);
 }
+
+/** `title`, falling back to `release_id` when the reserved `title` column is null. */
+const displayTitle = computed(() => props.release.title || props.release.release_id);
 
 function doiUrl(doi: string): string {
   return `https://doi.org/${doi}`;

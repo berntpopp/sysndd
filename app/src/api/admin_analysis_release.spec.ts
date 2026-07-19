@@ -19,7 +19,7 @@ import {
 function makeHead(overrides: Partial<AdminReleaseHead> = {}): AdminReleaseHead {
   return {
     release_id: 'asr_abc1234567890def',
-    release_version: 1,
+    release_version: null,
     title: 'Analysis snapshot release',
     status: 'published',
     manifest_schema_version: '1.0',
@@ -92,10 +92,19 @@ describe('admin_analysis_release api client', () => {
 
     it('rejects with an ApiError on a 400 gate failure, extractable via extractApiErrorMessage', async () => {
       primeAuth();
+      // Faithful RFC 9457 problem+json shape, as actually emitted by the
+      // real backend errorHandler (`make_problem_response()`,
+      // api/core/filters.R) — the reason lives under `detail`, never a
+      // top-level `message`.
       server.use(
         http.post('/api/admin/analysis/releases', () =>
           HttpResponse.json(
-            { message: 'functional_clusters snapshot is not available' },
+            {
+              type: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400',
+              title: 'Bad Request',
+              status: 400,
+              detail: 'functional_clusters snapshot is not available',
+            },
             { status: 400 }
           )
         )

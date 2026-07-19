@@ -96,8 +96,13 @@ export interface ReleaseHeadLayer {
  */
 export interface ReleaseHead {
   release_id: string;
-  release_version: number;
-  title: string;
+  /**
+   * Reserved string column (`VARCHAR(32)`, migration 045) — always `null`
+   * today; the builder never populates it (`api/functions/analysis-snapshot-
+   * release.R`). Not a number, and not guaranteed non-null.
+   */
+  release_version: string | null;
+  title: string | null;
   status: string;
   content_digest: string;
   created_at: string;
@@ -130,8 +135,9 @@ export interface ReleaseManifestFile {
  */
 export interface ReleaseManifest {
   release_id: string;
-  release_version: number;
-  title: string;
+  /** Reserved, currently-unpopulated string column — always `null` today (see `ReleaseHead.release_version`). */
+  release_version: string | null;
+  title: string | null;
   created_at: string;
   license: string;
   scope_statement: string;

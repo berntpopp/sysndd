@@ -6,7 +6,7 @@ import type { ReleaseDetail } from '@/api/analysis';
 function makeReleaseDetail(): ReleaseDetail {
   return {
     release_id: 'asr_0123456789abcdef',
-    release_version: 1,
+    release_version: null,
     title: 'SysNDD analysis-snapshot release',
     status: 'published',
     content_digest: 'a'.repeat(64),
@@ -27,7 +27,7 @@ function makeReleaseDetail(): ReleaseDetail {
     },
     manifest: {
       release_id: 'asr_0123456789abcdef',
-      release_version: 1,
+      release_version: null,
       title: 'SysNDD analysis-snapshot release',
       created_at: '2026-07-01T00:00:00Z',
       license: 'CC-BY-4.0',
@@ -107,6 +107,34 @@ describe('ReleaseManifestPanel', () => {
     release.zenodo = { record_url: null, version_doi: null, concept_doi: null };
     const wrapper = mount(ReleaseManifestPanel, { props: { release } });
     expect(wrapper.text()).toContain('not yet assigned');
+  });
+
+  it('omits the Version row when release_version is null (the current, always-null default)', () => {
+    const release = makeReleaseDetail();
+    expect(release.release_version).toBeNull();
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+    const dts = wrapper.findAll('dt').map((dt) => dt.text());
+    expect(dts).not.toContain('Version');
+  });
+
+  it('shows the Version row when release_version is populated', () => {
+    const release = makeReleaseDetail();
+    release.release_version = '1.0';
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+    const dts = wrapper.findAll('dt').map((dt) => dt.text());
+    expect(dts).toContain('Version');
+    expect(wrapper.text()).toContain('1.0');
+  });
+
+  it('falls back to release_id for the title when title is null', () => {
+    const release = makeReleaseDetail();
+    release.title = null;
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+    expect(wrapper.find('#release-manifest-panel-title').text()).toBe('asr_0123456789abcdef');
+    const dts = wrapper.findAll('dt').map((dt) => dt.text());
+    const titleDd = wrapper.findAll('dt').find((dt) => dt.text() === 'Title')?.element.nextElementSibling;
+    expect(dts).toContain('Title');
+    expect(titleDd?.textContent).toBe('asr_0123456789abcdef');
   });
 
   it('copies a hash to the clipboard when its copy button is clicked', async () => {

@@ -10,7 +10,7 @@ import type { ReleaseHead } from '@/api/analysis_releases';
 function makeReleaseHead(overrides: Partial<ReleaseHead> = {}): ReleaseHead {
   return {
     release_id: 'asr_0123456789abcdef',
-    release_version: 1,
+    release_version: null,
     title: 'SysNDD analysis-snapshot release',
     status: 'published',
     content_digest: 'a'.repeat(64),
@@ -64,11 +64,10 @@ describe('RELEASE_TABLE_FIELDS', () => {
     }
   });
 
-  it('surfaces the documented release columns', () => {
+  it('surfaces the documented release columns (no Version column — release_version is always null)', () => {
     const keys = RELEASE_TABLE_FIELDS.map((f) => f.key);
     expect(keys).toEqual([
       'release_id',
-      'release_version',
       'published_at',
       'source_data_version',
       'file_count',
@@ -77,6 +76,7 @@ describe('RELEASE_TABLE_FIELDS', () => {
       'zenodo_version_doi',
       'actions',
     ]);
+    expect(keys).not.toContain('release_version');
   });
 });
 
@@ -121,16 +121,23 @@ describe('normalizeReleaseRows', () => {
     expect(rows[0].published_at).toBe('2026-06-15T00:00:00Z');
   });
 
-  it('carries release_id, release_version, title, status, license, file_count through unchanged', () => {
+  it('carries release_id, title, status, license, file_count through unchanged', () => {
     const rows = normalizeReleaseRows([
-      makeReleaseHead({ release_id: 'asr_abc123', release_version: 3, file_count: 42 }),
+      makeReleaseHead({ release_id: 'asr_abc123', file_count: 42 }),
     ]);
     expect(rows[0].release_id).toBe('asr_abc123');
-    expect(rows[0].release_version).toBe(3);
     expect(rows[0].title).toBe('SysNDD analysis-snapshot release');
     expect(rows[0].status).toBe('published');
     expect(rows[0].license).toBe('CC-BY-4.0');
     expect(rows[0].file_count).toBe(42);
+  });
+
+  it('falls back to release_id when title is null (release_version is always null too)', () => {
+    const rows = normalizeReleaseRows([
+      makeReleaseHead({ release_id: 'asr_no_title', title: null }),
+    ]);
+    expect(rows[0].title).toBe('asr_no_title');
+    expect(rows[0]).not.toHaveProperty('release_version');
   });
 
   it('does not mutate the input and tolerates null/undefined', () => {

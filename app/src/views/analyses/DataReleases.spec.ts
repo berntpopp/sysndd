@@ -31,7 +31,7 @@ import DataReleases from './DataReleases.vue';
 function makeReleaseHead(overrides: Partial<ReleaseHead> = {}): ReleaseHead {
   return {
     release_id: 'asr_0123456789abcdef',
-    release_version: 1,
+    release_version: null,
     title: 'SysNDD analysis-snapshot release',
     status: 'published',
     content_digest: 'a'.repeat(64),
@@ -55,7 +55,7 @@ function makeReleaseDetail(overrides: Partial<ReleaseHead> = {}): ReleaseDetail 
     ...makeReleaseHead(overrides),
     manifest: {
       release_id: 'asr_0123456789abcdef',
-      release_version: 1,
+      release_version: null,
       title: 'SysNDD analysis-snapshot release',
       created_at: '2026-07-01T00:00:00Z',
       license: 'CC-BY-4.0',

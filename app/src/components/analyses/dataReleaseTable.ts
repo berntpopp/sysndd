@@ -32,7 +32,7 @@ export interface ReleaseTableField {
 /** Flat table row for one release (LIST route head — no manifest). */
 export interface ReleaseTableRow {
   release_id: string;
-  release_version: number;
+  /** `title`, falling back to `release_id` when the reserved `title` column is null. */
   title: string;
   status: string;
   /** `published_at`, falling back to `created_at` when not yet published-dated. */
@@ -80,15 +80,16 @@ function doiOrDash(value: string | null | undefined): string {
 
 /**
  * `GenericTable` fields config for the releases list. Columns: Release,
- * Version, Published, Source data version, Files, Size, License, Version
- * DOI, plus a `Manifest` actions column (row selection — see
- * `views/analyses/DataReleases.vue`). No column is wired to client-side
+ * Published, Source data version, Files, Size, License, Version DOI, plus a
+ * `Manifest` actions column (row selection — see
+ * `views/analyses/DataReleases.vue`). No `Version` column: `release_version`
+ * is a reserved, currently-unpopulated string column (always `null` today),
+ * so displaying it would be pure noise. No column is wired to client-side
  * sorting (the LIST route already returns newest-first); `sortable` is kept
  * optional on the type so a future column can opt in without a shape change.
  */
 export const RELEASE_TABLE_FIELDS: ReleaseTableField[] = [
   { key: 'release_id', label: 'Release' },
-  { key: 'release_version', label: 'Version' },
   { key: 'published_at', label: 'Published' },
   { key: 'source_data_version', label: 'Source data version' },
   { key: 'file_count', label: 'Files' },
@@ -108,8 +109,7 @@ export function normalizeReleaseRows(
 ): ReleaseTableRow[] {
   return (releases || []).map((release) => ({
     release_id: release.release_id,
-    release_version: release.release_version,
-    title: release.title,
+    title: release.title || release.release_id,
     status: release.status,
     published_at: release.published_at || release.created_at,
     source_data_version: release.source_data_version,

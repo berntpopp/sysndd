@@ -46,8 +46,13 @@ export interface AdminReleaseLayer {
  */
 export interface AdminReleaseHead {
   release_id: string;
-  release_version: number;
-  title: string;
+  /**
+   * Reserved string column (`VARCHAR(32)`, migration 045) — always `null`
+   * today; the builder never populates it (`api/functions/analysis-snapshot-
+   * release.R`). Not a number, and not guaranteed non-null.
+   */
+  release_version: string | null;
+  title: string | null;
   status: string;
   manifest_schema_version: string;
   content_digest: string;
@@ -137,7 +142,7 @@ interface ReleaseLockUnavailableBody {
 export interface SnapshotPresetState {
   analysis_type: string;
   parameter_hash: string;
-  state: 'available' | 'stale' | 'source_version_mismatch' | 'missing' | string;
+  state: 'available' | 'stale' | 'source_version_mismatch' | 'missing';
   generated_at: string | null;
   activated_at: string | null;
   stale_after: string | null;
