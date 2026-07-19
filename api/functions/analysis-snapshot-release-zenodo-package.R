@@ -304,7 +304,7 @@ analysis_release_zenodo_build_metadata <- function(head, version = NULL, license
 #' @param release_id The release id (becomes the datapackage `id`).
 analysis_release_zenodo_build_datapackage <- function(staging_dir, name, version, release_id) {
   rel_paths <- .analysis_release_zenodo_iter_public_files(staging_dir)
-  rel_paths <- setdiff(rel_paths, c("checksums.sha256", "datapackage.json"))
+  rel_paths <- base::setdiff(rel_paths, c("checksums.sha256", "datapackage.json"))
 
   resources <- lapply(rel_paths, function(rel_path) {
     full_path <- file.path(staging_dir, rel_path)
