@@ -52,22 +52,26 @@ svc_job_submit_functional_clustering <- function(req, res) {
   # Connection objects cannot cross process boundaries. `genes` and
   # `category_filter` are mutually exclusive gene-universe selectors (#574):
   # an explicit gene list, a curated-category selection, or (both absent) the
-  # existing default all-NDD-genes universe. Presence is decided from the RAW
-  # request field, not a length check, so an explicitly-empty category_filter
-  # still reaches (and is rejected by) the resolver instead of silently
-  # falling through to the all-NDD default.
+  # existing default all-NDD-genes universe.
   genes_in <- req$argsBody$genes
   category_supplied <- !is.null(req$argsBody$category_filter)
-  # Mutual exclusion is gated on KEY PRESENCE (`genes_supplied`), not a length
-  # check -- `{"genes":[], "category_filter":["X"]}` supplies BOTH keys and
-  # must 400 even though the `genes` array is empty (Codex review fix: an
-  # empty-but-present `genes` array previously bypassed this guard because
-  # `has_genes` -- used below for the LATER branch-selection decision, kept
-  # unchanged -- is also FALSE on an empty array).
-  genes_supplied <- !is.null(genes_in)
   has_genes <- !is.null(genes_in) && length(genes_in) > 0
 
-  if (genes_supplied && category_supplied) {
+  # Mutual exclusion is gated on JSON KEY PRESENCE, not value-nullness or
+  # length -- `!is.null(genes_in)` cannot distinguish an ABSENT `genes` key
+  # from an explicit JSON `null` (both parse to a NULL `req$argsBody$genes`
+  # in R), so `{"genes":null, "category_filter":["X"]}` previously slipped
+  # past the guard and silently ran a category job (Codex round-2 review
+  # fix). Checking `names(req$argsBody)` instead catches both an explicit
+  # null AND an empty array (`{"genes":[], "category_filter":["X"]}`,
+  # round-1's fix) because both forms keep the `genes` name in the parsed
+  # list. `has_genes`/`category_supplied` (value-based) are unchanged and
+  # still drive the LATER branch-selection decision below.
+  body_names <- names(req$argsBody)
+  genes_key <- "genes" %in% body_names
+  category_key <- "category_filter" %in% body_names
+
+  if (genes_key && category_key) {
     stop_for_bad_request("Provide either genes or category_filter, not both")
   }
 

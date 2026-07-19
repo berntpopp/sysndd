@@ -110,6 +110,32 @@ test_that(".async_job_run_clustering echoes payload provenance + effective_finge
   expect_identical(meta$effective_fingerprint$weight_channel, "experimental_database")
 })
 
+test_that(".async_job_run_clustering: gene_count is the DISTINCT gene count, matching the cache-hit path (Codex round-2 review fix)", {
+  # Bug: the worker handler reported `gene_count = length(genes)` (raw),
+  # while the cache-hit path (job-functional-submission-service.R) reports
+  # `resolved_count <- length(unique(genes_list))` (distinct) -- for
+  # `["HGNC:1","HGNC:1"]` the cache-hit path reports gene_count=1 but the
+  # worker reported gene_count=2 for the identical payload. Both paths must
+  # agree.
+  e <- .clustering_handler_env()
+
+  payload <- list(
+    genes = c("HGNC:1", "HGNC:1"),
+    algorithm = "leiden",
+    string_id_table = NULL,
+    category_links = NULL
+  )
+
+  result <- e$.async_job_run_clustering(
+    job = list(job_id = "j-dup-genes"),
+    payload = payload,
+    state = NULL,
+    worker_config = NULL
+  )
+
+  expect_identical(result$meta$gene_count, 1L)
+})
+
 test_that(".async_job_run_clustering: legacy payload with no provenance still returns a valid meta (backward compat)", {
   e <- .clustering_handler_env()
 

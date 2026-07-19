@@ -278,6 +278,58 @@ test_that("functional clustering: an EMPTY genes array + category_filter still t
   )
 })
 
+test_that("functional clustering: an explicit-null genes KEY + category_filter still triggers mutual exclusion -> error_400 (Codex round-2 review fix)", {
+  # Bug: mutual exclusion was gated on `!is.null(genes_in)`, which cannot
+  # distinguish an ABSENT `genes` key from an explicit JSON `null` (both
+  # parse to a NULL `req$argsBody$genes`) -- so
+  # `{"genes":null, "category_filter":["Definitive"]}` bypassed the guard and
+  # a category job was silently accepted. `list(genes = NULL)` in base R
+  # KEEPS the `genes` name with a NULL value (verified:
+  # "genes" %in% names(list(genes = NULL)) is TRUE), so gating on
+  # `names(req$argsBody)` instead of value-nullness catches this.
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  source_api_file("core/errors.R", local = FALSE, envir = env)
+  env$pool <- job_endpoint_functional_pool(env)
+  req <- list(
+    argsBody = list(genes = NULL, category_filter = list("Definitive")),
+    user = list(user_id = NULL)
+  )
+  res <- job_endpoint_fake_res()
+
+  expect_true("genes" %in% names(req$argsBody)) # pin the base-R name-retention fact this test relies on
+  expect_error(
+    env$svc_job_submit_functional_clustering(req, res),
+    class = "error_400"
+  )
+})
+
+test_that("functional clustering: an explicit-null genes KEY ALONE (no category_filter) still defaults to the all-NDD universe, unchanged", {
+  # Regression guard for the fix above: gating mutual exclusion on JSON key
+  # presence must NOT change the pre-existing behavior for a null `genes`
+  # value with no `category_filter` at all -- it must still fall through to
+  # the all-NDD default exactly as before.
+  env <- job_endpoint_source_service("job-functional-submission-service.R")
+  env$pool <- job_endpoint_functional_pool(env, tibble::tibble(
+    entity_id = 1:3,
+    hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
+    ndd_phenotype = c(1L, 0L, 1L)
+  ))
+  job_endpoint_stub_all_ndd_universe(env)
+  captured <- NULL
+  env$check_duplicate_job <- function(operation, params) {
+    captured <<- params
+    list(duplicate = TRUE, existing_job_id = "dup-null-genes")
+  }
+  req <- list(argsBody = list(genes = NULL), user = list(user_id = NULL))
+  res <- job_endpoint_fake_res()
+
+  out <- env$svc_job_submit_functional_clustering(req, res)
+
+  expect_equal(sort(captured$genes), c("HGNC:1", "HGNC:3"))
+  expect_equal(res$status, 409)
+  expect_equal(out$error, "DUPLICATE_JOB")
+})
+
 test_that("functional clustering: an EMPTY genes array ALONE (no category_filter) still defaults to the all-NDD universe, unchanged", {
   # Regression guard for the fix above: gating mutual exclusion on
   # `genes_supplied` (key presence) must NOT change the pre-existing

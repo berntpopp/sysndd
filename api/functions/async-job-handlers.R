@@ -126,10 +126,16 @@
   # only knowable now that `clusters` has actually been computed -- so a
   # silent exp+db -> combined-score STRING fallback on a worker-run job is
   # visible in the stored result too, not just a cache hit's.
+  # gene_count is the DISTINCT gene count, matching the cache-hit path's
+  # `resolved_count <- length(unique(genes_list))` (job-functional-submission-
+  # service.R) -- for `["HGNC:1","HGNC:1"]` a raw `length(genes)` reported 2
+  # here while the cache-hit path reported 1 for the identical payload
+  # (Codex round-2 review fix). This never dedups the payload `genes` list
+  # itself or changes `nrow(clusters)`, only the reported count.
   meta <- clustering_result_meta(
     list(
       algorithm = algorithm,
-      gene_count = length(genes),
+      gene_count = length(unique(genes)),
       cluster_count = nrow(clusters),
       cache_hit = FALSE
     ),
