@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.6] — 2026-07-19
+
+Add a missingness-aware positive-only sensitivity metric to phenotype-clustering validation (#582). The phenotype MCA/HCPC input encodes an unrecorded HPO annotation as `absent`, which means **unknown / not recorded**, not confirmed clinical absence — so the served partition is a partition of recorded annotation profiles. The new metric re-derives entity similarity from recorded-present evidence only and reports how well the served partition survives that stricter representation. Additive-only: it lives in `partition_validation` (excluded from `payload_hash`), so it changes **no** cluster membership, `cluster_hash`, or LLM summary, and `CLUSTER_LOGIC_VERSION` is unchanged. API/analysis-only; no frontend product-code change.
+
+### Added
+
+- **`api/functions/analysis-phenotype-missingness.R`**: a self-contained, deterministic (no RNG; permutation-invariant via an explicit entity sort) module computing a modified positive-only Jaccard dissimilarity (`d(A,B) = 1 − |A∩B|/|A∪B|`, with two entities that share no positive evidence held at distance 1 — never an artificial zero-distance pair), average-linkage `hclust` at the served visible cluster count, and the adjusted Rand index, per-cluster maximum Jaccard recovery, and Jaccard-space silhouette versus the served partition (headline `silhouette_served_partition`). Guards report `undefined_no_distance_structure` for a non-informative (all-empty / all-identical / all-disjoint) positive-set universe and fail closed to a `status` diagnostic on alignment violations, so the snapshot refresh always survives. Env-gated by `ANALYSIS_PHENOTYPE_MISSINGNESS_SENSITIVITY` (default on).
+- Tests: `api/tests/testthat/test-unit-phenotype-missingness.R`, an additivity + static-wiring guard in `test-unit-analysis-cluster-validation.R`, and the serialization contract in `test-unit-analysis-snapshot-service-missingness.R`.
+
+### Changed
+
+- **`api/functions/analysis-cluster-validation.R`**: `validate_phenotype_clusters()` attaches the metric best-effort at `partition_validation.missingness_sensitivity`; it surfaces at `meta.snapshot.validation.missingness_sensitivity` with no endpoint change. Registered before the validator in `api/bootstrap/{load_modules,setup_workers}.R`.
+- Docs: `AGENTS.md` and `documentation/09-deployment.qmd` document the encoding semantics (`absent` = not recorded / unknown) and the deploy caveat — a forced phenotype snapshot refresh mints a new phenotype `snapshot_id`, so `phenotype_functional_correlations` must be force-refreshed afterward (its #571/#572 dependency gate pins the phenotype `snapshot_id` + `payload_hash`).
+
 ## [0.30.5] — 2026-07-19
 
 Repair the local Playwright E2E baseline (#573/#574 program follow-up). The isolated stack seeded only users, so five data-dependent specs failed (public table filters ×3, curation-comparisons desktop, gene-detail cards) — dragging two serial groups down with them — while a sixth (slow-provider resilience) was latently flaky. Test/fixture/tooling-only; no product-code change. Local baseline at `--workers=1` goes from 5 failed / 7 skipped / 82 passed to **0 failed / 3 skipped / 125 passed** (the 3 skips are legitimately env-gated: ontology-blocked banner, password-reset, MCP transport proxy).

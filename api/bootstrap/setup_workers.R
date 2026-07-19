@@ -95,6 +95,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/analysis-phenotype-mca-prep.R", local = FALSE)
     source("/app/functions/analysis-phenotype-functions.R", local = FALSE)
     source("/app/functions/analysis-null-models.R", local = FALSE)
+    source("/app/functions/analysis-phenotype-missingness.R", local = FALSE)
     source("/app/functions/analysis-cluster-validation.R", local = FALSE)
     source("/app/functions/analysis-network-functions.R", local = FALSE)
     # Source shared external proxy infrastructure (validate_gene_symbol, cache backends, throttle)

@@ -42,3 +42,45 @@ test_that("gen_string_clust_obj clusters the shared build_string_subgraph helper
   expect_match(body, "build_string_subgraph\\s*<-\\s*function")            # helper exists
   expect_match(body, "subgraph\\s*<-\\s*build_string_subgraph\\(")        # production calls it
 })
+
+source_api_file("functions/analysis-snapshot-builder.R", local = FALSE, envir = globalenv())
+
+test_that("missingness_sensitivity is EXCLUDED from payload_hash (additive, no cluster_hash churn)", {
+  base_payload <- list(
+    kind = "clusters",
+    clusters = tibble::tibble(cluster = 1:2, hash_filter = c("h1", "h2")),
+    members = tibble::tibble(entity_id = c("e1", "e2")),
+    row_counts = list(clusters = 2L),
+    partition_validation = list(
+      algorithm = "mca_hcpc",
+      missingness_sensitivity = list(status = "ok", adjusted_rand_index = 0.90)
+    )
+  )
+  variant <- base_payload
+  variant$partition_validation$missingness_sensitivity <-
+    list(status = "ok", adjusted_rand_index = 0.10)
+
+  hash_of <- function(p) analysis_snapshot_payload_hash(
+    p[setdiff(names(p), c("raw", "partition_validation", "reproducibility"))]
+  )
+  expect_identical(hash_of(base_payload), hash_of(variant))
+})
+
+# Static integration guard: prove validate_phenotype_clusters WIRES the additive
+# missingness sensitivity into its partition return, without bootstrapping the entire app
+# (the full FactoMineR/HCPC path needs post_db_hash + the whole module graph; a
+# skip-on-error behavioral test would silently never run). The orchestrator's real behavior
+# — including the FactoMineR/cluster paths — is proven in test-unit-phenotype-missingness.R.
+# Mirrors the existing source-guard pattern above (build_string_subgraph).
+test_that("validate_phenotype_clusters wires the additive missingness sensitivity", {
+  src <- readLines(file.path(get_api_dir(), "functions", "analysis-cluster-validation.R"))
+  body <- paste(src, collapse = "\n")
+  # the env gate is honored
+  expect_match(body, "ANALYSIS_PHENOTYPE_MISSINGNESS_SENSITIVITY")
+  # the orchestrator is called with the served matrix + reference members
+  expect_match(body, "phenotype_missingness_sensitivity\\(\\s*wide_phenotypes_df,\\s*ref_members")
+  # and the result is attached to the partition_validation block
+  expect_match(body, "missingness_sensitivity\\s*=\\s*missingness")
+  # best-effort: a failure degrades to a status field, never fails the refresh
+  expect_match(body, "status = \"error\", message = conditionMessage\\(e\\)")
+})
