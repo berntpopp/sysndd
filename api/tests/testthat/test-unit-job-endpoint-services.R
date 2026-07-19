@@ -164,6 +164,13 @@ test_that("functional clustering: cache hit stores a completed job without calli
   expect_equal(result_meta$selector$kind, "explicit")
   expect_equal(result_meta$gene_list_sha256, "sha-1") # job_endpoint_stub_clustering_provenance: paste0("sha-", length(genes))
   expect_equal(result_meta$source_data_version, "srcv-test") # job_endpoint_stub_clustering_provenance stub token
+
+  # Codex round-3 fix: the cache-hit path also derives a provenance-free
+  # `hash_payload` for the dedup identity, while `request_payload` (asserted
+  # above via `result_meta`) keeps `provenance` in the STORED payload.
+  expect_true("provenance" %in% names(store_args$request_payload))
+  expect_false("provenance" %in% names(store_args$hash_payload))
+  expect_false("category_filter" %in% names(store_args$hash_payload))
 })
 
 test_that("functional clustering: capacity guard (503) then a cache miss under capacity (202)", {
@@ -184,9 +191,11 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   env$async_job_capacity_exceeded <- function(...) FALSE
   create_job_operation <- NULL
   create_job_params <- NULL
-  env$create_job <- function(operation, params) {
+  create_job_hash_params <- NULL
+  env$create_job <- function(operation, params, hash_params = NULL) {
     create_job_operation <<- operation
     create_job_params <<- params
+    create_job_hash_params <<- hash_params
     list(job_id = "new-job-1", status = "accepted", estimated_seconds = 30)
   }
   res <- job_endpoint_fake_res()
@@ -202,6 +211,22 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
     c("genes", "algorithm", "category_links", "string_id_table", "provenance")
   )
   expect_false("category_filter" %in% names(create_job_params))
+
+  # Codex round-3 fix: the dedup HASH payload must exclude `provenance` (and
+  # any absent `category_filter`) so the dedup identity stays byte-identical
+  # to pre-#574, even though the STORED request payload (`create_job_params`,
+  # asserted above) still carries `provenance`.
+  expect_false("provenance" %in% names(create_job_hash_params))
+  expect_false("category_filter" %in% names(create_job_hash_params))
+  expect_identical(
+    create_job_hash_params,
+    list(
+      genes = create_job_params$genes,
+      algorithm = create_job_params$algorithm,
+      category_links = create_job_params$category_links,
+      string_id_table = create_job_params$string_id_table
+    )
+  )
 })
 
 test_that("functional clustering: admission throttle runs FIRST, before any DB/cache work", {
@@ -373,8 +398,10 @@ test_that("functional clustering: category_filter resolves the universe and reco
   env$async_job_capacity_exceeded <- function(...) FALSE
   env$async_job_active_count <- function(...) 0L
   captured <- NULL
-  env$create_job <- function(operation, params) {
+  captured_hash_params <- NULL
+  env$create_job <- function(operation, params, hash_params = NULL) {
     captured <<- params
+    captured_hash_params <<- hash_params
     list(job_id = "j1", status = "accepted", estimated_seconds = 5)
   }
   req <- list(argsBody = list(category_filter = list("Definitive")), user = list(user_id = NULL))
@@ -391,6 +418,12 @@ test_that("functional clustering: category_filter resolves the universe and reco
     c("resolved_gene_count", "gene_list_sha256", "intended_fingerprint", "source_data_version") %in%
       names(captured$provenance)
   ))
+
+  # Codex round-3 fix: a category run's hash payload keeps `category_filter`
+  # (selector-aware dedup) but still excludes `provenance`.
+  expect_true("category_filter" %in% names(captured_hash_params))
+  expect_identical(captured_hash_params$category_filter, "Definitive")
+  expect_false("provenance" %in% names(captured_hash_params))
 })
 
 test_that("functional clustering: explicit genes and no-arg submits keep a category_filter-free payload (byte-identical identity to pre-#574)", {
@@ -402,8 +435,10 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   env$async_job_capacity_exceeded <- function(...) FALSE
   env$async_job_active_count <- function(...) 0L
   captured_explicit <- NULL
-  env$create_job <- function(operation, params) {
+  captured_explicit_hash_params <- NULL
+  env$create_job <- function(operation, params, hash_params = NULL) {
     captured_explicit <<- params
+    captured_explicit_hash_params <<- hash_params
     list(job_id = "j2", status = "accepted", estimated_seconds = 5)
   }
   req_explicit <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
@@ -412,6 +447,8 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   expect_false("category_filter" %in% names(captured_explicit))
   expect_identical(captured_explicit$provenance$selector$kind, "explicit")
   expect_null(captured_explicit$provenance$selector$category_filter)
+  expect_false("provenance" %in% names(captured_explicit_hash_params))
+  expect_false("category_filter" %in% names(captured_explicit_hash_params))
 
   # No-arg (all-NDD default).
   env2 <- job_endpoint_source_service("job-functional-submission-service.R")
@@ -424,8 +461,10 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   env2$async_job_capacity_exceeded <- function(...) FALSE
   env2$async_job_active_count <- function(...) 0L
   captured_no_arg <- NULL
-  env2$create_job <- function(operation, params) {
+  captured_no_arg_hash_params <- NULL
+  env2$create_job <- function(operation, params, hash_params = NULL) {
     captured_no_arg <<- params
+    captured_no_arg_hash_params <<- hash_params
     list(job_id = "j3", status = "accepted", estimated_seconds = 5)
   }
   req_no_arg <- list(argsBody = list(), user = list(user_id = NULL))
@@ -434,6 +473,44 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   expect_false("category_filter" %in% names(captured_no_arg))
   expect_identical(captured_no_arg$provenance$selector$kind, "all_ndd")
   expect_null(captured_no_arg$provenance$selector$category_filter)
+  expect_false("provenance" %in% names(captured_no_arg_hash_params))
+  expect_false("category_filter" %in% names(captured_no_arg_hash_params))
+})
+
+test_that("functional clustering: two explicit submits with different provenance source_data_version produce the SAME hash_params (Codex round 3)", {
+  # The whole point of the fix: `source_data_version` (and the STRING cache
+  # fingerprint) are time-varying provenance fields, so two otherwise-
+  # identical submits observed at different moments (e.g. across a snapshot
+  # refresh / deploy) must resolve to the IDENTICAL dedup identity -- only the
+  # STORED payload (`provenance`) is allowed to differ.
+  submit_and_capture <- function(source_data_version) {
+    env <- job_endpoint_source_service("job-functional-submission-service.R")
+    env$pool <- job_endpoint_functional_pool(env)
+    env$analysis_string_cache_fingerprint <- function() "fp-test"
+    env$clustering_gene_list_sha256 <- function(hgnc_ids) paste0("sha-", length(hgnc_ids))
+    env$clustering_cached_source_data_version <- function(...) source_data_version
+    env$check_duplicate_job <- function(...) list(duplicate = FALSE)
+    env$async_job_capacity_exceeded <- function(...) FALSE
+    env$async_job_active_count <- function(...) 0L
+    captured_hash_params <- NULL
+    captured_provenance <- NULL
+    env$create_job <- function(operation, params, hash_params = NULL) {
+      captured_hash_params <<- hash_params
+      captured_provenance <<- params$provenance
+      list(job_id = "j-provenance", status = "accepted", estimated_seconds = 5)
+    }
+    req <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
+    env$svc_job_submit_functional_clustering(req, job_endpoint_fake_res())
+    list(hash_params = captured_hash_params, provenance = captured_provenance)
+  }
+
+  run_a <- submit_and_capture("2026-01-01T00:00:00Z")
+  run_b <- submit_and_capture("2026-07-18T00:00:00Z")
+
+  # Different STORED provenance...
+  expect_false(identical(run_a$provenance$source_data_version, run_b$provenance$source_data_version))
+  # ...but IDENTICAL dedup hash payload (provenance excluded).
+  expect_identical(run_a$hash_params, run_b$hash_params)
 })
 
 test_that("functional clustering: duplicate explicit genes report a resolved_gene_count consistent with gene_list_sha256, without deduping the payload genes (Codex review fix)", {
@@ -450,7 +527,7 @@ test_that("functional clustering: duplicate explicit genes report a resolved_gen
   env$async_job_capacity_exceeded <- function(...) FALSE
   env$async_job_active_count <- function(...) 0L
   captured <- NULL
-  env$create_job <- function(operation, params) {
+  env$create_job <- function(operation, params, hash_params = NULL) {
     captured <<- params
     list(job_id = "j-dup-genes", status = "accepted", estimated_seconds = 5)
   }

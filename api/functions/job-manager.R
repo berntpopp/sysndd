@@ -23,6 +23,11 @@
 #' @param operation Character string identifying the operation type
 #'   (e.g., "clustering", "phenotype_clustering", "ontology_update")
 #' @param params List of payload parameters for the registered handler.
+#' @param hash_params Optional list of payload parameters used to compute the
+#'   dedup `request_hash` instead of `params`. `NULL` (default) hashes `params`
+#'   exactly as before. Used by clustering submits (#574) to exclude
+#'   time-varying `provenance` metadata from the dedup identity while still
+#'   persisting it in the stored payload.
 #'
 #' @return List with job_id, status="accepted", and estimated_seconds=30.
 #'
@@ -33,10 +38,11 @@
 #'   params = list(genes = c("BRCA1", "TP53"))
 #' )
 #' }
-create_job <- function(operation, params) {
+create_job <- function(operation, params, hash_params = NULL) {
   submitted <- async_job_service_submit(
     job_type = operation,
-    request_payload = params
+    request_payload = params,
+    hash_payload = hash_params
   )
 
   job_id <- if (nrow(submitted$job) > 0) submitted$job$job_id[[1]] else NULL

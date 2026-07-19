@@ -271,13 +271,25 @@ svc_job_submit_functional_clustering <- function(req, res) {
     if (!is.null(selector_chr)) {
       cache_request_payload$category_filter <- selector_chr
     }
+    # Dedup identity EXCLUDES provenance (Codex round 3): `provenance`
+    # carries a time-varying `source_data_version` and STRING cache
+    # `intended_fingerprint`, so hashing the full payload would make the
+    # active-job uniqueness guard admit duplicate concurrent clustering work
+    # across a deploy/cache-TTL change and break the byte-identical
+    # explicit/no-arg `request_hash` contract predating #574. Removing the
+    # `provenance` key preserves the leading `genes, algorithm,
+    # category_links, string_id_table[, category_filter]` key order -- it was
+    # appended last, so deleting it does not reorder the rest.
+    cache_hash_payload <- cache_request_payload
+    cache_hash_payload$provenance <- NULL
     completed_job <- async_job_service_store_completed(
       job_type = "clustering",
       request_payload = cache_request_payload,
       result = cache_result,
       submitted_by = req$user$user_id %||% NULL,
       queue_name = "analysis",
-      priority = 50L
+      priority = 50L,
+      hash_payload = cache_hash_payload
     )
     job_id <- completed_job$job_id[[1]]
 
@@ -325,9 +337,15 @@ svc_job_submit_functional_clustering <- function(req, res) {
   if (!is.null(selector_chr)) {
     job_params$category_filter <- selector_chr
   }
+  # See the cache-hit branch above: dedup identity EXCLUDES provenance so the
+  # active-job uniqueness guard is not defeated by its time-varying fields,
+  # and explicit/no-arg submits stay byte-identical to pre-#574.
+  hash_params <- job_params
+  hash_params$provenance <- NULL
   result <- create_job(
     operation = "clustering",
-    params = job_params
+    params = job_params,
+    hash_params = hash_params
   )
 
   # Check capacity
