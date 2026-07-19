@@ -66,6 +66,7 @@ const MAIN_NAV = {
         { text: 'NDD Publications', path: '/PublicationsNDD' },
         { text: 'PubTator Analysis', path: '/PubtatorNDD' },
         { text: 'Functional clusters', path: '/GeneNetworks' },
+        { text: 'Data releases', path: '/DataReleases' },
         { text: 'Phenotype–function correlation', path: '/PhenotypeFunctionalCorrelation' },
       ],
     },

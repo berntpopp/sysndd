@@ -275,6 +275,17 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/DataReleases',
+    name: 'DataReleases',
+    component: () => import('@/views/analyses/DataReleases.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
     path: '/NDDScore',
     component: () => import('@/views/nddscore/NDDScore.vue'),
     children: [
