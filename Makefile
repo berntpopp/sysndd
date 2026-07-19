@@ -397,7 +397,10 @@ analysis-release-zenodo-upload-draft: check-r ## [quality] Upload the last-packa
 		exit 1; \
 	fi
 	@printf "$(CYAN)==> Uploading last-packaged analysis-snapshot release to a Zenodo DRAFT (never publishes)...$(RESET)\n"
-	@. "$(ROOT_DIR)/outputs/analysis-release-zenodo/latest.env" && \
+	@MARKER="$(ROOT_DIR)/outputs/analysis-release-zenodo/latest.env"; \
+		ARCHIVE_PATH="$$(sed -n 's/^ARCHIVE_PATH=//p' "$$MARKER" | tail -n1)"; \
+		METADATA_PATH="$$(sed -n 's/^METADATA_PATH=//p' "$$MARKER" | tail -n1)"; \
+		RELEASE_ID="$$(sed -n 's/^RELEASE_ID=//p' "$$MARKER" | tail -n1)"; \
 		cd $(ROOT_DIR) && $(HOST_RSCRIPT) api/scripts/upload-analysis-release-zenodo.R \
 			--archive "$$ARCHIVE_PATH" --metadata "$$METADATA_PATH" --release-id "$$RELEASE_ID" $(UPLOAD_ARGS) && \
 		printf "$(GREEN)✓ analysis-release-zenodo-upload-draft complete -- DRAFT only; publishing is a deliberate manual step (see documentation/09-deployment.qmd)$(RESET)\n" || \

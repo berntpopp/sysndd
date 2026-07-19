@@ -8,64 +8,64 @@
 # `functions/nddscore-release-source.R`. Fixture tarballs are built inline
 # with `utils::tar()` -- no dependency on a real published release or a
 # running API.
+#
+# The fetch/download/extract-verify helpers and the safety validator
+# (`analysis_release_zenodo_fetch_head`, `_download_bundle`,
+# `_extract_and_verify`, `_validate_staging`, plus release-id-shape
+# validation) live in the sibling
+# `analysis-snapshot-release-zenodo-verify.R` and are covered by
+# `test-unit-analysis-release-zenodo-verify.R`; this file covers the
+# builders, checksums/tarball, and the `analysis_release_zenodo_package()`
+# orchestrator (including the staging-directory delete guard, which is
+# exercised only through the orchestrator).
 
 library(testthat)
 
 source_api_file("functions/analysis-snapshot-release-zenodo-package.R", local = FALSE)
 
 # --------------------------------------------------------------------------- #
-# Shared fixture helpers
+# Shared fixture helper -- a valid stubbed published release (README.md +
+# manifest.json + checksums.sha256, tarred), for orchestrator-level tests
+# that need `analysis_release_zenodo_package()` to reach its staging/tar
+# steps. Deliberately uses plain `tempfile()`-rooted names, NOT
+# `withr::local_tempdir()`, inside the returned closures where relevant --
+# see the shared cleanup-timing note in `test-unit-analysis-release-zenodo-
+# verify.R`'s `make_well_formed_staging()` comment.
 # --------------------------------------------------------------------------- #
 
-# A well-formed Zenodo staging directory: the expected top-level docs plus the
-# nested analysis_snapshot_release/ subdir with its own manifest+checksums.
-#
-# Deliberately uses plain `tempfile()`, NOT `withr::local_tempdir()`: the
-# latter schedules cleanup via `withr::defer(..., envir = parent.frame())`,
-# and `parent.frame()` evaluated INSIDE this helper resolves to this
-# function's own (short-lived) call frame, not the calling `test_that()`
-# block -- so the directory would be deleted the instant this helper
-# returns, before the caller can use it. Session tempdir cleanup at process
-# exit is sufficient for a short-lived test run.
-make_well_formed_staging <- function() {
-  staging <- file.path(tempdir(), paste0("zenodo_staging_", as.integer(stats::runif(1, 1, 1e9))))
-  dir.create(staging, recursive = TRUE)
-  for (name in c(
-    "README.md", "DATA_CARD.md", "SCHEMA.md", "CHANGELOG.md", "CITATION.cff",
-    "datapackage.json", "zenodo_metadata.json", "checksums.sha256"
-  )) {
-    writeLines("placeholder content", file.path(staging, name))
-  }
-  dir.create(file.path(staging, "analysis_snapshot_release"))
-  writeLines('{"release_id":"asr_test"}', file.path(staging, "analysis_snapshot_release", "manifest.json"))
-  writeLines("deadbeef  manifest.json", file.path(staging, "analysis_snapshot_release", "checksums.sha256"))
-  staging
-}
-
-# Builds a tiny tar.gz with two files + a matching (or deliberately wrong)
-# inner checksums.sha256, mirroring the shape of a real release bundle (files
-# directly at the archive root -- NOT nested under a named subdirectory,
-# unlike the sibling nddscore archive).
-build_fixture_bundle <- function(dir, a_sha_override = NULL, b_sha_override = NULL) {
-  src <- file.path(dir, paste0("src_", as.integer(stats::runif(1, 1, 1e9))))
-  dir.create(src, recursive = TRUE)
-  writeLines("file A content", file.path(src, "a.txt"))
-  writeLines("file B content", file.path(src, "b.txt"))
-  a_sha <- a_sha_override %||% digest::digest(file = file.path(src, "a.txt"), algo = "sha256")
-  b_sha <- b_sha_override %||% digest::digest(file = file.path(src, "b.txt"), algo = "sha256")
+build_fake_release_stubs <- function(work_dir, release_id = "asr_deadbeefcafebabe", bundle_sha256_override = NULL) {
+  bundle_src <- file.path(work_dir, paste0("bundle_src_", as.integer(stats::runif(1, 1, 1e9))))
+  dir.create(bundle_src)
+  writeLines("# SysNDD analysis-snapshot release", file.path(bundle_src, "README.md"))
+  writeLines(sprintf('{"release_id":"%s"}', release_id), file.path(bundle_src, "manifest.json"))
+  readme_sha <- digest::digest(file = file.path(bundle_src, "README.md"), algo = "sha256")
+  manifest_sha <- digest::digest(file = file.path(bundle_src, "manifest.json"), algo = "sha256")
   cat(
-    paste0(a_sha, "  a.txt\n", b_sha, "  b.txt\n"),
-    file = file.path(src, "checksums.sha256")
+    paste0(readme_sha, "  README.md\n", manifest_sha, "  manifest.json\n"),
+    file = file.path(bundle_src, "checksums.sha256")
   )
 
-  bundle_path <- file.path(dir, paste0("bundle_", basename(src), ".tar.gz"))
-  withr::with_dir(src, {
+  bundle_path <- file.path(work_dir, paste0("bundle_", basename(bundle_src), ".tar.gz"))
+  withr::with_dir(bundle_src, {
     utils::tar(
-      tarfile = bundle_path, files = c("a.txt", "b.txt", "checksums.sha256"),
+      tarfile = bundle_path, files = c("README.md", "manifest.json", "checksums.sha256"),
       compression = "gzip", tar = "internal"
     )
   })
-  bundle_path
+  bundle_sha256 <- bundle_sha256_override %||% digest::digest(file = bundle_path, algo = "sha256")
+
+  fake_head <- list(
+    release_id = release_id,
+    created_at = "2026-07-15T10:00:00Z",
+    license = "CC-BY-4.0",
+    source_data_version = "v42",
+    bundle_sha256 = bundle_sha256
+  )
+  list(
+    stub_get_json = function(url) fake_head,
+    stub_download = function(url, destfile) file.copy(bundle_path, destfile, overwrite = TRUE),
+    fake_head = fake_head
+  )
 }
 
 # --------------------------------------------------------------------------- #
@@ -185,148 +185,6 @@ test_that("write_checksums: classic sha256sum format, excludes itself, determini
 })
 
 # --------------------------------------------------------------------------- #
-# validate_staging -- THE SAFETY VALIDATOR
-# --------------------------------------------------------------------------- #
-
-test_that("validate_staging: passes on a well-formed staging dir", {
-  staging <- make_well_formed_staging()
-  expect_no_error(analysis_release_zenodo_validate_staging(staging))
-})
-
-test_that("validate_staging: FAILS when a .env file is planted", {
-  staging <- make_well_formed_staging()
-  writeLines("SECRET=1", file.path(staging, "analysis_snapshot_release", ".env"))
-  expect_error(analysis_release_zenodo_validate_staging(staging), "private files")
-})
-
-test_that("validate_staging: FAILS when a doc contains an absolute host path + dev username", {
-  staging <- make_well_formed_staging()
-  writeLines("built at /home/bernt-popp/development/sysndd on this host", file.path(staging, "README.md"))
-  expect_error(analysis_release_zenodo_validate_staging(staging), "sensitive")
-})
-
-test_that("validate_staging: FAILS when a doc contains a token-shaped string", {
-  staging <- make_well_formed_staging()
-  writeLines("ZENODO_TOKEN=abc123", file.path(staging, "DATA_CARD.md"))
-  expect_error(analysis_release_zenodo_validate_staging(staging), "sensitive")
-})
-
-test_that("validate_staging: FAILS when an expected top-level doc is missing", {
-  staging <- make_well_formed_staging()
-  file.remove(file.path(staging, "SCHEMA.md"))
-  expect_error(analysis_release_zenodo_validate_staging(staging), "missing")
-})
-
-test_that("validate_staging: FAILS when the nested manifest.json is missing", {
-  staging <- make_well_formed_staging()
-  file.remove(file.path(staging, "analysis_snapshot_release", "manifest.json"))
-  expect_error(analysis_release_zenodo_validate_staging(staging), "missing")
-})
-
-# --------------------------------------------------------------------------- #
-# extract_and_verify
-# --------------------------------------------------------------------------- #
-
-test_that("extract_and_verify: passes with a matching bundle_sha256 and matching inner checksums", {
-  work_dir <- withr::local_tempdir()
-  bundle_path <- build_fixture_bundle(work_dir)
-  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
-
-  exdir <- file.path(work_dir, "extracted")
-  result_dir <- analysis_release_zenodo_extract_and_verify(bundle_path, expected_sha, exdir = exdir)
-
-  expect_identical(normalizePath(result_dir), normalizePath(exdir))
-  expect_true(file.exists(file.path(result_dir, "a.txt")))
-  expect_true(file.exists(file.path(result_dir, "b.txt")))
-})
-
-test_that("extract_and_verify: FAILS when the inner checksums.sha256 doesn't match file content", {
-  work_dir <- withr::local_tempdir()
-  bad_sha <- strrep("0", 64L)
-  bundle_path <- build_fixture_bundle(work_dir, a_sha_override = bad_sha)
-  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
-
-  expect_error(
-    analysis_release_zenodo_extract_and_verify(
-      bundle_path, expected_sha, exdir = file.path(work_dir, "extracted_bad_inner")
-    ),
-    "mismatch"
-  )
-})
-
-test_that("extract_and_verify: FAILS with a wrong expected_bundle_sha256 (outer verification)", {
-  work_dir <- withr::local_tempdir()
-  bundle_path <- build_fixture_bundle(work_dir)
-
-  expect_error(
-    analysis_release_zenodo_extract_and_verify(
-      bundle_path, strrep("f", 64L), exdir = file.path(work_dir, "extracted_bad_outer")
-    ),
-    "checksum mismatch"
-  )
-})
-
-# --------------------------------------------------------------------------- #
-# fetch_head / download_bundle -- DI seams, no real network
-# --------------------------------------------------------------------------- #
-
-test_that("fetch_head: builds the /releases/latest URL and passes the stub's JSON through", {
-  captured_url <- NULL
-  stub_get_json <- function(url) {
-    captured_url <<- url
-    list(release_id = "asr_abcdef0123456789", bundle_sha256 = "deadbeef")
-  }
-  head <- analysis_release_zenodo_fetch_head("http://localhost:7778", "latest", http_get_json = stub_get_json)
-  expect_identical(captured_url, "http://localhost:7778/api/analysis/releases/latest")
-  expect_identical(head$release_id, "asr_abcdef0123456789")
-})
-
-test_that("fetch_head: builds the /releases/<id> URL for an explicit release_id (trailing slash tolerated)", {
-  captured_url <- NULL
-  stub_get_json <- function(url) {
-    captured_url <<- url
-    list(release_id = "asr_0000000000000000")
-  }
-  head <- analysis_release_zenodo_fetch_head(
-    "http://localhost:7778/", "asr_0000000000000000", http_get_json = stub_get_json
-  )
-  expect_identical(captured_url, "http://localhost:7778/api/analysis/releases/asr_0000000000000000")
-  expect_identical(head$release_id, "asr_0000000000000000")
-})
-
-test_that("download_bundle: builds the /releases/<id>/bundle URL and streams the stub's content through", {
-  captured <- new.env()
-  work_dir <- withr::local_tempdir()
-  dest <- file.path(work_dir, "bundle.tar.gz")
-  stub_download <- function(url, destfile) {
-    assign("url", url, envir = captured)
-    assign("destfile", destfile, envir = captured)
-    writeBin(as.raw(c(1, 2, 3)), destfile)
-  }
-  result <- analysis_release_zenodo_download_bundle(
-    "http://localhost:7778", "asr_0000000000000000", dest, http_download = stub_download
-  )
-  expect_identical(get("url", envir = captured), "http://localhost:7778/api/analysis/releases/asr_0000000000000000/bundle")
-  expect_identical(get("destfile", envir = captured), dest)
-  expect_identical(result, dest)
-  expect_true(file.exists(dest))
-})
-
-test_that("download_bundle: errors when the injected downloader produces an empty file", {
-  work_dir <- withr::local_tempdir()
-  dest <- file.path(work_dir, "empty.tar.gz")
-  stub_download <- function(url, destfile) {
-    file.create(destfile)
-  }
-  expect_error(
-    analysis_release_zenodo_download_bundle(
-      "http://localhost:7778", "asr_x", dest, http_download = stub_download
-    ),
-    "empty"
-  )
-})
-
-# --------------------------------------------------------------------------- #
 # make_tarball
 # --------------------------------------------------------------------------- #
 
@@ -353,42 +211,46 @@ test_that("make_tarball: single top-level dir, plus a sibling .sha256 file with 
   expect_identical(top_level_dirs, basename(staging))
 })
 
+test_that("make_tarball: packaging the SAME staged content twice produces a byte-identical archive (item 5)", {
+  # A FIXED staging directory name (not withr::local_tempdir()'s randomized
+  # basename) is essential here: the tar entry names are
+  # `basename(staging_dir)/...`, so two DIFFERENT staging dirs would embed
+  # two different names into the archive and legitimately produce different
+  # bytes. Reusing the SAME staging_dir across two build passes mirrors the
+  # real operator flow (a fixed `--staging-dir` rebuilt on every run).
+  root <- file.path(tempdir(), paste0("zenodo_determinism_", as.integer(stats::runif(1, 1, 1e9))))
+  rebuild_staging <- function() {
+    unlink(root, recursive = TRUE, force = TRUE)
+    dir.create(root, recursive = TRUE)
+    writeLines("hello", file.path(root, "README.md"))
+    dir.create(file.path(root, "sub"))
+    writeLines("nested content", file.path(root, "sub", "b.txt"))
+    root
+  }
+
+  archive_dir <- file.path(withr::local_tempdir(), "archive")
+
+  rebuild_staging()
+  result1 <- analysis_release_zenodo_make_tarball(root, file.path(archive_dir, "run1.tar.gz"))
+  sha1 <- digest::digest(file = result1$archive_path, algo = "sha256")
+
+  Sys.sleep(1.2) # ensure real wall-clock time actually advances between builds
+
+  rebuild_staging()
+  result2 <- analysis_release_zenodo_make_tarball(root, file.path(archive_dir, "run2.tar.gz"))
+  sha2 <- digest::digest(file = result2$archive_path, algo = "sha256")
+
+  expect_identical(sha1, sha2)
+  unlink(root, recursive = TRUE, force = TRUE)
+})
+
 # --------------------------------------------------------------------------- #
 # package(): full orchestration with stubbed HTTP
 # --------------------------------------------------------------------------- #
 
 test_that("package(): fetches, verifies, re-stages, validates, and tars a fake published release", {
   work_dir <- withr::local_tempdir()
-
-  bundle_src <- file.path(work_dir, "bundle_src")
-  dir.create(bundle_src)
-  writeLines("# SysNDD analysis-snapshot release", file.path(bundle_src, "README.md"))
-  writeLines('{"release_id":"asr_deadbeefcafebabe"}', file.path(bundle_src, "manifest.json"))
-  readme_sha <- digest::digest(file = file.path(bundle_src, "README.md"), algo = "sha256")
-  manifest_sha <- digest::digest(file = file.path(bundle_src, "manifest.json"), algo = "sha256")
-  cat(
-    paste0(readme_sha, "  README.md\n", manifest_sha, "  manifest.json\n"),
-    file = file.path(bundle_src, "checksums.sha256")
-  )
-
-  bundle_path <- file.path(work_dir, "bundle.tar.gz")
-  withr::with_dir(bundle_src, {
-    utils::tar(
-      tarfile = bundle_path, files = c("README.md", "manifest.json", "checksums.sha256"),
-      compression = "gzip", tar = "internal"
-    )
-  })
-  bundle_sha256 <- digest::digest(file = bundle_path, algo = "sha256")
-
-  fake_head <- list(
-    release_id = "asr_deadbeefcafebabe",
-    created_at = "2026-07-15T10:00:00Z",
-    license = "CC-BY-4.0",
-    source_data_version = "v42",
-    bundle_sha256 = bundle_sha256
-  )
-  stub_get_json <- function(url) fake_head
-  stub_download <- function(url, destfile) file.copy(bundle_path, destfile, overwrite = TRUE)
+  stubs <- build_fake_release_stubs(work_dir)
 
   staging_dir <- file.path(work_dir, "staging")
   archive_dir <- file.path(work_dir, "archive")
@@ -398,8 +260,8 @@ test_that("package(): fetches, verifies, re-stages, validates, and tars a fake p
     release_id = "latest",
     staging_dir = staging_dir,
     archive_dir = archive_dir,
-    http_get_json = stub_get_json,
-    http_download = stub_download
+    http_get_json = stubs$stub_get_json,
+    http_download = stubs$stub_download
   )
 
   expect_identical(result$release_id, "asr_deadbeefcafebabe")
@@ -426,15 +288,9 @@ test_that("package(): fetches, verifies, re-stages, validates, and tars a fake p
 
 test_that("package(): rejects when the downloaded bundle fails checksum verification", {
   work_dir <- withr::local_tempdir()
-  bundle_path <- build_fixture_bundle(work_dir)
-
-  fake_head <- list(
-    release_id = "asr_badbundle00000000",
-    created_at = "2026-07-15T10:00:00Z",
-    bundle_sha256 = strrep("f", 64L)
+  stubs <- build_fake_release_stubs(
+    work_dir, release_id = "asr_baadf00dbaadf00d", bundle_sha256_override = strrep("f", 64L)
   )
-  stub_get_json <- function(url) fake_head
-  stub_download <- function(url, destfile) file.copy(bundle_path, destfile, overwrite = TRUE)
 
   expect_error(
     analysis_release_zenodo_package(
@@ -442,9 +298,120 @@ test_that("package(): rejects when the downloaded bundle fails checksum verifica
       release_id = "latest",
       staging_dir = file.path(work_dir, "staging2"),
       archive_dir = file.path(work_dir, "archive2"),
-      http_get_json = stub_get_json,
-      http_download = stub_download
+      http_get_json = stubs$stub_get_json,
+      http_download = stubs$stub_download
     ),
     "checksum mismatch"
   )
+})
+
+test_that("package(): rejects a malformed RESOLVED release_id from the head before downloading (item 2, defense-in-depth)", {
+  work_dir <- withr::local_tempdir()
+  download_called <- FALSE
+  fake_head <- list(release_id = "asr_not-a-valid-id!!", bundle_sha256 = strrep("0", 64L))
+  stub_get_json <- function(url) fake_head
+  stub_download <- function(url, destfile) {
+    download_called <<- TRUE
+  }
+
+  staging_dir <- file.path(work_dir, "staging_bad_resolved_id")
+  expect_error(
+    analysis_release_zenodo_package(
+      api_base_url = "http://localhost:7778",
+      release_id = "latest",
+      staging_dir = staging_dir,
+      archive_dir = file.path(work_dir, "archive_bad_resolved_id"),
+      http_get_json = stub_get_json,
+      http_download = stub_download
+    ),
+    "Invalid analysis-snapshot release id"
+  )
+  expect_false(download_called)
+  expect_false(dir.exists(staging_dir))
+})
+
+# --------------------------------------------------------------------------- #
+# package(): staging-directory delete guard (item 1, BLOCKER)
+# --------------------------------------------------------------------------- #
+
+test_that("package(): refuses to delete a pre-existing non-empty staging dir without the ownership sentinel", {
+  work_dir <- withr::local_tempdir()
+  stubs <- build_fake_release_stubs(work_dir, release_id = "asr_ffffffffffffffff")
+
+  staging_dir <- file.path(work_dir, "staging_important")
+  dir.create(staging_dir, recursive = TRUE)
+  writeLines("do not delete me", file.path(staging_dir, "keep.txt"))
+
+  expect_error(
+    analysis_release_zenodo_package(
+      api_base_url = "http://localhost:7778",
+      release_id = "latest",
+      staging_dir = staging_dir,
+      archive_dir = file.path(work_dir, "archive_guard"),
+      http_get_json = stubs$stub_get_json,
+      http_download = stubs$stub_download
+    ),
+    "refusing to delete"
+  )
+
+  # The pre-existing directory and its content are untouched.
+  expect_true(dir.exists(staging_dir))
+  expect_true(file.exists(file.path(staging_dir, "keep.txt")))
+  expect_identical(readLines(file.path(staging_dir, "keep.txt")), "do not delete me")
+})
+
+test_that("package(): an EMPTY pre-existing staging dir (no sentinel needed) is accepted and populated", {
+  work_dir <- withr::local_tempdir()
+  stubs <- build_fake_release_stubs(work_dir, release_id = "asr_1234567890abcdef")
+
+  staging_dir <- file.path(work_dir, "staging_empty")
+  dir.create(staging_dir, recursive = TRUE)
+
+  result <- analysis_release_zenodo_package(
+    api_base_url = "http://localhost:7778",
+    release_id = "latest",
+    staging_dir = staging_dir,
+    archive_dir = file.path(work_dir, "archive_empty"),
+    http_get_json = stubs$stub_get_json,
+    http_download = stubs$stub_download
+  )
+
+  expect_true(file.exists(result$zenodo_metadata_path))
+})
+
+test_that("package(): re-running against a staging dir it previously created (has the sentinel) succeeds and replaces it", {
+  work_dir <- withr::local_tempdir()
+  staging_dir <- file.path(work_dir, "staging_reuse")
+  archive_dir <- file.path(work_dir, "archive_reuse")
+
+  stubs1 <- build_fake_release_stubs(work_dir, release_id = "asr_1111111111111111")
+  result1 <- analysis_release_zenodo_package(
+    api_base_url = "http://localhost:7778",
+    release_id = "latest",
+    staging_dir = staging_dir,
+    archive_dir = archive_dir,
+    http_get_json = stubs1$stub_get_json,
+    http_download = stubs1$stub_download
+  )
+  expect_identical(result1$release_id, "asr_1111111111111111")
+
+  # Second run against the SAME staging_dir (now sentinel-marked by the
+  # first run) must succeed -- the delete guard only blocks a dir it did NOT
+  # create, not a re-run against its own prior output.
+  stubs2 <- build_fake_release_stubs(work_dir, release_id = "asr_2222222222222222")
+  result2 <- analysis_release_zenodo_package(
+    api_base_url = "http://localhost:7778",
+    release_id = "latest",
+    staging_dir = staging_dir,
+    archive_dir = archive_dir,
+    http_get_json = stubs2$stub_get_json,
+    http_download = stubs2$stub_download
+  )
+  expect_identical(result2$release_id, "asr_2222222222222222")
+
+  # The second run's content replaced the first's.
+  manifest <- jsonlite::fromJSON(
+    file.path(staging_dir, "analysis_snapshot_release", "manifest.json"), simplifyVector = TRUE
+  )
+  expect_identical(manifest$release_id, "asr_2222222222222222")
 })

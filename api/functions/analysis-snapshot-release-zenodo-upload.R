@@ -270,7 +270,11 @@ analysis_release_zenodo_upload <- function(
   analysis_release_zenodo_require_publish_confirmation(publish, confirm_publish)
 
   if (is.null(token) || !nzchar(as.character(token)[[1]])) {
-    stop("ZENODO_TOKEN not set and --token not provided", call. = FALSE)
+    # No `--token` CLI flag exists (item 6, #573 Slice C hardening) -- a
+    # flag would leak the token into shell history/argv. The `token`
+    # parameter here is for programmatic/test callers only; the CLI wrapper
+    # always resolves it from `Sys.getenv("ZENODO_TOKEN")`.
+    stop("ZENODO_TOKEN not set (export it in your shell before running this script)", call. = FALSE)
   }
   if (!file.exists(archive_path)) {
     stop(sprintf("Archive does not exist: %s", archive_path), call. = FALSE)

@@ -332,7 +332,7 @@ Once a release is published (above), an operator can archive it to Zenodo with t
    # or, for an explicit release rather than the current `latest`:
    ARGS="--release-id asr_<16 hex>" make analysis-release-zenodo-package
    ```
-   Downloads the release's `bundle.tar.gz`, verifies its checksum, re-stages the files under `analysis_snapshot_release/`, adds Zenodo-facing `README.md`/`DATA_CARD.md`/`SCHEMA.md`/`CHANGELOG.md`/`CITATION.cff`/`zenodo_metadata.json`/`datapackage.json`, runs the packaging safety validator (rejects any planted `.env`/`.git`/sensitive-text content — defense-in-depth; a release payload has no such content by construction), and writes `outputs/analysis-release-zenodo/<release_id>.tar.gz` + `.sha256` plus a `outputs/analysis-release-zenodo/latest.env` pointer file (`ARCHIVE_PATH`/`METADATA_PATH`/`RELEASE_ID`) so the next step can find the content-addressed archive without a hardcoded, drift-prone filename.
+   Downloads the release's `bundle.tar.gz`, verifies its checksum, re-stages the files under `analysis_snapshot_release/`, adds Zenodo-facing `README.md`/`DATA_CARD.md`/`SCHEMA.md`/`CHANGELOG.md`/`CITATION.cff`/`zenodo_metadata.json`/`datapackage.json`, runs the packaging safety validator (case-insensitive `.env`/`.git`/sensitive-text rejection, a file-type allowlist, and a symlink rejection — defense-in-depth; a release payload has no such content by construction), and writes `outputs/analysis-release-zenodo/archive/<release_id>.tar.gz` + `.sha256` plus a `outputs/analysis-release-zenodo/latest.env` pointer file (`ARCHIVE_PATH`/`METADATA_PATH`/`RELEASE_ID`) so the next step can find the content-addressed archive without a hardcoded, drift-prone filename.
 2. **Review** the staging directory (`outputs/analysis-release-zenodo/staging/`) by eye before uploading anything — the validator is a safety net, not a substitute for a human look.
 3. **Upload a draft.**
    ```bash
@@ -342,11 +342,12 @@ Once a release is published (above), an operator can archive it to Zenodo with t
    ```
    Requires `ZENODO_TOKEN` (the target fails fast with a clear message if it is unset) and `outputs/analysis-release-zenodo/latest.env` (fails fast with "run analysis-release-zenodo-package first" if absent). Creates (or reuses, via `--deposition-id`) a Zenodo deposition, sets its metadata, and streams the archive to the deposition bucket — **always a DRAFT**, never published. Prints the reserved DOI and the draft's Zenodo web URL.
 4. **Review the draft** in the Zenodo web UI (metadata, file listing, reserved DOI) before publishing.
-5. **Publish — deliberately, by hand.** There is no Make target for this on purpose: publishing is a one-way action, so it stays a manual `Rscript` invocation behind a double gate (`analysis_release_zenodo_require_publish_confirmation()` refuses to make any HTTP call unless **both** flags are present):
+5. **Publish — deliberately, by hand.** There is no Make target for this on purpose: publishing is a one-way action, so it stays a manual `Rscript` invocation behind a double gate (`analysis_release_zenodo_require_publish_confirmation()` refuses to make any HTTP call unless **both** flags are present). `ZENODO_TOKEN` must already be exported in the shell — there is no `--token` flag (a CLI flag would leak the token into shell history and process argv):
    ```bash
    Rscript api/scripts/upload-analysis-release-zenodo.R \
-     --archive outputs/analysis-release-zenodo/<release_id>.tar.gz \
+     --archive outputs/analysis-release-zenodo/archive/<release_id>.tar.gz \
      --metadata outputs/analysis-release-zenodo/staging/zenodo_metadata.json \
+     --release-id <release_id> \
      --deposition-id <id-from-step-3> --publish --confirm-publish
    ```
 6. **Record the DOI** back onto the SysNDD release head — additive only; it never touches `content_digest`/`manifest_sha256`, so the bytes a consumer already downloaded stay valid. Either automatically, by adding `--record-doi` (with `SYSNDD_ADMIN_TOKEN` set) to the publish command in step 5, or by running the manual `curl` command the script prints when `--record-doi` is omitted (equivalent to the `PATCH .../releases/<release_id>/doi` call documented above).

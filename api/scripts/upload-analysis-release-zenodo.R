@@ -16,9 +16,15 @@
 # Usage (from the repo root, or from api/ -- CWD-independent, see below):
 #   Rscript api/scripts/upload-analysis-release-zenodo.R \
 #     --archive <path/to/archive.tar.gz> --metadata <path/to/zenodo_metadata.json> \
-#     [--token <ZENODO_TOKEN, defaults to env>] [--sandbox] \
-#     [--deposition-id <id>] [--publish --confirm-publish] \
+#     [--sandbox] [--deposition-id <id>] [--publish --confirm-publish] \
 #     [--record-doi --release-id <asr_...>] [--api-base-url <SysNDD API base>]
+#
+# ZENODO_TOKEN is READ FROM THE ENVIRONMENT ONLY -- there is deliberately no
+# `--token` flag. A CLI flag would leak the token into shell history and
+# `ps`/`/proc/<pid>/cmdline` argv on any multi-user host; the underlying
+# `analysis_release_zenodo_upload()` function still accepts a `token`
+# parameter for tests/programmatic callers, but this CLI wrapper only ever
+# reads `Sys.getenv("ZENODO_TOKEN")`.
 #
 # Publish safety interlock: `--publish` alone is REFUSED -- both `--publish`
 # AND `--confirm-publish` must be passed, or the run stops before any HTTP
@@ -84,6 +90,8 @@ run_upload_analysis_release_zenodo_cli <- function() {
 
   archive <- NULL
   metadata <- NULL
+  # ZENODO_TOKEN is env-only -- see the "no --token flag" note in the file
+  # header. There is no CLI flag to set/override it.
   token <- Sys.getenv("ZENODO_TOKEN", "")
   sandbox <- FALSE
   deposition_id <- NULL
@@ -99,8 +107,6 @@ run_upload_analysis_release_zenodo_cli <- function() {
         archive <- args[i + 1]
       } else if (args[i] == "--metadata" && i < length(args)) {
         metadata <- args[i + 1]
-      } else if (args[i] == "--token" && i < length(args)) {
-        token <- args[i + 1]
       } else if (args[i] == "--sandbox") {
         sandbox <- TRUE
       } else if (args[i] == "--deposition-id" && i < length(args)) {
