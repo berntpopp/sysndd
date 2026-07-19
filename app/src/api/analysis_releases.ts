@@ -36,6 +36,55 @@ export interface ReleaseZenodo {
 }
 
 /**
+ * Correlation-layer dependency lineage: pinned source cluster snapshots.
+ *
+ * The phenotype-functional correlation layer is derived FROM the functional
+ * + phenotype cluster layers, so its manifest entry pins exactly which
+ * snapshot (by id + payload hash) it was built against (#571/#572 dependency
+ * gate) — this is what a consumer cross-checks to confirm the correlation
+ * layer is internally consistent with its two source layers.
+ */
+export interface ReleaseLayerDependency {
+  snapshot_id: number;
+  payload_hash: string;
+}
+
+export interface ReleaseLayerDependencies {
+  functional_clusters?: ReleaseLayerDependency;
+  phenotype_clusters?: ReleaseLayerDependency;
+}
+
+/**
+ * Full per-layer identity, as it appears in `manifest.layers[]` on the
+ * detail (`GET /releases/<id>`) and `latest` routes. `reproducibility_hash`
+ * is `null` for the `phenotype_functional_correlations` layer (that layer
+ * has no reproducibility bundle); `dependencies` is non-null ONLY for that
+ * same layer.
+ */
+export interface ReleaseManifestLayer {
+  analysis_type: string;
+  parameter_hash: string;
+  snapshot_id: number;
+  input_hash: string | null;
+  payload_hash: string | null;
+  schema_version: string;
+  reproducibility_hash: string | null;
+  dependencies: ReleaseLayerDependencies | null;
+}
+
+/**
+ * Light per-layer summary, as it appears in `layers[]` on each head from the
+ * LIST route (`GET /releases`) only — the list route intentionally omits the
+ * full manifest (and therefore the fuller `ReleaseManifestLayer` shape) to
+ * keep the listing payload cheap.
+ */
+export interface ReleaseHeadLayer {
+  analysis_type: string;
+  snapshot_id: number;
+  payload_hash: string;
+}
+
+/**
  * PUBLIC projection of an `analysis_snapshot_release` head, as returned by
  * `analysis_release_public_head()` (api/functions/analysis-snapshot-release-repository.R).
  *
@@ -63,7 +112,7 @@ export interface ReleaseHead {
   total_bytes: number;
   zenodo: ReleaseZenodo;
   /** Light per-layer identity (list route only): analysis_type, snapshot_id, payload_hash. */
-  layers?: unknown;
+  layers?: ReleaseHeadLayer[];
 }
 
 export interface ReleaseManifestFile {
@@ -88,7 +137,7 @@ export interface ReleaseManifest {
   scope_statement: string;
   generator: string;
   source: string;
-  layers: unknown;
+  layers: ReleaseManifestLayer[];
   files: ReleaseManifestFile[];
   content_digest: string;
 }
