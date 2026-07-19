@@ -340,30 +340,33 @@ svc_job_submit_functional_clustering <- function(req, res) {
   # See the cache-hit branch above: dedup identity EXCLUDES provenance so the
   # active-job uniqueness guard is not defeated by its time-varying fields,
   # and explicit/no-arg submits stay byte-identical to pre-#574.
+  #
+  # `create_job()` carries a deliberately guarded 2-arg contract
+  # (`operation`, `params`) -- it cannot take a hash override. This path
+  # calls `async_job_service_submit()` directly instead (mirroring the
+  # cache-hit branch above, which already calls
+  # `async_job_service_store_completed()` directly for the same reason), so
+  # `hash_payload` can diverge from the stored `request_payload` without
+  # touching `create_job()`'s contract.
   hash_params <- job_params
   hash_params$provenance <- NULL
-  result <- create_job(
-    operation = "clustering",
-    params = job_params,
-    hash_params = hash_params
+  submitted <- async_job_service_submit(
+    job_type = "clustering",
+    request_payload = job_params,
+    hash_payload = hash_params,
+    submitted_by = req$user$user_id %||% NULL
   )
-
-  # Check capacity
-  if (!is.null(result$error)) {
-    res$status <- 503
-    res$setHeader("Retry-After", as.character(result$retry_after))
-    return(result)
-  }
+  job_id <- if (nrow(submitted$job) > 0) submitted$job$job_id[[1]] else NULL
 
   # Success - return HTTP 202 Accepted
   res$status <- 202
-  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
   res$setHeader("Retry-After", "5")
 
   list(
-    job_id = result$job_id,
-    status = result$status,
-    estimated_seconds = result$estimated_seconds,
-    status_url = paste0("/api/jobs/", result$job_id, "/status")
+    job_id = job_id,
+    status = "accepted",
+    estimated_seconds = 30,
+    status_url = paste0("/api/jobs/", job_id, "/status")
   )
 }

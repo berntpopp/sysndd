@@ -189,42 +189,47 @@ test_that("functional clustering: capacity guard (503) then a cache miss under c
   expect_equal(out$error, "CAPACITY_EXCEEDED")
 
   env$async_job_capacity_exceeded <- function(...) FALSE
-  create_job_operation <- NULL
-  create_job_params <- NULL
-  create_job_hash_params <- NULL
-  env$create_job <- function(operation, params, hash_params = NULL) {
-    create_job_operation <<- operation
-    create_job_params <<- params
-    create_job_hash_params <<- hash_params
-    list(job_id = "new-job-1", status = "accepted", estimated_seconds = 30)
+  captured <- NULL
+  # Cache-miss path calls `async_job_service_submit()` directly (not
+  # `create_job()`, which is arity-guarded at exactly `(operation, params)`)
+  # so it can thread a provenance-free `hash_payload` override alongside the
+  # full `request_payload`.
+  env$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                            submitted_by = NULL, ...) {
+    captured <<- list(
+      job_type = job_type,
+      request_payload = request_payload,
+      hash_payload = hash_payload
+    )
+    list(job = tibble::tibble(job_id = "new-job-1"))
   }
   res <- job_endpoint_fake_res()
   out <- env$svc_job_submit_functional_clustering(req, res)
   expect_equal(res$status, 202)
   expect_equal(res$headers[["Retry-After"]], "5")
   expect_equal(out$job_id, "new-job-1")
-  expect_equal(create_job_operation, "clustering")
+  expect_equal(captured$job_type, "clustering")
   expect_setequal(
-    names(create_job_params),
+    names(captured$request_payload),
     # #574 D2: every submit path now carries a `provenance` block; explicit/
     # no-arg submits still omit `category_filter` (asserted separately below).
     c("genes", "algorithm", "category_links", "string_id_table", "provenance")
   )
-  expect_false("category_filter" %in% names(create_job_params))
+  expect_false("category_filter" %in% names(captured$request_payload))
 
   # Codex round-3 fix: the dedup HASH payload must exclude `provenance` (and
   # any absent `category_filter`) so the dedup identity stays byte-identical
-  # to pre-#574, even though the STORED request payload (`create_job_params`,
-  # asserted above) still carries `provenance`.
-  expect_false("provenance" %in% names(create_job_hash_params))
-  expect_false("category_filter" %in% names(create_job_hash_params))
+  # to pre-#574, even though the STORED request payload
+  # (`captured$request_payload`, asserted above) still carries `provenance`.
+  expect_false("provenance" %in% names(captured$hash_payload))
+  expect_false("category_filter" %in% names(captured$hash_payload))
   expect_identical(
-    create_job_hash_params,
+    captured$hash_payload,
     list(
-      genes = create_job_params$genes,
-      algorithm = create_job_params$algorithm,
-      category_links = create_job_params$category_links,
-      string_id_table = create_job_params$string_id_table
+      genes = captured$request_payload$genes,
+      algorithm = captured$request_payload$algorithm,
+      category_links = captured$request_payload$category_links,
+      string_id_table = captured$request_payload$string_id_table
     )
   )
 })
@@ -241,9 +246,9 @@ test_that("functional clustering: admission throttle runs FIRST, before any DB/c
     pool_touched <<- TRUE
     stop("DB must not be touched when the throttle blocks")
   }
-  create_job_called <- FALSE
-  env$create_job <- function(...) {
-    create_job_called <<- TRUE
+  submit_called <- FALSE
+  env$async_job_service_submit <- function(...) {
+    submit_called <<- TRUE
     NULL
   }
   env$async_job_submit_admission_guard <- function(req, res) {
@@ -256,7 +261,7 @@ test_that("functional clustering: admission throttle runs FIRST, before any DB/c
   expect_equal(res$status, 429)
   expect_equal(out$error, "RATE_LIMITED")
   expect_false(pool_touched)
-  expect_false(create_job_called)
+  expect_false(submit_called)
 })
 
 ## -------------------------------------------------------------------##
@@ -399,10 +404,11 @@ test_that("functional clustering: category_filter resolves the universe and reco
   env$async_job_active_count <- function(...) 0L
   captured <- NULL
   captured_hash_params <- NULL
-  env$create_job <- function(operation, params, hash_params = NULL) {
-    captured <<- params
-    captured_hash_params <<- hash_params
-    list(job_id = "j1", status = "accepted", estimated_seconds = 5)
+  env$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                            submitted_by = NULL, ...) {
+    captured <<- request_payload
+    captured_hash_params <<- hash_payload
+    list(job = tibble::tibble(job_id = "j1"))
   }
   req <- list(argsBody = list(category_filter = list("Definitive")), user = list(user_id = NULL))
   res <- job_endpoint_fake_res()
@@ -436,10 +442,11 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   env$async_job_active_count <- function(...) 0L
   captured_explicit <- NULL
   captured_explicit_hash_params <- NULL
-  env$create_job <- function(operation, params, hash_params = NULL) {
-    captured_explicit <<- params
-    captured_explicit_hash_params <<- hash_params
-    list(job_id = "j2", status = "accepted", estimated_seconds = 5)
+  env$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                            submitted_by = NULL, ...) {
+    captured_explicit <<- request_payload
+    captured_explicit_hash_params <<- hash_payload
+    list(job = tibble::tibble(job_id = "j2"))
   }
   req_explicit <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
   env$svc_job_submit_functional_clustering(req_explicit, job_endpoint_fake_res())
@@ -462,10 +469,11 @@ test_that("functional clustering: explicit genes and no-arg submits keep a categ
   env2$async_job_active_count <- function(...) 0L
   captured_no_arg <- NULL
   captured_no_arg_hash_params <- NULL
-  env2$create_job <- function(operation, params, hash_params = NULL) {
-    captured_no_arg <<- params
-    captured_no_arg_hash_params <<- hash_params
-    list(job_id = "j3", status = "accepted", estimated_seconds = 5)
+  env2$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                             submitted_by = NULL, ...) {
+    captured_no_arg <<- request_payload
+    captured_no_arg_hash_params <<- hash_payload
+    list(job = tibble::tibble(job_id = "j3"))
   }
   req_no_arg <- list(argsBody = list(), user = list(user_id = NULL))
   env2$svc_job_submit_functional_clustering(req_no_arg, job_endpoint_fake_res())
@@ -494,10 +502,11 @@ test_that("functional clustering: two explicit submits with different provenance
     env$async_job_active_count <- function(...) 0L
     captured_hash_params <- NULL
     captured_provenance <- NULL
-    env$create_job <- function(operation, params, hash_params = NULL) {
-      captured_hash_params <<- hash_params
-      captured_provenance <<- params$provenance
-      list(job_id = "j-provenance", status = "accepted", estimated_seconds = 5)
+    env$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                              submitted_by = NULL, ...) {
+      captured_hash_params <<- hash_payload
+      captured_provenance <<- request_payload$provenance
+      list(job = tibble::tibble(job_id = "j-provenance"))
     }
     req <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
     env$svc_job_submit_functional_clustering(req, job_endpoint_fake_res())
@@ -527,9 +536,10 @@ test_that("functional clustering: duplicate explicit genes report a resolved_gen
   env$async_job_capacity_exceeded <- function(...) FALSE
   env$async_job_active_count <- function(...) 0L
   captured <- NULL
-  env$create_job <- function(operation, params, hash_params = NULL) {
-    captured <<- params
-    list(job_id = "j-dup-genes", status = "accepted", estimated_seconds = 5)
+  env$async_job_service_submit <- function(job_type, request_payload, hash_payload = NULL,
+                                            submitted_by = NULL, ...) {
+    captured <<- request_payload
+    list(job = tibble::tibble(job_id = "j-dup-genes"))
   }
   req <- list(argsBody = list(genes = list("HGNC:1", "HGNC:1")), user = list(user_id = NULL))
   res <- job_endpoint_fake_res()
@@ -568,9 +578,9 @@ test_that("functional clustering: a failing source-data-version lookup returns 5
   env$clustering_gene_list_sha256 <- function(hgnc_ids) "sha-test"
   env$clustering_cached_source_data_version <- function(...) stop("boom")
   env$check_duplicate_job <- function(...) list(duplicate = FALSE)
-  create_job_called <- FALSE
-  env$create_job <- function(...) {
-    create_job_called <<- TRUE
+  submit_called <- FALSE
+  env$async_job_service_submit <- function(...) {
+    submit_called <<- TRUE
     NULL
   }
   req <- list(argsBody = list(genes = list("HGNC:1", "HGNC:5")), user = list(user_id = NULL))
@@ -580,7 +590,7 @@ test_that("functional clustering: a failing source-data-version lookup returns 5
 
   expect_equal(res$status, 503L)
   expect_equal(out$error, "PROVENANCE_UNAVAILABLE")
-  expect_false(create_job_called)
+  expect_false(submit_called)
 })
 
 # job-phenotype-submission-service.R coverage lives in
