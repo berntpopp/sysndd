@@ -196,7 +196,7 @@ run_bootstrap <- function() {
     verbose = TRUE
   )
   if (result$total_applied != EXPECTED_MIGRATION_COUNT) {
-    stop("Normal migration bootstrap did not apply 000-044", call. = FALSE)
+    stop("Normal migration bootstrap did not apply 000-046", call. = FALSE)
   }
   expected_definer <- mcp_verify_query(conn, "SELECT CURRENT_USER() AS identity")$identity[[1]]
   if (!grepl("^[^@]+@[^@]+$", expected_definer)) stop("Invalid migrator identity", call. = FALSE)

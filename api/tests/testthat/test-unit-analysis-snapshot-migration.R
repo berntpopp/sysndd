@@ -6,8 +6,26 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "045_add_analysis_snapshot_release.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 43L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "046_add_analysis_snapshot_generator_provenance.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 44L)
+})
+
+test_that("migration 046 adds the additive generator_json manifest column", {
+  migration_path <- file.path(
+    analysis_snapshot_test_api_dir, "..", "db", "migrations",
+    "046_add_analysis_snapshot_generator_provenance.sql"
+  )
+  expect_true(file.exists(migration_path))
+  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
+
+  # Additive nullable JSON column, guarded so applying twice leaves exactly one
+  # generator_json column (idempotent, restore-drift safe -- mirrors 043).
+  expect_match(sql, "analysis_snapshot_manifest", fixed = TRUE)
+  expect_match(sql, "generator_json", fixed = TRUE)
+  expect_match(sql, "ADD COLUMN generator_json JSON NULL", fixed = TRUE)
+  expect_match(sql, "AFTER package_versions_json", fixed = TRUE)
+  expect_match(sql, "information_schema.COLUMNS", fixed = TRUE)
+  expect_match(sql, "COLUMN_NAME = 'generator_json'", fixed = TRUE)
 })
 
 test_that("migration 041 adds the reproducibility bundle table", {

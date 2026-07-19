@@ -114,12 +114,12 @@ analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
          public_ready, generated_by_job_id, generated_at, stale_after,
          source_versions_json, source_data_version, parameters_json,
          input_hash, payload_hash, algorithm_name, algorithm_version,
-         package_versions_json, row_counts_json, warnings_json, last_error_message,
+         package_versions_json, generator_json, row_counts_json, warnings_json, last_error_message,
          validation_json, db_release_version, db_release_commit
        ) VALUES (
          ?, ?, ?, ?, ?, 0, ?, COALESCE(?, NOW(6)), ?,
          ?, ?, ?, ?, ?, ?, ?,
-         ?, ?, ?, ?,
+         ?, ?, ?, ?, ?,
          ?, ?, ?
        )",
       unname(list(
@@ -139,6 +139,7 @@ analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
         analysis_snapshot_scalar(manifest$algorithm_name, NA_character_),
         analysis_snapshot_scalar(manifest$algorithm_version, NA_character_),
         analysis_snapshot_json(manifest$package_versions),
+        analysis_snapshot_json(manifest$generator),                        # #585 JSON column
         analysis_snapshot_json(manifest$row_counts),
         analysis_snapshot_json(manifest$warnings),
         analysis_snapshot_scalar(manifest$last_error_message, NA_character_),
@@ -542,6 +543,22 @@ analysis_snapshot_source_data_version <- function(conn = NULL) {
   )
 
   as.character(result$source_data_version[[1]])
+}
+
+#' Resolve the DB release label + source-versions block (#22/#459). When the
+#' db_version surface is unavailable, store the literal "unknown" (never omit).
+#' Returns the assembled `source_versions` (optionally carrying the correlation
+#' `dependencies` lineage) plus the two scalar labels the manifest row stores.
+#' @noRd
+analysis_snapshot_resolve_source_versions <- function(refresh_conn, source_data_version, dependencies = NULL) {
+  dbv <- tryCatch(db_version_get(conn = refresh_conn),
+                  error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
+  db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
+  db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
+  sv <- list(sysndd_public_data = source_data_version,
+             db_release_version = db_release_version, db_release_commit = db_release_commit)
+  if (!is.null(dependencies)) sv$dependencies <- dependencies
+  list(source_versions = sv, db_release_version = db_release_version, db_release_commit = db_release_commit)
 }
 
 # analysis_snapshot_prune() was extracted to

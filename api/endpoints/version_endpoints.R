@@ -18,27 +18,11 @@
 #*
 #* @get /
 function(req, res) {
-  # Get git commit hash for the API
-  # Priority: GIT_COMMIT env var (Docker build injection) > git command (development) > "unknown"
-  commit <- Sys.getenv("GIT_COMMIT", unset = "")
-
-  if (commit == "") {
-    # Try to get commit from git command (development environment)
-    tryCatch(
-      {
-        commit <- system2("git", c("rev-parse", "--short", "HEAD"),
-          stdout = TRUE, stderr = FALSE
-        )
-        # system2 returns character(0) if git not available
-        if (length(commit) == 0 || commit == "") {
-          commit <- "unknown"
-        }
-      },
-      error = function(e) {
-        commit <<- "unknown"
-      }
-    )
-  }
+  # Git commit hash for the API. Shared resolver (#585) with the same priority:
+  # GIT_COMMIT env (Docker build injection) > `git rev-parse --short HEAD`
+  # (development) > "unknown". Single source of truth for commit resolution so the
+  # version endpoint and the snapshot generator provenance never diverge.
+  commit <- resolve_app_git_commit()
 
   # Database semantic version (issue #22). db_version_get() never throws; it
   # returns an "unknown" / available = FALSE fallback when the DB or table is

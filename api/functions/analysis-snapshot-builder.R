@@ -406,9 +406,15 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       reproducibility <- analysis_snapshot_functional_reproducibility(
         gene_ids, val = val, params = list(algorithm = params$algorithm)
       )
-      list(kind = "clusters", raw = clusters, clusters = built$clusters,
+      payload <- list(kind = "clusters", raw = clusters, clusters = built$clusters,
            members = built$members, row_counts = built$row_counts,
            partition_validation = val$partition, reproducibility = reproducibility)
+      # #585: applied params as an R ATTRIBUTE (never a payload list element, so it
+      # can never enter payload_hash).
+      attr(payload, "applied_params") <- analysis_snapshot_functional_applied_params(
+        params, payload$partition_validation$membership_weight_channel
+      )
+      payload
     },
     phenotype_clusters = {
       clusters <- generate_phenotype_clusters()
@@ -426,9 +432,14 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       reproducibility <- analysis_snapshot_phenotype_reproducibility(
         input_matrix, clusters, val = val
       )
-      list(kind = "clusters", raw = clusters, clusters = built$clusters,
+      payload <- list(kind = "clusters", raw = clusters, clusters = built$clusters,
            members = built$members, row_counts = built$row_counts,
            partition_validation = val$partition, reproducibility = reproducibility)
+      # #585: applied MCA/HCPC params as an R ATTRIBUTE (excluded from payload_hash).
+      attr(payload, "applied_params") <- analysis_snapshot_phenotype_applied_params(
+        nrow(built$clusters)
+      )
+      payload
     },
     phenotype_correlations = {
       rows <- generate_phenotype_correlations_mem(
@@ -496,36 +507,23 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     if (identical(payload$kind, "network")) {
       row_counts$network_metadata <- payload$metadata %||% list()
     }
-    # `reproducibility` is an ADDITIVE artifact (raw gzip blob) and must stay out
-    # of the payload hash so it never perturbs the cluster/payload hash (#512 is a
-    # Wave-1 additive change: no cluster_hash churn, no LLM-cache invalidation).
-    payload_hash <- analysis_snapshot_payload_hash(
-      payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility"))]
-    )
-    input_provenance <- list(
-      analysis_type = normalized$analysis_type,
-      params = normalized$params,
-      source_data_version = source_data_version
-    )
-    if (!is.null(payload$dependencies)) {
-      input_provenance$dependencies <- payload$dependencies
+    # Derived manifest provenance (#585 B3): payload/input hashing, source-version
+    # resolution (#22/#459), and additive generator provenance (#585) + gate; in the
+    # provenance module, exists()-guarded (builder idiom) so isolated units degrade.
+    prov <- if (exists("analysis_snapshot_compute_manifest_provenance", mode = "function")) {
+      analysis_snapshot_compute_manifest_provenance(normalized, payload, source_data_version, refresh_conn)
+    } else {
+      list(source_versions = list(sysndd_public_data = source_data_version))
     }
-    input_hash <- analysis_snapshot_input_hash(input_provenance)
-
-    # Human-facing DB release label (#22 / #459). Policy: when the db_version
-    # surface is unavailable, store the literal "unknown" (never omit).
-    dbv <- tryCatch(db_version_get(conn = refresh_conn),
-                    error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
-    db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
-    db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
-    source_versions <- list(
-      sysndd_public_data = source_data_version,
-      db_release_version = db_release_version,
-      db_release_commit = db_release_commit
-    )
-    if (!is.null(payload$dependencies)) {
-      source_versions$dependencies <- payload$dependencies
-    }
+    payload_hash <- prov$payload_hash %||% analysis_snapshot_payload_hash(
+      payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility"))])
+    input_hash <- prov$input_hash %||% analysis_snapshot_input_hash(
+      list(analysis_type = normalized$analysis_type, params = normalized$params,
+           source_data_version = source_data_version))
+    source_versions <- prov$source_versions
+    db_release_version <- prov$db_release_version %||% "unknown"
+    db_release_commit  <- prov$db_release_commit %||% "unknown"
+    generator_block <- prov$generator
 
     write_result <- analysis_snapshot_with_write_transaction(refresh_conn, function(txn_conn) {
       snapshot_id <- analysis_snapshot_create_manifest(
@@ -545,6 +543,7 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
           algorithm_name = normalized$params$algorithm %||% normalized$params$cluster_type %||% NA_character_,
           row_counts = row_counts,
           validation = payload$partition_validation,   # NULL for non-clustering presets
+          generator = generator_block,                 # #585 additive provenance (JSON column)
           db_release_version = db_release_version,
           db_release_commit  = db_release_commit
         ),
