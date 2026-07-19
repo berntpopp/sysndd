@@ -223,6 +223,28 @@ describe('useAnalysisReleaseAdmin', () => {
       expect(admin.lastBuildOutcome.value).toBeNull();
     });
 
+    it('omits a blank license so the server default ("CC-BY-4.0") applies, but forwards a non-empty license as-is', async () => {
+      const release = makeRelease();
+      (buildRelease as ReturnType<typeof vi.fn>).mockResolvedValue({
+        outcome: 'created',
+        release,
+      });
+      (listAdminReleases as ReturnType<typeof vi.fn>).mockResolvedValue({
+        releases: [release],
+        pagination: { limit: 50, offset: 0, count: 1 },
+      });
+
+      const admin = useAnalysisReleaseAdmin();
+
+      await admin.build({ title: 'Blank license', license: '   ', publish: false });
+      const blankLicensePayload = (buildRelease as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(blankLicensePayload).not.toHaveProperty('license');
+
+      await admin.build({ title: 'Explicit license', license: 'MIT', publish: false });
+      const explicitLicensePayload = (buildRelease as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      expect(explicitLicensePayload.license).toBe('MIT');
+    });
+
     it('clears a prior buildError when a new build call starts', async () => {
       (buildRelease as ReturnType<typeof vi.fn>).mockRejectedValueOnce({
         response: { data: { detail: 'first failure' } },

@@ -276,6 +276,35 @@ describe('ManageAnalysisReleases.vue', () => {
     });
   });
 
+  it('surfaces a failed Publish action error co-located in the Releases panel, not the readiness panel', async () => {
+    const release = makeRelease({ release_id: 'asr_fail1', status: 'draft' });
+    listAdminReleasesMock.mockResolvedValue({
+      releases: [release],
+      pagination: { limit: 50, offset: 0, count: 1 },
+    });
+    publishReleaseMock.mockRejectedValue({
+      response: { data: { detail: 'release not found' } },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="publish-asr_fail1"]').trigger('click');
+    await flushPromises();
+
+    const panels = wrapper.findAll('[data-testid="admin-operation-panel"]');
+    expect(panels).toHaveLength(3);
+    const [readinessPanel, , releasesPanel] = panels;
+
+    const errorInReleasesPanel = releasesPanel.find('[data-testid="action-error"]');
+    expect(errorInReleasesPanel.exists()).toBe(true);
+    expect(errorInReleasesPanel.text()).toContain('release not found');
+
+    // The regression this guards: actionError used to render in the
+    // Snapshot-readiness panel, far from the row action that triggered it.
+    expect(readinessPanel.find('[data-testid="action-error"]').exists()).toBe(false);
+  });
+
   it('deletes a draft only after the two-step in-page confirm, never via a blocking dialog', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
     const release = makeRelease({ release_id: 'asr_draft2', status: 'draft' });

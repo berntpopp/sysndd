@@ -27,11 +27,6 @@
         icon="bi-clipboard-data"
         :aria-busy="loading ? 'true' : 'false'"
       >
-        <BAlert v-if="admin.actionError.value" variant="danger" show class="mb-3">
-          <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
-          {{ admin.actionError.value }}
-        </BAlert>
-
         <div class="layer-readiness-grid" data-testid="layer-readiness-grid">
           <div
             v-for="item in admin.layerReadiness.value"
@@ -149,7 +144,12 @@
         heading-tag="h2"
         :aria-busy="loading ? 'true' : 'false'"
       >
+        <BAlert v-if="admin.actionError.value" variant="danger" show class="mb-3" data-testid="action-error">
+          <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
+          {{ admin.actionError.value }}
+        </BAlert>
         <BAlert v-if="admin.actionMessage.value" variant="info" show class="mb-3" data-testid="action-message">
+          <i class="bi bi-info-circle-fill me-1" aria-hidden="true" />
           {{ admin.actionMessage.value }}
         </BAlert>
 
@@ -382,8 +382,6 @@ async function handleSaveDoi(releaseId: string, toggle: () => void): Promise<voi
 onMounted(() => {
   void admin.refreshAll();
 });
-
-defineExpose({ handleBuild, handleConfirmDelete, handleSaveDoi });
 </script>
 
 <style scoped>

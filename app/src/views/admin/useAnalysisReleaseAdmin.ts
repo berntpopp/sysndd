@@ -139,7 +139,15 @@ export function useAnalysisReleaseAdmin(): UseAnalysisReleaseAdmin {
     lastBuildOutcome.value = null;
     building.value = true;
     try {
-      const outcome = await buildRelease({ ...input, publish: input.publish ?? false });
+      const { license, ...rest } = input;
+      const payload: BuildReleaseRequest = { ...rest, publish: input.publish ?? false };
+      // The endpoint only substitutes its "CC-BY-4.0" default on a missing/NULL
+      // `license`, not on an empty string — so a cleared license input must omit
+      // the key entirely (not forward `""`) for the server default to apply.
+      if (license?.trim()) {
+        payload.license = license;
+      }
+      const outcome = await buildRelease(payload);
       lastBuildOutcome.value = outcome;
       if (outcome.outcome === 'created' || outcome.outcome === 'exists') {
         await loadReleases();
