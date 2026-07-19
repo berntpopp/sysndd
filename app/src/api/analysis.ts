@@ -422,3 +422,14 @@ export async function getPhenotypeClusterSummary(
     params: { ...(config?.params as object | undefined), ...params },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Analysis-snapshot releases (#573)
+//
+// Split into `analysis_releases.ts` (a cohesive sub-domain: immutable release
+// types + the `releases/*` routes) to keep this file under the repo's
+// 600-line soft ceiling. Re-exported here so `@/api/analysis` stays the
+// single import surface for analysis resources.
+// ---------------------------------------------------------------------------
+
+export * from './analysis_releases';
