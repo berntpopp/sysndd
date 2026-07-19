@@ -501,6 +501,7 @@ export const routes: RouteRecordRaw[] = [
     'ManageNDDScore',
     'ManageMetadata',
     'ManageOntologyMappings',
+    'ManageAnalysisReleases',
   ].map(simpleAdminRoute),
   {
     path: '/Entities/:entity_id',

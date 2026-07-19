@@ -9,7 +9,10 @@ vi.mock('@/composables/useAuth', () => ({
 }));
 
 import { routes } from './routes';
-import { DROPDOWN_ITEMS_LEFT } from '@/assets/js/constants/main_nav_constants';
+import {
+  DROPDOWN_ITEMS_LEFT,
+  DROPDOWN_ITEMS_RIGHT,
+} from '@/assets/js/constants/main_nav_constants';
 
 describe('Data releases navigation + routes', () => {
   it('adds a Data releases item to the public Analyses dropdown', () => {
@@ -28,5 +31,21 @@ describe('Data releases navigation + routes', () => {
     expect(dataReleases?.beforeEnter).toBeUndefined();
     expect(dataReleases?.component).toBeDefined();
     expect(dataReleases?.meta?.sitemap).toEqual({ priority: 0.7, changefreq: 'monthly' });
+  });
+
+  it('registers an Administrator-guarded /ManageAnalysisReleases route', () => {
+    const manage = routes.find((r) => r.path === '/ManageAnalysisReleases');
+    expect(manage).toBeDefined();
+    expect(typeof manage?.beforeEnter).toBe('function');
+  });
+
+  it('adds a Manage releases item to the Administration dropdown', () => {
+    const administration = DROPDOWN_ITEMS_RIGHT.find((d) => d.id === 'administration_dropdown');
+
+    expect(
+      administration?.items.some(
+        (i) => i.text === 'Manage releases' && i.path === '/ManageAnalysisReleases'
+      )
+    ).toBe(true);
   });
 });
