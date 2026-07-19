@@ -218,7 +218,7 @@ test_that("record_doi: an empty-string field is also dropped (never forwarded as
   }
 
   analysis_release_zenodo_record_doi(
-    "http://localhost:7778", "admin-token", "asr_x",
+    "http://localhost:7778", "admin-token", "asr_deadbeefcafebabe",
     doi_fields = list(zenodo_record_id = "1", concept_doi = ""),
     patch = stub_patch
   )
@@ -234,7 +234,7 @@ test_that("record_doi: an NA_character_ field is dropped, not forwarded as null 
   }
 
   analysis_release_zenodo_record_doi(
-    "http://localhost:7778", "admin-token", "asr_x",
+    "http://localhost:7778", "admin-token", "asr_deadbeefcafebabe",
     doi_fields = list(version_doi = "10.5281/zenodo.1", concept_doi = NA_character_),
     patch = stub_patch
   )
@@ -246,6 +246,12 @@ test_that("record_doi: an NA_character_ field is dropped, not forwarded as null 
 # --------------------------------------------------------------------------- #
 # manual_doi_command -- the printed fallback when --record-doi is not opted into
 # --------------------------------------------------------------------------- #
+#
+# Codex round-2 hardening tests (release-id shape validation on BOTH
+# record_doi/manual_doi_command, shQuote() defense in depth, and the
+# print_doi_record_back draft-only rule) live in the sibling
+# test-unit-analysis-release-zenodo-upload-doi-safety.R -- kept out of this
+# file to stay under the repo's 600-line soft ceiling.
 
 test_that("manual_doi_command: contains the endpoint path, release id, and all 4 supplied fields", {
   command <- analysis_release_zenodo_manual_doi_command(
@@ -273,7 +279,7 @@ test_that("manual_doi_command: contains the endpoint path, release id, and all 4
 
 test_that("manual_doi_command: never auto-executes -- it only returns a string", {
   command <- analysis_release_zenodo_manual_doi_command(
-    "http://localhost:7778", "asr_x", doi_fields = list(zenodo_record_id = "1")
+    "http://localhost:7778", "asr_deadbeefcafebabe", doi_fields = list(zenodo_record_id = "1")
   )
   expect_true(is.character(command))
   expect_length(command, 1L)

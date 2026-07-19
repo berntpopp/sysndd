@@ -37,7 +37,13 @@
 # token) to be set, plus `--release-id` and a successfully PUBLISHED Zenodo
 # DOI. Absent any of those, this script NEVER calls the SysNDD admin PATCH
 # endpoint automatically -- it prints the exact manual `curl` command instead
-# so the operator can record it by hand.
+# so the operator can record it by hand. A DRAFT upload (no `--publish`, or
+# `--publish` without `--confirm-publish`) never gets a populated PATCH
+# command either way -- only post-publication instructions are printed,
+# because a draft DOI is not final and the record-back rule is
+# published-only (see `analysis_release_zenodo_print_doi_record_back()`).
+# `--release-id` is validated (`^asr_[0-9a-f]{16}$`) before it is ever placed
+# into the admin URL or the printed command.
 #
 # Requires: httr2, jsonlite (api/renv.lock). No DB, no bootstrap, no
 # `external_proxy_budget()` -- see AGENTS.md "Analysis-snapshot releases
@@ -159,56 +165,12 @@ run_upload_analysis_release_zenodo_cli <- function() {
     cat("Draft uploaded only. Review in Zenodo before publishing.\n")
   }
 
-  .print_doi_record_back(result, release_id, api_base_url, record_doi)
+  # Item 3 (MEDIUM, Codex round 2): `analysis_release_zenodo_print_doi_record_back()`
+  # (in the functions file, not duplicated here) prints ONLY post-publication
+  # instructions for a draft upload -- never a populated PATCH command.
+  analysis_release_zenodo_print_doi_record_back(result, release_id, api_base_url, record_doi)
 
   invisible(result)
-}
-
-#' The opt-in DOI record-back step. Never calls the SysNDD admin endpoint
-#' unless the operator explicitly asked for it (`--record-doi`) AND supplied
-#' credentials (`SYSNDD_ADMIN_TOKEN`) AND the run reached a real, published
-#' DOI -- a draft's "reserved" DOI is not final and is deliberately NOT
-#' recorded automatically. Otherwise prints the exact manual command.
-.print_doi_record_back <- function(result, release_id, api_base_url, record_doi) {
-  doi_fields <- list(
-    zenodo_record_id = as.character(result$deposition_id),
-    zenodo_record_url = if (isTRUE(result$published)) result$record_url else result$draft_url,
-    version_doi = if (isTRUE(result$published)) result$version_doi else NA_character_,
-    concept_doi = if (isTRUE(result$published)) result$concept_doi else NA_character_
-  )
-
-  have_release_id <- !is.null(release_id) && nzchar(release_id)
-  have_published_doi <- isTRUE(result$published) &&
-    !is.na(result$version_doi) && nzchar(as.character(result$version_doi))
-  admin_token <- Sys.getenv("SYSNDD_ADMIN_TOKEN", "")
-
-  if (!have_release_id) {
-    cat("\nNo --release-id supplied -- pass one to record or print a DOI record-back command.\n")
-    return(invisible(NULL))
-  }
-
-  if (isTRUE(record_doi) && nzchar(admin_token) && have_published_doi) {
-    updated <- analysis_release_zenodo_record_doi(
-      sysndd_api_base_url = api_base_url,
-      admin_token = admin_token,
-      release_id = release_id,
-      doi_fields = doi_fields
-    )
-    cat("\nDOI recorded on the SysNDD release head:\n")
-    cat(sprintf("  release_id:        %s\n", updated$release_id %||% release_id))
-    cat(sprintf("  version_doi:       %s\n", updated$version_doi %||% doi_fields$version_doi))
-    cat(sprintf("  zenodo_record_url: %s\n", updated$zenodo_record_url %||% doi_fields$zenodo_record_url))
-  } else {
-    cat(
-      "\nDOI not recorded automatically",
-      if (!have_published_doi) " (deposition not published yet)" else "",
-      ". Run with --record-doi and SYSNDD_ADMIN_TOKEN set after publishing, ",
-      "or record it by hand:\n",
-      sep = ""
-    )
-    cat(analysis_release_zenodo_manual_doi_command(api_base_url, release_id, doi_fields), "\n")
-  }
-  invisible(NULL)
 }
 
 # Main guard: `sys.nframe()` is 0 only at the true top level of a directly

@@ -18,14 +18,47 @@
 # zenodo-package.R` (which always sources this file, never the other way
 # around) -- resolved lazily at CALL time via the shared sourcing
 # environment, not at source time, so definition order across the two files
-# does not matter (same idiom as the `-docs.R` sibling).
+# does not matter (same idiom as the `-docs.R` sibling). Also guard-sources
+# the sibling `analysis-snapshot-release-zenodo-common.R` below (release-id
+# validator, Codex round-2 item 2) so this file works standalone even if a
+# caller sources it directly instead of via `-package.R`.
 
 .analysis_release_zenodo_verify_loaded <- TRUE
 
+if (!exists(".analysis_release_zenodo_common_loaded", mode = "logical")) {
+  # Same self-locating guard-source idiom as `-package.R`'s docs/verify
+  # blocks (resolves this file's own directory from the active source()
+  # frame so the sibling common file loads regardless of cwd or how this
+  # file was sourced).
+  .analysis_release_zenodo_common_self_dir <- local({
+    ofiles <- Filter(Negate(is.null), lapply(sys.frames(), function(f) f$ofile))
+    if (length(ofiles) > 0) dirname(normalizePath(ofiles[[length(ofiles)]])) else NULL
+  })
+  .analysis_release_zenodo_common_candidates <- c(
+    if (!is.null(.analysis_release_zenodo_common_self_dir)) {
+      file.path(.analysis_release_zenodo_common_self_dir, "analysis-snapshot-release-zenodo-common.R")
+    },
+    "functions/analysis-snapshot-release-zenodo-common.R",
+    "/app/functions/analysis-snapshot-release-zenodo-common.R"
+  )
+  for (.analysis_release_zenodo_common_path in .analysis_release_zenodo_common_candidates) {
+    if (file.exists(.analysis_release_zenodo_common_path)) {
+      # local = TRUE: evaluate into THIS call's parent frame (same reasoning
+      # as `-package.R`'s guard blocks).
+      source(.analysis_release_zenodo_common_path, local = TRUE)
+      break
+    }
+  }
+  rm(
+    .analysis_release_zenodo_common_self_dir, .analysis_release_zenodo_common_candidates,
+    .analysis_release_zenodo_common_path
+  )
+}
+
 # --------------------------------------------------------------------------- #
 # Shared constants (forbidden files/dirs, sensitive text, expected layout,
-# allowed file-type suffixes, the staging-ownership sentinel, the release-id
-# shape).
+# allowed file-type suffixes, the staging-ownership sentinel). The
+# release-id shape constant lives in the guard-sourced common.R above.
 # --------------------------------------------------------------------------- #
 
 .ANALYSIS_RELEASE_ZENODO_FORBIDDEN_FILENAMES <- c(".env", ".env.local", ".envrc")
@@ -56,42 +89,14 @@
 # carries this sentinel -- see `.analysis_release_zenodo_staging_owned_by_tool()`.
 .ANALYSIS_RELEASE_ZENODO_STAGING_SENTINEL <- ".analysis-release-zenodo-staging"
 
-# A published release id is `"asr_" + 16 lowercase hex chars`
-# (`analysis_release_id()` in `analysis-snapshot-release-manifest.R`). This is
-# the ONLY shape ever allowed to become a filename, path component, or a
-# value written into the `latest.env` marker the Makefile `source`s.
-.ANALYSIS_RELEASE_ZENODO_ID_PATTERN <- "^asr_[0-9a-f]{16}$"
-
 # --------------------------------------------------------------------------- #
 # Release-id validation -- path/filename/marker-injection guard (item 2).
+# `.analysis_release_zenodo_assert_valid_release_id()` now lives in the
+# shared `analysis-snapshot-release-zenodo-common.R` (guard-sourced above)
+# so the upload/DOI path validates identically -- see that file's header for
+# why (Codex round-2 finding: the upload path built an admin PATCH URL and a
+# printed shell command from an unvalidated `--release-id`).
 # --------------------------------------------------------------------------- #
-
-#' Stop unless `release_id` is exactly `"latest"` (only when
-#' `allow_latest = TRUE`, i.e. the caller-supplied REQUEST arg) or a
-#' well-formed `asr_<16 lowercase hex>` id. Called on BOTH (a) the
-#' `--release-id` request argument (`allow_latest = TRUE`, in
-#' `analysis_release_zenodo_fetch_head()`) and (b) the RESOLVED id the API
-#' returns on the release head (`allow_latest = FALSE`, in
-#' `analysis_release_zenodo_package()`) -- defense-in-depth, since the
-#' resolved id is what actually becomes `<release_id>.tar.gz` and the
-#' `RELEASE_ID=` marker line. Any other value (`../evil`, an id containing a
-#' newline or shell metacharacters, ...) stops loudly here, before it is ever
-#' used as a path/filename/marker value.
-#'
-#' @return `release_id` (as a length-1 character), invisibly, on success.
-.analysis_release_zenodo_assert_valid_release_id <- function(release_id, allow_latest = FALSE) {
-  value <- as.character(release_id)[[1]]
-  if (isTRUE(allow_latest) && identical(value, "latest")) {
-    return(invisible(value))
-  }
-  if (!grepl(.ANALYSIS_RELEASE_ZENODO_ID_PATTERN, value)) {
-    stop(sprintf(
-      "Invalid analysis-snapshot release id %s: expected %s'asr_<16 lowercase hex>'",
-      shQuote(value), if (isTRUE(allow_latest)) "'latest' or " else ""
-    ), call. = FALSE)
-  }
-  invisible(value)
-}
 
 # --------------------------------------------------------------------------- #
 # Fetch (DI seams: http_get_json / http_download)
@@ -165,19 +170,60 @@ analysis_release_zenodo_download_bundle <- function(
 # `checksums.sha256` entries (item 4).
 # --------------------------------------------------------------------------- #
 
-#' Stop if any `paths` entry is absolute (POSIX `/...` or a Windows drive
-#' letter) or contains a `..` path segment. Used on BOTH the tar member list
-#' (before extraction) and every `checksums.sha256` entry (before it is
-#' resolved to a file under `exdir`) -- a tampered bundle cannot escape the
-#' extraction directory via either vector.
+#' Stop if any `paths` entry is absolute (POSIX `/...`, a Windows drive
+#' letter `X:...`, a leading-backslash root-relative path `\...`, or a UNC
+#' path `\\host\share...`) or contains a `..` path segment split on EITHER
+#' `/` OR `\` (Codex round-2 item 4, MEDIUM: the original check split only on
+#' `/`, so `..\escape` and `\\host\share` slipped through). Used on BOTH the
+#' tar member list (before extraction) and every `checksums.sha256` entry
+#' (before it is resolved to a file under `exdir`) -- a tampered bundle
+#' cannot escape the extraction directory via either separator convention.
 .analysis_release_zenodo_assert_no_traversal <- function(paths, context) {
   offenders <- Filter(function(p) {
-    startsWith(p, "/") || grepl("^[A-Za-z]:", p) ||
-      any(strsplit(p, "/", fixed = TRUE)[[1]] == "..")
+    startsWith(p, "/") || startsWith(p, "\\") || grepl("^[A-Za-z]:", p) ||
+      any(strsplit(p, "[/\\\\]")[[1]] == "..")
   }, paths)
   if (length(offenders) > 0) {
     stop(sprintf(
       "%s path traversal rejected: %s", context, paste(offenders, collapse = ", ")
+    ), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+# --------------------------------------------------------------------------- #
+# Symlink / non-regular-file rejection -- shared between the EXTRACTED bundle
+# tree (called immediately after untar(), before any hashing/copying -- item
+# 1, HIGH) and the staging tree (the pre-existing safety validator).
+# --------------------------------------------------------------------------- #
+
+#' Reject symlinks / non-regular files anywhere under `root_dir`. A symlink
+#' is detected via `Sys.readlink(path) != ""` -- on this Linux host runtime
+#' `Sys.readlink()` returns the link target for a symlink, `""` otherwise.
+#' Directories are identified via `list.files(..., include.dirs = TRUE)` and
+#' are always allowed; everything else the pure-R `untar()` engine can
+#' create is either a regular file or a symlink, so rejecting symlinks here
+#' also covers "non-regular file" for this extraction path in practice.
+#' Checks BOTH files and directory entries so a symlinked directory is caught
+#' even if `list.files()` would otherwise silently walk through it.
+#'
+#' @param root_dir Root of the tree to walk.
+#' @param context Prefix for the error message (identifies which tree).
+.analysis_release_zenodo_reject_symlinks <- function(root_dir, context) {
+  rel_paths <- list.files(
+    root_dir, recursive = TRUE, all.files = TRUE, no.. = TRUE,
+    full.names = FALSE, include.dirs = TRUE
+  )
+  offenders <- Filter(function(rel_path) {
+    full_path <- file.path(root_dir, rel_path)
+    target <- suppressWarnings(Sys.readlink(full_path))
+    !is.na(target) && nzchar(target)
+  }, rel_paths)
+
+  if (length(offenders) > 0) {
+    stop(sprintf(
+      "%s contains symlinks (not allowed): %s",
+      context, paste(sort(offenders), collapse = ", ")
     ), call. = FALSE)
   }
   invisible(TRUE)
@@ -190,13 +236,19 @@ analysis_release_zenodo_download_bundle <- function(
 #' files sit directly at the archive root (no named top-level subdirectory
 #' to search for).
 #'
-#' Hardening (item 4): (1) every tar member path and every `checksums.sha256`
-#' entry is rejected if absolute or containing a `..` segment, BEFORE it is
-#' ever joined onto `exdir`; (2) after the existing per-line checksum
-#' verification, COVERAGE is asserted -- every extracted regular file except
-#' `checksums.sha256` itself must appear EXACTLY ONCE in the checksums list,
-#' so a tampered bundle that drops a checksum line for a present file (or
-#' lists the same path twice) fails loudly instead of silently passing.
+#' Hardening: (1, item 4) every tar member path and every `checksums.sha256`
+#' entry is rejected if absolute or containing a `..` segment (either `/` or
+#' `\` separated), BEFORE it is ever joined onto `exdir`; (2, item 1, HIGH)
+#' IMMEDIATELY after extraction and BEFORE any hashing or copying, the whole
+#' extracted tree (INCLUDING `checksums.sha256` itself) is walked and any
+#' symlink is rejected -- `digest::digest(file = ...)` and `file.copy()`
+#' both follow symlinks transparently, so a symlinked release member could
+#' otherwise pull host-readable content into the archive undetected; (3)
+#' after the existing per-line checksum verification, COVERAGE is asserted --
+#' every extracted regular file except `checksums.sha256` itself must appear
+#' EXACTLY ONCE in the checksums list, so a tampered bundle that drops a
+#' checksum line for a present file (or lists the same path twice) fails
+#' loudly instead of silently passing.
 #'
 #' @param bundle_path Path to the downloaded `bundle.tar.gz`.
 #' @param expected_bundle_sha256 The release head's `bundle_sha256`.
@@ -226,6 +278,11 @@ analysis_release_zenodo_extract_and_verify <- function(
   }
   dir.create(exdir, recursive = TRUE, showWarnings = FALSE)
   utils::untar(bundle_path, exdir = exdir)
+
+  # Item 1 (HIGH): reject any symlink in the EXTRACTED tree immediately,
+  # before any file below is hashed or copied -- see the hardening note
+  # above.
+  .analysis_release_zenodo_reject_symlinks(exdir, "Extracted release bundle")
 
   sha_file <- file.path(exdir, "checksums.sha256")
   if (!file.exists(sha_file)) {
@@ -385,27 +442,12 @@ analysis_release_zenodo_extract_and_verify <- function(
 
 #' Reject symlinks / non-regular files anywhere in the staging tree (item 3)
 #' -- a symlink could point outside the archive, or at a private file
-#' `utils::tar()` would then follow and embed verbatim. Checks BOTH files and
-#' directory entries (`include.dirs = TRUE`) so a symlinked directory is
-#' caught even if `list.files()` would otherwise silently walk through it.
+#' `utils::tar()` would then follow and embed verbatim. Delegates to the
+#' shared `.analysis_release_zenodo_reject_symlinks()` (same check now also
+#' run on the EXTRACTED bundle tree, see `extract_and_verify()` above) so
+#' both trees are guarded by one implementation.
 .analysis_release_zenodo_validate_no_symlinks <- function(staging_dir) {
-  rel_paths <- list.files(
-    staging_dir, recursive = TRUE, all.files = TRUE, no.. = TRUE,
-    full.names = FALSE, include.dirs = TRUE
-  )
-  offenders <- Filter(function(rel_path) {
-    full_path <- file.path(staging_dir, rel_path)
-    target <- suppressWarnings(Sys.readlink(full_path))
-    !is.na(target) && nzchar(target)
-  }, rel_paths)
-
-  if (length(offenders) > 0) {
-    stop(sprintf(
-      "Zenodo staging contains symlinks (not allowed): %s",
-      paste(sort(offenders), collapse = ", ")
-    ), call. = FALSE)
-  }
-  invisible(TRUE)
+  .analysis_release_zenodo_reject_symlinks(staging_dir, "Zenodo staging")
 }
 
 .analysis_release_zenodo_has_allowed_suffix <- function(rel_path) {

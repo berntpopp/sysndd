@@ -25,16 +25,52 @@
 # Publish is DOUBLE-gated: `analysis_release_zenodo_require_publish_confirmation()`
 # stops unless BOTH `publish` and `confirm_publish` are set -- the orchestrator
 # is draft-only by default. DOI record-back to the SysNDD admin API is OPT-IN
-# and lives OUTSIDE this pure orchestrator (it is invoked by the CLI script,
-# Deliverable 3), so this file stays free of SysNDD-admin coupling and easy to
-# test in isolation.
+# (`analysis_release_zenodo_record_doi()`/`analysis_release_zenodo_manual_doi_command()`/
+# `analysis_release_zenodo_print_doi_record_back()` below); the CLI script
+# only wires flags/env into the latter, so this file stays the single place
+# that decides WHEN a DOI is recorded/printed and is easy to test in
+# isolation.
+#
+# Codex round-2 hardening (item 2, HIGH): the DOI/record-back path takes an
+# operator-supplied `--release-id` and both builds an admin PATCH URL from it
+# AND interpolates it into a printed single-quoted `curl` command -- so an
+# unvalidated value is a path/URL-injection AND a copy/paste
+# command-injection vector. Every DOI URL/command builder below calls the
+# shared `.analysis_release_zenodo_assert_valid_release_id()` (guard-sourced
+# from the sibling `analysis-snapshot-release-zenodo-common.R`, same
+# validator the package/verify path already used) FIRST, and
+# `manual_doi_command()` additionally `shQuote()`s every interpolated value
+# as defense in depth.
 
-`%||%` <- function(a, b) {
-  if (is.null(a) || length(a) == 0) {
-    b
-  } else {
-    a
+if (!exists(".analysis_release_zenodo_common_loaded", mode = "logical")) {
+  # Same self-locating guard-source idiom as `-package.R`'s docs/verify
+  # blocks and `-verify.R`'s own common guard block: resolves this file's
+  # own directory from the active source() frame so the sibling common file
+  # loads regardless of cwd or how this file was sourced (directly by the
+  # CLI script, or by `source_api_file()` in tests).
+  .analysis_release_zenodo_common_self_dir <- local({
+    ofiles <- Filter(Negate(is.null), lapply(sys.frames(), function(f) f$ofile))
+    if (length(ofiles) > 0) dirname(normalizePath(ofiles[[length(ofiles)]])) else NULL
+  })
+  .analysis_release_zenodo_common_candidates <- c(
+    if (!is.null(.analysis_release_zenodo_common_self_dir)) {
+      file.path(.analysis_release_zenodo_common_self_dir, "analysis-snapshot-release-zenodo-common.R")
+    },
+    "functions/analysis-snapshot-release-zenodo-common.R",
+    "/app/functions/analysis-snapshot-release-zenodo-common.R"
+  )
+  for (.analysis_release_zenodo_common_path in .analysis_release_zenodo_common_candidates) {
+    if (file.exists(.analysis_release_zenodo_common_path)) {
+      # local = TRUE: evaluate into THIS call's parent frame (same reasoning
+      # as `-package.R`'s guard blocks).
+      source(.analysis_release_zenodo_common_path, local = TRUE)
+      break
+    }
   }
+  rm(
+    .analysis_release_zenodo_common_self_dir, .analysis_release_zenodo_common_candidates,
+    .analysis_release_zenodo_common_path
+  )
 }
 
 # --------------------------------------------------------------------------- #
@@ -211,6 +247,11 @@ analysis_release_zenodo_publish_deposition <- function(
 #' @param admin_token A pre-minted SysNDD Administrator bearer token
 #'   (`SYSNDD_ADMIN_TOKEN`). Distinct from the Zenodo `token` used elsewhere
 #'   in this file.
+#' @param release_id Validated via
+#'   `.analysis_release_zenodo_assert_valid_release_id()` BEFORE the admin
+#'   PATCH URL is built (Codex round-2 item 2, HIGH) -- an invalid id
+#'   (`../evil`, a quote/`;`/newline-shaped value, ...) stops here, before it
+#'   is ever placed into the URL.
 #' @param patch Function(method, url, token, body = NULL) -> parsed JSON list.
 #'   Injectable seam; defaults to the real httr2 call.
 analysis_release_zenodo_record_doi <- function(
@@ -218,6 +259,7 @@ analysis_release_zenodo_record_doi <- function(
     patch = .analysis_release_zenodo_http_json) {
   base_url <- sub("/+$", "", as.character(sysndd_api_base_url)[[1]])
   release_id <- as.character(release_id)[[1]]
+  .analysis_release_zenodo_assert_valid_release_id(release_id, allow_latest = FALSE)
   url <- paste0(base_url, "/api/admin/analysis/releases/", release_id, "/doi")
   fields <- .analysis_release_zenodo_doi_non_empty_fields(doi_fields)
   patch("PATCH", url, admin_token, body = fields)
@@ -226,19 +268,120 @@ analysis_release_zenodo_record_doi <- function(
 #' Build the exact `curl -X PATCH ...` command an operator can run by hand to
 #' record DOI/record provenance when `--record-doi` was not opted into (the
 #' default). Never executed automatically.
+#'
+#' Codex round-2 item 2 (HIGH): `release_id` is validated via
+#' `.analysis_release_zenodo_assert_valid_release_id()` BEFORE the URL or
+#' command string is built -- an invalid id stops here rather than becoming a
+#' path-altering URL segment or a copy/paste command-injection payload once
+#' printed. Defense in depth: the resolved URL and the JSON body are each
+#' `shQuote()`d (POSIX `sh` quoting -- wraps in single quotes and escapes any
+#' embedded single quote), so even a doi_fields VALUE containing a quote,
+#' `;`, or a newline cannot break out of the single-quoted `curl` arguments.
 analysis_release_zenodo_manual_doi_command <- function(sysndd_api_base_url, release_id, doi_fields) {
   base_url <- sub("/+$", "", as.character(sysndd_api_base_url)[[1]])
   release_id <- as.character(release_id)[[1]]
+  .analysis_release_zenodo_assert_valid_release_id(release_id, allow_latest = FALSE)
   url <- paste0(base_url, "/api/admin/analysis/releases/", release_id, "/doi")
   fields <- .analysis_release_zenodo_doi_non_empty_fields(doi_fields)
   body_json <- as.character(jsonlite::toJSON(fields, auto_unbox = TRUE))
 
   paste0(
-    "curl -X PATCH '", url, "' ",
+    "curl -X PATCH ", shQuote(url), " ",
     "-H 'Authorization: Bearer <SYSNDD_ADMIN_TOKEN>' ",
     "-H 'Content-Type: application/json' ",
-    "-d '", body_json, "'"
+    "-d ", shQuote(body_json)
   )
+}
+
+# --------------------------------------------------------------------------- #
+# DOI record-back print step -- the CLI-facing decision of WHEN to
+# auto-record vs. print a manual command vs. print instructions-only.
+# Lives here (not in the CLI script) so it is directly unit-testable via
+# `source_api_file()`, the same convention as the rest of this file.
+# --------------------------------------------------------------------------- #
+
+#' Print the (opt-in) DOI record-back step after `analysis_release_zenodo_upload()`
+#' completes. Never calls the SysNDD admin endpoint unless the operator
+#' explicitly asked for it (`--record-doi`) AND supplied credentials
+#' (`SYSNDD_ADMIN_TOKEN`) AND the run reached a real, published DOI.
+#'
+#' Codex round-2 hardening:
+#' - item 2 (HIGH): `release_id` is validated via
+#'   `.analysis_release_zenodo_assert_valid_release_id()` immediately after
+#'   the "no id supplied" short-circuit and BEFORE any URL or command is
+#'   built from it (`record_doi()`/`manual_doi_command()` also validate
+#'   internally -- this is defense in depth, not the only gate).
+#' - item 3 (MEDIUM): when the upload was a DRAFT (`result$published` is
+#'   FALSE), this prints ONLY post-publication instructions -- never a
+#'   ready-to-run PATCH command populated with draft values, which would let
+#'   an operator record a draft DOI and violate the locked published-only
+#'   rule (the automatic `--record-doi` path already gated on `published`;
+#'   the PRINTED fallback command previously did not).
+#'
+#' @param result The list returned by `analysis_release_zenodo_upload()`.
+#' @param release_id Operator-supplied `--release-id` (or `NULL`).
+#' @param api_base_url Base URL of the SysNDD API.
+#' @param record_doi Whether `--record-doi` was passed.
+#' @param printer Function(...) used for output; defaults to `cat`.
+#'   Injectable seam so tests can capture output without `capture.output()`.
+#' @param record_doi_fn Function with `analysis_release_zenodo_record_doi()`'s
+#'   signature. Injectable seam (mirrors every other HTTP boundary in this
+#'   file) so tests can exercise the automatic-record branch without a real
+#'   network call.
+analysis_release_zenodo_print_doi_record_back <- function(
+    result, release_id, api_base_url, record_doi, printer = cat,
+    record_doi_fn = analysis_release_zenodo_record_doi) {
+  have_release_id <- !is.null(release_id) && nzchar(as.character(release_id)[[1]])
+  if (!have_release_id) {
+    printer("\nNo --release-id supplied -- pass one to record or print a DOI record-back command.\n")
+    return(invisible(NULL))
+  }
+
+  release_id <- as.character(release_id)[[1]]
+  .analysis_release_zenodo_assert_valid_release_id(release_id, allow_latest = FALSE)
+
+  if (!isTRUE(result$published)) {
+    printer(
+      "\nDraft uploaded (not published) -- a draft DOI is never recorded (published-only ",
+      "rule). Publish first with --publish --confirm-publish, then re-run with ",
+      "--record-doi (and SYSNDD_ADMIN_TOKEN set), or record the DOI by hand once ",
+      "the deposition is published.\n",
+      sep = ""
+    )
+    return(invisible(NULL))
+  }
+
+  doi_fields <- list(
+    zenodo_record_id = as.character(result$deposition_id),
+    zenodo_record_url = result$record_url,
+    version_doi = result$version_doi,
+    concept_doi = result$concept_doi
+  )
+  have_published_doi <- !is.na(result$version_doi) && nzchar(as.character(result$version_doi))
+  admin_token <- Sys.getenv("SYSNDD_ADMIN_TOKEN", "")
+
+  if (isTRUE(record_doi) && nzchar(admin_token) && have_published_doi) {
+    updated <- record_doi_fn(
+      sysndd_api_base_url = api_base_url,
+      admin_token = admin_token,
+      release_id = release_id,
+      doi_fields = doi_fields
+    )
+    printer("\nDOI recorded on the SysNDD release head:\n")
+    printer(sprintf("  release_id:        %s\n", updated$release_id %||% release_id))
+    printer(sprintf("  version_doi:       %s\n", updated$version_doi %||% doi_fields$version_doi))
+    printer(sprintf("  zenodo_record_url: %s\n", updated$zenodo_record_url %||% doi_fields$zenodo_record_url))
+  } else {
+    printer(
+      "\nDOI not recorded automatically",
+      if (!have_published_doi) " (no published DOI)" else "",
+      ". Run with --record-doi and SYSNDD_ADMIN_TOKEN set, ",
+      "or record it by hand:\n",
+      sep = ""
+    )
+    printer(analysis_release_zenodo_manual_doi_command(api_base_url, release_id, doi_fields), "\n")
+  }
+  invisible(NULL)
 }
 
 # --------------------------------------------------------------------------- #

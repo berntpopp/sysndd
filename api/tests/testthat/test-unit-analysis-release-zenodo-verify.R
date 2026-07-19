@@ -290,6 +290,109 @@ test_that("extract_and_verify: FAILS when a checksums.sha256 entry contains a '.
   )
 })
 
+test_that("extract_and_verify: FAILS when a checksums.sha256 entry contains a backslash '..\\' traversal (Codex round-2 item 4, MEDIUM)", {
+  work_dir <- withr::local_tempdir()
+  bundle_path <- build_fixture_bundle(
+    work_dir, extra_checksum_lines = paste0(strrep("0", 64L), "  ..\\escape.txt")
+  )
+  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
+
+  expect_error(
+    analysis_release_zenodo_extract_and_verify(
+      bundle_path, expected_sha, exdir = file.path(work_dir, "extracted_backslash_checksum_traversal")
+    ),
+    "path traversal rejected"
+  )
+})
+
+test_that("extract_and_verify: FAILS when a checksums.sha256 entry is a UNC path (Codex round-2 item 4, MEDIUM)", {
+  work_dir <- withr::local_tempdir()
+  bundle_path <- build_fixture_bundle(
+    work_dir, extra_checksum_lines = paste0(strrep("0", 64L), "  \\\\host\\share\\evil.txt")
+  )
+  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
+
+  expect_error(
+    analysis_release_zenodo_extract_and_verify(
+      bundle_path, expected_sha, exdir = file.path(work_dir, "extracted_unc_traversal")
+    ),
+    "path traversal rejected"
+  )
+})
+
+test_that("extract_and_verify: FAILS when a TAR MEMBER path itself contains backslash traversal (Codex round-2 item 4, MEDIUM)", {
+  # On this Linux host, a backslash is an ordinary filename character (not a
+  # separator), so a file can genuinely be named with a leading `..\` --
+  # proving the traversal guard on the TAR MEMBER LIST (not just the
+  # checksums.sha256 entries) also splits on `\`, not only `/`.
+  work_dir <- withr::local_tempdir()
+  src <- file.path(work_dir, "src_backslash_member")
+  dir.create(src, recursive = TRUE)
+  weird_name <- "..\\evil_member.txt"
+  writeLines("payload", file.path(src, weird_name))
+  weird_sha <- digest::digest(file = file.path(src, weird_name), algo = "sha256")
+  cat(paste0(weird_sha, "  ", weird_name, "\n"), file = file.path(src, "checksums.sha256"))
+
+  bundle_path <- file.path(work_dir, "bundle_backslash_member.tar.gz")
+  withr::with_dir(src, {
+    utils::tar(
+      tarfile = bundle_path, files = c(weird_name, "checksums.sha256"),
+      compression = "gzip", tar = "internal"
+    )
+  })
+  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
+
+  expect_error(
+    analysis_release_zenodo_extract_and_verify(
+      bundle_path, expected_sha, exdir = file.path(work_dir, "extracted_backslash_member")
+    ),
+    "path traversal rejected"
+  )
+})
+
+test_that("extract_and_verify: FAILS when the bundle contains a symlinked member (Codex round-2 item 1, HIGH) -- rejected BEFORE hashing", {
+  # A symlinked release member must be rejected the instant it is seen in the
+  # EXTRACTED tree, before `digest::digest(file = ...)` (which follows
+  # symlinks transparently) is ever called on it. Proven here by giving the
+  # symlink a deliberately WRONG checksum entry (all zeros): if the rejection
+  # ran AFTER hashing, this would fail with a checksum "mismatch" instead --
+  # the assertion below pins the failure to the symlink rejection specifically.
+  work_dir <- withr::local_tempdir()
+  outside_target <- file.path(work_dir, "outside_secret.txt")
+  writeLines("host-readable content outside the archive", outside_target)
+
+  src <- file.path(work_dir, "src_symlink_member")
+  dir.create(src, recursive = TRUE)
+  writeLines("normal file content", file.path(src, "a.txt"))
+  link_path <- file.path(src, "evil_link")
+  skip_if_not(
+    isTRUE(file.symlink(outside_target, link_path)),
+    "host does not support creating symlinks (e.g. some restricted CI runners)"
+  )
+
+  a_sha <- digest::digest(file = file.path(src, "a.txt"), algo = "sha256")
+  cat(
+    paste0(a_sha, "  a.txt\n", strrep("0", 64L), "  evil_link\n"),
+    file = file.path(src, "checksums.sha256")
+  )
+
+  bundle_path <- file.path(work_dir, "bundle_symlink_member.tar.gz")
+  withr::with_dir(src, {
+    utils::tar(
+      tarfile = bundle_path, files = c("a.txt", "evil_link", "checksums.sha256"),
+      compression = "gzip", tar = "internal"
+    )
+  })
+  expected_sha <- digest::digest(file = bundle_path, algo = "sha256")
+
+  expect_error(
+    analysis_release_zenodo_extract_and_verify(
+      bundle_path, expected_sha, exdir = file.path(work_dir, "extracted_symlink_member")
+    ),
+    "symlinks"
+  )
+})
+
 test_that("extract_and_verify: FAILS when checksums.sha256 lists the same file twice (duplicate entry, item 4)", {
   work_dir <- withr::local_tempdir()
   known_a_content_file <- tempfile()
