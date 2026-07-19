@@ -169,7 +169,8 @@ comparison_category_crosswalk <- function() {
     ),
     notes = list(
       "PanelApp Red/1 normalizes to Limited (low evidence), never Refuted.",
-      "Ungraded inclusion lists (Radboudumc, OMIM NDD, Orphanet) receive an implied Definitive for comparability, not a native equivalent tier.",
+      paste0("Ungraded inclusion lists (Radboudumc, OMIM NDD, Orphanet) receive an implied ",
+             "Definitive for comparability, not a native equivalent tier."),
       "Only explicit source-native disputed/refuted assertions (e.g. Gene2Phenotype) map to Refuted.",
       "`not applicable` and `not listed` are non-tier fillers, not normalized mappings."
     )
