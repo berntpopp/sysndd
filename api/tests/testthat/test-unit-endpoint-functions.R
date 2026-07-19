@@ -41,6 +41,9 @@ source(file.path(api_dir, "core", "errors.R"))
 # generate_sort_expressions, generate_xlsx_bin, ...) as transitive dependencies.
 source(file.path(api_dir, "functions", "phenotype-endpoint-functions.R"))
 source(file.path(api_dir, "functions", "panels-endpoint-functions.R"))
+# Single mapping authority: category normalization defers to the real function
+# (no local case_when reimplementation), see test below (#583).
+source(file.path(api_dir, "functions", "category-normalization.R"))
 
 # Note: endpoint-functions.R has global dependencies (pool, dw)
 # We test it by examining structure and testing through helper integration
@@ -274,27 +277,11 @@ test_that("field selection with empty fields returns all columns", {
 # Category normalization patterns
 # =============================================================================
 
-test_that("category normalization logic is testable", {
-  # Test the pattern used in generate_comparisons_list
-  # This tests the case_when logic used to normalize categories
-  test_data <- tibble(
-    list = c("gene2phenotype", "gene2phenotype", "panelapp", "sfari"),
-    category = c("strong", "limited", "3", "1")
+test_that("normalize_comparison_categories is the single mapping authority", {
+  res <- normalize_comparison_categories(
+    tibble::tibble(symbol = "G", list = "panelapp", category = "3")
   )
-
-  normalized <- test_data %>%
-    mutate(category_normalized = case_when(
-      list == "gene2phenotype" & category == "strong" ~ "Definitive",
-      list == "gene2phenotype" & category == "limited" ~ "Limited",
-      list == "panelapp" & category == "3" ~ "Definitive",
-      list == "sfari" & category == "1" ~ "Definitive",
-      TRUE ~ category
-    ))
-
-  expect_equal(normalized$category_normalized[1], "Definitive")
-  expect_equal(normalized$category_normalized[2], "Limited")
-  expect_equal(normalized$category_normalized[3], "Definitive")
-  expect_equal(normalized$category_normalized[4], "Definitive")
+  expect_equal(res$category[[1]], "Definitive")
 })
 
 # =============================================================================

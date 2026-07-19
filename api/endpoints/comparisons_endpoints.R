@@ -292,6 +292,7 @@ function() {
 
   if (!table_exists) {
     return(list(
+      mapping_version = COMPARISON_CATEGORY_MAPPING_VERSION,
       last_full_refresh = NULL,
       last_refresh_status = "never",
       last_refresh_error = NULL,
@@ -308,6 +309,7 @@ function() {
 
   if (nrow(metadata) == 0) {
     return(list(
+      mapping_version = COMPARISON_CATEGORY_MAPPING_VERSION,
       last_full_refresh = NULL,
       last_refresh_status = "never",
       last_refresh_error = NULL,
@@ -317,6 +319,7 @@ function() {
   }
 
   list(
+    mapping_version = COMPARISON_CATEGORY_MAPPING_VERSION,
     last_full_refresh = metadata$last_full_refresh,
     last_refresh_status = metadata$last_refresh_status,
     last_refresh_error = metadata$last_refresh_error,
@@ -403,6 +406,21 @@ function() {
     last_full_refresh = last_full_refresh,
     sources = sources
   )
+}
+
+#* Get the normalized evidence-tier crosswalk
+#*
+#* Pure, in-memory (no DB, no external). Returns the declarative mapping of
+#* source-native confidence labels to the normalized four-tier scale plus the
+#* mapping policy version. This is the authoritative complete versioned mapping
+#* table the Curation Comparisons help affordance links to (issue #586).
+#*
+#* @tag comparisons
+#* @serializer json list(na="null")
+#*
+#* @get /crosswalk
+function() {
+  comparison_category_crosswalk()
 }
 
 ## Comparisons endpoints

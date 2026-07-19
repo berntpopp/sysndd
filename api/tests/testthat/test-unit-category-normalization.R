@@ -63,7 +63,7 @@ test_that("normalize_comparison_categories handles case-insensitive gene2phenoty
 # panelapp Category Mapping Tests
 # ============================================================================
 
-test_that("normalize_comparison_categories maps panelapp confidence levels", {
+test_that("normalize_comparison_categories maps panelapp confidence to full ordinal", {
   fixture <- tibble(
     symbol = c("GENE1", "GENE2", "GENE3"),
     list = rep("panelapp", 3),
@@ -72,9 +72,19 @@ test_that("normalize_comparison_categories maps panelapp confidence levels", {
 
   result <- normalize_comparison_categories(fixture)
 
-  expect_equal(result$category[1], "Definitive")  # 3
-  expect_equal(result$category[2], "Limited")     # 2
-  expect_equal(result$category[3], "Refuted")     # 1
+  expect_equal(result$category[1], "Definitive")  # Green/3
+  expect_equal(result$category[2], "Moderate")     # Amber/2 (was Limited)
+  expect_equal(result$category[3], "Limited")      # Red/1  = low evidence, NOT Refuted
+})
+
+test_that("gene2phenotype disputed/refuted still map to Refuted (asymmetry lock)", {
+  fixture <- tibble(
+    symbol = c("A", "B"),
+    list = rep("gene2phenotype", 2),
+    category = c("disputed", "refuted")
+  )
+  result <- normalize_comparison_categories(fixture)
+  expect_equal(result$category, c("Refuted", "Refuted"))
 })
 
 # ============================================================================
@@ -160,7 +170,7 @@ test_that("per-source categories are preserved, not collapsed to cross-database 
   gene1_results <- result %>% filter(symbol == "GENE1")
   expect_equal(gene1_results$category[gene1_results$list == "SysNDD"], "Definitive")
   expect_equal(gene1_results$category[gene1_results$list == "gene2phenotype"], "Limited")
-  expect_equal(gene1_results$category[gene1_results$list == "panelapp"], "Limited")
+  expect_equal(gene1_results$category[gene1_results$list == "panelapp"], "Moderate")
 
   # GENE2: SysNDD should keep "Limited" (NOT "Definitive" from sfari)
   gene2_results <- result %>% filter(symbol == "GENE2")
