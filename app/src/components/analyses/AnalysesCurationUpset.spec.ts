@@ -73,4 +73,25 @@ describe('AnalysesCurationUpset responsive plot', () => {
 
     wrapper.unmount();
   });
+
+  it('renders the evidence-tier mapping help inside the Overlap heading', () => {
+    const wrapper = mount(AnalysesCurationUpset, {
+      global: {
+        stubs: {
+          InlineHelpBadge: true,
+          BPopover: true,
+          EvidenceTierMappingHelp: {
+            name: 'EvidenceTierMappingHelp',
+            template: '<span class="etmh-stub"/>',
+          },
+          DownloadImageButtons: true,
+        },
+      },
+    });
+    const heading = wrapper.get('h2.panel-title');
+    // placement: the help affordance is within the Overlap <h2>, after its label
+    expect(heading.find('.etmh-stub').exists()).toBe(true);
+    expect(heading.text()).toContain('Overlap');
+    wrapper.unmount();
+  });
 });

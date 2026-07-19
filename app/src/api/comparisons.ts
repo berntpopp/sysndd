@@ -105,6 +105,53 @@ export interface ComparisonsMetadata {
   sources_count: number;
   rows_imported: number;
   message?: string;
+  /**
+   * The normalized-tier mapping policy version (`GET /api/comparisons/crosswalk`
+   * and `/metadata` share it). Absent on pre-#583 responses. (issue #583/#586)
+   */
+  mapping_version?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Evidence-tier crosswalk (issue #586)
+// ---------------------------------------------------------------------------
+
+/**
+ * One source-native confidence value and how it normalizes onto the four-tier
+ * scale. `native_value` is JSON `null` for the SFARI "ungraded" rule (the
+ * `/crosswalk` endpoint serializes with `na="null"`). `normalized_tier` is
+ * `null` for passthrough sources whose categories are already normalized.
+ */
+export interface CrosswalkRule {
+  native_value: string | null;
+  native_label: string;
+  normalized_tier: 'Definitive' | 'Moderate' | 'Limited' | 'Refuted' | null;
+  rule_kind: string;
+  note: string | null;
+}
+
+export interface CrosswalkSource {
+  list: string;
+  label: string;
+  rules: CrosswalkRule[];
+}
+
+export interface CrosswalkTier {
+  tier: string;
+  definition: string;
+}
+
+/**
+ * Wire shape from `GET /api/comparisons/crosswalk`. The authoritative,
+ * versioned mapping of source-native confidence labels onto the normalized
+ * four-tier scale. Rendered by the Curation Comparisons tier-mapping help so
+ * the display can never drift from the executable normalizer (issue #586).
+ */
+export interface ComparisonsCrosswalk {
+  mapping_version: string;
+  tiers: CrosswalkTier[];
+  sources: CrosswalkSource[];
+  notes: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +256,22 @@ export async function getComparisonsMetadata(
   config?: AxiosRequestConfig
 ): Promise<ComparisonsMetadata> {
   return apiClient.get<ComparisonsMetadata>('/api/comparisons/metadata', config);
+}
+
+/**
+ * GET /api/comparisons/crosswalk
+ * Mirrors api/endpoints/comparisons_endpoints.R (handler `@get /crosswalk`).
+ *
+ * Returns the declarative evidence-tier crosswalk (source-native labels →
+ * normalized four-tier scale) plus the mapping policy version. Pure/in-memory
+ * on the server (no DB, no external call). Consumed by the tier-mapping help
+ * affordance on the Curation Comparisons page (issue #586).
+ */
+export async function getComparisonsCrosswalk(
+  config?: AxiosRequestConfig
+): Promise<ComparisonsCrosswalk> {
+  // apiClient.get<T> already returns response.data (see app/src/api/client.ts).
+  return apiClient.get<ComparisonsCrosswalk>('/api/comparisons/crosswalk', config);
 }
 
 /**
