@@ -226,6 +226,23 @@ test_that("record_doi: an empty-string field is also dropped (never forwarded as
   expect_setequal(names(captured_body), "zenodo_record_id")
 })
 
+test_that("record_doi: an NA_character_ field is dropped, not forwarded as null (nzchar(NA) gotcha)", {
+  captured_body <- NULL
+  stub_patch <- function(method, url, token, body = NULL) {
+    captured_body <<- body
+    list()
+  }
+
+  analysis_release_zenodo_record_doi(
+    "http://localhost:7778", "admin-token", "asr_x",
+    doi_fields = list(version_doi = "10.5281/zenodo.1", concept_doi = NA_character_),
+    patch = stub_patch
+  )
+
+  expect_setequal(names(captured_body), "version_doi")
+  expect_false("concept_doi" %in% names(captured_body))
+})
+
 # --------------------------------------------------------------------------- #
 # manual_doi_command -- the printed fallback when --record-doi is not opted into
 # --------------------------------------------------------------------------- #
@@ -260,6 +277,22 @@ test_that("manual_doi_command: never auto-executes -- it only returns a string",
   )
   expect_true(is.character(command))
   expect_length(command, 1L)
+})
+
+test_that("manual_doi_command: an NA_character_ field is omitted, not printed as null/NA (nzchar(NA) gotcha)", {
+  command <- analysis_release_zenodo_manual_doi_command(
+    "http://localhost:7778",
+    "asr_deadbeefcafebabe",
+    doi_fields = list(
+      zenodo_record_id = "999",
+      concept_doi = NA_character_
+    )
+  )
+
+  expect_true(grepl("zenodo_record_id", command, fixed = TRUE))
+  expect_false(grepl("concept_doi", command, fixed = TRUE))
+  expect_false(grepl("null", command, fixed = TRUE))
+  expect_false(grepl("\"NA\"", command, fixed = TRUE))
 })
 
 # --------------------------------------------------------------------------- #

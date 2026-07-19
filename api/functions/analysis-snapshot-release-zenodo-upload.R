@@ -182,13 +182,23 @@ analysis_release_zenodo_publish_deposition <- function(
 )
 
 #' Keep only the four recognized DOI fields with a non-empty value. An
-#' omitted/NULL/empty-string field is dropped, never forwarded as "" or NULL
-#' -- the admin endpoint treats an omitted field as "leave unchanged", so a
-#' forwarded empty value would incorrectly clear it.
+#' omitted/NULL/NA/empty-string field is dropped, never forwarded as "",
+#' NULL, or NA -- the admin endpoint treats an omitted field as "leave
+#' unchanged", so a forwarded empty value would incorrectly clear it.
+#' `is.na()` is checked BEFORE `nzchar()` because `nzchar(NA_character_)` is
+#' TRUE in R -- without the guard an NA field survives the filter and is
+#' emitted as an explicit `null` instead of being omitted.
 .analysis_release_zenodo_doi_non_empty_fields <- function(doi_fields) {
   doi_fields <- doi_fields[names(doi_fields) %in% .ANALYSIS_RELEASE_ZENODO_DOI_FIELD_NAMES]
   Filter(function(value) {
-    !is.null(value) && length(value) > 0 && nzchar(trimws(as.character(value)[[1]]))
+    if (is.null(value) || length(value) == 0) {
+      return(FALSE)
+    }
+    scalar <- value[[1]]
+    if (is.na(scalar)) {
+      return(FALSE)
+    }
+    nzchar(trimws(as.character(scalar)))
   }, doi_fields)
 }
 
