@@ -141,6 +141,11 @@ export interface CrosswalkTier {
   definition: string;
 }
 
+export interface CrosswalkNonTierFiller {
+  value: string;
+  meaning: string;
+}
+
 /**
  * Wire shape from `GET /api/comparisons/crosswalk`. The authoritative,
  * versioned mapping of source-native confidence labels onto the normalized
@@ -151,6 +156,7 @@ export interface ComparisonsCrosswalk {
   mapping_version: string;
   tiers: CrosswalkTier[];
   sources: CrosswalkSource[];
+  non_tier_fillers: CrosswalkNonTierFiller[];
   notes: string[];
 }
 

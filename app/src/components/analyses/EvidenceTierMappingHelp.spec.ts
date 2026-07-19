@@ -53,7 +53,7 @@ describe('EvidenceTierMappingHelp', () => {
     const badge = w.get('button');
     await badge.trigger('click');
     expect((w.vm as unknown as { open: boolean }).open).toBe(true);
-    await w.get('[role="document"]').trigger('keydown.esc');
+    await w.get('[role="dialog"]').trigger('keydown.esc');
     expect((w.vm as unknown as { open: boolean }).open).toBe(false);
     expect(document.activeElement).toBe(badge.element); // focus restored to trigger
     w.unmount();

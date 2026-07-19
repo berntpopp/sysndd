@@ -175,6 +175,23 @@ test_that("generator block is complete and reproducible for clustering types", {
   expect_silent(analysis_snapshot_assert_generator_complete(g, "functional_clusters"))
 })
 
+test_that("applied-params builders record the full clustering config (#585 reproducibility)", {
+  fp <- analysis_snapshot_functional_applied_params(list(algorithm = "leiden"), "experimental_database")
+  expect_identical(fp$objective_function, "modularity")
+  expect_identical(fp$beta, 0.01)
+  expect_identical(fp$n_iterations, -1L)
+  expect_identical(fp$resolution, 1.0)
+  expect_identical(fp$seed, 42L)
+  expect_identical(fp$weight_channel, "experimental_database")
+
+  pp <- analysis_snapshot_phenotype_applied_params(3L)
+  expect_identical(pp$ncp, 8L)
+  expect_identical(pp$quali_sup, 1L)
+  expect_identical(pp$quanti_sup, c(2L, 3L, 4L))
+  expect_identical(pp$kk, "Inf")
+  expect_identical(pp$hcpc_nb_clust, 3L)
+})
+
 test_that("completeness gate rejects a missing required field", {
   g <- analysis_snapshot_build_generator("functional_clusters",
         list(algorithm = "leiden"), "2026-07-19T00:00:00Z")

@@ -31,7 +31,14 @@
       :hover="false"
     >
       <template #title>Normalized evidence tiers</template>
-      <div role="document" @keydown.esc.stop.prevent="close">
+      <!-- role="dialog" (with a label) matches the badge's aria-haspopup="dialog"
+           and gives the focusable crosswalk link a labeled interactive container,
+           rather than BVN's default role="tooltip". -->
+      <div
+        role="dialog"
+        aria-label="Normalized evidence-tier mapping"
+        @keydown.esc.stop.prevent="close"
+      >
         <div v-if="crosswalk">
           <ul class="mb-2 ps-3 small">
             <li v-for="t in crosswalk.tiers" :key="t.tier">

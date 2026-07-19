@@ -94,6 +94,9 @@ analysis_snapshot_functional_applied_params <- function(params, weight_channel =
   list(
     algorithm = params$algorithm %||% "leiden",
     resolution = 1.0, seed = 42L, score_threshold = 400L, min_size = 10L,
+    # Full Leiden call config (analyses-functions.R igraph::cluster_leiden), so
+    # the partition is reproducible from provenance alone.
+    objective_function = "modularity", beta = 0.01, n_iterations = -1L,
     weight_channel = weight_channel %||% NA_character_
   )
 }
@@ -112,6 +115,9 @@ analysis_snapshot_phenotype_applied_params <- function(hcpc_nb_clust) {
     prevalence_min = suppressWarnings(as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MIN", "0.05"))),
     prevalence_max = suppressWarnings(as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"))),
     kk = "Inf", consol = TRUE,
+    # MCA supplementary-variable configuration (gen_mca_clust_obj defaults:
+    # quali.sup = 1, quanti.sup = 2:4), recorded for reproducibility.
+    quali_sup = 1L, quanti_sup = c(2L, 3L, 4L),
     hcpc_nb_clust = hcpc_nb_clust
   )
 }

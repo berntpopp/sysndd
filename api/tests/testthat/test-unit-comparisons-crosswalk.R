@@ -20,7 +20,17 @@ test_that("every crosswalk rule agrees with the executable normalizer (no drift)
   cw <- comparison_category_crosswalk()
   for (src in cw$sources) {
     for (rule in src$rules) {
-      if (rule$rule_kind == "passthrough") next  # identity: normalizer returns input unchanged
+      if (rule$rule_kind == "passthrough") {
+        # passthrough (SysNDD/omim_ndd/orphanet_id): the normalizer returns the
+        # native category UNCHANGED. Probe a representative tier and assert identity
+        # (do NOT compare to the crosswalk's intentionally-null normalized_tier).
+        got_pt <- normalize_comparison_categories(
+          tibble(symbol = "G", list = src$list, category = "Definitive")
+        )$category[[1]]
+        expect_identical(got_pt, "Definitive",
+          info = sprintf("%s passthrough identity", src$list))
+        next
+      }
       # Build a probe native value per rule_kind
       probe <- switch(rule$rule_kind,
         missing = NA_character_,
