@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.2] — 2026-07-19
+
+Public + Administrator UI for the immutable analysis-snapshot releases added in
+0.30.0 (#573, Slice B). The frozen, content-addressed release artifacts are now
+browsable, downloadable, and verifiable from the app, and an operator can build,
+publish, and DOI-tag them without SSH or `docker exec`.
+
+> Note: 0.30.1 is reserved for the category-selected clustering universes work
+> (#574, Slice D); this Slice-B UI release assumes that lands first.
+
+### Added
+
+- **Public `/DataReleases` page** (`views/analyses/DataReleases.vue`,
+  discoverable from the Analyses navbar dropdown): lists published releases in a
+  table (with the dotted `zenodo.*` keys flattened to flat field keys so
+  BootstrapVueNext's `BTable` can render them), and shows a
+  `ReleaseManifestPanel` provenance card (styled like the NDDScore model card)
+  with the release identity, the three integrity hashes (`content_digest`,
+  `manifest_sha256`, `bundle_sha256`) with copy buttons, per-layer
+  `snapshot_id`/`payload_hash`/`input_hash`/`reproducibility_hash`, the
+  correlation layer's pinned dependency lineage, and DOI links. Download buttons
+  for the whole `bundle.tar.gz`, the exact `manifest.json` bytes, and each
+  individual manifest file, plus a "How to verify" disclosure explaining the
+  hashing model (including that `payload_hash`/`input_hash`/`snapshot_id` are
+  cross-checkable lineage anchors, not a hash of the release's own
+  `payload.json`).
+- **Administrator `Manage releases` page**
+  (`views/admin/ManageAnalysisReleases.vue`): synchronous, DB-only build /
+  publish / record-DOI / delete-draft flows over a co-located
+  `useAnalysisReleaseAdmin` composable. The Build action is disabled unless all
+  three release layers (`functional_clusters`, `phenotype_clusters`,
+  `phenotype_functional_correlations`) report `available` from the snapshot
+  status endpoint, and the transient `release_lock_unavailable` (HTTP 503,
+  sources mid-refresh) response is surfaced distinctly from the 400 gate
+  failures.
+- **Typed API clients** for the release surface: the public
+  `analysis_releases.ts` (re-exported from `analysis.ts`) and the
+  Administrator-only `admin_analysis_release.ts`, both mirroring the exact
+  backend contracts (the public 14-field head allowlist that never exposes
+  `created_by_user_id`/`last_error_message`; the admin raw head with flat DOI
+  columns).
+
+### Fixed
+
+- `release_version`/`title` are typed as nullable everywhere in the release
+  clients — `release_version` is a reserved `VARCHAR` the builder currently
+  always inserts as `NULL`, so the always-empty "Version" column was dropped
+  from the public table and made conditional in the manifest panel, and the
+  release label falls back to `release_id` when the title is null.
+
 ## [0.30.0] — 2026-07-18
 
 Immutable public analysis-snapshot releases (#573, Slice A). SysNDD's derived
