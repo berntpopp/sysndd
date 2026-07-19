@@ -147,7 +147,16 @@ analysis_release_zenodo_fetch_head <- function(
 #'
 #' @param release_id An EXPLICIT `asr_<16 hex>` id (there is no
 #'   `/releases/latest/bundle` route -- callers must resolve the concrete id
-#'   via `analysis_release_zenodo_fetch_head()` first).
+#'   via `analysis_release_zenodo_fetch_head()` first). Validated via
+#'   `.analysis_release_zenodo_assert_valid_release_id(allow_latest = FALSE)`
+#'   immediately after coercion (Codex round 3, MEDIUM): the package
+#'   orchestrator (`analysis_release_zenodo_package()`) already re-validates
+#'   the RESOLVED id before calling this function, but this exported helper
+#'   can be called directly by other code, and a direct caller passing an
+#'   unvalidated `../`/quote/newline-shaped `release_id` would otherwise
+#'   reach the URL-building `paste0()` below unchecked. A bundle URL always
+#'   targets a concrete id, so `allow_latest` is FALSE here even though
+#'   `fetch_head()` permits `"latest"` for its own request arg.
 #' @param http_download Function(url, destfile). Injectable seam.
 #' @return `destfile`, invisibly-compatible (returned for chaining).
 analysis_release_zenodo_download_bundle <- function(
@@ -157,6 +166,7 @@ analysis_release_zenodo_download_bundle <- function(
     http_download = .analysis_release_zenodo_http_download) {
   base_url <- sub("/+$", "", as.character(api_base_url)[[1]])
   release_id <- as.character(release_id)[[1]]
+  .analysis_release_zenodo_assert_valid_release_id(release_id, allow_latest = FALSE)
   url <- paste0(base_url, "/api/analysis/releases/", release_id, "/bundle")
   http_download(url, destfile)
   if (!file.exists(destfile) || file.size(destfile) == 0) {
@@ -197,33 +207,79 @@ analysis_release_zenodo_download_bundle <- function(
 # 1, HIGH) and the staging tree (the pre-existing safety validator).
 # --------------------------------------------------------------------------- #
 
-#' Reject symlinks / non-regular files anywhere under `root_dir`. A symlink
-#' is detected via `Sys.readlink(path) != ""` -- on this Linux host runtime
-#' `Sys.readlink()` returns the link target for a symlink, `""` otherwise.
-#' Directories are identified via `list.files(..., include.dirs = TRUE)` and
-#' are always allowed; everything else the pure-R `untar()` engine can
-#' create is either a regular file or a symlink, so rejecting symlinks here
-#' also covers "non-regular file" for this extraction path in practice.
+#' Reject symlinks AND any other non-regular file (FIFO/pipe, socket, device,
+#' ...) anywhere under `root_dir`. A symlink is detected via
+#' `Sys.readlink(path) != ""` -- on this Linux host runtime `Sys.readlink()`
+#' returns the link target for a symlink, `""` otherwise. Directories are
+#' identified via `list.files(..., include.dirs = TRUE)` and are always
+#' allowed. Every remaining entry (not a directory, not a symlink) MUST be a
+#' real regular file per `fs::file_info(path)$type == "file"`; anything else
+#' is rejected.
+#'
+#' Codex round 3 (HIGH): the earlier version of this guard only detected
+#' symlinks and reasoned that "everything else the pure-R `untar()` engine can
+#' create is either a regular file or a symlink" -- true for tar member TYPES
+#' the pure-R engine writes, but a bundle's `checksums.sha256` entry could
+#' still name a path that resolves to a special file placed some other way
+#' (or a future tar implementation change), and `digest::digest(file = ...)`
+#' on a FIFO/pipe blocks INDEFINITELY waiting for a writer that will never
+#' come -- a fail-closed violation (a malicious/corrupt bundle could hang the
+#' operator's extraction run forever instead of failing loudly).
+#'
+#' Deliberately uses `fs::file_info()$type` (already a repo dependency, see
+#' `functions/backup-functions.R`/`logging-functions.R`), NOT base R's
+#' `file_test("-f", path)`: verified against R's own source
+#' (`utils:::file_test`), `"-f"` is implemented as
+#' `!is.na(file.info(x)$isdir) & !file.info(x)$isdir` -- i.e. "exists and is
+#' not a directory" -- which is TRUE for a FIFO/socket/device too (confirmed
+#' empirically: `file_test("-f", <a real fifo>)` returns `TRUE` on this
+#' runtime). Using it here would silently fail to close this exact gap.
+#' `fs::file_info()$type` reports the real POSIX file type (`"file"`,
+#' `"FIFO"`, `"socket"`, `"character_device"`, `"block_device"`, ...) so a
+#' FIFO is genuinely distinguished from a regular file.
+#'
 #' Checks BOTH files and directory entries so a symlinked directory is caught
 #' even if `list.files()` would otherwise silently walk through it.
 #'
 #' @param root_dir Root of the tree to walk.
 #' @param context Prefix for the error message (identifies which tree).
-.analysis_release_zenodo_reject_symlinks <- function(root_dir, context) {
+.analysis_release_zenodo_reject_unsafe_files <- function(root_dir, context) {
   rel_paths <- list.files(
     root_dir, recursive = TRUE, all.files = TRUE, no.. = TRUE,
     full.names = FALSE, include.dirs = TRUE
   )
-  offenders <- Filter(function(rel_path) {
+  symlink_offenders <- Filter(function(rel_path) {
     full_path <- file.path(root_dir, rel_path)
     target <- suppressWarnings(Sys.readlink(full_path))
     !is.na(target) && nzchar(target)
   }, rel_paths)
 
-  if (length(offenders) > 0) {
+  if (length(symlink_offenders) > 0) {
     stop(sprintf(
       "%s contains symlinks (not allowed): %s",
-      context, paste(sort(offenders), collapse = ", ")
+      context, paste(sort(symlink_offenders), collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  # Item 1 (HIGH): every remaining non-directory entry must be a real regular
+  # file. Evaluated AFTER the symlink check above (by this point every
+  # remaining rel_path is confirmed non-symlink), and BEFORE any caller reads
+  # the file's bytes (e.g. `digest::digest(file = ...)`), which would
+  # otherwise block indefinitely on a FIFO/pipe. `fs::file_info()` itself
+  # only stats the path (never opens/reads it), so this check cannot block
+  # even when `full_path` is a FIFO.
+  non_regular_offenders <- Filter(function(rel_path) {
+    full_path <- file.path(root_dir, rel_path)
+    if (dir.exists(full_path)) {
+      return(FALSE)
+    }
+    !identical(as.character(fs::file_info(full_path)$type), "file")
+  }, rel_paths)
+
+  if (length(non_regular_offenders) > 0) {
+    stop(sprintf(
+      "%s contains non-regular file(s) (not allowed): %s",
+      context, paste(sort(non_regular_offenders), collapse = ", ")
     ), call. = FALSE)
   }
   invisible(TRUE)
@@ -241,9 +297,11 @@ analysis_release_zenodo_download_bundle <- function(
 #' `\` separated), BEFORE it is ever joined onto `exdir`; (2, item 1, HIGH)
 #' IMMEDIATELY after extraction and BEFORE any hashing or copying, the whole
 #' extracted tree (INCLUDING `checksums.sha256` itself) is walked and any
-#' symlink is rejected -- `digest::digest(file = ...)` and `file.copy()`
-#' both follow symlinks transparently, so a symlinked release member could
-#' otherwise pull host-readable content into the archive undetected; (3)
+#' symlink OR other non-regular file (FIFO/pipe, socket, device, ...) is
+#' rejected -- `digest::digest(file = ...)` and `file.copy()` both follow
+#' symlinks transparently, so a symlinked release member could otherwise pull
+#' host-readable content into the archive undetected, and a FIFO would
+#' otherwise block `digest::digest()` indefinitely (Codex round 3, HIGH); (3)
 #' after the existing per-line checksum verification, COVERAGE is asserted --
 #' every extracted regular file except `checksums.sha256` itself must appear
 #' EXACTLY ONCE in the checksums list, so a tampered bundle that drops a
@@ -279,10 +337,10 @@ analysis_release_zenodo_extract_and_verify <- function(
   dir.create(exdir, recursive = TRUE, showWarnings = FALSE)
   utils::untar(bundle_path, exdir = exdir)
 
-  # Item 1 (HIGH): reject any symlink in the EXTRACTED tree immediately,
-  # before any file below is hashed or copied -- see the hardening note
-  # above.
-  .analysis_release_zenodo_reject_symlinks(exdir, "Extracted release bundle")
+  # Item 1 (HIGH): reject any symlink OR other non-regular file in the
+  # EXTRACTED tree immediately, before any file below is hashed or copied --
+  # see the hardening note above.
+  .analysis_release_zenodo_reject_unsafe_files(exdir, "Extracted release bundle")
 
   sha_file <- file.path(exdir, "checksums.sha256")
   if (!file.exists(sha_file)) {
@@ -443,11 +501,11 @@ analysis_release_zenodo_extract_and_verify <- function(
 #' Reject symlinks / non-regular files anywhere in the staging tree (item 3)
 #' -- a symlink could point outside the archive, or at a private file
 #' `utils::tar()` would then follow and embed verbatim. Delegates to the
-#' shared `.analysis_release_zenodo_reject_symlinks()` (same check now also
-#' run on the EXTRACTED bundle tree, see `extract_and_verify()` above) so
-#' both trees are guarded by one implementation.
+#' shared `.analysis_release_zenodo_reject_unsafe_files()` (same check now
+#' also run on the EXTRACTED bundle tree, see `extract_and_verify()` above)
+#' so both trees are guarded by one implementation.
 .analysis_release_zenodo_validate_no_symlinks <- function(staging_dir) {
-  .analysis_release_zenodo_reject_symlinks(staging_dir, "Zenodo staging")
+  .analysis_release_zenodo_reject_unsafe_files(staging_dir, "Zenodo staging")
 }
 
 .analysis_release_zenodo_has_allowed_suffix <- function(rel_path) {

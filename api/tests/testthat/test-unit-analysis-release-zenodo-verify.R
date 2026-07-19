@@ -10,11 +10,19 @@
 # `-verify.R` into the same target environment -- mirrors
 # `test-unit-analysis-release-zenodo-package.R`'s sourcing.
 #
-# Covers: release-id shape validation (path/filename/marker-injection guard),
-# `fetch_head`/`download_bundle` URL-building, `extract_and_verify`
-# (checksum coverage + path-traversal rejection), and the safety validator
-# `validate_staging` (case-insensitive forbidden-name matching, the file-type
-# allowlist, and symlink rejection).
+# Covers: release-id shape validation (path/filename/marker-injection guard,
+# including `download_bundle`'s own defense-in-depth check, Codex round-3
+# item 2, MEDIUM), `fetch_head`/`download_bundle` URL-building,
+# `extract_and_verify` (checksum coverage + path-traversal rejection), and
+# the safety validator `validate_staging` (case-insensitive forbidden-name
+# matching, the file-type allowlist, and symlink rejection).
+#
+# The non-regular-file (FIFO) extraction-guard regression test (Codex
+# round-3 item 1, HIGH) lives in the sibling
+# test-unit-analysis-release-zenodo-verify-round3.R, split out to keep this
+# file under the repo's 600-line soft ceiling (mirrors the round-2
+# `-upload-doi-safety.R` split precedent). Both files share
+# `build_fixture_bundle()` from `analysis-release-zenodo-verify-fixtures.R`.
 
 library(testthat)
 
@@ -49,43 +57,12 @@ make_well_formed_staging <- function() {
   staging
 }
 
-# Builds a tiny tar.gz with two files + a matching (or deliberately wrong,
-# omitted, duplicated, or traversal-shaped) inner checksums.sha256, mirroring
-# the shape of a real release bundle (files directly at the archive root --
-# NOT nested under a named subdirectory, unlike the sibling nddscore
-# archive).
-#
-# @param omit_checksum_for character vector of "a.txt"/"b.txt" to leave OUT
-#   of checksums.sha256 while still including the file in the tar (proves
-#   the coverage gap check, item 4).
-# @param extra_checksum_lines extra raw lines appended verbatim to
-#   checksums.sha256 (proves the path-traversal + duplicate-entry checks,
-#   item 4).
-build_fixture_bundle <- function(
-    dir, a_sha_override = NULL, b_sha_override = NULL,
-    omit_checksum_for = character(0), extra_checksum_lines = character(0)) {
-  src <- file.path(dir, paste0("src_", as.integer(stats::runif(1, 1, 1e9))))
-  dir.create(src, recursive = TRUE)
-  writeLines("file A content", file.path(src, "a.txt"))
-  writeLines("file B content", file.path(src, "b.txt"))
-  a_sha <- a_sha_override %||% digest::digest(file = file.path(src, "a.txt"), algo = "sha256")
-  b_sha <- b_sha_override %||% digest::digest(file = file.path(src, "b.txt"), algo = "sha256")
-
-  lines <- character(0)
-  if (!("a.txt" %in% omit_checksum_for)) lines <- c(lines, paste0(a_sha, "  a.txt"))
-  if (!("b.txt" %in% omit_checksum_for)) lines <- c(lines, paste0(b_sha, "  b.txt"))
-  lines <- c(lines, extra_checksum_lines)
-  cat(paste0(paste(lines, collapse = "\n"), "\n"), file = file.path(src, "checksums.sha256"))
-
-  bundle_path <- file.path(dir, paste0("bundle_", basename(src), ".tar.gz"))
-  withr::with_dir(src, {
-    utils::tar(
-      tarfile = bundle_path, files = c("a.txt", "b.txt", "checksums.sha256"),
-      compression = "gzip", tar = "internal"
-    )
-  })
-  bundle_path
-}
+# build_fixture_bundle() (tar.gz + inner checksums.sha256 builder, shared
+# with the sibling test-unit-analysis-release-zenodo-verify-round3.R) now
+# lives in analysis-release-zenodo-verify-fixtures.R -- extracted (Codex
+# round-3 hardening) to keep both consuming test files under the repo's
+# 600-line soft ceiling.
+source_api_file("tests/testthat/analysis-release-zenodo-verify-fixtures.R", local = FALSE)
 
 # --------------------------------------------------------------------------- #
 # Release-id shape validation (item 2) -- exercised via fetch_head(), the
@@ -213,10 +190,87 @@ test_that("download_bundle: errors when the injected downloader produces an empt
   }
   expect_error(
     analysis_release_zenodo_download_bundle(
-      "http://localhost:7778", "asr_x", dest, http_download = stub_download
+      "http://localhost:7778", "asr_0000000000000000", dest, http_download = stub_download
     ),
     "empty"
   )
+})
+
+# --------------------------------------------------------------------------- #
+# download_bundle: release_id shape validation (Codex round-3 item 2,
+# MEDIUM). The package orchestrator already re-validates the RESOLVED id
+# before calling download_bundle(), but this exported helper can be called
+# directly, so it must reject a malformed id itself, before it is ever
+# interpolated into the bundle URL and before http_download is invoked.
+# --------------------------------------------------------------------------- #
+
+test_that("download_bundle: rejects a malformed release_id ('asr_x') before calling http_download", {
+  called <- FALSE
+  stub_download <- function(url, destfile) {
+    called <<- TRUE
+    file.create(destfile)
+  }
+  work_dir <- withr::local_tempdir()
+  dest <- file.path(work_dir, "bundle.tar.gz")
+  expect_error(
+    analysis_release_zenodo_download_bundle(
+      "http://localhost:7778", "asr_x", dest, http_download = stub_download
+    ),
+    "Invalid analysis-snapshot release id"
+  )
+  expect_false(called)
+  expect_false(file.exists(dest))
+})
+
+test_that("download_bundle: rejects a release_id containing '..' (path traversal shape) before calling http_download", {
+  called <- FALSE
+  stub_download <- function(url, destfile) {
+    called <<- TRUE
+    file.create(destfile)
+  }
+  work_dir <- withr::local_tempdir()
+  dest <- file.path(work_dir, "bundle.tar.gz")
+  expect_error(
+    analysis_release_zenodo_download_bundle(
+      "http://localhost:7778", "../evil", dest, http_download = stub_download
+    ),
+    "Invalid analysis-snapshot release id"
+  )
+  expect_false(called)
+})
+
+test_that("download_bundle: rejects a release_id containing a quote before calling http_download", {
+  called <- FALSE
+  stub_download <- function(url, destfile) {
+    called <<- TRUE
+    file.create(destfile)
+  }
+  work_dir <- withr::local_tempdir()
+  dest <- file.path(work_dir, "bundle.tar.gz")
+  expect_error(
+    analysis_release_zenodo_download_bundle(
+      "http://localhost:7778", "asr_1234567890abcd'; rm -rf /", dest, http_download = stub_download
+    ),
+    "Invalid analysis-snapshot release id"
+  )
+  expect_false(called)
+})
+
+test_that("download_bundle: rejects 'latest' (a bundle URL always targets a concrete id)", {
+  called <- FALSE
+  stub_download <- function(url, destfile) {
+    called <<- TRUE
+    file.create(destfile)
+  }
+  work_dir <- withr::local_tempdir()
+  dest <- file.path(work_dir, "bundle.tar.gz")
+  expect_error(
+    analysis_release_zenodo_download_bundle(
+      "http://localhost:7778", "latest", dest, http_download = stub_download
+    ),
+    "Invalid analysis-snapshot release id"
+  )
+  expect_false(called)
 })
 
 # --------------------------------------------------------------------------- #
