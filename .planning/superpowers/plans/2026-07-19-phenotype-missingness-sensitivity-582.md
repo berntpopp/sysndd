@@ -845,3 +845,21 @@ docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/te
 | §7 tests | Tasks 1–4 |
 | §8 deploy runbook | Task 4 (AGENTS.md) + Final verification |
 | §11 performance bound | Task 1 (in-place buffer reuse) |
+
+---
+
+## Execution deviations (recorded during implementation)
+
+- **Task 3 Step 5 — presence test replaced with a static wiring guard.** The planned
+  behavioral test wrapped `validate_phenotype_clusters()` in `tryCatch` + `skip_if(is.null)`.
+  In practice the full FactoMineR/HCPC path needs the whole module graph bootstrapped
+  (`post_db_hash` → `hash_validate_columns` → …), which the test harness (`setup.R`) does
+  **not** load — so the test would silently skip in CI (dishonest coverage), and the tiny
+  synthetic fixtures also trip FactoMineR MCA's `ventilation` ("not enough levels"). Replaced
+  with a deterministic **source-grep integration guard** (the repo's `build_string_subgraph`
+  pattern) asserting the env gate, the `phenotype_missingness_sensitivity(wide_phenotypes_df,
+  ref_members, …)` call, the `missingness_sensitivity = missingness` attach, and the
+  best-effort error handler. The orchestrator's real behavior — including the `cluster`
+  silhouette path — is proven behaviorally in `test-unit-phenotype-missingness.R`, verified
+  **38/38 with 0 skips inside the `sysndd-api` container** (host skips only the silhouette
+  numeric assertion because miniforge host R lacks `cluster`).
