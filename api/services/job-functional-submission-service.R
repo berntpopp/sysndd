@@ -54,19 +54,17 @@ svc_job_submit_functional_clustering <- function(req, res) {
   # an explicit gene list, a curated-category selection, or (both absent) the
   # existing default all-NDD-genes universe.
   genes_in <- req$argsBody$genes
-  category_supplied <- !is.null(req$argsBody$category_filter)
   has_genes <- !is.null(genes_in) && length(genes_in) > 0
 
-  # Mutual exclusion is gated on JSON KEY PRESENCE, not value-nullness or
-  # length -- `!is.null(genes_in)` cannot distinguish an ABSENT `genes` key
-  # from an explicit JSON `null` (both parse to a NULL `req$argsBody$genes`
-  # in R), so `{"genes":null, "category_filter":["X"]}` previously slipped
-  # past the guard and silently ran a category job (Codex round-2 review
-  # fix). Checking `names(req$argsBody)` instead catches both an explicit
-  # null AND an empty array (`{"genes":[], "category_filter":["X"]}`,
-  # round-1's fix) because both forms keep the `genes` name in the parsed
-  # list. `has_genes`/`category_supplied` (value-based) are unchanged and
-  # still drive the LATER branch-selection decision below.
+  # Selector presence is gated on JSON KEY PRESENCE (`names(req$argsBody)`), not
+  # value-nullness or length: `!is.null()` cannot distinguish an ABSENT key from
+  # an explicit JSON `null` (both parse to NULL in R). So a present `genes` key
+  # (`{"genes":null,...}` / `{"genes":[],...}`) and a present `category_filter`
+  # key each drive their guard regardless of value (Codex rounds 2 & 4). Mutual
+  # exclusion 400s when BOTH keys are present; a present-but-null/empty
+  # `category_filter` is a supplied-empty 400 (in the branch below), never a
+  # silent fall-through to the all-NDD default. `has_genes` (value-based,
+  # non-empty) still selects the explicit-genes branch.
   body_names <- names(req$argsBody)
   genes_key <- "genes" %in% body_names
   category_key <- "category_filter" %in% body_names
@@ -99,7 +97,15 @@ svc_job_submit_functional_clustering <- function(req, res) {
   if (has_genes) {
     genes_list <- as.character(unlist(genes_in))
     kind <- "explicit"
-  } else if (category_supplied) {
+  } else if (category_key) {
+    # A present category_filter key means a category run. A present-but-null
+    # value is supplied-but-empty (the resolver 400s on []/[""], but a NULL would
+    # otherwise hit its absent->default branch), so reject it explicitly here.
+    if (is.null(req$argsBody$category_filter)) {
+      stop_for_bad_request(
+        "category_filter was supplied but empty; provide at least one active category"
+      )
+    }
     universe <- clustering_resolve_category_universe(req$argsBody$category_filter)
     genes_list <- universe$hgnc_ids
     selector_chr <- universe$selector
