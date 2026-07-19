@@ -13,14 +13,23 @@ import {
   getFunctionalClusterSummary,
   getPhenotypeClusterSummary,
   isSnapshotPreparingError,
+  listReleases,
+  getLatestRelease,
+  getRelease,
+  downloadReleaseManifest,
+  downloadReleaseFile,
+  downloadReleaseBundle,
   type FunctionalClusteringResponse,
   type PhenotypeCluster,
   type PhenotypeClusteringResponse,
   type CorrelationResponse,
   type NetworkEdgesResponse,
   type ClusterSummary,
+  type ReleaseHead,
+  type ReleaseDetail,
 } from './analysis';
 import { isApiError } from './client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 import { server } from '@/test-utils/mocks/server';
 
 describe('api/analysis — getFunctionalClustering', () => {
@@ -247,5 +256,308 @@ describe('isSnapshotPreparingError', () => {
   });
   it('is false for a plain error', () => {
     expect(isSnapshotPreparingError(new Error('boom'))).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Analysis-snapshot releases (#573 Slice B, Task B1)
+// ---------------------------------------------------------------------------
+
+function makeReleaseHead(overrides: Partial<ReleaseHead> = {}): ReleaseHead {
+  return {
+    release_id: 'asr_0123456789abcdef',
+    release_version: null,
+    title: 'SysNDD analysis-snapshot release',
+    status: 'published',
+    content_digest: 'a'.repeat(64),
+    created_at: '2026-07-01T00:00:00Z',
+    published_at: '2026-07-01T00:05:00Z',
+    source_data_version: '2026-07-01',
+    db_release_version: '11.4.0',
+    db_release_commit: 'deadbeef',
+    manifest_sha256: 'b'.repeat(64),
+    bundle_sha256: 'c'.repeat(64),
+    license: 'CC-BY-4.0',
+    file_count: 10,
+    total_bytes: 123456,
+    zenodo: { record_url: null, version_doi: null, concept_doi: null },
+    ...overrides,
+  };
+}
+
+/**
+ * `manifest.generator`/`manifest.source` are nested objects on the wire
+ * (api/functions/analysis-snapshot-release.R), not strings — see the
+ * `ReleaseManifestGenerator`/`ReleaseManifestSource` types.
+ */
+function makeManifestGeneratorSource() {
+  return {
+    generator: {
+      name: 'sysndd-analysis-snapshot-release-build',
+      manifest_schema_version: '1.0',
+      reproducibility_schema_version: '1.2',
+    },
+    source: {
+      source_data_version: '2026-07-01',
+      db_release: { version: '11.4.0', commit: 'deadbeef' },
+      snapshots: [
+        { analysis_type: 'functional_clusters', snapshot_id: 101, parameter_hash: 'fp-hash' },
+      ],
+    },
+  };
+}
+
+describe('api/analysis — listReleases', () => {
+  it('returns the releases envelope on 200', async () => {
+    server.use(
+      http.get('/api/analysis/releases', () =>
+        HttpResponse.json({
+          releases: [makeReleaseHead()],
+          pagination: { limit: 50, offset: 0, count: 1 },
+        })
+      )
+    );
+    const result = await listReleases();
+    expect(result.releases).toHaveLength(1);
+    expect(result.releases[0].release_id).toBe('asr_0123456789abcdef');
+    expect(result.pagination.count).toBe(1);
+    // Public head allowlist: admin-only fields must never be present.
+    expect(result.releases[0]).not.toHaveProperty('created_by_user_id');
+    expect(result.releases[0]).not.toHaveProperty('last_error_message');
+  });
+
+  it('forwards limit/offset query params', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/analysis/releases', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({
+          releases: [],
+          pagination: { limit: 10, offset: 5, count: 0 },
+        });
+      })
+    );
+    await listReleases({ limit: 10, offset: 5 });
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('limit')).toBe('10');
+    expect(q.get('offset')).toBe('5');
+  });
+
+  it('throws AxiosError on non-2xx', async () => {
+    server.use(
+      http.get('/api/analysis/releases', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Internal Server Error', status: 500, detail: 'boom' },
+          { status: 500 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await listReleases();
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+    expect(extractApiErrorMessage(caught, 'fallback')).toBe('boom');
+  });
+});
+
+describe('api/analysis — getLatestRelease', () => {
+  it('returns the head + manifest on 200', async () => {
+    const detail: ReleaseDetail = {
+      ...makeReleaseHead(),
+      manifest: {
+        release_id: 'asr_0123456789abcdef',
+        release_version: null,
+        title: 'SysNDD analysis-snapshot release',
+        created_at: '2026-07-01T00:00:00Z',
+        license: 'CC-BY-4.0',
+        scope_statement: 'Public derived analysis only.',
+        ...makeManifestGeneratorSource(),
+        layers: [],
+        files: [{ path: 'functional_clusters/payload.json', sha256: 'd'.repeat(64), bytes: 100 }],
+        content_digest: 'a'.repeat(64),
+      },
+    };
+    server.use(http.get('/api/analysis/releases/latest', () => HttpResponse.json(detail)));
+    const result = await getLatestRelease();
+    expect(result.release_id).toBe('asr_0123456789abcdef');
+    expect(result.manifest.files).toHaveLength(1);
+  });
+
+  it('throws AxiosError 404 when no published release exists', async () => {
+    server.use(
+      http.get('/api/analysis/releases/latest', () =>
+        HttpResponse.json(
+          {
+            type: 'about:blank',
+            title: 'Not Found',
+            status: 404,
+            detail: 'No published analysis-snapshot release exists yet',
+          },
+          { status: 404 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await getLatestRelease();
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+    if (isApiError(caught)) {
+      expect(caught.response?.status).toBe(404);
+    }
+  });
+});
+
+describe('api/analysis — getRelease', () => {
+  it('returns the head + manifest on 200 and encodes the release id', async () => {
+    let observedPath = '';
+    const detail: ReleaseDetail = {
+      ...makeReleaseHead({ release_id: 'asr_abc123' }),
+      manifest: {
+        release_id: 'asr_abc123',
+        release_version: null,
+        title: 'SysNDD analysis-snapshot release',
+        created_at: '2026-07-01T00:00:00Z',
+        license: 'CC-BY-4.0',
+        scope_statement: 'Public derived analysis only.',
+        ...makeManifestGeneratorSource(),
+        layers: [],
+        files: [],
+        content_digest: 'a'.repeat(64),
+      },
+    };
+    server.use(
+      http.get('/api/analysis/releases/:releaseId', ({ request, params }) => {
+        observedPath = new URL(request.url).pathname;
+        expect(params.releaseId).toBe('asr_abc123');
+        return HttpResponse.json(detail);
+      })
+    );
+    const result = await getRelease('asr_abc123');
+    expect(result.release_id).toBe('asr_abc123');
+    expect(observedPath).toBe('/api/analysis/releases/asr_abc123');
+  });
+
+  it('throws AxiosError 404 for an unknown/draft release id', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await getRelease('asr_unknown');
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+    if (isApiError(caught)) {
+      expect(caught.response?.status).toBe(404);
+    }
+  });
+});
+
+describe('api/analysis — downloadReleaseManifest', () => {
+  it('returns the manifest.json bytes as a Blob', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/manifest.json', () =>
+        HttpResponse.json({ release_id: 'asr_abc123' })
+      )
+    );
+    const blob = await downloadReleaseManifest('asr_abc123');
+    expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it('throws AxiosError on non-2xx', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/manifest.json', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await downloadReleaseManifest('asr_unknown');
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+  });
+});
+
+describe('api/analysis — downloadReleaseFile', () => {
+  it('forwards the file path as a query param and returns a Blob', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/file', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const blob = await downloadReleaseFile('asr_abc123', 'functional_clusters/payload.json');
+    expect(blob).toBeInstanceOf(Blob);
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('path')).toBe('functional_clusters/payload.json');
+  });
+
+  it('throws AxiosError on non-2xx (unknown file path)', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/file', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await downloadReleaseFile('asr_abc123', 'nope.json');
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+    if (isApiError(caught)) {
+      expect(caught.response?.status).toBe(404);
+    }
+  });
+});
+
+describe('api/analysis — downloadReleaseBundle', () => {
+  it('returns the bundle.tar.gz bytes as a Blob', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/bundle', () =>
+        HttpResponse.json({ ok: true })
+      )
+    );
+    const blob = await downloadReleaseBundle('asr_abc123');
+    expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it('throws AxiosError on non-2xx', async () => {
+    server.use(
+      http.get('/api/analysis/releases/:releaseId/bundle', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Not Found', status: 404, detail: 'not found' },
+          { status: 404 }
+        )
+      )
+    );
+    let caught: unknown;
+    try {
+      await downloadReleaseBundle('asr_unknown');
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
   });
 });
