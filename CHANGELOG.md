@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.4] — 2026-07-19
+
+E2E regression coverage for the analysis-snapshot release UI (#573, Slice B follow-up). No product-code change — test-only.
+
+### Added
+
+- **`app/tests/e2e/analyses.data-releases.spec.ts`**: Playwright regression spec for the public `/DataReleases` page (empty-state render, no hard console errors) and the Administrator `/ManageAnalysisReleases` page (readiness panel renders, "Build release" correctly disabled + gating hint shown when no worker/snapshots are available in the fixture stack). Locks the browser-verifiable behaviour that the bare-DB build session could not check.
+
+### Changed
+
+- **`app/tests/e2e/views.smoke.spec.ts`**: added `/DataReleases` to `PUBLIC_ROUTES` and `/ManageAnalysisReleases` to `AUTHED_ADMIN_ROUTES` so the route inventory (which predated Slice B) covers both new release surfaces in the clean-render smoke sweep.
+
 ## [0.30.3] — 2026-07-19
 
 Zenodo archival operator scripts for analysis-snapshot releases (#573, Slice C). A published analysis-snapshot release (Slice A) can now be archived to Zenodo with two host-run, HTTP-only scripts — no DB, no worker, no docker exec. Note: 0.30.1 (#574 category clustering) and 0.30.2 (#573 Slice B UI) are reserved for those PRs, which this assumes land first.
