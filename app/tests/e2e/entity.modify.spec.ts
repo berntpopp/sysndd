@@ -20,13 +20,13 @@ const MODIFY_ENTITY_FIELDS = [
 
 const REGRESSED_FIELDS = `${MODIFY_ENTITY_FIELDS},is_active,replaced_by,details`;
 
-// The select-entity and contract tests need a known entity in the DB. The
-// vanilla `make playwright-stack` boots an empty DB; entity data is present only
-// when the docs-screenshot fixture is seeded (`make _playwright-seed-docs-data`,
-// which inserts entity 123 / CHD8). These tests skip cleanly when it is absent
-// so they never false-fail on an empty stack, and run as the real end-to-end
-// regression guard when data is present. The always-on CI guard is the vitest
-// unit test src/views/curate/composables/useEntityInfo.spec.ts.
+// The select-entity and contract tests need a known entity in the DB. Entity
+// 123 / CHD8 is part of the E2E baseline fixture (`make _playwright-seed-e2e-baseline`),
+// which `make playwright-stack` and global-setup seed automatically, so these
+// tests run by default. They still skip cleanly when the baseline is absent
+// (e.g. against a non-Playwright stack) so they never false-fail, and run as the
+// real end-to-end regression guard when data is present. The always-on CI guard
+// is the vitest unit test src/views/curate/composables/useEntityInfo.spec.ts.
 const SEEDED_ENTITY_ID = 123;
 const SEEDED_ENTITY_SYMBOL = 'CHD8';
 
@@ -68,7 +68,7 @@ test.describe('curate: Modify Entity', () => {
 
     test.skip(
       !(await seededEntityPresent(page.request)),
-      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-docs-data\``,
+      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-e2e-baseline\``,
     );
 
     // Capture any 5xx from the entity API — the bug surfaced as a 500 on the
@@ -109,7 +109,7 @@ test.describe('curate: Modify Entity', () => {
 
     test.skip(
       !(await seededEntityPresent(page.request)),
-      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-docs-data\``,
+      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-e2e-baseline\``,
     );
 
     await page.goto('/ModifyEntity');
@@ -136,7 +136,7 @@ test.describe('curate: Modify Entity', () => {
   }) => {
     test.skip(
       !(await seededEntityPresent(request)),
-      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-docs-data\``,
+      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-e2e-baseline\``,
     );
 
     // The trimmed field set the app now sends must be accepted by the real

@@ -1,8 +1,16 @@
--- db/fixtures/playwright_docs_screenshots.sql
--- Playwright-only documentation screenshot data. This file is sourced only by
--- `make docs-screenshots` after migrations and Playwright users are present.
--- It is synthetic UI fixture data and must never be referenced from production
--- migrations or imported into production data preparation paths.
+-- db/fixtures/playwright_e2e_baseline.sql
+-- Shared Playwright E2E baseline fixture. Sourced by `make playwright-stack`
+-- (via `_playwright-seed-e2e-baseline`) and re-seeded before every
+-- `npx playwright test` run (global-setup.ts), so the data-dependent baseline
+-- specs (public table filters, curation comparisons, gene-detail cards,
+-- slow-provider resilience, Modify Entity) have rows to assert against. Also
+-- sourced by `make docs-screenshots` (which layers no extra data on top).
+--
+-- It provisions minimal, self-contained fixture rows AND replaces the heavy
+-- production read views with simplified equivalents so the small fixture
+-- surfaces through the app. It is synthetic UI fixture data and must never be
+-- referenced from production migrations or imported into production data
+-- preparation paths.
 
 INSERT INTO `non_alt_loci_set` (
   `hgnc_id`,
@@ -66,6 +74,36 @@ ON DUPLICATE KEY UPDATE
   `locus_type` = VALUES(`locus_type`),
   `status` = VALUES(`status`),
   `gnomad_constraints` = VALUES(`gnomad_constraints`);
+
+-- Slow-provider resilience e2e fixture (app/tests/e2e/slow-provider-resilience.spec.ts).
+-- The spec loads /Genes/SCN2A and stubs every /api/external/** call with a 20s
+-- delay to prove the gene-page shell + external-card frames render without
+-- waiting on the upstream. That gene must EXIST: an unseeded symbol renders the
+-- gene shell briefly (h1 from the route) and then the missing-record fetch
+-- redirects to the SPA 404 page, so the external-card column never mounts and
+-- the spec flakes. A bare gene row (no entities/constraints needed) keeps the
+-- gene page on-route and the resilience check deterministic.
+INSERT INTO `non_alt_loci_set` (
+  `hgnc_id`,
+  `symbol`,
+  `name`,
+  `locus_group`,
+  `locus_type`,
+  `status`
+) VALUES (
+  'HGNC:10588',
+  'SCN2A',
+  'sodium voltage-gated channel alpha subunit 2',
+  'protein-coding gene',
+  'gene with protein product',
+  'Approved'
+)
+ON DUPLICATE KEY UPDATE
+  `symbol` = VALUES(`symbol`),
+  `name` = VALUES(`name`),
+  `locus_group` = VALUES(`locus_group`),
+  `locus_type` = VALUES(`locus_type`),
+  `status` = VALUES(`status`);
 
 INSERT INTO `mode_of_inheritance_list` (
   `hpo_mode_of_inheritance_term`,
@@ -195,7 +233,7 @@ INSERT INTO `ndd_entity` (
   'HP:0000006',
   'MONDO:0100038_2026',
   1,
-  'playwright_docs_screenshots',
+  'playwright_e2e_baseline',
   1,
   1
 )

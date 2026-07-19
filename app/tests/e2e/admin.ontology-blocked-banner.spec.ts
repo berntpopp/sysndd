@@ -19,7 +19,7 @@
 //      autocomplete no-results popup (teleported to body by AutocompleteInput).
 //
 //      Prerequisite: entity 123 (CHD8) must be seeded — run
-//      `make _playwright-seed-docs-data`.  The test skips cleanly without it.
+//      `make _playwright-seed-e2e-baseline`.  The test skips cleanly without it.
 
 import { test, expect } from './fixtures/auth';
 
@@ -152,7 +152,7 @@ test.describe('admin: ontology blocked banner (#470)', () => {
       test.skip(
         !(await seededEntityPresent(page.request)),
         `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); ` +
-          `run \`make _playwright-seed-docs-data\` then restart the spec`,
+          `run \`make _playwright-seed-e2e-baseline\` then restart the spec`,
       );
 
       await page.goto('/ModifyEntity');
