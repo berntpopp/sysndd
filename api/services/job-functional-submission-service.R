@@ -99,14 +99,14 @@ svc_job_submit_functional_clustering <- function(req, res) {
     kind <- "explicit"
   } else if (category_key) {
     # A present category_filter key means a category run. A present-but-null
-    # value is supplied-but-empty (the resolver 400s on []/[""], but a NULL would
-    # otherwise hit its absent->default branch), so reject it explicitly here.
-    if (is.null(req$argsBody$category_filter)) {
-      stop_for_bad_request(
-        "category_filter was supplied but empty; provide at least one active category"
-      )
-    }
-    universe <- clustering_resolve_category_universe(req$argsBody$category_filter)
+    # value is supplied-but-empty (a NULL would otherwise hit the resolver's
+    # absent->default branch), so it is coerced to an empty selector here and
+    # delegated to the resolver -- the resolver's supplied-empty branch 400s
+    # it (with the allowed active-category set in the message), keeping the
+    # 400 message construction in the single resolver source of truth.
+    cf <- req$argsBody$category_filter
+    if (is.null(cf)) cf <- list()
+    universe <- clustering_resolve_category_universe(cf)
     genes_list <- universe$hgnc_ids
     selector_chr <- universe$selector
     kind <- "category"

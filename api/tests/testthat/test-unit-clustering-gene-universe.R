@@ -237,22 +237,49 @@ test_that("unknown token is rejected 400 with the allowed set in the MESSAGE (no
   expect_match(conditionMessage(err), "Definitive") # allowed set is in the message so it reaches clients
 })
 
-test_that("supplied-but-empty selector is 400 (NOT the all-NDD default)", {
+test_that("supplied-but-empty selector is 400 (NOT the all-NDD default) with the allowed set in the message", {
   e <- .gene_universe_env()
   con <- fake_conn(ev, cats)
   withr::defer(DBI::dbDisconnect(con))
 
-  expect_error(e$clustering_resolve_category_universe(list(), conn = con), class = "error_400")
-  expect_error(e$clustering_resolve_category_universe(list("   "), conn = con), class = "error_400")
+  err_empty <- tryCatch(
+    e$clustering_resolve_category_universe(list(), conn = con),
+    error = function(err) err
+  )
+  err_blank <- tryCatch(
+    e$clustering_resolve_category_universe(list("   "), conn = con),
+    error = function(err) err
+  )
+
+  expect_s3_class(err_empty, "error_400")
+  expect_s3_class(err_blank, "error_400")
+  # The locked contract: EVERY category-validation 400 names the allowed set.
+  expect_match(conditionMessage(err_empty), "Allowed active categories")
+  expect_match(conditionMessage(err_empty), "Definitive")
+  expect_match(conditionMessage(err_blank), "Allowed active categories")
+  expect_match(conditionMessage(err_blank), "Definitive")
 })
 
-test_that("a valid category resolving to < 2 genes is rejected 400 (no degenerate-graph job)", {
+test_that("a valid category resolving to < 2 genes is rejected 400 (no degenerate-graph job) with the allowed set in the message", {
   e <- .gene_universe_env()
   con <- fake_conn(ev, cats)
   withr::defer(DBI::dbDisconnect(con))
 
-  expect_error(e$clustering_resolve_category_universe("Refuted", conn = con), class = "error_400") # 0 genes
-  expect_error(e$clustering_resolve_category_universe("Moderate", conn = con), class = "error_400") # 1 gene
+  err_zero <- tryCatch(
+    e$clustering_resolve_category_universe("Refuted", conn = con), # 0 genes
+    error = function(err) err
+  )
+  err_one <- tryCatch(
+    e$clustering_resolve_category_universe("Moderate", conn = con), # 1 gene
+    error = function(err) err
+  )
+
+  expect_s3_class(err_zero, "error_400")
+  expect_s3_class(err_one, "error_400")
+  expect_match(conditionMessage(err_zero), "Allowed active categories")
+  expect_match(conditionMessage(err_zero), "Definitive")
+  expect_match(conditionMessage(err_one), "Allowed active categories")
+  expect_match(conditionMessage(err_one), "Definitive")
 })
 
 test_that("gene_list_sha256 is sort-order independent", {

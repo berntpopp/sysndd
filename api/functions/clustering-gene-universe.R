@@ -46,16 +46,24 @@ clustering_resolve_category_universe <- function(category_filter, conn = pool) {
     hgnc_ids <- generate_ndd_hgnc_ids() %>% dplyr::pull(hgnc_id)
     return(list(hgnc_ids = hgnc_ids, selector = NULL, resolved_gene_count = length(hgnc_ids)))
   }
-  if (length(selector) == 0L) {
-    stop_for_bad_request("category_filter was supplied but empty; provide at least one active category")
-  }
 
+  # Any PRESENT selector (including supplied-but-empty) needs the allowed
+  # active-category set for its 400 message, so this fetch runs for every
+  # present-selector path -- not just the unknown-category branch below.
   active <- conn %>%
     dplyr::tbl("ndd_entity_status_categories_list") %>%
     dplyr::filter(is_active == 1) %>%
     dplyr::select(category) %>%
     dplyr::collect() %>%
     dplyr::pull(category)
+
+  if (length(selector) == 0L) {
+    stop_for_bad_request(sprintf(
+      "category_filter was supplied but empty; provide at least one active category. Allowed active categories: %s",
+      paste(sort(active), collapse = ", ")
+    ))
+  }
+
   unknown <- setdiff(selector, active)
   if (length(unknown) > 0L) {
     # Allowed set goes in the MESSAGE: core/filters.R serializes conditionMessage(err), not `detail`.
@@ -76,8 +84,8 @@ clustering_resolve_category_universe <- function(category_filter, conn = pool) {
 
   if (length(hgnc_ids) < 2L) {
     stop_for_bad_request(sprintf(
-      "category_filter=[%s] resolved %d NDD gene(s); clustering needs at least 2",
-      paste(selector, collapse = ","), length(hgnc_ids)
+      "category_filter=[%s] resolved %d NDD gene(s); clustering needs at least 2. Allowed active categories: %s",
+      paste(selector, collapse = ","), length(hgnc_ids), paste(sort(active), collapse = ", ")
     ))
   }
   list(hgnc_ids = hgnc_ids, selector = selector, resolved_gene_count = length(hgnc_ids))

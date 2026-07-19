@@ -156,17 +156,33 @@ test_that("functional clustering: an EMPTY genes array ALONE (no category_filter
   expect_equal(out$error, "DUPLICATE_JOB")
 })
 
-test_that("functional clustering: an explicit-null category_filter KEY (no genes) is supplied-but-empty -> error_400 (Codex round-4 review fix)", {
+test_that("functional clustering: an explicit-null category_filter KEY (no genes) coerces to an empty selector and delegates to the resolver (Codex round-5 review fix)", {
   # Bug: the branch used `category_supplied <- !is.null(category_filter)`, so a
   # present-but-null `category_filter` key (`{"category_filter":null}`) was
   # treated as ABSENT and silently resolved the all-NDD default instead of the
   # required supplied-empty 400 -- the category-side symmetry of the genes-null
-  # fix. The branch now keys off `"category_filter" %in% names(req$argsBody)`
-  # and rejects a NULL value explicitly. `list(category_filter = NULL)` KEEPS
-  # the name (verified: "category_filter" %in% names(list(category_filter = NULL))).
+  # fix. The branch now keys off `"category_filter" %in% names(req$argsBody)`.
+  #
+  # Round 5: the service no longer raises its own standalone 400 for this case
+  # (that duplicated the resolver's message and omitted the allowed active-
+  # category set). It now coerces the NULL to an empty selector (`list()`) and
+  # DELEGATES to `clustering_resolve_category_universe()`, which 400s a
+  # supplied-but-empty selector with the allowed set in the message (covered
+  # by test-unit-clustering-gene-universe.R). This test proves the DELEGATION
+  # (empty selector reaches the resolver), not the 400 itself.
   env <- job_endpoint_source_service("job-functional-submission-service.R")
   source_api_file("core/errors.R", local = FALSE, envir = env)
   env$pool <- job_endpoint_functional_pool(env)
+  job_endpoint_stub_clustering_provenance(env)
+  env$check_duplicate_job <- function(...) list(duplicate = FALSE)
+  env$async_job_capacity_exceeded <- function(...) FALSE
+  env$async_job_active_count <- function(...) 0L
+  env$async_job_service_submit <- function(...) list(job = tibble::tibble(job_id = "j-null-cf"))
+  captured_cf <- "not-called"
+  env$clustering_resolve_category_universe <- function(category_filter, conn = NULL) {
+    captured_cf <<- category_filter
+    list(hgnc_ids = c("HGNC:1", "HGNC:5"), selector = "x", resolved_gene_count = 2L)
+  }
   req <- list(
     argsBody = list(category_filter = NULL),
     user = list(user_id = NULL)
@@ -174,10 +190,9 @@ test_that("functional clustering: an explicit-null category_filter KEY (no genes
   res <- job_endpoint_fake_res()
 
   expect_true("category_filter" %in% names(req$argsBody))
-  expect_error(
-    env$svc_job_submit_functional_clustering(req, res),
-    class = "error_400"
-  )
+  env$svc_job_submit_functional_clustering(req, res)
+
+  expect_equal(length(captured_cf), 0L) # NULL coerced to an empty selector, not skipped
 })
 
 test_that("functional clustering: category_filter resolves the universe and records the selector object + provenance in the durable payload", {
