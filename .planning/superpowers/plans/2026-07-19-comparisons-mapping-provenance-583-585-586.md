@@ -137,6 +137,7 @@ test_that("every crosswalk rule agrees with the executable normalizer (no drift)
   cw <- comparison_category_crosswalk()
   for (src in cw$sources) {
     for (rule in src$rules) {
+      if (rule$rule_kind == "passthrough") next  # identity: normalizer returns input unchanged
       # Build a probe native value per rule_kind
       probe <- switch(rule$rule_kind,
         missing = NA_character_,
@@ -237,16 +238,31 @@ comparison_category_crosswalk <- function() {
       list(list = "SysNDD", label = "SysNDD", rules = list(
         rule("*", "native SysNDD category", NA_character_, "passthrough",
              "SysNDD categories pass through unchanged.")
+      )),
+      list(list = "omim_ndd", label = "OMIM NDD", rules = list(
+        rule("*", "already-normalized (Definitive) inclusion list", NA_character_, "passthrough",
+             "OMIM-NDD rows are seeded as Definitive at write time; passthrough here.")
+      )),
+      list(list = "orphanet_id", label = "Orphanet ID", rules = list(
+        rule("*", "native Orphanet category", NA_character_, "passthrough",
+             "Orphanet categories pass through unchanged.")
       ))
+    ),
+    non_tier_fillers = list(
+      list(value = "not applicable", meaning = "Source has no gradeable category for this gene."),
+      list(value = "not listed", meaning = "Gene is absent from this source's list (pivot fill), not a mapping.")
     ),
     notes = list(
       "PanelApp Red/1 normalizes to Limited (low evidence), never Refuted.",
       "Ungraded inclusion lists (Radboudumc, OMIM NDD, Orphanet) receive an implied Definitive for comparability, not a native equivalent tier.",
-      "Only explicit source-native disputed/refuted assertions (e.g. Gene2Phenotype) map to Refuted."
+      "Only explicit source-native disputed/refuted assertions (e.g. Gene2Phenotype) map to Refuted.",
+      "`not applicable` and `not listed` are non-tier fillers, not normalized mappings."
     )
   )
 }
 ```
+
+Also add `"non_tier_fillers"` to the `%in% names(cw)` shape assertion in the Step-1 test.
 
 Note: the `passthrough` (`SysNDD`) rule has `normalized_tier = NA` — the guard test skips tier assertion for passthrough by construction (probe equals native `"*"`, normalizer returns `"*"` unchanged, which the guard compares against `NA`). To keep the guard clean, the guard test filters out `rule_kind == "passthrough"` rows before asserting. **Add this filter to the Step-1 test** (`if (rule$rule_kind == "passthrough") next`).
 
@@ -273,19 +289,22 @@ git commit -m "feat(comparisons): declarative tier crosswalk + mapping_version w
 - Consumes: `comparison_category_crosswalk()`, `COMPARISON_CATEGORY_MAPPING_VERSION` (Task A2).
 - Produces: `GET /api/comparisons/crosswalk` → the crosswalk object; `/metadata` gains `mapping_version`; browse `meta` gains `mapping_version`.
 
-- [ ] **Step 1: Write the failing endpoint-shape test** (append to `test-unit-comparisons-crosswalk.R`): source `comparisons_endpoints.R`'s crosswalk handler is a plumber file, so test the underlying function instead — assert the browse `meta` carries `mapping_version` by unit-testing the meta assembly is out of easy reach; instead assert the CONSTANT is referenced. Add:
+- [ ] **Step 1: Add serialization contract locks** (append to `test-unit-comparisons-crosswalk.R`). The crosswalk *function* is already unit-tested (A2); the plumber route + browse `meta` + XLSX are integration-verified in Step 5 (they need a live router/DB). Here we lock the `na="null"` serialization contract the endpoint relies on:
 
 ```r
-test_that("crosswalk object is JSON-serializable and stable", {
+test_that("crosswalk serializes SFARI missing native value as JSON null (na=null)", {
   cw <- comparison_category_crosswalk()
-  j <- jsonlite::toJSON(cw, auto_unbox = TRUE, null = "null")
-  expect_true(nchar(j) > 100)
-  back <- jsonlite::fromJSON(j, simplifyVector = FALSE)
-  expect_identical(back$mapping_version, COMPARISON_CATEGORY_MAPPING_VERSION)
+  # mirror the endpoint serializer contract
+  j <- jsonlite::toJSON(cw, auto_unbox = TRUE, na = "null")
+  parsed <- jsonlite::fromJSON(j, simplifyVector = FALSE)
+  expect_identical(parsed$mapping_version, COMPARISON_CATEGORY_MAPPING_VERSION)
+  sfari <- Filter(function(s) s$list == "sfari", parsed$sources)[[1]]
+  missing_rule <- Filter(function(r) identical(r$rule_kind, "missing"), sfari$rules)[[1]]
+  expect_null(missing_rule$native_value)   # NA -> JSON null, not "NA"
 })
 ```
 
-Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-comparisons-crosswalk.R')"` → PASS (this already works after A2; it locks serialization).
+Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-comparisons-crosswalk.R')"` → PASS (contract lock; green after A2).
 
 - [ ] **Step 2: Add the `/crosswalk` endpoint** in `api/endpoints/comparisons_endpoints.R` (near `/metadata`/`/sources`):
 
@@ -298,13 +317,15 @@ Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-compar
 #* table the Curation Comparisons help affordance links to (issue #586).
 #*
 #* @tag comparisons
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @get /crosswalk
 function() {
   comparison_category_crosswalk()
 }
 ```
+
+Note the serializer is `na="null"` (NOT the `na="string"` used elsewhere): SFARI's `missing` rule carries `native_value = NA`, which must serialize to JSON `null`, not the string `"NA"`.
 
 - [ ] **Step 3: Add `mapping_version` to all three `/metadata` return paths** in `api/endpoints/comparisons_endpoints.R` — add `mapping_version = COMPARISON_CATEGORY_MAPPING_VERSION,` as the first field of each of the three returned `list(...)` (missing-table fallback, empty-row fallback, populated row).
 
@@ -314,10 +335,11 @@ function() {
 
 Run:
 ```bash
-curl -s http://localhost:7777/api/comparisons/crosswalk | head -c 400
+curl -s http://localhost:7777/api/comparisons/crosswalk | grep -o '"native_value":null'      # SFARI NA -> null
 curl -s "http://localhost:7777/api/comparisons/metadata" | grep -o '"mapping_version":"[^"]*"'
+curl -s "http://localhost:7777/api/comparisons/browse?page_size=1" | grep -o '"mapping_version":"[^"]*"'  # frozen output self-IDs
 ```
-Expected: crosswalk JSON with `mapping_version`; metadata carries the same version. (If the dev stack is not running, this is verified at the integration gate instead.)
+Expected: crosswalk JSON with `mapping_version` and a `null` SFARI native value; both metadata AND browse `meta` carry the same version. (If the dev stack is not running, this is verified at the integration gate instead.)
 
 - [ ] **Step 6: Commit.**
 
@@ -391,7 +413,7 @@ EXPECTED_LATEST_MIGRATION <- "046_add_analysis_snapshot_generator_provenance.sql
 EXPECTED_MIGRATION_COUNT <- 44L
 ```
 
-- [ ] **Step 3: Update baseline assertions.** In each of `test-unit-analysis-snapshot-migration.R`, `test-mcp-select-principal-projections.R`, `test-unit-core-views-manifest.R`, find any assertion pinning the latest migration filename or migration count and update to `046_...` / `44`. (Grep each file for `045_add_analysis_snapshot_release` or `43L`/`EXPECTED_MIGRATION_COUNT`.)
+- [ ] **Step 3: Update baseline assertions + stale operator message.** In each of `test-unit-analysis-snapshot-migration.R`, `test-mcp-select-principal-projections.R`, `test-unit-core-views-manifest.R`, find any assertion pinning the latest migration filename or migration count and update to `046_...` / `44`. (Grep each file for `045_add_analysis_snapshot_release` or `43L`/`EXPECTED_MIGRATION_COUNT`.) Also update the stale hard-coded message range in `api/scripts/verify-mcp-select-principal-live.R:198`: `"...did not apply 000-044"` → `"...did not apply 000-045"` (the numeric check uses `EXPECTED_MIGRATION_COUNT`, which auto-updates; only the message string is stale). Add an idempotency assertion (or note for the integration DB run) that applying `046` twice leaves exactly one `generator_json` column — mirror the information_schema guard from the migration.
 
 - [ ] **Step 4: Run the affected tests.**
 
@@ -422,9 +444,32 @@ git commit -m "feat(db): migration 046 add analysis_snapshot_manifest.generator_
   - `analysis_snapshot_assert_generator_complete(generator, analysis_type)` → invisibly TRUE or `stop()`.
   - Constants `ANALYSIS_SNAPSHOT_BUILDER_VERSION <- "1.0"`, `ANALYSIS_GENERATOR_SCHEMA_VERSION <- "1.0"`.
 
-- [ ] **Step 1: Write failing tests** (extend `test-unit-analysis-snapshot-provenance.R`):
+- [ ] **Step 1: Write failing tests** (extend `test-unit-analysis-snapshot-provenance.R`). First ensure the file sources the dependencies the new helpers need — the existing test sources only the service, so add near the top of the file (guarded so double-sourcing is harmless):
 
 ```r
+# helpers under test + their dependencies (%||% lives in functions/utils; CLUSTER_LOGIC_VERSION in the fingerprint module)
+for (f in c("functions/legacy-wrappers.R", "functions/analysis-cache-fingerprint.R",
+            "functions/analysis-snapshot-provenance-generator.R")) {
+  fp <- file.path(api_dir, f); if (file.exists(fp)) source(fp)
+}
+if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a)) b else a
+```
+
+(Confirm the real file that defines `%||%`; if it is not `legacy-wrappers.R`, source that file instead. `api_dir` is already computed by the existing test header.)
+
+Then add the tests:
+
+```r
+test_that("resolve_app_version degrades to 'unknown' without a global/env/file (no error)", {
+  withr::with_envvar(c(APP_VERSION = ""), {
+    if (exists("version_json", envir = .GlobalEnv)) rm("version_json", envir = .GlobalEnv)
+    withr::with_dir(tempdir(), {
+      expect_silent(v <- resolve_app_version())
+      expect_true(is.character(v) && nzchar(v))  # "unknown" when nothing resolves
+    })
+  })
+})
+
 test_that("generator block is complete and reproducible for clustering types", {
   g <- analysis_snapshot_build_generator(
     "functional_clusters",
@@ -449,8 +494,10 @@ test_that("completeness gate rejects a missing required field", {
 })
 
 test_that("non-clustering types do not require cluster_logic_version", {
-  g <- analysis_snapshot_build_generator("network_edges", list(), "2026-07-19T00:00:00Z")
-  expect_silent(analysis_snapshot_assert_generator_complete(g, "network_edges"))
+  # real non-clustering preset name is "gene_network_edges" (analysis-snapshot-presets.R:42)
+  g <- analysis_snapshot_build_generator("gene_network_edges", list(), "2026-07-19T00:00:00Z")
+  expect_null(g$cluster_logic_version)
+  expect_silent(analysis_snapshot_assert_generator_complete(g, "gene_network_edges"))
 })
 ```
 
@@ -484,12 +531,20 @@ resolve_app_git_commit <- function() {
   }, error = function(e) "unknown")
 }
 
-#' Resolve the application semantic version robustly in API and worker contexts.
+#' Resolve the application semantic version robustly in API AND worker contexts.
+#' The worker does NOT necessarily have the `version_json` global and there is no
+#' production `get_api_dir()`; degrade through env then a cwd-relative file then
+#' "unknown" (never error). Step 4 also initializes the global in the worker so
+#' path 1 normally succeeds there.
 resolve_app_version <- function() {
   v <- tryCatch(base::get("version_json", envir = .GlobalEnv)$version, error = function(e) NULL)
   if (!is.null(v) && nzchar(v)) return(v)
-  vj <- tryCatch(jsonlite::fromJSON(file.path(get_api_dir(), "version_spec.json")), error = function(e) NULL)
-  if (!is.null(vj$version) && nzchar(vj$version)) vj$version else "unknown"
+  ev <- Sys.getenv("APP_VERSION", unset = "")
+  if (nzchar(ev)) return(ev)
+  # Container worker cwd is the api dir; read the spec relative to cwd if present.
+  vj <- tryCatch(jsonlite::fromJSON("version_spec.json"), error = function(e) NULL)
+  if (!is.null(vj$version) && nzchar(vj$version)) return(vj$version)
+  "unknown"
 }
 
 #' Pinned library versions relevant to clustering reproducibility.
@@ -544,7 +599,7 @@ analysis_snapshot_assert_generator_complete <- function(generator, analysis_type
 }
 ```
 
-- [ ] **Step 4: Register the new file.** In `api/bootstrap/load_modules.R`, add `"functions/analysis-snapshot-provenance-generator.R"` to the sourced list BEFORE `analysis-snapshot-builder.R`. Mirror in `api/bootstrap/setup_workers.R`'s `everywhere()` source list.
+- [ ] **Step 4: Register the new file + ensure the version global in the worker.** In `api/bootstrap/load_modules.R`, add `"functions/analysis-snapshot-provenance-generator.R"` to the sourced list AFTER `analysis-cache-fingerprint.R` (it needs `CLUSTER_LOGIC_VERSION`) and BEFORE `analysis-snapshot-builder.R`. Mirror in `api/bootstrap/setup_workers.R`'s `everywhere()` source list. Then make `version_json` available in the worker so `resolve_app_version()` returns a real version there: in `api/start_async_worker.R`, mirror the API's `version_json` initialization (`api/start_sysndd_api.R:105` / `bootstrap/init_globals.R:56` — load `version_spec.json` into the `version_json` global) before the worker claims jobs. (The env/cwd fallbacks in `resolve_app_version()` are defense-in-depth; this makes the primary path succeed.)
 
 - [ ] **Step 5: Refactor `version_endpoints.R`** to reuse the resolver — replace the inline commit block (lines 22-41) with `commit <- resolve_app_git_commit()`.
 
@@ -560,55 +615,106 @@ git add api/functions/analysis-snapshot-provenance-generator.R api/endpoints/ver
 git commit -m "feat(analysis): generator-provenance helpers + shared commit resolver (#585)"
 ```
 
-### Task B3: Builder writes generator_json (single UTC timestamp) + gate; repository persists it
+### Task B3: Builder writes generator_json (applied params, single UTC timestamp) + gate; repository persists it
 
 **Files:**
-- Modify: `api/functions/analysis-snapshot-builder.R` (~495-552)
-- Modify: `api/functions/analysis-snapshot-repository.R` (`analysis_snapshot_create_manifest` INSERT)
+- Modify: `api/functions/analysis-snapshot-builder.R` (extract to stay ≤600 lines; capture applied params; write generator)
+- Modify: `api/functions/analysis-snapshot-repository.R` (`analysis_snapshot_create_manifest` INSERT; new extracted helper)
 
 **Interfaces:**
 - Consumes: `analysis_snapshot_build_generator`, `analysis_snapshot_assert_generator_complete` (B2).
-- Produces: `analysis_snapshot_create_manifest(list(..., generator = <list>))` writes `generator_json`.
+- Produces: `analysis_snapshot_create_manifest(list(..., generator = <list>))` writes `generator_json`; `attr(payload, "applied_params")` (hash-safe, attribute not a list element).
 
-- [ ] **Step 1: Teach the repository INSERT about `generator_json`.** In `analysis_snapshot_create_manifest()` (`analysis-snapshot-repository.R`), add `generator_json` to the column list and one `?` placeholder (after `package_versions_json`), and add `analysis_snapshot_json(manifest$generator)` to the `unname(list(...))` params in the matching position. (The migration placed `generator_json` after `package_versions_json`; keep column order consistent.)
+- [ ] **Step 1: Make room — the file is exactly 600 lines, so extract before adding.** Move the `source_versions`/`db_release` resolution block (`builder.R:~517-533`, the `dbv <- tryCatch(db_version_get(...))` … `source_versions <- list(...)` … `$dependencies` block) into a new helper in `analysis-snapshot-repository.R`:
 
-- [ ] **Step 2: In the builder**, capture the timestamp once and build+gate the generator, then pass it into the manifest list. Just before the `write_result <- analysis_snapshot_with_write_transaction(...)` block (`builder.R:~535`), add:
+```r
+# Resolve the human-facing DB release label + source-versions block (#22/#459).
+analysis_snapshot_resolve_source_versions <- function(refresh_conn, source_data_version, dependencies = NULL) {
+  dbv <- tryCatch(db_version_get(conn = refresh_conn),
+                  error = function(e) list(version = "unknown", commit = "unknown", available = FALSE))
+  db_release_version <- if (isTRUE(dbv$available)) dbv$version %||% "unknown" else "unknown"
+  db_release_commit  <- if (isTRUE(dbv$available)) dbv$commit  %||% "unknown" else "unknown"
+  sv <- list(sysndd_public_data = source_data_version,
+             db_release_version = db_release_version, db_release_commit = db_release_commit)
+  if (!is.null(dependencies)) sv$dependencies <- dependencies
+  list(source_versions = sv, db_release_version = db_release_version, db_release_commit = db_release_commit)
+}
+```
+
+In the builder, replace the extracted block with:
+
+```r
+    rv <- analysis_snapshot_resolve_source_versions(refresh_conn, source_data_version, payload$dependencies)
+    source_versions <- rv$source_versions
+    db_release_version <- rv$db_release_version
+    db_release_commit  <- rv$db_release_commit
+```
+
+Confirm `wc -l api/functions/analysis-snapshot-builder.R` is ≤ 600 AFTER Steps 2-4 add the generator lines.
+
+- [ ] **Step 2: Teach the repository INSERT about `generator_json`.** In `analysis_snapshot_create_manifest()`, add `generator_json` to the column list and one `?` placeholder (positioned right after `package_versions_json`, matching the migration's `AFTER package_versions_json`), and add `analysis_snapshot_json(manifest$generator)` to the `unname(list(...))` params in the exact matching position.
+
+- [ ] **Step 3: Capture the APPLIED clustering params (hash-safe attribute).** In `analysis_snapshot_build_payload()` (`builder.R:386-471`), at the point each clustering payload is assembled, attach the parameters actually applied to the clustering call as an R **attribute** (attributes are not in `names()`, so they cannot enter `payload_hash`):
+
+```r
+    # functional branch (read the real args passed to gen_string_clust_obj / build_string_subgraph):
+    attr(payload, "applied_params") <- list(
+      algorithm = "leiden", resolution = 1.0, seed = 42L,
+      score_threshold = 400L,
+      weight_channel = payload$partition_validation$membership_weight_channel %||% NA_character_,
+      min_size = normalized$params$min_size %||% NA, max_edges = normalized$params$max_edges %||% NA
+    )
+    # phenotype branch:
+    attr(payload, "applied_params") <- list(
+      ncp = <the actual ncp>, prevalence_min = PHENOTYPE_MCA_PREVALENCE_MIN,
+      prevalence_max = PHENOTYPE_MCA_PREVALENCE_MAX, kk = "Inf", consol = TRUE,
+      hcpc_nb_clust = <the served k>
+    )
+```
+
+Read the actual call site to fill the exact values (do not guess `<...>`). If a value is not readily available, record the frozen default and rely on `application_commit` + `cluster_logic_version` to pin the rest. Non-clustering branches may leave the attribute unset.
+
+- [ ] **Step 4: In the builder manifest-write section**, capture the timestamp once, build+gate the generator from the applied params, and add it to the manifest list. Just before the `write_result <- analysis_snapshot_with_write_transaction(...)` block:
 
 ```r
     generated_at_utc <- format(as.POSIXct(Sys.time(), tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ")
     generator_block <- analysis_snapshot_build_generator(
-      normalized$analysis_type, normalized$params, generated_at_utc
+      normalized$analysis_type,
+      attr(payload, "applied_params") %||% normalized$params,
+      generated_at_utc
     )
     analysis_snapshot_assert_generator_complete(generator_block, normalized$analysis_type)
 ```
 
 Then add `generator = generator_block,` to the `list(...)` passed to `analysis_snapshot_create_manifest()`.
 
-- [ ] **Step 3: Add a builder-level test** that provenance does not change the hashes. In `test-unit-analysis-snapshot-provenance.R` add a pure assertion using the payload-hash helper directly:
+- [ ] **Step 5: Add a NON-tautological hash-safety test** in `test-unit-analysis-snapshot-provenance.R`, proving the attribute/generator never enter the hashed key set:
 
 ```r
-test_that("adding a generator key does not change payload_hash or input_hash", {
+test_that("applied_params attribute and generator never enter payload_hash", {
   payload <- list(kind = "clusters", clusters = list(a = 1), members = list(),
                   raw = list(x = 1), partition_validation = list(v = 1))
-  base_hash <- analysis_snapshot_payload_hash(
-    payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility"))])
-  payload$generator <- list(application_version = "9.9.9")  # not a hashed key path
-  same_hash <- analysis_snapshot_payload_hash(
-    payload[setdiff(names(payload), c("raw", "partition_validation", "reproducibility", "generator"))])
-  expect_identical(base_hash, same_hash)
+  hashed <- function(p) analysis_snapshot_payload_hash(
+    p[setdiff(names(p), c("raw", "partition_validation", "reproducibility"))])
+  h1 <- hashed(payload)
+  attr(payload, "applied_params") <- list(resolution = 1.0, seed = 42L)  # attribute, not a name
+  h2 <- hashed(payload)
+  expect_identical(h1, h2)                              # attribute changed nothing
+  expect_false("applied_params" %in% names(payload))   # it's an attr, never a list element
+  expect_false("generator" %in% names(payload))        # generator lives on the manifest, not payload
 })
 ```
 
-- [ ] **Step 4: Run.**
+- [ ] **Step 6: Run + confirm file size.**
 
-Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-provenance.R')"`
-Expected: PASS.
+Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-provenance.R')" && wc -l api/functions/analysis-snapshot-builder.R`
+Expected: PASS; builder ≤ 600 lines.
 
-- [ ] **Step 5: Commit.**
+- [ ] **Step 7: Commit.**
 
 ```bash
 git add api/functions/analysis-snapshot-builder.R api/functions/analysis-snapshot-repository.R api/tests/testthat/test-unit-analysis-snapshot-provenance.R
-git commit -m "feat(analysis): builder persists generator_json outside identity hashes (#585)"
+git commit -m "feat(analysis): builder persists generator_json (applied params) outside identity hashes (#585)"
 ```
 
 ### Task B4: Surface generator + generator_hash in meta (pre-046 tolerant)
@@ -693,19 +799,22 @@ git commit -m "feat(analysis): surface generator + generator_hash in snapshot me
 - Test: `api/tests/testthat/test-integration-analysis-snapshot-release-build.R` or a unit test on the manifest assembly
 
 **Interfaces:**
-- Consumes: each pinned snapshot's `meta.snapshot.generator` (B4).
+- Consumes: each pinned snapshot's `manifest$generator_json` column (from `snapshot$manifest`, the structure release assembly already works from — NOT `meta.snapshot.generator`, which the release path never builds).
 - Produces: `manifest.source.snapshots[i].generator` per layer; packager `generator` unchanged; `content_digest` unchanged.
 
-- [ ] **Step 1: Write a failing test** asserting distinct per-layer generators survive into `source.snapshots[]` and that `content_digest` is unchanged by their presence. Use the existing release-manifest test harness fixture; if only an integration test exists, add a focused unit test on the function that assembles the `source` block, feeding two layers with different `generator.application_commit` values and asserting both appear and `analysis_release_content_digest()` output is identical with/without the generator sub-keys.
+- [ ] **Step 1: Write the assertion in the release-build INTEGRATION harness** (`test-integration-analysis-snapshot-release-build.R`) — the unit `test-unit-analysis-snapshot-release-manifest.R` never constructs releases, so it cannot cover this. In the integration harness (which builds real snapshots + a release against a DB), after building a release from ≥2 layers, assert each `manifest$source$snapshots[[i]]$generator` is present and reflects that layer's snapshot; and assert `content_digest` is byte-identical to a build where the generator sub-keys are stripped (i.e. `analysis_release_content_digest()` ignores them). If the harness is SKIP-gated without a DB, add a focused unit test on the pure `source.snapshots[]` assembly function feeding two manifest rows with different `generator_json` and asserting both generators appear and the content digest is unaffected.
 
 - [ ] **Step 2: Run to confirm failure.**
 
-- [ ] **Step 3: Implement.** Where the release builds `source.snapshots[]` (`release.R:~423-432`), include each snapshot's `generator` (read from its `meta.snapshot.generator`, already available where per-snapshot lineage is collected at `release.R:~365-374`). Keep the packager `generator` block (`release.R:~414-422`) untouched. Confirm `analysis_release_content_digest()` (`release-manifest.R:155-172`) still hashes only `{manifest_schema_version, source_data_version, layers[]{analysis_type,input_hash,payload_hash,reproducibility_hash,dependencies}}` — do NOT add generator to the hashed layer projection.
+Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-integration-analysis-snapshot-release-build.R')"`
+Expected: FAIL (or SKIP without DB → fall back to the focused unit test, which FAILs).
+
+- [ ] **Step 3: Implement.** Where the release builds each snapshot lineage entry and the `source.snapshots[]` list (`release.R:~242` per-entry construction and `release.R:~423-432` source assembly), read each pinned snapshot's provenance directly from its manifest row: `generator = analysis_snapshot_parse_json(manifest_row$generator_json)` (use the repo's existing JSON parse helper; return `NULL`/omit when empty for pre-046 snapshots). Attach it under each `source.snapshots[i]$generator`. Keep the packager `generator` block (`release.R:~414-422`) untouched. Confirm `analysis_release_content_digest()` (`release-manifest.R:155-172`) still hashes ONLY `{manifest_schema_version, source_data_version, layers[]{analysis_type,input_hash,payload_hash,reproducibility_hash,dependencies}}` — do NOT add generator to the hashed layer projection.
 
 - [ ] **Step 4: Run.**
 
-Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-release-manifest.R')"`
-Expected: PASS (and `content_digest` stable).
+Run: `cd api && Rscript -e "testthat::test_file('tests/testthat/test-integration-analysis-snapshot-release-build.R')"` (or the focused unit test)
+Expected: PASS (per-layer generators present; `content_digest` stable).
 
 - [ ] **Step 5: Commit.**
 
@@ -779,12 +888,12 @@ export interface ComparisonsCrosswalk {
 }
 
 export async function getComparisonsCrosswalk(): Promise<ComparisonsCrosswalk> {
-  const { data } = await api.get<ComparisonsCrosswalk>('/api/comparisons/crosswalk');
-  return data;
+  // apiClient.get<T> already returns response.data (see app/src/api/client.ts)
+  return apiClient.get<ComparisonsCrosswalk>('/api/comparisons/crosswalk');
 }
 ```
 
-Add `mapping_version?: string;` to the `ComparisonsMetadata` interface.
+`apiClient` is already imported at the top of `comparisons.ts`. Add `mapping_version?: string;` to the `ComparisonsMetadata` interface.
 
 - [ ] **Step 2: Type-check.**
 
@@ -815,18 +924,29 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import EvidenceTierMappingHelp from './EvidenceTierMappingHelp.vue';
 
+// DISTINCTIVE content so the test proves the component renders the API payload,
+// not hard-coded copy (no-drift requirement of #586).
+const DISTINCT_DEF = 'ZZDISTINCT tier definition from server';
+const DISTINCT_NOTE = 'ZZDISTINCT server note about Red';
 vi.mock('@/api/comparisons', () => ({
   getComparisonsCrosswalk: vi.fn(() => Promise.resolve({
     mapping_version: '2026-07-19.583-panelapp-ordinal',
-    tiers: [{ tier: 'Limited', definition: 'Low evidence.' }],
-    sources: [{ list: 'panelapp', label: 'PanelApp', rules: [
-      { native_value: '1', native_label: 'Red (1)', normalized_tier: 'Limited', rule_kind: 'exact', note: null }] }],
-    notes: ['PanelApp Red/1 normalizes to Limited, never Refuted.'],
+    tiers: [{ tier: 'Limited', definition: DISTINCT_DEF }],
+    sources: [],
+    non_tier_fillers: [],
+    notes: [DISTINCT_NOTE],
   })),
 }));
 
-const stubs = { InlineHelpBadge: { template: '<button :aria-label="ariaLabel"><slot/></button>', props: ['ariaLabel','id'] },
-  BPopover: { template: '<div class="popover"><slot name="title"/><slot/></div>' } };
+// Behaviorful stubs: InlineHelpBadge is a real focusable button that forwards
+// click; BPopover renders its default slot so content is assertable.
+const stubs = {
+  InlineHelpBadge: {
+    template: '<button type="button" :aria-label="ariaLabel" v-bind="$attrs" @click="$emit(\'click\')"><slot/></button>',
+    props: ['ariaLabel', 'id'],
+  },
+  BPopover: { template: '<div class="popover"><slot name="title"/><slot/></div>' },
+};
 
 describe('EvidenceTierMappingHelp', () => {
   it('exposes an accessible help affordance with no navigational href on the badge', () => {
@@ -834,14 +954,28 @@ describe('EvidenceTierMappingHelp', () => {
     const badge = w.get('button');
     expect(badge.attributes('aria-label')).toMatch(/evidence-tier/i);
     expect(badge.attributes('href')).toBeUndefined();
+    expect(badge.attributes('aria-haspopup')).toBe('dialog');
   });
-  it('renders the API-sourced mapping version and a link to the crosswalk', async () => {
+  it('RENDERS the API-sourced tier definition, note, version and crosswalk link (no drift)', async () => {
     const w = mount(EvidenceTierMappingHelp, { global: { stubs } });
     await flushPromises();
+    expect(w.text()).toContain(DISTINCT_DEF);   // proves tiers come from the API
+    expect(w.text()).toContain(DISTINCT_NOTE);  // proves notes come from the API
     expect(w.text()).toContain('2026-07-19.583-panelapp-ordinal');
     const link = w.get('a.crosswalk-link');
     expect(link.attributes('href')).toContain('/comparisons/crosswalk');
     expect(link.attributes('rel')).toContain('noopener');
+  });
+  it('is keyboard operable: activate opens, Escape closes and restores focus', async () => {
+    const w = mount(EvidenceTierMappingHelp, { global: { stubs }, attachTo: document.body });
+    await flushPromises();
+    const badge = w.get('button');
+    await badge.trigger('click');
+    expect((w.vm as any).open).toBe(true);
+    await w.get('[role="document"]').trigger('keydown.esc');
+    expect((w.vm as any).open).toBe(false);
+    expect(document.activeElement).toBe(badge.element); // focus restored to trigger
+    w.unmount();
   });
   it('shows a neutral unavailable message and NO tier text on fetch failure', async () => {
     const mod = await import('@/api/comparisons');
@@ -859,7 +993,7 @@ describe('EvidenceTierMappingHelp', () => {
 Run: `cd app && npx vitest run src/components/analyses/EvidenceTierMappingHelp.spec.ts`
 Expected: FAIL (component missing).
 
-- [ ] **Step 3: Implement `EvidenceTierMappingHelp.vue`** (Options API, mirrors `CurationSourcesPopover.vue`; click-triggered popover so the internal link is keyboard-reachable; `apiBaseUrl` from the axios plugin):
+- [ ] **Step 3: Implement `EvidenceTierMappingHelp.vue`** (Options API, mirrors `CurationSourcesPopover.vue`). Critical: **render the tier/rule/notes content FROM the fetched crosswalk** (never hard-code tier text — that is the whole point of #586's no-drift requirement); the ONLY local copy is the neutral failure message. Own the popover visibility so the internal link is keyboard-reachable and **Escape closes + restores focus** to the badge. Base URL from the axios singleton (`axios.defaults.baseURL`, set by `@/plugins/axios` from `VITE_BASE_URL`); there is no `API_URL` export.
 
 ```vue
 <!-- src/components/analyses/EvidenceTierMappingHelp.vue -->
@@ -867,45 +1001,57 @@ Expected: FAIL (component missing).
   <span class="tier-mapping-help">
     <InlineHelpBadge
       id="popover-badge-tier-mapping"
+      ref="badge"
       aria-label="Explain normalized evidence-tier mapping"
+      aria-haspopup="dialog"
+      :aria-expanded="open ? 'true' : 'false'"
+      @click="toggle"
     />
+    <!-- BVN boolean trigger props (no `triggers` string prop); v-model-driven so
+         we can close on Escape and restore focus deterministically. -->
     <BPopover
       target="popover-badge-tier-mapping"
       variant="info"
-      triggers="click"
+      :click="true"
+      :focus="false"
+      :hover="false"
+      v-model="open"
     >
       <template #title>Normalized evidence tiers</template>
-      <div v-if="crosswalk">
-        <p class="mb-1 small">
-          Comparisons use a normalized four-tier scale: Definitive, Moderate,
-          Limited, Refuted. Each source keeps its native label; analyses use the
-          documented mapping.
-        </p>
-        <p class="mb-1 small"><strong>PanelApp Red/1 &rarr; Limited</strong> (low evidence, not Refuted).</p>
-        <p class="mb-1 small text-muted">Ungraded inclusion lists &rarr; implied Definitive for comparability.</p>
-        <p class="mb-1 small">Mapping version: <code>{{ crosswalk.mapping_version }}</code></p>
-        <a class="crosswalk-link" :href="crosswalkUrl" target="_blank" rel="noopener noreferrer">
-          View the complete mapping crosswalk
-        </a>
+      <div role="document" @keydown.esc.stop.prevent="close">
+        <div v-if="crosswalk">
+          <ul class="mb-2 ps-3 small">
+            <li v-for="t in crosswalk.tiers" :key="t.tier">
+              <strong>{{ t.tier }}</strong>: {{ t.definition }}
+            </li>
+          </ul>
+          <ul class="mb-2 ps-3 small text-muted">
+            <li v-for="(n, i) in crosswalk.notes" :key="i">{{ n }}</li>
+          </ul>
+          <p class="mb-1 small">Mapping version: <code>{{ crosswalk.mapping_version }}</code></p>
+          <a class="crosswalk-link" :href="crosswalkUrl" target="_blank" rel="noopener noreferrer">
+            View the complete mapping crosswalk
+          </a>
+        </div>
+        <div v-else-if="failed" class="small text-muted">Mapping information is unavailable.</div>
+        <div v-else class="small text-muted">Loading&hellip;</div>
       </div>
-      <div v-else-if="failed" class="small text-muted">Mapping information is unavailable.</div>
-      <div v-else class="small text-muted">Loading&hellip;</div>
     </BPopover>
   </span>
 </template>
 
 <script>
+import axios from 'axios';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import { getComparisonsCrosswalk } from '@/api/comparisons';
-import { API_URL } from '@/plugins/axios';
 
 export default {
   name: 'EvidenceTierMappingHelp',
   components: { InlineHelpBadge },
-  data() { return { crosswalk: null, failed: false }; },
+  data() { return { crosswalk: null, failed: false, open: false }; },
   computed: {
     crosswalkUrl() {
-      const base = (API_URL || '').replace(/\/$/, '');
+      const base = (axios.defaults.baseURL || '').replace(/\/$/, '');
       return `${base}/api/comparisons/crosswalk`;
     },
   },
@@ -913,11 +1059,20 @@ export default {
     try { this.crosswalk = await getComparisonsCrosswalk(); }
     catch { this.failed = true; }
   },
+  methods: {
+    toggle() { this.open = !this.open; },
+    close() {
+      this.open = false;
+      // restore focus to the trigger (a11y: focus must return to the invoker)
+      const el = this.$refs.badge?.$el ?? this.$refs.badge;
+      if (el && typeof el.focus === 'function') el.focus();
+    },
+  },
 };
 </script>
 ```
 
-Note: confirm the exported base-URL symbol in `app/src/plugins/axios.ts` (it may be named `API_URL`, `apiBaseUrl`, or the axios instance's `defaults.baseURL`). If no symbol is exported, use `api.defaults.baseURL` from the shared client. Adjust the import accordingly and keep the test's `href` assertion (`/comparisons/crosswalk`).
+Note: verify the installed BootstrapVueNext exposes the boolean `click`/`focus`/`hover` props and `v-model` on `BPopover` (grep `app/node_modules/bootstrap-vue-next`); if the prop names differ, adjust but keep (a) content rendered from the API payload, (b) keyboard activation, (c) Escape-close + focus-restore. If `InlineHelpBadge` does not forward `ref`/`@click` to a focusable `<button>`, wrap it in a `<span @click>` with the button still the focus target.
 
 - [ ] **Step 4: Run the spec.**
 
@@ -940,11 +1095,15 @@ git commit -m "feat(app): EvidenceTierMappingHelp popover (API-sourced, keyboard
 - [ ] **Step 1: Add a failing assertion** to `AnalysesCurationUpset.spec.ts` that the component is present (stub it):
 
 ```ts
-it('renders the evidence-tier mapping help after the Overlap title', () => {
+it('renders the evidence-tier mapping help inside the Overlap heading', () => {
   const wrapper = mount(AnalysesCurationUpset, { global: { stubs: {
-    InlineHelpBadge: true, BPopover: true, EvidenceTierMappingHelp: true,
+    InlineHelpBadge: true, BPopover: true,
+    EvidenceTierMappingHelp: { name: 'EvidenceTierMappingHelp', template: '<span class="etmh-stub"/>' },
     DownloadImageButtons: true } } });
-  expect(wrapper.findComponent({ name: 'EvidenceTierMappingHelp' }).exists()).toBe(true);
+  const heading = wrapper.get('h2.panel-title');
+  // placement: the help affordance is within the Overlap <h2>, after its label
+  expect(heading.find('.etmh-stub').exists()).toBe(true);
+  expect(heading.text()).toContain('Overlap');
 });
 ```
 
