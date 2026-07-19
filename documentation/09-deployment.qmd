@@ -313,7 +313,45 @@ curl -sS -X PATCH https://<host>/api/admin/analysis/releases/<release_id>/doi \
 
 **Public download surface** (no auth): `GET /api/analysis/releases/<release_id>/manifest.json` returns the exact stored manifest bytes (`sha256(bytes) == manifest_sha256` on the release head); `GET /api/analysis/releases/<release_id>/file?path=<file_path>` returns one content-addressed file by its exact manifest path (e.g. `path=functional_clusters/payload.json`); `GET /api/analysis/releases/<release_id>/bundle` streams the whole frozen `bundle.tar.gz`.
 
-**Zenodo packaging/upload.** The operator-run archival flow that packages a published release into a Zenodo-ready dataset (mirroring the existing NDDScore Zenodo release scripts) is planned for a later slice of this program; it is not part of this deploy. Until then, `PATCH .../doi` accepts a manually-recorded DOI once an operator has archived a release through any equivalent process.
+#### Zenodo archival (operator scripts, #573 Slice C)
+
+Once a release is published (above), an operator can archive it to Zenodo with two host-run scripts (`api/scripts/package-analysis-release-zenodo.R` + `api/scripts/upload-analysis-release-zenodo.R`, mirroring the existing NDDScore/Zenodo release scripts in `../nddscore`). Both are plain HTTP clients: the packager reads the release only through the public `/api/analysis/releases/*` routes above (no DB, no `docker exec`), and the uploader only talks to the Zenodo REST API and (optionally) the admin DOI PATCH endpoint. Neither is wired into `docker-compose.yml`, `bootstrap/load_modules.R`, or the worker — run them on the host (or CI) where a published release is reachable over HTTP.
+
+**Prerequisites:**
+
+- Host R with `httr2`, `jsonlite`, and `digest` (all already in `api/renv.lock`).
+- `ZENODO_TOKEN` — a Zenodo personal access token (`https://zenodo.org/account/settings/applications/tokens/new/`, scope `deposit:write` + `deposit:actions`). Set it in your shell or a git-ignored `.env`; it is **never** committed and the Makefile never bakes it in as a literal.
+- `SYSNDD_API_BASE_URL` (optional) — the public API base to read the release from; defaults to `http://localhost:7778`.
+- `SYSNDD_ADMIN_TOKEN` (optional) — a pre-minted SysNDD Administrator bearer token, only needed for the automated DOI record-back in step 6.
+
+**Flow:**
+
+1. **Package.**
+   ```bash
+   make analysis-release-zenodo-package
+   # or, for an explicit release rather than the current `latest`:
+   ARGS="--release-id asr_<16 hex>" make analysis-release-zenodo-package
+   ```
+   Downloads the release's `bundle.tar.gz`, verifies its checksum, re-stages the files under `analysis_snapshot_release/`, adds Zenodo-facing `README.md`/`DATA_CARD.md`/`SCHEMA.md`/`CHANGELOG.md`/`CITATION.cff`/`zenodo_metadata.json`/`datapackage.json`, runs the packaging safety validator (rejects any planted `.env`/`.git`/sensitive-text content — defense-in-depth; a release payload has no such content by construction), and writes `outputs/analysis-release-zenodo/<release_id>.tar.gz` + `.sha256` plus a `outputs/analysis-release-zenodo/latest.env` pointer file (`ARCHIVE_PATH`/`METADATA_PATH`/`RELEASE_ID`) so the next step can find the content-addressed archive without a hardcoded, drift-prone filename.
+2. **Review** the staging directory (`outputs/analysis-release-zenodo/staging/`) by eye before uploading anything — the validator is a safety net, not a substitute for a human look.
+3. **Upload a draft.**
+   ```bash
+   make analysis-release-zenodo-upload-draft
+   # against the Zenodo sandbox instead of production, for a dry run:
+   UPLOAD_ARGS="--sandbox" make analysis-release-zenodo-upload-draft
+   ```
+   Requires `ZENODO_TOKEN` (the target fails fast with a clear message if it is unset) and `outputs/analysis-release-zenodo/latest.env` (fails fast with "run analysis-release-zenodo-package first" if absent). Creates (or reuses, via `--deposition-id`) a Zenodo deposition, sets its metadata, and streams the archive to the deposition bucket — **always a DRAFT**, never published. Prints the reserved DOI and the draft's Zenodo web URL.
+4. **Review the draft** in the Zenodo web UI (metadata, file listing, reserved DOI) before publishing.
+5. **Publish — deliberately, by hand.** There is no Make target for this on purpose: publishing is a one-way action, so it stays a manual `Rscript` invocation behind a double gate (`analysis_release_zenodo_require_publish_confirmation()` refuses to make any HTTP call unless **both** flags are present):
+   ```bash
+   Rscript api/scripts/upload-analysis-release-zenodo.R \
+     --archive outputs/analysis-release-zenodo/<release_id>.tar.gz \
+     --metadata outputs/analysis-release-zenodo/staging/zenodo_metadata.json \
+     --deposition-id <id-from-step-3> --publish --confirm-publish
+   ```
+6. **Record the DOI** back onto the SysNDD release head — additive only; it never touches `content_digest`/`manifest_sha256`, so the bytes a consumer already downloaded stay valid. Either automatically, by adding `--record-doi` (with `SYSNDD_ADMIN_TOKEN` set) to the publish command in step 5, or by running the manual `curl` command the script prints when `--record-doi` is omitted (equivalent to the `PATCH .../releases/<release_id>/doi` call documented above).
+
+**Defaults and safety.** Every upload is a DRAFT unless step 5's double gate is satisfied explicitly. The archive itself is a self-contained, independently-verifiable copy (its own `manifest.json`, `checksums.sha256`, and — for the two cluster layers — reproducibility bundles), so a Zenodo consumer never depends on SysNDD staying reachable. No manuscript or paper references appear anywhere in the packaged output.
 
 ### Disease cross-ontology mapping refresh (`ontology-mapping-cron`)
 
