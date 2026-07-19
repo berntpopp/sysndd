@@ -161,6 +161,22 @@ test_that("all-empty positive sets -> undefined_no_distance_structure", {
   expect_equal(res$n_empty_positive_sets, 4L)
 })
 
+test_that("all-identical positive sets -> undefined_no_distance_structure (spec 4.3)", {
+  # Every entity carries the SAME non-empty positive set -> all off-diagonal d = 0 -> the
+  # strict lower triangle has one unique finite value -> the cut is a tie-order artifact, not
+  # phenotype structure. (Completes the spec 4.3 trio: all-empty, all-disjoint, all-identical.)
+  lv <- c("absent", "present"); f <- function(x) factor(x, lv)
+  m <- data.frame(inh = "AD", c1 = 0, c2 = 0, c3 = 0,
+                  T1 = f(rep("present", 4)), T2 = f(rep("present", 4)))
+  rownames(m) <- paste0("e", 1:4)
+  attr(m, "mca_provenance") <- list(kept_terms = c("T1", "T2"))
+  res <- phenotype_missingness_sensitivity(m, list("1" = c("e1", "e2"), "2" = c("e3", "e4")))
+  expect_equal(res$status, "undefined_no_distance_structure")
+  expect_true(is.na(res$adjusted_rand_index))
+  expect_length(res$per_cluster_max_jaccard, 0)
+  expect_equal(res$n_empty_positive_sets, 0L)
+})
+
 test_that("orchestrator fails closed on alignment violations", {
   m <- .mk_pheno_matrix()
   # e9 is not a matrix row -> alignment invariant violated.
