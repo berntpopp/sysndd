@@ -168,6 +168,11 @@ phenotype_missingness_sensitivity <- function(wide_phenotypes_df, ref_members,
 
   assigned <- as.character(unlist(ref_members, use.names = FALSE))
   n_input <- nrow(wide_phenotypes_df)
+  # Entities are keyed by ROWNAMES only — the production matrix from
+  # generate_phenotype_cluster_input() carries entity ids in rownames (the entity_id column
+  # is dropped), matching how ref_members is built. A matrix that instead keyed entities in
+  # an `entity_id` column would fail the alignment invariant below (status "error",
+  # fail-closed) rather than be silently mislabeled.
   row_ids <- rownames(wide_phenotypes_df)
   if (is.null(row_ids)) row_ids <- as.character(seq_len(n_input))
 
