@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.3] — 2026-07-19
+
+Zenodo archival operator scripts for analysis-snapshot releases (#573, Slice C). A published analysis-snapshot release (Slice A) can now be archived to Zenodo with two host-run, HTTP-only scripts — no DB, no worker, no docker exec. Note: 0.30.1 (#574 category clustering) and 0.30.2 (#573 Slice B UI) are reserved for those PRs, which this assumes land first.
+
+### Added
+
+- **`api/scripts/package-analysis-release-zenodo.R`**: fetches a published release over the public `/api/analysis/releases/*` API, verifies its bundle checksum, re-stages the files under `analysis_snapshot_release/`, adds Zenodo-facing docs/metadata (`README.md`, `DATA_CARD.md`, `SCHEMA.md`, `CHANGELOG.md`, `CITATION.cff`, `zenodo_metadata.json`, `datapackage.json`), runs a packaging safety validator, and produces a deterministic `<release_id>.tar.gz` + checksum. Writes a `outputs/analysis-release-zenodo/latest.env` pointer file so downstream tooling can find the content-addressed archive without a hardcoded filename.
+- **`api/scripts/upload-analysis-release-zenodo.R`**: uploads a packaged archive to a Zenodo deposition (get-or-create, set metadata, stream file to bucket), with an optional, doubly-gated `--publish --confirm-publish` step and an opt-in `--record-doi` record-back to the additive `PATCH /api/admin/analysis/releases/<id>/doi` endpoint. Draft-only by default; publishing is always a deliberate, explicit action.
+- Two Make targets, `analysis-release-zenodo-package` and `analysis-release-zenodo-upload-draft`, wrap the scripts for local operator use; the Makefile itself never passes `--publish`.
+- Operator runbook documented in `documentation/09-deployment.qmd` under "Zenodo archival (operator scripts, #573 Slice C)".
+
 ## [0.30.0] — 2026-07-18
 
 Immutable public analysis-snapshot releases (#573, Slice A). SysNDD's derived
