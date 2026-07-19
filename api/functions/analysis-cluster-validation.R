@@ -395,6 +395,26 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     bootstrap_seed = seed,
     silhouette_mean = per_sil
   )
+
+  # #582: additive positive-only missingness sensitivity. Best-effort + env-gated, mirroring
+  # the ncp_diag/kg patterns; a failure degrades to a diagnostic field, never fails the
+  # refresh. ref_members is keyed cluster_id -> entity_id char vecs (exactly what the
+  # orchestrator expects); wide_phenotypes_df is the encoded active matrix (present cells =
+  # recorded present). Lives in partition_validation, which the builder excludes from
+  # payload_hash, so no cluster_hash churn (#514 additivity lever).
+  missingness <- if (identical(tolower(Sys.getenv(
+        "ANALYSIS_PHENOTYPE_MISSINGNESS_SENSITIVITY", "true")), "true") &&
+      exists("phenotype_missingness_sensitivity", mode = "function")) {
+    tryCatch(
+      phenotype_missingness_sensitivity(wide_phenotypes_df, ref_members,
+                                        quali_sup_var = quali_sup_var,
+                                        quanti_sup_var = quanti_sup_var),
+      error = function(e) list(status = "error", message = conditionMessage(e))
+    )
+  } else {
+    list(status = "skipped")
+  }
+
   list(
     per_cluster = per_cluster,
     # #514: reference partition members (entity ids) keyed by cluster_id for the
@@ -421,7 +441,9 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
       n_clusters = n_clusters, n_entities_assigned = n_assigned, n_entities_dropped = n_dropped,
       partition_scope = "visible_top_level",
       resampling_scheme = "subsample", subsample_fraction = subsample_fraction,
-      n_resamples = n_resamples, n_resamples_effective = n_eff
+      n_resamples = n_resamples, n_resamples_effective = n_eff,
+      # #582: additive positive-only missingness sensitivity (excluded from payload_hash).
+      missingness_sensitivity = missingness
     )
   )
 }
