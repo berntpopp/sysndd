@@ -31,6 +31,7 @@ const PUBLIC_ROUTES: string[] = [
   '/About',
   '/Documentation',
   '/API',
+  '/DataReleases',
 ];
 
 const AUTHED_ADMIN_ROUTES: string[] = [
@@ -46,6 +47,7 @@ const AUTHED_ADMIN_ROUTES: string[] = [
   '/ManageBackups',
   '/ManagePubtator',
   '/ManageLLM',
+  '/ManageAnalysisReleases',
 ];
 
 // Sub-routes off the multi-tab pages.
