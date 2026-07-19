@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.5] — 2026-07-19
+
+Repair the local Playwright E2E baseline (#573/#574 program follow-up). The isolated stack seeded only users, so five data-dependent specs failed (public table filters ×3, curation-comparisons desktop, gene-detail cards) — dragging two serial groups down with them — while a sixth (slow-provider resilience) was latently flaky. Test/fixture/tooling-only; no product-code change. Local baseline at `--workers=1` goes from 5 failed / 7 skipped / 82 passed to **0 failed / 3 skipped / 125 passed** (the 3 skips are legitimately env-gated: ontology-blocked banner, password-reset, MCP transport proxy).
+
+### Added
+
+- **`db/fixtures/playwright_e2e_baseline.sql`** (renamed from `playwright_docs_screenshots.sql`): the shared E2E baseline fixture is now seeded for the whole suite, not just the documentation screenshot lane. Adds a bare **SCN2A** gene row so `/Genes/SCN2A` renders the gene page instead of redirecting to the SPA 404 — the root cause of the flaky `slow-provider-resilience` spec (it briefly showed the gene shell, then the missing-record fetch redirected before the external-card column mounted).
+
+### Changed
+
+- **`Makefile`**: `make playwright-stack` now seeds the baseline fixture (via the renamed `_playwright-seed-e2e-baseline` target) right after the test users; `docs-screenshots` depends on the same target.
+- **`app/tests/e2e/global-setup.ts`**: re-seeds the baseline fixture (alongside users) before every `npx playwright test` run, so data-dependent specs are isolated across runs.
+- **`app/tests/e2e/{entity.modify,admin.ontology-blocked-banner}.spec.ts`**: updated the seed-command references to the renamed target; the three `entity.modify` select/contract tests now run by default (they previously skipped on the empty stack).
+- Docs: `db/fixtures/README.md`, `AGENTS.md`, and `documentation/08-development.qmd` document the baseline fixture, the true local baseline, and the SCN2A/404-redirect gotcha.
+
 ## [0.30.4] — 2026-07-19
 
 E2E regression coverage for the analysis-snapshot release UI (#573, Slice B follow-up). No product-code change — test-only.

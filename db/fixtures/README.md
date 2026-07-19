@@ -14,17 +14,26 @@ any production migration references this fixture.
   suite. Plaintext passwords for these accounts are committed in
   `app/tests/e2e/fixtures/test-users.ts` because the accounts only exist in
   the isolated `playwright` compose project.
-- `playwright_docs_screenshots.sql` — provisions a small synthetic CHD8
-  entity/review/status/re-review assignment used only by the documentation
-  screenshot lane.
+- `playwright_e2e_baseline.sql` — the shared E2E baseline fixture. Provisions a
+  small self-contained set of genes (CHD8/ARID1B/NAA10/SCN2A), one CHD8
+  entity/review/status chain, a re-review assignment, and simplified copies of
+  the heavy production read views so the fixture surfaces through the app. This
+  gives the data-dependent baseline specs (public table filters, curation
+  comparisons, gene-detail cards, slow-provider resilience, Modify Entity) rows
+  to assert against. Also used by the documentation screenshot lane
+  (`make docs-screenshots`), which layers no extra data on top. (Formerly
+  `playwright_docs_screenshots.sql`.)
 
-## When this fixture is applied
+## When these fixtures are applied
 
-The fixture is sourced by `make playwright-stack` AFTER the API has applied
+The fixtures are sourced by `make playwright-stack` AFTER the API has applied
 its migrations. The `user` table is created during API startup (by
 `db/migrations/000_initialize_base_schema.sql`), not at MySQL init time, so
 seeding via `/docker-entrypoint-initdb.d/` is too early. The Makefile target
-waits for `/api/health/ready` to return 200, then runs `mysql < playwright_users.sql`.
+waits for `/api/health/ready` to return 200, then runs
+`mysql < playwright_users.sql` followed by `mysql < playwright_e2e_baseline.sql`.
 
-The documentation screenshot fixture is sourced by `make docs-screenshots`
-after `playwright_users.sql`. It is not part of the general E2E baseline.
+Both fixtures are also re-seeded by `app/tests/e2e/global-setup.ts` before every
+`npx playwright test` run (via the `_playwright-seed-users` /
+`_playwright-seed-e2e-baseline` make targets), so each run starts from a known
+state even after a spec mutates a row.

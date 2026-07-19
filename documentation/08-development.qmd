@@ -314,6 +314,8 @@ make playwright-stack-down     # tear down + remove volumes
 
 The Playwright stack provisions four deterministic test users (`pw_admin`, `pw_curator`, `pw_reviewer`, `pw_user`) from `db/fixtures/playwright_users.sql`. Plaintext passwords for these accounts are committed in `app/tests/e2e/fixtures/test-users.ts` because the accounts exist only in the isolated `playwright` compose project.
 
+`make playwright-stack` also seeds the shared **E2E baseline fixture** `db/fixtures/playwright_e2e_baseline.sql` (via `_playwright-seed-e2e-baseline`): a small self-contained set of genes (CHD8/ARID1B/NAA10/SCN2A), one CHD8 entity/review/status chain, a re-review assignment, and simplified copies of the heavy production read views so the fixture surfaces through the app. `app/tests/e2e/global-setup.ts` re-seeds users **and** the baseline before every `npx playwright test` run, so the data-dependent specs (public table filters, curation comparisons, gene-detail cards, slow-provider resilience, Modify Entity) always have rows. The known-good local baseline at `--workers=1` is **0 failures with 3 env-gated skips**: the ontology-blocked banner (needs `app/tests/e2e/fixtures/seed-blocked-ontology.sh`), the auth password-reset flow (reset-token retrieval not wired into the stack), and the MCP transport proxy (disabled in the stack — the info page still renders). To extend the fixture, add rows to `playwright_e2e_baseline.sql`; a gene a spec navigates to must exist there or the page redirects to the SPA 404.
+
 ### Slow-route / external-provider isolation (#344)
 
 The API guarantee is that no single request can occupy a Plumber worker for tens of seconds. Backend coverage is host-runnable (pure tests, no DB/network):
@@ -326,7 +328,7 @@ cd api && Rscript --no-init-file -e "for (f in c(
 )) testthat::test_file(file.path('tests/testthat', f))"
 ```
 
-`test-unit-external-budget-guard.R` fails if any external fetcher hardcodes a `req_timeout(<n>)`/`max_seconds=<n>` literal instead of `external_proxy_budget()`; `test-unit-cheap-route-isolation.R` fails if a cheap route (`/health`, `/auth`, `/statistics`) references an external fetcher. The matching frontend check (gene page renders while every `/api/external/**` response is stalled 20s) is the local-only spec `app/tests/e2e/slow-provider-resilience.spec.ts` — note the gene record/entities table read `/api/entity` & `/api/gene`, so it needs a **seeded** stack (the Playwright `8088` stack is schema-only; run against the seeded dev Vite server, e.g. `cd app && PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test tests/e2e/slow-provider-resilience.spec.ts`).
+`test-unit-external-budget-guard.R` fails if any external fetcher hardcodes a `req_timeout(<n>)`/`max_seconds=<n>` literal instead of `external_proxy_budget()`; `test-unit-cheap-route-isolation.R` fails if a cheap route (`/health`, `/auth`, `/statistics`) references an external fetcher. The matching frontend check (gene page renders while every `/api/external/**` response is stalled 20s) is the local-only spec `app/tests/e2e/slow-provider-resilience.spec.ts` — note the gene record/entities table read `/api/entity` & `/api/gene`, so the navigated gene must exist in the DB or the page redirects to the SPA 404. The E2E baseline fixture now seeds SCN2A for exactly this spec, so it runs against the Playwright `8088` stack; you can also run it against the seeded dev Vite server (`cd app && PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test tests/e2e/slow-provider-resilience.spec.ts`).
 
 ### Documentation screenshots
 
@@ -341,7 +343,7 @@ make docs-screenshots
 make docs-screenshots-down
 ```
 
-The `make docs-screenshots` target runs the stack, seeds the screenshot fixture data, runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack`, then `make _playwright-seed-docs-data`, then the `npm run docs:screenshots` command shown in `Makefile`, then `node scripts/documentation/verify-doc-screenshots.mjs`, and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
+The `make docs-screenshots` target runs the stack, seeds the E2E baseline fixture (which also carries the screenshot data), runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack` (which already seeds the baseline via `_playwright-seed-e2e-baseline`), then the `npm run docs:screenshots` command shown in `Makefile`, then `node scripts/documentation/verify-doc-screenshots.mjs`, and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
 
 ### Authoring a new spec
 

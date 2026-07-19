@@ -41,7 +41,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data analysis-release-zenodo-package analysis-release-zenodo-upload-draft
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-e2e-baseline analysis-release-zenodo-package analysis-release-zenodo-upload-draft
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -612,13 +612,13 @@ _playwright-seed-users:
 		printf "$(GREEN)✓ Test users seeded$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to seed test users$(RESET)\n" && exit 1)
 
-_playwright-seed-docs-data:
-	@printf "$(CYAN)==> Seeding Playwright documentation screenshot data...$(RESET)\n"
+_playwright-seed-e2e-baseline:
+	@printf "$(CYAN)==> Seeding Playwright E2E baseline data...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) exec -T mysql \
 		mysql -u root -p$(PLAYWRIGHT_DB_ROOT_PASSWORD) $(PLAYWRIGHT_DB_NAME) \
-		< $(ROOT_DIR)/db/fixtures/playwright_docs_screenshots.sql && \
-		printf "$(GREEN)✓ Documentation screenshot data seeded$(RESET)\n" || \
-		(printf "$(RED)✗ Failed to seed documentation screenshot data$(RESET)\n" && exit 1)
+		< $(ROOT_DIR)/db/fixtures/playwright_e2e_baseline.sql && \
+		printf "$(GREEN)✓ E2E baseline data seeded$(RESET)\n" || \
+		(printf "$(RED)✗ Failed to seed E2E baseline data$(RESET)\n" && exit 1)
 
 playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Playwright E2E stack (CI-only fixtures)
 	@printf "$(CYAN)==> Bringing up Playwright E2E stack...$(RESET)\n"
@@ -646,6 +646,11 @@ playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Pla
 	else \
 		printf "$(YELLOW)⚠ db/fixtures/playwright_users.sql missing — skipping user seed$(RESET)\n"; \
 	fi
+	@if [ -f $(ROOT_DIR)/db/fixtures/playwright_e2e_baseline.sql ]; then \
+		$(MAKE) _playwright-seed-e2e-baseline; \
+	else \
+		printf "$(YELLOW)⚠ db/fixtures/playwright_e2e_baseline.sql missing — skipping baseline seed$(RESET)\n"; \
+	fi
 	@printf "\n$(CYAN)Playwright stack ready:$(RESET)\n"
 	@printf "  App + API: $(PLAYWRIGHT_BASE_URL)\n"
 	@printf "  API direct: $(PLAYWRIGHT_API_BASE_URL)/api\n"
@@ -667,7 +672,7 @@ playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and
 playwright-stack-logs: check-docker ## [test] Tail Playwright E2E stack logs
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs -f --tail=50
 
-docs-screenshots: playwright-stack _playwright-seed-docs-data ## [docs] Generate documentation screenshots and provenance
+docs-screenshots: playwright-stack _playwright-seed-e2e-baseline ## [docs] Generate documentation screenshots and provenance
 	@printf "$(CYAN)==> Generating documentation screenshots...$(RESET)\n"
 	@(cd $(ROOT_DIR)/app && \
 		PLAYWRIGHT_BASE_URL=$(PLAYWRIGHT_BASE_URL) PLAYWRIGHT_API_BASE_URL=$(PLAYWRIGHT_API_BASE_URL) \
