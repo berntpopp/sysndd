@@ -215,6 +215,10 @@ services:
       retries: 3
       start_period: 60s
     deploy:
+      # #344: core lane floor. A single API container gives zero cross-request
+      # isolation; two replicas is the baseline. Override for load tests with
+      # `--scale api=N`.
+      replicas: 2
       resources:
         limits:
           memory: 4608M
@@ -254,11 +258,9 @@ services:
       - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded-For="
       - "traefik.http.routers.api.middlewares=api-strip-xff-alias@docker"
       - "traefik.http.services.api.loadbalancer.server.port=7777"
-      # Sticky sessions for job state consistency across scaled API containers
-      - "traefik.http.services.api.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.name=sysndd_api_sticky"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.httponly=true"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
+      # #344: sticky sessions removed — job state is durable in `async_jobs`
+      # (MySQL), so no request needs the same instance. Sticky harmed load
+      # distribution (the exact thing the 2026-05-18 mitigation had to undo).
 
   # #344: synchronous "enrichment" lane. Same image + full router as `api`, but
   # Traefik sends it ONLY /api/external/* (live upstream provider I/O). Isolating
