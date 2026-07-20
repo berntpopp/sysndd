@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.8] — 2026-07-20
+
 Close the remaining #344 structural gap (slow external endpoints head-of-line-blocking cheap routes) with a dedicated synchronous **enrichment lane** bulkhead. PR #386/#413 shipped the per-request budgets, ceiling, guards, and observability but deferred true cross-request isolation to #154, which has since been closed — so this adds the process partitioning directly.
 
 ### Added
