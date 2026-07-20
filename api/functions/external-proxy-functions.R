@@ -345,6 +345,25 @@ external_proxy_request_budget_error <- function(source) {
   )
 }
 
+# --- Synchronous API lane identity (#344) -------------------------------------
+
+#' Which synchronous API lane this process serves (#344).
+#'
+#' The core lane serves cheap/own-data routes; the enrichment lane serves
+#' `/api/external/*` only (Traefik-routed). Lane identity gates startup
+#' bootstraps (only the core lane owns them) and labels request-timing logs.
+#'
+#' @return "core" (default) or "enrichment", lowercased from the API_LANE env.
+#' @export
+api_lane <- function() {
+  lane <- tolower(trimws(Sys.getenv("API_LANE", "core")))
+  if (identical(lane, "enrichment")) "enrichment" else "core"
+}
+
+#' @rdname api_lane
+#' @export
+api_lane_is_enrichment <- function() identical(api_lane(), "enrichment")
+
 #' Make an external API request with retry and rate limiting
 #'
 #' @description

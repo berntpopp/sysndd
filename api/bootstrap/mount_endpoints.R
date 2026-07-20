@@ -193,7 +193,8 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
       if (is.na(slow_threshold_ms) || slow_threshold_ms <= 0) slow_threshold_ms <- 2000
       structured_timing <- paste0(
         "[request-timing] ",
-        "method=", convert_empty(req$REQUEST_METHOD),
+        "lane=", api_lane(),
+        " method=", convert_empty(req$REQUEST_METHOD),
         " path=", convert_empty(req$PATH_INFO),
         " status=", convert_empty(res$status),
         " duration_ms=", as.integer(round(duration_ms)),
