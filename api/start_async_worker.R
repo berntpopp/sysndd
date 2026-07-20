@@ -15,6 +15,16 @@ source("functions/async-job-maintenance-handlers.R", local = FALSE)
 source("functions/async-job-handlers.R", local = FALSE)
 source("functions/async-job-worker.R", local = FALSE)
 
+# Initialize the `version_json` global so snapshot generator provenance
+# (resolve_app_version(), #585) records a real application version in the worker,
+# mirroring api/start_sysndd_api.R:107 / bootstrap/init_globals.R:56. Read relative
+# to the worker's launch cwd (the api dir) BEFORE any setwd(dw$workdir) below.
+# resolve_app_version()'s env/cwd fallbacks are defense-in-depth if this is absent.
+version_json <- tryCatch(
+  jsonlite::fromJSON("version_spec.json"),
+  error = function(e) list(version = "unknown")
+)
+
 env_mode <- Sys.getenv("ENVIRONMENT", "local")
 
 if (tolower(env_mode) == "production") {

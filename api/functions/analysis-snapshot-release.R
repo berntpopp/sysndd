@@ -167,6 +167,46 @@ if (!exists("%||%", mode = "function")) {
 }
 
 # --------------------------------------------------------------------------- #
+# Per-layer generator provenance (#585). Read directly from each pinned
+# snapshot's manifest `generator_json` column (the release assembly works from
+# `snapshot$manifest`, NOT meta.snapshot.generator, which the release path never
+# builds). Recorded under `source.snapshots[i].generator` only; deliberately kept
+# OUT of `analysis_release_content_digest()`'s layer projection so it never
+# changes release identity. Pre-046 snapshots (no/empty generator_json) omit it.
+# --------------------------------------------------------------------------- #
+
+#' Parse a pinned snapshot manifest's `generator_json` into an object (or NULL).
+#' @noRd
+.analysis_release_manifest_generator <- function(manifest) {
+  raw <- as.character(.analysis_release_manifest_scalar(manifest, "generator_json", NA_character_))
+  if (length(raw) == 0L || is.na(raw) || !nzchar(raw)) {
+    return(NULL)
+  }
+  parsed <- tryCatch(jsonlite::fromJSON(raw, simplifyVector = FALSE), error = function(e) NULL)
+  if (is.null(parsed) || length(parsed) == 0L) NULL else parsed
+}
+
+#' Assemble `manifest.source.snapshots[]` with per-layer generator provenance.
+#'
+#' `loaded` is keyed by analysis_type and carries the parsed `$generator` per
+#' layer. A layer without provenance (pre-046) omits the `generator` key.
+#' @noRd
+.analysis_release_source_snapshots <- function(layer_entries, loaded) {
+  lapply(layer_entries, function(e) {
+    entry <- list(
+      analysis_type = e$analysis_type,
+      snapshot_id = e$snapshot_id,
+      parameter_hash = e$parameter_hash
+    )
+    generator <- loaded[[e$analysis_type]]$generator
+    if (!is.null(generator)) {
+      entry$generator <- generator
+    }
+    entry
+  })
+}
+
+# --------------------------------------------------------------------------- #
 # Orchestrator
 # --------------------------------------------------------------------------- #
 
@@ -271,6 +311,9 @@ analysis_snapshot_release_build <- function(layers = NULL,
         .analysis_release_manifest_scalar(manifest, "source_data_version", NA_character_)
       ),
       parameter_hash = parameter_hash,
+      # #585: per-layer generator provenance, parsed from the pinned snapshot's
+      # manifest column. Surfaced in source.snapshots[]; NOT in the content digest.
+      generator = .analysis_release_manifest_generator(manifest),
       reproducibility_hash = NULL,
       dependencies = NULL,
       reproducibility_bundle = NULL
@@ -426,9 +469,7 @@ analysis_snapshot_release_build <- function(layers = NULL,
         version = if (is.na(shared_db_release_version)) NULL else shared_db_release_version,
         commit = if (is.na(shared_db_release_commit)) NULL else shared_db_release_commit
       ),
-      snapshots = lapply(layer_entries, function(e) {
-        list(analysis_type = e$analysis_type, snapshot_id = e$snapshot_id, parameter_hash = e$parameter_hash)
-      })
+      snapshots = .analysis_release_source_snapshots(layer_entries, loaded)
     ),
     layers = layer_entries,
     files = content_files,

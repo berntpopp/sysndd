@@ -147,6 +147,7 @@ generate_comparisons_list <- function(
   # cursor_pagination_info function return
   meta <- ndd_database_comp_table_info$meta %>%
     add_column(as_tibble(list(
+      "mapping_version" = COMPARISON_CATEGORY_MAPPING_VERSION,
       "sort" = sort,
       "filter" = filter,
       "fields" = fields,

@@ -73,6 +73,11 @@ bootstrap_load_modules <- function() {
     "functions/analysis-snapshot-prune-helpers.R",
     "functions/analysis-snapshot-coherence.R",
     "functions/analysis-snapshot-dependencies.R",
+    # Additive generator provenance (#585). Sourced BEFORE the builder (its
+    # consumer). It references CLUSTER_LOGIC_VERSION at CALL time only (a refresh
+    # runs long after boot, and cache-fingerprint is sourced later in this same
+    # list), so source order relative to analysis-cache-fingerprint.R is immaterial.
+    "functions/analysis-snapshot-provenance-generator.R",
     "functions/analysis-snapshot-builder.R",
     "functions/analysis-reproducibility.R",
     # Immutable, content-addressed public analysis-snapshot releases (#573

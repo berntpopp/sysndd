@@ -11,6 +11,7 @@
             aria-label="Explain UpSet plot"
             title="Explain UpSet plot"
           />
+          <EvidenceTierMappingHelp />
         </h2>
         <p class="panel-description">
           UpSet plot of selected curation-list intersections. Each bar shows the gene count unique
@@ -186,6 +187,7 @@ import useToast from '@/composables/useToast';
 import { render, extractSets } from '@upsetjs/bundle';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import EvidenceTierMappingHelp from './EvidenceTierMappingHelp.vue';
 
 import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
 
@@ -202,7 +204,7 @@ import {
 
 export default {
   name: 'AnalysesCurationUpset',
-  components: { DownloadImageButtons, InlineHelpBadge },
+  components: { DownloadImageButtons, InlineHelpBadge, EvidenceTierMappingHelp },
   setup() {
     const upsetContainer = ref(null);
     const { makeToast } = useToast();

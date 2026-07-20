@@ -327,8 +327,10 @@ service_analysis_snapshot_meta <- function(snapshot) {
     snapshot = list(
       snapshot_id = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$snapshot_id)),
       analysis_type = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$analysis_type)),
-      parameter_hash = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$parameter_hash)),
-      schema_version = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$schema_version)),
+      parameter_hash = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_scalar_value(row$parameter_hash)),
+      schema_version = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_scalar_value(row$schema_version)),
       data_class = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$data_class)),
       generated_at = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_time_string(service_analysis_snapshot_scalar_value(row$generated_at))
@@ -370,7 +372,18 @@ service_analysis_snapshot_meta <- function(snapshot) {
           service_analysis_snapshot_column_value(row, "db_release_version")),
         commit  = service_analysis_snapshot_json_scalar(
           service_analysis_snapshot_column_value(row, "db_release_commit"))
-      )
+      ),
+      # Additive generator provenance (#585): HOW the snapshot was produced
+      # (application version+commit, snapshot-builder + cluster-logic versions,
+      # applied algorithm params, library versions). Excluded from every identity
+      # hash; an empty/absent generator_json (pre-046) maps to NULL so both keys
+      # are omitted. generator_hash binds the served block for cache detection.
+      generator = {
+        g <- service_analysis_snapshot_parse_json_object(
+          service_analysis_snapshot_column_value(row, "generator_json"))
+        if (length(g) == 0L) NULL else g
+      },
+      generator_hash = service_analysis_snapshot_generator_hash(row)
     )
   )
 }
@@ -426,6 +439,23 @@ service_analysis_snapshot_json_scalar <- function(value) {
 #' (no validation_json) return NULL.
 service_analysis_snapshot_validation_hash <- function(row) {
   raw <- service_analysis_snapshot_column_value(row, "validation_json")
+  if (is.null(raw) || length(raw) == 0L || is.na(raw[[1]]) || !nzchar(raw[[1]])) {
+    return(NULL)
+  }
+  service_analysis_snapshot_json_scalar(
+    digest::digest(raw[[1]], algo = "sha256", serialize = FALSE)
+  )
+}
+
+#' SHA-256 of the persisted generator_json blob (NULL when absent).
+#'
+#' Additive generator provenance (#585) is excluded from every identity hash
+#' (payload_hash/input_hash/cluster_hash), so this companion hash lets a client
+#' caching on hashes detect a provenance-only change. Computed over the exact
+#' stored JSON so it always matches the served `generator`. Pre-046 snapshots (no
+#' generator_json column, or NULL/empty) return NULL and the meta omits both keys.
+service_analysis_snapshot_generator_hash <- function(row) {
+  raw <- service_analysis_snapshot_column_value(row, "generator_json")
   if (is.null(raw) || length(raw) == 0L || is.na(raw[[1]]) || !nzchar(raw[[1]])) {
     return(NULL)
   }

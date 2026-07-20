@@ -129,6 +129,9 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/analysis-snapshot-repository.R", local = FALSE)
     source("/app/functions/analysis-snapshot-prune-helpers.R", local = FALSE)
     source("/app/functions/analysis-snapshot-dependencies.R", local = FALSE)
+    # Additive generator provenance (#585); sourced after analysis-cache-fingerprint.R
+    # (CLUSTER_LOGIC_VERSION, above) and before the builder (its consumer).
+    source("/app/functions/analysis-snapshot-provenance-generator.R", local = FALSE)
     source("/app/functions/analysis-snapshot-builder.R", local = FALSE)
     source("/app/functions/analysis-reproducibility.R", local = FALSE)
     source("/app/functions/async-job-analysis-snapshot-handlers.R", local = FALSE)
