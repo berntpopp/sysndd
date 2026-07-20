@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.7] — 2026-07-20
+
 Harmonize the curation-comparison evidence-tier mapping and make it versioned and self-explaining (#583, #586), and persist immutable generator provenance in analysis snapshots (#585). One coherent change; #584 (ZNF41 adjudication) is handled separately through the curation workflow.
 
 ### Added
