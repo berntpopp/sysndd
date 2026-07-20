@@ -4,7 +4,7 @@
 # bootstraps off the enrichment lane and (b) label request-timing logs.
 
 test_that("api_lane defaults to core and is case-insensitive", {
-  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  source(file.path(get_api_dir(), "functions", "external-proxy-request-state.R"), local = TRUE)
   withr::with_envvar(c(API_LANE = ""), {
     expect_identical(api_lane(), "core")
     expect_false(api_lane_is_enrichment())

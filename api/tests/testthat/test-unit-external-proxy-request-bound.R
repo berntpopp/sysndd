@@ -5,7 +5,7 @@
 # not-yet-accumulated time, is about to spend) its external-time ceiling.
 
 test_that("external_proxy_request_would_exceed accounts for pending, not-yet-added time", {
-  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  source(file.path(get_api_dir(), "functions", "external-proxy-request-state.R"), local = TRUE)
   withr::with_envvar(c(EXTERNAL_PROXY_REQUEST_MAX_SECONDS = "15"), {
     external_proxy_request_reset()
     expect_false(external_proxy_request_would_exceed(0))
