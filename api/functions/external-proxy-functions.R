@@ -328,6 +328,22 @@ external_proxy_request_ceiling_exceeded <- function() {
   external_proxy_request_total_ms() >= external_proxy_request_ceiling_ms()
 }
 
+#' Would this request cross its external-time ceiling if it spent `pending_ms`
+#' more? Lets a multi-call fetcher skip a subsequent best-effort upstream call
+#' instead of driving one request through several full provider budgets (#344).
+#'
+#' Unlike `external_proxy_request_ceiling_exceeded()`, this counts just-elapsed
+#' time the wrapping `external_proxy_with_timing()` has not yet accumulated (it
+#' adds only after its closure returns).
+#'
+#' @param pending_ms Milliseconds already spent on the current in-flight call
+#'   that are not yet reflected in the accumulator.
+#' @return TRUE if `accumulated + pending_ms >= ceiling`.
+#' @noRd
+external_proxy_request_would_exceed <- function(pending_ms = 0) {
+  (external_proxy_request_total_ms() + pending_ms) >= external_proxy_request_ceiling_ms()
+}
+
 #' Degraded 503 envelope returned when the per-request external ceiling is hit.
 #' @noRd
 external_proxy_request_budget_error <- function(source) {
