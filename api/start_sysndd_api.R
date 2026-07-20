@@ -139,52 +139,46 @@ schedule_cleanup(3600)
 root <- bootstrap_mount_endpoints(api_spec, pool, logging_temp_file)
 
 ## -------------------------------------------------------------------##
-# 9b) Bootstrap PubtatorNDD enrichment if no current snapshot exists (#421):
-#     a fresh deploy gets enrichment + the gene-summary table populated without
-#     waiting for the nightly cron. Idempotent + dedup-safe; never crashes boot.
-## -------------------------------------------------------------------##
-tryCatch(
-  pubtatornidd_bootstrap_enrichment(),
-  error = function(e) {
-    message(sprintf("[pubtatornidd-bootstrap] skipped: %s", conditionMessage(e)))
-  }
-)
-
-## -------------------------------------------------------------------##
 # 9b') Scrub any DB credential older code persisted into terminal backup job
 #      payloads (#535 P1-1). Idempotent, backup+terminal scoped, env-gated
 #      (ASYNC_JOB_PAYLOAD_SCRUB_ON_STARTUP), never crashes boot. Operator
-#      credential rotation remains the primary mitigation.
+#      credential rotation remains the primary mitigation. Safe on both lanes
+#      (cheap + idempotent), so it runs OUTSIDE the enrichment-lane gate below.
 ## -------------------------------------------------------------------##
 async_job_scrub_payload_credentials_on_startup()
 
 ## -------------------------------------------------------------------##
-# 9c) Bootstrap public analysis snapshots if missing (#420): a fresh deploy
-#     gets the analysis_snapshot_* tables populated so /GeneNetworks and
-#     /PhenotypeClusters heal automatically instead of 503 snapshot_missing.
-#     Idempotent (existence-checked) + dedup-safe; gated; never crashes boot.
+# 9b-9d) Startup bootstraps (pubtatornidd enrichment #421, analysis snapshots
+#        #420, disease ontology mapping WP-C). These enqueue durable jobs and
+#        are the CORE lane's responsibility only: the enrichment lane (#344)
+#        depends_on the core API being healthy (migrations + these bootstraps
+#        already done), so it must NOT re-run them. Each is idempotent +
+#        dedup-safe and never crashes boot.
 ## -------------------------------------------------------------------##
-tryCatch(
-  analysis_snapshot_bootstrap_on_startup(),
-  error = function(e) {
-    message(sprintf("[snapshot-bootstrap] skipped: %s", conditionMessage(e)))
-  }
-)
+if (!api_lane_is_enrichment()) {
+  tryCatch(
+    pubtatornidd_bootstrap_enrichment(),
+    error = function(e) {
+      message(sprintf("[pubtatornidd-bootstrap] skipped: %s", conditionMessage(e)))
+    }
+  )
 
-## -------------------------------------------------------------------##
-# 9d) Bootstrap the disease cross-ontology mapping index if no successful build
-#     exists yet (WP-C): a fresh deploy rebuilds the MONDO index + derived
-#     `disease_ontology_mapping` rows without waiting for the weekly cron.
-#     Idempotent (existence-checked) + dedup-safe; gated; staggered (360s) so it
-#     does not co-launch with the snapshot/pubtatornidd bootstraps; never crashes
-#     boot.
-## -------------------------------------------------------------------##
-tryCatch(
-  disease_ontology_mapping_bootstrap_on_startup(),
-  error = function(e) {
-    message(sprintf("[ontology-mapping-bootstrap] skipped: %s", conditionMessage(e)))
-  }
-)
+  tryCatch(
+    analysis_snapshot_bootstrap_on_startup(),
+    error = function(e) {
+      message(sprintf("[snapshot-bootstrap] skipped: %s", conditionMessage(e)))
+    }
+  )
+
+  tryCatch(
+    disease_ontology_mapping_bootstrap_on_startup(),
+    error = function(e) {
+      message(sprintf("[ontology-mapping-bootstrap] skipped: %s", conditionMessage(e)))
+    }
+  )
+} else {
+  message("[api-lane] enrichment lane: skipping startup bootstraps (core lane owns them)")
+}
 
 ## -------------------------------------------------------------------##
 # 10) Run the API.

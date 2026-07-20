@@ -99,6 +99,8 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/analysis-cluster-validation.R", local = FALSE)
     source("/app/functions/analysis-network-functions.R", local = FALSE)
     # Source shared external proxy infrastructure (validate_gene_symbol, cache backends, throttle)
+    # #344: per-request external-time state + lane identity (sourced first).
+    source("/app/functions/external-proxy-request-state.R", local = FALSE)
     source("/app/functions/external-proxy-functions.R", local = FALSE)
     # Source gnomAD proxy functions (fetch_gnomad_constraints + memoised wrapper)
     source("/app/functions/external-proxy-gnomad.R", local = FALSE)

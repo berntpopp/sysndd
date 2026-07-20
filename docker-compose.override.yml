@@ -68,6 +68,11 @@ services:
       ENVIRONMENT: development
       # Lower worker count for development (memory-constrained local machines)
       MIRAI_WORKERS: ${MIRAI_WORKERS:-1}
+    # DEV: one API container. The prod floor (deploy.replicas: 2, #344) would
+    # spin two containers that both re-run startup work on a memory-constrained
+    # laptop. Merges onto the base deploy block (resources are preserved).
+    deploy:
+      replicas: 1
 
   # Local-only MCP access for development. Production compose does not expose
   # MCP through Traefik or host ports by default.
@@ -157,3 +162,11 @@ services:
   worker-maintenance:
     profiles:
       - prod-maintenance-worker
+
+  # DEV: keep the enrichment lane OUT of the local stack (#344). Its Traefik
+  # router disappears with it, so /api/external falls through to the single dev
+  # `api` via the /api router — dev stays one lane; prod runs both. Same
+  # profile-gate mechanism as worker-maintenance above.
+  api-enrichment:
+    profiles:
+      - prod-enrichment-lane

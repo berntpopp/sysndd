@@ -215,6 +215,10 @@ services:
       retries: 3
       start_period: 60s
     deploy:
+      # #344: core lane floor. A single API container gives zero cross-request
+      # isolation; two replicas is the baseline. Override for load tests with
+      # `--scale api=N`.
+      replicas: 2
       resources:
         limits:
           memory: 4608M
@@ -254,11 +258,91 @@ services:
       - "traefik.http.middlewares.api-strip-xff-alias.headers.customRequestHeaders.X_Forwarded-For="
       - "traefik.http.routers.api.middlewares=api-strip-xff-alias@docker"
       - "traefik.http.services.api.loadbalancer.server.port=7777"
-      # Sticky sessions for job state consistency across scaled API containers
-      - "traefik.http.services.api.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.name=sysndd_api_sticky"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.httponly=true"
-      - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
+      # #344: sticky sessions removed — job state is durable in `async_jobs`
+      # (MySQL), so no request needs the same instance. Sticky harmed load
+      # distribution (the exact thing the 2026-05-18 mitigation had to undo).
+
+  # #344: synchronous "enrichment" lane. Same image + full router as `api`, but
+  # Traefik sends it ONLY /api/external/* (live upstream provider I/O). Isolating
+  # that surface into its own process pool means a slow upstream can never
+  # head-of-line-block cheap/core routes (health/auth/statistics/entity/gene/
+  # analysis/jobs), which stay on `api`. Mirrors the worker/worker-maintenance
+  # async-lane split. Scale independently: --scale api-enrichment=N.
+  api-enrichment:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command: ["Rscript", "start_sysndd_api.R"]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      api:
+        condition: service_healthy   # migrations + startup bootstraps done by core first
+    volumes:
+      - ./api/endpoints:/app/endpoints
+      - ./api/functions:/app/functions
+      - ./api/core:/app/core
+      - ./api/services:/app/services
+      - ./api/bootstrap:/app/bootstrap
+      - ./api/config:/app/config
+      - ./api/scripts:/app/scripts:ro
+      - ./api/data:/app/data
+      - ./api/results:/app/results
+      - ./db/migrations:/app/db/migrations:ro
+      - api_cache:/app/cache
+      - ./api/config.yml:/app/config.yml:ro
+      - ./api/version_spec.json:/app/version_spec.json
+      - ./api/start_sysndd_api.R:/app/start_sysndd_api.R
+    environment:
+      ENVIRONMENT: production
+      API_LANE: enrichment            # #344: skip startup bootstraps (core owns them)
+      PASSWORD: ${PASSWORD}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      DB_POOL_SIZE: ${API_ENRICHMENT_DB_POOL_SIZE:-3}
+      MIRAI_WORKERS: 1                # I/O-bound proxy calls, no heavy compute here
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      NCBI_EUTILS_EMAIL: ${NCBI_EUTILS_EMAIL:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      CACHE_VERSION: ${CACHE_VERSION:-3}
+      OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      # Belt-and-braces: the API_LANE gate already skips these, but pin the flags
+      # off too so a future ungated bootstrap cannot double-run on this lane.
+      ANALYSIS_SNAPSHOT_BOOTSTRAP_ON_STARTUP: "false"
+      DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_ON_STARTUP: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 2048M
+          cpus: '1.0'
+    networks:
+      - proxy      # egress for external providers
+      - backend    # DB for cache reads/writes (e.g. RGD id lookup)
+    labels:
+      - "traefik.enable=true"
+      # Higher priority than the core `api` router (100) so /api/external wins.
+      - "traefik.http.routers.api-enrichment.rule=Host(`sysndd.dbmr.unibe.ch`) && PathPrefix(`/api/external`)"
+      - "traefik.http.routers.api-enrichment.entrypoints=web"
+      - "traefik.http.routers.api-enrichment.priority=200"
+      - "traefik.http.routers.api-enrichment.middlewares=api-strip-xff-alias@docker"
+      - "traefik.http.services.api-enrichment.loadbalancer.server.port=7777"
+      # No sticky cookie: the enrichment lane is stateless (durable MySQL jobs).
 
   worker:
     image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}

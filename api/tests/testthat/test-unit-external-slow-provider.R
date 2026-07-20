@@ -10,9 +10,10 @@
 #       upstream duration, configured timeout, cache hit/miss, mapped status).
 #
 # These are host-only unit/contract tests: the external fetcher is simulated
-# with a sleeping closure (no real network, no DB). True cross-REQUEST worker
-# isolation (separate heavy/light worker pools) is deferred to #154; this file
-# verifies the bounded per-request fast-fail + observability that this PR adds.
+# with a sleeping closure (no real network, no DB). Structural cross-REQUEST
+# isolation is provided by the #344 `api-enrichment` process lane (a Compose/
+# Traefik bulkhead, proven by `make smoke-lane-isolation`); this file verifies
+# the bounded per-request fast-fail + observability that complement it.
 
 library(dplyr)
 library(rlang) # For %||% operator

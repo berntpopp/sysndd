@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+Close the remaining #344 structural gap (slow external endpoints head-of-line-blocking cheap routes) with a dedicated synchronous **enrichment lane** bulkhead. PR #386/#413 shipped the per-request budgets, ceiling, guards, and observability but deferred true cross-request isolation to #154, which has since been closed — so this adds the process partitioning directly.
+
+### Added
+
+- **`api-enrichment` synchronous lane** (`docker-compose.yml`): a near-clone of the `api` service from the same image with the full router mounted, but Traefik routes ONLY `/api/external/*` to it (a new router at priority 200, above the `/api` router's 100). Live upstream provider I/O is therefore isolated to its own process pool, so a slow upstream can never head-of-line-block cheap/core routes (`/api/health/`, auth, statistics). It sets `API_LANE=enrichment`, `depends_on: api healthy`, and is independently scalable (`--scale api-enrichment=N`). Mirrors the `worker`/`worker-maintenance` async-lane split; the frontend is unchanged (it still calls `/api/...`).
+- **`API_LANE` process identity** (`api/functions/external-proxy-functions.R`): `api_lane()`/`api_lane_is_enrichment()` gate the three startup bootstraps (snapshot/pubtatornidd/ontology) off the enrichment lane — the core lane owns them — and label the `[request-timing]` log line with `lane=core|enrichment`.
+- **Boundary-completeness guard** (`api/tests/testthat/test-unit-external-fetcher-allowlist.R`): fails CI if a new endpoint file calls an external fetcher on a request path outside the known allowlist (`external_endpoints.R` plus the documented Curator-gated `entity_endpoints.R`/`genereviews_endpoints.R` residuals), so a new external-calling public route cannot silently land on the core lane.
+- **Two-lane isolation smoke** (`scripts/smoke-lane-isolation.sh`, `make smoke-lane-isolation`): saturates the enrichment lane with a concurrent `/api/external/*` burst and asserts `/api/health/` stays fast — the cross-container bulkhead proof a unit test cannot give.
+
+### Changed
+
+- **Sticky sessions removed** on the `api` Traefik load balancer (`docker-compose.yml`): job state is durable in `async_jobs`, so no request needs the same instance; sticky harmed even load distribution. The core `api` now declares a `deploy.replicas: 2` prod floor; the dev override pins it back to 1 and profile-gates `api-enrichment` out (`prod-enrichment-lane`), so `make dev` stays single-lane.
+- **Per-request external ceiling is now a true bound** (`api/functions/external-proxy-mgi.R`): the two-call MGI fetcher re-checks the ceiling (`external_proxy_request_would_exceed()`) before its best-effort zygosity call, so one request can no longer spend ~2× a provider budget (~32s) past the documented 15s. Single-call fetchers are unaffected; step-1 phenotypes are still returned.
+- **Docs:** `AGENTS.md` (new "Synchronous API lanes" invariant), `09-deployment.qmd` (two-lane operator guide + routing table; the stale "#154 stopgap" note replaced with the resolved state), `08-development.qmd` (dev single-lane; how to run the two-lane stack locally).
+
 ## [0.30.7] — 2026-07-20
 
 Harmonize the curation-comparison evidence-tier mapping and make it versioned and self-explaining (#583, #586), and persist immutable generator provenance in analysis snapshots (#585). One coherent change; #584 (ZNF41 adjudication) is handled separately through the curation workflow.

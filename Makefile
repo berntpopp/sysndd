@@ -41,7 +41,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-e2e-baseline analysis-release-zenodo-package analysis-release-zenodo-upload-draft
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke smoke-lane-isolation coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-e2e-baseline analysis-release-zenodo-package analysis-release-zenodo-upload-draft
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -148,6 +148,10 @@ test-mcp-smoke: check-r ## [test] Probe a running MCP sidecar with initialize an
 	@cd $(ROOT_DIR)/api && MCP_URL=$${MCP_URL:-http://127.0.0.1:8787} Rscript scripts/mcp-smoke.R && \
 		printf "$(GREEN)✓ test-mcp-smoke complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-mcp-smoke failed$(RESET)\n" && exit 1)
+
+smoke-lane-isolation: ## [test] #344: prove /api/health stays fast while /api/external is saturated (needs the two-lane prod stack up)
+	@printf "$(CYAN)==> Running two-lane bulkhead isolation smoke...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/smoke-lane-isolation.sh
 
 coverage: check-r ## [test] Generate test coverage report with covr
 	@printf "$(CYAN)==> Calculating test coverage...$(RESET)\n"

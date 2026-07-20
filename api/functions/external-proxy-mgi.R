@@ -57,6 +57,7 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
         # This maps human gene symbol to mouse ortholog phenotypes
         phenotype_url <- paste0(MOUSEMINE_BASE_URL, "/template/results")
 
+        step1_start <- proc.time()[["elapsed"]]
         phenotype_response <- httr2::request(phenotype_url) |>
           httr2::req_url_query(
             name = "HGene_MPhenotype",
@@ -78,6 +79,7 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
           ) |>
           httr2::req_timeout(budget$timeout_seconds) |>
           httr2::req_perform()
+        step1_elapsed_ms <- (proc.time()[["elapsed"]] - step1_start) * 1000
 
         phenotype_data <- httr2::resp_body_json(phenotype_response)
 
@@ -111,7 +113,11 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
         }
 
         # Step 2: Query for zygosity data using _Genotype_Phenotype template
-        if (!is.null(mouse_symbol) && nchar(mouse_symbol) > 0) {
+        # #344: skip the best-effort zygosity call if step 1 already consumed
+        # this request's external-time ceiling, so a slow MouseMine cannot drive
+        # ONE request through TWO full provider budgets (~2x the nominal 15s).
+        if (!is.null(mouse_symbol) && nchar(mouse_symbol) > 0 &&
+          !external_proxy_request_would_exceed(step1_elapsed_ms)) {
           zygosity_response <- tryCatch(
             {
               httr2::request(phenotype_url) |>
