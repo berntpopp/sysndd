@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.9] — 2026-07-23
+
+Consolidated dependency maintenance: merged the five open Dependabot bumps into one change and resolved the open Dependabot security alerts, with the frontend lockfile fully regenerated (`npm install` + `npm audit fix`) so it installs cleanly under `npm ci --legacy-peer-deps`. See #596.
+
+### Changed
+
+- **Docker images:** `axllent/mailpit` v1.30.4 → v1.30.5 (dev + Playwright compose); `fholzer/nginx-brotli` v1.31.2 → v1.31.3 (`app/Dockerfile`).
+- **Frontend production dependencies:** `pinia` ^3.0.4 → ^4.0.2 (major — "technically breaking" only: ESM-only and `@vue/devtools-api` moved to a peer dependency, added as a devDependency per the migration note; the app is `type: module` and only standard pinia APIs are used); `@unhead/vue` ^3.2.1; `swagger-ui`/`swagger-ui-dist` ^5.32.9; `vue` ^3.5.40; `vue-router` ^5.2.0.
+- **Frontend dev dependencies:** `@vitejs/plugin-vue` ^6.0.8; `@vue/compiler-sfc` ^3.5.40; `eslint-plugin-vue` ^10.10.0; `lint-staged` ^17.1.0; `postcss` ^8.5.20.
+
+### Security
+
+- Resolved all open Dependabot security alerts; `npm audit` now reports **0 vulnerabilities**. Patched `brace-expansion` (GHSA-3jxr-9vmj-r5cp, HIGH) and `body-parser` (GHSA-v422-hmwv-36x6), plus the pre-existing HIGH advisories in `fast-uri`, `immutable`, and `svgo`. All fixes are semver-compatible (no forced major upgrades).
+
 ## [0.30.8] — 2026-07-20
 
 Close the remaining #344 structural gap (slow external endpoints head-of-line-blocking cheap routes) with a dedicated synchronous **enrichment lane** bulkhead. PR #386/#413 shipped the per-request budgets, ceiling, guards, and observability but deferred true cross-request isolation to #154, which has since been closed — so this adds the process partitioning directly.
