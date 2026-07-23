@@ -10,9 +10,13 @@
 #   - Phenotype x functional  -> phenotype_functional_correlations
 #
 # Public analysis endpoints return HTTP 503 `snapshot_missing` until these
-# snapshots exist (by design — see AGENTS.md "Background jobs"). There is no
-# public route that triggers a refresh (correct: it is admin/operator-only and
-# heavy), so this script is the operator entry point.
+# snapshots exist (by design — see AGENTS.md "Background jobs"). A public GET no
+# longer triggers a heavy build synchronously, but the serving path DOES enqueue
+# a best-effort, throttled, dedup-safe self-heal refresh when it observes a
+# missing / stale / version-mismatched snapshot
+# (`service_analysis_snapshot_selfheal_on_serve()`), so a post-startup data
+# change recovers on its own instead of serving a permanent 503. This script
+# remains the operator entry point to FORCE an immediate all-preset rebuild.
 #
 # Usage: this file is NOT baked into the API image (`api/.dockerignore` excludes
 # `scripts/`), and the container runs as a non-root user (so `docker cp` into

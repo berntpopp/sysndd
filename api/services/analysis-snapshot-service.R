@@ -25,7 +25,24 @@ service_analysis_snapshot_problem <- function(code,
 
 service_analysis_snapshot_read <- function(analysis_type,
                                            params,
-                                           repo_get_public = analysis_snapshot_get_public) {
+                                           repo_get_public = analysis_snapshot_get_public,
+                                           on_stale_refresh = NULL) {
+  # Serve-time self-heal (best-effort, non-throwing): when a public endpoint is
+  # asked for a snapshot that is missing / stale / version-mismatched, enqueue a
+  # refresh so the "being prepared shortly" 503 actually resolves without waiting
+  # for an API restart. Resolved lazily so contexts that never loaded the refresh
+  # service (unit tests) degrade to a no-op. Injectable for spying in tests.
+  trigger_selfheal <- function(at) {
+    fn <- on_stale_refresh
+    if (is.null(fn)) {
+      fn <- get0("service_analysis_snapshot_selfheal_on_serve", mode = "function")
+    }
+    if (is.function(fn)) {
+      tryCatch(fn(at), error = function(e) NULL)
+    }
+    invisible(NULL)
+  }
+
   normalized <- tryCatch(
     analysis_snapshot_normalize_params(analysis_type, params),
     analysis_snapshot_unsupported_parameter_error = function(e) e
@@ -42,6 +59,7 @@ service_analysis_snapshot_read <- function(analysis_type,
 
   snapshot <- repo_get_public(normalized$analysis_type, normalized$parameter_hash)
   if (is.null(snapshot)) {
+    trigger_selfheal(normalized$analysis_type)
     return(service_analysis_snapshot_problem(
       code = "snapshot_missing",
       message = "No public analysis snapshot is currently available for this supported parameter set.",
@@ -53,6 +71,7 @@ service_analysis_snapshot_read <- function(analysis_type,
 
   status_code <- snapshot$status_code %||% "available"
   if (!identical(status_code, "available")) {
+    trigger_selfheal(normalized$analysis_type)
     return(service_analysis_snapshot_problem(
       code = status_code,
       message = service_analysis_snapshot_status_message(status_code),

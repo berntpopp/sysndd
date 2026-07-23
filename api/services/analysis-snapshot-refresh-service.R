@@ -286,6 +286,133 @@ service_analysis_snapshot_status <- function(presets = NULL,
   )
 }
 
+#' In-process state for the serve-time snapshot self-heal throttle.
+#'
+#' A single GLOBAL epoch (not per-preset): a source-data change flips the
+#' `analysis_snapshot_source_data_version()` hash for ALL presets at once, so one
+#' enqueue-all refresh covers every public analysis page. Package-private env so
+#' the throttle survives across requests in the same R process. Each API instance
+#' (api-1, api-2) throttles independently; job-level dedup makes the worst-case
+#' cross-instance double-enqueue harmless.
+#' @keywords internal
+.analysis_snapshot_selfheal_state <- new.env(parent = emptyenv())
+.analysis_snapshot_selfheal_state$last_submit_epoch <- NULL
+
+#' Whether the serve-time snapshot self-heal is enabled (default TRUE).
+#'
+#' Disable with `ANALYSIS_SNAPSHOT_SELFHEAL_ON_SERVE=false` (e.g. to fall back to
+#' the startup-only bootstrap). Read at call time so a restart picks up a change.
+#' @export
+analysis_snapshot_selfheal_enabled <- function() {
+  raw <- trimws(Sys.getenv("ANALYSIS_SNAPSHOT_SELFHEAL_ON_SERVE", "true"))
+  if (!nzchar(raw)) {
+    return(TRUE)
+  }
+  tolower(raw) %in% c("true", "1", "yes", "on")
+}
+
+#' Minimum seconds between serve-time self-heal enqueues (per process). Default 60.
+#'
+#' Bounds how often a polling frontend re-runs the (DB-touching) submit loop while
+#' a rebuild is in flight. Read at call time.
+#' @export
+analysis_snapshot_selfheal_throttle_seconds <- function() {
+  .analysis_snapshot_int_env("ANALYSIS_SNAPSHOT_SELFHEAL_THROTTLE_SECONDS", 60L)
+}
+
+#' Serve-time self-heal: enqueue a snapshot refresh when a public endpoint is
+#' asked for a snapshot that is missing / stale / source-version- or
+#' schema-mismatched.
+#'
+#' ROOT CAUSE this closes: before this, the startup bootstrap
+#' (`analysis_snapshot_bootstrap_on_startup()`) was the ONLY thing that
+#' re-enqueued a non-current snapshot. A data edit AFTER API startup flips the
+#' source-data-version hash, so every public analysis endpoint (GeneNetworks,
+#' PhenotypeFunctionalCorrelation, ...) returned a PERMANENT HTTP 503
+#' ("This analysis is being prepared and will appear here shortly") with nothing
+#' actually preparing it, until the next API restart. This makes the promise
+#' true: the first request that observes staleness kicks off the SAME dedup-safe,
+#' all-preset refresh the bootstrap runs, so subsequent client polls converge to
+#' HTTP 200.
+#'
+#' Contract:
+#'   - Best-effort and NON-throwing: `service_analysis_snapshot_read()` invokes
+#'     this purely for its side effect and still returns its 503. Any failure
+#'     here is swallowed (a self-heal error must never turn a 503 into a 500).
+#'   - Throttled to at most one enqueue per `throttle_seconds` per process, keyed
+#'     GLOBALLY, so a polling frontend does not run the submit loop on every
+#'     request.
+#'   - Enqueues ALL non-current presets (`force = FALSE`, no stagger), mirroring
+#'     the proven startup bootstrap so cluster + correlation lineage rebuild
+#'     consistently (the correlation presets' recorded dependencies stay pinned
+#'     to current cluster snapshots). Job-level dedup collapses duplicate submits.
+#'
+#' @param analysis_type The preset that was requested (recorded for logging; the
+#'   enqueue covers all presets by design).
+#' @param submit_fn Injectable submit path (default the shared submit).
+#' @param enabled_fn Injectable enable gate (default `analysis_snapshot_selfheal_enabled`).
+#' @param throttle_seconds Injectable throttle window; NULL resolves the env default.
+#' @param state Injectable throttle-state env (default the package-private env).
+#' @param now Clock injection point (default `Sys.time()`).
+#' @return Invisibly TRUE when an enqueue was attempted this call; FALSE when
+#'   throttled or disabled.
+#' @export
+service_analysis_snapshot_selfheal_on_serve <- function(
+    analysis_type = NULL,
+    submit_fn = service_analysis_snapshot_submit_refresh,
+    enabled_fn = analysis_snapshot_selfheal_enabled,
+    throttle_seconds = NULL,
+    state = .analysis_snapshot_selfheal_state,
+    now = Sys.time()) {
+  tryCatch(
+    {
+      if (!isTRUE(enabled_fn())) {
+        return(invisible(FALSE))
+      }
+
+      if (is.null(throttle_seconds)) {
+        throttle_seconds <- analysis_snapshot_selfheal_throttle_seconds()
+      }
+      now_epoch <- as.numeric(now)
+      last <- state$last_submit_epoch
+      if (!is.null(last) && length(last) == 1L && is.finite(last) &&
+        (now_epoch - last) < as.numeric(throttle_seconds)) {
+        return(invisible(FALSE))
+      }
+      # Claim the throttle window BEFORE the (slower) submit so concurrent
+      # requests in the same process do not all pile into the submit loop.
+      state$last_submit_epoch <- now_epoch
+
+      summary <- tryCatch(
+        submit_fn(force = FALSE, stagger = FALSE),
+        error = function(e) {
+          message(sprintf("[snapshot-selfheal] submit failed: %s", conditionMessage(e)))
+          NULL
+        }
+      )
+      if (!is.null(summary)) {
+        message(sprintf(
+          paste0(
+            "[snapshot-selfheal] serve-time refresh triggered by '%s': ",
+            "submitted %d, reused %d, skipped %d, failed %d"
+          ),
+          analysis_type %||% "unknown",
+          summary$submitted %||% 0L, summary$reused %||% 0L,
+          summary$skipped %||% 0L, summary$failed %||% 0L
+        ))
+      }
+      invisible(TRUE)
+    },
+    error = function(e) {
+      tryCatch(
+        message(sprintf("[snapshot-selfheal] unexpected error: %s", conditionMessage(e))),
+        error = function(e2) NULL
+      )
+      invisible(FALSE)
+    }
+  )
+}
+
 #' Startup bootstrap: enqueue refresh jobs for missing presets (idempotent).
 #'
 #' Mirrors `pubtatornidd_bootstrap_enrichment()`. No-op when disabled; never
