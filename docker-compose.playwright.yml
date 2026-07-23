@@ -100,7 +100,7 @@ services:
   # Matches the dev override (docker-compose.dev.yml) but uses an isolated
   # network alias so it does not conflict with `make dev`.
   mailpit:
-    image: axllent/mailpit:v1.30.4
+    image: axllent/mailpit:v1.30.5
     container_name: sysndd_playwright_mailpit
     restart: unless-stopped
     security_opt:
