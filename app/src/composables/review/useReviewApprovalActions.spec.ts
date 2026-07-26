@@ -27,6 +27,7 @@ import {
   dismissReview,
   approveStatus,
   approveAllReviews,
+  submitReviewUpdate,
 } from './useReviewApprovalActions';
 
 afterEach(() => {
@@ -84,5 +85,42 @@ describe('useReviewApprovalActions — F2a Bearer-via-interceptor', () => {
 
     const response = await approveAllReviews(axios);
     expect(response.status).toBe(200);
+  });
+
+  it('submits CURIE ontology ids verbatim at the review-update wire boundary', async () => {
+    let receivedBody: {
+      review_json: {
+        phenotypes: Array<{ phenotype_id: unknown; modifier_id: unknown }>;
+        variation_ontology: Array<{ vario_id: unknown; modifier_id: unknown }>;
+      };
+    } | null = null;
+
+    server.use(
+      http.put('*/api/review/update', async ({ request }) => {
+        receivedBody = (await request.json()) as typeof receivedBody;
+        return HttpResponse.json({ status: 200, message: 'Review updated.' });
+      })
+    );
+
+    const response = await submitReviewUpdate(axios, {
+      reviewInfo: { review_id: 17, entity_id: 9, synopsis: 'Wire-bound CURIE regression guard' },
+      selectPhenotype: ['1-HP:0001249'],
+      selectVariation: ['5-VariO:0015-with-hyphen'],
+      selectAdditionalReferences: [],
+      selectGeneReviews: [],
+      sanitize: (value) => value,
+    });
+
+    expect(response.status).toBe(200);
+    expect(receivedBody?.review_json.phenotypes).toEqual([
+      { phenotype_id: 'HP:0001249', modifier_id: 1 },
+    ]);
+    expect(receivedBody?.review_json.variation_ontology).toEqual([
+      { vario_id: 'VariO:0015-with-hyphen', modifier_id: 5 },
+    ]);
+
+    const wire = JSON.stringify(receivedBody);
+    expect(wire).not.toContain('"phenotype_id":null');
+    expect(wire).not.toContain('"vario_id":null');
   });
 });
