@@ -242,9 +242,10 @@ A fresh deploy bootstraps the snapshots automatically (#420): after migrations, 
 
 To reduce first-start contention on a small host (#447), the startup bootstrap **staggers heavy builds**: the heavy `functional_clusters` build is enqueued with a `scheduled_at` offset (`ANALYSIS_SNAPSHOT_BOOTSTRAP_STAGGER_SECONDS`, default `120`; set `0` to disable) so it is not claim-eligible at the same instant as the cheap presets, and the PubtatorNDD startup bootstrap is offset separately (`PUBTATORNIDD_BOOTSTRAP_STAGGER_SECONDS`, default `240`) so it does not co-launch with the snapshot bootstrap. Only the automatic startup path staggers — the admin `force` refresh and the operator script submit immediately, so a manual rebuild is never delayed. These knobs only affect scheduling; they require no DB schema change and no extra worker.
 
-There are three ways to (re)build snapshots, all sharing one submit function:
+There are four ways to (re)build snapshots, all sharing one submit function:
 
-- **Automatic** — the startup bootstrap above.
+- **Automatic (startup)** — the startup bootstrap above.
+- **Automatic (serve-time self-heal, #599)** — a public analysis GET that observes a missing / stale / source-version- or dependency-mismatched snapshot enqueues the same all-preset, dedup-safe refresh in the background before returning its 503, so the "being prepared" panel resolves on its own and client polls converge to 200. This closes the case the startup bootstrap could not: `source_data_version` hashes live curation counts and dates, so **any** approval or edit after the API started flips it and invalidates every active snapshot — before this, the public analysis pages stayed on a permanent 503 until the next API restart. Operator knobs: `ANALYSIS_SNAPSHOT_SELFHEAL_THROTTLE_SECONDS` (default `60`; the minimum seconds between enqueues **per API process**, so raise it if a busy curation day causes more rebuild churn than you want) and `ANALYSIS_SNAPSHOT_SELFHEAL_ON_SERVE=false` (kill switch — reverts to startup-only bootstrapping). The trigger is best-effort and never turns a 503 into a 500, and the worker must be running for the enqueued job to be consumed.
 - **Admin HTTP (no SSH/docker needed)** — `POST /api/admin/analysis/snapshots/refresh` (Administrator token) submits the jobs and returns the job ids; pass `{"force": true}` to rebuild even when a current snapshot exists, or `{"analysis_type": "gene_network_edges"}` to target one preset. `GET /api/admin/analysis/snapshots/status` reports per-preset state (missing / available / stale / source_version_mismatch) with timestamps and row counts so an operator can watch a rebuild progress. Example:
 
   ```bash
@@ -255,7 +256,7 @@ There are three ways to (re)build snapshots, all sharing one submit function:
 
 - **Operator script (SSH fallback)** — `make refresh-analysis-snapshots` (or `docker exec sysndd-api-1 Rscript /app/scripts/refresh-analysis-snapshots.R`) forces a rebuild of all presets.
 
-While a snapshot is still building, the public GeneNetworks and PhenotypeClusters pages show a friendly "analysis is being prepared" panel (with a retry) instead of a raw error.
+While a snapshot is still building, the public GeneNetworks and PhenotypeClusters pages show a friendly "analysis is being prepared" panel (with a retry) instead of a raw error. Thanks to the serve-time self-heal above, that panel is now truthful in every state that produces it — a rebuild is either already queued/running or was just enqueued by the request that rendered the panel.
 
 Snapshot status meanings:
 
