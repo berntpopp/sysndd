@@ -485,6 +485,17 @@ test_that("svc_publication_get_by_pmid reads a real row by normalized PMID", {
     if (!DBI::dbExistsTable(con, "publication")) {
       testthat::skip("publication table not present in this test DB")
     }
+    required_columns <- c(
+      "publication_id", "other_publication_id", "Title", "Abstract", "Lastname",
+      "Firstname", "Publication_date", "Journal", "Keywords"
+    )
+    missing_columns <- setdiff(required_columns, DBI::dbListFields(con, "publication"))
+    if (length(missing_columns) > 0L) {
+      testthat::skip(paste0(
+        "publication table missing columns (", paste(missing_columns, collapse = ", "),
+        ") — migrations not applied on test DB"
+      ))
+    }
     out <- svc_publication_get_by_pmid("not-a-real-pmid-999999999", pool_obj = con)
     expect_s3_class(out, "data.frame")
     expect_equal(nrow(out), 0)

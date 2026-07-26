@@ -17,11 +17,18 @@
 #' present. Keeps `make test-api-fast` / `make ci-local` green on the empty profile
 #' while still running for real against an initialized DB.
 skip_if_missing_publication_backfill_schema <- function(conn) {
-  required_tables <- c(
-    "publication",
-    "ndd_review_publication_join",
-    "ndd_entity_review"
+  required_columns <- list(
+    publication = c(
+      "publication_id", "Publication_date", "publication_date_source"
+    ),
+    ndd_review_publication_join = c(
+      "review_id", "entity_id", "publication_id", "is_reviewed"
+    ),
+    ndd_entity_review = c(
+      "review_id", "entity_id", "review_user_id", "is_primary", "review_approved"
+    )
   )
+  required_tables <- names(required_columns)
   missing_tables <- required_tables[!vapply(
     required_tables,
     function(table) DBI::dbExistsTable(conn, table),
@@ -32,6 +39,22 @@ skip_if_missing_publication_backfill_schema <- function(conn) {
     testthat::skip(paste(
       "Test database schema is not initialized; missing table(s):",
       paste(missing_tables, collapse = ", ")
+    ))
+  }
+
+  missing_columns <- vapply(
+    required_tables,
+    function(table) {
+      missing <- setdiff(required_columns[[table]], DBI::dbListFields(conn, table))
+      if (length(missing) == 0L) "" else paste0(table, ".", paste(missing, collapse = ", "))
+    },
+    character(1)
+  )
+  missing_columns <- missing_columns[nzchar(missing_columns)]
+  if (length(missing_columns) > 0L) {
+    testthat::skip(paste(
+      "Test database schema is not initialized; missing column(s):",
+      paste(missing_columns, collapse = ", ")
     ))
   }
 }

@@ -186,7 +186,7 @@ review_create <- function(review_data, conn = NULL) {
 #' }
 #'
 #' @export
-review_update <- function(review_id, updates) {
+review_update <- function(review_id, updates, conn = NULL) {
 
   # Remove entity_id if present (not allowed to change)
   if ("entity_id" %in% names(updates)) {
@@ -243,8 +243,7 @@ review_update <- function(review_id, updates) {
     if (is.logical(v)) as.integer(v) else v
   })
 
-  # Use transaction for atomic operation
-  db_with_transaction(function(txn_conn) {
+  write_update <- function(txn_conn) {
     # Build parameterized query: column names from code (safe), values via params
     col_names <- names(updates)
     set_clause <- paste0(col_names, " = ?", collapse = ", ")
@@ -271,7 +270,13 @@ review_update <- function(review_id, updates) {
     )
 
     return(affected)
-  })
+  }
+
+  if (!is.null(conn)) {
+    return(write_update(conn))
+  }
+
+  db_with_transaction(function(txn_conn) write_update(txn_conn))
 }
 
 #' Approve or reject reviews
@@ -301,7 +306,7 @@ review_update <- function(review_id, updates) {
 #' }
 #'
 #' @export
-review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
+review_approve <- function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
   # Ensure review_ids is vector
   review_ids <- as.integer(review_ids)
 
@@ -320,8 +325,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
     )
   }
 
-  # Use transaction for atomic multi-statement operation
-  db_with_transaction(function(txn_conn) {
+  approve_reviews <- function(txn_conn) {
     # Get entity_ids for these reviews
     review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
     sql_get_entities <- paste0(
@@ -405,7 +409,13 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
     )
 
     return(review_ids)
-  })
+  }
+
+  if (!is.null(conn)) {
+    return(approve_reviews(conn))
+  }
+
+  db_with_transaction(function(txn_conn) approve_reviews(txn_conn))
 }
 
 #' Update re-review entity connection status
@@ -424,10 +434,10 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
 #' }
 #'
 #' @export
-review_update_re_review_status <- function(entity_id, review_id) {
+review_update_re_review_status <- function(entity_id, review_id, conn = NULL) {
   sql <- "UPDATE re_review_entity_connect SET re_review_review_saved = 1, review_id = ? WHERE entity_id = ?"
 
   params <- list(review_id, entity_id)
 
-  db_execute_statement(sql, params)
+  db_execute_statement(sql, params, conn = conn)
 }

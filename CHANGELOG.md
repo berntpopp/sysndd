@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.12] — 2026-07-26
+
+### Fixed
+
+- **Review saves are now atomic.** Creating or updating a review commits its
+  review row, publication and ontology associations, re-review marker, and
+  optional direct approval together. Validation and PubMed/GeneReviews
+  resolution run before the short database transaction, so a later write
+  failure leaves no partial curation state. Known historic partial saves are
+  intentionally repaired by manually re-saving the review.
+- **CURIE ontology tags remain strings in both review submit paths.** The
+  shared first-separator parser preserves values such as `HP:0001249` and
+  hyphen-bearing ontology suffixes instead of allowing numeric coercion to
+  serialize them as JSON `null`.
+
 ## [0.30.11] — 2026-07-26
 
 Curators and reviewers can add phenotype/variation tags and PubMed IDs in "Edit Review" again. See #600.

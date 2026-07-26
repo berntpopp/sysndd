@@ -221,40 +221,34 @@ publication_connect_to_review <- function(review_id, entity_id, publications, co
 #' }
 #'
 #' @export
-publication_replace_for_review <- function(review_id, entity_id, publications) {
-  # Check existing publication count for validation
-  existing_count <- pool %>%
-    tbl("ndd_review_publication_join") %>%
-    filter(review_id == !!review_id) %>%
-    dplyr::select(publication_id) %>%
-    collect() %>%
-    nrow()
+publication_replace_for_review <- function(review_id, entity_id, publications, conn = NULL) {
+  if (is.null(conn)) {
+    existing_count <- pool %>%
+      tbl("ndd_review_publication_join") %>%
+      dplyr::filter(review_id == !!review_id) %>%
+      dplyr::select(publication_id) %>%
+      collect() %>%
+      nrow()
 
-  new_count <- nrow(publications)
+    new_count <- nrow(publications)
+    if (existing_count > 0 && new_count < existing_count) {
+      log_warn(
+        "Publication count decreasing for review {review_id}: {existing_count} -> {new_count}. ",
+        "Ensure all existing publications are included in the update to prevent data loss."
+      )
+    }
 
-  # Log warning if publications are being removed (potential data loss)
-  if (existing_count > 0 && new_count < existing_count) {
-    log_warn(
-      "Publication count decreasing for review {review_id}: {existing_count} -> {new_count}. ",
-      "Ensure all existing publications are included in the update to prevent data loss."
-    )
-  }
+    publication_validate_ids(publications$publication_id)
+    review_entity <- pool %>%
+      tbl("ndd_entity_review") %>%
+      dplyr::select(review_id, entity_id) %>%
+      dplyr::filter(review_id == !!review_id) %>%
+      collect() %>%
+      unique()
 
-  # Validate publication IDs
-  publication_validate_ids(publications$publication_id)
-
-  # Validate entity_id matches the review's entity_id
-  review_entity <- pool %>%
-    tbl("ndd_entity_review") %>%
-    dplyr::select(review_id, entity_id) %>%
-    filter(review_id == !!review_id) %>%
-    collect() %>%
-    unique()
-
-  if (nrow(review_entity) > 0) {
-    review_entity_id <- review_entity$entity_id[1]
-
-    if (!is.na(review_entity_id) && review_entity_id != entity_id) {
+    if (nrow(review_entity) > 0 &&
+        !is.na(review_entity$entity_id[1]) &&
+        review_entity$entity_id[1] != entity_id) {
       rlang::abort(
         "entity_id does not match the review's entity_id",
         class = "publication_validation_error"
@@ -270,8 +264,7 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
     ) %>%
     dplyr::select(review_id, entity_id, publication_id, publication_type)
 
-  # Execute replacement within transaction
-  db_with_transaction(function(txn_conn) {
+  replace_connections <- function(txn_conn) {
     # Delete old publication connections
     db_execute_statement(
       "DELETE FROM ndd_review_publication_join WHERE review_id = ?",
@@ -291,7 +284,13 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
     }
 
     log_debug("Replaced publications for review {review_id}, inserted {nrow(publications_submission)} publications")
-  })
+  }
+
+  if (is.null(conn)) {
+    db_with_transaction(function(txn_conn) replace_connections(txn_conn))
+  } else {
+    replace_connections(conn)
+  }
 
   return(nrow(publications_submission))
 }
