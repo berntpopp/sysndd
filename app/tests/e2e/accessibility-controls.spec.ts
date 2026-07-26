@@ -37,7 +37,10 @@ for (const viewport of viewports) {
 
       await expect(page.getByRole('searchbox', { name: 'Search reviews' })).toBeVisible();
       await expect(page.getByRole('combobox', { name: 'Filter by category' })).toBeVisible();
-      await expect(page.getByRole('navigation', { name: 'Reviews pagination' })).toBeVisible();
+      // The deterministic fixture has one review, so Bootstrap hides the
+      // page navigation. The per-page control remains the stable pagination
+      // affordance at either fixture size.
+      await expect(page.getByRole('combobox', { name: 'Reviews per page' })).toBeVisible();
     });
 
     test('Manage Re-review controls are discoverable by name', async ({ loggedInAs }) => {
@@ -46,13 +49,13 @@ for (const viewport of viewports) {
       await page.goto('/ManageReReview');
 
       await expect(
-        page.getByRole('searchbox', { name: 'Search re-review batches' })
+        page.getByRole('searchbox', { name: 'Search batches or users' })
       ).toBeVisible();
       await expect(
-        page.getByRole('combobox', { name: 'Filter re-review batches by user' })
+        page.getByRole('combobox', { name: 'Filter by assigned user' })
       ).toBeVisible();
       await expect(
-        page.getByRole('combobox', { name: 'Filter re-review batches by assignment status' })
+        page.getByRole('combobox', { name: 'Filter by assignment status' })
       ).toBeVisible();
     });
   });

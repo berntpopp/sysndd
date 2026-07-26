@@ -15,6 +15,12 @@ for (const viewport of viewports) {
   test.describe(`public route landmarks — ${viewport.name}`, () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.addInitScript(() => {
+        localStorage.setItem(
+          'sysndd-disclaimer',
+          JSON.stringify({ isAcknowledged: true, acknowledgmentTimestamp: new Date().toISOString() })
+        );
+      });
     });
 
     for (const route of landmarkRoutes) {
@@ -32,7 +38,7 @@ for (const viewport of viewports) {
     test('MCP code regions are named and keyboard focusable', async ({ page }) => {
       await page.goto('/mcp');
 
-      const codeRegions = page.locator('.mcp-code');
+      const codeRegions = page.locator('.mcp-code:visible');
       await expect(codeRegions).toHaveCount(3);
 
       for (let index = 0; index < 3; index += 1) {

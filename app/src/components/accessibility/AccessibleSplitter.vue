@@ -4,7 +4,6 @@
     class="accessible-splitter"
     :horizontal="orientation === 'horizontal'"
     :keyboard-step="0"
-    @keydown.capture="handleSeparatorKeydown"
     @ready="syncSeparator"
     @resized="handleResized"
   >
@@ -64,6 +63,10 @@ function syncSeparator(): void {
   separator.setAttribute('aria-valuemin', String(props.min));
   separator.setAttribute('aria-valuemax', String(props.max));
   separator.setAttribute('aria-valuenow', String(clampedSize(props.size)));
+  // splitpanes is a component boundary, so Vue's listener on <Splitpanes>
+  // does not reliably receive native key events from its generated divider.
+  // Bind directly to the focusable separator for browser keyboard users.
+  separator.onkeydown = handleSeparatorKeydown;
 }
 
 function updateSize(value: number): void {
