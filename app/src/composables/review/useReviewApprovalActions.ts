@@ -18,6 +18,7 @@ import Status from '@/assets/js/classes/submission/submissionStatus';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
+import { splitOntologyTag } from '@/utils/ontologyTags';
 
 type AxiosLike = AxiosInstance | Record<string, unknown>;
 
@@ -223,12 +224,17 @@ export function submitReviewUpdate(axiosClient: AxiosLike, payload: ReviewSubmit
   const arClean = payload.selectAdditionalReferences.map(payload.sanitize);
   const grClean = payload.selectGeneReviews.map(payload.sanitize);
   const literature = new Literature(arClean, grClean);
-  const phenotype = payload.selectPhenotype.map(
-    (it) => new Phenotype(Number(it.split('-')[1]), Number(it.split('-')[0]))
-  );
-  const variation = payload.selectVariation.map(
-    (it) => new Variation(Number(it.split('-')[1]), Number(it.split('-')[0]))
-  );
+  // #600: the ontology half of a "<modifier_id>-<ontology_id>" tag is a CURIE
+  // ("HP:0001249" / "VariO:0001"), so `Number()` yields NaN -> serialised as
+  // `null` -> API 500. Forward it verbatim; only the modifier is numeric.
+  const phenotype = payload.selectPhenotype.map((it) => {
+    const { modifierId, ontologyId } = splitOntologyTag(it);
+    return new Phenotype(ontologyId, modifierId);
+  });
+  const variation = payload.selectVariation.map((it) => {
+    const { modifierId, ontologyId } = splitOntologyTag(it);
+    return new Variation(ontologyId, modifierId);
+  });
   payload.reviewInfo.literature = literature;
   payload.reviewInfo.phenotypes = phenotype;
   payload.reviewInfo.variation_ontology = variation;

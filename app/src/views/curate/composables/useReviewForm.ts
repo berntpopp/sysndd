@@ -17,6 +17,7 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
+import { splitOntologyTag } from '@/utils/ontologyTags';
 import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
 import {
   createReview,
@@ -322,9 +323,18 @@ export default function useReviewForm(entityId?: string | number) {
     touchField('publications');
     touchField('genereviews');
 
-    // Validate before submit
+    // Validate before submit.
+    //
+    // #600: the synopsis is the only blocking rule, but the old generic
+    // "Form validation failed" toast never said so. A reviewer editing an
+    // entity whose review has no synopsis yet (a common state in re-review
+    // batches) would add a phenotype/PMID tag, hit Save, and read the failure
+    // as "adding tags is broken". Name the offending field instead.
     if (!isFormValid.value) {
-      throw new Error('Form validation failed');
+      const synopsisError = validateField('synopsis');
+      throw new Error(
+        synopsisError === true ? 'Form validation failed' : `Cannot save review: ${synopsisError}`
+      );
     }
 
     // BUG-05 fix: Merge original publications with current form data
@@ -343,13 +353,13 @@ export default function useReviewForm(entityId?: string | number) {
     const literature = new Literature(cleanPublications, cleanGenereviews);
 
     const phenotypes = formData.phenotypes.map((item) => {
-      const [modifierId, phenotypeId] = item.split('-');
-      return new Phenotype(Number(phenotypeId), Number(modifierId));
+      const { modifierId, ontologyId } = splitOntologyTag(item);
+      return new Phenotype(ontologyId, modifierId);
     });
 
     const variations = formData.variationOntology.map((item) => {
-      const [modifierId, varioId] = item.split('-');
-      return new Variation(Number(varioId), Number(modifierId));
+      const { modifierId, ontologyId } = splitOntologyTag(item);
+      return new Variation(ontologyId, modifierId);
     });
 
     const reviewData = new Review(

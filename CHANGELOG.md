@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.11] — 2026-07-26
+
+Curators and reviewers can add phenotype/variation tags and PubMed IDs in "Edit Review" again. See #600.
+
+### Fixed
+
+- **"Edit Review" no longer fails with HTTP 500 when phenotypes or variation-ontology terms are present** (Re-Review tab, and the curator Approve Review path). `useReviewForm.submitForm()` coerced *both* halves of the `"<modifier_id>-<ontology_id>"` tag encoding with `Number()`, but the ontology half is a CURIE, not an integer — `/api/review/<id>/phenotypes` returns `phenotype_id: "HP:0001249"` and the `/api/list/phenotype?tree=true` option ids encode `"1-HP:0001249"`. `Number("HP:0001249")` is `NaN`, which `JSON.stringify` serialises as `null`, so the API received `{"phenotype_id":null,"modifier_id":1}` and aborted with "Error connecting phenotypes.; Error connecting variation ontology." Because the API writes the synopsis and publications *before* the phenotype step, the failed save had already persisted part of its payload and flipped `re_review_review_saved`, making the 500 look like a total failure when it was a partial write. Ontology ids are now forwarded verbatim through the shared `splitOntologyTag()` helper (`app/src/utils/ontologyTags.ts`), which splits on the first separator only so an id containing a hyphen is never truncated; the modifier stays numeric. Regression introduced in the v9.0 refactor (`ec727090`) that extracted the composable — the pre-refactor code and the still-working create/modify path in `useEntityMutations` both pass the id through untouched.
+- **The same `Number()` defect on the curator Approve Review path** (`submitReviewUpdate()` in `app/src/composables/review/useReviewApprovalActions.ts`) is fixed with the same helper.
+- **A blocked review submit now names the offending field.** The synopsis (min. 10 characters) is the only blocking validation rule, but the generic `Form validation failed` toast never said so, so a reviewer editing an entity whose review has no synopsis yet — a common state in re-review batches — read the failure as "adding tags is broken". The toast now reads `Cannot save review: Synopsis is required`.
+
+### Changed
+
+- The `useReviewForm` test fixtures typed `phenotype_id`/`vario_id` as `number`, which is not the shape the API returns and is what masked the bug above. They now use the real CURIE strings, and a regression test asserts that no ontology id serialises to `null` on the wire.
+
 ## [0.30.10] — 2026-07-26
 
 Public analysis pages (GeneNetworks, PhenotypeFunctionalCorrelation, phenotype/functional clustering, correlations) no longer get stuck on a permanent "being prepared" 503 after a curation edit. See #599.
