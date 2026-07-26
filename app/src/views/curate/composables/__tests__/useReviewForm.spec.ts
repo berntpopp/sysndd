@@ -55,8 +55,11 @@ function deferred<T>() {
 
 interface ResolverMap {
   review?: Array<{ synopsis?: string; comment?: string; entity_id?: number }>;
-  phenotypes?: Array<{ phenotype_id: number; modifier_id: number }>;
-  variation?: Array<{ vario_id: number; modifier_id: number }>;
+  // Ontology ids are CURIE strings on the wire ("HP:0001249" / "VariO:0001").
+  // `number` is accepted only for the legacy fixtures below; new tests should
+  // use the real string shape (see the #600 regression block).
+  phenotypes?: Array<{ phenotype_id: string | number; modifier_id: number }>;
+  variation?: Array<{ vario_id: string | number; modifier_id: number }>;
   publications?: Array<{ publication_id: string; publication_type: string }>;
 }
 
@@ -436,6 +439,100 @@ describe('useReviewForm', () => {
       const [body, params] = reviewApiMocks.createReview.mock.calls[0];
       expect(body).toHaveProperty('review_json');
       expect(params).toEqual({ re_review: false });
+    });
+  });
+
+  // Regression: #600 — "Impossible to add tags and PubMed ID in Edit Review".
+  //
+  // Phenotype and variation-ontology ids are ONTOLOGY CURIEs ("HP:0001249",
+  // "VariO:0001"), not integers — both `/api/review/<id>/phenotypes` and the
+  // `/api/list/phenotype?tree=true` option ids encode them as
+  // "<modifier_id>-<CURIE>". Coercing the CURIE half with `Number()` yields
+  // NaN, which `JSON.stringify` serialises as `null`, so the API received
+  // `phenotype_id: null` / `vario_id: null` and answered 500 ("Error
+  // connecting phenotypes."). The ids must be submitted verbatim, exactly as
+  // the working `useEntityMutations` create/modify path already does.
+  describe('#600: ontology ids survive submission as CURIE strings', () => {
+    it('submits phenotype/vario CURIEs verbatim instead of NaN', async () => {
+      primeReadMocks({
+        phenotypes: [
+          { phenotype_id: 'HP:0001249', modifier_id: 1 },
+          { phenotype_id: 'HP:0001250', modifier_id: 5 },
+        ],
+        variation: [{ vario_id: 'VariO:0015', modifier_id: 1 }],
+      });
+
+      const { formData, loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      // The loaded tags round-trip through the "<modifier>-<CURIE>" encoding
+      // shared with the TreeMultiSelect option ids.
+      expect(formData.phenotypes).toEqual(['1-HP:0001249', '5-HP:0001250']);
+      expect(formData.variationOntology).toEqual(['1-VariO:0015']);
+
+      // Simulate the reporter adding one more phenotype tag in the modal.
+      formData.phenotypes.push('1-HP:0000707');
+
+      await submitForm(true, true);
+      await flushPromises();
+
+      const submitted = (
+        reviewApiMocks.updateReview.mock.calls[0][0] as {
+          review_json: {
+            phenotypes: Array<{ phenotype_id: unknown; modifier_id: unknown }>;
+            variation_ontology: Array<{ vario_id: unknown; modifier_id: unknown }>;
+          };
+        }
+      ).review_json;
+
+      expect(submitted.phenotypes).toEqual([
+        { phenotype_id: 'HP:0001249', modifier_id: 1 },
+        { phenotype_id: 'HP:0001250', modifier_id: 5 },
+        { phenotype_id: 'HP:0000707', modifier_id: 1 },
+      ]);
+      expect(submitted.variation_ontology).toEqual([{ vario_id: 'VariO:0015', modifier_id: 1 }]);
+
+      // Guard the exact failure mode: nothing may serialise to null.
+      const wire = JSON.parse(JSON.stringify(submitted));
+      expect(wire.phenotypes.every((p: { phenotype_id: unknown }) => p.phenotype_id !== null)).toBe(
+        true
+      );
+      expect(wire.variation_ontology.every((v: { vario_id: unknown }) => v.vario_id !== null)).toBe(
+        true
+      );
+    });
+
+    it('names the synopsis field when the blocking rule rejects the submit', async () => {
+      // Re-review batches routinely contain reviews with no synopsis yet; the
+      // old generic message made that read as "adding tags is broken".
+      primeReadMocks({ review: [{ synopsis: '', comment: '', entity_id: 1 }] });
+
+      const { loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      await expect(submitForm(true, true)).rejects.toThrow(/Synopsis is required/);
+      expect(reviewApiMocks.updateReview).not.toHaveBeenCalled();
+    });
+
+    it('keeps the CURIE intact when it contains no separator ambiguity', async () => {
+      primeReadMocks({ phenotypes: [{ phenotype_id: 'HP:0011451', modifier_id: 3 }] });
+
+      const { loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      await submitForm(true, true);
+      await flushPromises();
+
+      const submitted = (
+        reviewApiMocks.updateReview.mock.calls[0][0] as {
+          review_json: { phenotypes: Array<{ phenotype_id: unknown; modifier_id: unknown }> };
+        }
+      ).review_json;
+
+      expect(submitted.phenotypes).toEqual([{ phenotype_id: 'HP:0011451', modifier_id: 3 }]);
     });
   });
 });
