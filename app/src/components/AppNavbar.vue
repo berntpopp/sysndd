@@ -7,6 +7,7 @@
       variant="light"
       fixed="top"
       class="app-navbar__bar bg-navbar"
+      aria-label="Primary navigation"
     >
       <BNavbarBrand to="/" class="app-navbar__brand">
         <div class="brand-container brand-container--compact">

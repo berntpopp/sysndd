@@ -4,7 +4,7 @@
   Uses Bootstrap-Vue-Next BPagination with Vue 3 Composition API.
 -->
 <template>
-  <div>
+  <div role="group" :aria-label="label">
     <!-- Page Size Selector -->
     <BInputGroup prepend="Per page" class="mb-1" size="sm">
       <BFormSelect
@@ -12,7 +12,7 @@
         :model-value="localPerPage"
         :options="pageOptions"
         size="sm"
-        aria-label="Items per page"
+        :aria-label="perPageLabel"
         @update:model-value="handlePerPageUpdate"
       />
     </BInputGroup>
@@ -26,6 +26,7 @@
       size="sm"
       class="my-0"
       limit="2"
+      :aria-label="label"
       @update:model-value="handlePageUpdate"
     />
   </div>
@@ -49,6 +50,8 @@ interface Props {
   initialPerPage?: number;
   pageOptions?: number[];
   currentPage?: number;
+  label?: string;
+  perPageLabel?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -56,6 +59,8 @@ const props = withDefaults(defineProps<Props>(), {
   initialPerPage: 10,
   pageOptions: () => [10, 25, 50, 100],
   currentPage: 1,
+  label: 'Table pagination',
+  perPageLabel: 'Items per page',
 });
 
 // Emits

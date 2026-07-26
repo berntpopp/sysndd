@@ -47,7 +47,6 @@ export type BatchMode = 'criteria' | 'manual' | null;
 export interface UserOption {
   value: number;
   text: string;
-  role?: string;
 }
 
 export interface SelectOption {
@@ -205,7 +204,6 @@ export function useManageReReview(deps: UseManageReReviewDeps) {
         ? data.map((item) => ({
             value: item.user_id,
             text: item.user_name,
-            role: item.user_role,
           }))
         : [];
     } catch (e) {

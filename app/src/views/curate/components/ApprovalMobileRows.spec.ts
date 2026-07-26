@@ -70,4 +70,48 @@ describe('ApprovalMobileRows', () => {
     expect(wrapper.emitted('approve')?.[0]).toEqual([item]);
     expect(wrapper.emitted('dismiss')?.[0]).toEqual([item]);
   });
+
+  it('keeps status editing role-limited while retaining named mobile controls', () => {
+    const wrapper = mount(ApprovalMobileRows, {
+      props: {
+        items: [item],
+        showStatusEdit: false,
+      },
+      global: {
+        stubs: {
+          BLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
+          CategoryIcon: { props: ['category'], template: '<span>{{ category }}</span>' },
+          DiseaseBadge: { props: ['name'], template: '<span>{{ name }}</span>' },
+          EntityBadge: { props: ['entityId'], template: '<span>sysndd:{{ entityId }}</span>' },
+          GeneBadge: { props: ['symbol'], template: '<span>{{ symbol }}</span>' },
+          InheritanceBadge: { props: ['fullName'], template: '<span>{{ fullName }}</span>' },
+        },
+      },
+    });
+
+    expect(wrapper.find('[aria-label^="Edit status"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label^="Show details"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label^="Edit entity"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label^="Approve entity"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label^="Dismiss entity"]').exists()).toBe(true);
+  });
+
+  it('renders a native list item for the shared mobile list', () => {
+    const wrapper = mount(ApprovalMobileRows, {
+      props: { items: [item] },
+      global: {
+        stubs: {
+          BLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
+          CategoryIcon: { props: ['category'], template: '<span>{{ category }}</span>' },
+          DiseaseBadge: { props: ['name'], template: '<span>{{ name }}</span>' },
+          EntityBadge: { props: ['entityId'], template: '<span>sysndd:{{ entityId }}</span>' },
+          GeneBadge: { props: ['symbol'], template: '<span>{{ symbol }}</span>' },
+          InheritanceBadge: { props: ['fullName'], template: '<span>{{ fullName }}</span>' },
+        },
+      },
+    });
+
+    expect(wrapper.find('li.approval-mobile-row').exists()).toBe(true);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
+  });
 });

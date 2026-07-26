@@ -41,6 +41,12 @@ describe('PhenotypesMobileRows', () => {
     expect(wrapper.find('a[href="/Entities/57"]').exists()).toBe(true);
     expect(wrapper.find('a[href="/Genes/HGNC:18040"]').exists()).toBe(true);
     expect(wrapper.find('a[href="/Ontology/OMIM:135900"]').exists()).toBe(true);
+    expect(
+      wrapper.findAll(
+        '[role="list"][aria-label="Phenotype-associated entity records"] > div[role="listitem"]'
+      )
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     await wrapper.get('button[aria-expanded="false"]').trigger('click');
 

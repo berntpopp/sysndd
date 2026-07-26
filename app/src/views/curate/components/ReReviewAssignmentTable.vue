@@ -22,7 +22,8 @@
 
     <template #toolbar>
       <div class="re-review-toolbar">
-        <div class="re-review-toolbar__search">
+        <label class="re-review-toolbar__field re-review-toolbar__search">
+          <span>Search batches or users</span>
           <TableSearchInput
             :model-value="filter"
             placeholder="Search batches or users"
@@ -31,31 +32,35 @@
             @update="$emit('apply-filters')"
             @clear="$emit('apply-filters')"
           />
-        </div>
-        <div>
+        </label>
+        <label class="re-review-toolbar__field">
+          <span>Assigned user</span>
           <BFormSelect
             :model-value="userFilter"
             :options="userFilterOptions"
             size="sm"
+            aria-label="Filter by assigned user"
             @update:model-value="updateUserFilter"
           >
             <template #first>
               <BFormSelectOption :value="null"> All users </BFormSelectOption>
             </template>
           </BFormSelect>
-        </div>
-        <div>
+        </label>
+        <label class="re-review-toolbar__field">
+          <span>Assignment status</span>
           <BFormSelect
             :model-value="assignmentFilter"
             :options="assignmentFilterOptions"
             size="sm"
+            aria-label="Filter by assignment status"
             @update:model-value="updateAssignmentFilter"
           >
             <template #first>
               <BFormSelectOption :value="null"> All status </BFormSelectOption>
             </template>
           </BFormSelect>
-        </div>
+        </label>
         <TablePaginationControls
           :total-rows="filteredCount"
           :initial-per-page="perPage"
@@ -94,7 +99,8 @@
         </BButton>
         <i id="help-legacy-batch" class="bi bi-question-circle text-muted" aria-hidden="true" />
         <BTooltip target="help-legacy-batch" placement="right" triggers="hover">
-          Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic batches.
+          Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic
+          batches.
         </BTooltip>
       </div>
       <span class="re-review-range">
@@ -116,131 +122,156 @@
         <i class="bi bi-inbox fs-1 text-muted" />
         <p class="text-muted mt-2">No batches found</p>
       </div>
-      <GenericTable
+      <div
         v-else
-        :items="paginatedItems"
-        :fields="fields"
-        :is-busy="loading"
-        :class="{ 'opacity-50': loading }"
-        :sort-by="sortBy"
-        :stacked-mode="false"
-        @update-sort="$emit('sort-update', $event)"
+        class="re-review-desktop-scroll d-none d-md-block"
+        role="region"
+        aria-label="Re-review assignments table"
+        tabindex="0"
       >
-        <!-- User column with badge -->
-        <template #cell-user_name="{ row }">
-          <div class="d-flex align-items-center gap-1">
-            <i
-              :class="row.user_id ? 'bi bi-person-fill text-primary' : 'bi bi-person text-muted'"
-              aria-hidden="true"
-            />
-            <BBadge :variant="row.user_id ? 'primary' : 'secondary'">
-              {{ row.user_name || 'Unassigned' }}
+        <GenericTable
+          :items="paginatedItems"
+          :fields="fields"
+          :is-busy="loading"
+          :class="{ 'opacity-50': loading }"
+          :sort-by="sortBy"
+          :stacked-mode="false"
+          @update-sort="$emit('sort-update', $event)"
+        >
+          <!-- User column with badge -->
+          <template #cell-user_name="{ row }">
+            <div class="d-flex align-items-center gap-1">
+              <i
+                :class="row.user_id ? 'bi bi-person-fill text-primary' : 'bi bi-person text-muted'"
+                aria-hidden="true"
+              />
+              <BBadge :variant="row.user_id ? 'primary' : 'secondary'">
+                {{ row.user_name || 'Unassigned' }}
+              </BBadge>
+            </div>
+          </template>
+
+          <!-- Batch ID column -->
+          <template #cell-re_review_batch="{ row }">
+            <span class="font-monospace"> #{{ row.re_review_batch }} </span>
+          </template>
+
+          <!-- Progress columns with mini badges -->
+          <template #cell-re_review_review_saved="{ row }">
+            <BBadge
+              :variant="row.re_review_review_saved > 0 ? 'info' : 'light'"
+              class="count-badge"
+            >
+              {{ row.re_review_review_saved }}
             </BBadge>
-          </div>
-        </template>
+          </template>
 
-        <!-- Batch ID column -->
-        <template #cell-re_review_batch="{ row }">
-          <span class="font-monospace"> #{{ row.re_review_batch }} </span>
-        </template>
-
-        <!-- Progress columns with mini badges -->
-        <template #cell-re_review_review_saved="{ row }">
-          <BBadge :variant="row.re_review_review_saved > 0 ? 'info' : 'light'" class="count-badge">
-            {{ row.re_review_review_saved }}
-          </BBadge>
-        </template>
-
-        <template #cell-re_review_status_saved="{ row }">
-          <BBadge :variant="row.re_review_status_saved > 0 ? 'info' : 'light'" class="count-badge">
-            {{ row.re_review_status_saved }}
-          </BBadge>
-        </template>
-
-        <template #cell-re_review_submitted="{ row }">
-          <BBadge :variant="row.re_review_submitted > 0 ? 'warning' : 'light'" class="count-badge">
-            {{ row.re_review_submitted }}
-          </BBadge>
-        </template>
-
-        <template #cell-re_review_approved="{ row }">
-          <BBadge :variant="row.re_review_approved > 0 ? 'success' : 'light'" class="count-badge">
-            {{ row.re_review_approved }}
-          </BBadge>
-        </template>
-
-        <template #cell-entity_count="{ row }">
-          <strong>{{ row.entity_count }}</strong>
-        </template>
-
-        <!-- Actions column -->
-        <template #cell-actions="{ row }">
-          <div class="d-flex gap-1 justify-content-center">
-            <!-- Recalculate button (only for unassigned batches) -->
-            <BButton
-              v-if="!row.user_id"
-              :id="`btn-recalc-${row.re_review_batch}`"
-              size="sm"
-              class="btn-action"
-              variant="secondary"
-              :aria-label="`Recalculate batch ${row.re_review_batch}`"
-              @click="$emit('open-recalculate', row)"
+          <template #cell-re_review_status_saved="{ row }">
+            <BBadge
+              :variant="row.re_review_status_saved > 0 ? 'info' : 'light'"
+              class="count-badge"
             >
-              <i class="bi bi-calculator" aria-hidden="true" />
-            </BButton>
-            <BTooltip
-              v-if="!row.user_id"
-              :target="`btn-recalc-${row.re_review_batch}`"
-              placement="top"
-              triggers="hover"
-            >
-              Recalculate batch contents
-            </BTooltip>
+              {{ row.re_review_status_saved }}
+            </BBadge>
+          </template>
 
-            <!-- Reassign button (only for assigned batches) -->
-            <BButton
-              v-if="row.user_id"
-              :id="`btn-reassign-${row.re_review_batch}`"
-              size="sm"
-              class="btn-action"
-              variant="warning"
-              :aria-label="`Reassign batch ${row.re_review_batch}`"
-              @click="$emit('open-reassign', row)"
+          <template #cell-re_review_submitted="{ row }">
+            <BBadge
+              :variant="row.re_review_submitted > 0 ? 'warning' : 'light'"
+              class="count-badge"
             >
-              <i class="bi bi-person-lines-fill" aria-hidden="true" />
-            </BButton>
-            <BTooltip
-              v-if="row.user_id"
-              :target="`btn-reassign-${row.re_review_batch}`"
-              placement="top"
-              triggers="hover"
-            >
-              Reassign to different user
-            </BTooltip>
+              {{ row.re_review_submitted }}
+            </BBadge>
+          </template>
 
-            <!-- Unassign button -->
-            <BButton
-              v-if="row.user_id"
-              :id="`btn-unassign-${row.re_review_batch}`"
-              size="sm"
-              class="btn-action"
-              variant="danger"
-              :aria-label="`Unassign batch ${row.re_review_batch}`"
-              @click="$emit('unassign', row.re_review_batch)"
-            >
-              <i class="bi bi-person-dash-fill" aria-hidden="true" />
-            </BButton>
-            <BTooltip
-              v-if="row.user_id"
-              :target="`btn-unassign-${row.re_review_batch}`"
-              placement="top"
-              triggers="hover"
-            >
-              Unassign this batch
-            </BTooltip>
-          </div>
-        </template>
-      </GenericTable>
+          <template #cell-re_review_approved="{ row }">
+            <BBadge :variant="row.re_review_approved > 0 ? 'success' : 'light'" class="count-badge">
+              {{ row.re_review_approved }}
+            </BBadge>
+          </template>
+
+          <template #cell-entity_count="{ row }">
+            <strong>{{ row.entity_count }}</strong>
+          </template>
+
+          <!-- Actions column -->
+          <template #cell-actions="{ row }">
+            <div class="d-flex gap-1 justify-content-center">
+              <!-- Recalculate button (only for unassigned batches) -->
+              <BButton
+                v-if="!row.user_id"
+                :id="`btn-recalc-${row.re_review_batch}`"
+                size="sm"
+                class="btn-action"
+                variant="secondary"
+                :aria-label="`Recalculate batch ${row.re_review_batch}`"
+                @click="$emit('open-recalculate', row)"
+              >
+                <i class="bi bi-calculator" aria-hidden="true" />
+              </BButton>
+              <BTooltip
+                v-if="!row.user_id"
+                :target="`btn-recalc-${row.re_review_batch}`"
+                placement="top"
+                triggers="hover"
+              >
+                Recalculate batch contents
+              </BTooltip>
+
+              <!-- Reassign button (only for assigned batches) -->
+              <BButton
+                v-if="row.user_id"
+                :id="`btn-reassign-${row.re_review_batch}`"
+                size="sm"
+                class="btn-action"
+                variant="warning"
+                :aria-label="`Reassign batch ${row.re_review_batch}`"
+                @click="$emit('open-reassign', row)"
+              >
+                <i class="bi bi-person-lines-fill" aria-hidden="true" />
+              </BButton>
+              <BTooltip
+                v-if="row.user_id"
+                :target="`btn-reassign-${row.re_review_batch}`"
+                placement="top"
+                triggers="hover"
+              >
+                Reassign to different user
+              </BTooltip>
+
+              <!-- Unassign button -->
+              <BButton
+                v-if="row.user_id"
+                :id="`btn-unassign-${row.re_review_batch}`"
+                size="sm"
+                class="btn-action"
+                variant="danger"
+                :aria-label="`Unassign batch ${row.re_review_batch}`"
+                @click="$emit('unassign', row.re_review_batch)"
+              >
+                <i class="bi bi-person-dash-fill" aria-hidden="true" />
+              </BButton>
+              <BTooltip
+                v-if="row.user_id"
+                :target="`btn-unassign-${row.re_review_batch}`"
+                placement="top"
+                triggers="hover"
+              >
+                Unassign this batch
+              </BTooltip>
+            </div>
+          </template>
+        </GenericTable>
+      </div>
+      <ReReviewAssignmentMobileRows
+        v-if="!loading && filteredCount > 0"
+        data-testid="re-review-mobile"
+        class="d-md-none"
+        :items="paginatedItems"
+        @open-recalculate="$emit('open-recalculate', $event)"
+        @open-reassign="$emit('open-reassign', $event)"
+        @unassign="$emit('unassign', $event)"
+      />
     </div>
   </TableShell>
 </template>
@@ -250,6 +281,7 @@ import TableShell from '@/components/table/TableShell.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import ReReviewAssignmentMobileRows from './ReReviewAssignmentMobileRows.vue';
 import { reReviewTableFields } from '@/views/curate/reReviewTableConfig';
 import type {
   SelectOption,
@@ -314,10 +346,10 @@ function updateUserFilter(value: BvSelectValue) {
 
 function updateAssignmentFilter(value: BvSelectValue) {
   const next = pickScalar(value);
-  emit('update:assignmentFilter', (typeof next === 'string' ? next : null) as
-    | 'assigned'
-    | 'unassigned'
-    | null);
+  emit(
+    'update:assignmentFilter',
+    (typeof next === 'string' ? next : null) as 'assigned' | 'unassigned' | null
+  );
   emit('apply-filters');
 }
 
@@ -353,6 +385,18 @@ function updateUserIdAssignment(value: BvSelectValue) {
   min-width: 0;
 }
 
+.re-review-toolbar__field {
+  margin: 0;
+}
+
+.re-review-toolbar__field > span {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--neutral-700, #616161);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .re-review-legacy-strip {
   display: flex;
   align-items: center;
@@ -385,6 +429,10 @@ function updateUserIdAssignment(value: BvSelectValue) {
 
 .re-review-table-wrap {
   padding: 0.75rem;
+}
+
+.re-review-desktop-scroll {
+  overflow-x: auto;
 }
 
 /* Action buttons - solid, visible icons */

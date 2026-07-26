@@ -6,6 +6,8 @@
           <section
             class="ndd-gene-detail__hero ndd-gene-detail__hero--ml-disclosure"
             aria-labelledby="ndd-gene-detail-title"
+            aria-label="Machine-learning prediction warning"
+            role="note"
           >
             <div class="ndd-gene-detail__hero-head">
               <div class="ndd-gene-detail__identity">
@@ -299,8 +301,8 @@ const hpoHelp =
 }
 
 .ndd-gene-detail__hero--ml-disclosure {
-  border-left: 5px solid #d95f00;
-  background: linear-gradient(to bottom, #fff0db 0%, #ffffff 100%);
+  border-color: var(--border-subtle);
+  background: var(--surface-warning);
 }
 
 .ndd-gene-detail__hero-head {

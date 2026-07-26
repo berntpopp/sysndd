@@ -6,7 +6,7 @@
     item-key="symbol"
   >
     <template #default="{ item, index }">
-      <article class="curation-mobile-row" role="listitem">
+      <div class="curation-mobile-row" role="listitem">
         <div class="curation-mobile-row__header">
           <h3 class="curation-mobile-row__symbol">
             <a
@@ -60,7 +60,7 @@
             <dd>{{ sourceDisplayValue(item[source.key]) }}</dd>
           </div>
         </dl>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

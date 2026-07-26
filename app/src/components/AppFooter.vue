@@ -9,6 +9,7 @@ partner logos and a disclaimer status indicator. */
       variant="light"
       fixed="bottom"
       class="app-footer__bar bg-footer"
+      aria-label="Footer navigation"
     >
       <div class="footer-shell">
         <div class="footer-links">

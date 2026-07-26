@@ -86,6 +86,7 @@
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                    :aria-label="`Filter logs by ${field.label}`"
                     debounce="500"
                     type="search"
                     autocomplete="off"
@@ -98,6 +99,7 @@
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
                     size="sm"
+                    :aria-label="`Filter logs by ${field.label}`"
                     @input="removeSearch()"
                     @change="filtered()"
                   >
@@ -116,7 +118,7 @@
                       field.selectOptions.length > 0
                     "
                     :for="'select_' + field.key"
-                    :aria-label="field.label"
+                    :aria-label="`Filter logs by ${field.label}`"
                   >
                     <BFormSelect
                       :id="'select_' + field.key"

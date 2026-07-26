@@ -34,6 +34,10 @@ describe('PanelsMobileRows', () => {
     expect(wrapper.text()).toContain('Definitive');
     expect(wrapper.text()).toContain('AD');
     expect(wrapper.find('a[href="/Genes/HGNC:18040"]').exists()).toBe(true);
+    expect(
+      wrapper.findAll('[role="list"][aria-label="Panel gene records"] > div[role="listitem"]')
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     await wrapper.get('button[aria-expanded="false"]').trigger('click');
 

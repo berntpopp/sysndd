@@ -77,55 +77,55 @@
     </div>
 
     <!-- Variant List (scrollable) -->
-    <div
+    <ul
       v-else
       ref="listContainer"
       class="variant-list"
-      role="list"
       aria-label="ClinVar variants with protein positions"
     >
-      <label
+      <li
         v-for="item in filteredVariants"
         :key="item.variant.variant_id"
         class="variant-item"
-        role="listitem"
         @mouseenter="showTooltip($event, item)"
         @mouseleave="hideTooltip"
       >
-        <input
-          type="checkbox"
-          :checked="selectedResidues.has(item.residue)"
-          :aria-label="`Highlight ${item.variant.hgvsp || item.variant.variant_id} on 3D structure`"
-          @change="toggleVariant(item)"
-        />
-        <span class="acmg-dot" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
-        <span class="variant-info">
-          <span class="variant-row-top">
-            <span class="variant-notation small">
-              {{ item.variant.hgvsp || item.variant.hgvsc || item.variant.variant_id }}
+        <label class="variant-item__label">
+          <input
+            type="checkbox"
+            :checked="selectedResidues.has(item.residue)"
+            :aria-label="`Highlight ${item.variant.hgvsp || item.variant.variant_id} on 3D structure`"
+            @change="toggleVariant(item)"
+          />
+          <span class="acmg-dot" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
+          <span class="variant-info">
+            <span class="variant-row-top">
+              <span class="variant-notation small">
+                {{ item.variant.hgvsp || item.variant.hgvsc || item.variant.variant_id }}
+              </span>
+              <a
+                :href="`https://www.ncbi.nlm.nih.gov/clinvar/variation/${item.variant.clinvar_variation_id}/`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="clinvar-link"
+                :aria-label="`View ${item.variant.hgvsp || item.variant.variant_id} in ClinVar`"
+                @click.stop
+              >
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
             </span>
-            <a
-              :href="`https://www.ncbi.nlm.nih.gov/clinvar/variation/${item.variant.clinvar_variation_id}/`"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="clinvar-link"
-              :aria-label="`View ${item.variant.hgvsp || item.variant.variant_id} in ClinVar`"
-              @click.stop
-            >
-              <i class="bi bi-box-arrow-up-right"></i>
-            </a>
+            <span class="variant-row-bottom">
+              <span class="variant-class small text-muted">
+                {{ item.label }}
+              </span>
+              <span class="review-stars" :title="`ClinVar review: ${item.variant.gold_stars} stars`">
+                {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
+              </span>
+            </span>
           </span>
-          <span class="variant-row-bottom">
-            <span class="variant-class small text-muted">
-              {{ item.label }}
-            </span>
-            <span class="review-stars" :title="`ClinVar review: ${item.variant.gold_stars} stars`">
-              {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
-            </span>
-          </span>
-        </span>
-      </label>
-    </div>
+        </label>
+      </li>
+    </ul>
 
     <!-- Single shared tooltip (uses component to avoid v-html XSS warning) -->
     <VariantTooltip
@@ -488,9 +488,12 @@ function hideTooltip(): void {
   flex: 1;
   min-height: 0;
   position: relative;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
-.variant-item {
+.variant-item__label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -500,11 +503,11 @@ function hideTooltip(): void {
   transition: background-color 0.15s;
 }
 
-.variant-item:hover {
+.variant-item:hover .variant-item__label {
   background-color: #e9ecef;
 }
 
-.variant-item:focus-within {
+.variant-item:focus-within .variant-item__label {
   background-color: #e9ecef;
   outline: 2px solid #0d6efd;
   outline-offset: -2px;

@@ -60,6 +60,8 @@ const trendColor = computed(() => {
 
 <style scoped>
 .stat-card {
-  border-left: 4px solid #6699cc;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
 }
 </style>

@@ -68,7 +68,8 @@ const genericTableStub = {
 
 const tablePaginationControlsStub = {
   name: 'TablePaginationControls',
-  template: '<div />',
+  props: ['label'],
+  template: '<nav :aria-label="label" />',
 };
 
 async function mountComponent() {
@@ -104,10 +105,10 @@ async function mountComponent() {
         BFormSelect: {
           name: 'BFormSelect',
           props: ['modelValue', 'options'],
-          template: '<div class="form-select-stub"><slot /></div>',
+          template: '<select v-bind="$attrs" class="form-select-stub"><slot /></select>',
         },
         BFormSelectOption: { template: '<span><slot /></span>' },
-        BFormInput: { template: '<input />' },
+        BFormInput: { template: '<input v-bind="$attrs" />' },
         BFormCheckbox: { template: '<input type="checkbox" />' },
         BFormGroup: { template: '<div><slot /></div>' },
         BFormInvalidFeedback: { template: '<div><slot /></div>' },
@@ -196,8 +197,12 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
 
     // Drain the debounced loadData() kicked off by the success branch.
     await flushPromises();
-    await new Promise((resolve) => setTimeout(resolve, 80));
-    await flushPromises();
+    await vi.waitFor(
+      () => {
+        expect(userTableFetchCount).toBeGreaterThan(initialFetches);
+      },
+      { timeout: 1000 }
+    );
 
     // Contract: the write went to PUT /api/user/update with the selected role.
     expect(updatePayload).not.toBeNull();
@@ -272,6 +277,15 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
       'tr[data-user-id="1"] [data-test="cell-user-role"]'
     )[0];
     expect(aliceRoleCellAfter.text()).toBe('Administrator');
+  });
+
+  it('names the user search and select filters', async () => {
+    const wrapper = await mountComponent();
+
+    expect(wrapper.get('input[aria-label="Search users"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Filter users by role"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Filter users by approval status"]')).toBeTruthy();
+    wrapper.unmount();
   });
 
   // ---------------------------------------------------------------------------

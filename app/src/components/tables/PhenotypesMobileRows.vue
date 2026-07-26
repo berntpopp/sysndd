@@ -1,7 +1,7 @@
 <template>
   <MobileTableList :items="items" label="Phenotype-associated entity records" :item-key="rowKey">
     <template #default="{ item, index }">
-      <article class="mobile-record-row" role="listitem">
+      <div class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <EntityBadge
             v-if="getText(item, 'entity_id')"
@@ -87,7 +87,7 @@
           <dt>Phenotype</dt>
           <dd>{{ getText(item, 'modifier_phenotype_id') || '-' }}</dd>
         </dl>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

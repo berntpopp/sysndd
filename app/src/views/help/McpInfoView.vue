@@ -65,6 +65,9 @@
             <code>Authorization: Bearer &lt;token&gt;</code> header when the endpoint is
             token-protected.
           </p>
+          <p id="mcp-code-scroll-guidance" class="mcp-muted">
+            Focus a code region, then use the arrow keys to scroll long commands and configuration.
+          </p>
 
           <div class="mcp-clients">
             <div class="mcp-client">
@@ -74,6 +77,9 @@
               </h3>
               <pre
                 class="mcp-code"
+                tabindex="0"
+                aria-label="Claude Code MCP command"
+                aria-describedby="mcp-code-scroll-guidance"
               ><code>claude mcp add --transport http sysndd {{ mcpUrl }}</code></pre>
               <p class="mcp-muted">
                 Append <code>--header "Authorization: Bearer &lt;token&gt;"</code> if required.
@@ -86,7 +92,12 @@
                 Claude Desktop
               </h3>
               <p class="mcp-muted">Add to <code>claude_desktop_config.json</code>:</p>
-              <pre class="mcp-code"><code>{{ jsonSnippet }}</code></pre>
+              <pre
+                class="mcp-code"
+                tabindex="0"
+                aria-label="Claude Desktop MCP configuration"
+                aria-describedby="mcp-code-scroll-guidance"
+              ><code>{{ jsonSnippet }}</code></pre>
             </div>
 
             <div class="mcp-client">
@@ -97,7 +108,12 @@
               <p class="mcp-muted">
                 Add the same block to your MCP config (e.g. <code>.cursor/mcp.json</code>):
               </p>
-              <pre class="mcp-code"><code>{{ jsonSnippet }}</code></pre>
+              <pre
+                class="mcp-code"
+                tabindex="0"
+                aria-label="Cursor MCP configuration"
+                aria-describedby="mcp-code-scroll-guidance"
+              ><code>{{ jsonSnippet }}</code></pre>
             </div>
           </div>
         </article>

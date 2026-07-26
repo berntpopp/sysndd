@@ -14,10 +14,14 @@ import { createEmptyLogFilter } from './useLogTable';
 
 const stubs = {
   TableSearchInput: {
-    template: '<input class="search" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    template:
+      '<input class="search" v-bind="$attrs" @input="$emit(\'update:modelValue\', $event.target.value)" />',
     emits: ['update:modelValue'],
   },
-  TablePaginationControls: { template: '<div class="pagination-stub" />' },
+  TablePaginationControls: {
+    props: ['label'],
+    template: '<nav class="pagination-stub" :aria-label="label" />',
+  },
   BRow: { template: '<div><slot /></div>' },
   BCol: { template: '<div><slot /></div>' },
   BContainer: { template: '<div><slot /></div>' },
@@ -30,7 +34,8 @@ const stubs = {
   },
   BFormSelectOption: { template: '<option><slot /></option>' },
   BFormInput: {
-    template: '<input class="mobile-filter" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    template:
+      '<input class="mobile-filter" v-bind="$attrs" @input="$emit(\'update:modelValue\', $event.target.value)" />',
     emits: ['update:modelValue'],
   },
   BButton: { template: '<button v-bind="$attrs"><slot /></button>' },
@@ -101,5 +106,21 @@ describe('LogFilterToolbar', () => {
     const selects = wrapper.findAll('select');
     await selects[selects.length - 1].setValue('-timestamp');
     expect(wrapper.emitted('update:mobileSortValue')).toEqual([['-timestamp']]);
+  });
+
+  it('gives every search, select, and pagination control a descriptive name', () => {
+    const wrapper = mountToolbar();
+
+    expect(wrapper.get('label.audit-log-search').text()).toContain('Search audit logs');
+    expect(wrapper.get('label.audit-log-search input')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Filter logs by request method"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Filter logs by response status"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Filter logs by request path"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Sort logs on mobile"]')).toBeTruthy();
+    expect(wrapper.get('nav[aria-label="Audit logs pagination"]')).toBeTruthy();
+
+    for (const input of wrapper.findAll('.mobile-filter')) {
+      expect(input.attributes('aria-label')).toMatch(/^Filter logs by /);
+    }
   });
 });

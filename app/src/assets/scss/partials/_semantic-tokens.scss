@@ -1,0 +1,18 @@
+// Semantic aliases for routine application surfaces.
+// Keep clinical, status, and scientific colours on their dedicated primitives.
+
+:root {
+  --surface-canvas: var(--neutral-50);
+  --surface-raised: var(--bs-body-bg);
+  --surface-subtle: var(--neutral-100);
+  --surface-warning: var(--status-warning-bg);
+
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-700);
+  --text-muted: var(--neutral-600);
+
+  --border-strong: var(--neutral-400);
+
+  --action-focus-color: var(--medical-blue-700);
+  --action-focus-ring: var(--shadow-focus);
+}

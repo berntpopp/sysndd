@@ -6,7 +6,7 @@
     :item-key="rowKey"
   >
     <template #default="{ item, index }">
-      <article class="mobile-record-row" role="listitem">
+      <div class="mobile-record-row" role="listitem">
         <!-- Primary identity + action cluster -->
         <div class="mobile-record-row__topline">
           <div class="mobile-record-row__chips">
@@ -103,7 +103,7 @@
             <dd>{{ topHpoTooltip(item.top_hpo_predictions_json) }}</dd>
           </div>
         </dl>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

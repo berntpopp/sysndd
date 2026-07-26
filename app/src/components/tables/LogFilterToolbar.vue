@@ -10,12 +10,15 @@
   <div>
     <BRow class="g-2">
       <BCol sm="8">
-        <TableSearchInput
-          :model-value="filter['any'].content ?? undefined"
-          :placeholder="'Search any field by typing here'"
-          :debounce-time="500"
-          @update:model-value="updateField('any', $event)"
-        />
+        <label class="audit-log-search">
+          <span class="visually-hidden">Search audit logs</span>
+          <TableSearchInput
+            :model-value="filter['any'].content ?? undefined"
+            :placeholder="'Search any field by typing here'"
+            :debounce-time="500"
+            @update:model-value="updateField('any', $event)"
+          />
+        </label>
       </BCol>
 
       <BCol sm="4">
@@ -25,6 +28,8 @@
             :initial-per-page="perPage"
             :page-options="pageOptions"
             :current-page="currentPage"
+            label="Audit logs pagination"
+            per-page-label="Logs per page"
             @page-change="$emit('page-change', $event)"
             @per-page-change="$emit('per-page-change', $event)"
           />
@@ -38,6 +43,7 @@
           :model-value="filter.request_method.content"
           :options="methodOptions"
           size="sm"
+          aria-label="Filter logs by request method"
           @update:model-value="updateField('request_method', $event)"
         >
           <template #first>
@@ -50,6 +56,7 @@
           :model-value="filter.status.content"
           :options="statusOptions"
           size="sm"
+          aria-label="Filter logs by response status"
           @update:model-value="updateField('status', $event)"
         >
           <template #first>
@@ -61,6 +68,7 @@
         <BFormSelect
           :model-value="filter.path.content"
           size="sm"
+          aria-label="Filter logs by request path"
           @update:model-value="updateField('path', $event)"
         >
           <BFormSelectOption :value="null">All Paths</BFormSelectOption>
@@ -93,6 +101,7 @@
             :model-value="mobileSortValue"
             :options="mobileSortOptions"
             size="sm"
+            aria-label="Sort logs on mobile"
             @update:model-value="$emit('update:mobileSortValue', String($event))"
           />
         </BInputGroup>
@@ -111,6 +120,7 @@
           :model-value="filter[field.key].content ?? undefined"
           size="sm"
           :placeholder="field.label"
+          :aria-label="`Filter logs by ${field.label}`"
           type="search"
           autocomplete="off"
           @update:model-value="updateField(field.key, $event)"

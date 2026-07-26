@@ -124,4 +124,14 @@ describe('ManageMetadata.vue', () => {
       'danger'
     );
   });
+
+  it('renders mutually exclusive desktop and mobile metadata presentations', async () => {
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="metadata-desktop"]').classes()).toContain('d-none');
+    expect(wrapper.get('[data-testid="metadata-desktop"]').classes()).toContain('d-md-block');
+    expect(wrapper.get('[data-testid="metadata-mobile"]').classes()).toContain('d-md-none');
+    expect(wrapper.get('[data-testid="metadata-mobile"]').text()).toContain('present');
+  });
 });

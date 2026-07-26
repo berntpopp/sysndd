@@ -6,7 +6,7 @@
     :item-key="rowKey"
   >
     <template #default="{ item, index }">
-      <article class="mobile-record-row approval-mobile-row" role="listitem">
+      <li class="mobile-record-row approval-mobile-row">
         <div class="mobile-record-row__topline">
           <div class="mobile-record-row__chips">
             <EntityBadge
@@ -125,7 +125,7 @@
             <dd>{{ displayValue(item.status_id) }}</dd>
           </div>
         </dl>
-      </article>
+      </li>
     </template>
   </MobileTableList>
 </template>
@@ -225,6 +225,10 @@ function toggleDetails(key: string): void {
   margin-top: 0.4rem;
 }
 
+.approval-mobile-row {
+  list-style: none;
+}
+
 .approval-mobile-row__actions {
   display: inline-flex;
   flex: 0 0 auto;
@@ -251,5 +255,28 @@ function toggleDetails(key: string): void {
 .approval-mobile-row__action--dismiss {
   border-color: rgba(220, 53, 69, 0.35);
   color: #dc3545;
+}
+
+.approval-mobile-row__action:focus-visible {
+  outline: 3px solid var(--medical-blue-600, #1e88e5);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767.98px) {
+  .approval-mobile-row :deep(.mobile-record-row__topline) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .approval-mobile-row__actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .approval-mobile-row__action {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+  }
 }
 </style>

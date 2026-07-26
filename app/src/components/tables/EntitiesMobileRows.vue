@@ -6,7 +6,7 @@
     :item-key="rowKey"
   >
     <template #default="{ item, index }">
-      <article class="mobile-record-row" role="listitem">
+      <div class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <div class="mobile-record-row__chips">
             <EntityBadge
@@ -118,7 +118,7 @@
             </dd>
           </div>
         </dl>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

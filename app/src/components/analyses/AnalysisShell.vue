@@ -3,7 +3,7 @@
     <div class="analysis-frame">
       <header class="analysis-header">
         <div class="analysis-title-group">
-          <h1 class="analysis-title">{{ title }}</h1>
+          <h1 id="analysis-page-title" class="analysis-title">{{ title }}</h1>
           <p v-if="subtitle" class="analysis-subtitle">{{ subtitle }}</p>
         </div>
 
@@ -25,9 +25,9 @@
         </RouterLink>
       </nav>
 
-      <main class="analysis-content">
+      <section class="analysis-content" aria-labelledby="analysis-page-title">
         <slot />
-      </main>
+      </section>
     </div>
   </div>
 </template>
