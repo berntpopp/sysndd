@@ -99,10 +99,10 @@ export async function fetchReviewDetail(
   const r4 = await ax.get(`${base}/publications`);
 
   const selectPhenotype = r2.data.map(
-    (it: { phenotype_id: number; modifier_id: number }) => `${it.modifier_id}-${it.phenotype_id}`
+    (it: { phenotype_id: string; modifier_id: number }) => `${it.modifier_id}-${it.phenotype_id}`
   );
   const selectVariation = r3.data.map(
-    (it: { vario_id: number; modifier_id: number }) => `${it.modifier_id}-${it.vario_id}`
+    (it: { vario_id: string; modifier_id: number }) => `${it.modifier_id}-${it.vario_id}`
   );
   const genereviews = r4.data
     .filter((it: { publication_type: string }) => it.publication_type === 'gene_review')
@@ -112,11 +112,11 @@ export async function fetchReviewDetail(
     .map((it: { publication_id: string }) => it.publication_id);
 
   const newPhenotype = r2.data.map(
-    (it: { phenotype_id: number; modifier_id: number }) =>
+    (it: { phenotype_id: string; modifier_id: number }) =>
       new Phenotype(it.phenotype_id, it.modifier_id)
   );
   const newVariation = r3.data.map(
-    (it: { vario_id: number; modifier_id: number }) => new Variation(it.vario_id, it.modifier_id)
+    (it: { vario_id: string; modifier_id: number }) => new Variation(it.vario_id, it.modifier_id)
   );
   const literature = new Literature(additional, genereviews);
   const row = r1.data[0];
