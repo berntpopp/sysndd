@@ -39,6 +39,25 @@ function filterBenignErrors(errors: string[]): string[] {
 }
 
 test.describe('analysis-snapshot releases UI (#573 Slice B)', () => {
+  test('public /DataReleases makes the selected release actionable at desktop and mobile widths', async ({ page }) => {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const response = await page.goto('/DataReleases');
+      expect(response?.status() ?? 0, `HTTP status at ${viewport.width}px`).toBeLessThan(500);
+
+      const emptyState = page.getByText('No releases published yet');
+      if (await emptyState.isVisible().catch(() => false)) continue;
+
+      await expect(page.getByRole('heading', { name: 'Latest published release', level: 2 })).toBeVisible();
+      await expect(page.getByTestId('download-bundle-button')).toBeVisible();
+      await expect(page.locator('button[aria-current="true"]')).toBeVisible();
+      await expect(page.getByText('Technical verification')).toBeVisible();
+    }
+  });
+
   test('public /DataReleases renders with the empty state', async ({ page }) => {
     const errors = captureConsoleErrors(page);
 

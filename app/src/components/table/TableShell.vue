@@ -52,7 +52,7 @@ withDefaults(
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--surface-raised);
   box-shadow: var(--shadow-sm);
 }
 
@@ -77,7 +77,7 @@ withDefaults(
 
 .table-shell__title {
   margin: 0;
-  color: var(--neutral-900);
+  color: var(--text-primary);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   line-height: 1.35;
@@ -90,9 +90,9 @@ withDefaults(
   padding: 0.125rem 0.5rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
-  background: var(--neutral-100);
+  background: var(--surface-subtle);
   /* --neutral-700 (5.74:1 on neutral-100) — neutral-600 fails AA on the tinted pill */
-  color: var(--neutral-700);
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);
   line-height: 1.2;
@@ -101,7 +101,7 @@ withDefaults(
 
 .table-shell__description {
   margin: 0.25rem 0 0;
-  color: var(--neutral-600);
+  color: var(--text-muted);
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -116,7 +116,7 @@ withDefaults(
 .table-shell__toolbar {
   padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--border-subtle);
-  background: var(--neutral-50);
+  background: var(--surface-subtle);
 }
 
 .table-shell__body {

@@ -149,7 +149,7 @@ describe('useManageReReview — initialize()', () => {
 
     releaseUserList();
     await flushPromises();
-    expect(ctrl.user_options.value).toEqual([{ value: 1, text: 'a', role: 'Curator' }]);
+    expect(ctrl.user_options.value).toEqual([{ value: 1, text: 'a' }]);
   });
 });
 
@@ -356,8 +356,8 @@ describe('useManageReReview — loader normalisation', () => {
     const { ctrl } = makeController();
     await ctrl.loadUserList();
     expect(ctrl.user_options.value).toEqual([
-      { value: 7, text: 'curator_a', role: 'Curator' },
-      { value: 8, text: 'reviewer_b', role: 'Reviewer' },
+      { value: 7, text: 'curator_a' },
+      { value: 8, text: 'reviewer_b' },
     ]);
   });
 

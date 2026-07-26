@@ -53,6 +53,10 @@ describe('GenesMobileRows', () => {
     expect(wrapper.findAll('[data-testid="ndd-status"]')).toHaveLength(1);
     expect(wrapper.text()).toContain('NDD Yes');
     expect(wrapper.find('[aria-label="Associated with NDD"]').exists()).toBe(true);
+    expect(
+      wrapper.findAll('[role="list"][aria-label="Genes"] > div[role="listitem"]')
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     const detailsButton = wrapper.get('button');
     expect(detailsButton.attributes('aria-expanded')).toBe('false');

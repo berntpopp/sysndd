@@ -15,9 +15,15 @@
     </template>
 
     <!-- Resizable split panes: LEFT = Graph, RIGHT = Table -->
-    <Splitpanes class="default-theme" @resized="handlePaneResized">
-      <!-- LEFT PANE (Network Visualization) -->
-      <Pane :size="leftPaneSize" :min-size="25" :max-size="75">
+    <AccessibleSplitter
+      v-model:size="leftPaneSize"
+      class="default-theme"
+      :min="25"
+      :max="75"
+      orientation="vertical"
+      label="Resize gene network and cluster table"
+    >
+      <template #first>
         <!-- NetworkVisualization component replaces D3.js bubble chart -->
         <div class="pane-content">
           <!-- Gene search input for network highlighting with autocomplete -->
@@ -38,10 +44,10 @@
             @search-match-count="handleSearchMatchCount"
           />
         </div>
-      </Pane>
+      </template>
 
       <!-- RIGHT PANE (Table) -->
-      <Pane :size="100 - leftPaneSize" :min-size="25">
+      <template #second>
         <div class="pane-content">
           <!-- AI summary card/cue block (above table) -->
           <FunctionalClusterSummaryPanel
@@ -71,8 +77,8 @@
             @retry="retryLoad"
           />
         </div>
-      </Pane>
-    </Splitpanes>
+      </template>
+    </AccessibleSplitter>
     <ClusterValidationCard
       analysis-type="functional_clusters"
       :snapshot-meta="snapshotMeta"
@@ -97,10 +103,7 @@ import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import FunctionalClusterTablePanel from '@/components/analyses/FunctionalClusterTablePanel.vue';
 import FunctionalClusterSummaryPanel from '@/components/analyses/FunctionalClusterSummaryPanel.vue';
-
-// Import Splitpanes for resizable layout
-import { Splitpanes, Pane } from 'splitpanes';
-import 'splitpanes/dist/splitpanes.css';
+import AccessibleSplitter from '@/components/accessibility/AccessibleSplitter.vue';
 
 // Typed API clients (W5)
 import {
@@ -120,8 +123,7 @@ export default {
     InlineHelpBadge,
     TermSearch,
     NetworkVisualization,
-    Splitpanes,
-    Pane,
+    AccessibleSplitter,
   },
   props: {
     /**
@@ -468,16 +470,6 @@ export default {
      */
     combineClusterData(clusterArray) {
       return combineClusterData(clusterArray);
-    },
-
-    /**
-     * Handle pane resize events from Splitpanes
-     * Updates leftPaneSize and triggers network refit
-     */
-    handlePaneResized(panes) {
-      if (panes && panes.length > 0) {
-        this.leftPaneSize = panes[0].size;
-      }
     },
   },
 };

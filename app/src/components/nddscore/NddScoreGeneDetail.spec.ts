@@ -1,7 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NddScoreGeneDetail from './NddScoreGeneDetail.vue';
+
+const source = readFileSync(
+  resolve(process.cwd(), 'src/components/nddscore/NddScoreGeneDetail.vue'),
+  'utf8'
+);
+const semanticTokensSource = readFileSync(
+  resolve(process.cwd(), 'src/assets/scss/partials/_semantic-tokens.scss'),
+  'utf8'
+);
 
 const routeState = vi.hoisted(() => ({
   query: {} as Record<string, string>,
@@ -88,7 +99,11 @@ describe('NddScoreGeneDetail', () => {
     await flushPromises();
 
     expect(wrapper.get('.ndd-gene-detail__title').text()).toBe('NDDScore gene prediction');
-    expect(wrapper.find('.ndd-gene-detail__hero--ml-disclosure').exists()).toBe(true);
+    expect(
+      wrapper.find(
+        '.ndd-gene-detail__hero--ml-disclosure[role="note"][aria-label="Machine-learning prediction warning"]'
+      ).exists()
+    ).toBe(true);
     expect(wrapper.text()).toContain('Machine learning, not manual curation');
     expect(wrapper.find('.bi-stars').exists()).toBe(true);
     expect(wrapper.find('.ndd-gene-detail__unit-value--center').exists()).toBe(true);
@@ -103,6 +118,18 @@ describe('NddScoreGeneDetail', () => {
     expect(wrapper.text()).not.toContain('read as a distinct evidence source');
     expect(wrapper.text()).not.toContain('predicted as a candidate NDD gene');
     expect(wrapper.text()).not.toContain('SHAP attributions reflect statistical associations');
+  });
+
+  it('uses the approved warning surface without a stripe or gradient', () => {
+    const warningRule =
+      source.match(
+        /\.ndd-gene-detail__hero--ml-disclosure\s*\{([\s\S]*?)\}/
+    )?.[1] ?? '';
+
+    expect(semanticTokensSource).toContain('--surface-warning: var(--status-warning-bg);');
+    expect(warningRule).toContain('background: var(--surface-warning);');
+    expect(warningRule).toContain('border-color: var(--border-subtle);');
+    expect(warningRule).not.toMatch(/border-(?:left|right)\s*:|linear-gradient/i);
   });
 
   it('restores cached gene detail immediately when browser history remounts the page', async () => {

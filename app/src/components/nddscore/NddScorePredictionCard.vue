@@ -1,5 +1,10 @@
 <template>
-  <BCard class="ndd-score-card ndd-score-card--ml-disclosure" no-body>
+  <BCard
+    class="ndd-score-card ndd-score-card--ml-disclosure"
+    aria-label="Machine-learning prediction warning"
+    no-body
+    role="note"
+  >
     <template #header>
       <div class="ndd-score-card__header">
         <span class="ndd-score-card__label">
@@ -75,8 +80,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
 }
 
 .ndd-score-card--ml-disclosure {
-  border-left: 3px solid #e65c00;
-  background-color: var(--status-warning-bg, #fff3e0);
+  border-color: var(--border-subtle);
+  background-color: var(--surface-warning);
 }
 
 .ndd-score-card :deep(.card-header) {

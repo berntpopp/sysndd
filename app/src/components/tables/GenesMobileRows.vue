@@ -1,7 +1,7 @@
 <template>
   <MobileTableList :items="items" label="Genes" empty-text="No genes found." :item-key="rowKey">
     <template #default="{ item, index }">
-      <article class="mobile-record-row" role="listitem">
+      <div class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <div class="mobile-record-row__chips">
             <GeneBadge
@@ -114,7 +114,7 @@
             </div>
           </dl>
         </div>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

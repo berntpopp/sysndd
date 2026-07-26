@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.13] — 2026-07-26
+
+### Fixed
+
+- **Analysis data releases are now download-first.** The public release page
+  leads with the latest published archive and its complete bundle, keeps prior
+  releases compact and selectable, and moves exact hashes and lineage into a
+  dedicated technical-verification disclosure. Mobile controls meet the 44 px
+  touch-target requirement, and malformed DOI metadata no longer renders as
+  an object literal.
+
 ## [0.30.12] — 2026-07-26
 
 ### Fixed

@@ -115,7 +115,7 @@ describe('DataReleases', () => {
     window.URL.revokeObjectURL = vi.fn();
   });
 
-  it('renders the release table row and the manifest panel for the latest release', async () => {
+  it('puts the latest release download desk ahead of collapsed technical verification', async () => {
     listReleasesMock.mockResolvedValue({
       releases: [makeReleaseHead()],
       pagination: { limit: 50, offset: 0, count: 1 },
@@ -129,11 +129,15 @@ describe('DataReleases', () => {
     expect(getLatestReleaseMock).toHaveBeenCalled();
     const text = wrapper.text();
     expect(text).toContain('asr_0123456789abcdef');
+    expect(wrapper.get('[data-testid="download-bundle-button"]').text()).toContain(
+      'Download complete bundle'
+    );
+    expect(wrapper.get('details').attributes('open')).toBeUndefined();
     expect(text).toContain('Integrity hashes');
     expect(text).toContain('a'.repeat(64));
   });
 
-  it('re-fetches the detail for a different release when its "View manifest" button is clicked', async () => {
+  it('re-fetches the detail for a different release when it is selected from the archive', async () => {
     listReleasesMock.mockResolvedValue({
       releases: [makeReleaseHead({ release_id: 'asr_other' })],
       pagination: { limit: 50, offset: 0, count: 1 },
@@ -144,21 +148,18 @@ describe('DataReleases', () => {
     const wrapper = mount(DataReleases);
     await flushPromises();
 
-    const button = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('View manifest'));
-    expect(button).toBeTruthy();
-    await button!.trigger('click');
+    await wrapper.get('button[aria-label="Select release asr_other"]').trigger('click');
     await flushPromises();
 
     expect(getReleaseMock).toHaveBeenCalledWith('asr_other');
+    expect(wrapper.get('#release-desk-summary-title').text()).toBe('Selected published release');
   });
 
   // MEDIUM (#573 Slice B Codex round-1 review): a slow mount-time
   // `getLatestRelease()` must not clobber a later, already-resolved
   // `getRelease(id)` selection when it finally settles. Regression-guards the
   // monotonic request token in `loadDetail()`.
-  it('discards a stale getLatestRelease response that resolves after a later "View manifest" selection', async () => {
+  it('discards a stale getLatestRelease response that resolves after a later archive selection', async () => {
     listReleasesMock.mockResolvedValue({
       releases: [makeReleaseHead({ release_id: 'asr_other' })],
       pagination: { limit: 50, offset: 0, count: 1 },
@@ -176,11 +177,7 @@ describe('DataReleases', () => {
     // The list resolves; the mount-time getLatestRelease() request is still pending.
     await flushPromises();
 
-    const button = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('View manifest'));
-    expect(button).toBeTruthy();
-    await button!.trigger('click');
+    await wrapper.get('button[aria-label="Select release asr_other"]').trigger('click');
     await flushPromises();
 
     // The later request (getRelease) resolved first and is now shown.

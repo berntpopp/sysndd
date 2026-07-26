@@ -54,6 +54,10 @@ describe('NddScoreGeneMobileRows', () => {
     expect(wrapper.text()).toContain('Very High');
     expect(wrapper.text()).toContain('High');
     expect(wrapper.text()).toContain('Known');
+    expect(
+      wrapper.findAll('[role="list"][aria-label="Gene predictions"] > div[role="listitem"]')
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     // Gene badge links to the NDDScore gene detail page; "Known" links to curated gene page.
     expect(wrapper.get('a[href="/NDDScore/Gene/HGNC%3A2022"]').text()).toContain('CLCN4');

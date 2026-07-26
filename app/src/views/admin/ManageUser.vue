@@ -92,6 +92,7 @@
                         placeholder="Search by name, email, institution..."
                         debounce="300"
                         type="search"
+                        aria-label="Search users"
                         @update:model-value="filtered()"
                       />
                     </BInputGroup>
@@ -103,6 +104,8 @@
                         :initial-per-page="perPage"
                         :page-options="pageOptions"
                         :current-page="currentPage"
+                        label="Manage users pagination"
+                        per-page-label="Users per page"
                         @page-change="handlePageChange"
                         @per-page-change="handlePerPageChange"
                       />
@@ -116,6 +119,7 @@
                       v-model="filter.user_role.content"
                       :options="role_options"
                       size="sm"
+                      aria-label="Filter users by role"
                       @update:model-value="filtered()"
                     >
                       <template #first>
@@ -131,6 +135,7 @@
                         { value: '0', text: 'Pending' },
                       ]"
                       size="sm"
+                      aria-label="Filter users by approval status"
                       @update:model-value="filtered()"
                     >
                       <template #first>

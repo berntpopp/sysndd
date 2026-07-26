@@ -42,6 +42,10 @@ describe('EntitiesMobileRows', () => {
     expect(wrapper.text()).toContain('Definitive');
     expect(wrapper.text()).toContain('NDD Yes');
     expect(wrapper.find('[aria-label="Associated with NDD"]').exists()).toBe(true);
+    expect(
+      wrapper.findAll('[role="list"][aria-label="Entities"] > div[role="listitem"]')
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     expect(wrapper.get('a[href="/Entities/57"]').text()).toContain('sysndd:57');
     expect(wrapper.get('a[href="/Genes/HGNC:18040"]').text()).toContain('ARID1B');

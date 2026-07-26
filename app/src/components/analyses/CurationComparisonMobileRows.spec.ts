@@ -25,6 +25,12 @@ describe('CurationComparisonMobileRows', () => {
 
     expect(wrapper.text()).toContain('ARID1B');
     expect(wrapper.get('a[href="/Genes/18040"]').text()).toContain('ARID1B');
+    expect(
+      wrapper.findAll(
+        '[role="list"][aria-label="Curation comparison genes"] > div[role="listitem"]'
+      )
+    ).toHaveLength(1);
+    expect(wrapper.find('article[role="listitem"]').exists()).toBe(false);
 
     expect(wrapper.findAll('[data-testid="source-chip"]')).toHaveLength(8);
     expect(wrapper.get('[aria-label="SysNDD: Definitive"]').text()).toContain('+');

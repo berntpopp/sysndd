@@ -49,7 +49,7 @@ withDefaults(
   box-sizing: border-box;
   min-height: 100%;
   padding: 0.75rem 1rem max(2rem, calc(var(--app-footer-height, 48px) + 1rem));
-  background: #f6f8fb;
+  background: var(--surface-canvas);
 }
 
 .authenticated-frame {
@@ -57,8 +57,8 @@ withDefaults(
   margin: 0 auto;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
 }
 
 .authenticated-page--full-width .authenticated-frame {
@@ -71,7 +71,7 @@ withDefaults(
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
-  border-bottom: 1px solid #e6ebf2;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .authenticated-heading {
@@ -88,7 +88,7 @@ withDefaults(
 
 .authenticated-title {
   margin: 0;
-  color: #172033;
+  color: var(--text-primary);
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.2;
@@ -97,7 +97,7 @@ withDefaults(
 .authenticated-description {
   max-width: 58rem;
   margin: 0.25rem 0 0;
-  color: #526070;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.35;
 }
@@ -108,10 +108,10 @@ withDefaults(
   align-items: center;
   min-height: 1.55rem;
   padding: 0.2rem 0.55rem;
-  border: 1px solid #bdc7d4;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: #eef2f7;
-  color: #223044;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;

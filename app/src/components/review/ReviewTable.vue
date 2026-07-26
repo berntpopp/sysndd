@@ -40,6 +40,7 @@
               type="search"
               placeholder="Search any field..."
               debounce="500"
+              aria-label="Search reviews"
               @update:model-value="$emit('update:filterText', String($event ?? ''))"
             />
           </BInputGroup>
@@ -57,6 +58,7 @@
               :model-value="perPage"
               :options="pageOptions"
               size="sm"
+              aria-label="Reviews per page"
               @update:model-value="$emit('update:perPage', Number($event))"
             />
           </BInputGroup>
@@ -67,6 +69,7 @@
             size="sm"
             class="mb-0"
             limit="2"
+            aria-label="Reviews pagination"
             @update:model-value="$emit('update:currentPage', Number($event))"
           />
         </BCol>

@@ -29,4 +29,29 @@ describe('McpInfoView', () => {
     expect(wrapper.text()).toContain(`${window.location.origin}/mcp`);
     expect(wrapper.text()).toContain('protected');
   });
+
+  it('names every code region and makes long commands keyboard-scrollable', async () => {
+    const wrapper = mount(McpInfoView, {
+      attachTo: document.body,
+      global: {
+        stubs: bootstrapStubs,
+      },
+    });
+
+    const guidance = wrapper.get('#mcp-code-scroll-guidance');
+    expect(guidance.text()).toContain('arrow keys');
+
+    const codeRegions = wrapper.findAll('.mcp-code');
+    expect(codeRegions).toHaveLength(3);
+    expect(new Set(codeRegions.map((region) => region.attributes('aria-label'))).size).toBe(3);
+
+    for (const region of codeRegions) {
+      expect(region.attributes('tabindex')).toBe('0');
+      expect(region.attributes('aria-describedby')).toBe('mcp-code-scroll-guidance');
+      (region.element as HTMLElement).focus();
+      expect(document.activeElement).toBe(region.element);
+    }
+
+    wrapper.unmount();
+  });
 });

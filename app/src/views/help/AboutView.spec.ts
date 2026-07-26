@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import AboutView from './AboutView.vue';
+
+const source = readFileSync(resolve(process.cwd(), 'src/views/help/AboutView.vue'), 'utf8');
 
 vi.mock('@unhead/vue', () => ({
   useHead: vi.fn(),
@@ -58,5 +62,11 @@ describe('AboutView', () => {
     expect(wrapper.find('.public-shell').exists()).toBe(true);
     expect(wrapper.find('.public-hero').exists()).toBe(true);
     expect(wrapper.find('.public-panel').exists()).toBe(true);
+  });
+
+  it('uses shared bounded surfaces without decorative side accents', () => {
+    expect(source).not.toMatch(/border-(?:left|right)\s*:/);
+    expect(source).toContain('border: 1px solid var(--border-subtle');
+    expect(source).toContain('background: var(--surface-subtle);');
   });
 });

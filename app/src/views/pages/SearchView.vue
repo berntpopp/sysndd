@@ -449,7 +449,6 @@ export default {
 .relevance-indicator__bar {
   height: 100%;
   border-radius: 3px;
-  transition: width 0.4s ease;
 }
 
 .relevance-indicator__bar--excellent {

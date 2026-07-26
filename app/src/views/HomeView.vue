@@ -13,7 +13,7 @@
       </div>
     </section>
 
-    <main class="home-layout">
+    <section class="home-layout" aria-label="SysNDD overview">
       <div class="home-layout__primary">
         <HomeStatsPanel
           :entity-statistics="entity_statistics"
@@ -35,7 +35,7 @@
       <aside class="home-layout__secondary" aria-label="SysNDD concepts">
         <HomeConceptPanel :docs-url="DOCS_URLS.CURATION_CRITERIA" />
       </aside>
-    </main>
+    </section>
   </div>
 </template>
 

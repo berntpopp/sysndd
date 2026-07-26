@@ -493,15 +493,12 @@ onMounted(async () => {
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
-  padding-left: 1rem;
-  border-left: 2px solid var(--border-subtle, #d9e0ea);
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-raised);
   font-size: 0.93rem;
   line-height: 1.5;
-}
-
-/* Remove border from last entry (visual terminator) */
-.about-timeline__entry:last-child {
-  border-left-color: transparent;
 }
 
 .about-timeline__badge-group {
@@ -553,9 +550,11 @@ onMounted(async () => {
 }
 
 .about-content :deep(blockquote) {
-  border-left: 4px solid var(--medical-blue-700, #0d47a1);
-  padding-left: 1rem;
-  margin-left: 0;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-subtle);
   color: var(--neutral-700, #616161);
 }
 

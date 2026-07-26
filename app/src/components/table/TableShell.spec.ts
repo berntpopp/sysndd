@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import TableShell from './TableShell.vue';
+
+const shellSource = readFileSync(
+  resolve(process.cwd(), 'src/components/table/TableShell.vue'),
+  'utf8'
+);
 
 describe('TableShell', () => {
   it('renders title, description, meta, actions, toolbar, and body slots', () => {
@@ -56,5 +63,25 @@ describe('TableShell', () => {
 
     expect(wrapper.find('[role="status"]').attributes('aria-label')).toBe('Loading table data');
     expect(wrapper.find('[data-testid="body"]').exists()).toBe(false);
+  });
+
+  it('keeps heading-level behavior while using semantic shell tokens', () => {
+    const defaultHeading = mount(TableShell, {
+      props: { title: 'Default heading' },
+    });
+    const routeHeading = mount(TableShell, {
+      props: { title: 'Route heading', headingLevel: 1 },
+    });
+    const scopedStyle = shellSource.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
+
+    expect(defaultHeading.get('h2').text()).toBe('Default heading');
+    expect(routeHeading.get('h1').text()).toBe('Route heading');
+    expect(scopedStyle).toContain('background: var(--surface-raised);');
+    expect(scopedStyle).toContain('background: var(--surface-subtle);');
+    expect(scopedStyle).toContain('color: var(--text-primary);');
+    expect(scopedStyle).toContain('color: var(--text-secondary);');
+    expect(scopedStyle).toContain('color: var(--text-muted);');
+    expect(scopedStyle).toContain('border: 1px solid var(--border-subtle);');
+    expect(scopedStyle).not.toMatch(/#[\da-f]{3,8}\b|rgba?\(/i);
   });
 });

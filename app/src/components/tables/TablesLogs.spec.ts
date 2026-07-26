@@ -77,6 +77,7 @@ interface LogsVm {
   isInitializing: boolean;
   sort: string;
   loadDataDebounceTimer: ReturnType<typeof setTimeout> | null;
+  items: Record<string, unknown>[];
 }
 
 function makeRouter() {
@@ -103,7 +104,9 @@ async function mountTable() {
         TableSearchInput: { template: '<div />' },
         TablePaginationControls: { template: '<div />' },
         TableDownloadLinkCopyButtons: { template: '<div />' },
-        GenericTable: { template: '<div />' },
+        GenericTable: {
+          template: '<table><tbody><tr><slot name="filter-controls" /></tr></tbody></table>',
+        },
         LogDetailDrawer: { template: '<div />' },
         BContainer: { template: '<div><slot /></div>' },
         BRow: { template: '<div><slot /></div>' },
@@ -112,8 +115,8 @@ async function mountTable() {
         BBadge: { template: '<span><slot /></span>' },
         BButton: { template: '<button><slot /></button>' },
         BSpinner: { template: '<div />' },
-        BFormInput: { template: '<input />' },
-        BFormSelect: { template: '<select />' },
+        BFormInput: { template: '<input v-bind="$attrs" />' },
+        BFormSelect: { template: '<select v-bind="$attrs"><slot /></select>' },
         BInputGroup: { template: '<div><slot /></div>' },
         BInputGroupText: { template: '<span><slot /></span>' },
         BModal: { template: '<div><slot /></div>' },
@@ -206,6 +209,24 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="logs-loading-state"]').text()).toContain('Loading logs');
+  });
+
+  it('names every desktop column filter', async () => {
+    primeAuth('logs-filter-label-token');
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as unknown as LogsVm;
+    if (vm.loadDataDebounceTimer) {
+      clearTimeout(vm.loadDataDebounceTimer);
+      vm.loadDataDebounceTimer = null;
+    }
+    vm.items = [{ id: 1 }];
+    await flushPromises();
+
+    const filterControls = wrapper.findAll('[aria-label^="Filter logs by "]');
+    expect(filterControls.length).toBeGreaterThan(0);
+    for (const control of filterControls) {
+      expect(control.attributes('aria-label')).not.toBe('Filter logs by ');
+    }
   });
 
   it('requestExcel issues GET /api/logs/?format=xlsx with the Bearer header', async () => {

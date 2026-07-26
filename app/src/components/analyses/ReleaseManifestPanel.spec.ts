@@ -120,6 +120,19 @@ describe('ReleaseManifestPanel', () => {
     expect(wrapper.text()).toContain('not yet assigned');
   });
 
+  it('does not stringify a malformed DOI runtime object as {}', () => {
+    const release = makeReleaseDetail();
+    release.zenodo = {
+      record_url: null,
+      version_doi: {} as unknown as string,
+      concept_doi: null,
+    };
+
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+    expect(wrapper.text()).toContain('not yet assigned');
+    expect(wrapper.text()).not.toContain('{}');
+  });
+
   // HIGH (#573 Slice B Codex round-1 review): the DOI PATCH endpoint stores
   // `zenodo.record_url` with no backend URL validation, so an admin-authored
   // `javascript:` string must never become a clickable `<a href>` for an

@@ -1,7 +1,7 @@
 <template>
   <MobileTableList :items="items" label="Panel gene records" :item-key="rowKey">
     <template #default="{ item, index }">
-      <article class="mobile-record-row" role="listitem">
+      <div class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <GeneBadge
             v-if="getText(item, 'symbol')"
@@ -46,7 +46,7 @@
             <dd>{{ getText(item, fieldKey) || '-' }}</dd>
           </template>
         </dl>
-      </article>
+      </div>
     </template>
   </MobileTableList>
 </template>

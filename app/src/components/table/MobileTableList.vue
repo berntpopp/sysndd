@@ -1,20 +1,14 @@
 <template>
-  <div
-    class="mobile-table-list"
-    :role="items.length === 0 ? undefined : 'list'"
-    :aria-label="label"
-  >
-    <div v-if="items.length === 0" class="mobile-table-list__empty" role="status">
-      {{ emptyText }}
-    </div>
-    <template v-else>
-      <slot
-        v-for="(item, index) in items"
-        :key="resolveItemKey(item, index)"
-        :item="item"
-        :index="index"
-      />
-    </template>
+  <div v-if="items.length === 0" class="mobile-table-list mobile-table-list__empty" role="status">
+    {{ emptyText }}
+  </div>
+  <div v-else class="mobile-table-list" role="list" :aria-label="label">
+    <slot
+      v-for="(item, index) in items"
+      :key="resolveItemKey(item, index)"
+      :item="item"
+      :index="index"
+    />
   </div>
 </template>
 
@@ -53,6 +47,9 @@ function resolveItemKey(item: Item, index: number): string | number {
 .mobile-table-list {
   display: grid;
   gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 .mobile-table-list__empty {

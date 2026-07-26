@@ -163,9 +163,9 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              {{ release.zenodo.version_doi }}
+              {{ versionDoi }}
             </a>
-            <span v-else-if="release.zenodo.version_doi">{{ release.zenodo.version_doi }}</span>
+            <span v-else-if="versionDoi">{{ versionDoi }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
@@ -178,9 +178,9 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              {{ release.zenodo.concept_doi }}
+              {{ conceptDoi }}
             </a>
-            <span v-else-if="release.zenodo.concept_doi">{{ release.zenodo.concept_doi }}</span>
+            <span v-else-if="conceptDoi">{{ conceptDoi }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
@@ -202,7 +202,7 @@
             >
               Record
             </a>
-            <span v-else-if="release.zenodo.record_url">{{ release.zenodo.record_url }}</span>
+            <span v-else-if="recordUrl">{{ recordUrl }}</span>
             <span v-else class="text-muted">not yet assigned</span>
           </dd>
         </div>
@@ -225,8 +225,14 @@ const props = defineProps<{
   release: ReleaseDetail;
 }>();
 
-function displayValue(value: string | number | null | undefined): string {
-  return value === null || value === undefined || value === '' ? '—' : String(value);
+function displayValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim() ? value : '—';
+  if (typeof value === 'number') return String(value);
+  return '—';
+}
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
 }
 
 /** `title`, falling back to `release_id` when the reserved `title` column is null. */
@@ -241,12 +247,15 @@ function doiUrl(doi: string): string {
 // bound `:href` (see the template note above). The `doiUrl(...)`-constructed
 // DOI hrefs are guarded too, defensively — belt-and-suspenders, since the
 // scheme there is currently always the hardcoded `https://doi.org/` prefix.
-const safeRecordUrl = computed<string | null>(() => safeHttpUrl(props.release.zenodo.record_url));
+const recordUrl = computed<string | null>(() => nonEmptyString(props.release.zenodo.record_url));
+const versionDoi = computed<string | null>(() => nonEmptyString(props.release.zenodo.version_doi));
+const conceptDoi = computed<string | null>(() => nonEmptyString(props.release.zenodo.concept_doi));
+const safeRecordUrl = computed<string | null>(() => safeHttpUrl(recordUrl.value));
 const safeVersionDoiHref = computed<string | null>(() =>
-  props.release.zenodo.version_doi ? safeHttpUrl(doiUrl(props.release.zenodo.version_doi)) : null
+  versionDoi.value ? safeHttpUrl(doiUrl(versionDoi.value)) : null
 );
 const safeConceptDoiHref = computed<string | null>(() =>
-  props.release.zenodo.concept_doi ? safeHttpUrl(doiUrl(props.release.zenodo.concept_doi)) : null
+  conceptDoi.value ? safeHttpUrl(doiUrl(conceptDoi.value)) : null
 );
 
 const integrityHashes = computed(() => [
@@ -297,10 +306,10 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid #d7dee8;
-  border-radius: var(--radius-lg, 8px);
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
 }
 
 .release-manifest-panel__header {
@@ -313,7 +322,7 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__title {
   margin: 0;
-  color: var(--neutral-900, #212121);
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
@@ -321,7 +330,7 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__subtitle {
   margin: 0.15rem 0 0;
-  color: var(--neutral-600, #757575);
+  color: var(--text-muted);
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -334,7 +343,7 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__section-title {
   margin: 0 0 0.4rem;
-  color: var(--neutral-700, #616161);
+  color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -354,20 +363,20 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__grid dt {
   margin: 0;
-  color: var(--neutral-700, #616161);
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .release-manifest-panel__grid dd {
   margin: 0.1rem 0 0;
-  color: var(--neutral-900, #212121);
+  color: var(--text-primary);
   font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
 .release-manifest-panel__grid a {
-  color: var(--medical-blue-700, #0d47a1);
+  color: var(--medical-blue-700);
 }
 
 .release-manifest-panel__mono {
@@ -391,10 +400,10 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.25rem;
   padding: 0.08rem 0.4rem;
-  border: 1px solid #0a58ca;
-  border-radius: var(--radius-md, 6px);
-  background: #fff;
-  color: #0a58ca;
+  border: 1px solid var(--medical-blue-700);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--medical-blue-700);
   font-size: 0.72rem;
   line-height: 1.6;
   white-space: nowrap;
@@ -402,16 +411,16 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__copy-button:hover,
 .release-manifest-panel__copy-button:focus {
-  border-color: #084298;
-  background-color: #0a58ca;
-  color: #fff;
+  border-color: var(--medical-blue-700);
+  background-color: var(--medical-blue-700);
+  color: var(--surface-raised);
 }
 
 .release-manifest-panel__layer {
   padding: 0.5rem 0.65rem;
-  border: 1px solid #e1e7ef;
-  border-radius: var(--radius-md, 6px);
-  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
 }
 
 .release-manifest-panel__layer + .release-manifest-panel__layer {
@@ -420,14 +429,14 @@ onBeforeUnmount(() => {
 
 .release-manifest-panel__layer-title {
   margin: 0 0 0.35rem;
-  color: var(--neutral-900, #212121);
+  color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 700;
 }
 
 .release-manifest-panel__hint {
   margin: 0 0 0.5rem;
-  color: var(--neutral-600, #757575);
+  color: var(--text-muted);
   font-size: 0.8125rem;
 }
 </style>

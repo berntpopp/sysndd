@@ -51,91 +51,110 @@
             icon="bi-list-check"
             :meta="vocabularyMeta"
           >
-          <template #actions>
-            <BButton
-              v-if="canCreate"
-              variant="primary"
-              size="sm"
-              data-testid="metadata-add-btn"
-              @click="openCreate"
+            <template #actions>
+              <BButton
+                v-if="canCreate"
+                variant="primary"
+                size="sm"
+                data-testid="metadata-add-btn"
+                @click="openCreate"
+              >
+                <i class="bi bi-plus-lg me-1" aria-hidden="true" />
+                Add entry
+              </BButton>
+            </template>
+
+            <BAlert v-if="isAnchored" variant="info" :model-value="true" class="mb-3">
+              <i class="bi bi-info-circle me-1" aria-hidden="true" />
+              This vocabulary is anchored to an external ontology. You can edit the curated display
+              fields and toggle activation, but terms cannot be created or deleted here.
+            </BAlert>
+
+            <div
+              data-testid="metadata-desktop"
+              class="metadata-table-scroll d-none d-md-block"
+              role="region"
+              aria-label="Metadata entries table"
+              tabindex="0"
             >
-              <i class="bi bi-plus-lg me-1" aria-hidden="true" />
-              Add entry
-            </BButton>
-          </template>
+              <BTable
+                class="metadata-table"
+                :items="rows"
+                :fields="tableFields"
+                :busy="loadingRows"
+                hover
+                small
+                responsive
+              >
+                <template #table-busy>
+                  <div class="text-center my-2">
+                    <BSpinner class="align-middle" />
+                    <strong class="ms-2">Loading entries...</strong>
+                  </div>
+                </template>
 
-          <BAlert v-if="isAnchored" variant="info" :model-value="true" class="mb-3">
-            <i class="bi bi-info-circle me-1" aria-hidden="true" />
-            This vocabulary is anchored to an external ontology. You can edit the curated display
-            fields and toggle activation, but terms cannot be created or deleted here.
-          </BAlert>
+                <template #cell(is_active)="data">
+                  <BBadge :variant="isRowActive(data.item) ? 'success' : 'secondary'">
+                    {{ isRowActive(data.item) ? 'Active' : 'Inactive' }}
+                  </BBadge>
+                </template>
 
-          <BTable
-            class="metadata-table"
-            :items="rows"
-            :fields="tableFields"
-            :busy="loadingRows"
-            hover
-            small
-            responsive
-          >
-            <template #table-busy>
-              <div class="text-center my-2">
-                <BSpinner class="align-middle" />
-                <strong class="ms-2">Loading entries...</strong>
-              </div>
-            </template>
+                <template #cell(allowed_phenotype)="data">
+                  <BBadge :variant="truthy(data.value) ? 'info' : 'light'">
+                    {{ truthy(data.value) ? 'Yes' : 'No' }}
+                  </BBadge>
+                </template>
 
-            <template #cell(is_active)="data">
-              <BBadge :variant="isRowActive(data.item) ? 'success' : 'secondary'">
-                {{ isRowActive(data.item) ? 'Active' : 'Inactive' }}
-              </BBadge>
-            </template>
+                <template #cell(allowed_variation)="data">
+                  <BBadge :variant="truthy(data.value) ? 'info' : 'light'">
+                    {{ truthy(data.value) ? 'Yes' : 'No' }}
+                  </BBadge>
+                </template>
 
-            <template #cell(allowed_phenotype)="data">
-              <BBadge :variant="truthy(data.value) ? 'info' : 'light'">
-                {{ truthy(data.value) ? 'Yes' : 'No' }}
-              </BBadge>
-            </template>
+                <template #cell(actions)="data">
+                  <div class="d-flex justify-content-end">
+                    <BButton
+                      size="sm"
+                      variant="link"
+                      class="me-1 p-1 text-primary"
+                      title="Edit entry"
+                      aria-label="Edit entry"
+                      :data-testid="`metadata-edit-${rowPk(data.item)}`"
+                      @click="openEdit(data.item)"
+                    >
+                      <i class="bi bi-pencil" aria-hidden="true" />
+                    </BButton>
+                    <BButton
+                      v-if="canDelete"
+                      size="sm"
+                      variant="link"
+                      class="p-1 text-warning"
+                      title="Deactivate entry"
+                      aria-label="Deactivate entry"
+                      :data-testid="`metadata-delete-${rowPk(data.item)}`"
+                      @click="openDelete(data.item)"
+                    >
+                      <i class="bi bi-archive" aria-hidden="true" />
+                    </BButton>
+                  </div>
+                </template>
+              </BTable>
+            </div>
 
-            <template #cell(allowed_variation)="data">
-              <BBadge :variant="truthy(data.value) ? 'info' : 'light'">
-                {{ truthy(data.value) ? 'Yes' : 'No' }}
-              </BBadge>
-            </template>
+            <MetadataMobileRows
+              v-if="activeVocabulary && !loadingRows"
+              data-testid="metadata-mobile"
+              class="d-md-none"
+              :items="rows"
+              :vocabulary="activeVocabulary"
+              :can-deactivate="canDelete"
+              @edit="openEdit"
+              @deactivate="openDelete"
+            />
 
-            <template #cell(actions)="data">
-              <div class="d-flex justify-content-end">
-                <BButton
-                  size="sm"
-                  variant="link"
-                  class="me-1 p-1 text-primary"
-                  title="Edit entry"
-                  aria-label="Edit entry"
-                  :data-testid="`metadata-edit-${rowPk(data.item)}`"
-                  @click="openEdit(data.item)"
-                >
-                  <i class="bi bi-pencil" aria-hidden="true" />
-                </BButton>
-                <BButton
-                  v-if="canDelete"
-                  size="sm"
-                  variant="link"
-                  class="p-1 text-warning"
-                  title="Deactivate entry"
-                  aria-label="Deactivate entry"
-                  :data-testid="`metadata-delete-${rowPk(data.item)}`"
-                  @click="openDelete(data.item)"
-                >
-                  <i class="bi bi-archive" aria-hidden="true" />
-                </BButton>
-              </div>
-            </template>
-          </BTable>
-
-          <p v-if="!loadingRows && rows.length === 0" class="text-muted small mb-0">
-            No entries.
-          </p>
+            <p v-if="!loadingRows && rows.length === 0" class="text-muted small mb-0">
+              No entries.
+            </p>
           </AdminOperationPanel>
         </div>
       </template>
@@ -168,6 +187,7 @@ import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.v
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import MetadataEntryModal from './components/MetadataEntryModal.vue';
 import MetadataDeleteModal from './components/MetadataDeleteModal.vue';
+import MetadataMobileRows from './components/MetadataMobileRows.vue';
 import useToast from '@/composables/useToast';
 import { useMetadataAdmin } from './composables/useMetadataAdmin';
 import type { MetadataRow, MetadataCellValue } from '@/api/metadata';
@@ -207,6 +227,7 @@ export default defineComponent({
     AdminOperationPanel,
     MetadataEntryModal,
     MetadataDeleteModal,
+    MetadataMobileRows,
   },
   setup() {
     useHead({ title: 'Manage Metadata' });
@@ -222,8 +243,7 @@ export default defineComponent({
       admin.loadCatalog();
     });
 
-    const truthy = (value: unknown): boolean =>
-      value === 1 || value === '1' || value === true;
+    const truthy = (value: unknown): boolean => value === 1 || value === '1' || value === true;
 
     const rowPk = (row: MetadataRow): string => {
       const pk = admin.activeVocabulary.value?.pk;
@@ -381,5 +401,9 @@ export default defineComponent({
 
 .metadata-table {
   text-align: left;
+}
+
+.metadata-table-scroll {
+  overflow-x: auto;
 }
 </style>

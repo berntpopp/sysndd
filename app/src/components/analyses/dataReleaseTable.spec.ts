@@ -114,6 +114,20 @@ describe('normalizeReleaseRows', () => {
     expect(rows[0].zenodo_record_url).toBe(DOI_UNASSIGNED);
   });
 
+  it('does not stringify a malformed runtime DOI object into the public archive', () => {
+    const rows = normalizeReleaseRows([
+      makeReleaseHead({
+        zenodo: {
+          record_url: null,
+          version_doi: {} as unknown as string,
+          concept_doi: null,
+        },
+      }),
+    ]);
+
+    expect(rows[0].zenodo_version_doi).toBe(DOI_UNASSIGNED);
+  });
+
   it('falls back to created_at when published_at is null', () => {
     const rows = normalizeReleaseRows([
       makeReleaseHead({ published_at: null, created_at: '2026-06-15T00:00:00Z' }),
