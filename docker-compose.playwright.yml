@@ -53,6 +53,10 @@ services:
 
   api:
     container_name: sysndd_playwright_api
+    # The production base sets two API replicas; a fixed test-only container
+    # name requires one replica in this isolated stack.
+    deploy:
+      replicas: 1
     environment:
       ENVIRONMENT: production
       LOG_LEVEL: WARN
