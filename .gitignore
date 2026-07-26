@@ -20,7 +20,13 @@ scripts/cert/*.pem
 # testing files
 TESTING.md
 
-# claude files
+# Local AI coding-assistant configuration and Impeccable installation. Shared
+# project guidance remains in the tracked CLAUDE.md file and .agents/skills/
+# sysndd-* directories.
+.claude/
+.codex/
+.impeccable/
+.agents/skills/impeccable/
 .claude.planning/intel/
 
 # Coverage reports
