@@ -230,40 +230,38 @@ phenotype_connect_to_review <- function(review_id, entity_id, phenotypes, conn =
 #' }
 #'
 #' @export
-phenotype_replace_for_review <- function(review_id, entity_id, phenotypes) {
+phenotype_replace_for_review <- function(review_id, entity_id, phenotypes, conn = NULL) {
   log_debug("Replacing phenotypes for review {review_id} with {nrow(phenotypes)} new entries")
 
-  # Validate phenotype IDs first (before transaction)
-  phenotype_validate_ids(phenotypes$phenotype_id)
-
-  # Validate entity_id matches the review's entity_id
-  review_entity <- db_execute_query(
-    "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
-    list(review_id)
-  )
-
-  if (nrow(review_entity) == 0) {
-    rlang::abort(
-      message = paste("Review not found:", review_id),
-      class = "review_not_found_error",
-      review_id = review_id
+  if (is.null(conn)) {
+    phenotype_validate_ids(phenotypes$phenotype_id)
+    review_entity <- db_execute_query(
+      "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
+      list(review_id)
     )
+
+    if (nrow(review_entity) == 0) {
+      rlang::abort(
+        message = paste("Review not found:", review_id),
+        class = "review_not_found_error",
+        review_id = review_id
+      )
+    }
+
+    if (review_entity$entity_id[1] != entity_id) {
+      rlang::abort(
+        message = paste0(
+          "Entity ID mismatch: provided ", entity_id,
+          " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
+        ),
+        class = "entity_id_mismatch_error",
+        provided_entity_id = entity_id,
+        review_entity_id = review_entity$entity_id[1]
+      )
+    }
   }
 
-  if (review_entity$entity_id[1] != entity_id) {
-    rlang::abort(
-      message = paste0(
-        "Entity ID mismatch: provided ", entity_id,
-        " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
-      ),
-      class = "entity_id_mismatch_error",
-      provided_entity_id = entity_id,
-      review_entity_id = review_entity$entity_id[1]
-    )
-  }
-
-  # Use transaction for atomic replace
-  result <- db_with_transaction(function(txn_conn) {
+  replace_connections <- function(txn_conn) {
     # Delete existing phenotype connections
     deleted <- db_execute_statement(
       "DELETE FROM ndd_review_phenotype_connect WHERE review_id = ?",
@@ -295,7 +293,13 @@ phenotype_replace_for_review <- function(review_id, entity_id, phenotypes) {
     log_debug("Inserted {total_inserted} new phenotype connections")
 
     return(total_inserted)
-  })
+  }
+
+  result <- if (is.null(conn)) {
+    db_with_transaction(function(txn_conn) replace_connections(txn_conn))
+  } else {
+    replace_connections(conn)
+  }
 
   log_debug("Replace completed: {result} phenotypes now connected to review {review_id}")
 

@@ -43,6 +43,10 @@ library(testthat)
 # to keep Layer A of verify-test-gate green).
 # -----------------------------------------------------------------------------
 
+source_api_file("core/errors.R", local = FALSE)
+source_api_file("functions/publication-write-preparation.R", local = FALSE)
+source_api_file("services/review-write-service.R", local = FALSE)
+
 review_endpoint_path <- function() {
   file.path(get_api_dir(), "endpoints", "review_endpoints.R")
 }
@@ -95,65 +99,23 @@ make_mock_res <- function() {
 # for. Tests pass their own `require_role_fn` so permission blocks can drive
 # a 403 by raising from inside the stub.
 make_review_sandbox <- function(require_role_fn = function(req, res, min_role) invisible(TRUE),
+                                svc_review_write_fn = function(...) {
+                                  list(
+                                    status = 200L,
+                                    message = "OK. Review stored.",
+                                    entry = tibble::tibble(review_id = 42L)
+                                  )
+                                },
                                 svc_approval_review_approve_fn = function(...) {
                                   list(status = 200, message = "OK. Approved.")
-                                },
-                                put_post_db_review_fn = function(...) {
-                                  list(status = 200, message = "OK. Review stored.",
-                                       entry = list(review_id = 42L))
-                                },
-                                new_publication_fn = function(...) {
-                                  list(status = 200, message = "OK. Publications created.")
-                                },
-                                put_post_db_pub_con_fn = function(...) {
-                                  list(status = 200, message = "OK. Pub conn.")
-                                },
-                                put_post_db_phen_con_fn = function(...) {
-                                  list(status = 200, message = "OK. Phen conn.")
-                                },
-                                put_post_db_var_ont_con_fn = function(...) {
-                                  list(status = 200, message = "OK. Var conn.")
                                 },
                                 genereviews_from_pmid_fn = function(...) FALSE) {
   env <- new.env(parent = globalenv())
   env$require_role <- require_role_fn
   env$pool <- "STUB_POOL"
+  env$svc_review_write <- svc_review_write_fn
   env$svc_approval_review_approve <- svc_approval_review_approve_fn
-  env$put_post_db_review <- put_post_db_review_fn
-  env$new_publication <- new_publication_fn
-  env$put_post_db_pub_con <- put_post_db_pub_con_fn
-  env$put_post_db_phen_con <- put_post_db_phen_con_fn
-  env$put_post_db_var_ont_con <- put_post_db_var_ont_con_fn
   env$genereviews_from_pmid <- genereviews_from_pmid_fn
-  env$`%||%` <- function(a, b) if (is.null(a)) b else a
-  # Direct-approval helper (issues #36/#37). Faithful copy of
-  # approval-service.R::review_apply_direct_approval that delegates to the
-  # sandbox's review-approve stub. Calls `svc_approval_review_approve_fn`
-  # directly (closed over here) rather than by name, so it always hits the
-  # injected stub regardless of lexical scope. Keeps the handler test
-  # self-contained without sourcing the service layer.
-  env$review_apply_direct_approval <- function(write_response, review_id, user_id,
-                                               direct_approval, pool) {
-    if (!isTRUE(direct_approval)) return(write_response)
-    if (is.null(write_response$status) || !all(write_response$status == 200)) return(write_response)
-    if (is.null(review_id) || length(review_id) == 0 || is.na(review_id[[1]])) {
-      return(write_response)
-    }
-    approval <- svc_approval_review_approve_fn(review_id, user_id, TRUE, pool)
-    if (is.null(approval$status) || approval$status != 200) {
-      write_response$status <- approval$status %||% 500
-    }
-    write_response
-  }
-  # `compact` is a purrr helper used by the review handler's literature /
-  # phenotypes / variation branches. setup.R does not attach purrr, so
-  # stub a deterministic pure-R implementation here to keep tests
-  # self-contained.
-  env$compact <- function(x) {
-    if (is.null(x) || length(x) == 0L) return(x)
-    is_empty <- vapply(x, function(el) is.null(el) || length(el) == 0L, logical(1))
-    x[!is_empty]
-  }
   env
 }
 
@@ -219,7 +181,7 @@ test_that("GET / review list: permission — requires Reviewer+", {
 # POST /create -- create review (shared handler with PUT /update)
 # =============================================================================
 
-test_that("POST /create review: happy path — valid synopsis aggregates 200", {
+test_that("POST /create review delegates to the atomic coordinator with scalar 200", {
   with_test_db_transaction({
     env <- make_review_sandbox()
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
@@ -242,20 +204,16 @@ test_that("POST /create review: happy path — valid synopsis aggregates 200", {
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = FALSE)
     expect_true(is.list(result))
-    # The handler aggregates service-function statuses through a tibble pipeline
-    # (review_endpoints.R:319-328) that calls unique() BEFORE max(status).
-    # When the service calls return distinct messages (e.g. "OK. Review stored."
-    # and "OK. Skipped."), the result list's `status` field is a length-N vector
-    # with every element set to the max status, not a scalar. Assert that every
-    # aggregated status is 200 AND the HTTP res status is still the default 200.
-    expect_true(all(result$status == 200L))
+    expect_identical(result$status, 200L)
     expect_equal(res$status, 200L)
   })
 })
 
-test_that("POST /create review: validation — empty synopsis returns 400", {
+test_that("POST /create review lets coordinator error_400 reach mount_endpoint", {
   with_test_db_transaction({
-    env <- make_review_sandbox()
+    env <- make_review_sandbox(svc_review_write_fn = function(...) {
+      stop_for_bad_request("synopsis is required.")
+    })
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
 
     req <- list(
@@ -264,37 +222,121 @@ test_that("POST /create review: validation — empty synopsis returns 400", {
       argsBody = list(review_json = list(entity_id = 123L, synopsis = ""))
     )
     res <- make_mock_res()
-    result <- handler(req = req, res = res)
-    expect_equal(res$status, 400)
-    expect_true(!is.null(result$error))
-    expect_match(result$error, "synopsis", ignore.case = TRUE)
+    expect_error(handler(req = req, res = res), class = "error_400")
   })
 })
 
-test_that("POST /create review: publication_fetch_error returns 400 and skips downstream connections", {
+test_that("POST /create review preserves literal NULL ontology fields for RFC 9457 validation", {
   with_test_db_transaction({
-    pub_conn_called <- FALSE
-    phen_conn_called <- FALSE
-    var_conn_called <- FALSE
-    env <- make_review_sandbox(
-      new_publication_fn = function(...) {
-        stop(structure(
-          list(message = "PMIDs not retrievable from PubMed: PMID:99999999"),
-          class = c("publication_fetch_error", "error", "condition")
+    null_cases <- list(
+      list(phenotypes = list(phenotype_id = NULL, modifier_id = 1L), variation_ontology = list()),
+      list(phenotypes = list(value = NULL), variation_ontology = list()),
+      list(phenotypes = list(), variation_ontology = list(vario_id = NULL, modifier_id = 1L)),
+      list(phenotypes = list(), variation_ontology = list(value = NULL))
+    )
+
+    for (null_case in null_cases) {
+      env <- make_review_sandbox(svc_review_write_fn = function(...) {
+        args <- list(...)
+        if (!is.null(args$phenotypes$phenotype_id) ||
+            !is.null(args$phenotypes$value) ||
+            !is.null(args$variation_ontology$vario_id) ||
+            !is.null(args$variation_ontology$value)) {
+          stop("literal NULL was coerced before review validation")
+        }
+        stop_for_bad_request("ontology identifier is required.")
+      })
+      handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+      req <- list(
+        REQUEST_METHOD = "POST",
+        user_id = 7L,
+        argsBody = list(review_json = list(
+          entity_id = 123L,
+          synopsis = "Non-empty synopsis text.",
+          literature = list(),
+          phenotypes = null_case$phenotypes,
+          variation_ontology = null_case$variation_ontology
         ))
-      },
-      put_post_db_pub_con_fn = function(...) {
-        pub_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected pub conn call.")
-      },
-      put_post_db_phen_con_fn = function(...) {
-        phen_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected phen conn call.")
-      },
-      put_post_db_var_ont_con_fn = function(...) {
-        var_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected var conn call.")
+      )
+
+      expect_error(
+        handler(req = req, res = make_mock_res(), re_review = FALSE),
+        class = "error_400"
+      )
+    }
+  })
+})
+
+test_that("POST /create invalid modifier rejects literature before classification or preparation", {
+  with_test_db_transaction({
+    had_query <- exists("db_execute_query", envir = .GlobalEnv, inherits = FALSE)
+    if (had_query) {
+      previous_query <- base::get("db_execute_query", envir = .GlobalEnv, inherits = FALSE)
+    }
+    assign("db_execute_query", function(sql, params, conn) {
+      if (grepl("phenotype_list", sql, fixed = TRUE)) {
+        return(tibble::tibble(phenotype_id = "HP:0000001"))
       }
+      if (grepl("modifier_list", sql, fixed = TRUE)) {
+        return(tibble::tibble(modifier_id = integer()))
+      }
+      tibble::tibble()
+    }, envir = .GlobalEnv)
+    withr::defer({
+      if (had_query) {
+        assign("db_execute_query", previous_query, envir = .GlobalEnv)
+      } else {
+        rm("db_execute_query", envir = .GlobalEnv)
+      }
+    })
+
+    preparation_called <- FALSE
+    previous_preparation <- publication_write_prepare
+    assign("publication_write_prepare", function(...) {
+      preparation_called <<- TRUE
+      tibble::tibble()
+    }, envir = .GlobalEnv)
+    withr::defer(assign(
+      "publication_write_prepare", previous_preparation, envir = .GlobalEnv
+    ))
+
+    classification_called <- FALSE
+    env <- make_review_sandbox(
+      svc_review_write_fn = svc_review_write,
+      genereviews_from_pmid_fn = function(...) {
+        classification_called <<- TRUE
+        FALSE
+      }
+    )
+    handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 7L,
+      argsBody = list(review_json = list(
+        entity_id = 123L,
+        synopsis = "Non-empty synopsis text.",
+        literature = list(
+          additional_references = list(value = "PMID:99999999"),
+          gene_review = list()
+        ),
+        phenotypes = list(phenotype_id = "HP:0000001", modifier_id = 999L),
+        variation_ontology = list()
+      ))
+    )
+
+    expect_error(
+      handler(req = req, res = make_mock_res(), re_review = FALSE),
+      class = "error_400"
+    )
+    expect_false(classification_called)
+    expect_false(preparation_called)
+  })
+})
+
+test_that("POST /create review lets coordinator preparation errors propagate", {
+  with_test_db_transaction({
+    env <- make_review_sandbox(
+      svc_review_write_fn = function(...) stop_for_bad_request("PMID unavailable.")
     )
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
 
@@ -316,17 +358,7 @@ test_that("POST /create review: publication_fetch_error returns 400 and skips do
       )
     )
     res <- make_mock_res()
-    result <- handler(req = req, res = res, re_review = FALSE)
-
-    expect_equal(res$status, 400L)
-    expect_equal(result$status, 400L)
-    expect_equal(
-      result$message,
-      "Bad Request. PMIDs not retrievable from PubMed: PMID:99999999"
-    )
-    expect_false(pub_conn_called)
-    expect_false(phen_conn_called)
-    expect_false(var_conn_called)
+    expect_error(handler(req = req, res = res, re_review = FALSE), class = "error_400")
   })
 })
 
@@ -363,14 +395,14 @@ deny_curator_allow_reviewer <- function(req, res, min_role) {
   invisible(TRUE)
 }
 
-test_that("POST /create review direct_approval=TRUE: Curator approves the new review", {
+test_that("POST /create review passes direct approval to the atomic coordinator", {
   with_test_db_transaction({
-    approve_args <- list()
-    fake_approve <- function(review_id, user_id, approve, pool) {
-      approve_args <<- list(review_id = review_id, user_id = user_id, approve = approve)
-      list(status = 200, message = "OK. Review approved.", entry = review_id)
+    coordinator_args <- list()
+    fake_write <- function(...) {
+      coordinator_args <<- list(...)
+      list(status = 200L, message = "OK.", entry = tibble::tibble(review_id = 42L))
     }
-    env <- make_review_sandbox(svc_approval_review_approve_fn = fake_approve)
+    env <- make_review_sandbox(svc_review_write_fn = fake_write)
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
 
     req <- list(
@@ -389,23 +421,20 @@ test_that("POST /create review direct_approval=TRUE: Curator approves the new re
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = FALSE, direct_approval = TRUE)
 
-    expect_true(all(result$status == 200L))
-    # The freshly created review (entry$review_id = 42 from the sandbox default)
-    # is approved by the calling user.
-    expect_equal(approve_args$review_id, 42L)
-    expect_equal(approve_args$user_id, 7L)
-    expect_true(isTRUE(approve_args$approve))
+    expect_identical(result$status, 200L)
+    expect_true(isTRUE(coordinator_args$direct_approval))
+    expect_equal(coordinator_args$review_user_id, 7L)
   })
 })
 
-test_that("POST /create review direct_approval=FALSE: approval service is NOT called", {
+test_that("POST /create review passes disabled direct approval to the coordinator", {
   with_test_db_transaction({
-    approve_called <- FALSE
-    fake_approve <- function(...) {
-      approve_called <<- TRUE
-      list(status = 200, message = "OK.")
+    coordinator_args <- list()
+    fake_write <- function(...) {
+      coordinator_args <<- list(...)
+      list(status = 200L, message = "OK.", entry = tibble::tibble(review_id = 42L))
     }
-    env <- make_review_sandbox(svc_approval_review_approve_fn = fake_approve)
+    env <- make_review_sandbox(svc_review_write_fn = fake_write)
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
 
     req <- list(
@@ -424,26 +453,20 @@ test_that("POST /create review direct_approval=FALSE: approval service is NOT ca
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = FALSE, direct_approval = FALSE)
 
-    expect_true(all(result$status == 200L))
-    expect_false(approve_called)
+    expect_identical(result$status, 200L)
+    expect_false(coordinator_args$direct_approval)
   })
 })
 
 test_that("POST /create review direct_approval=TRUE: Reviewer (non-Curator) blocked with 403", {
   with_test_db_transaction({
     write_called <- FALSE
-    approve_called <- FALSE
-    fake_approve <- function(...) {
-      approve_called <<- TRUE
-      list(status = 200, message = "OK.")
-    }
     env <- make_review_sandbox(
       require_role_fn = deny_curator_allow_reviewer,
-      put_post_db_review_fn = function(...) {
+      svc_review_write_fn = function(...) {
         write_called <<- TRUE
-        list(status = 200, message = "OK.", entry = list(review_id = 42L))
-      },
-      svc_approval_review_approve_fn = fake_approve
+        list(status = 200L, message = "OK.", entry = tibble::tibble(review_id = 42L))
+      }
     )
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
 
@@ -462,7 +485,6 @@ test_that("POST /create review direct_approval=TRUE: Reviewer (non-Curator) bloc
     )
     expect_equal(res$status, 403L)
     expect_false(write_called)
-    expect_false(approve_called)
   })
 })
 
@@ -471,7 +493,7 @@ test_that("POST /create review direct_approval=TRUE: Reviewer (non-Curator) bloc
 # PUT /update -- update review (shared handler with POST /create)
 # =============================================================================
 
-test_that("PUT /update review: happy path — valid review_id aggregates 200", {
+test_that("PUT /update review delegates to the atomic coordinator", {
   with_test_db_transaction({
     env <- make_review_sandbox()
     handler <- extract_review_handler("^#\\*\\s+@put\\s+/update\\s*$", env)
@@ -494,16 +516,16 @@ test_that("PUT /update review: happy path — valid review_id aggregates 200", {
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = TRUE)
     expect_true(is.list(result))
-    # Same aggregation quirk as POST /create (review_endpoints.R:372-381):
-    # the status field is a vector when service calls return distinct messages.
-    expect_true(all(result$status == 200L))
+    expect_identical(result$status, 200L)
     expect_equal(res$status, 200L)
   })
 })
 
-test_that("PUT /update review: validation — missing entity_id returns 400", {
+test_that("PUT /update review lets coordinator validation errors propagate", {
   with_test_db_transaction({
-    env <- make_review_sandbox()
+    env <- make_review_sandbox(svc_review_write_fn = function(...) {
+      stop_for_bad_request("entity_id is required.")
+    })
     handler <- extract_review_handler("^#\\*\\s+@put\\s+/update\\s*$", env)
 
     req <- list(
@@ -512,36 +534,14 @@ test_that("PUT /update review: validation — missing entity_id returns 400", {
       argsBody = list(review_json = list(review_id = 55L, synopsis = "text"))
     )
     res <- make_mock_res()
-    result <- handler(req = req, res = res)
-    expect_equal(res$status, 400)
-    expect_true(!is.null(result$error))
+    expect_error(handler(req = req, res = res), class = "error_400")
   })
 })
 
-test_that("PUT /update review: publication_fetch_error returns 400 and skips downstream connections", {
+test_that("PUT /update review lets coordinator preparation errors propagate", {
   with_test_db_transaction({
-    pub_conn_called <- FALSE
-    phen_conn_called <- FALSE
-    var_conn_called <- FALSE
     env <- make_review_sandbox(
-      new_publication_fn = function(...) {
-        stop(structure(
-          list(message = "PMIDs not retrievable from PubMed: PMID:99999999"),
-          class = c("publication_fetch_error", "error", "condition")
-        ))
-      },
-      put_post_db_pub_con_fn = function(...) {
-        pub_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected pub conn call.")
-      },
-      put_post_db_phen_con_fn = function(...) {
-        phen_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected phen conn call.")
-      },
-      put_post_db_var_ont_con_fn = function(...) {
-        var_conn_called <<- TRUE
-        list(status = 500, message = "Unexpected var conn call.")
-      }
+      svc_review_write_fn = function(...) stop_for_bad_request("PMID unavailable.")
     )
     handler <- extract_review_handler("^#\\*\\s+@put\\s+/update\\s*$", env)
 
@@ -563,17 +563,7 @@ test_that("PUT /update review: publication_fetch_error returns 400 and skips dow
       )
     )
     res <- make_mock_res()
-    result <- handler(req = req, res = res, re_review = TRUE)
-
-    expect_equal(res$status, 400L)
-    expect_equal(result$status, 400L)
-    expect_equal(
-      result$message,
-      "Bad Request. PMIDs not retrievable from PubMed: PMID:99999999"
-    )
-    expect_false(pub_conn_called)
-    expect_false(phen_conn_called)
-    expect_false(var_conn_called)
+    expect_error(handler(req = req, res = res, re_review = TRUE), class = "error_400")
   })
 })
 

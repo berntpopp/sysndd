@@ -230,40 +230,38 @@ variation_ontology_connect_to_review <- function(review_id, entity_id, variation
 #' }
 #'
 #' @export
-variation_ontology_replace_for_review <- function(review_id, entity_id, variation_ontology) {
+variation_ontology_replace_for_review <- function(review_id, entity_id, variation_ontology, conn = NULL) {
   log_debug("Replacing variation ontology terms for review {review_id} with {nrow(variation_ontology)} new entries")
 
-  # Validate vario IDs first (before transaction)
-  variation_ontology_validate_ids(variation_ontology$vario_id)
-
-  # Validate entity_id matches the review's entity_id
-  review_entity <- db_execute_query(
-    "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
-    list(review_id)
-  )
-
-  if (nrow(review_entity) == 0) {
-    rlang::abort(
-      message = paste("Review not found:", review_id),
-      class = "review_not_found_error",
-      review_id = review_id
+  if (is.null(conn)) {
+    variation_ontology_validate_ids(variation_ontology$vario_id)
+    review_entity <- db_execute_query(
+      "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
+      list(review_id)
     )
+
+    if (nrow(review_entity) == 0) {
+      rlang::abort(
+        message = paste("Review not found:", review_id),
+        class = "review_not_found_error",
+        review_id = review_id
+      )
+    }
+
+    if (review_entity$entity_id[1] != entity_id) {
+      rlang::abort(
+        message = paste0(
+          "Entity ID mismatch: provided ", entity_id,
+          " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
+        ),
+        class = "entity_id_mismatch_error",
+        provided_entity_id = entity_id,
+        review_entity_id = review_entity$entity_id[1]
+      )
+    }
   }
 
-  if (review_entity$entity_id[1] != entity_id) {
-    rlang::abort(
-      message = paste0(
-        "Entity ID mismatch: provided ", entity_id,
-        " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
-      ),
-      class = "entity_id_mismatch_error",
-      provided_entity_id = entity_id,
-      review_entity_id = review_entity$entity_id[1]
-    )
-  }
-
-  # Use transaction for atomic replace
-  result <- db_with_transaction(function(txn_conn) {
+  replace_connections <- function(txn_conn) {
     # Delete existing variation ontology connections
     deleted <- db_execute_statement(
       "DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?",
@@ -295,7 +293,13 @@ variation_ontology_replace_for_review <- function(review_id, entity_id, variatio
     log_debug("Inserted {total_inserted} new variation ontology connections")
 
     return(total_inserted)
-  })
+  }
+
+  result <- if (is.null(conn)) {
+    db_with_transaction(function(txn_conn) replace_connections(txn_conn))
+  } else {
+    replace_connections(conn)
+  }
 
   log_debug("Replace completed: {result} variation ontology terms now connected to review {review_id}")
 

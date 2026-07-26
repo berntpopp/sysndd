@@ -24,6 +24,12 @@ if (!exists("db_execute_query", mode = "function")) {
   }
 }
 
+if (!exists("publication_write_prepare", mode = "function")) {
+  if (file.exists("functions/publication-write-preparation.R")) {
+    source("functions/publication-write-preparation.R", local = TRUE)
+  }
+}
+
 #' Normalize PMID values for direct NCBI E-utilities requests
 #'
 #' @param pmid_input Character vector or list of PMID values, with or without
@@ -187,80 +193,30 @@ check_pmid <- function(pmid_input) {
 #' @return list with http status message
 #' @export
 new_publication <- function(publications_received) {
-  # check if all received PMIDs are valid
-  if (check_pmid(publications_received$publication_id)) {
-    # check if publication_ids are already present in the database
-    publications_list_collected <- pool %>%
-      tbl("publication") %>%
-      dplyr::select(publication_id, update_date) %>%
-      arrange(publication_id) %>%
-      collect() %>%
-      right_join(publications_received, by = c("publication_id")) %>%
-      filter(is.na(update_date)) %>%
-      dplyr::select(-update_date)
+  prepared <- tryCatch(
+    publication_write_prepare(publications_received, db = pool),
+    publication_fetch_error = function(error) error
+  )
 
-    # subset by publication_type
-    pub_list_coll_gr <- publications_list_collected %>%
-      filter(publication_type == "gene_review")
-    pub_list_coll_other <- publications_list_collected %>%
-      filter(publication_type != "gene_review")
+  if (inherits(prepared, "publication_fetch_error")) {
+    return(list(status = 400, message = paste("Bad Request.", prepared$message)))
+  }
 
-    # check if subset list is longer then 0 then get info
-    if (length(compact(pub_list_coll_gr$publication_id)) > 0) {
-      pub_list_coll_gr_info <- pub_list_coll_gr %>%
-        rowwise() %>%
-        mutate(info = info_from_genereviews_pmid(publication_id)) %>%
-        unnest(info)
-    }
-
-    # check if subset list is longer then 0 then get info
-    if (length(compact(pub_list_coll_other$publication_id)) > 0) {
-      pub_list_coll_other_info <- pub_list_coll_other %>%
-        rowwise() %>%
-        mutate(info = info_from_pmid(publication_id)) %>%
-        unnest(info)
-    }
-
-    # bind the two tibbles if they exist
-    publications_list_collected_info <- bind_rows(
-      get0("pub_list_coll_gr_info"),
-      get0("pub_list_coll_other_info")
-    )
-
-    # add new publications to database table "publication" if present and not NA
-    if (nrow(publications_list_collected_info) > 0) {
-      cols <- names(publications_list_collected_info)
-      placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)",
-                     paste(cols, collapse = ", "), placeholders)
-
-      # Atomic batch (#318): a partial publication batch must never half-commit.
-      # If any INSERT fails (e.g. an unexpected NULL on a NOT NULL column), the
-      # whole batch rolls back and the error propagates as db_transaction_error.
-      tryCatch(
-        db_with_transaction(function(txn_conn) {
-          for (i in seq_len(nrow(publications_list_collected_info))) {
-            row <- publications_list_collected_info[i, ]
-            db_execute_statement(sql, as.list(row), conn = txn_conn)
-          }
-          invisible(NULL)
-        }),
-        db_transaction_error = function(e) {
-          rlang::abort(
-            message = paste("Publication batch insert failed:", e$message),
-            class = c("publication_insert_error", "db_statement_error"),
-            original_error = e$message
-          )
-        }
+  tryCatch(
+    db_with_transaction(function(txn_conn) {
+      publication_write_persist(prepared, conn = txn_conn)
+      invisible(NULL)
+    }),
+    db_transaction_error = function(error) {
+      rlang::abort(
+        message = paste("Publication batch insert failed:", error$message),
+        class = c("publication_insert_error", "db_statement_error"),
+        original_error = error$message
       )
     }
+  )
 
-    # return OK
-    return(list(status = 200, message = "OK. Entry created."))
-  } else {
-    # return Bad Request
-    return(list(status = 400, message = "Bad Request. Invalid PMIDs detected."))
-  }
+  list(status = 200, message = "OK. Entry created.")
 }
 
 
