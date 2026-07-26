@@ -46,7 +46,7 @@ skip_if_missing_publication_backfill_schema <- function(conn) {
     required_tables,
     function(table) {
       missing <- setdiff(required_columns[[table]], DBI::dbListFields(conn, table))
-      if (length(missing) == 0L) "" else paste0(table, ".", missing)
+      if (length(missing) == 0L) "" else paste0(table, ".", paste(missing, collapse = ", "))
     },
     character(1)
   )
