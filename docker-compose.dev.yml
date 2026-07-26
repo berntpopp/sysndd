@@ -66,15 +66,17 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_DATABASE: sysndd_db_test
-      MYSQL_USER: ${MYSQL_USER:-bernt}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      # Keep CI-local isolated from development .env credentials. Makefile's
+      # ci-local target and its R test runner use this fixed disposable pair.
+      MYSQL_USER: bernt
+      MYSQL_PASSWORD: Nur7DoofeFliegen.
+      MYSQL_ROOT_PASSWORD: root
     ports:
       - "7655:3306"
     volumes:
       - mysql_test_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-bernt}", "-p${MYSQL_PASSWORD:-changeme}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "bernt", "-pNur7DoofeFliegen."]
       interval: 10s
       timeout: 5s
       retries: 5
