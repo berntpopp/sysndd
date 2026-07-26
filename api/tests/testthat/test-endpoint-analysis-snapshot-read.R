@@ -159,6 +159,81 @@ test_that("analysis snapshot service reports stale and mismatched public snapsho
   expect_equal(mismatch_result$body$code, "source_version_mismatch")
 })
 
+test_that("serve-time self-heal fires for missing/stale/mismatched snapshots only", {
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
+  source(file.path("services", "analysis-snapshot-service.R"), local = TRUE)
+
+  calls <- new.env(parent = emptyenv())
+  calls$args <- character(0)
+  spy <- function(at) calls$args <- c(calls$args, as.character(at))
+
+  # snapshot_missing -> self-heal fires
+  missing <- service_analysis_snapshot_read(
+    "phenotype_clusters", list(),
+    repo_get_public = function(...) NULL,
+    on_stale_refresh = spy
+  )
+  expect_equal(missing$status, 503L)
+  expect_equal(missing$body$code, "snapshot_missing")
+
+  # source_version_mismatch -> self-heal fires
+  mismatched <- analysis_snapshot_fake_phenotype()
+  mismatched$status_code <- "source_version_mismatch"
+  mm <- service_analysis_snapshot_read(
+    "phenotype_clusters", list(),
+    repo_get_public = function(...) mismatched,
+    on_stale_refresh = spy
+  )
+  expect_equal(mm$status, 503L)
+
+  # stale -> self-heal fires
+  stale <- analysis_snapshot_fake_phenotype()
+  stale$status_code <- "snapshot_stale"
+  st <- service_analysis_snapshot_read(
+    "phenotype_clusters", list(),
+    repo_get_public = function(...) stale,
+    on_stale_refresh = spy
+  )
+  expect_equal(st$status, 503L)
+
+  expect_equal(calls$args, c("phenotype_clusters", "phenotype_clusters", "phenotype_clusters"))
+
+  # available (200) -> self-heal must NOT fire
+  ok <- analysis_snapshot_fake_phenotype()
+  ok$status_code <- "available"
+  ok_result <- service_analysis_snapshot_read(
+    "phenotype_clusters", list(),
+    repo_get_public = function(...) ok,
+    on_stale_refresh = spy
+  )
+  expect_equal(ok_result$status, 200L)
+
+  # unsupported_parameter (400) -> self-heal must NOT fire (no compute, no refresh)
+  bad <- service_analysis_snapshot_read(
+    "gene_network_edges",
+    list(cluster_type = "clusters", min_confidence = 700, max_edges = 10000),
+    repo_get_public = function(...) stop("repo should not be called"),
+    on_stale_refresh = spy
+  )
+  expect_equal(bad$status, 400L)
+
+  # still exactly the three 503-path calls
+  expect_equal(length(calls$args), 3L)
+})
+
+test_that("serve-time self-heal never turns a 503 into a 500 when the trigger errors", {
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
+  source(file.path("services", "analysis-snapshot-service.R"), local = TRUE)
+
+  result <- service_analysis_snapshot_read(
+    "phenotype_clusters", list(),
+    repo_get_public = function(...) NULL,
+    on_stale_refresh = function(at) stop("boom")
+  )
+  expect_equal(result$status, 503L)
+  expect_equal(result$body$code, "snapshot_missing")
+})
+
 test_that("functional endpoint returns unsupported_parameter for walktrap without repo or heavy compute", {
   source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path("services", "analysis-snapshot-service.R"), local = TRUE)

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.10] — 2026-07-26
+
+Public analysis pages (GeneNetworks, PhenotypeFunctionalCorrelation, phenotype/functional clustering, correlations) no longer get stuck on a permanent "being prepared" 503 after a curation edit. See #599.
+
+### Fixed
+
+- **Public analysis snapshots now self-heal after a mid-runtime data change** (GeneNetworks, PhenotypeFunctionalCorrelation, phenotype/functional clustering, correlations). `source_data_version` is a hash of live curation counts/dates, so any approval/edit after API startup flips it and marks every active snapshot `source_version_mismatch`. Previously the ONLY thing that re-enqueued a non-current snapshot was the startup bootstrap, so the public endpoints returned a *permanent* HTTP 503 ("This analysis is being prepared and will appear here shortly") with nothing actually preparing it — until the next API restart. The serving path (`service_analysis_snapshot_read()`) now enqueues a best-effort, throttled, dedup-safe refresh of all presets (`service_analysis_snapshot_selfheal_on_serve()`, reusing the proven bootstrap submit path) whenever it observes a missing / stale / source-version- or schema-mismatched snapshot, so the "being prepared" promise becomes true and client polls converge to 200 without operator action. Throttled to one enqueue per process per `ANALYSIS_SNAPSHOT_SELFHEAL_THROTTLE_SECONDS` (default 60s); disable with `ANALYSIS_SNAPSHOT_SELFHEAL_ON_SERVE=false`. The self-heal is non-throwing — a submit failure never turns a 503 into a 500.
+
+### Added
+
+- Offline unit tests for the serve-time self-heal (`test-unit-analysis-snapshot-selfheal.R`: enqueue semantics, throttle window, disable gate, best-effort error swallowing) and read-service trigger wiring (`test-endpoint-analysis-snapshot-read.R`: fires on missing/stale/mismatch, not on 200/400, and never escalates a 503 to a 500).
+
 ## [0.30.9] — 2026-07-23
 
 Consolidated dependency maintenance: merged the five open Dependabot bumps into one change and resolved the open Dependabot security alerts, with the frontend lockfile fully regenerated (`npm install` + `npm audit fix`) so it installs cleanly under `npm ci --legacy-peer-deps`. See #596.
