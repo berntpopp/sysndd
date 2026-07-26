@@ -74,8 +74,8 @@ export function formatReleaseBytes(bytes: number): string {
 }
 
 /** Flattens a possibly-null zenodo field to a display string. */
-function doiOrDash(value: string | null | undefined): string {
-  return value ? value : DOI_UNASSIGNED;
+function doiOrDash(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value : DOI_UNASSIGNED;
 }
 
 /**
