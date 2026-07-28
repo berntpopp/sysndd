@@ -23,7 +23,7 @@ x-verifier-environment: &verifier-environment
 
 services:
   secret-init:
-    image: mysql:8.4.10
+    image: mysql:8.4.11
     user: "0:0"
     labels: *verify-labels
     network_mode: none
@@ -43,7 +43,7 @@ services:
       - verify_admin_secret:/run/mcp-admin
 
   mysql:
-    image: mysql:8.4.10
+    image: mysql:8.4.11
     labels: *verify-labels
     command:
       - --authentication-policy=caching_sha2_password
