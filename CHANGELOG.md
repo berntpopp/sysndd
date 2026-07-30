@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **`brace-expansion` is pinned to the patched release of every major line in
+  the frontend dependency tree** (CVE-2026-14257 / GHSA-mh99-v99m-4gvg, high —
+  unbounded expansion length crashing the process out of memory). Explicit
+  per-major `overrides` move all five transitive copies onto builds that carry
+  the upstream `EXPANSION_MAX_LENGTH` guard: `1.1.18` (`glob`), `2.1.4`
+  (`editorconfig`, `filelist`, `js-beautify`, `readdir-glob`) and `5.0.9`
+  (root). A blanket bump to `5.x` is deliberately **not** used — its CommonJS
+  entry point exports a namespace object rather than a callable, which breaks
+  every `minimatch` 3/5/9 consumer with `expand is not a function`.
+
+### Changed
+
+- Frontend dev dependencies bumped (`@playwright/test`, `@vue/devtools-api`,
+  `eslint`, `globals`, `postcss`, `prettier`, `sass`, `typescript-eslint`,
+  `vue-tsc`) and `jsdom` moved to `30.x`.
+- Compose images bumped: `mysql` `8.4.10` → `8.4.11` and `axllent/mailpit`
+  `v1.30.5` → `v1.30.6`.
+
 ## [0.30.13] — 2026-07-26
 
 ### Fixed
