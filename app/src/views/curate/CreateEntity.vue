@@ -112,6 +112,7 @@ import {
   type OntologyTreeNode,
 } from '@/api/search';
 import { createEntity, type EntityCreatePayload } from '@/api/entity';
+import { splitOntologyTag } from '@/utils/ontologyTags';
 
 // Components
 import FormWizard from '@/components/forms/wizard/FormWizard.vue';
@@ -305,14 +306,19 @@ export default defineComponent({
         cleanPMIDs(formData.genereviews)
       );
 
+      // The curation tag is "<modifier_id>-<ontology_CURIE>", and the CURIE half
+      // may itself contain a hyphen. Destructuring `item.split('-')` bound the
+      // id to the segment between the first two hyphens, silently submitting a
+      // truncated term (#611); splitOntologyTag() splits on the FIRST separator
+      // only.
       const phenotypes = formData.phenotypes.map((item) => {
-        const [prefix, id] = item.split('-');
-        return new Phenotype(id, prefix);
+        const { modifierId, ontologyId } = splitOntologyTag(item);
+        return new Phenotype(ontologyId, modifierId);
       });
 
       const variations = formData.variationOntology.map((item) => {
-        const [prefix, id] = item.split('-');
-        return new Variation(id, prefix);
+        const { modifierId, ontologyId } = splitOntologyTag(item);
+        return new Variation(ontologyId, modifierId);
       });
 
       const review = new Review(

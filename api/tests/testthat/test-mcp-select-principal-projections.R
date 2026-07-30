@@ -177,6 +177,6 @@ test_that("source version formula and derived-content allowlists are frozen", {
 })
 
 test_that("manifest advances contiguously to the latest migration", {
-  expect_identical(EXPECTED_LATEST_MIGRATION, "047_add_variation_ontology_provenance.sql")
-  expect_identical(EXPECTED_MIGRATION_COUNT, 45L)
+  expect_identical(EXPECTED_LATEST_MIGRATION, "048_widen_publication_author_columns.sql")
+  expect_identical(EXPECTED_MIGRATION_COUNT, 46L)
 })

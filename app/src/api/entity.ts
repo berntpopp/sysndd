@@ -244,6 +244,13 @@ export interface VariationEvidenceRecord {
   evidence_summary: string;
   evidence_strength: number | null;
   evidence_json: unknown;
+  /**
+   * When the import batch wrote this evidence row, as
+   * `"YYYY-MM-DDTHH:MM:SS"` — deliberately with NO zone designator, because
+   * the underlying column is a MySQL `DATETIME` and carries no timezone (#612).
+   * `null` when the row predates the column or the driver returned no value.
+   */
+  created_at: string | null;
 }
 
 export interface VariationEvidenceResponse {

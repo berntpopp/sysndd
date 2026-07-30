@@ -180,6 +180,11 @@ vpe_evidence_rows <- function() {
     evidence_strength = c(1L, 3L),
     evidence_json = c('{"records":2,"max_stars":1}',
                       '{"matched":["truncating variants"]}'),
+    # Aliased in the query (`e.created_at AS evidence_created_at`) because the
+    # suggestions query also selects the assertion's own `a.created_at`. Kept as
+    # POSIXct, which is what the driver returns for a MySQL DATETIME.
+    evidence_created_at = as.POSIXct(c("2026-02-15 10:23:00", "2026-02-14 08:00:00"),
+                                     tz = "UTC"),
     stringsAsFactors = FALSE
   )
 }
@@ -195,6 +200,7 @@ vpe_evidence_rows_no_evidence <- function() {
   rows$evidence_summary <- NA_character_
   rows$evidence_strength <- NA_integer_
   rows$evidence_json <- NA_character_
+  rows$evidence_created_at <- as.POSIXct(NA_character_, tz = "UTC")
   rows
 }
 
@@ -218,6 +224,10 @@ vpe_suggestion_rows <- function() {
     evidence_summary = c("2 records", "9 records", "synopsis match"),
     evidence_strength = c(1L, 4L, 3L),
     evidence_json = c('{"b":2}', '{"c":3}', '{"a":1}'),
+    evidence_created_at = as.POSIXct(
+      c("2026-02-15 10:23:00", "2026-02-16 09:00:00", "2026-02-14 08:00:00"),
+      tz = "UTC"
+    ),
     stringsAsFactors = FALSE
   )
 }

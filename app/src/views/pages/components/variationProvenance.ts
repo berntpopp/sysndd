@@ -8,11 +8,15 @@
 // -----------------------
 // 1. NEVER SYNTHESISE. `summary` is the source's own stored wording and is shown
 //    verbatim. There is no protein/cDNA (HGVS) label in the payload because the
-//    importer never recorded one, and the evidence route does NOT return an
-//    import timestamp (`variation_ontology_evidence.created_at` is deliberately
-//    not selected by svc_entity_variation_evidence()) — so no date is rendered
-//    either. A field that is absent is omitted; a placeholder that implies data
-//    is exactly the fabrication this feature exists to prevent.
+//    importer never recorded one — so none is rendered. A field that is absent
+//    is omitted; a placeholder that implies data is exactly the fabrication this
+//    feature exists to prevent.
+//    The import date IS now served (`created_at`, #612) and is rendered as a
+//    DATE only. The column behind it is a MySQL `DATETIME` with no timezone, so
+//    the API sends no zone designator and `formatImportedDate()` reads the
+//    calendar fields literally rather than parsing an instant — showing a
+//    wall-clock time, or shifting the date across a timezone boundary, would
+//    both assert precision the payload does not carry.
 // 2. `strength` / `max_strength` are `null` when NOT RECORDED. Null must never
 //    render as zero stars, which would assert "we checked, it scored 0".
 //
@@ -65,6 +69,8 @@ export interface NormalizedEvidence {
   sourceVersion: string | null;
   summary: string | null;
   strength: number | null;
+  /** Import date, already formatted for display; `null` when not recorded. */
+  importedOn: string | null;
   records: NormalizedEvidenceRecordRow[];
   matched: string[];
 }
@@ -307,6 +313,57 @@ function normalizeMatched(payload: unknown): string[] {
   return [];
 }
 
+/**
+ * Format an evidence row's `created_at` as a display date, or `null`.
+ *
+ * The value is a MySQL `DATETIME` rendered without a zone designator (#612), so
+ * it is NOT an instant: handing it to `new Date(...)` would have the engine
+ * interpret it as local time and could shift the displayed date by a day for a
+ * viewer in another timezone. The calendar fields are therefore read literally
+ * off the leading `YYYY-MM-DD` and reassembled as a local date for formatting
+ * only, which is exactly as much precision as the payload carries.
+ *
+ * Anything that is not a well-formed date prefix returns `null` — the dialog
+ * then omits the date rather than printing something it cannot vouch for.
+ */
+export function formatImportedDate(value: unknown): string | null {
+  const raw = asText(value);
+  if (raw === null) return null;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(date.getTime())) return null;
+  // Reject a rolled-over date (e.g. "2026-02-31" -> 3 March) rather than
+  // display a day the payload never recorded.
+  if (date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return null;
+
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * The parts of the dialog's "Imported" line, in display order.
+ *
+ * Each part is independently omitted when its value is null, so the line shows
+ * exactly what the payload carries — and an empty array means the row is not
+ * rendered at all rather than showing a bare label. Kept here, not in the
+ * template, so the omission rules are driven by the spec instead of by nested
+ * `v-if`s that have to hand-manage the separators.
+ */
+export function importedLineParts(evidence: NormalizedEvidence): string[] {
+  const parts: string[] = [];
+  if (evidence.importedOn) parts.push(evidence.importedOn);
+  if (evidence.batchId) parts.push(`batch ${evidence.batchId}`);
+  if (evidence.sourceVersion) parts.push(`release ${evidence.sourceVersion}`);
+  return parts;
+}
+
 /** Normalize the `evidence` array of `GET …/variation/<vario>/<mod>/evidence`. */
 export function normalizeEvidenceRecords(raw: unknown): NormalizedEvidence[] {
   const list = Array.isArray(raw) ? raw : [];
@@ -320,6 +377,7 @@ export function normalizeEvidenceRecords(raw: unknown): NormalizedEvidence[] {
       sourceVersion: asText(row.source_version),
       summary: asText(row.evidence_summary),
       strength: asStrength(row.evidence_strength),
+      importedOn: formatImportedDate(row.created_at),
       records: normalizeRecordRows(row.evidence_json, sourceKey),
       matched: normalizeMatched(row.evidence_json),
     };

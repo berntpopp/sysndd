@@ -86,6 +86,9 @@ function suggestion(varioId: string, modifierId: number): VariationSuggestion {
         evidence_summary: '6 records, expert panel',
         evidence_strength: 3,
         evidence_json: null,
+        // This surface does not show the import date; recorded as absent so the
+        // fixture still matches the wire contract (#612).
+        created_at: null,
       },
     ],
   };

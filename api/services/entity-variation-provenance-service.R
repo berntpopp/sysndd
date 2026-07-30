@@ -105,6 +105,36 @@ VARIATION_PROVENANCE_SUGGESTED_STATE <- "suggested"
   )
 }
 
+#' Render an evidence row's `created_at` as a string, or NULL.
+#'
+#' `variation_ontology_evidence.created_at` is a MySQL `DATETIME`, which carries
+#' NO timezone. The value is therefore rendered WITHOUT a zone designator: an
+#' appended `Z` would assert a UTC instant the column cannot back, and this
+#' surface's whole premise is that a field states only what the payload records.
+#' The client shows the DATE part, which is what the import batch meaningfully
+#' pins down.
+#'
+#' The driver returns `DATETIME` as POSIXct; a character value (a restore-drifted
+#' column, or a stubbed test row) is passed through with its separator
+#' normalized, so both shapes yield the same wire format.
+#'
+#' @param x POSIXct or character scalar (NA/NULL allowed).
+#' @return `"YYYY-MM-DDTHH:MM:SS"`, or NULL when absent.
+#' @noRd
+.svc_vp_format_timestamp <- function(x) {
+  if (length(x) != 1L || all(is.na(x))) {
+    return(NULL)
+  }
+  if (inherits(x, "POSIXt")) {
+    return(format(x, "%Y-%m-%dT%H:%M:%S"))
+  }
+  value <- trimws(as.character(x))
+  if (!nzchar(value)) {
+    return(NULL)
+  }
+  sub(" ", "T", value, fixed = TRUE)
+}
+
 #' Order indices strength-descending, then source_key ascending.
 #'
 #' Byte-identical ordering rule to attach_provenance() so the compact `sources`
@@ -125,6 +155,14 @@ VARIATION_PROVENANCE_SUGGESTED_STATE <- "suggested"
 #' whose `source_key` is NA; `source_key` is NOT NULL in the evidence table, so
 #' NA there can only mean "no evidence row matched". Those phantom rows are
 #' dropped, yielding an empty array rather than one all-null entry.
+#'
+#' BOTH callers must select every column read here. `evidence_created_at` is
+#' aliased rather than selected bare because the suggestions query also selects
+#' the ASSERTION's `a.created_at`, and two same-named columns in one result set
+#' collide. A caller that forgets the column does not degrade gracefully --
+#' `rows$evidence_created_at` is NULL and `NULL[[i]]` errors "subscript out of
+#' bounds" -- which is deliberate: silently omitting provenance is the failure
+#' direction this whole surface exists to avoid.
 #'
 #' @param rows Tibble/data.frame of joined assertion+evidence rows.
 #' @return Unnamed list of evidence records (possibly empty).
@@ -149,7 +187,8 @@ VARIATION_PROVENANCE_SUGGESTED_STATE <- "suggested"
       source_version    = .svc_vp_na_to_null(as.character(ordered$source_version[[i]])),
       evidence_summary  = .svc_vp_na_to_null(as.character(ordered$evidence_summary[[i]])),
       evidence_strength = .svc_vp_na_to_null(as.integer(ordered$evidence_strength[[i]])),
-      evidence_json     = .svc_vp_parse_json(as.character(ordered$evidence_json[[i]]))
+      evidence_json     = .svc_vp_parse_json(as.character(ordered$evidence_json[[i]])),
+      created_at        = .svc_vp_format_timestamp(ordered$evidence_created_at[[i]])
     )
   })
 }
@@ -330,7 +369,7 @@ svc_entity_variation_evidence <- function(sysndd_id, vario_id, modifier_id, pool
       "SELECT a.entity_id, a.vario_id, a.modifier_id, a.state,",
       "       e.evidence_id, e.source_type, e.source_key, e.batch_id,",
       "       e.source_version, e.evidence_summary, e.evidence_strength,",
-      "       e.evidence_json",
+      "       e.evidence_json, e.created_at AS evidence_created_at",
       "  FROM variation_ontology_assertion a",
       "  JOIN ndd_entity_view v ON v.entity_id = a.entity_id",
       "  LEFT JOIN variation_ontology_evidence e",
@@ -396,7 +435,7 @@ svc_entity_variation_suggestions <- function(sysndd_id, pool) {
       "       a.modifier_id, a.state, a.created_at, a.updated_at,",
       "       e.evidence_id, e.source_type, e.source_key, e.batch_id,",
       "       e.source_version, e.evidence_summary, e.evidence_strength,",
-      "       e.evidence_json",
+      "       e.evidence_json, e.created_at AS evidence_created_at",
       "  FROM variation_ontology_assertion a",
       "  JOIN ndd_entity_view v ON v.entity_id = a.entity_id",
       "  LEFT JOIN variation_ontology_list l ON l.vario_id = a.vario_id",

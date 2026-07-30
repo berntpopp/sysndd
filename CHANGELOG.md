@@ -6,6 +6,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.31.1] — 2026-07-30
+
+### Fixed
+
+- **A consortium byline no longer destroys a curator's entire review save**
+  (#614). PubMed records a corporate author — *Deciphering Developmental
+  Disorders Study*, *Autism Sequencing Consortium*, *Epi4K* — in a
+  `<CollectiveName>` element rather than as a surname, and consortium-authored
+  papers are ordinary in NDD genetics. Those names routinely exceed the 50
+  characters `publication.Lastname` allowed, and because publication ingestion
+  runs inside the review-save transaction, the resulting `Data too long for
+  column 'Lastname'` did not fail in isolation: it rolled back the whole save and
+  the curator lost their work behind an opaque 500. Both author columns were
+  exposed, not just the one in the error — with no surname to fall back on the
+  parser assigns the collective name to `Lastname` *and* `Firstname` — so
+  migration `048` widens both to `VARCHAR(255)`. Widening rather than truncating,
+  because the byline is citation metadata and silently shortening an author name
+  to protect a column width is the wrong trade for a curation database. A clamp
+  at the same width remains as a backstop for an upstream string longer than even
+  that, and it warns when it fires; losing the tail of a byline beats losing the
+  save, but it should never happen unnoticed.
+
+  The migration re-states each column's own character set, read back from
+  `information_schema`, rather than naming one: `ALTER TABLE … MODIFY COLUMN`
+  does not preserve a column's charset when the statement omits it — it falls
+  back to the table default — so the obvious one-liner would silently
+  downconvert a column that had drifted to `utf8mb4`.
+
+- **Hyphenated ontology identifiers are no longer truncated on entity create and
+  modify** (#611). The curation form encodes a selection as
+  `"<modifier_id>-<ontology_CURIE>"`, and two of the four surfaces that resubmit
+  those tags split them with `item.split('-')[1]`, which returns only the segment
+  between the first and second hyphen. `'5-CURIE:part-with-hyphen'` was therefore
+  submitted as `'CURIE:part'` — either a different existing term, or a
+  non-existent one that fails the connect step. No identifier in either
+  vocabulary contains a hyphen today (HPO ids are `HP:` plus seven digits, VariO
+  ids `VariO:` plus four), so this was a latent trap rather than observed
+  corruption; it becomes real the moment a hyphen-bearing id enters either list,
+  and it fails silently rather than loudly when it does. All four surfaces now
+  use `splitOntologyTag()`, which splits on the first separator only and exists
+  precisely for this — the same helper #600 introduced, applied to the two call
+  sites that were missed. The regression tests assert a hyphenated CURIE
+  round-trips through the actual submitted request body, since a test using a
+  simple `1-VariO:0015` passes against the broken code and proves nothing.
+
+### Added
+
+- **The evidence dialog states when a machine-derived annotation was imported**
+  (#612). The variation-ontology provenance route now serves each evidence
+  record's `created_at`, so the dialog's "Imported" line reads *date · batch ·
+  release* as designed instead of naming the batch alone. Each part is dropped
+  independently when the payload lacks it, and the row disappears entirely when
+  it has none — consistent with the rest of this surface, which shows only what
+  was recorded. A date, never a time: the underlying column is a MySQL `DATETIME`
+  carrying no timezone, so the API sends no zone designator and the frontend
+  reads the calendar fields literally rather than parsing an instant, which would
+  let a viewer's timezone shift the day.
+
+### Removed
+
+- **Four dead review-service helpers** (#612) — `svc_review_add_phenotypes`,
+  `svc_review_add_variation_ontology`, `put_post_db_phen_con`,
+  `put_post_db_var_ont_con`. All had zero callers. They were worth removing
+  rather than leaving inert: each delegates to the sanctioned repository
+  functions by name instead of embedding SQL, so they passed the static
+  write-guard while bypassing `review_write_mutate()` — the one place provenance
+  reconciliation runs. Wiring any of them to an endpoint would have written
+  curated ontology terms with no assertion-state transition, making a
+  machine-derived annotation read as curator-authored again. A new guard keeps
+  them deleted.
+
 ## [0.31.0] — 2026-07-30
 
 ### Fixed

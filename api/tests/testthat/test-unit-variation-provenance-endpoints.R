@@ -273,6 +273,10 @@ test_that("the evidence route returns the full payloads for exactly the requeste
   # evidence_json is served parsed, not as an opaque string.
   expect_true(is.list(out$evidence[[1]]$evidence_json))
   expect_equal(out$evidence[[1]]$evidence_json$matched[[1]], "truncating variants")
+  # #612: the import date the dialog renders as "Imported <date>". No zone
+  # designator -- the column is a MySQL DATETIME and carries no timezone.
+  expect_equal(out$evidence[[1]]$created_at, "2026-02-14T08:00:00")
+  expect_equal(out$evidence[[2]]$created_at, "2026-02-15T10:23:00")
 
   # ONE query, and the full identity is bound as parameters, never interpolated.
   expect_length(rec$sql, 1L)
@@ -329,6 +333,36 @@ test_that("an assertion that exists but has no evidence rows yet returns an empt
   expect_true(grepl('"evidence":[]', vpe_json(out), fixed = TRUE))
 })
 
+# #612: the import date. Both routes share .svc_vp_evidence_records(), so both
+# queries must select the aliased column -- a caller that forgets it does not
+# degrade to a missing field, it errors. These tests pin the column onto BOTH
+# SQL statements so a future edit to one query cannot silently break the other.
+test_that("both evidence-bearing queries select the aliased evidence created_at", {
+  rec <- vpe_recorder()
+  vpe_with_query(svc_entity_variation_evidence, vpe_evidence_rows(), rec)(
+    VPE_ENTITY_ID, "VariO:0017", "1", pool = "STUB_POOL")
+  vpe_with_query(svc_entity_variation_suggestions, vpe_suggestion_rows(), rec)(
+    VPE_ENTITY_ID, pool = "STUB_POOL")
+
+  expect_length(rec$sql, 2L)
+  for (sql in rec$sql) {
+    expect_match(sql, "e.created_at AS evidence_created_at", fixed = TRUE)
+  }
+})
+
+test_that("an unrecorded import date is null rather than a fabricated one", {
+  rows <- vpe_evidence_rows()
+  rows$evidence_created_at <- as.POSIXct(rep(NA_character_, nrow(rows)), tz = "UTC")
+
+  out <- vpe_with_query(svc_entity_variation_evidence, rows)(
+    VPE_ENTITY_ID, "VariO:0017", "1", pool = "STUB_POOL")
+
+  expect_null(out$evidence[[1]]$created_at)
+  # Rendered by the route's null="null" serializer as JSON null -- never "NA",
+  # never {} , and never a stand-in date.
+  expect_true(grepl('"created_at":null', vpe_json(out), fixed = TRUE))
+})
+
 
 # ===========================================================================
 # 7. Suggestions route service
@@ -355,6 +389,9 @@ test_that("the suggestions route groups evidence per suggested assertion", {
   expect_equal(multi$evidence[[1]]$source_key, "synopsis")  # strength DESC
   expect_equal(multi$evidence[[2]]$source_key, "clinvar")
   expect_true(is.list(multi$evidence[[1]]$evidence_json))
+  # The evidence row's own created_at, not the assertion's -- the query selects
+  # both and they are different columns.
+  expect_equal(multi$evidence[[1]]$created_at, "2026-02-14T08:00:00")
 
   # ONE query, entity id bound, scoped to the public entity surface and to
   # `suggested` only (a confirmed/active row must never appear here).

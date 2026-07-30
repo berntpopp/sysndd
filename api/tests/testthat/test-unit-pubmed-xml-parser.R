@@ -204,6 +204,71 @@ test_that("table_articles_from_xml handles collective author name", {
   expect_equal(result$firstname[1], "ENCODE Project Consortium")
 })
 
+# ----------------------------------------------------------------------------
+# #614: consortium bylines vs the publication.Lastname/.Firstname column width
+#
+# PubMed records a corporate author in <CollectiveName>, which the parser assigns
+# to BOTH lastname and firstname (there is no surname to fall back on), so both
+# columns are exposed. Migration 048 widened them from VARCHAR(50) to
+# VARCHAR(255) so real consortium bylines are stored whole; the clamp below is
+# the backstop for an upstream string longer than even that, because publication
+# ingestion runs inside the review-save transaction and an overflow rolls back
+# the curator's ENTIRE save with an opaque 500.
+# ----------------------------------------------------------------------------
+
+test_that("table_articles_from_xml keeps a real consortium byline whole", {
+  # The 74-character name PMID 12345678 resolves to in the E2E baseline fixture:
+  # over the OLD VARCHAR(50), under the new VARCHAR(255).
+  long_name <- "Ministerial Meeting on Population of the Non-Aligned Movement (1993: Bali)"
+  expect_equal(nchar(long_name), 74L)
+
+  xml <- create_pubmed_xml(
+    author_last = NULL,
+    author_first = NULL,
+    collective_name = long_name
+  )
+  result <- table_articles_from_xml(xml)
+
+  expect_equal(result$lastname[1], long_name)
+  expect_equal(result$firstname[1], long_name)
+})
+
+test_that("pubmed_clamp_author_name bounds an over-long name and warns", {
+  over_long <- strrep("A", PUBLICATION_AUTHOR_NAME_MAX_CHARS + 25L)
+
+  expect_warning(
+    clamped <- pubmed_clamp_author_name(over_long, "Lastname"),
+    "clamping"
+  )
+  expect_equal(nchar(clamped), PUBLICATION_AUTHOR_NAME_MAX_CHARS)
+  expect_equal(clamped, substr(over_long, 1L, PUBLICATION_AUTHOR_NAME_MAX_CHARS))
+})
+
+test_that("pubmed_clamp_author_name leaves in-bounds values untouched and silent", {
+  exactly_at_bound <- strrep("B", PUBLICATION_AUTHOR_NAME_MAX_CHARS)
+
+  expect_silent(pubmed_clamp_author_name("Smith", "Lastname"))
+  expect_equal(pubmed_clamp_author_name("Smith", "Lastname"), "Smith")
+  expect_equal(pubmed_clamp_author_name(exactly_at_bound, "Lastname"), exactly_at_bound)
+  expect_equal(pubmed_clamp_author_name("", "Lastname"), "")
+  expect_true(is.na(pubmed_clamp_author_name(NA_character_, "Lastname")))
+  expect_null(pubmed_clamp_author_name(NULL, "Lastname"))
+})
+
+test_that("table_articles_from_xml clamps a byline longer than the column", {
+  over_long <- strrep("Consortium ", 40L) # 440 characters
+
+  xml <- create_pubmed_xml(
+    author_last = NULL,
+    author_first = NULL,
+    collective_name = over_long
+  )
+  suppressWarnings(result <- table_articles_from_xml(xml))
+
+  expect_equal(nchar(result$lastname[1]), PUBLICATION_AUTHOR_NAME_MAX_CHARS)
+  expect_equal(nchar(result$firstname[1]), PUBLICATION_AUTHOR_NAME_MAX_CHARS)
+})
+
 test_that("table_articles_from_xml extracts first author only", {
   # XML with multiple authors (manual construction)
   xml <- '<?xml version="1.0" encoding="UTF-8"?>

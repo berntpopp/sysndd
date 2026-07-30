@@ -9,10 +9,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   clinvarVariationUrl,
+  formatImportedDate,
+  importedLineParts,
   normalizeEvidenceRecords,
   normalizeEvidenceState,
   normalizeVariationProvenance,
   provenanceStatusText,
+  type NormalizedEvidence,
   provenanceTriggerLabel,
   sourceDisplayName,
   sourceTypeText,
@@ -217,5 +220,94 @@ describe('wire-shape helpers', () => {
     expect(normalizeEvidenceState('active_unconfirmed')).toBe('active_unconfirmed');
     expect(normalizeEvidenceState(['suggested'])).toBeNull();
     expect(normalizeEvidenceState(null)).toBeNull();
+  });
+});
+
+
+// #612 — the import date. It completes the "Imported ..." line the design
+// specifies, and it is the one field on this surface derived from a raw column
+// rather than from stored prose, so its honesty rules are pinned here.
+describe('formatImportedDate', () => {
+  it('reads the calendar fields literally instead of parsing an instant', () => {
+    // The API sends a MySQL DATETIME with NO zone designator. Handing that to
+    // `new Date(...)` makes the engine guess a timezone, which can shift the
+    // rendered day for a viewer elsewhere; the date shown must be the date
+    // stored. Compared against an independently-built local date.
+    const expected = new Date(2026, 1, 15).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    expect(formatImportedDate('2026-02-15T10:23:00')).toBe(expected);
+    expect(formatImportedDate(['2026-02-15T10:23:00'])).toBe(expected);
+    // A date-only value is the same date, not a different one.
+    expect(formatImportedDate('2026-02-15')).toBe(expected);
+  });
+
+  it('returns null for anything it cannot vouch for', () => {
+    expect(formatImportedDate(null)).toBeNull();
+    expect(formatImportedDate(undefined)).toBeNull();
+    expect(formatImportedDate('')).toBeNull();
+    expect(formatImportedDate('not a date')).toBeNull();
+    expect(formatImportedDate(12345)).toBeNull();
+    // A rolled-over date would silently display 3 March; refuse instead.
+    expect(formatImportedDate('2026-02-31T00:00:00')).toBeNull();
+    expect(formatImportedDate('2026-13-01T00:00:00')).toBeNull();
+  });
+});
+
+describe('importedLineParts', () => {
+  const base: NormalizedEvidence = {
+    sourceType: 'external_database',
+    sourceKey: 'clinvar',
+    batchId: null,
+    sourceVersion: null,
+    summary: null,
+    strength: null,
+    importedOn: null,
+    records: [],
+    matched: [],
+  };
+
+  it('orders date, batch, release and omits each part independently', () => {
+    expect(
+      importedLineParts({
+        ...base,
+        importedOn: '15 Feb 2026',
+        batchId: 'clinvar-2026-02',
+        sourceVersion: '2026-02-01',
+      })
+    ).toEqual(['15 Feb 2026', 'batch clinvar-2026-02', 'release 2026-02-01']);
+
+    expect(importedLineParts({ ...base, batchId: 'b-1' })).toEqual(['batch b-1']);
+    expect(importedLineParts({ ...base, importedOn: '15 Feb 2026' })).toEqual(['15 Feb 2026']);
+  });
+
+  it('returns nothing when the payload records none of the three', () => {
+    // An empty array means the dialog omits the row entirely rather than
+    // rendering a bare "Imported" label with no value.
+    expect(importedLineParts(base)).toEqual([]);
+  });
+});
+
+describe('normalizeEvidenceRecords — import date', () => {
+  it('carries created_at through as a formatted date, or null when absent', () => {
+    const [withDate, withoutDate] = normalizeEvidenceRecords([
+      {
+        source_key: ['clinvar'],
+        batch_id: ['clinvar-2026-02'],
+        created_at: ['2026-02-15T10:23:00'],
+      },
+      { source_key: ['synopsis'], batch_id: ['b-1'], created_at: null },
+    ]);
+
+    expect(withDate.importedOn).toBe(
+      new Date(2026, 1, 15).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    );
+    expect(withoutDate.importedOn).toBeNull();
   });
 });

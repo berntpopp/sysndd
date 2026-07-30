@@ -9,6 +9,56 @@
 # empty_pubmed_article_tibble(). Consumed by info_from_pmid() and the
 # publication_date_backfill job.
 
+# Width of publication.Lastname / publication.Firstname after migration 048
+# widened both from VARCHAR(50) to VARCHAR(255) (#614). Keep the two in step: this
+# constant is the ONLY place the parser encodes the column bound.
+PUBLICATION_AUTHOR_NAME_MAX_CHARS <- 255L
+
+#' Clamp a parsed author name to the publication table's column width
+#'
+#' A backstop, not the fix. Migration 048 widened Lastname/Firstname to
+#' VARCHAR(255) precisely so a real consortium byline is stored whole -- but
+#' PubMed's <CollectiveName> is unbounded free text, and an overflow here does not
+#' fail in isolation: publication ingestion runs inside the review-save
+#' transaction, so one over-long byline rolls back the curator's ENTIRE save with
+#' an opaque 500 (#614). Losing the tail of a byline is strictly better than
+#' losing the save, so an over-long name is clamped rather than allowed to reach
+#' the INSERT.
+#'
+#' It is deliberately NOT silent: clamping emits a warning naming the field and
+#' the observed length, so a systematically over-long upstream shows up in the
+#' logs instead of quietly corrupting citation metadata.
+#'
+#' `nchar()` counts CHARACTERS by default, which is what MySQL's VARCHAR(255)
+#' bounds -- not bytes -- so the two measures agree for any BMP string. (A
+#' non-BMP character is a separate failure the column's charset governs, not a
+#' length problem, and this clamp does not claim to address it.)
+#'
+#' @param name Character scalar (NA/NULL pass through untouched).
+#' @param field Column name used in the warning, e.g. "Lastname".
+#' @param max_chars Column width to clamp to.
+#' @return `name`, clamped to `max_chars` characters.
+#' @noRd
+pubmed_clamp_author_name <- function(name, field = "author name",
+                                     max_chars = PUBLICATION_AUTHOR_NAME_MAX_CHARS) {
+  if (is.null(name) || length(name) != 1L || is.na(name)) {
+    return(name)
+  }
+  value <- as.character(name)
+  observed <- nchar(value)
+  if (observed <= max_chars) {
+    return(value)
+  }
+  warning(sprintf(
+    paste0(
+      "PubMed %s is %d characters, longer than the publication.%s column (%d); ",
+      "clamping so the enclosing review save is not rolled back (#614)."
+    ),
+    field, observed, field, max_chars
+  ))
+  substr(value, 1L, max_chars)
+}
+
 #' Empty parsed PubMed article tibble with the parser's output schema
 #' @noRd
 empty_pubmed_article_tibble <- function() {
@@ -171,8 +221,11 @@ table_articles_from_xml <- function(pubmed_xml_data) {
       month = pub_date$month,
       day = pub_date$day,
       date_source = pub_date$date_source,
-      lastname = lastname,
-      firstname = firstname,
+      # Clamped at the parser's exit, so both write paths that consume this
+      # tibble -- info_from_pmid() on the review-save path and the
+      # publication_refresh job -- are covered by one bound (#614).
+      lastname = pubmed_clamp_author_name(lastname, "Lastname"),
+      firstname = pubmed_clamp_author_name(firstname, "Firstname"),
       address = str_c(text_all(article, ".//AuthorList/Author[1]/AffiliationInfo"),
         collapse = "; "
       )
@@ -265,8 +318,8 @@ table_book_articles_from_xml <- function(pubmed_xml_data) {
       month = pub_date$month,
       day = pub_date$day,
       date_source = pub_date$date_source,
-      lastname = lastname,
-      firstname = firstname,
+      lastname = pubmed_clamp_author_name(lastname, "Lastname"),
+      firstname = pubmed_clamp_author_name(firstname, "Firstname"),
       address = ""
     ))
   })

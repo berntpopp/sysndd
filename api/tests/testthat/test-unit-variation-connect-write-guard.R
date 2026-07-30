@@ -17,7 +17,7 @@
 # bug: automated/imported rows would look curator-authored because no
 # assertion row was ever recorded for them.
 #
-# This file has two guards:
+# This file has three guards:
 #   1. No file outside an explicit allowlist may contain a write
 #      (INSERT/UPDATE/DELETE/REPLACE/TRUNCATE) targeting
 #      `ndd_review_variation_ontology_connect`, scanned across functions/,
@@ -32,6 +32,10 @@
 #      test-unit-variation-provenance-reconcile.R ("the reconciliation module
 #      is registered for runtime loading") -- deliberately NOT duplicated
 #      here.
+#   3. The four dead review-service connect helpers stay deleted (#612). They
+#      called the sanctioned repository functions directly, bypassing
+#      review_write_mutate() and therefore reconciliation, so they embed no SQL
+#      and guard 1 cannot see them.
 #
 # Scan scope deliberately excludes tests/, scripts/, and db/: this guard
 # freezes the REQUEST-PATH write surface, not test fixtures or db-repo
@@ -57,22 +61,19 @@ WRITE_KEYWORDS <- c("INSERT", "UPDATE", "DELETE", "REPLACE", "TRUNCATE")
 #     which runs variation_provenance_reconcile_for_review() on the same
 #     transaction connection immediately afterward -- see guard 2 below.
 #
-# Investigated and NOT allowlisted (do not need to be -- see report):
-#   services/review-service.R defines svc_review_add_variation_ontology() and
-#   put_post_db_var_ont_con(). A repo-wide grep for both call sites (excluding
-#   their own definitions/roxygen \dontrun examples) found ZERO callers --
-#   they are dead code. Both delegate to the SAME sanctioned repository
-#   functions (variation_ontology_connect_to_review() /
-#   variation_ontology_replace_for_review()) by name rather than embedding
-#   raw SQL, so review-service.R contains no literal write statement against
-#   the connect table and this text-based guard does not need to allowlist
-#   it. They are flagged here as a correctness hazard for a follow-up: if
-#   ever re-wired to a live endpoint, they would write the connect table
-#   WITHOUT running reconciliation (reconciliation is orchestrated one layer
-#   up, in review_write_mutate(), not inside the repository functions they
-#   call) -- silently reintroducing the #608 laundering bug. They must not be
-#   resurrected without also routing through review_write_mutate(), and the
-#   right long-term outcome is deleting them (out of scope for this guard).
+# Deleted rather than allowlisted (#612):
+#   services/review-service.R used to define svc_review_add_variation_ontology()
+#   and put_post_db_var_ont_con() (plus their equally-dead phenotype siblings
+#   svc_review_add_phenotypes() / put_post_db_phen_con()). A repo-wide grep for
+#   call sites -- including dynamic dispatch by name -- found ZERO, so they were
+#   dead code, and they have now been removed. They were a live hazard while
+#   they existed: both delegate to the SAME sanctioned repository functions by
+#   name rather than embedding raw SQL, so they passed this text guard, but
+#   re-wiring either one to an endpoint would have written the connect table
+#   WITHOUT reconciliation -- which is orchestrated one layer up, in
+#   review_write_mutate(), not inside the repository functions they called --
+#   silently reintroducing the #608 laundering bug. The third guard below keeps
+#   them gone.
 #
 #   scripts/verify-mcp-select-principal-fixtures.R INSERTs directly into the
 #   connect table, but it is a disposable synthetic-fixture seeder for a
@@ -330,4 +331,41 @@ test_that("entity-rename-service.R carries provenance forward on the rename tran
       "entity's terms reading as curator-authored while the rename itself committed."
     )
   )
+})
+
+test_that("the dead connect helpers stay deleted (#612)", {
+  # review-service.R once defined four helpers that wrote the phenotype and
+  # variation-ontology connect tables through the sanctioned repository
+  # functions. All four had zero callers, so they were removed -- but the reason
+  # they had to go is not tidiness. They call the repository functions DIRECTLY,
+  # bypassing review_write_mutate(), which is where provenance reconciliation
+  # runs (see the guard above). Re-wiring any of them to an endpoint would write
+  # curated variation terms with no reconciliation and no assertion-state
+  # transition, so a machine-derived term would silently read as
+  # curator-authored again -- the #608 bug, through a door this file's text
+  # scan cannot see, because they embed no SQL of their own.
+  #
+  # A resurrection is legitimate only if it routes through review_write_mutate().
+  removed <- c(
+    "svc_review_add_phenotypes",
+    "svc_review_add_variation_ontology",
+    "put_post_db_phen_con",
+    "put_post_db_var_ont_con"
+  )
+
+  service_path <- file.path(get_api_dir(), "services", "review-service.R")
+  expect_true(file.exists(service_path))
+  src <- paste(readLines(service_path, warn = FALSE), collapse = "\n")
+
+  for (fn in removed) {
+    expect_false(
+      grepl(paste0("(?m)^\\s*", fn, "\\s*<-\\s*function"), src, perl = TRUE),
+      info = paste0(
+        fn, "() is defined again in services/review-service.R. It bypasses ",
+        "review_write_mutate(), so it writes curated ontology terms without ",
+        "provenance reconciliation. Route it through review_write_mutate() or ",
+        "leave it deleted."
+      )
+    )
+  }
 })
