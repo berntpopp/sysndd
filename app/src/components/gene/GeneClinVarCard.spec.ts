@@ -129,3 +129,66 @@ describe('GeneClinVarCard', () => {
     expect(wrapper.text()).toContain('VUS 2');
   });
 });
+
+describe('conflicting classifications (#607)', () => {
+  it('renders a CONF chip from the server counts', () => {
+    const wrapper = mount(GeneClinVarCard, {
+      props: {
+        geneSymbol: 'PCDH12',
+        loading: false,
+        error: null,
+        counts: {
+          pathogenic: 18,
+          likely_pathogenic: 13,
+          conflicting: 28,
+          vus: 261,
+          likely_benign: 145,
+          benign: 37,
+        },
+        totalCount: 503,
+      },
+    });
+
+    expect(wrapper.text()).toContain('CONF 28');
+    expect(wrapper.text()).toContain('P 18');
+  });
+
+  it('does not count conflicting variants as pathogenic in the fallback path', () => {
+    const wrapper = mount(GeneClinVarCard, {
+      props: {
+        geneSymbol: 'PCDH12',
+        loading: false,
+        error: null,
+        data: [
+          { clinical_significance: 'Pathogenic' },
+          { clinical_significance: 'Conflicting classifications of pathogenicity' },
+          { clinical_significance: 'Conflicting classifications of pathogenicity' },
+        ] as never,
+      },
+    });
+
+    expect(wrapper.text()).toContain('P 1');
+    expect(wrapper.text()).toContain('CONF 2');
+    expect(wrapper.text()).not.toContain('P 3');
+  });
+
+  it('omits the CONF chip when a pre-#607 payload has no conflicting count', () => {
+    const wrapper = mount(GeneClinVarCard, {
+      props: {
+        geneSymbol: 'CHD8',
+        loading: false,
+        error: null,
+        counts: {
+          pathogenic: 2,
+          likely_pathogenic: 0,
+          vus: 0,
+          likely_benign: 0,
+          benign: 0,
+        },
+        totalCount: 2,
+      },
+    });
+
+    expect(wrapper.text()).not.toContain('CONF');
+  });
+});

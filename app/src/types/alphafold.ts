@@ -8,6 +8,8 @@
  * - Helper functions for variant position parsing and significance classification
  */
 
+import { normalizeClinVarSignificance } from './clinvarSignificance';
+
 /**
  * AlphaFold structure prediction metadata
  *
@@ -70,6 +72,9 @@ export const ACMG_COLORS = {
   vus: '#ffc107',
   likely_benign: '#20c997',
   benign: '#28a745',
+  // Submitters disagree — the value of the shared $purple token
+  // (app/src/assets/scss/_variables.scss), deliberately outside the ramp.
+  conflicting: '#6f42c1',
 } as const;
 
 /**
@@ -81,6 +86,7 @@ export const ACMG_LABELS = {
   vus: 'VUS',
   likely_benign: 'Likely Benign',
   benign: 'Benign',
+  conflicting: 'Conflicting',
 } as const;
 
 /**
@@ -202,38 +208,43 @@ export function parseResidueNumber(hgvsp: string | null | undefined): number | n
 }
 
 /**
- * Classify clinical significance string to ACMG classification
+ * Classify a ClinVar `clinical_significance` string for the 3D viewer.
  *
- * Normalizes ClinVar clinical_significance strings to one of 5 ACMG categories.
- * Handles both underscore and space formats from gnomAD API.
+ * Thin adapter over the shared table-driven vocabulary — see
+ * `clinvarSignificance.ts` for why substring matching is forbidden here
+ * (issue #607). Recognised non-ACMG terms (`not provided`, `drug response`, ...)
+ * and unresolvable terms both return `null`; the caller renders those gray and
+ * labels them with the raw string, which is genuinely informative.
  *
- * Classification logic (matches GeneClinVarCard.vue counts computed property):
- * - "Pathogenic" (without "Likely") → pathogenic
- * - "Likely pathogenic" / "Likely_pathogenic" → likely_pathogenic
- * - "Uncertain significance" / "VUS" → vus
- * - "Likely benign" / "Likely_benign" → likely_benign
- * - "Benign" (without "Likely") → benign
- * - Conflicting/other → null
+ * `Pathogenic/Likely pathogenic` resolves to `pathogenic`, matching the server
+ * and the lollipop. This function previously downgraded it to
+ * `likely_pathogenic`, which is why the 3D viewer and the lollipop reported
+ * different P/LP splits for identical input.
  *
  * @param significance - ClinVar clinical_significance string
- * @returns ACMG classification or null if unrecognized
+ * @returns ACMG classification, or null when the term is not a tier
  *
  * @example
  * classifyClinicalSignificance("Pathogenic")  // → "pathogenic"
  * classifyClinicalSignificance("Likely_pathogenic")  // → "likely_pathogenic"
- * classifyClinicalSignificance("Uncertain_significance")  // → "vus"
- * classifyClinicalSignificance("Conflicting")  // → null
+ * classifyClinicalSignificance("Conflicting classifications of pathogenicity")  // → "conflicting"
+ * classifyClinicalSignificance("not provided")  // → null
  */
-export function classifyClinicalSignificance(significance: string): AcmgClassification | null {
-  // Normalize: lowercase and replace underscores with spaces
-  const lower = significance.toLowerCase().replace(/_/g, ' ');
-
-  // Match classification (order matters: check "likely pathogenic" before "pathogenic")
-  if (lower.includes('pathogenic') && !lower.includes('likely')) return 'pathogenic';
-  if (lower.includes('likely') && lower.includes('pathogenic')) return 'likely_pathogenic';
-  if (lower.includes('uncertain') || lower.includes('vus')) return 'vus';
-  if (lower.includes('likely') && lower.includes('benign')) return 'likely_benign';
-  if (lower.includes('benign') && !lower.includes('likely')) return 'benign';
-
-  return null;
+export function classifyClinicalSignificance(significance: unknown): AcmgClassification | null {
+  switch (normalizeClinVarSignificance(significance)) {
+    case 'pathogenic':
+      return 'pathogenic';
+    case 'likely_pathogenic':
+      return 'likely_pathogenic';
+    case 'vus':
+      return 'vus';
+    case 'likely_benign':
+      return 'likely_benign';
+    case 'benign':
+      return 'benign';
+    case 'conflicting':
+      return 'conflicting';
+    default:
+      return null;
+  }
 }

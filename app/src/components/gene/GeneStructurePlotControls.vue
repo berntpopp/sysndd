@@ -173,7 +173,9 @@ export type PathogenicityFilterKey =
   | 'likelyPathogenic'
   | 'vus'
   | 'likelyBenign'
-  | 'benign';
+  | 'benign'
+  | 'conflicting'
+  | 'other';
 
 /** A single pathogenicity legend row: chip label/color/visibility + count. */
 export interface PathogenicityLegendRow {

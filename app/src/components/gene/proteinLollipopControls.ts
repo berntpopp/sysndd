@@ -20,7 +20,9 @@ export type PathogenicityFilterKey =
   | 'likelyPathogenic'
   | 'vus'
   | 'likelyBenign'
-  | 'benign';
+  | 'benign'
+  | 'conflicting'
+  | 'other';
 
 /** Effect types in canonical display order. */
 export const EFFECT_TYPE_ORDER: EffectType[] = [
@@ -127,6 +129,8 @@ export function selectOnlyPathogenicity(
   filterState.vus = key === 'vus';
   filterState.likelyBenign = key === 'likelyBenign';
   filterState.benign = key === 'benign';
+  filterState.conflicting = key === 'conflicting';
+  filterState.other = key === 'other';
 }
 
 /**
@@ -138,6 +142,8 @@ export function selectAllPathogenicity(filterState: LollipopFilterState): void {
   filterState.vus = true;
   filterState.likelyBenign = true;
   filterState.benign = true;
+  filterState.conflicting = true;
+  filterState.other = true;
 }
 
 /**

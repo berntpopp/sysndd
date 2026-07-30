@@ -6,6 +6,8 @@
  * to the D3.js lollipop plot visualization component.
  */
 
+import { normalizeClinVarSignificance } from './clinvarSignificance';
+
 /**
  * ACMG pathogenicity classification categories
  * Used for coloring variant markers and filtering
@@ -16,6 +18,7 @@ export type PathogenicityClass =
   | 'Uncertain significance'
   | 'Likely benign'
   | 'Benign'
+  | 'Conflicting'
   | 'other';
 
 /**
@@ -61,6 +64,10 @@ export const PATHOGENICITY_COLORS: Record<PathogenicityClass, string> = {
   'Uncertain significance': '#fee08b',
   'Likely benign': '#91cf60',
   Benign: '#1a9850',
+  // Submitters disagree — deliberately outside the red-to-green ramp. This is
+  // the value of the shared $purple token (app/src/assets/scss/_variables.scss);
+  // D3 palettes are TS literals and cannot consume Sass directly.
+  Conflicting: '#6f42c1',
   other: '#999999',
 } as const;
 
@@ -140,6 +147,10 @@ export interface LollipopFilterState {
   likelyBenign: boolean;
   /** Show Benign variants */
   benign: boolean;
+  /** Show variants where ClinVar submitters conflict */
+  conflicting: boolean;
+  /** Show variants whose significance is not an ACMG tier (or is unrecognised) */
+  other: boolean;
   /** Effect type filter state (all enabled by default) */
   effectFilters: Record<EffectType, boolean>;
   /** Current coloring mode (acmg or effect) */
@@ -170,17 +181,42 @@ export interface AggregatedVariant {
 }
 
 /**
- * Pathogenicity severity order (higher index = more severe)
- * Used to determine dominant class when aggregating
+ * Pathogenicity severity order (higher index = more severe).
+ *
+ * Used to pick the dominant class when aggregating a position, and — through
+ * `pathogenicitySeverityRank()` — to order the stack in individual render mode,
+ * so the two never disagree.
+ *
+ * `other` is LEAST severe. It previously sat at the top of this list, so a
+ * single unrecognised variant hijacked the colour of an entire aggregated
+ * position — the same "unknown term lands in a severe bucket" defect as issue
+ * #607, one layer down. (Individual mode already ranked it lowest, so the two
+ * modes disagreed.) `Conflicting` sits just below VUS: a position holding both a
+ * Pathogenic and a Conflicting still renders Pathogenic.
  */
 export const PATHOGENICITY_SEVERITY: PathogenicityClass[] = [
+  'other',
   'Benign',
   'Likely benign',
+  'Conflicting',
   'Uncertain significance',
   'Likely pathogenic',
   'Pathogenic',
-  'other',
 ];
+
+/**
+ * Severity rank of a pathogenicity class (higher = more severe).
+ *
+ * The single ranking used by both aggregated and individual rendering. Do not
+ * reintroduce a second hand-maintained order — a class added to one and
+ * forgotten in the other is exactly how they drifted before.
+ *
+ * @param classification - Pathogenicity class to rank.
+ * @returns Its index in `PATHOGENICITY_SEVERITY`, or -1 if unknown.
+ */
+export function pathogenicitySeverityRank(classification: PathogenicityClass): number {
+  return PATHOGENICITY_SEVERITY.indexOf(classification);
+}
 
 /**
  * Aggregate variants by position for density-aware rendering
@@ -210,6 +246,7 @@ export function aggregateVariantsByPosition(variants: ProcessedVariant[]): Aggre
       'Uncertain significance': 0,
       'Likely benign': 0,
       Benign: 0,
+      Conflicting: 0,
       other: 0,
     };
 
@@ -236,7 +273,7 @@ export function aggregateVariantsByPosition(variants: ProcessedVariant[]): Aggre
     let maxSeverity = -1;
     for (const cls of PATHOGENICITY_SEVERITY) {
       if (countByClass[cls] > 0) {
-        const severity = PATHOGENICITY_SEVERITY.indexOf(cls);
+        const severity = pathogenicitySeverityRank(cls);
         if (severity > maxSeverity) {
           maxSeverity = severity;
           dominantClass = cls;
@@ -270,50 +307,36 @@ export function aggregateVariantsByPosition(variants: ProcessedVariant[]): Aggre
 }
 
 /**
- * Normalize gnomAD clinical_significance string to PathogenicityClass
+ * Map a raw gnomAD/ClinVar `clinical_significance` string to a
+ * `PathogenicityClass` for plot colouring and filtering.
  *
- * gnomAD API returns various formats:
- * - "Pathogenic", "Likely_pathogenic", "Uncertain_significance", "Benign"
- * - Combined: "Pathogenic/Likely_pathogenic", "Benign/Likely_benign"
- * - With underscores: "Uncertain_significance"
+ * Thin adapter over the shared table-driven vocabulary — see
+ * `clinvarSignificance.ts` for why substring matching is forbidden here
+ * (issue #607: `"Conflicting classifications of pathogenicity"` contains
+ * `pathogenic`, and this function used to return `'Pathogenic'` for it).
+ * Recognised non-ACMG terms and unresolvable terms both land in `'other'`; the
+ * shared normalizer logs the unresolvable ones.
  *
- * @param raw - Raw clinical_significance string from gnomAD API
+ * @param raw - Raw clinical_significance string from the gnomAD API
  * @returns Normalized PathogenicityClass
  */
-export function normalizeClassification(raw: string): PathogenicityClass {
-  if (!raw) return 'other';
-
-  // Normalize: replace underscores with spaces, trim whitespace
-  const normalized = raw.replace(/_/g, ' ').trim().toLowerCase();
-
-  // Handle combined classifications - use more severe one
-  if (normalized.includes('/')) {
-    const parts = normalized.split('/').map((p) => p.trim());
-
-    // Pathogenic > Likely pathogenic > VUS > Likely benign > Benign
-    if (parts.some((p) => p === 'pathogenic')) return 'Pathogenic';
-    if (parts.some((p) => p === 'likely pathogenic')) return 'Likely pathogenic';
-    if (parts.some((p) => p === 'uncertain significance')) return 'Uncertain significance';
-    if (parts.some((p) => p === 'likely benign')) return 'Likely benign';
-    if (parts.some((p) => p === 'benign')) return 'Benign';
+export function normalizeClassification(raw: unknown): PathogenicityClass {
+  switch (normalizeClinVarSignificance(raw)) {
+    case 'pathogenic':
+      return 'Pathogenic';
+    case 'likely_pathogenic':
+      return 'Likely pathogenic';
+    case 'vus':
+      return 'Uncertain significance';
+    case 'likely_benign':
+      return 'Likely benign';
+    case 'benign':
+      return 'Benign';
+    case 'conflicting':
+      return 'Conflicting';
+    default:
+      return 'other';
   }
-
-  // Direct matches
-  if (normalized === 'pathogenic') return 'Pathogenic';
-  if (normalized === 'likely pathogenic') return 'Likely pathogenic';
-  if (normalized === 'uncertain significance') return 'Uncertain significance';
-  if (normalized === 'likely benign') return 'Likely benign';
-  if (normalized === 'benign') return 'Benign';
-
-  // Partial matches for edge cases
-  if (normalized.includes('pathogenic') && !normalized.includes('likely')) return 'Pathogenic';
-  if (normalized.includes('likely pathogenic')) return 'Likely pathogenic';
-  if (normalized.includes('uncertain') || normalized.includes('vus'))
-    return 'Uncertain significance';
-  if (normalized.includes('likely benign')) return 'Likely benign';
-  if (normalized.includes('benign')) return 'Benign';
-
-  return 'other';
 }
 
 /**

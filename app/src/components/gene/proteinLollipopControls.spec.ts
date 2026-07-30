@@ -11,6 +11,7 @@ import {
   selectOnlyEffectType,
   selectOnlyPathogenicity,
 } from './proteinLollipopControls';
+import { isClassificationVisible } from '@/composables/d3-lollipop/lollipop-helpers';
 
 function makeVariant(overrides: Partial<ProcessedVariant>): ProcessedVariant {
   return {
@@ -104,5 +105,74 @@ describe('proteinLollipopControls', () => {
 
     selectAllEffectTypes(fs);
     expect(EFFECT_TYPE_ORDER.every((et) => fs.effectFilters[et])).toBe(true);
+  });
+});
+
+describe('conflicting and other pathogenicity filters (#607)', () => {
+  function makeLollipopState(
+    overrides: Partial<LollipopFilterState> = {}
+  ): LollipopFilterState {
+    return {
+      pathogenic: true,
+      likelyPathogenic: true,
+      vus: true,
+      likelyBenign: true,
+      benign: true,
+      conflicting: true,
+      other: true,
+      effectFilters: {
+        missense: true,
+        frameshift: true,
+        stop_gained: true,
+        splice: true,
+        inframe_indel: true,
+        synonymous: true,
+        other: true,
+      },
+      coloringMode: 'acmg',
+      ...overrides,
+    };
+  }
+
+  it('hides Conflicting variants when the conflicting filter is off', () => {
+    expect(isClassificationVisible('Conflicting', makeLollipopState())).toBe(true);
+    expect(
+      isClassificationVisible('Conflicting', makeLollipopState({ conflicting: false }))
+    ).toBe(false);
+  });
+
+  it('does not hide Conflicting variants when the pathogenic filter is off', () => {
+    expect(isClassificationVisible('Conflicting', makeLollipopState({ pathogenic: false }))).toBe(
+      true
+    );
+  });
+
+  it('routes "other" through its own filter key instead of showing it unconditionally', () => {
+    expect(isClassificationVisible('other', makeLollipopState())).toBe(true);
+    expect(isClassificationVisible('other', makeLollipopState({ other: false }))).toBe(false);
+  });
+
+  it('counts Conflicting variants under their own key', () => {
+    const counts = countByClassification([
+      { classification: 'Conflicting' },
+      { classification: 'Conflicting' },
+      { classification: 'Pathogenic' },
+    ] as ProcessedVariant[]);
+    expect(counts['Conflicting']).toBe(2);
+    expect(counts['Pathogenic']).toBe(1);
+  });
+
+  it('covers conflicting and other in selectOnly and selectAll', () => {
+    const state = makeLollipopState();
+
+    selectOnlyPathogenicity(state, 'conflicting');
+    expect(state.conflicting).toBe(true);
+    expect(state.pathogenic).toBe(false);
+    expect(state.other).toBe(false);
+
+    selectAllPathogenicity(state);
+    expect(state.conflicting).toBe(true);
+    expect(state.other).toBe(true);
+    expect(state.benign).toBe(true);
   });
 });

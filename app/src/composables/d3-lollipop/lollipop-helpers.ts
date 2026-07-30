@@ -49,8 +49,12 @@ export function isClassificationVisible(
       return filterState.likelyBenign;
     case 'Benign':
       return filterState.benign;
+    case 'Conflicting':
+      return filterState.conflicting ?? true;
     default:
-      return true; // Show 'other' by default
+      // 'other' — recognised non-ACMG terms and unresolvable ones.
+      // `?? true` keeps a caller that supplies a partial filter state working.
+      return filterState.other ?? true;
   }
 }
 

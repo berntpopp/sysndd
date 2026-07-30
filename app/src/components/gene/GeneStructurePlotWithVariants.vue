@@ -101,6 +101,8 @@ const filterState = reactive({
   vus: false,
   likelyBenign: false,
   benign: false,
+  conflicting: false,
+  other: false,
   effectFilters: {
     missense: true,
     frameshift: true,
@@ -162,7 +164,7 @@ const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
  */
 const filterItems = computed<PathogenicityLegendRow[]>(() => {
   const counts = countByClassification();
-  return [
+  const items: PathogenicityLegendRow[] = [
     {
       key: 'pathogenic' as const,
       label: 'Pathogenic',
@@ -198,7 +200,29 @@ const filterItems = computed<PathogenicityLegendRow[]>(() => {
       visible: filterState.benign,
       count: counts['Benign'] || 0,
     },
+    {
+      key: 'conflicting' as const,
+      label: 'Conflicting',
+      color: PATHOGENICITY_COLORS['Conflicting'],
+      visible: filterState.conflicting,
+      count: counts['Conflicting'] || 0,
+    },
   ];
+
+  // "Other" only earns a chip when the gene has some, but when it does the
+  // count must be visible rather than silently folded into a tier (issue #607).
+  const otherCount = counts['other'] || 0;
+  if (otherCount > 0) {
+    items.push({
+      key: 'other' as const,
+      label: 'Other',
+      color: PATHOGENICITY_COLORS['other'],
+      visible: filterState.other,
+      count: otherCount,
+    });
+  }
+
+  return items;
 });
 
 /**
@@ -255,6 +279,8 @@ function selectOnlyPathogenicity(key: PathogenicityFilterKey): void {
   filterState.vus = key === 'vus';
   filterState.likelyBenign = key === 'likelyBenign';
   filterState.benign = key === 'benign';
+  filterState.conflicting = key === 'conflicting';
+  filterState.other = key === 'other';
 }
 
 /**
@@ -266,6 +292,8 @@ function selectAllPathogenicity(): void {
   filterState.vus = true;
   filterState.likelyBenign = true;
   filterState.benign = true;
+  filterState.conflicting = true;
+  filterState.other = true;
 }
 
 /**
@@ -315,6 +343,8 @@ function isVariantVisible(variant: GenomicVariant): boolean {
       'Uncertain significance': filterState.vus,
       'Likely benign': filterState.likelyBenign,
       Benign: filterState.benign,
+      Conflicting: filterState.conflicting,
+      other: filterState.other,
     },
     effectFilters: filterState.effectFilters,
   });

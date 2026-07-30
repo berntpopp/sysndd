@@ -131,3 +131,53 @@ describe('geneStructureVariantPlotUtils', () => {
     ).toBe(true);
   });
 });
+
+describe('conflicting visibility and aggregation (#607)', () => {
+  const effectFilters = {
+    missense: true,
+    frameshift: true,
+    stop_gained: true,
+    splice: true,
+    inframe_indel: true,
+    synonymous: true,
+    other: true,
+  };
+
+  const conflicting = {
+    genomicPosition: 2000,
+    classification: 'Conflicting',
+    majorConsequence: 'missense_variant',
+  };
+
+  it('hides Conflicting variants when the Conflicting filter is off', () => {
+    expect(
+      isGeneStructureVariantVisible(conflicting, {
+        pathogenicity: {
+          Pathogenic: true,
+          'Likely pathogenic': true,
+          Conflicting: false,
+          other: false,
+        },
+        effectFilters,
+      })
+    ).toBe(false);
+  });
+
+  it('shows Conflicting variants when the Conflicting filter is on, even with Pathogenic off', () => {
+    expect(
+      isGeneStructureVariantVisible(conflicting, {
+        pathogenicity: { Pathogenic: false, Conflicting: true, other: false },
+        effectFilters,
+      })
+    ).toBe(true);
+  });
+
+  it('aggregates Conflicting under its own classification key', () => {
+    const result = aggregateVariantsByGenomicPosition(
+      [conflicting, { ...conflicting, genomicPosition: 2010 }],
+      100000
+    );
+    expect(result[0].classifications.Conflicting).toBe(2);
+    expect(result[0].dominantClassification).toBe('Conflicting');
+  });
+});

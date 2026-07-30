@@ -27,7 +27,8 @@ export type VariantFilterKey =
   | 'likelyPathogenic'
   | 'vus'
   | 'likelyBenign'
-  | 'benign';
+  | 'benign'
+  | 'conflicting';
 
 /** ACMG filter state (one boolean per filter key). */
 export type VariantFilterState = Record<VariantFilterKey, boolean>;
@@ -39,6 +40,7 @@ export const classificationToFilterKey: Record<AcmgClassification, VariantFilter
   vus: 'vus',
   likely_benign: 'likelyBenign',
   benign: 'benign',
+  conflicting: 'conflicting',
 };
 
 /** Processable variant item (variant + parsed residue + ACMG info) */
@@ -89,6 +91,7 @@ export function countByClassification(
     vus: 0,
     likelyBenign: 0,
     benign: 0,
+    conflicting: 0,
   };
 
   for (const item of mappableVariants) {
@@ -117,10 +120,11 @@ export function filterMappableVariants(
     if (item.classification) {
       const filterKey = classificationToFilterKey[item.classification];
       if (!filterState[filterKey]) return false;
-    } else {
-      // If no classification, show only if all filters are enabled (unknown classification)
-      // This is a fallback - most variants should have a classification
     }
+    // Unclassified variants — recognised non-ACMG terms such as "drug response",
+    // plus anything the shared vocabulary could not resolve — have no filter
+    // chip and are always listed, labelled with their raw significance string.
+    // Intentional: this panel is a manual pick-list, not a density plot.
 
     // Check search query (case-insensitive across hgvsp, hgvsc, variant_id)
     if (query) {
@@ -147,6 +151,7 @@ export function getHiddenClassifications(filterState: VariantFilterState): AcmgC
   if (!filterState.vus) hidden.push('vus');
   if (!filterState.likelyBenign) hidden.push('likely_benign');
   if (!filterState.benign) hidden.push('benign');
+  if (!filterState.conflicting) hidden.push('conflicting');
   return hidden;
 }
 
@@ -166,6 +171,7 @@ export function selectOnly(filterState: VariantFilterState, key: VariantFilterKe
   filterState.vus = key === 'vus';
   filterState.likelyBenign = key === 'likelyBenign';
   filterState.benign = key === 'benign';
+  filterState.conflicting = key === 'conflicting';
 }
 
 /**
@@ -177,4 +183,5 @@ export function selectAll(filterState: VariantFilterState): void {
   filterState.vus = true;
   filterState.likelyBenign = true;
   filterState.benign = true;
+  filterState.conflicting = true;
 }

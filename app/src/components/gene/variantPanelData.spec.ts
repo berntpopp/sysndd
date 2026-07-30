@@ -35,6 +35,7 @@ function makeFilterState(overrides: Partial<VariantFilterState> = {}): VariantFi
     vus: true,
     likelyBenign: true,
     benign: true,
+    conflicting: true,
     ...overrides,
   };
 }
@@ -110,5 +111,60 @@ describe('variantPanelData', () => {
       true,
       true,
     ]);
+  });
+});
+
+describe('conflicting classification (#607)', () => {
+  const conflictingVariant = makeVariant({
+    variant_id: '5-141330000-C-T',
+    hgvsp: 'p.Gly530Ser',
+    hgvsc: 'c.1588G>A',
+    clinical_significance: 'Conflicting classifications of pathogenicity',
+    review_status: 'criteria provided, conflicting classifications',
+  });
+
+  it('classifies VCV002138035-style variants as conflicting, not pathogenic', () => {
+    const [item] = buildMappableVariants([conflictingVariant]);
+    expect(item.classification).toBe('conflicting');
+    expect(item.color).toBe('#6f42c1');
+    expect(item.label).toBe('Conflicting');
+  });
+
+  it('counts them under conflicting rather than pathogenic', () => {
+    const counts = countByClassification(buildMappableVariants([conflictingVariant]));
+    expect(counts.conflicting).toBe(1);
+    expect(counts.pathogenic).toBe(0);
+  });
+
+  it('hides them when the conflicting filter is off', () => {
+    const items = buildMappableVariants([conflictingVariant]);
+    expect(filterMappableVariants(items, makeFilterState(), '')).toHaveLength(1);
+    expect(
+      filterMappableVariants(items, makeFilterState({ conflicting: false }), '')
+    ).toHaveLength(0);
+  });
+
+  it('keeps them visible when only the pathogenic filter is off', () => {
+    const items = buildMappableVariants([conflictingVariant]);
+    expect(
+      filterMappableVariants(items, makeFilterState({ pathogenic: false }), '')
+    ).toHaveLength(1);
+  });
+
+  it('reports conflicting in the hidden-classification list', () => {
+    expect(getHiddenClassifications(makeFilterState({ conflicting: false }))).toContain(
+      'conflicting'
+    );
+    expect(getHiddenClassifications(makeFilterState())).not.toContain('conflicting');
+  });
+
+  it('covers conflicting in selectOnly and selectAll', () => {
+    const state = makeFilterState();
+    selectOnly(state, 'conflicting');
+    expect(state.conflicting).toBe(true);
+    expect(state.pathogenic).toBe(false);
+
+    selectAll(state);
+    expect(state.conflicting).toBe(true);
   });
 });

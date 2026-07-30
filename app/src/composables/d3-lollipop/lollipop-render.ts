@@ -11,7 +11,6 @@ import type {
   ProteinPlotData,
   ProcessedVariant,
   LollipopFilterState,
-  PathogenicityClass,
   AggregatedVariant,
 } from '@/types/protein';
 import {
@@ -19,6 +18,7 @@ import {
   EFFECT_TYPE_COLORS,
   normalizeEffectType,
   aggregateVariantsByPosition,
+  pathogenicitySeverityRank,
 } from '@/types/protein';
 import {
   BACKBONE_HEIGHT,
@@ -246,22 +246,16 @@ export function renderVariants(
     // INDIVIDUAL MODE: Show each variant with limited stacking
     const positionGroups = d3.group(visibleVariants, (v) => v.proteinPosition);
 
-    // Sort within each position: P/LP first (on top visually = rendered last)
-    const severityOrder: Record<PathogenicityClass, number> = {
-      Benign: 0,
-      'Likely benign': 1,
-      'Uncertain significance': 2,
-      'Likely pathogenic': 3,
-      Pathogenic: 4,
-      other: -1,
-    };
-
     // Flatten with stack index, limiting depth
     const stackedVariants: Array<ProcessedVariant & { stackIndex: number }> = [];
     positionGroups.forEach((group) => {
-      // Sort by severity (less severe first, so more severe renders on top)
+      // Sort by severity (less severe first, so more severe renders on top).
+      // Ranking comes from PATHOGENICITY_SEVERITY so individual and aggregated
+      // mode can never disagree — this used to be a second hand-maintained map.
       const sorted = [...group].sort(
-        (a, b) => severityOrder[a.classification] - severityOrder[b.classification]
+        (a, b) =>
+          pathogenicitySeverityRank(a.classification) -
+          pathogenicitySeverityRank(b.classification)
       );
       sorted.forEach((variant, index) => {
         // Limit stack depth to avoid towers
