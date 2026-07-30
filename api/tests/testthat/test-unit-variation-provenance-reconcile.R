@@ -358,6 +358,123 @@ test_that("needs_attribution is TRUE exactly for transitions into confirmed from
   expect_equal(plan$needs_attribution, plan$to_state == "confirmed")
 })
 
+test_that("REGRESSION #608: a plan built from a MIX of changed and unchanged assertions computes needs_attribution correctly -- otherwise EVERY Confirm and EVERY Accept fails with a 500", {
+  # The bug: `needs_attribution` was computed INSIDE the tibble() call, as
+  # `to_state[changed] == "confirmed" & from_state[changed] != "confirmed"`.
+  # tibble() evaluates its arguments sequentially WITH DATA MASKING, so those two
+  # names resolved to the COLUMNS just created -- already subsetted to
+  # sum(changed) elements -- and re-indexing those short vectors with the
+  # full-length `changed` mask read out of bounds and silently yielded NA.
+  # variation_provenance_apply_reconciliation() coerces the NA to FALSE, so it
+  # wrote state = 'confirmed' while leaving confirmed_by NULL and migration 047's
+  # chk_confirmed_attribution rejected the row: an opaque 500 that rolled the
+  # entire review save back.
+  #
+  # It only misbehaves when at least one assertion is UNCHANGED -- which is the
+  # NORMAL case, because a real save resubmits the entity's existing terms. When
+  # every row changes, the column length equals length(changed) and the all-TRUE
+  # mask is accidentally a no-op, which is why every other test in this file
+  # passed while Confirm and Accept were broken in the browser.
+  plan <- variation_provenance_plan_reconciliation(
+    previous = vp_previous(
+      list(201L, "VariO:0017", 1L, "confirmed"),           # resubmitted -> unchanged
+      list(202L, "VariO:0015", 1L, "active_unconfirmed"),  # 'confirm'   -> confirmed
+      list(203L, "VariO:0013", 1L, "active_unconfirmed"),  # resubmitted -> unchanged
+      list(204L, "VariO:0011", 1L, "rejected")             # omitted     -> unchanged
+    ),
+    submitted = vp_submitted(
+      list("VariO:0017", 1L), list("VariO:0015", 1L), list("VariO:0013", 1L)
+    ),
+    actions = vp_actions(list("VariO:0015", 1L, "confirm"))
+  )
+
+  expect_equal(nrow(plan), 1L)
+  expect_equal(plan$assertion_id, 202L)
+  expect_equal(plan$from_state, "active_unconfirmed")
+  expect_equal(plan$to_state, "confirmed")
+  # expect_identical(., TRUE), never expect_true(): expect_true() would also pass
+  # on an NA, which is exactly the value the bug produced.
+  expect_identical(plan$needs_attribution, TRUE)
+  expect_false(anyNA(plan))
+})
+
+test_that("INVARIANT: a plan is NEVER partly NA, whatever mix of changed and unchanged assertions produced it", {
+  # The general property the tibble() data-masking bug violated. Every scenario
+  # below deliberately leaves at least one assertion untouched, so the planned
+  # rows are a strict subset of `previous` -- the only regime in which the bug
+  # was observable.
+  scenarios <- list(
+    list(
+      label = "one confirmation among unchanged rows",
+      previous = vp_previous(
+        list(211L, "VariO:0017", 1L, "confirmed"),
+        list(212L, "VariO:0015", 1L, "suggested")
+      ),
+      submitted = vp_submitted(list("VariO:0017", 1L), list("VariO:0015", 1L)),
+      actions = NULL,
+      expected = c(212L)
+    ),
+    list(
+      label = "one rejection among unchanged rows",
+      previous = vp_previous(
+        list(221L, "VariO:0017", 1L, "confirmed"),
+        list(222L, "VariO:0015", 1L, "rejected"),
+        list(223L, "VariO:0013", 1L, "active_unconfirmed")
+      ),
+      submitted = vp_submitted(list("VariO:0017", 1L)),
+      actions = NULL,
+      expected = c(223L)
+    ),
+    list(
+      label = "a confirmation AND a rejection among unchanged rows",
+      previous = vp_previous(
+        list(231L, "VariO:0017", 1L, "confirmed"),
+        list(232L, "VariO:0015", 1L, "active_unconfirmed"),
+        list(233L, "VariO:0013", 1L, "active_unconfirmed"),
+        list(234L, "VariO:0011", 1L, "rejected")
+      ),
+      submitted = vp_submitted(list("VariO:0017", 1L), list("VariO:0015", 1L)),
+      actions = vp_actions(list("VariO:0015", 1L, "confirm")),
+      expected = c(232L, 233L)
+    ),
+    list(
+      label = "a lifted rejection with an unchanged confirmed row present",
+      previous = vp_previous(
+        list(241L, "VariO:0017", 1L, "confirmed"),
+        list(242L, "VariO:0015", 1L, "rejected")
+      ),
+      submitted = vp_submitted(list("VariO:0017", 1L), list("VariO:0015", 1L)),
+      actions = NULL,
+      expected = c(242L)
+    ),
+    list(
+      label = "nothing changes at all",
+      previous = vp_previous(
+        list(251L, "VariO:0017", 1L, "confirmed"),
+        list(252L, "VariO:0015", 1L, "rejected")
+      ),
+      submitted = vp_submitted(list("VariO:0017", 1L)),
+      actions = NULL,
+      expected = integer(0)
+    )
+  )
+
+  for (scenario in scenarios) {
+    plan <- variation_provenance_plan_reconciliation(
+      previous  = scenario$previous,
+      submitted = scenario$submitted,
+      actions   = scenario$actions
+    )
+
+    expect_false(anyNA(plan), info = scenario$label)
+    expect_equal(sort(plan$assertion_id), scenario$expected, info = scenario$label)
+    expect_identical(
+      plan$needs_attribution, plan$to_state == "confirmed", info = scenario$label
+    )
+    expect_type(plan$needs_attribution, "logical")
+  }
+})
+
 test_that("duplicate submitted entries for one identity are idempotent (one transition, not two)", {
   plan <- variation_provenance_plan_reconciliation(
     previous  = vp_previous(list(61L, "VariO:0017", 1L, "suggested")),

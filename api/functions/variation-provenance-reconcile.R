@@ -315,11 +315,31 @@ variation_provenance_plan_reconciliation <- function(previous, submitted, action
 
   changed <- to_state != from_state
 
+  # Subset into LOCALS first, and build every column from those.
+  #
+  # tibble() evaluates its arguments sequentially WITH DATA MASKING, so a later
+  # argument that mentions `from_state`/`to_state` resolves to the COLUMN just
+  # created -- already subsetted to sum(changed) elements -- not to the
+  # full-length vector above it. Re-indexing those short columns with the
+  # full-length `changed` mask reads out of bounds and silently yields NA. The
+  # applier then coerces the NA to FALSE, writes state = 'confirmed' while
+  # leaving confirmed_by NULL, and migration 047's chk_confirmed_attribution
+  # rejects the row -- an opaque 500 that rolls the whole review save back, i.e.
+  # every Confirm and every Accept fails.
+  #
+  # It misbehaves only when at least one assertion is UNCHANGED (the normal
+  # case): when every row changes, the column length equals length(changed) and
+  # the all-TRUE mask happens to be a no-op. NEVER re-inline these into the
+  # tibble() call.
+  changed_ids <- as.integer(previous$assertion_id)[changed]
+  changed_from <- from_state[changed]
+  changed_to <- to_state[changed]
+
   tibble::tibble(
-    assertion_id      = as.integer(previous$assertion_id)[changed],
-    from_state        = from_state[changed],
-    to_state          = to_state[changed],
-    needs_attribution = to_state[changed] == "confirmed" & from_state[changed] != "confirmed"
+    assertion_id      = changed_ids,
+    from_state        = changed_from,
+    to_state          = changed_to,
+    needs_attribution = changed_to == "confirmed" & changed_from != "confirmed"
   )
 }
 
