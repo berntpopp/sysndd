@@ -300,6 +300,76 @@ docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/te
 # Or with provisioned test DB in CI: make test-api
 ```
 
+### Variation-Ontology Provenance (#608)
+
+Variation-ontology provenance records where a `VariO` annotation came from, in two additive tables created by migration `047_add_variation_ontology_provenance.sql`: `variation_ontology_assertion` (one row per `(entity_id, vario_id, modifier_id)` claim, carrying `state` ∈ `suggested`/`active_unconfirmed`/`confirmed`/`rejected`) and `variation_ontology_evidence` (one row per source batch). **Absence of an assertion row means curator-authored**, so with zero rows the whole feature is inert — the public entity card renders exactly as it did before, and `GET /api/entity/<id>/variation` returns `provenance: null` for every term.
+
+**Getting provenance rows locally.** No provenance row exists anywhere by default: the backfill that populates these tables for the February 2026 import batches lives in the companion `sysndd-administration` repo, not here. Two ways to see the surfaces:
+
+1. **Playwright/E2E** — `db/fixtures/playwright_e2e_baseline.sql` seeds them on the baseline CHD8 entity (`entity_id` 123, `HGNC:20153`), so `make playwright-stack` and `app/tests/e2e/global-setup.ts` pick them up automatically. The seeded set is deliberately shaped to exercise every branch at once, and the fixture's own comments are the source of truth: `VariO:0015` present → `confirmed` (with two evidence sources, the second carrying a **`NULL` strength** that must render "Not recorded" and sort last); `VariO:0017` present → `active_unconfirmed` (the issue's worked weak-evidence case — 2 ClinVar records, 1 star); `VariO:0017` **absent** → `suggested`; `VariO:0508` present → `suggested` (strength 3). `VariO:0001` deliberately has **no** assertion row — that absence is the curator-authored control case, and adding one would delete the only control in the fixture. Seeding the same CURIE under two modifiers in two different states is what proves the identity invariant in a real browser: keyed on `vario_id` alone, confirming one would confirm the other.
+2. **Dev stack, by hand** — insert against the running dev DB. The `vario_id`, `modifier_id` and `entity_id` values must already exist (`variation_ontology_list`, `modifier_list`, `ndd_entity`), because all four FKs are enforced:
+
+```sql
+INSERT INTO variation_ontology_assertion
+  (entity_id, vario_id, modifier_id, state)
+VALUES (<entity_id>, 'VariO:0017', 1, 'active_unconfirmed');
+
+INSERT INTO variation_ontology_evidence
+  (assertion_id, source_type, source_key, batch_id, evidence_summary, evidence_strength, evidence_json)
+VALUES (LAST_INSERT_ID(), 'external_database', 'clinvar', 'clinvar-2026-02',
+        '2 ClinVar records, max 1 star', 1,
+        '{"records":[{"variation_id":"VCV1343191","consequence":"missense","classification":"Likely pathogenic"}]}');
+```
+
+Then check the read surface (public, no token needed):
+
+```bash
+curl -sS 'http://localhost/api/entity/<entity_id>/variation' | jq '.[] | {vario_id, modifier_id, provenance}'
+curl -sS 'http://localhost/api/entity/<entity_id>/variation/VariO:0017/1/evidence' | jq
+```
+
+Note the CURIE goes into the path segment **raw**, not `encodeURIComponent`'d — Plumber does not percent-decode path parameters (the handler URL-decodes defensively, but a raw colon is the intended form). `GET /api/entity/<id>/variation/suggestions` is Curator-gated and must stay declared *before* any dynamic `/<sysndd_id>/variation/<...>` sibling.
+
+**The test files and what each guards:**
+
+| File | Guards |
+|---|---|
+| `test-unit-variation-provenance-migration.R` | Both tables exist with all five FKs (via `KEY_COLUMN_USAGE`), `vario_id`'s charset/collation matches the referenced column, a static-charset FK is genuinely rejected, both `CHECK`s reject bad rows, the identity unique key rejects a duplicate, `present`/`absent` are independent rows, idempotent re-apply, and the migration text never mentions the connect table. **Needs a DB.** |
+| `test-unit-variation-provenance-evidence.R` | `normalize_evidence_strength()` returns `NA` rather than guessing on out-of-range, fractional, non-digit-string or unknown-source input. |
+| `test-unit-variation-provenance-repository.R` | `provenance_for_entity()` state filter; `attach_provenance()` joins on the full identity, orders `sources` strength-desc then key-asc, returns `NULL` for curator-authored, never drops or reorders terms, yields an *empty* `sources` array (not an all-NA phantom) for an evidence-less assertion, and **fails loudly** when an identity column is missing. |
+| `test-unit-variation-provenance-reconcile.R` | Every row of the state machine, the "save with no `provenance_action` leaves `active_unconfirmed` unchanged" regression, case-normalized identity in both directions, the `apply_rejections` rule (a draft save never rejects), the loud failure on an unparseable submitted set, and the module's `load_modules.R` registration. |
+| `test-unit-review-write-provenance-actions.R` | `review_write_extract_provenance_actions()` reading `provenance_action` off the **raw** payload before the normalizer drops it. |
+| `test-unit-variation-provenance-endpoints.R` | The three route signatures and declaration order (against a real Plumber router built from the actual decorators), the `null="null"` serializer contract, param 400s, the 404 that does not echo the requested ids, and the **inertness** property. |
+| `test-unit-variation-connect-write-guard.R` | No file under `api/{functions,services,endpoints}` outside the one-entry allowlist (`functions/ontology-repository.R`) writes `ndd_review_variation_ontology_connect`, plus a static assertion that `review-write-service.R` still passes `conn = txn_conn` to reconciliation. |
+| `test-integration-variation-provenance-carry-forward.R` | An entity rename copies assertions **and** evidence onto the new `entity_id`, preserves the original curator's attribution, and is idempotent. **Needs a DB.** |
+| `test-integration-review-write-atomicity.R` | Reconciliation and the connect-table write share one transaction — a forced downstream failure rolls both back — on both the POST and PUT paths. **Needs a DB.** |
+
+Host-side, the pure files need no database:
+
+```bash
+cd api && Rscript --no-init-file -e "for (f in c(
+  'test-unit-variation-provenance-evidence.R','test-unit-variation-provenance-repository.R',
+  'test-unit-variation-provenance-reconcile.R','test-unit-review-write-provenance-actions.R',
+  'test-unit-variation-provenance-endpoints.R','test-unit-variation-connect-write-guard.R'
+)) testthat::test_file(file.path('tests/testthat', f))"
+```
+
+The three DB-backed files need `RMariaDB` to load, which on a Conda/miniforge R install means prepending the sibling `mariadb/` runtime directory (the same wrapper `Makefile` derives as `HOST_R_LD_LIBRARY_PATH`); they `skip_if_no_test_db()` when no test DB is reachable, so a bare run reports SKIP rather than failing:
+
+```bash
+cd api && env LD_LIBRARY_PATH="$(Rscript --no-init-file -e 'cat(R.home())')/../mariadb:$LD_LIBRARY_PATH" \
+  Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-variation-provenance-migration.R')"
+```
+
+Inside the running container, remember that **`api/tests/` is not bind-mounted** — copy the file in or rebuild first:
+
+```bash
+docker cp api/tests/testthat/test-integration-variation-provenance-carry-forward.R sysndd-api-1:/app/tests/testthat/
+docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/test-integration-variation-provenance-carry-forward.R')"
+```
+
+**Frontend.** The public card affordance lives in `app/src/views/pages/components/` (`EntityEvidenceGrid.vue`, `VariationProvenanceDialog.vue`, the pure honesty rules in `variationProvenance.ts`) with `app/src/composables/useVariationEvidence.ts` doing the lazy, SWR-cached evidence fetch. The curation three-zone picker lives in `app/src/views/curate/` (`components/ReviewFormFields.vue`, `components/VariationProvenanceCard.vue`, `composables/useVariationProvenanceZones.ts`) and is reachable **only** through the Review page's Edit-Review modal (`views/review/components/ReviewEditModal.vue`) — `ModifyEntity.vue` and `ApproveReview.vue` use different review forms and have no zone UI. `EntityEvidenceGridProvenance.spec.ts` pins the inert render against a **golden HTML string** captured from the pre-#608 component; if a Vue upgrade changes whitespace or comment emission it will fail loudly, which is deliberate — the inert render is a contract, so a change there should demand a human look.
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.
