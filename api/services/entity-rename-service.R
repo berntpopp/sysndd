@@ -233,6 +233,25 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
                                                vario_original, conn = txn_conn)
         }
 
+        # 4b. Carry forward variation-ontology provenance (#608) so the rename
+        # cannot silently launder a machine-derived, unconfirmed annotation
+        # into an apparently curator-authored one. #608's assertions are
+        # keyed on entity_id, so a rename that creates new_entity_id without
+        # also copying its provenance rows leaves the new entity with ZERO
+        # assertions -- which the feature's own read contract (see
+        # functions/variation-provenance-repository.R) reads as
+        # "curator-authored". Deliberately called UNGATED by
+        # `nrow(vario_original) > 0`: an assertion row lives in its own
+        # table, independent of this review's ndd_review_variation_ontology_connect
+        # snapshot (e.g. from a backfill that predates the current review), so
+        # a term can carry a live assertion even when vario_original is
+        # empty -- gating on it would silently drop that provenance. The
+        # carry-forward function is itself a strict no-op (one SELECT, zero
+        # writes) whenever old_entity_id has no assertion rows at all, which
+        # is every rename today, so calling it unconditionally costs nothing
+        # in the common case.
+        variation_provenance_carry_forward_entity(old_entity_id, new_entity_id, conn = txn_conn)
+
         # 5. Create new status with approval state propagated from source
         status_payload <- tibble::tibble(
           entity_id         = new_entity_id,

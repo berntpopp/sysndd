@@ -111,6 +111,12 @@ bootstrap_load_modules <- function() {
     "functions/variation-provenance-evidence.R",
     "functions/variation-provenance-repository.R",
     "functions/variation-provenance-reconcile.R",
+    # Entity-rename carry-forward (#608). Extracted from
+    # variation-provenance-reconcile.R to keep both files under the 600-line
+    # ceiling; must stay immediately after it so the reconcile module's
+    # definitions (e.g. .variation_provenance_identity_key()) are already
+    # bound in the global environment before this file is sourced.
+    "functions/variation-provenance-carry-forward.R",
     "functions/mcp-search-repository.R",
     "functions/mcp-repository.R",
     "functions/mcp-analysis-cache-repository.R",
