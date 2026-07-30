@@ -11,6 +11,11 @@
 
 import type { AxiosRequestConfig } from 'axios';
 import { apiClient } from './client';
+import {
+  normalizeVariationEvidenceResponse,
+  normalizeVariationRows,
+  normalizeVariationSuggestions,
+} from './entity-variation-wire';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -153,6 +158,26 @@ export interface EntityPhenotypeRow {
   modifier_id: number | string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Variation-ontology provenance (#608)
+//
+// THESE DECLARED TYPES ARE ONLY TRUE BECAUSE THE HELPERS BELOW NORMALIZE THE
+// WIRE PAYLOAD. Plumber's JSON serializer does NOT auto-unbox, so every scalar
+// the R services build with `list(...)` arrives as a LENGTH-1 ARRAY —
+// `"state":["confirmed"]`, `"strength":[1]`. `getEntityVariation`,
+// `getEntityVariationEvidence` and `getEntityVariationSuggestions` therefore run
+// their responses through `./entity-variation-wire`, which unboxes exactly the
+// fields the API contract documents as scalars.
+//
+// Without that pass the types below would be narrower than the runtime values,
+// i.e. TypeScript would lie to every consumer — and it did: a strict-equality
+// zone predicate (`provenance?.state === 'active_unconfirmed'`) was silently
+// false against `["active_unconfirmed"]`, so every unconfirmed machine-derived
+// term was misfiled as Confirmed and the curation form's "Needs confirmation"
+// zone rendered empty. See `entity-variation-wire.ts` for the full rationale and
+// for what is deliberately NOT normalized (notably `evidence_json`).
+// ---------------------------------------------------------------------------
+
 /**
  * One evidence source behind a machine-derived variation-ontology annotation,
  * as returned on the compact (hot) read path.
@@ -203,6 +228,13 @@ export interface EntityVariationRow {
  * manifests genuinely contained (ClinVar variation id, classification, review
  * stars, consequence, matched OMIM id) — notably **no HGVS / protein labels**,
  * which were never recorded and must not be displayed or inferred.
+ *
+ * `evidence_json` is typed `unknown` on purpose and is the ONE field the wire
+ * normalization deliberately leaves alone: its inner shape is a cross-repo
+ * contract the UI probes by alias, and the API parses it with
+ * `simplifyVector = FALSE` (so nested values are double-wrapped, e.g. `matched`
+ * arrives as `[["OMIM:615032"]]`). Unboxing it could silently change what the
+ * evidence dialog finds.
  */
 export interface VariationEvidenceRecord {
   source_type: 'literature' | 'external_database';
@@ -398,6 +430,10 @@ export async function getEntityPhenotypes(
  * Mirrors api/endpoints/entity_endpoints.R:764 (handler `@get /<sysndd_id>/variation`).
  *
  * Returns variation-ontology terms for the entity (current review by default).
+ *
+ * The `provenance` list-column is unboxed by `normalizeVariationRows()` so
+ * `VariationProvenance` is a truthful type; `provenance: null` (curator-authored)
+ * and an absent `provenance` key both survive untouched.
  */
 export async function getEntityVariation(
   sysndd_id: number | string,
@@ -406,10 +442,11 @@ export async function getEntityVariation(
 ): Promise<EntityVariationRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation`;
   const query = nestedQuery(params);
-  return apiClient.get<EntityVariationRow[]>(path, {
+  const rows = await apiClient.get<EntityVariationRow[]>(path, {
     ...config,
     params: { ...(config?.params as object | undefined), ...(query ?? {}) },
   });
+  return normalizeVariationRows(rows);
 }
 
 /**
@@ -425,6 +462,10 @@ export async function getEntityVariation(
  * encoded `VariO%3A0017` would arrive verbatim. The API defensively URL-decodes
  * as well, so either form resolves — but sending it raw keeps the request
  * readable and matches what the API's own manifest paths use.
+ *
+ * The whole response is built with R `list()`, so every scalar is boxed on the
+ * wire; `normalizeVariationEvidenceResponse()` unboxes the top-level fields and
+ * each `evidence[]` record, and leaves `evidence_json` alone.
  */
 export async function getEntityVariationEvidence(
   sysndd_id: number | string,
@@ -435,7 +476,8 @@ export async function getEntityVariationEvidence(
   const path =
     `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation` +
     `/${vario_id}/${encodeURIComponent(String(modifier_id))}/evidence`;
-  return apiClient.get<VariationEvidenceResponse>(path, config);
+  const response = await apiClient.get<VariationEvidenceResponse>(path, config);
+  return normalizeVariationEvidenceResponse(response);
 }
 
 /**
@@ -445,13 +487,17 @@ export async function getEntityVariationEvidence(
  * NOT part of the curated set — a curator has to accept one for it to enter.
  *
  * Curator role required. Returns `[]` for an entity with no suggestions.
+ *
+ * Also `list()`-built, so `normalizeVariationSuggestions()` unboxes each
+ * suggestion's scalars and its `evidence[]` records (never `evidence_json`).
  */
 export async function getEntityVariationSuggestions(
   sysndd_id: number | string,
   config?: AxiosRequestConfig
 ): Promise<VariationSuggestion[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation/suggestions`;
-  return apiClient.get<VariationSuggestion[]>(path, config);
+  const suggestions = await apiClient.get<VariationSuggestion[]>(path, config);
+  return normalizeVariationSuggestions(suggestions);
 }
 
 /**
