@@ -109,9 +109,32 @@ today).
 The three risk-allele terms map to `other`, not to an ACMG tier: they are a different kind of claim,
 and `other` is the honest, fail-safe destination.
 
-**Compound multi-assertion strings are deliberately not parsed.** None appear in the gnomAD
-projection. A hypothetical `Pathogenic|risk factor` resolves to `unknown` rather than being split by
-a delimiter heuristic — an undercount is visible and recoverable, a misfiled Pathogenic is neither.
+**Aggregate values are resolved by parsing ClinVar's documented grammar, then exact-matching each
+token.** None appear in the six-gene sample, but ClinVar genuinely aggregates across submissions —
+`Pathogenic/Likely pathogenic/Pathogenic, low penetrance/Established risk allele; risk factor` is a
+live record ([VCV000013310](https://www.ncbi.nlm.nih.gov/clinvar/variation/13310/)). Whole-string
+matching alone would send every such value to `unknown` and **undercount real pathogenic variants**.
+The resolution ladder is:
+
+1. Exact-match the whole normalized string against `CLINVAR_SIGNIFICANCE_TABLE`. Hit → done. This is
+   the path every one of the nine observed values takes, including
+   `conflicting classifications of pathogenicity`.
+2. Miss → split on `;` and `|`, ClinVar's separators between the pathogenicity assertion and
+   secondary assertions. Keep the **first** segment; discard the rest.
+3. Split that segment on `/`, ClinVar's separator between aggregated classification terms, and
+   exact-match **each** token against `CLINVAR_SIGNIFICANCE_TOKENS` (the atomic terms only).
+4. **Every** token must resolve, or the whole value is `unknown`. If any token is `conflicting` the
+   result is `conflicting`; otherwise the result is the most severe ACMG tier present; if no token is
+   an ACMG tier, the result is `other`.
+
+This is tokenizing a documented delimiter grammar and then exact-matching, not substring guessing:
+`conflicting classifications of pathogenicity` never reaches step 3, and if it did, its tokens would
+not include a bare `pathogenic`. `pathogenic, low penetrance` survives step 3 intact because it
+contains a comma, not a slash.
+
+Anything still unresolved is `unknown` — never guessed. The count is **user-visible**, not just
+logged: `unknown` renders in the plots' `Other` chip with its count, and the card's
+`ClinVar Variants (N)` header exposes the gap between `variant_count` and the chip sum.
 
 **Unknown terms are logged, once per distinct term per session.** A module-level `Set` guard keeps a
 500-variant page from emitting 500 identical warnings.
@@ -119,9 +142,11 @@ a delimiter heuristic — an undercount is visible and recoverable, a misfiled P
 ### 3.2 The other three implementations become adapters
 
 - **`protein.ts::normalizeClassification()`** delegates. `PathogenicityClass` gains `'Conflicting'`;
-  `PATHOGENICITY_COLORS['Conflicting'] = '#6f42c1'` (the existing `$purple` token in
-  `app/src/assets/scss/_variables.scss` — the visual guide requires token colours, not one-off
-  palette values). `other` and `unknown` both map to the existing `'other'` class.
+  `PATHOGENICITY_COLORS['Conflicting'] = '#6f42c1'`. These D3 palettes are TypeScript literals and
+  cannot consume Sass, so this is a hex literal like its five neighbours — but it is the **value of
+  the existing `$purple` token** (`app/src/assets/scss/_variables.scss:22`) rather than a newly
+  invented colour, which is what the visual guide's "existing token colors rather than new one-off
+  palette values" asks for. `other` and `unknown` both map to the existing `'other'` class.
 - **`alphafold.ts::classifyClinicalSignificance()`** delegates. `ACMG_COLORS`/`ACMG_LABELS` gain
   `conflicting: '#6f42c1'` / `'Conflicting'`, so `AcmgClassification` gains the member. `other` and
   `unknown` continue to return `null` (existing "unclassified" behaviour: gray `#999999`, labelled
@@ -136,14 +161,18 @@ would churn ~10 files for no correctness gain.
 
 ### 3.3 Where Conflicting variants go — first-class legend category
 
-| Surface | Conflicting chip | default | Other chip |
-|---|---|---|---|
-| Protein lollipop (`ProteinDomainLollipopPlot.vue`) | yes | **on** (surface is all-on today) | yes, rendered only when count > 0 |
-| Gene-structure plot (`GeneStructurePlotWithVariants.vue`) | yes | **off** (surface is P/LP-only today) | yes, rendered only when count > 0 |
-| 3D VariantPanel (`VariantPanel.vue`) | yes (`Conf`) | **on** | no — `AcmgClassification` has no `other` member; `null` stays gray + raw-string label |
+| Surface | existing default | Conflicting chip | default | Other chip |
+|---|---|---|---|---|
+| Protein lollipop (`ProteinDomainLollipopPlot.vue:109-114`) | **P/LP only** | yes | **off** | yes, rendered only when count > 0, default **off** |
+| Gene-structure plot (`GeneStructurePlotWithVariants.vue:99-104`) | **P/LP only** | yes | **off** | yes, rendered only when count > 0, default **off** |
+| 3D VariantPanel (`VariantPanel.vue:175-182`) | **all on** | yes (`Conf`) | **on** | no — `AcmgClassification` has no `other` member; `null` stays gray + raw-string label |
 
-Each chip carries its count, so a default-off category is "explicit exclusion with the count
-surfaced" rather than a silent drop.
+Every new chip follows its own surface's existing posture rather than a new one. Both plots already
+hide VUS/LB/B by default for clinical focus, so Conflicting and Other are hidden there too; the 3D
+panel already shows everything, so Conflicting shows. Each chip carries its count, so a default-off
+category is "explicit exclusion with the count surfaced" rather than a silent drop — and this is a
+strict improvement on today, where Conflicting variants are drawn Pathogenic-red *and* bypass the
+P/LP-only default entirely.
 
 Supporting changes:
 
@@ -163,6 +192,30 @@ Supporting changes:
   This demotes `'other'` from most-severe to least-severe (defect 2.1.2) and places `Conflicting`
   just below VUS — a position holding a Pathogenic and a Conflicting still renders Pathogenic; a
   position holding only Conflicting renders purple.
+  `lollipop-render.ts:250` keeps a **second**, independent `Record<PathogenicityClass, number>`
+  stacking order for individual mode, which already ranks `other: -1` (lowest) and therefore already
+  disagrees with the aggregate order. It is deleted and derived from `PATHOGENICITY_SEVERITY` via
+  `pathogenicitySeverityRank()`, so the two modes agree by construction and a future class cannot be
+  added to one and forgotten in the other. Reordering the aggregate list therefore changes the
+  dominant colour of every aggregated position that mixes `other` with a recognised class — an
+  intended correction, aligning aggregate mode with what individual mode already did.
+
+### 3.3.1 Consumers that must widen with the unions
+
+These are exhaustive or count-bound and fail (or silently truncate) the moment a union grows:
+
+| File:line | What breaks | Fix |
+|---|---|---|
+| `composables/d3-lollipop/lollipop-render.ts:250` | exhaustive `Record<PathogenicityClass, number>` — TS error | derive from `PATHOGENICITY_SEVERITY` |
+| `components/gene/proteinLollipopControls.ts:18` | `PathogenicityFilterKey` union | add `conflicting`, `other` |
+| `components/gene/GeneStructurePlotControls.vue:171` | a **second** `PathogenicityFilterKey` union, exported to its parent | add `conflicting`, `other` |
+| `components/gene/GeneStructurePlotWithVariants.vue:252,263` | local `selectOnly`/`selectAll` set five keys | add both |
+| `components/gene/VariantPanel.vue:284-295` | the `filter-change` watcher enumerates five keys, so a `Conf` toggle would never reach `ProteinStructure3D` | add `conflicting` |
+| `components/gene/gene-structure-plot/gene-structure-tooltip.ts:133` | `.slice(0, 5)` over what is now seven possible classes | render every non-zero class |
+| `composables/__tests__/useGeneClinVarCounts.spec.ts:35` and `GeneClinVarCard.spec.ts:5` | five-count mocks | see §3.5 — `conflicting` is optional at the wire boundary |
+
+`composables/d3-lollipop/lollipop-tooltip.ts:199` already filters to non-zero and does not truncate;
+no change needed.
 
 ### 3.4 Server: table-driven, and `conflicting` becomes a primary class
 
@@ -193,11 +246,13 @@ return shape (`fetch_gnomad_clinvar_variants_mem`) is untouched.
 ### 3.5 ClinVar card gains a Conflicting chip
 
 `ClinVarClassificationCounts` (`useGeneClinVarCounts.ts`) and `ClinVarCounts` (`GeneClinVarCard.vue`)
-gain `conflicting: number`; `chipMeta` gains a `conflicting` entry between `likely_pathogenic` and
-`vus`, styled `.clinvar-chip--conf` (`#6f42c1` background, white text — contrast ratio 5.9:1,
-AA-compliant). The card already filters chips to `count > 0`, so genes without conflicting
-submissions render exactly as before, and a stale API response lacking `counts.conflicting` yields
-`undefined`, is coerced with `?? 0`, and is filtered out.
+gain **`conflicting?: number`** — deliberately *optional* at the wire boundary, so a stale deployed
+API, a cached response, and the existing five-count test mocks all keep type-checking. The card's
+`counts` computed spreads over a zero-filled base (`{ ...empty, ...props.counts }`), which is what
+turns a missing `conflicting` into `0`; the existing `count > 0` chip filter then omits the chip
+entirely. `chipMeta` gains a `conflicting` entry between `likely_pathogenic` and `vus`, styled
+`.clinvar-chip--conf` (`#6f42c1` background, white text — contrast ratio 5.94:1, AA-compliant).
+Genes without conflicting submissions render exactly as before.
 
 After this, PCDH12 reconciles: card `P 18 | LP 13 | CONF 28 | VUS 261 | LB 145 | B 37` = 502, plus
 the one `not provided` in `other_classifications` = 503 = `variant_count`. The lollipop legend reads
@@ -210,6 +265,13 @@ the same numbers for the subset it can position.
 expected canonical class, and **both** suites drive their implementation from that one file. It
 lives under `api/tests/` because that directory is copied into the API container, while the host-run
 vitest can reach it from a full checkout.
+
+The fixture is a *test* artifact, not a runtime one — two production tables still exist, one per
+language, and a fixture that only asserts one direction could not catch a key added to one table and
+not the other. Both suites therefore assert **bidirectional completeness**: the set of production
+table keys must equal the set of normalized fixture keys, exactly, with no extras on either side.
+The same holds for the token table. Adding a term means editing the fixture first; both suites then
+fail until both tables follow.
 
 | Suite | Coverage |
 |---|---|
@@ -226,6 +288,27 @@ must read `Pathogenic 13`, `Likely pathogenic 13`, `Conflicting 28`, and the car
 ## 5. Out of scope
 
 - Unifying `PathogenicityClass` and `AcmgClassification` into one type/palette (§3.2).
-- Parsing compound multi-assertion significance strings (§3.1).
+- Generating both production tables from one machine-readable source at build time. The bidirectional
+  completeness tests in §4 make drift a test failure, which is sufficient for a 26-term vocabulary
+  that changes on ClinVar's release cadence; a codegen step is not worth its maintenance cost here.
 - Surfacing `other_classifications` on the ClinVar card beyond the new `conflicting` chip.
 - Any change to curated SysNDD data — this path is read-only external-provider display.
+
+## 6. Adversarial review
+
+One round, Codex `gpt-5.6-terra` at high effort, verdict **BLOCK** — full text in
+`.planning/reviews/2026-07-30-607-spec-codex-review.md`. Every code claim was verified against the
+files before acceptance. Resolutions:
+
+| # | Finding | Resolution |
+|---|---|---|
+| P0 1 | Exact-match-only undercounts real aggregate labels such as `Pathogenic/Likely pathogenic/Pathogenic, low penetrance/Established risk allele; risk factor` | **Accepted.** §3.1 now parses ClinVar's documented `;`/`|`/`/` grammar and exact-matches each token; unresolved values surface in the `Other` chip, not only a console warning |
+| P1 2 | `lollipop-render.ts:250` second exhaustive severity map | **Accepted.** §3.3 derives it from `PATHOGENICITY_SEVERITY` |
+| P1 3 | Spec wrongly claimed the lollipop defaults to all-on; it is P/LP-only | **Accepted — factual error.** §3.3 corrected; Conflicting and Other default **off** on both plots |
+| P1 4 | Both `PathogenicityFilterKey` unions and the only/all helpers were omitted | **Accepted.** §3.3.1 |
+| P1 5 | The `VariantPanel.vue` filter-change watcher was omitted, so the Conf chip would not sync 3D markers | **Accepted.** §3.3.1 |
+| P1 6 | The fixture is a test artifact, not a runtime single source of truth | **Accepted in part.** §4 adds bidirectional completeness tests; build-time codegen declined as disproportionate (§5) |
+| P2 7 | Severity reordering has wider effects than acknowledged | **Accepted.** §3.3 states it, and unifies the two orderings |
+| P2 8 | `gene-structure-tooltip.ts:133` truncates to five of seven classes | **Accepted.** §3.3.1 |
+| P2 9 | Required `conflicting` breaks existing five-count mocks; the `?? 0` claim was wrong | **Accepted.** §3.5 makes it optional at the wire and zero-fills centrally |
+| P2 10 | The `$purple` "token" is a hex literal in TS, not token-based styling | **Accepted.** §3.2 wording corrected |
