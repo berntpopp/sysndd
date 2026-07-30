@@ -1096,3 +1096,247 @@ test_that("INERTNESS #608: with no assertion rows for the entity a review save w
     )
   })
 })
+
+
+# ===========================================================================
+# #613 -- the endpoint's REAL payload shape must reach review_update()
+#
+# `review_data <- req$argsBody$review_json` (endpoints/review_endpoints.R:220)
+# ALWAYS carries `literature`, `phenotypes` and `variation_ontology`: the handler
+# reads those three keys off the very object it then forwards as `review_data`.
+# Every test above constructs `review_data` from allowlisted columns only, which
+# is exactly why `review_update()`'s mass-assignment allowlist firing on the
+# ontology keys (an opaque 500 on every save the frontend actually sends) stayed
+# hidden.
+# ===========================================================================
+
+#' `review_data` in the shape `req$argsBody$review_json` really arrives in.
+#'
+#' The three extra keys are not test decoration -- the frontend sends them on
+#' every save (`useReviewForm.submitForm()` -> `new Review(synopsis, literature,
+#' phenotypes, variations, comment)`), and Plumber's jsonlite body parser
+#' (`simplifyVector = TRUE`) turns each uniform JSON array of objects into a
+#' data.frame, hence the data.frame columns below.
+#'
+#' `...` appends further keys, which is how the escalation cases smuggle
+#' `review_approved` / `is_primary` / `approving_user_id`.
+review_write_endpoint_review_data <- function(fixture, synopsis, comment = NULL,
+                                             review_id = NULL, ...) {
+  review_data <- list(entity_id = fixture$entity_id, synopsis = synopsis)
+  if (!is.null(review_id)) {
+    review_data$review_id <- review_id
+  }
+  if (!is.null(comment)) {
+    review_data$comment <- comment
+  }
+
+  review_data$literature <- list(
+    additional_references = data.frame(
+      value = fixture$publication_id, stringsAsFactors = FALSE
+    ),
+    gene_review = data.frame(value = character(), stringsAsFactors = FALSE)
+  )
+  review_data$phenotypes <- data.frame(
+    phenotype_id = fixture$phenotype_id, modifier_id = 1L, stringsAsFactors = FALSE
+  )
+  review_data$variation_ontology <- data.frame(
+    vario_id = fixture$vario_id, modifier_id = 1L, stringsAsFactors = FALSE
+  )
+
+  extra <- list(...)
+  for (key in names(extra)) {
+    review_data[[key]] <- extra[[key]]
+  }
+  review_data
+}
+
+#' Call svc_review_write() the way the endpoint does: the ontology arguments are
+#' read OFF `review_data`, and `review_data` itself is still passed whole.
+review_write_endpoint_save <- function(conn, fixture, method, review_data,
+                                       direct_approval = FALSE) {
+  svc_review_write(
+    method = method,
+    review_data = review_data,
+    publications = tibble::tibble(
+      publication_id = fixture$publication_id,
+      publication_type = "additional_references"
+    ),
+    phenotypes = review_data$phenotypes,
+    variation_ontology = review_data$variation_ontology,
+    re_review = FALSE,
+    direct_approval = direct_approval,
+    review_user_id = fixture$user_id,
+    db = conn
+  )
+}
+
+review_write_review_row <- function(conn, review_id) {
+  DBI::dbGetQuery(
+    conn,
+    "SELECT synopsis, comment, is_primary, review_approved, approving_user_id
+       FROM ndd_entity_review WHERE review_id = ?",
+    params = list(review_id)
+  )
+}
+
+review_write_seed_plain_review <- function(conn, fixture, synopsis, comment) {
+  DBI::dbExecute(
+    conn,
+    "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id, comment)
+     VALUES (?, ?, ?, ?)",
+    params = list(fixture$entity_id, synopsis, fixture$user_id, comment)
+  )
+  as.integer(DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() AS id")$id[[1L]])
+}
+
+test_that("REGRESSION #613: a PUT save whose review_data carries the endpoint's literature/phenotypes/variation_ontology keys succeeds and updates synopsis and comment", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 131L)
+    review_id <- review_write_seed_plain_review(
+      conn, fixture, "review-write-613-original", "original comment"
+    )
+
+    result <- review_write_endpoint_save(
+      conn, fixture, "PUT",
+      review_write_endpoint_review_data(
+        fixture, "review-write-613-updated",
+        comment = "updated comment", review_id = review_id
+      )
+    )
+
+    expect_identical(result$status, 200L)
+    expect_equal(result$message, "OK. Review updated.")
+
+    row <- review_write_review_row(conn, review_id)
+    expect_equal(row$synopsis, "review-write-613-updated")
+    expect_equal(row$comment, "updated comment")
+    # The curated joins were replaced, i.e. the whole PUT mutation committed
+    # rather than rolling back on the allowlist abort.
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_variation_ontology_connect", "review_id = ?", list(review_id)
+      ),
+      1L
+    )
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_phenotype_connect", "review_id = ?", list(review_id)
+      ),
+      1L
+    )
+  })
+})
+
+test_that("SECURITY #613: a PUT save cannot smuggle is_primary / review_approved / approving_user_id into ndd_entity_review", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 132L)
+    review_id <- review_write_seed_plain_review(
+      conn, fixture, "review-write-613-escalation-original", "original comment"
+    )
+
+    # `review_update()`'s own allowlist permits all three columns, because
+    # svc_review_update() and the approval path need them. Forwarding the client
+    # body into it would therefore let a Reviewer approve their own review and
+    # make it primary, bypassing the Curator gate on /api/review/approve.
+    result <- review_write_endpoint_save(
+      conn, fixture, "PUT",
+      review_write_endpoint_review_data(
+        fixture, "review-write-613-escalation-updated",
+        comment = "escalation attempt", review_id = review_id,
+        is_primary = 1L, review_approved = 1L, approving_user_id = fixture$user_id
+      )
+    )
+
+    expect_identical(result$status, 200L)
+
+    row <- review_write_review_row(conn, review_id)
+    # is_primary is the load-bearing assertion: review_update() unconditionally
+    # runs `SET review_approved = 0` and `SET approving_user_id = NULL` after the
+    # edit, so those two would be reset even if smuggled -- is_primary would
+    # genuinely persist as 1.
+    expect_equal(as.integer(row$is_primary), 0L)
+    expect_equal(as.integer(row$review_approved), 0L)
+    expect_true(is.na(row$approving_user_id))
+    # ...while the two legitimately writable columns still saved.
+    expect_equal(row$synopsis, "review-write-613-escalation-updated")
+    expect_equal(row$comment, "escalation attempt")
+  })
+})
+
+test_that("#613: review_write_updatable_review_fields() projects a raw request body to synopsis + comment only, keeping absent keys absent", {
+  full_body <- list(
+    review_id = 5L, entity_id = 7L, synopsis = "s", comment = "c",
+    review_user_id = 9L, is_primary = 1L, review_approved = 1L,
+    approving_user_id = 9L, review_date = "2026-07-30",
+    literature = list(), phenotypes = list(), variation_ontology = list()
+  )
+  expect_identical(
+    review_write_updatable_review_fields(full_body),
+    list(synopsis = "s", comment = "c")
+  )
+  # A payload without `comment` must not invent one, so the stored comment is
+  # left untouched rather than nulled.
+  expect_identical(
+    review_write_updatable_review_fields(list(entity_id = 7L, synopsis = "s")),
+    list(synopsis = "s")
+  )
+})
+
+test_that("#613: a PUT save that omits comment updates the synopsis and leaves the stored comment untouched", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 133L)
+    review_id <- review_write_seed_plain_review(
+      conn, fixture, "review-write-613-nocomment-original", "keep me"
+    )
+
+    result <- review_write_endpoint_save(
+      conn, fixture, "PUT",
+      review_write_endpoint_review_data(
+        fixture, "review-write-613-nocomment-updated", review_id = review_id
+      )
+    )
+
+    expect_identical(result$status, 200L)
+    row <- review_write_review_row(conn, review_id)
+    expect_equal(row$synopsis, "review-write-613-nocomment-updated")
+    expect_equal(row$comment, "keep me")
+  })
+})
+
+test_that("#613: the POST create path is unaffected by the same endpoint-shaped review_data", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 134L)
+
+    # review_create() picks its columns explicitly instead of sharing
+    # review_update()'s allowlist, which is why entity creation kept working
+    # while every re-review save 500'd.
+    result <- review_write_endpoint_save(
+      conn, fixture, "POST",
+      review_write_endpoint_review_data(
+        fixture, "review-write-613-post", comment = "post comment"
+      )
+    )
+
+    expect_identical(result$status, 200L)
+    expect_equal(result$message, "OK. Review created.")
+
+    review_id <- result$entry$review_id[[1L]]
+    row <- review_write_review_row(conn, review_id)
+    expect_equal(row$synopsis, "review-write-613-post")
+    expect_equal(row$comment, "post comment")
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_variation_ontology_connect", "review_id = ?", list(review_id)
+      ),
+      1L
+    )
+  })
+})

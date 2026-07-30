@@ -401,6 +401,46 @@ review_write_save_determines_served_set <- function(review_id, direct_approval, 
     isTRUE(as.integer(row$review_approved[[1L]]) == 1L)
 }
 
+#' Project a raw review request body to the columns a SAVE may change
+#'
+#' `prepared$review_data` is the request body verbatim -- `req$argsBody$review_json`
+#' (endpoints/review_endpoints.R) -- so besides `synopsis`/`comment` it ALWAYS
+#' carries `literature`, `phenotypes` and `variation_ontology` (the handler reads
+#' those three off the very object it forwards here), plus anything else a client
+#' chooses to send. Handing that whole object to `review_update()` is #613: its
+#' mass-assignment allowlist aborts on the ontology keys, so every save the
+#' frontend actually sends rolled back with an opaque 500. This restores the
+#' intent `review_update()`'s own comment already documents: the save path
+#' passes fixed columns.
+#'
+#' The projection is deliberately NARROWER than `review_update()`'s allowlist.
+#' That allowlist also permits `is_primary`, `review_approved`,
+#' `approving_user_id` and `review_date` -- legitimately, because
+#' `svc_review_update()` and the approval path need them -- so forwarding a
+#' client-supplied body into it would let a Reviewer smuggle
+#' `review_approved = 1` / `is_primary = 1` past the Curator gate that
+#' `/api/review/approve` enforces. The narrow selection is therefore both the bug
+#' fix and the closure of that privilege-escalation vector. Fix it HERE, at the
+#' call site: do not widen `review_update()`'s allowlist, and do not add a column
+#' here without an authorization story for it.
+#'
+#' Only keys actually PRESENT are returned, so a body that omits `comment` leaves
+#' the stored comment untouched (the pre-#613 semantics).
+#'
+#' An empty result is unreachable: `review_write_prepare()` rejects a blank
+#' `synopsis` with a 400 before any transaction opens, so `synopsis` is always
+#' present here. Nothing is added for that case on purpose -- were the invariant
+#' ever broken, `review_update()`'s own "No valid fields to update" abort is the
+#' correct loud failure, not a silently skipped write.
+#'
+#' @param review_data Raw review request body (named list).
+#' @return Named list containing only the present, save-writable columns.
+#' @keywords internal
+review_write_updatable_review_fields <- function(review_data) {
+  save_writable_cols <- c("synopsis", "comment")
+  review_data[intersect(save_writable_cols, names(review_data))]
+}
+
 review_write_mutate <- function(prepared, txn_conn, re_review,
                                 direct_approval, review_user_id) {
   publication_write_persist(prepared$prepared_publications, conn = txn_conn)
@@ -410,7 +450,12 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
     message <- "OK. Review created."
   } else {
     review_id <- as.integer(prepared$review_data$review_id)
-    review_update(review_id, prepared$review_data, conn = txn_conn)
+    # #613: pass ONLY the save-writable columns, never the raw client body.
+    review_update(
+      review_id,
+      review_write_updatable_review_fields(prepared$review_data),
+      conn = txn_conn
+    )
     message <- "OK. Review updated."
   }
 
