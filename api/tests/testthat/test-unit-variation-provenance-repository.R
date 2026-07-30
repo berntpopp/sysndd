@@ -314,6 +314,173 @@ test_that("max_strength is always integer, never double, when strengths are pres
   expect_true(is.integer(prov$max_strength))
 })
 
+# --- Fix round 2: case-insensitive vario_id identity -------------------------
+#
+# `variation_ontology_list.vario_id` is `utf8mb4_0900_ai_ci`, so the DATABASE
+# treats `vario:0017` and `VariO:0017` as the same term and the FK accepts an
+# assertion stored under either. The write path
+# (.variation_provenance_identity_key(), functions/variation-provenance-reconcile.R)
+# was already hardened for this; the read path's join key was left
+# case-SENSITIVE, so a non-canonically-cased assertion produced
+# `provenance: null` -- which the API contract defines as CURATOR-AUTHORED.
+# The public entity card then showed a machine-derived annotation as curated
+# while the SQL-resolved `.../evidence` route still returned its
+# machine-derived evidence: the exact fabrication this feature prevents.
+
+test_that("an assertion whose vario_id casing differs from the served term still matches", {
+  # The reachable production shape: the companion backfill (a different
+  # repository) stores `vario:0017`; the view serves `VariO:0017`.
+  terms_served <- tibble::tibble(
+    entity_id = 6001L, vario_id = "VariO:0017",
+    vario_name = "nonsynonymous variation", modifier_id = 1L
+  )
+  provenance_miscased <- tibble::tibble(
+    entity_id = 6001L, vario_id = "vario:0017", modifier_id = 1L,
+    state = "active_unconfirmed", source_type = "external_database",
+    source_key = "clinvar", evidence_strength = 2L,
+    evidence_summary = "5 ClinVar records, max 2 stars"
+  )
+
+  out <- attach_provenance(terms_served, provenance_miscased)
+  prov <- out$provenance[[1]]
+
+  expect_false(is.null(prov))   # NULL here == fabricated curator attribution
+  expect_equal(prov$state, "active_unconfirmed")
+  expect_equal(prov$max_strength, 2L)
+  expect_equal(prov$sources[[1]]$source_key, "clinvar")
+})
+
+test_that("case normalization is symmetric: a lower-cased served term matches an upper-cased assertion", {
+  terms_served <- tibble::tibble(
+    entity_id = 6002L, vario_id = "vario:0015",
+    vario_name = "protein truncation", modifier_id = 1L
+  )
+  provenance_upper <- tibble::tibble(
+    entity_id = 6002L, vario_id = "VARIO:0015", modifier_id = 1L,
+    state = "confirmed", source_type = "literature",
+    source_key = "synopsis", evidence_strength = 3L,
+    evidence_summary = "Matched 'truncating variants' in synopsis"
+  )
+
+  out <- attach_provenance(terms_served, provenance_upper)
+  expect_false(is.null(out$provenance[[1]]))
+  expect_equal(out$provenance[[1]]$state, "confirmed")
+})
+
+test_that("present and absent stay independent under mixed vario_id casing", {
+  # The load-bearing pairing: relaxing the vario_id comparison must NOT relax
+  # the modifier_id one. 'present' (1) and 'absent' (5) are different claims,
+  # so an assertion for one must never attach to the other.
+  terms_both <- tibble::tibble(
+    entity_id   = c(6003L, 6003L),
+    vario_id    = c("VariO:0017", "VariO:0017"),
+    vario_name  = c("nonsynonymous variation", "nonsynonymous variation"),
+    modifier_id = c(1L, 5L)
+  )
+  provenance_present_only <- tibble::tibble(
+    entity_id = 6003L, vario_id = "vario:0017", modifier_id = 1L,
+    state = "confirmed", source_type = "external_database",
+    source_key = "clinvar", evidence_strength = 2L,
+    evidence_summary = "present only"
+  )
+
+  out <- attach_provenance(terms_both, provenance_present_only)
+  present <- out[out$modifier_id == 1L, ]$provenance[[1]]
+  absent  <- out[out$modifier_id == 5L, ]$provenance[[1]]
+
+  expect_false(is.null(present))
+  expect_equal(present$state, "confirmed")
+  expect_null(absent)
+
+  # And the mirror image: an 'absent' assertion must not leak onto 'present'.
+  provenance_absent_only <- tibble::tibble(
+    entity_id = 6003L, vario_id = "VARIO:0017", modifier_id = 5L,
+    state = "active_unconfirmed", source_type = "external_database",
+    source_key = "clinvar", evidence_strength = 1L,
+    evidence_summary = "absent only"
+  )
+
+  out2 <- attach_provenance(terms_both, provenance_absent_only)
+  expect_null(out2[out2$modifier_id == 1L, ]$provenance[[1]])
+  expect_equal(out2[out2$modifier_id == 5L, ]$provenance[[1]]$state,
+               "active_unconfirmed")
+})
+
+test_that("case normalization does not collapse two genuinely different vario ids", {
+  # Guards the other direction: toupper() must widen the match only across
+  # casing, never across distinct terms.
+  terms_two <- tibble::tibble(
+    entity_id   = c(6004L, 6004L),
+    vario_id    = c("VariO:0015", "VariO:0017"),
+    vario_name  = c("protein truncation", "nonsynonymous variation"),
+    modifier_id = c(1L, 1L)
+  )
+  provenance_one <- tibble::tibble(
+    entity_id = 6004L, vario_id = "vario:0015", modifier_id = 1L,
+    state = "confirmed", source_type = "literature", source_key = "synopsis",
+    evidence_strength = 3L, evidence_summary = "only 0015"
+  )
+
+  out <- attach_provenance(terms_two, provenance_one)
+  expect_false(is.null(out[out$vario_id == "VariO:0015", ]$provenance[[1]]))
+  expect_null(out[out$vario_id == "VariO:0017", ]$provenance[[1]])
+})
+
+test_that("the served vario_id keeps its original casing; only the join key is normalized", {
+  # Normalization is a comparison concern. Rewriting the payload's casing
+  # would change what the API returns to clients, which is not the fix.
+  terms_served <- tibble::tibble(
+    entity_id = 6005L, vario_id = "VariO:0017",
+    vario_name = "nonsynonymous variation", modifier_id = 1L
+  )
+  provenance_miscased <- tibble::tibble(
+    entity_id = 6005L, vario_id = "vario:0017", modifier_id = 1L,
+    state = "confirmed", source_type = "literature", source_key = "synopsis",
+    evidence_strength = 1L, evidence_summary = "s"
+  )
+
+  out <- attach_provenance(terms_served, provenance_miscased)
+  expect_identical(out$vario_id, "VariO:0017")
+})
+
+test_that(".variation_provenance_read_key normalizes casing and space but not identity", {
+  # Direct unit coverage of the helper both halves of the join share, so a
+  # future edit that de-normalizes one side is caught here as well as through
+  # attach_provenance().
+  expect_identical(
+    .variation_provenance_read_key(1L, "vario:0017", 1L),
+    .variation_provenance_read_key(1L, "VariO:0017", 1L)
+  )
+  expect_identical(
+    .variation_provenance_read_key(1L, "  VariO:0017 ", 1L),
+    .variation_provenance_read_key(1L, "VariO:0017", 1L)
+  )
+  # Distinct entity / term / modifier must stay distinct.
+  expect_false(identical(
+    .variation_provenance_read_key(1L, "VariO:0017", 1L),
+    .variation_provenance_read_key(2L, "VariO:0017", 1L)
+  ))
+  expect_false(identical(
+    .variation_provenance_read_key(1L, "VariO:0017", 1L),
+    .variation_provenance_read_key(1L, "VariO:0015", 1L)
+  ))
+  expect_false(identical(
+    .variation_provenance_read_key(1L, "VariO:0017", 1L),
+    .variation_provenance_read_key(1L, "VariO:0017", 5L)
+  ))
+  # Large round entity_id must not go through as.character() (would give
+  # "1e+05" for a double and silently split the join).
+  expect_identical(
+    .variation_provenance_read_key(100000, "VariO:0017", 1L),
+    .variation_provenance_read_key(100000L, "VariO:0017", 1L)
+  )
+  # Zero-length in, zero-length out -- what keeps provenance = NULL working.
+  expect_identical(
+    .variation_provenance_read_key(NULL, NULL, NULL),
+    character(0)
+  )
+})
+
 test_that("large round entity_id values still match across double/integer (defensive normalization)", {
   # A broader footgun found while empirically checking the claim above:
   # paste(100000, "x") renders "1e+05" for a *double* but paste(100000L, "x")

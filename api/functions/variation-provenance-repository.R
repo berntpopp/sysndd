@@ -45,6 +45,72 @@ provenance_for_entity <- function(pool, entity_id) {
     dplyr::collect()
 }
 
+#' Build the (entity_id, vario_id, modifier_id) read-side identity key
+#'
+#' The READ-side counterpart of `.variation_provenance_identity_key()` in
+#' functions/variation-provenance-reconcile.R. The two MUST normalize
+#' identically: the write path reconciles stored assertions against a
+#' submission on its key, and this one decides which SERVED term a stored
+#' assertion belongs to. Every disagreement between them resolves as "no
+#' assertion found for this term", which the API contract defines as
+#' CURATOR-AUTHORED -- so a normalization drift here does not merely lose a
+#' join, it fabricates curator attribution for a machine-derived annotation,
+#' the exact failure this feature exists to prevent. Keep the two in sync.
+#'
+#' Implemented locally rather than by calling the reconcile module's helper,
+#' deliberately. The shapes differ (that key is 2-part, entity-scoped by its
+#' own query; this one carries `entity_id` as a third part because
+#' `attach_provenance()` joins a terms tibble that is not intrinsically
+#' single-entity), so reuse would be partial at best. Decisively:
+#' tests/testthat/test-unit-variation-provenance-endpoints.R sources ONLY this
+#' file plus the services above it, and runs `attach_provenance()` for real, so
+#' a call into functions/variation-provenance-reconcile.R would make this read
+#' path unloadable on its own and break that test's isolation.
+#'
+#' What is normalized, and why:
+#'
+#' * `vario_id` is upper-cased (and trimmed), mirroring the write path.
+#'   `variation_ontology_list.vario_id` is `utf8mb4_0900_ai_ci`, i.e. case-
+#'   INsensitive, so the FK happily accepts an assertion stored as
+#'   `vario:0017` against a term served as `VariO:0017`. A case-SENSITIVE
+#'   comparison would then find no assertion for that served term and render it
+#'   `provenance: null` / curator-authored on `GET /api/entity/<id>/variation`
+#'   -- while the sibling `.../variation/<vario_id>/<modifier_id>/evidence`
+#'   route, which resolves in SQL and is therefore case-INsensitive, still
+#'   returns that term's machine-derived evidence. The two surfaces would
+#'   contradict each other. The companion backfill lives in a different
+#'   repository and may store non-canonical casing, so this direction is
+#'   reachable, not theoretical. Applied to BOTH sides of the comparison, so
+#'   one normalization here suffices. VariO ids are ASCII, so `toupper()` is
+#'   locale-safe.
+#' * `entity_id`/`modifier_id` are coerced with `as.integer()`, and
+#'   deliberately NOT routed through `as.character()` first the way the write
+#'   path's helper is: `as.character(100000)` renders `"1e+05"` for a double
+#'   while `as.integer(100000)` renders `"100000"`, so an `as.character()`
+#'   first pass would REINTRODUCE the double/integer mismatch risk that arises
+#'   when `terms$entity_id` arrives as a double (e.g. after a JSON round-trip)
+#'   while `provenance$entity_id` is an integer straight from DBI.
+#'   `as.integer()` already normalizes a double, an integer and a character
+#'   `"1"` alike, so it accepts the same inputs without that hazard.
+#'
+#' A zero-length input yields `character(0)` (every coercion in the chain is
+#' length-preserving), which is what keeps `provenance = NULL` a supported
+#' degenerate input that resolves every term to `NULL`.
+#'
+#' @param entity_id Entity id vector (double, integer or character).
+#' @param vario_id VariO CURIE vector; case and surrounding space irrelevant.
+#' @param modifier_id Modifier id vector (double, integer or character).
+#' @return Character vector of normalized join keys.
+#' @keywords internal
+.variation_provenance_read_key <- function(entity_id, vario_id, modifier_id) {
+  paste(
+    as.integer(entity_id),
+    toupper(trimws(as.character(vario_id))),
+    as.integer(modifier_id),
+    sep = "|"
+  )
+}
+
 #' Attach provenance to a terms tibble
 #'
 #' Pure join on the full identity. Terms without an assertion get NULL, which
@@ -65,15 +131,11 @@ provenance_for_entity <- function(pool, entity_id) {
 #' unrecorded `evidence_strength` (source_key present, strength NA) is a
 #' different case and IS kept in `sources`.
 #'
-#' The join key is built by pasting `entity_id`, `vario_id` and
-#' `modifier_id` together. `entity_id`/`modifier_id` are coerced to integer
-#' first: `paste(1, ...)` and `paste(1L, ...)` both render `"1"`, so small
-#' identity values are unaffected either way, but `paste(100000, ...)`
-#' renders `"1e+05"` for a double while `paste(100000L, ...)` renders
-#' `"100000"` for an integer -- a real mismatch risk if `terms$entity_id`
-#' ever arrives as a double (e.g. after a JSON round-trip) while
-#' `provenance$entity_id` is an integer straight from DBI. Coercing both
-#' sides to integer up front removes that risk entirely.
+#' BOTH sides of the join are built by `.variation_provenance_read_key()`, so
+#' they are normalized identically by construction -- including the
+#' case-insensitive `vario_id` handling that keeps this read path in agreement
+#' with the write path and with the SQL-resolved evidence route. See that
+#' helper for what is normalized and why each part is what it is.
 #'
 #' Fails loudly (a classed `stop()`, not a warning) when `terms` is missing
 #' any identity column, or when a non-NULL `provenance` is missing any
@@ -115,10 +177,12 @@ attach_provenance <- function(terms, provenance) {
     }
   }
 
-  prov_key <- paste(as.integer(provenance$entity_id), provenance$vario_id,
-                    as.integer(provenance$modifier_id), sep = "|")
-  term_key <- paste(as.integer(terms$entity_id), terms$vario_id,
-                    as.integer(terms$modifier_id), sep = "|")
+  prov_key <- .variation_provenance_read_key(
+    provenance$entity_id, provenance$vario_id, provenance$modifier_id
+  )
+  term_key <- .variation_provenance_read_key(
+    terms$entity_id, terms$vario_id, terms$modifier_id
+  )
 
   terms$provenance <- lapply(term_key, function(k) {
     idx <- which(prov_key == k)

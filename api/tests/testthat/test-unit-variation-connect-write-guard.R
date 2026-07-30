@@ -267,3 +267,67 @@ test_that("review-write-service.R reconciles provenance on the SAME transaction 
     )
   )
 })
+
+# ===========================================================================
+# Guard 3: the entity-rename carry-forward wiring
+# ===========================================================================
+#
+# The rename path is the OTHER place a curated variation-ontology term set is
+# written for a NEW entity_id. svc_entity_rename_full() creates new_entity_id,
+# copies the review's connect rows onto it, and must also carry the entity's
+# provenance assertions across -- assertions are keyed on entity_id, so a
+# rename that skips this leaves the new entity with ZERO assertions, which the
+# read contract (functions/variation-provenance-repository.R) defines as
+# CURATOR-AUTHORED. A machine-derived, unconfirmed annotation would silently
+# become an apparently curator-authored one just by being renamed.
+#
+# This is a STATIC assertion because an executed end-to-end test is not
+# available here: svc_entity_rename_full() calls db_with_transaction()
+# unconditionally, with no caller-owned SAVEPOINT branch, so it cannot nest
+# inside with_test_db_transaction() the way the review-write path can. The
+# carry-forward function itself IS executed against a real database by
+# test-integration-variation-provenance-carry-forward.R; what is unverified at
+# runtime, and therefore frozen here, is the CALL SITE -- a typo in the
+# function name or a dropped `conn =` argument would otherwise reach production
+# with only parse-level checking, and the failure mode is silent.
+
+test_that("entity-rename-service.R carries provenance forward on the rename transaction", {
+  path <- file.path(get_api_dir(), "services", "entity-rename-service.R")
+  lines <- readLines(path, warn = FALSE)
+  # Whitespace-normalize before matching: the call may be wrapped across
+  # physical lines, and this guard is about the call's presence and its
+  # connection argument, not its formatting.
+  blob <- paste(gsub("[[:space:]]+", " ", lines), collapse = " ")
+
+  call_pos <- regexpr("variation_provenance_carry_forward_entity\\s*\\(", blob, perl = TRUE)
+  expect_true(
+    as.integer(call_pos) > 0,
+    info = paste(
+      "svc_entity_rename_full() must call variation_provenance_carry_forward_entity().",
+      "Provenance assertions are keyed on entity_id, so a rename that creates a new",
+      "entity_id without copying them leaves the renamed entity with zero assertions --",
+      "and zero assertions is exactly what the read path reports as 'curator-authored'.",
+      "Dropping this call therefore does not lose a nice-to-have annotation; it",
+      "relabels machine-derived, unconfirmed terms as curator-authored on the public",
+      "entity card, silently, for every renamed entity. That is #608's laundering bug",
+      "reappearing through the rename door."
+    )
+  )
+
+  call_len <- attr(call_pos, "match.length")
+  window <- substr(blob, call_pos, call_pos + call_len + 300L)
+
+  expect_match(
+    window, "conn\\s*=\\s*txn_conn",
+    perl = TRUE,
+    info = paste(
+      "variation_provenance_carry_forward_entity() must be called with conn = txn_conn",
+      "-- the SAME transaction connection svc_entity_rename_full() uses to create the",
+      "new entity and copy its review rows. On a separate connection the carry-forward",
+      "would not see the new entity inside the uncommitted rename transaction, and it",
+      "would not roll back with it: a rename that failed after this point would leave",
+      "orphaned assertion rows, and a carry-forward that failed would leave the renamed",
+      "entity's terms reading as curator-authored while the rename itself committed."
+    )
+  )
+})
