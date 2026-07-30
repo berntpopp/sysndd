@@ -153,11 +153,84 @@ export interface EntityPhenotypeRow {
   modifier_id: number | string | null;
 }
 
+/**
+ * One evidence source behind a machine-derived variation-ontology annotation,
+ * as returned on the compact (hot) read path.
+ *
+ * `strength` is a 0-4 comparability score, or `null` meaning **not recorded** —
+ * which must never be rendered as zero stars. `summary` is the source's own
+ * stored wording and is displayed verbatim; it is never regenerated client-side.
+ */
+export interface VariationProvenanceSource {
+  source_type: 'literature' | 'external_database';
+  source_key: string;
+  strength: number | null;
+  summary: string;
+}
+
+/**
+ * Provenance for one variation-ontology term.
+ *
+ * `provenance` is `null` on a term that is curator-authored — that absence IS
+ * the contract, not a missing field. Only `active_unconfirmed` and `confirmed`
+ * ever appear on the curated read surface; `suggested` terms are not in the
+ * curated set (see `VariationSuggestion`) and `rejected` ones are suppressed.
+ *
+ * `sources` arrives already ordered by the API (strength descending, then
+ * `source_key` ascending) so two sources corroborating a term render
+ * deterministically. **Do not re-sort it client-side.**
+ */
+export interface VariationProvenance {
+  state: 'active_unconfirmed' | 'confirmed';
+  max_strength: number | null;
+  sources: VariationProvenanceSource[];
+}
+
 export interface EntityVariationRow {
   entity_id: number;
   vario_id: string;
   vario_name: string;
   modifier_id: number | string | null;
+  /** `null` means curator-authored. Absent on pre-#608 API builds. */
+  provenance?: VariationProvenance | null;
+}
+
+/**
+ * A full evidence record, including the raw `evidence_json` payload.
+ *
+ * Only served by the on-demand evidence and suggestions routes, never inlined
+ * on the hot variation read. `evidence_json` carries only fields the import
+ * manifests genuinely contained (ClinVar variation id, classification, review
+ * stars, consequence, matched OMIM id) — notably **no HGVS / protein labels**,
+ * which were never recorded and must not be displayed or inferred.
+ */
+export interface VariationEvidenceRecord {
+  source_type: 'literature' | 'external_database';
+  source_key: string;
+  batch_id: string;
+  source_version: string | null;
+  evidence_summary: string;
+  evidence_strength: number | null;
+  evidence_json: unknown;
+}
+
+export interface VariationEvidenceResponse {
+  entity_id: number;
+  vario_id: string;
+  modifier_id: number;
+  state: string;
+  evidence: VariationEvidenceRecord[];
+}
+
+/** A machine-derived candidate term that is NOT in the entity's curated set. */
+export interface VariationSuggestion {
+  entity_id: number;
+  vario_id: string;
+  vario_name: string;
+  modifier_id: number | string | null;
+  state: 'suggested';
+  max_strength: number | null;
+  evidence: VariationEvidenceRecord[];
 }
 
 export interface EntityReviewRow {
@@ -337,6 +410,48 @@ export async function getEntityVariation(
     ...config,
     params: { ...(config?.params as object | undefined), ...(query ?? {}) },
   });
+}
+
+/**
+ * GET /api/entity/<sysndd_id>/variation/<vario_id>/<modifier_id>/evidence
+ *
+ * Full evidence payloads behind one assertion. Public and DB-only, but fetched
+ * on demand rather than inlined on the variation read, so the entity page costs
+ * nothing extra on load.
+ *
+ * `vario_id` is a CURIE containing a colon (`VariO:0017`). It is deliberately
+ * NOT passed through `encodeURIComponent`: Plumber routes a raw colon inside a
+ * path segment correctly but does not percent-decode path parameters, so an
+ * encoded `VariO%3A0017` would arrive verbatim. The API defensively URL-decodes
+ * as well, so either form resolves — but sending it raw keeps the request
+ * readable and matches what the API's own manifest paths use.
+ */
+export async function getEntityVariationEvidence(
+  sysndd_id: number | string,
+  vario_id: string,
+  modifier_id: number | string,
+  config?: AxiosRequestConfig
+): Promise<VariationEvidenceResponse> {
+  const path =
+    `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation` +
+    `/${vario_id}/${encodeURIComponent(String(modifier_id))}/evidence`;
+  return apiClient.get<VariationEvidenceResponse>(path, config);
+}
+
+/**
+ * GET /api/entity/<sysndd_id>/variation/suggestions
+ *
+ * Machine-derived candidate terms for one entity, with their evidence. These are
+ * NOT part of the curated set — a curator has to accept one for it to enter.
+ *
+ * Curator role required. Returns `[]` for an entity with no suggestions.
+ */
+export async function getEntityVariationSuggestions(
+  sysndd_id: number | string,
+  config?: AxiosRequestConfig
+): Promise<VariationSuggestion[]> {
+  const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation/suggestions`;
+  return apiClient.get<VariationSuggestion[]>(path, config);
 }
 
 /**
