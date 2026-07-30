@@ -22,6 +22,8 @@ interface ModalContext {
   reviewForm: {
     clearDraft: () => void;
     loadReviewData: (reviewId: number, saved: number) => Promise<void>;
+    /** #608: entity-scoped variation provenance load, awaited by infoReview. */
+    loadVariationProvenance: (entityId: number) => Promise<void>;
   };
   statusForm: {
     clearDraft: () => void;
@@ -60,7 +62,11 @@ function context(getEntity: ModalContext['reviewData']['getEntity']): ModalConte
     modalLoadGeneration: 0,
     reviewModals: { setReviewTarget: vi.fn(), setStatusTarget: vi.fn() },
     reviewData: { getEntity, loadReviewInfo: vi.fn().mockResolvedValue(undefined) },
-    reviewForm: { clearDraft: vi.fn(), loadReviewData: vi.fn().mockResolvedValue(undefined) },
+    reviewForm: {
+      clearDraft: vi.fn(),
+      loadReviewData: vi.fn().mockResolvedValue(undefined),
+      loadVariationProvenance: vi.fn().mockResolvedValue(undefined),
+    },
     statusForm: { clearDraft: vi.fn(), loadStatusData: vi.fn().mockResolvedValue(undefined) },
     $refs: {
       reviewModalRef: { show: vi.fn() },

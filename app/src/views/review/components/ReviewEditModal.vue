@@ -101,6 +101,7 @@
       :phenotypes-options="phenotypesOptions"
       :variation-options="variationOptions"
       :loading="loading"
+      :variation-zones="variationZones"
       @update:model-value="$emit('update:formData', $event)"
     />
   </BModal>
@@ -150,6 +151,10 @@ export default {
     loading: { type: Boolean, default: false },
     isSaving: { type: Boolean, default: false },
     userIcon: { type: Object, default: () => ({}) },
+    // #608: variation-ontology provenance zones from the parent's
+    // `useReviewForm` composable. Pure pass-through — `null` keeps the form
+    // rendering the plain pre-#608 picker.
+    variationZones: { type: Object, default: null },
   },
   emits: ['show', 'ok', 'update:formData'],
   methods: {

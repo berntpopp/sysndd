@@ -11,7 +11,7 @@
  * Based on useEntityForm pattern for consistency.
  */
 
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, toRef, watch } from 'vue';
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
@@ -19,6 +19,7 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
 import { splitOntologyTag } from '@/utils/ontologyTags';
 import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
+import useVariationProvenanceZones from './useVariationProvenanceZones';
 import {
   createReview,
   getReviewById,
@@ -33,9 +34,28 @@ export interface ReviewFormData {
   synopsis: string;
   phenotypes: string[]; // Format: "modifier_id-phenotype_id"
   variationOntology: string[]; // Format: "modifier_id-vario_id"
+  /**
+   * #608 — the subset of `variationOntology` tags the curator explicitly
+   * confirmed IN THIS SESSION. Only these carry `provenance_action: "confirm"`
+   * on submit; everything else is submitted unchanged so the annotation stays
+   * live but un-attributed. Deliberately excluded from the draft snapshot: a
+   * localStorage restore is not a deliberate act on a term, and letting one
+   * re-mark confirmations would reintroduce exactly the "confirmation as a side
+   * effect of saving" bug this feature removes.
+   */
+  variationConfirmed: string[]; // Format: "modifier_id-vario_id"
   publications: string[]; // PMID format
   genereviews: string[]; // PMID format
   comment: string;
+}
+
+/** Draft-persisted subset of the form (see `variationConfirmed` above). */
+export type ReviewFormDraft = Omit<ReviewFormData, 'variationConfirmed'>;
+
+/** Strips the session-only confirmation set from a draft payload. */
+function toDraftSnapshot(data: ReviewFormData): ReviewFormDraft {
+  const { variationConfirmed: _confirmed, ...draft } = data;
+  return draft;
 }
 
 /**
@@ -113,9 +133,18 @@ export default function useReviewForm(entityId?: string | number) {
     synopsis: '',
     phenotypes: [],
     variationOntology: [],
+    variationConfirmed: [],
     publications: [],
     genereviews: [],
     comment: '',
+  });
+
+  // #608: three-zone variation-ontology provenance state. `toRef` keeps the
+  // zone actions writing straight back into `formData`, so the picker and the
+  // zones share one selection with no mirroring to drift.
+  const variationZones = useVariationProvenanceZones({
+    selectedTags: toRef(formData, 'variationOntology'),
+    confirmedTags: toRef(formData, 'variationConfirmed'),
   });
 
   // Track loaded data for change detection
@@ -140,6 +169,11 @@ export default function useReviewForm(entityId?: string | number) {
   const hasChanges = computed(() => {
     if (!loadedData.value) return false;
     return (
+      // #608: confirming a machine-derived term IS a change — it changes what
+      // will be written (attribution + state), even though the selected tags are
+      // identical. Treating it as clean would let the curator navigate away and
+      // silently lose the confirmation.
+      formData.variationConfirmed.length > 0 ||
       formData.synopsis !== loadedData.value.synopsis ||
       formData.comment !== loadedData.value.comment ||
       !arraysEqual(formData.phenotypes, loadedData.value.phenotypes) ||
@@ -189,7 +223,7 @@ export default function useReviewForm(entityId?: string | number) {
     (newData) => {
       // Only schedule save if form has meaningful content
       if (newData.synopsis || newData.phenotypes.length || newData.publications.length) {
-        scheduleSave({ ...newData });
+        scheduleSave(toDraftSnapshot(newData) as ReviewFormData);
       }
     },
     { deep: true }
@@ -246,6 +280,11 @@ export default function useReviewForm(entityId?: string | number) {
   ): Promise<void> => {
     const request = loadOwner.begin();
     loading.value = true;
+
+    // #608: a fresh load is a fresh decision. Session confirmations and the
+    // previous entity's provenance/suggestions must not leak into it.
+    formData.variationConfirmed = [];
+    variationZones.reset();
 
     try {
       const [reviewData, phenotypesData, variationData, publicationsData] = await Promise.all([
@@ -315,6 +354,21 @@ export default function useReviewForm(entityId?: string | number) {
   };
 
   /**
+   * Load the entity-scoped variation provenance + Curator-gated suggestions
+   * that drive the three-zone picker (#608).
+   *
+   * Deliberately NOT folded into `loadReviewData`: provenance is entity-scoped
+   * curation-workflow data that only matters once the edit form is opening, and
+   * keeping it opt-in means the pre-#608 load path (and its spec) is unchanged.
+   * Never throws — see `loadForEntity`.
+   */
+  const loadVariationProvenance = async (entityIdInput?: number | string | null): Promise<void> => {
+    const targetEntityId = entityIdInput ?? entityIdRef.value;
+    if (targetEntityId === null || targetEntityId === undefined || targetEntityId === '') return;
+    await variationZones.loadForEntity(targetEntityId);
+  };
+
+  /**
    * Submit form (create or update review)
    */
   const submitForm = async (isUpdate: boolean, reReview: boolean): Promise<void> => {
@@ -357,9 +411,14 @@ export default function useReviewForm(entityId?: string | number) {
       return new Phenotype(ontologyId, modifierId);
     });
 
+    // #608: every selected term is submitted (so no annotation silently
+    // vanishes), but only tags the curator explicitly confirmed this session
+    // carry `provenance_action`. Untouched machine-derived terms serialise as a
+    // plain `{vario_id, modifier_id}` pair — byte-identical to pre-#608 — and
+    // therefore stay `active_unconfirmed` server-side.
     const variations = formData.variationOntology.map((item) => {
       const { modifierId, ontologyId } = splitOntologyTag(item);
-      return new Variation(ontologyId, modifierId);
+      return new Variation(ontologyId, modifierId, variationZones.provenanceActionFor(item));
     });
 
     const reviewData = new Review(
@@ -407,9 +466,13 @@ export default function useReviewForm(entityId?: string | number) {
     formData.synopsis = '';
     formData.phenotypes = [];
     formData.variationOntology = [];
+    formData.variationConfirmed = [];
     formData.publications = [];
     formData.genereviews = [];
     formData.comment = '';
+
+    // #608: drop the zone state with the form (see loadReviewData).
+    variationZones.reset();
 
     // Reset touched state
     Object.keys(touched).forEach((key) => {
@@ -436,10 +499,14 @@ export default function useReviewForm(entityId?: string | number) {
   };
 
   /**
-   * Restore form data from snapshot
+   * Restore form data from snapshot.
+   *
+   * #608: `variationConfirmed` is stripped — a restored draft must never
+   * re-assert a confirmation the curator is not looking at right now.
    */
   const restoreFromSnapshot = (snapshot: Partial<ReviewFormData>) => {
-    Object.assign(formData, snapshot);
+    const { variationConfirmed: _confirmed, ...rest } = snapshot;
+    Object.assign(formData, rest);
   };
 
   /**
@@ -475,7 +542,11 @@ export default function useReviewForm(entityId?: string | number) {
 
     // API operations
     loadReviewData,
+    loadVariationProvenance,
     submitForm,
+
+    // #608 variation-ontology provenance zones
+    variationZones,
 
     // Form management
     resetForm,
