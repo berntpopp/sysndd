@@ -393,6 +393,26 @@ ON DUPLICATE KEY UPDATE
   `entity_id` = VALUES(`entity_id`),
   `is_active` = VALUES(`is_active`);
 
+-- Reset the curated variation-ontology set for entity 123 before re-inserting it.
+--
+-- This DELETE is what makes re-seeding genuinely RESTORATIVE for this table, and
+-- it is required rather than tidy. `ON DUPLICATE KEY UPDATE` on a fixed primary
+-- key cannot undo what a review save does here:
+--
+--   * `variation_ontology_replace_for_review()` DELETEs every connect row for the
+--     review and re-INSERTs the submitted terms, so the rows come back with fresh
+--     AUTO_INCREMENT ids. The fixture's fixed ids (123, 9615, 9617) no longer
+--     exist, so the upserts insert *duplicates* instead of restoring the originals.
+--   * Accepting a suggested term (#608) adds a connect row the fixture never
+--     declares — e.g. `VariO:0508`, or `VariO:0017` under modifier 5. Nothing in
+--     an upsert-only fixture can remove it, so it leaks into every later test and
+--     the public-read spec then sees a `suggested` term in the curated set.
+--
+-- Both were observed: after one run of the curation write specs this table held
+-- five rows with ids 9617/9629/9630/9631/9632 instead of the seeded three.
+-- The fixture owns entity 123 outright, so scoping the DELETE to it is safe.
+DELETE FROM `ndd_review_variation_ontology_connect` WHERE `entity_id` = 123;
+
 INSERT INTO `ndd_review_variation_ontology_connect` (
   `review_vario_id`,
   `review_id`,
@@ -526,7 +546,7 @@ INSERT INTO `variation_ontology_evidence` (
     'external_database',
     'clinvar',
     'pw-fixture-2026-02',
-    '2026-01 release',
+    '2026-01',
     '3 ClinVar records, max 2 stars',
     2,
     '{"records":[{"variation_id":"VCV0000132","classification":"Pathogenic","review_stars":2,"consequence":"nonsense variant"},{"variation_id":"VCV0000418","classification":"Pathogenic","review_stars":2,"consequence":"frameshift variant"},{"variation_id":"VCV0000955","classification":"Likely pathogenic","review_stars":1,"consequence":"frameshift variant"}],"matched":["OMIM:615032"]}'
@@ -548,7 +568,7 @@ INSERT INTO `variation_ontology_evidence` (
     'external_database',
     'clinvar',
     'pw-fixture-2026-02',
-    '2026-01 release',
+    '2026-01',
     '2 ClinVar records, max 1 star',
     1,
     '{"records":[{"variation_id":"VCV1343191","classification":"Likely pathogenic","review_stars":1,"consequence":"missense variant"},{"variation_id":"VCV1804020","classification":"Likely pathogenic","review_stars":1,"consequence":"missense variant"}],"matched":["OMIM:615032"]}'
@@ -559,7 +579,7 @@ INSERT INTO `variation_ontology_evidence` (
     'external_database',
     'clinvar',
     'pw-fixture-2026-02',
-    '2026-01 release',
+    '2026-01',
     '1 ClinVar record, max 1 star',
     1,
     '{"records":[{"variation_id":"VCV1902773","classification":"Uncertain significance","review_stars":1,"consequence":"missense variant"}],"matched":["OMIM:615032"]}'
@@ -570,7 +590,7 @@ INSERT INTO `variation_ontology_evidence` (
     'external_database',
     'clinvar',
     'pw-fixture-2026-02',
-    '2026-01 release',
+    '2026-01',
     '5 ClinVar records, max 3 stars',
     3,
     '{"records":[{"variation_id":"VCV0002210","classification":"Pathogenic","review_stars":3,"consequence":"splice donor variant"},{"variation_id":"VCV0002211","classification":"Pathogenic","review_stars":3,"consequence":"splice acceptor variant"},{"variation_id":"VCV0002212","classification":"Likely pathogenic","review_stars":2,"consequence":"splice donor variant"},{"variation_id":"VCV0002213","classification":"Likely pathogenic","review_stars":1,"consequence":"splice region variant"},{"variation_id":"VCV0002214","classification":"Uncertain significance","review_stars":1,"consequence":"splice region variant"}],"matched":["OMIM:615032"]}'

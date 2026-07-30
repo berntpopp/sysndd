@@ -285,6 +285,15 @@ defineExpose({ focusClose: () => closeEl.value?.focus() });
   top: 50%;
   left: 50%;
   z-index: 1050;
+  /* The entity evidence card centres its text, and this dialog is rendered from
+     inside it, so every free-flowing paragraph here inherited `center` while the
+     label/value rows only LOOKED aligned because they are grids. The result was
+     four competing alignments in one panel: a right-aligned label column, its
+     left-aligned values, centred summary/heading/matched-via prose, and record
+     rows at a fourth x-position. Reading order in a data panel needs one left
+     edge, so the dialog establishes its own alignment rather than inheriting the
+     card's. */
+  text-align: left;
   width: min(30rem, calc(100vw - 2rem));
   max-height: min(32rem, calc(100vh - 3rem));
   padding: var(--spacing-4, 1rem);
@@ -390,6 +399,14 @@ defineExpose({ focusClose: () => closeEl.value?.focus() });
 }
 .vp-records li {
   display: flex;
+  /* Baseline, not the default stretch. A record row mixes a monospace id with
+     smaller prose, and at narrow widths the prose wraps to two lines, so the row
+     grows: with `align-items: normal` every child stretched to the full row height
+     and their text landed at different vertical positions — measured at 390px, all
+     three children were 44px tall and the consequence text rendered ABOVE its own
+     id. Sharing a baseline is what a reader expects of a text row and keeps the id
+     and its description on one line together however the prose wraps. */
+  align-items: baseline;
   flex-wrap: wrap;
   gap: 0.35rem;
   margin-bottom: 0.1rem;

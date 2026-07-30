@@ -24,6 +24,9 @@
 //   VariO:0015 mod 1 — assertion `confirmed`
 //   VariO:0017 mod 1 — assertion `active_unconfirmed`  (the load-bearing case)
 //   VariO:0508 mod 1 — assertion `suggested`, NOT in the curated set -> must be absent
+import { execSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test, expect, type Page, type Request } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 
@@ -89,6 +92,24 @@ function trigger(page: Page, term: { varioId: string; modifier: number }) {
 }
 
 test.describe('#608 public entity page: variation ontology provenance', () => {
+  // Restore the fixture once before this file runs.
+  //
+  // This spec is read-only, but the sibling curation spec is NOT: accepting a
+  // suggested term adds a curated connect row, and saving a review deletes and
+  // re-inserts every connect row for the review with fresh AUTO_INCREMENT ids.
+  // Run after it, this file would otherwise see `VariO:0508` (and `VariO:0017`
+  // under modifier 5) in the curated set and fail its "a suggested assertion
+  // never surfaces on the public read" assertion — a real order-coupling, not a
+  // product defect. `make _playwright-seed-e2e-baseline` is restorative for those
+  // rows (the fixture DELETEs entity 123's connect rows before re-inserting them),
+  // so one reseed here makes this file independent of execution order.
+  test.beforeAll(() => {
+    execSync('make _playwright-seed-e2e-baseline', {
+      cwd: resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..'),
+      stdio: 'pipe',
+    });
+  });
+
   test.beforeEach(async ({ request }) => {
     test.skip(
       !(await provenanceFixturePresent(request)),
