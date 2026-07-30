@@ -295,11 +295,21 @@ review_write_assertion_row <- function(conn, fixture, modifier_id = 1L, vario_id
 
 #' Successful review save, with the submitted variation-ontology payload (and
 #' therefore the provenance actions) supplied by the caller.
+#'
+#' `direct_approval = FALSE` + `method = "POST"` is the DRAFT case: the created
+#' review is neither primary nor approved, so it does not determine the entity's
+#' served term set and omissions must not reject any assertion.
 review_write_save <- function(conn, fixture, synopsis, variation_ontology,
-                              method = "POST", mutation_fn = review_write_mutate) {
+                              method = "POST", mutation_fn = review_write_mutate,
+                              direct_approval = FALSE, review_id = NULL) {
+  review_data <- list(entity_id = fixture$entity_id, synopsis = synopsis)
+  if (!is.null(review_id)) {
+    review_data$review_id <- review_id
+  }
+
   svc_review_write(
     method = method,
-    review_data = list(entity_id = fixture$entity_id, synopsis = synopsis),
+    review_data = review_data,
     publications = tibble::tibble(
       publication_id = fixture$publication_id,
       publication_type = "additional_references"
@@ -307,11 +317,26 @@ review_write_save <- function(conn, fixture, synopsis, variation_ontology,
     phenotypes = tibble::tibble(phenotype_id = fixture$phenotype_id, modifier_id = 1L),
     variation_ontology = variation_ontology,
     re_review = FALSE,
-    direct_approval = FALSE,
+    direct_approval = direct_approval,
     review_user_id = fixture$user_id,
     db = conn,
     mutation_fn = mutation_fn
   )
+}
+
+#' Insert an existing PRIMARY + APPROVED review for the fixture's entity.
+#'
+#' This is the review the public is served from, so a PUT editing it DOES
+#' determine the served term set and its omissions legitimately reject.
+review_write_seed_primary_approved_review <- function(conn, fixture, synopsis) {
+  DBI::dbExecute(
+    conn,
+    "INSERT INTO ndd_entity_review
+       (entity_id, synopsis, review_user_id, review_approved, approving_user_id, is_primary)
+     VALUES (?, ?, ?, 1, ?, 1)",
+    params = list(fixture$entity_id, synopsis, fixture$user_id, fixture$user_id)
+  )
+  as.integer(DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() AS id")$id[[1L]])
 }
 
 review_write_count <- function(conn, table, where_sql, params) {
@@ -657,16 +682,59 @@ test_that("#608: confirmation is an act -- provenance_action = 'confirm' confirm
   })
 })
 
-test_that("#608: omitting a term rejects its assertion, even when the client sends no provenance fields at all", {
+test_that("REGRESSION #608 END TO END (I2): a REVIEWER DRAFT save that omits a term leaves its assertion active_unconfirmed -- a draft must never suppress provenance for a term the approved review is still serving", {
   skip_if_no_test_db()
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
     fixture <- review_write_seed(conn, 113L)
     review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
 
+    # A plain Reviewer POST: the created review is neither primary nor approved,
+    # so it does not determine the entity's served term set. Rejecting here would
+    # drop the assertion out of the read path's state filter while the approved
+    # review keeps serving the term, i.e. it would render as curator-authored.
     result <- review_write_save(
-      conn, fixture, "review-write-provenance-omitted",
+      conn, fixture, "review-write-provenance-draft-omitted",
       variation_ontology = tibble::tibble()
+    )
+
+    expect_identical(result$status, 200L)
+    review_id <- result$entry$review_id[[1L]]
+    served <- DBI::dbGetQuery(
+      conn,
+      "SELECT is_primary, review_approved FROM ndd_entity_review WHERE review_id = ?",
+      params = list(review_id)
+    )
+    expect_equal(as.integer(served$is_primary), 0L)
+    expect_equal(as.integer(served$review_approved), 0L)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "active_unconfirmed")
+    expect_true(is.na(assertion$confirmed_by))
+    # The draft's own connect rows are empty, as submitted -- the curated write is
+    # unaffected by the provenance rule.
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_variation_ontology_connect", "review_id = ?", list(review_id)
+      ),
+      0L
+    )
+  })
+})
+
+test_that("#608 (I2): a DIRECT-APPROVAL save that omits a term DOES reject its assertion", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 117L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+
+    # direct_approval makes this review the served set in the same transaction,
+    # and the omission already wipes the connect rows, so rejecting is correct.
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-approved-omitted",
+      variation_ontology = tibble::tibble(),
+      direct_approval = TRUE
     )
 
     expect_identical(result$status, 200L)
@@ -674,10 +742,212 @@ test_that("#608: omitting a term rejects its assertion, even when the client sen
     assertion <- review_write_assertion_row(conn, fixture)
     expect_equal(assertion$state, "rejected")
     expect_true(is.na(assertion$confirmed_by))
+  })
+})
+
+test_that("#608 (I2): review_write_save_determines_served_set() is TRUE for a primary+approved review and FALSE for a draft", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 118L)
+
+    approved_id <- review_write_seed_primary_approved_review(
+      conn, fixture, "review-write-provenance-served-review"
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id)
+       VALUES (?, ?, ?)",
+      params = list(fixture$entity_id, "review-write-provenance-draft-review", fixture$user_id)
+    )
+    draft_id <- as.integer(DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() AS id")$id[[1L]])
+
+    # The is_primary + review_approved branch, exercised directly against real
+    # rows. The PUT-path test below explains why this branch cannot be reached
+    # through a plain review save.
+    expect_true(review_write_save_determines_served_set(approved_id, FALSE, conn))
+    expect_false(review_write_save_determines_served_set(draft_id, FALSE, conn))
+    # direct_approval short-circuits before the query, so it holds even for a draft.
+    expect_true(review_write_save_determines_served_set(draft_id, TRUE, conn))
+    # An unknown review_id is not an approval.
+    expect_false(review_write_save_determines_served_set(-1L, FALSE, conn))
+  })
+})
+
+test_that("#608 (I2): a plain PUT editing the live review does NOT reject, because review_update() un-approves the review it just edited", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 122L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+    review_id <- review_write_seed_primary_approved_review(
+      conn, fixture, "review-write-provenance-live-review"
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO ndd_review_variation_ontology_connect
+         (review_id, entity_id, vario_id, modifier_id) VALUES (?, ?, ?, 1)",
+      params = list(review_id, fixture$entity_id, fixture$vario_id)
+    )
+
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-live-review-updated",
+      variation_ontology = tibble::tibble(),
+      method = "PUT", review_id = review_id
+    )
+
+    expect_identical(result$status, 200L)
+
+    # Verified empirically: review_update() unconditionally runs
+    # `UPDATE ndd_entity_review SET review_approved = 0` (and clears
+    # approving_user_id) after the edit -- an edited review needs re-approval.
+    # So by the time the predicate runs, this save is NO LONGER the served set,
+    # and the omission must not reject. Nothing is being served for this entity
+    # either, so no term can read as curator-authored in the meantime.
+    served <- DBI::dbGetQuery(
+      conn,
+      "SELECT is_primary, review_approved FROM ndd_entity_review WHERE review_id = ?",
+      params = list(review_id)
+    )
+    expect_equal(as.integer(served$review_approved), 0L)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "active_unconfirmed")
+    expect_true(is.na(assertion$confirmed_by))
+  })
+})
+
+test_that("#608 (I2): a PUT with direct approval that omits a term DOES reject its assertion", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 123L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+    review_id <- review_write_seed_primary_approved_review(
+      conn, fixture, "review-write-provenance-put-approve-original"
+    )
+
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-put-approve-updated",
+      variation_ontology = tibble::tibble(),
+      method = "PUT", review_id = review_id, direct_approval = TRUE
+    )
+
+    expect_identical(result$status, 200L)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "rejected")
+    # The curated replace emptied the connect rows too, so the served set and the
+    # provenance state agree.
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_variation_ontology_connect", "review_id = ?", list(review_id)
+      ),
+      0L
+    )
+  })
+})
+
+test_that("#608 (I2): a confirmation on a REVIEWER DRAFT save still confirms -- an affirmative act is never gated", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 119L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-draft-confirm",
+      variation_ontology = tibble::tibble(
+        vario_id = fixture$vario_id, modifier_id = 1L, provenance_action = "confirm"
+      )
+    )
+
+    expect_identical(result$status, 200L)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "confirmed")
+    expect_equal(as.integer(assertion$confirmed_by), as.integer(fixture$user_id))
+    expect_false(is.na(assertion$confirmed_at))
+  })
+})
+
+test_that("REGRESSION #608 END TO END (PUT path): resubmitting a term with no provenance action leaves an active_unconfirmed assertion active_unconfirmed", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 120L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+    review_id <- review_write_seed_primary_approved_review(
+      conn, fixture, "review-write-provenance-put-original"
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO ndd_review_variation_ontology_connect
+         (review_id, entity_id, vario_id, modifier_id) VALUES (?, ?, ?, 1)",
+      params = list(review_id, fixture$entity_id, fixture$vario_id)
+    )
+
+    # The PUT branch additionally runs the review_id-ownership check and
+    # variation_ontology_replace_for_review(); the reconciliation must behave
+    # identically to POST. This save DOES determine the served set, so the
+    # resubmitted term is the interesting case: still not promoted.
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-put-no-action",
+      variation_ontology = tibble::tibble(vario_id = fixture$vario_id, modifier_id = 1L),
+      method = "PUT", review_id = review_id
+    )
+
+    expect_identical(result$status, 200L)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "active_unconfirmed")
+    expect_true(is.na(assertion$confirmed_by))
+    expect_true(is.na(assertion$confirmed_at))
     expect_equal(
       review_write_count(
         conn, "ndd_review_variation_ontology_connect",
-        "review_id = ?", list(result$entry$review_id[[1L]])
+        "review_id = ? AND vario_id = ? AND modifier_id = 1", list(review_id, fixture$vario_id)
+      ),
+      1L
+    )
+  })
+})
+
+test_that("#608 (I1): a case-variant vario_id never reaches reconciliation -- lookup validation rejects it with a 400 and nothing is written", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 121L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+    lowered <- tolower(fixture$vario_id)
+    expect_false(identical(lowered, fixture$vario_id))
+
+    # Empirically verified on this MySQL 8.4.11 test DB (see the fix report):
+    # the SQL `IN` match IS case-insensitive (utf8mb4_0900_ai_ci) and returns the
+    # STORED casing, but review_write_validate_lookup_ids() then compares with
+    # R's case-SENSITIVE setdiff(), so the submitted id looks unknown and the
+    # request 400s. The reviewer's premise for I1 -- "validation accepts it, the
+    # connect row is written" -- therefore does not hold through this service.
+    # The identity-key case-normalization is kept as defense in depth for the
+    # reachable variant (a backfill writing non-canonical casing into
+    # variation_ontology_assertion), which is unit-tested.
+    expect_error(
+      review_write_save(
+        conn, fixture, "review-write-provenance-case-variant",
+        variation_ontology = tibble::tibble(vario_id = lowered, modifier_id = 1L),
+        direct_approval = TRUE
+      ),
+      class = "error_400",
+      regexp = "vario_id"
+    )
+
+    # Nothing laundered and nothing written: the assertion is untouched.
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(nrow(assertion), 1L)
+    expect_equal(assertion$state, "active_unconfirmed")
+    expect_equal(
+      review_write_count(
+        conn, "ndd_review_variation_ontology_connect", "entity_id = ?", list(fixture$entity_id)
       ),
       0L
     )
@@ -692,11 +962,15 @@ test_that("#608: 'present' and 'absent' for one vario_id reconcile independently
     review_write_seed_assertion(conn, fixture, state = "active_unconfirmed", modifier_id = 1L)
     review_write_seed_assertion(conn, fixture, state = "active_unconfirmed", modifier_id = 5L)
 
+    # direct_approval so this save determines the served term set and the
+    # omitted 'absent' claim is legitimately rejectable (see the I2 rule); the
+    # point of the test is that the two modifiers are handled INDEPENDENTLY.
     result <- review_write_save(
       conn, fixture, "review-write-provenance-identity",
       variation_ontology = tibble::tibble(
         vario_id = fixture$vario_id, modifier_id = 1L, provenance_action = "confirm"
-      )
+      ),
+      direct_approval = TRUE
     )
 
     expect_identical(result$status, 200L)

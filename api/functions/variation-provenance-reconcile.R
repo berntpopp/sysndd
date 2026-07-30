@@ -4,46 +4,36 @@
 #
 # WHY THIS EXISTS
 # ---------------
-# SysNDD's curation forms prefill their variation-ontology term picker from the
-# entity's existing terms. A curator who opens an entity to change one sentence
-# of synopsis gets every existing term pre-checked; saving rewrites all of them
-# onto a new, curator-attributed review. No user action distinguishes "I read
-# the papers and agree" from "I did not notice the pre-checked box" -- which is
-# how machine-imported annotations silently become curator-authored, one review
-# at a time.
-#
-# Three independent frontend surfaces do this prefill-and-resubmit
-# (app/src/views/curate/composables/useEntityInfo.ts,
-#  app/src/views/curate/composables/useReviewForm.ts,
-#  app/src/composables/review/useReviewApprovalActions.ts) and only two of them
-# route submission through the shared tag helper. Correctness therefore CANNOT
-# depend on a client sending the right field: the server reconciles the previous
-# assertion set against the submitted set. A design that trusts a client-sent
-# "rejected" array -- which existing clients never send -- does not work.
+# SysNDD's curation forms prefill their variation-ontology picker from the
+# entity's existing terms, so a curator editing one sentence of synopsis gets
+# every existing term pre-checked, and saving rewrites all of them onto a new,
+# curator-attributed review. No user action distinguishes "I read the papers and
+# agree" from "I did not notice the pre-checked box" -- which is how
+# machine-imported annotations silently become curator-authored. Three frontend
+# surfaces do this prefill-and-resubmit (useEntityInfo.ts, useReviewForm.ts,
+# useReviewApprovalActions.ts) and only two route submission through the shared
+# tag helper, so correctness CANNOT depend on a client sending the right field.
+# The server reconciles the previous assertion set against the submitted set.
 #
 # ARCHITECTURE: pure planner + thin applier
 # -----------------------------------------
-# The state machine is pure and fully unit-testable without a database. Only
-# the applier and the read touch SQL.
+#   variation_provenance_plan_reconciliation()   PURE -- no SQL, no side effects
+#   variation_provenance_assertions_for_entity() SQL read
+#   variation_provenance_apply_reconciliation()  SQL write
+#   variation_provenance_reconcile_for_review()  orchestrator
 #
-#   variation_provenance_plan_reconciliation(previous, submitted, actions)  PURE
-#       -> tibble(assertion_id, from_state, to_state, needs_attribution)
-#   variation_provenance_apply_reconciliation(plan, review_user_id, conn)   SQL
-#   variation_provenance_assertions_for_entity(entity_id, conn)             SQL
-#   variation_provenance_reconcile_for_review(...)                   orchestrator
-#
-# This module NEVER reads or writes ndd_review_variation_ontology_connect: the
-# curated connect table's write path (functions/ontology-repository.R) is
-# untouched. It also never opens a transaction -- it only ever uses the `conn`
-# handed to it, so it works identically under the pool branch
-# (db_with_transaction) and the caller-owned-connection branch
-# (SAVEPOINT review_write_mutation, used by with_test_db_transaction()).
+# This module NEVER touches ndd_review_variation_ontology_connect (the curated
+# write path in functions/ontology-repository.R is untouched) and never opens a
+# transaction -- it only ever uses the `conn` handed to it, so it behaves
+# identically under db_with_transaction() and under the caller-owned
+# SAVEPOINT review_write_mutation branch used by with_test_db_transaction().
 #
 # THE STATE MACHINE -- this table is the specification
 # ---------------------------------------------------
-# Identity throughout is (vario_id, modifier_id) within one entity_id.
-# Rows marked (spec) are the design spec's own section 5.3 rows; the rest are
-# the documented extensions that make the machine total.
+# Identity is (vario_id, modifier_id) within one entity_id, compared
+# case-INSENSITIVELY (see .variation_provenance_identity_key). Rows marked
+# (spec) are the design spec's own section 5.3 rows; the rest are the documented
+# extensions that make the machine total.
 #
 # | Submitted? | Previous state     | provenance_action      | New state                      | Attribution            |
 # |------------|--------------------|------------------------|--------------------------------|------------------------|
@@ -58,51 +48,41 @@
 # | no         | confirmed          | --                     | confirmed (unchanged)          | --                     |
 # | no         | rejected           | --                     | rejected (unchanged)           | --                     |
 #
+# The two rejection rows additionally require `apply_rejections = TRUE`; the
+# confirmation rows always apply. See the planner's @param apply_rejections for
+# the rule and why it exists.
+#
 # Why each extension is what it is
 # --------------------------------
-# * submitted + suggested -> confirmed. A `suggested` assertion is by
-#   definition NOT in the curated set, so it is never pre-checked by any
-#   prefill surface (all three prefill from the entity's current terms, i.e.
-#   the connect table). It can therefore only appear in a submission because a
-#   curator deliberately added it. That is an affirmative act, so it earns
-#   attribution. This is the "Accept" path of the three-zone picker, made
-#   server-authoritative so it works even for a client that sends no action
-#   field at all.
-# * submitted + confirmed -> unchanged, no re-stamp. Re-saving an
-#   already-confirmed term must not overwrite the original curator's
-#   attribution or timestamp with the current saver's. The confirmation record
-#   is historical. (Mechanically: from_state == to_state, so the row is dropped
-#   from the plan and the applier issues no UPDATE -- confirmed_by/confirmed_at
-#   are physically unreachable.)
-# * submitted + rejected -> confirmed. A curator previously declined the term
-#   and is now asserting it. That is a fresh affirmative act; it earns fresh
-#   attribution and lifts the suppression.
-# * omitted + confirmed -> unchanged. The spec deliberately limits rejection to
-#   active_unconfirmed and suggested. A confirmed assertion whose term is later
-#   removed keeps its record: the read path filters
-#   state IN ('active_unconfirmed','confirmed') and joins on the full identity
-#   against the terms actually served, so a stale confirmed row for a removed
-#   term simply never joins and is invisible. If the term is re-added later its
-#   confirmation history survives. Do not "improve" this into a rejection.
-# * omitted + rejected -> unchanged. Already suppressed; nothing to do.
+# * submitted + suggested -> confirmed. A `suggested` assertion is not in the
+#   curated set, so no prefill surface can pre-check it (all three prefill from
+#   the entity's current terms). It can only appear in a submission because a
+#   curator deliberately added it -- an affirmative act, so it earns attribution.
+#   Server-authoritative, so it works for a client that sends no action field.
+# * submitted + confirmed -> unchanged. Re-saving must not overwrite the original
+#   curator's attribution with the current saver's; the confirmation is
+#   historical. Structural rather than conditional: from_state == to_state, so
+#   the row never reaches the applier.
+# * submitted + rejected -> confirmed. A curator who previously declined and is
+#   now asserting performed a fresh affirmative act; fresh attribution, and the
+#   suppression lifts.
+# * omitted + confirmed -> unchanged. Rejection is deliberately limited to
+#   active_unconfirmed/suggested. A confirmed row for a removed term is invisible
+#   (the read path joins on the full identity against the terms actually served)
+#   and its history survives a re-add. Do not "improve" this into a rejection.
+# * omitted + rejected -> unchanged. Already suppressed.
 #
-# THE regression assertion for the original bug is row 1: saving a review with
-# no provenance_action leaves an active_unconfirmed assertion
-# active_unconfirmed. The annotation stays live and stays submitted -- it does
-# not vanish from the entity -- it is simply never silently upgraded to
-# curator-authored. Confirmation becomes an act, not a side effect.
+# THE two regression assertions for the original bug: (a) row 1 -- a save with no
+# provenance_action leaves an active_unconfirmed assertion active_unconfirmed;
+# (b) the apply_rejections rule -- a draft save never rejects. Confirmation is an
+# act, not a side effect; removal is public, not a draft.
 #
 # INERTNESS
 # ---------
-# With zero assertion rows for the entity, reconciliation is a strict no-op:
-# no UPDATE, no INSERT, not even a plan is built. The backfill that populates
-# these tables lives in a different repository and has not run yet, so until it
-# does this code path is provably inert on production traffic.
-
-#' Assertion states, in the order declared by migration 047's ENUM.
-VARIATION_PROVENANCE_STATES <- c(
-  "suggested", "active_unconfirmed", "confirmed", "rejected"
-)
+# With zero assertion rows for the entity, reconciliation is a strict no-op: no
+# UPDATE, no INSERT, not even a plan built. The backfill that populates these
+# tables lives in a different repository and has not run yet, so this path is
+# provably inert on production traffic today.
 
 #' The ONLY provenance_action value that confirms.
 #'
@@ -129,15 +109,27 @@ variation_provenance_empty_plan <- function() {
 
 #' Build the (vario_id, modifier_id) identity key
 #'
-#' modifier_id is coerced to integer so a submitted `"1"` (Plumber/jsonlite can
-#' hand numbers over as strings) matches a stored `1L`. Without that coercion a
-#' resubmitted term would look omitted and be REJECTED -- silently deleting a
-#' live annotation.
+#' Both halves are normalized so an identity R considers different but the
+#' DATABASE considers the same can never split. A stored assertion whose key
+#' fails to match the submission looks OMITTED, so it transitions to `rejected`,
+#' drops out of the read path's `state IN ('active_unconfirmed','confirmed')`
+#' filter, and the still-served term then presents as curator-authored -- the
+#' exact fabrication this module exists to prevent.
+#'
+#' * `vario_id` is upper-cased. `variation_ontology_list.vario_id` is
+#'   `utf8mb4_0900_ai_ci` (see migration 047's charset ruling), i.e. case-
+#'   INsensitive, so `review_write_validate_lookup_ids()` accepts a submitted
+#'   `vario:0017` and the connect row is written -- while a case-SENSITIVE R
+#'   comparison would not match the stored `VariO:0017`. Applied to both sides of
+#'   every comparison, so one normalization here suffices. VariO ids are ASCII, so
+#'   `toupper()` is locale-safe.
+#' * `modifier_id` is coerced to integer so a submitted `"1"` (Plumber/jsonlite
+#'   can hand numbers over as strings) matches a stored `1L`.
 #'
 #' @keywords internal
 .variation_provenance_identity_key <- function(vario_id, modifier_id) {
   paste(
-    trimws(as.character(vario_id)),
+    toupper(trimws(as.character(vario_id))),
     suppressWarnings(as.integer(trimws(as.character(modifier_id)))),
     sep = "|"
   )
@@ -147,13 +139,18 @@ variation_provenance_empty_plan <- function() {
 #' Coerce a term/action table to a data frame carrying the required columns
 #'
 #' Accepts a data.frame/tibble (including the zero-row case) or a list that
-#' `tibble::as_tibble()` can widen. Anything else -- NULL, a bare vector, an
-#' unusable list -- degrades to a zero-row table rather than raising: this
-#' module runs inside a review-save transaction, and a malformed payload is
-#' already rejected upstream by review_write_normalize_ontology().
+#' `tibble::as_tibble()` can widen. A genuinely EMPTY input is always fine.
 #'
+#' An UNPARSEABLE input is not. For `previous`/`actions`, degrading it to zero
+#' rows is the safe direction. For `submitted` it is the destructive one: empty
+#' means "the curator removed every term", so an unparseable payload would reject
+#' every active_unconfirmed/suggested assertion for the entity. That caller passes
+#' `strict = TRUE` and gets a loud, classed failure instead.
+#'
+#' @param strict Raise `variation_provenance_unparseable_input` instead of
+#'   degrading an unparseable (as opposed to empty) input to zero rows.
 #' @keywords internal
-.variation_provenance_as_rows <- function(x, required) {
+.variation_provenance_as_rows <- function(x, required, strict = FALSE) {
   empty <- function() {
     out <- tibble::tibble(.rows = 0L)
     for (name in required) {
@@ -161,17 +158,29 @@ variation_provenance_empty_plan <- function() {
     }
     out
   }
+  degrade <- function() {
+    if (strict) {
+      rlang::abort(
+        message = paste(
+          "Unparseable variation-ontology term set; refusing to reconcile",
+          "provenance rather than treating it as an empty submission."
+        ),
+        class = "variation_provenance_unparseable_input"
+      )
+    }
+    empty()
+  }
 
   if (is.null(x) || length(x) == 0L) {
     return(empty())
   }
   if (!is.data.frame(x)) {
     if (!is.list(x)) {
-      return(empty())
+      return(degrade())
     }
     x <- tryCatch(tibble::as_tibble(x), error = function(error) NULL)
     if (is.null(x) || !is.data.frame(x)) {
-      return(empty())
+      return(degrade())
     }
   }
   if (nrow(x) == 0L) {
@@ -189,9 +198,14 @@ variation_provenance_empty_plan <- function() {
 
 #' Identity keys of the submitted term set
 #'
+#' `strict = TRUE`: an unparseable submitted set must never be mistaken for an
+#' empty one, because empty drives rejection.
+#'
 #' @keywords internal
 .variation_provenance_submitted_keys <- function(submitted) {
-  submitted <- .variation_provenance_as_rows(submitted, c("vario_id", "modifier_id"))
+  submitted <- .variation_provenance_as_rows(
+    submitted, c("vario_id", "modifier_id"), strict = TRUE
+  )
   if (nrow(submitted) == 0L) {
     return(character(0))
   }
@@ -243,9 +257,28 @@ variation_provenance_empty_plan <- function() {
 #'   provenance_action, as returned by
 #'   review_write_extract_provenance_actions(). NULL means "the client sent no
 #'   provenance fields at all", which is the common case today.
+#' @param apply_rejections Whether the omitted-term rejection edges (rows 7 and
+#'   8) apply. Confirmation edges are NEVER gated by this.
+#'
+#'   THE RULE: **confirmation transitions always apply; rejection transitions
+#'   apply only when the save actually determines the entity's served term set.**
+#'
+#'   Assertions are entity-scoped, but the publicly served terms come from the
+#'   PRIMARY APPROVED review. A Reviewer's draft POST that omits a term -- or that
+#'   omits `variation_ontology` entirely, which normalizes to a zero-row set and
+#'   so omits EVERYTHING -- is not a statement about the served set. Applying rows
+#'   7/8 to it would reject every assertion for the entity while the approved
+#'   review keeps serving those very terms, so they would present as
+#'   curator-authored; rows 9/10 make the omitted branch terminal, so an abandoned
+#'   draft would suppress provenance permanently. Rows 7/8 and the spec's primary
+#'   goal contradict each other here, and the goal governs. Deferring rejection is
+#'   also more faithful to rows 7/8's purpose ("makes removal correct for every
+#'   surface"): removal becomes real when it becomes public. `review_write_mutate()`
+#'   computes the flag, so the planner stays pure and never queries the DB for it.
 #' @return Tibble(assertion_id, from_state, to_state, needs_attribution).
 #' @export
-variation_provenance_plan_reconciliation <- function(previous, submitted, actions = NULL) {
+variation_provenance_plan_reconciliation <- function(previous, submitted, actions = NULL,
+                                                    apply_rejections = TRUE) {
   previous <- .variation_provenance_as_rows(
     previous, c("assertion_id", "vario_id", "modifier_id", "state")
   )
@@ -267,12 +300,18 @@ variation_provenance_plan_reconciliation <- function(previous, submitted, action
   confirm_requested <- previous_keys %in% .variation_provenance_confirm_keys(actions)
 
   to_state <- from_state
-  # Submitted branch (rows 1-5 of the table).
+  # Submitted branch (rows 1-5). Never gated: an affirmative act is always
+  # honoured, on a draft save exactly as on an approved one.
   to_state[is_submitted & from_state == "suggested"] <- "confirmed"
   to_state[is_submitted & from_state == "rejected"] <- "confirmed"
   to_state[is_submitted & from_state == "active_unconfirmed" & confirm_requested] <- "confirmed"
-  # Omitted branch (rows 7-10). confirmed and rejected are deliberately absent.
-  to_state[!is_submitted & from_state %in% c("active_unconfirmed", "suggested")] <- "rejected"
+  # Omitted branch (rows 7-10; confirmed and rejected are deliberately absent),
+  # gated on the save determining the served term set -- see @param
+  # apply_rejections. A non-logical/NA flag is treated as FALSE: the safe
+  # direction is to leave the assertion alone.
+  if (isTRUE(apply_rejections)) {
+    to_state[!is_submitted & from_state %in% c("active_unconfirmed", "suggested")] <- "rejected"
+  }
 
   changed <- to_state != from_state
 
@@ -406,17 +445,22 @@ variation_provenance_apply_reconciliation <- function(plan, review_user_id, conn
 #'   review_write_extract_provenance_actions().
 #' @param review_user_id Integer id of the saving user.
 #' @param conn Database connection or pool.
+#' @param apply_rejections Whether this save determines the entity's served term
+#'   set, and may therefore reject omitted terms. Passed straight to the planner;
+#'   the caller decides (review_write_mutate()), so this stays a pure passthrough.
 #' @return Integer count of assertion rows updated.
 #' @export
 variation_provenance_reconcile_for_review <- function(entity_id, submitted, actions,
-                                                      review_user_id, conn = NULL) {
+                                                      review_user_id, conn = NULL,
+                                                      apply_rejections = TRUE) {
   previous <- variation_provenance_assertions_for_entity(entity_id, conn = conn)
   if (nrow(previous) == 0L) {
     return(0L)
   }
 
   plan <- variation_provenance_plan_reconciliation(
-    previous = previous, submitted = submitted, actions = actions
+    previous = previous, submitted = submitted, actions = actions,
+    apply_rejections = apply_rejections
   )
   if (nrow(plan) == 0L) {
     return(0L)

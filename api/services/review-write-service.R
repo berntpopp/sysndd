@@ -356,6 +356,51 @@ review_write_prepare <- function(method, review_data, publications,
   )
 }
 
+#' Does this save determine the entity's publicly served variation-ontology set?
+#'
+#' Provenance assertions are entity-scoped, but the terms the public sees come
+#' from the PRIMARY APPROVED review. Only a save that IS (or is about to become)
+#' that review may reject an omitted term's assertion; a Reviewer's draft omission
+#' says nothing about the served set, and acting on it would suppress provenance
+#' for terms the approved review is still serving -- making them read as
+#' curator-authored. See variation_provenance_plan_reconciliation()'s
+#' @param apply_rejections for the full rule.
+#'
+#' TRUE when either:
+#'   * `direct_approval` is TRUE -- the handler escalates to Curator and approves
+#'     this review in the same transaction, so it becomes the served set. (This is
+#'     also the case where rejection is unsurprising: a payload that omits
+#'     `variation_ontology` already wipes the connect rows via
+#'     `variation_ontology_replace_for_review()` with zero rows.)
+#'   * the review row just written is already `is_primary = 1 AND
+#'     review_approved = 1` -- i.e. a PUT editing the live served review.
+#'
+#' Read on `txn_conn` so it observes this transaction's own write. The repo's
+#' canonical gate is `primary_approved_reviews()` (functions/review-repository.R);
+#' a direct single-row read is used here because it must be transaction-local and
+#' scoped to exactly the review being saved.
+#'
+#' @keywords internal
+review_write_save_determines_served_set <- function(review_id, direct_approval, conn) {
+  if (isTRUE(direct_approval)) {
+    return(TRUE)
+  }
+
+  row <- db_execute_query(
+    "SELECT is_primary, review_approved FROM ndd_entity_review WHERE review_id = ?",
+    list(as.integer(review_id)),
+    conn = conn
+  )
+  if (is.null(row) || nrow(row) != 1L) {
+    return(FALSE)
+  }
+
+  # A NULL/NA in either column is not an approval; fall to FALSE (leave the
+  # assertion alone), which is the non-destructive direction.
+  isTRUE(as.integer(row$is_primary[[1L]]) == 1L) &&
+    isTRUE(as.integer(row$review_approved[[1L]]) == 1L)
+}
+
 review_write_mutate <- function(prepared, txn_conn, re_review,
                                 direct_approval, review_user_id) {
   publication_write_persist(prepared$prepared_publications, conn = txn_conn)
@@ -404,6 +449,12 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
   # review-scoped, and the laundering this fixes happens specifically when a
   # NEW review is created for an entity.
   #
+  # CONFIRMATIONS always apply. REJECTIONS apply only when this save determines
+  # the served term set, so a Reviewer's draft omission cannot suppress
+  # provenance for terms the approved review is still serving. The predicate is
+  # evaluated HERE (not inside the planner, which stays pure) and after the
+  # review row is written, so it observes this transaction's own state.
+  #
   # Deliberately NOT exists()-guarded. A missing module must fail loudly rather
   # than silently skip reconciliation, which would silently restore the #608
   # laundering bug; the registration is locked by a static test guard.
@@ -412,7 +463,10 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
     submitted = prepared$variation_ontology,
     actions = prepared$variation_provenance_actions,
     review_user_id = review_user_id,
-    conn = txn_conn
+    conn = txn_conn,
+    apply_rejections = review_write_save_determines_served_set(
+      review_id, direct_approval, txn_conn
+    )
   )
 
   if (isTRUE(re_review)) {

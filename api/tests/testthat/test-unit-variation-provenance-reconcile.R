@@ -388,6 +388,214 @@ test_that("a submitted modifier_id arriving as a character string still matches 
 
 
 # ===========================================================================
+# I1 -- the identity key must be as case-insensitive as the DB collation
+# ===========================================================================
+
+test_that("REGRESSION #608 (I1): a case-variant vario_id still matches its existing assertion and is NOT rejected", {
+  # variation_ontology_list.vario_id is utf8mb4_0900_ai_ci, so
+  # review_write_validate_lookup_ids() accepts a submitted "vario:0017" and the
+  # connect row IS written -- the term stays served. A case-SENSITIVE R identity
+  # key would then classify the stored "VariO:0017" assertion as omitted, reject
+  # it, drop it out of the read path's state filter, and the still-served
+  # machine-derived term would present as curator-authored.
+  for (variant in c("vario:0017", "VARIO:0017", "VaRiO:0017", " vario:0017 ")) {
+    plan <- variation_provenance_plan_reconciliation(
+      previous  = vp_previous(list(101L, "VariO:0017", 1L, "active_unconfirmed")),
+      submitted = tibble::tibble(vario_id = variant, modifier_id = 1L),
+      actions   = NULL
+    )
+    expect_equal(nrow(plan), 0L, info = paste("variant:", variant))
+  }
+})
+
+test_that("I1: a case-variant vario_id can still carry an explicit confirmation", {
+  plan <- variation_provenance_plan_reconciliation(
+    previous  = vp_previous(list(102L, "VariO:0017", 1L, "active_unconfirmed")),
+    submitted = tibble::tibble(vario_id = "vario:0017", modifier_id = 1L),
+    actions   = tibble::tibble(
+      vario_id = "vario:0017", modifier_id = 1L, provenance_action = "confirm"
+    )
+  )
+
+  expect_equal(nrow(plan), 1L)
+  expect_equal(plan$assertion_id, 102L)
+  expect_equal(plan$to_state, "confirmed")
+})
+
+test_that("REGRESSION #608 (I1, the reachable variant): an assertion STORED with non-canonical casing still matches a canonically-cased submission", {
+  # This is the reachable direction. The submission side is protected by
+  # review_write_validate_lookup_ids(), whose R-side setdiff() is case-sensitive
+  # and 400s a case variant before it reaches reconciliation (verified in the
+  # integration test). But the ASSERTION rows are written by a backfill in a
+  # different repository. If that backfill stores "vario:0017" while the curated
+  # connect table holds "VariO:0017", a case-sensitive key would classify EVERY
+  # such assertion as omitted and reject all of them on the next save -- the
+  # whole backfilled set would silently become curator-authored.
+  plan <- variation_provenance_plan_reconciliation(
+    previous  = vp_previous(list(105L, "vario:0017", 1L, "active_unconfirmed")),
+    submitted = vp_submitted(list("VariO:0017", 1L)),
+    actions   = NULL
+  )
+  expect_equal(nrow(plan), 0L)
+
+  confirmed <- variation_provenance_plan_reconciliation(
+    previous  = vp_previous(list(106L, "vario:0017", 1L, "active_unconfirmed")),
+    submitted = vp_submitted(list("VariO:0017", 1L)),
+    actions   = vp_actions(list("VariO:0017", 1L, "confirm"))
+  )
+  expect_equal(nrow(confirmed), 1L)
+  expect_equal(confirmed$to_state, "confirmed")
+})
+
+test_that("I1: case-folding the ontology half does not collapse distinct vario_ids", {
+  plan <- variation_provenance_plan_reconciliation(
+    previous = vp_previous(
+      list(103L, "VariO:0017", 1L, "active_unconfirmed"),
+      list(104L, "VariO:0015", 1L, "active_unconfirmed")
+    ),
+    submitted = tibble::tibble(vario_id = "vario:0017", modifier_id = 1L),
+    actions   = NULL
+  )
+
+  expect_equal(nrow(plan), 1L)
+  expect_equal(plan$assertion_id, 104L)   # only the genuinely omitted one
+  expect_equal(plan$to_state, "rejected")
+})
+
+
+# ===========================================================================
+# I2 -- rejection applies only when the save determines the served term set
+# ===========================================================================
+
+test_that("REGRESSION #608 (I2): a draft save that omits a term leaves its assertion active_unconfirmed -- a draft never rejects a term the approved review is still serving", {
+  # Assertions are entity-scoped, but the publicly served terms come from the
+  # primary APPROVED review. A Reviewer's draft omission is not a statement about
+  # the served set; rejecting on it would drop the assertion out of the read
+  # path's state filter while the approved review keeps serving the term, so the
+  # term would render as curator-authored. Removal becomes real on approval.
+  plan <- variation_provenance_plan_reconciliation(
+    previous = vp_previous(
+      list(111L, "VariO:0017", 1L, "active_unconfirmed"),
+      list(112L, "VariO:0015", 1L, "suggested")
+    ),
+    submitted        = vp_submitted(),
+    actions          = NULL,
+    apply_rejections = FALSE
+  )
+
+  expect_equal(nrow(plan), 0L)
+})
+
+test_that("I2: a save that DOES determine the served term set still rejects omitted terms", {
+  plan <- variation_provenance_plan_reconciliation(
+    previous = vp_previous(
+      list(111L, "VariO:0017", 1L, "active_unconfirmed"),
+      list(112L, "VariO:0015", 1L, "suggested")
+    ),
+    submitted        = vp_submitted(),
+    actions          = NULL,
+    apply_rejections = TRUE
+  )
+
+  expect_equal(nrow(plan), 2L)
+  expect_true(all(plan$to_state == "rejected"))
+})
+
+test_that("I2: confirmations are NEVER gated -- an affirmative act on a draft still confirms", {
+  plan <- variation_provenance_plan_reconciliation(
+    previous = vp_previous(
+      list(121L, "VariO:0017", 1L, "active_unconfirmed"),  # confirm -> confirmed
+      list(122L, "VariO:0015", 1L, "suggested"),           # submitted -> confirmed
+      list(123L, "VariO:0013", 1L, "rejected"),            # submitted -> confirmed
+      list(124L, "VariO:0011", 1L, "active_unconfirmed")   # omitted -> NOT rejected
+    ),
+    submitted = vp_submitted(
+      list("VariO:0017", 1L), list("VariO:0015", 1L), list("VariO:0013", 1L)
+    ),
+    actions          = vp_actions(list("VariO:0017", 1L, "confirm")),
+    apply_rejections = FALSE
+  )
+
+  expect_equal(nrow(plan), 3L)
+  expect_true(all(plan$to_state == "confirmed"))
+  expect_true(all(plan$needs_attribution))
+  expect_false(124L %in% plan$assertion_id)
+})
+
+test_that("I2: apply_rejections defaults to TRUE so every pre-existing state-machine caller is unchanged", {
+  formals_default <- formals(variation_provenance_plan_reconciliation)$apply_rejections
+  expect_true(isTRUE(eval(formals_default)))
+
+  expect_equal(
+    nrow(variation_provenance_plan_reconciliation(
+      previous  = vp_previous(list(131L, "VariO:0017", 1L, "active_unconfirmed")),
+      submitted = vp_submitted()
+    )),
+    1L
+  )
+})
+
+test_that("I2: a non-logical or NA apply_rejections is treated as FALSE (the non-destructive direction)", {
+  for (flag in list(NA, NULL, "yes", 1L)) {
+    plan <- variation_provenance_plan_reconciliation(
+      previous         = vp_previous(list(141L, "VariO:0017", 1L, "active_unconfirmed")),
+      submitted        = vp_submitted(),
+      actions          = NULL,
+      apply_rejections = flag
+    )
+    expect_equal(nrow(plan), 0L, info = paste("flag:", paste(format(flag), collapse = ",")))
+  }
+})
+
+# (the orchestrator-level apply_rejections passthrough is exercised in the
+#  applier/orchestrator section below, where the DB stub helper is defined)
+
+
+# ===========================================================================
+# M2 -- an unparseable submitted set must fail loudly, never look empty
+# ===========================================================================
+
+test_that("M2: an unparseable submitted set raises instead of degrading to 'everything omitted'", {
+  # Degrading would look like "the curator removed every term" and reject the
+  # entity's assertions -- silent degradation in the destructive direction.
+  for (bad in list("not-a-table", 42L, as.name("x"))) {
+    expect_error(
+      variation_provenance_plan_reconciliation(
+        previous  = vp_previous(list(161L, "VariO:0017", 1L, "active_unconfirmed")),
+        submitted = bad,
+        actions   = NULL
+      ),
+      class = "variation_provenance_unparseable_input"
+    )
+  }
+})
+
+test_that("M2: a genuinely empty submitted set is still accepted, not confused with an unparseable one", {
+  for (empty in list(NULL, list(), tibble::tibble(vario_id = character(), modifier_id = integer()))) {
+    plan <- variation_provenance_plan_reconciliation(
+      previous  = vp_previous(list(171L, "VariO:0017", 1L, "active_unconfirmed")),
+      submitted = empty,
+      actions   = NULL
+    )
+    expect_equal(nrow(plan), 1L)
+    expect_equal(plan$to_state, "rejected")
+  }
+})
+
+test_that("M2: an unparseable actions set still degrades quietly (the safe direction)", {
+  # actions only ever ADDS confirmations, so losing it cannot fabricate
+  # provenance -- it just means no confirmation happens.
+  plan <- variation_provenance_plan_reconciliation(
+    previous  = vp_previous(list(181L, "VariO:0017", 1L, "active_unconfirmed")),
+    submitted = vp_submitted(list("VariO:0017", 1L)),
+    actions   = "not-a-table"
+  )
+
+  expect_equal(nrow(plan), 0L)
+})
+
+
+# ===========================================================================
 # The extractor -> planner join
 #
 # The raw-payload shape coverage for review_write_extract_provenance_actions()
@@ -515,6 +723,33 @@ test_that("INERTNESS: with zero assertion rows the orchestrator issues no write 
 
   expect_equal(run$result, 0L)
   expect_length(run$statements, 0L)
+})
+
+test_that("I2: the orchestrator threads apply_rejections through, so a draft save issues no UPDATE", {
+  run <- vp_with_stubbed_db(
+    query_result = tibble::tibble(
+      assertion_id = 151L, vario_id = "VariO:0017",
+      modifier_id = 1L, state = "active_unconfirmed"
+    ),
+    code = function() {
+      list(
+        draft = variation_provenance_reconcile_for_review(
+          entity_id = 2097L, submitted = vp_submitted(), actions = NULL,
+          review_user_id = 7L, conn = "stub-conn", apply_rejections = FALSE
+        ),
+        served = variation_provenance_reconcile_for_review(
+          entity_id = 2097L, submitted = vp_submitted(), actions = NULL,
+          review_user_id = 7L, conn = "stub-conn", apply_rejections = TRUE
+        )
+      )
+    }
+  )
+
+  expect_equal(run$result$draft, 0L)
+  expect_equal(run$result$served, 1L)
+  # Exactly one UPDATE across both calls: the draft call must issue none.
+  expect_length(run$statements, 1L)
+  expect_equal(run$statements[[1L]]$params, list("rejected", 151L))
 })
 
 test_that("the applier issues one UPDATE per planned transition and stamps attribution only when required", {
