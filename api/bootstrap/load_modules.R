@@ -108,6 +108,8 @@ bootstrap_load_modules <- function() {
     "functions/publication-repository.R",
     "functions/phenotype-repository.R",
     "functions/ontology-repository.R",
+    "functions/variation-provenance-evidence.R",
+    "functions/variation-provenance-repository.R",
     "functions/mcp-search-repository.R",
     "functions/mcp-repository.R",
     "functions/mcp-analysis-cache-repository.R",
