@@ -129,8 +129,62 @@ export function variationTag(modifierId: unknown, varioId: unknown): string {
 }
 
 function normaliseModifierId(value: unknown): number {
-  const parsed = Number(value);
+  const parsed = Number(unwrapScalar(value));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Unwrap plumber's length-1 array around a contractually SCALAR field.
+ *
+ * WHY THIS IS REQUIRED (regression guard — verified end to end in a browser
+ * against the real API, not against a mock):
+ * plumber does NOT auto-unbox, so every scalar nested inside the `provenance`
+ * list-column of `GET /api/entity/<id>/variation`, and every field of the
+ * `list()`-built `GET …/variation/suggestions` response, arrives as a LENGTH-1
+ * ARRAY: `"state":["active_unconfirmed"]`, `"strength":[1]`. The typed clients in
+ * `@/api/entity` declare these as `string` / `number` but pass the wire payload
+ * through untouched, so the declared type is narrower than the runtime value.
+ *
+ * Most consumers here survived that by accident, because JS coerces a length-1
+ * array to its element (`${[5]}` -> "5", `Number([1])` -> 1, `String(["x"])` ->
+ * "x"). But a STRICT EQUALITY test does not coerce: the zone predicate
+ * `provenance.state === 'active_unconfirmed'` was silently FALSE for every
+ * machine-derived term, so the "Needs confirmation" zone never rendered and every
+ * unconfirmed term was misfiled as Confirmed — i.e. the exact review step this
+ * feature exists to force was invisible. Unit tests could not catch it because
+ * their fixtures use plain strings.
+ *
+ * This mirrors `unwrapScalar()` in
+ * `@/views/pages/components/variationProvenance.ts`, which the PUBLIC entity card
+ * already applies field-by-field for the same reason. It is deliberately applied
+ * only to fields documented as scalars — never blanket-recursively, because
+ * `sources` / `evidence` are genuine arrays that are sometimes length 1.
+ */
+function unwrapScalar(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.length === 1 ? value[0] : undefined;
+  }
+  return value;
+}
+
+function scalarText(value: unknown, fallback = ''): string {
+  const raw = unwrapScalar(value);
+  return raw === null || raw === undefined ? fallback : String(raw);
+}
+
+/** A recorded 0-4 strength, or `null` for NOT RECORDED (never coerced to 0). */
+function scalarStrength(value: unknown): number | null {
+  const raw = unwrapScalar(value);
+  if (raw === null || raw === undefined || raw === '') return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** The served provenance state, unwrapped so `===` comparisons are sound. */
+function provenanceState(provenance: { state?: unknown } | null | undefined): string | null {
+  if (!provenance) return null;
+  const state = unwrapScalar(provenance.state);
+  return typeof state === 'string' && state !== '' ? state : null;
 }
 
 /**
@@ -142,10 +196,10 @@ function evidenceFromProvenance(row: EntityVariationRow): VariationZoneEvidence[
   const sources = row.provenance?.sources;
   if (!Array.isArray(sources)) return [];
   return sources.map((source) => ({
-    source_type: source.source_type,
-    source_key: source.source_key,
-    strength: source.strength ?? null,
-    summary: source.summary ?? '',
+    source_type: scalarText(source.source_type),
+    source_key: scalarText(source.source_key),
+    strength: scalarStrength(source.strength),
+    summary: scalarText(source.summary),
   }));
 }
 
@@ -153,10 +207,10 @@ function evidenceFromProvenance(row: EntityVariationRow): VariationZoneEvidence[
 function evidenceFromSuggestion(suggestion: VariationSuggestion): VariationZoneEvidence[] {
   if (!Array.isArray(suggestion.evidence)) return [];
   return suggestion.evidence.map((record) => ({
-    source_type: record.source_type,
-    source_key: record.source_key,
-    strength: record.evidence_strength ?? null,
-    summary: record.evidence_summary ?? '',
+    source_type: scalarText(record.source_type),
+    source_key: scalarText(record.source_key),
+    strength: scalarStrength(record.evidence_strength),
+    summary: scalarText(record.evidence_summary),
   }));
 }
 
@@ -178,7 +232,7 @@ export function partitionVariationZones(input: {
 
   const rowByTag = new Map<string, EntityVariationRow>();
   input.provenanceRows.forEach((row) => {
-    rowByTag.set(variationTag(row.modifier_id, row.vario_id), row);
+    rowByTag.set(variationTag(unwrapScalar(row.modifier_id), unwrapScalar(row.vario_id)), row);
   });
 
   const confirmed: VariationZoneEntry[] = [];
@@ -194,17 +248,21 @@ export function partitionVariationZones(input: {
     // just added in this session) has no assertion row and is therefore
     // curator-authored by definition.
     const curatorAuthored = !row || provenance === null;
-    const unconfirmed = provenance?.state === 'active_unconfirmed' && !confirmedSet.has(tag);
+    // `provenanceState()` unwraps before comparing — a bare
+    // `provenance?.state === 'active_unconfirmed'` is FALSE against the real wire
+    // shape `["active_unconfirmed"]` and silently empties this zone.
+    const unconfirmed =
+      provenanceState(provenance) === 'active_unconfirmed' && !confirmedSet.has(tag);
 
     const entry: VariationZoneEntry = {
       tag,
-      varioId: row ? String(row.vario_id) : tag.slice(tag.indexOf('-') + 1),
+      varioId: row ? scalarText(row.vario_id) : tag.slice(tag.indexOf('-') + 1),
       modifierId,
-      varioName: row ? String(row.vario_name ?? '') : '',
+      varioName: row ? scalarText(row.vario_name) : '',
       modifierLabel: input.modifierLabel(modifierId),
       zone: unconfirmed ? 'needs_confirmation' : 'confirmed',
       curatorAuthored,
-      maxStrength: provenance?.max_strength ?? null,
+      maxStrength: scalarStrength(provenance?.max_strength),
       evidence: row ? evidenceFromProvenance(row) : [],
     };
 
@@ -219,17 +277,20 @@ export function partitionVariationZones(input: {
   // until accepted, and a dismissed one simply stops being offered.
   const suggested = input.suggestions
     .map((suggestion) => {
-      const tag = variationTag(suggestion.modifier_id, suggestion.vario_id);
+      const tag = variationTag(
+        unwrapScalar(suggestion.modifier_id),
+        unwrapScalar(suggestion.vario_id)
+      );
       const modifierId = normaliseModifierId(suggestion.modifier_id);
       return {
         tag,
-        varioId: String(suggestion.vario_id),
+        varioId: scalarText(suggestion.vario_id),
         modifierId,
-        varioName: String(suggestion.vario_name ?? ''),
+        varioName: scalarText(suggestion.vario_name),
         modifierLabel: input.modifierLabel(modifierId),
         zone: 'suggested' as const,
         curatorAuthored: false,
-        maxStrength: suggestion.max_strength ?? null,
+        maxStrength: scalarStrength(suggestion.max_strength),
         evidence: evidenceFromSuggestion(suggestion),
       };
     })

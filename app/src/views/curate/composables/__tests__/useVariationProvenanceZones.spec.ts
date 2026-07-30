@@ -355,3 +355,150 @@ describe('useVariationProvenanceZones', () => {
     expect(selectedTags.value).toEqual(['1-VariO:0017']);
   });
 });
+
+describe('the REAL plumber wire shape (regression: length-1 array scalars)', () => {
+  /**
+   * Every fixture above uses plain scalars, which is why this bug shipped and was
+   * only caught by driving the browser against the real API.
+   *
+   * plumber does NOT auto-unbox, so every scalar NESTED inside the `provenance`
+   * list-column of `GET /api/entity/<id>/variation`, and every field of the
+   * `list()`-built `GET .../variation/suggestions` response, arrives as a
+   * LENGTH-1 ARRAY. Verified verbatim against the running API:
+   *
+   *   {"entity_id":123,"vario_id":"VariO:0017","modifier_id":1,
+   *    "provenance":{"state":["active_unconfirmed"],"max_strength":[1],
+   *      "sources":[{"source_type":["external_database"],"source_key":["clinvar"],
+   *                  "strength":[1],"summary":["2 ClinVar records, max 1 star"]}]}}
+   *
+   * A strict `provenance.state === 'active_unconfirmed'` is FALSE against that,
+   * so the "Needs confirmation" zone silently rendered EMPTY and every
+   * machine-derived unconfirmed term was misfiled as Confirmed — i.e. the review
+   * step the whole feature exists to force was invisible. These fixtures are
+   * copied from the real payload; do not "tidy" them into plain scalars.
+   */
+  const wireRow = {
+    entity_id: 123,
+    vario_id: 'VariO:0017',
+    vario_name: 'nonsynonymous variation',
+    modifier_id: 1,
+    provenance: {
+      state: ['active_unconfirmed'],
+      max_strength: [1],
+      sources: [
+        {
+          source_type: ['external_database'],
+          source_key: ['clinvar'],
+          strength: [1],
+          summary: ['2 ClinVar records, max 1 star'],
+        },
+      ],
+    },
+  } as unknown as EntityVariationRow;
+
+  const wireSuggestion = {
+    entity_id: [123],
+    vario_id: ['VariO:0508'],
+    vario_name: ['splice variation'],
+    modifier_id: [1],
+    state: ['suggested'],
+    max_strength: [3],
+    evidence: [
+      {
+        source_type: ['external_database'],
+        source_key: ['clinvar'],
+        batch_id: ['pw-fixture-2026-02'],
+        source_version: ['2026-01 release'],
+        evidence_summary: ['5 ClinVar records, max 3 stars'],
+        evidence_strength: [3],
+        evidence_json: {},
+      },
+    ],
+  } as unknown as VariationSuggestion;
+
+  it('files an array-wrapped active_unconfirmed state under needs_confirmation', () => {
+    const result = partitionVariationZones({
+      selectedTags: ['1-VariO:0017'],
+      confirmedTags: [],
+      provenanceRows: [wireRow],
+      suggestions: [],
+      modifierLabel,
+    });
+
+    expect(result.needsConfirmation.map((e) => e.tag)).toEqual(['1-VariO:0017']);
+    expect(result.confirmed).toEqual([]);
+  });
+
+  it('unwraps the nested scalars into plain values, not arrays', () => {
+    const [entry] = partitionVariationZones({
+      selectedTags: ['1-VariO:0017'],
+      confirmedTags: [],
+      provenanceRows: [wireRow],
+      suggestions: [],
+      modifierLabel,
+    }).needsConfirmation;
+
+    expect(entry.varioId).toBe('VariO:0017');
+    expect(entry.varioName).toBe('nonsynonymous variation');
+    expect(entry.modifierId).toBe(1);
+    expect(entry.modifierLabel).toBe('present');
+    expect(entry.maxStrength).toBe(1);
+    expect(entry.curatorAuthored).toBe(false);
+    // Strength must be a NUMBER: the card compares it to null and rounds it, and
+    // an array would silently survive both while breaking any real arithmetic.
+    expect(entry.evidence).toEqual([
+      {
+        source_type: 'external_database',
+        source_key: 'clinvar',
+        strength: 1,
+        summary: '2 ClinVar records, max 1 star',
+      },
+    ]);
+  });
+
+  it('builds the suggestion tag and evidence from array-wrapped fields', () => {
+    const [entry] = partitionVariationZones({
+      selectedTags: [],
+      confirmedTags: [],
+      provenanceRows: [],
+      suggestions: [wireSuggestion],
+      modifierLabel,
+    }).suggested;
+
+    expect(entry.tag).toBe('1-VariO:0508');
+    expect(entry.varioId).toBe('VariO:0508');
+    expect(entry.varioName).toBe('splice variation');
+    expect(entry.maxStrength).toBe(3);
+    expect(entry.evidence[0].strength).toBe(3);
+    expect(entry.evidence[0].summary).toBe('5 ClinVar records, max 3 stars');
+  });
+
+  it('keeps a null strength as null (NOT RECORDED), never 0', () => {
+    const nullStrengthRow = {
+      ...wireRow,
+      provenance: {
+        state: ['confirmed'],
+        max_strength: null,
+        sources: [
+          {
+            source_type: ['literature'],
+            source_key: ['pubtator'],
+            strength: null,
+            summary: ['Co-mentioned in 4 publications; strength not scored'],
+          },
+        ],
+      },
+    } as unknown as EntityVariationRow;
+
+    const [entry] = partitionVariationZones({
+      selectedTags: ['1-VariO:0017'],
+      confirmedTags: [],
+      provenanceRows: [nullStrengthRow],
+      suggestions: [],
+      modifierLabel,
+    }).confirmed;
+
+    expect(entry.maxStrength).toBeNull();
+    expect(entry.evidence[0].strength).toBeNull();
+  });
+});
