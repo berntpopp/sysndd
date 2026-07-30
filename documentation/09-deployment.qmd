@@ -453,6 +453,54 @@ curl -sS -X PUT "https://<host>/api/admin/force_apply_ontology?blocked_job_id=<i
 
 After a successful Force Apply the chaining handler automatically re-derives cross-ontology mapping projections; no separate mapping refresh is required.
 
+### Variation-ontology provenance (#608)
+
+Variation-ontology provenance records where a `VariO` annotation came from, so a reader can tell a curator-asserted term from a machine-derived one. Two things matter for deployment, and they pull in opposite directions — read both.
+
+**1. The read surface is inert until the backfill runs, and the backfill is in a different repository.**
+
+The contract is that **absence of an assertion row means curator-authored**. With zero assertion rows — which is the state on deploy — `GET /api/entity/<id>/variation` returns `provenance: null` for every term and the public Variation Ontology card renders exactly as it did before: no legend, no glyph, no affordance, no claim. **Nothing about the public site changes on this deploy.** Do not report the feature as live to curators or users at this point; it is shipped, not populated.
+
+Provenance only *means* anything once the companion backfill in the `sysndd-administration` repo has run. That backfill must cover **all three February 2026 import batches — 182 + 5,763 + 2,166 = 8,111 annotations**. A *partial* backfill is worse than no backfill: because absence means curator-authored, backfilling one batch and leaving the others would **positively present the un-backfilled annotations as curator-authored**, which inverts the feature's primary goal (design spec §7.1 makes coverage a release gate). Verify the total assertion count equals the sum of the three execution logs before treating the public surface as meaningful:
+
+```sql
+SELECT state, COUNT(*) FROM variation_ontology_assertion GROUP BY state;
+SELECT COUNT(*) FROM variation_ontology_assertion;   -- expect 8111 after a complete backfill
+```
+
+**2. The write-side fix is live immediately, and that is the valuable half.**
+
+Before this change, the curation forms prefilled their term picker from the entity's existing terms, so a curator editing one sentence of synopsis re-saved every pre-checked machine-derived term onto a new, curator-attributed review — silently promoting it. Server-side reconciliation now leaves an unconfirmed machine-derived term unconfirmed unless a curator explicitly confirms it. With zero assertion rows this is a strict no-op (it does not even build a plan), so it changes no behaviour today; the moment the backfill lands it stops the silent promotion permanently. Every review saved without it makes one more entity permanently ambiguous, which is why it ships ahead of the backfill rather than behind it.
+
+**Migration.** `047_add_variation_ontology_provenance.sql` **auto-applies at API startup** like every other migration — there is no manual migration step. It is additive (two new tables, no existing table altered), idempotent, and restore-drift safe. `api/functions/migration-manifest.R` is bumped to `EXPECTED_LATEST_MIGRATION = "047_add_variation_ontology_provenance.sql"` and `EXPECTED_MIGRATION_COUNT = 45L`, so a stale or partial `db/migrations` mount is fatal at startup — fix that at packaging/deployment time, never by weakening the startup check. One deployment-specific detail: the migration derives the `vario_id` column's charset/collation from `information_schema` at migration time rather than hardcoding `utf8mb3`, because the referenced `variation_ontology_list.vario_id` is not reliably `utf8mb3` in every environment and a mismatch makes MySQL refuse the foreign key outright.
+
+**Worker restart.** Not required for this feature. Both write paths — review-save reconciliation (`review_write_mutate()`) and rename carry-forward (`svc_entity_rename_full()`) — are reached only from HTTP endpoints (`api/endpoints/review_endpoints.R`, `api/endpoints/entity_endpoints.R`); no async job handler references the provenance modules. The modules *are* registered in `api/bootstrap/load_modules.R`, which the durable worker also calls, so the worker will source them at its next start, but it executes none of these code paths, so a stale worker is harmless here. What makes the change live is an **API container restart** (`api/functions`, `api/services` and `api/endpoints` are bind-mounted). If you are deploying other changes in the same window, follow the standard rule and restart `worker` and `worker-maintenance` anyway.
+
+**No new configuration.** Verified against the code: the provenance modules and the provenance service read **no environment variable**, need no secret, and make **no external HTTP call** — every read and write is DB-only. Nothing to add to `.env`, and no worker egress requirement.
+
+**Sanity check once the backfill lands.** Pick an entity known to be in a backfilled batch (e.g. entity 2097, PCDH12, whose `VariO:0017` came from the ClinVar batch) and confirm a non-null `provenance`:
+
+```bash
+curl -sS 'https://<host>/api/entity/2097/variation' | jq '.[] | {vario_id, modifier_id, provenance}'
+```
+
+An imported, never-confirmed term should report `"state": ["active_unconfirmed"]` with a `sources` array; a genuinely curator-authored term should report `"provenance": null`. The per-assertion detail route serves the stored payload:
+
+```bash
+# NOTE: the CURIE goes in the path RAW -- do not percent-encode the colon.
+curl -sS 'https://<host>/api/entity/2097/variation/VariO:0017/1/evidence' | jq
+```
+
+Both of those are **public and unauthenticated**, DB-only, and add one query per request. They are state-gated to the publicly served states (`active_unconfirmed`, `confirmed`) and resolve the entity through `ndd_entity_view`, so a deactivated entity or an in-workflow `suggested`/`rejected` assertion produces no row at all. `GET /api/entity/<id>/variation/suggestions` is **Curator**-gated (`require_role(req, res, "Curator")`) and is the only one of the three that exposes `batch_id`, `source_version` and the raw `evidence_json`.
+
+**Known operational residuals**, recorded honestly rather than discovered later:
+
+- **Edit-then-approve-separately never rejects a removed term's assertion**, because reconciliation runs on write, not on approval. The safe direction (the term stops being served anyway), but it means a removed machine-derived term can retain an `active_unconfirmed` assertion until the next save that determines the served set.
+- **The deliberate-act curation UI exists on one surface only** — the Review page's Edit-Review modal. `ModifyEntity.vue` and `ApproveReview.vue` still prefill machine-derived terms with no visible distinction; they are protected server-side (reconciliation runs on every save regardless of surface), but a curator using those pages gets no prompt to confirm.
+- **The evidence dialog shows no import date.** The detail route does not select `variation_ontology_evidence.created_at`, so the dialog shows the batch id (and the release, when `source_version` is recorded) rather than a date.
+- **`evidence_json` key names are a cross-repo contract.** The dialog probes each field through a short alias list and *omits* a section it cannot resolve, so a mismatch fails toward showing less rather than inventing content — but it also means the richest part of the dialog silently disappears if the backfill writes different keys. Confirm the manifest schema against `app/src/views/pages/components/variationProvenance.ts` before the backfill runs.
+- **Deferred by design:** the cross-entity suggestion queue (its backlog does not exist until the backfill runs) and two of the importer-enforcement items — a shared importer write helper, which is administration-repo work, and a restricted DB grant for importers with no write access to `ndd_review_variation_ontology_connect`, which is an operator action. The last one is the durable protection; consider it once the backfill has run.
+
 ### Gemini model configuration
 
 The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.

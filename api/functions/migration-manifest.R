@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "046_add_analysis_snapshot_generator_provenance.sql"
-EXPECTED_MIGRATION_COUNT <- 44L
+EXPECTED_LATEST_MIGRATION <- "047_add_variation_ontology_provenance.sql"
+EXPECTED_MIGRATION_COUNT <- 45L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

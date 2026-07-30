@@ -108,6 +108,15 @@ bootstrap_load_modules <- function() {
     "functions/publication-repository.R",
     "functions/phenotype-repository.R",
     "functions/ontology-repository.R",
+    "functions/variation-provenance-evidence.R",
+    "functions/variation-provenance-repository.R",
+    "functions/variation-provenance-reconcile.R",
+    # Entity-rename carry-forward (#608). Extracted from
+    # variation-provenance-reconcile.R to keep both files under the 600-line
+    # ceiling; must stay immediately after it so the reconcile module's
+    # definitions (e.g. .variation_provenance_identity_key()) are already
+    # bound in the global environment before this file is sourced.
+    "functions/variation-provenance-carry-forward.R",
     "functions/mcp-search-repository.R",
     "functions/mcp-repository.R",
     "functions/mcp-analysis-cache-repository.R",
@@ -277,6 +286,10 @@ bootstrap_load_modules <- function() {
     "services/job-query-endpoint-service.R",
     "services/re-review-query-endpoint-service.R",
     "services/re-review-workflow-endpoint-service.R",
+    # Variation-ontology provenance read surface (#608). Sourced BEFORE
+    # entity-read-endpoint-service.R, which consumes it to attach the per-term
+    # `provenance` object to GET /entity/<id>/variation.
+    "services/entity-variation-provenance-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

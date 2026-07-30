@@ -6,6 +6,155 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-07-30
+
+### Fixed
+
+- **Machine-derived variation-ontology annotations are no longer silently
+  promoted to curator-authored.** SysNDD presents itself as an expert-curated
+  resource, but the curation forms prefill their term picker from the entity's
+  existing terms: a curator opening an entity to change one sentence of synopsis
+  got every existing variation term pre-checked, and saving rewrote all of them
+  onto a new, curator-attributed review. No user action distinguished "I read the
+  papers and agree" from "I did not notice the pre-checked box". The 8,111
+  annotations written straight into the curated table by the February 2026 import
+  batches were therefore one re-review away from being indistinguishable from
+  curated content — and 1,981 of the ClinVar batch rest on 1-star evidence alone.
+  Three fabrication paths are closed:
+  - **Silent promotion on review save.** Reconciliation now runs inside the
+    review-save transaction, on the same connection as the curated ontology
+    write, and compares the entity's previous assertion set against what was
+    actually submitted. A submitted machine-derived term with no explicit
+    confirmation **stays unconfirmed** — the annotation remains live, it is
+    simply never upgraded. Confirmation became an act rather than a side effect.
+    This is enforced **server-side**, because three independent frontend surfaces
+    prefill and resubmit terms and only one of them has the new UI; correctness
+    can never depend on a client sending the right field, and omission from the
+    submitted set *is* the removal signal.
+  - **A case-variant identity mismatch.** The stored and submitted identities are
+    now compared case-insensitively, matching the database's own collation.
+    Without it, an annotation whose `VariO` id was recorded in a non-canonical
+    casing would have looked *omitted* on every save, been rejected, dropped out
+    of the served state filter — and the still-served term would have read as
+    curator-authored, the exact outcome the feature exists to prevent.
+  - **The entity-rename carry-forward.** Renaming an entity creates a brand-new
+    `entity_id` and copies the curated variation terms onto it. Provenance is
+    keyed on the entity, so the renamed entity's terms used to read as
+    curator-authored the instant they landed. A rename relocates rows; it is not
+    an act of confirmation, so assertions and their evidence are now copied
+    verbatim inside the rename transaction, preserving the original curator's
+    attribution.
+  - Rejection of an omitted term is deliberately scoped to saves that actually
+    determine what the public sees (a direct approval, or an edit of the live
+    primary approved review). A Reviewer's draft omission says nothing about the
+    served term set, and acting on it would have rejected every assertion for the
+    entity while the approved review kept serving those very terms — making them
+    read as curator-authored. Known residual: editing and approving in two
+    separate steps never rejects, because reconciliation runs on write rather
+    than on approval.
+
+- **Saving a re-review no longer fails with an opaque 500** (#613). `PUT
+  /api/review/update` rejected *every* payload the frontend actually sends, so a
+  curator who edited a re-review and pressed Save lost their work. The endpoint
+  passes the request body through verbatim, and that body always carries
+  `literature`, `phenotypes` and `variation_ontology`; the review-row update then
+  refused them as disallowed fields and rolled the whole transaction back. The
+  save path now projects the body down to the two columns a save may change,
+  `synopsis` and `comment`. That narrowness is the second half of the fix: the
+  underlying allowlist legitimately permits `is_primary`, `review_approved` and
+  `approving_user_id` for the approval path, so forwarding a client-supplied body
+  into it let a caller smuggle `review_approved` past the Curator gate that
+  `/api/review/approve` enforces — latent rather than exploited, since any such
+  payload also carried the ontology keys and was refused first.
+
+  Broken since 0.29.3, unrelated to the provenance work, and fixed here because
+  provenance reconciliation runs inside the same transaction: without it, every
+  Confirm and Accept path above would have been dead in production. Entity
+  creation was never affected, since the create path does not share that
+  allowlist — which is why this stayed hidden.
+
+### Added
+
+- **A provenance data model for variation-ontology annotations** (migration
+  `047`). One `variation_ontology_assertion` row per
+  `(entity_id, vario_id, modifier_id)` claim — the modifier is part of the
+  identity because *present* and *absent* are two different claims with
+  independent state — carrying `suggested` / `active_unconfirmed` / `confirmed` /
+  `rejected` plus the confirming curator and timestamp; and one
+  `variation_ontology_evidence` row per source batch, with the source's own
+  wording stored rather than regenerated, a comparable 0–4 strength, and the
+  supporting records in `evidence_json`. Provenance deliberately lives in its own
+  tables rather than as a column on the review-linked join table, because that
+  table is deleted and re-inserted wholesale on every review save, which would
+  destroy a provenance column each time.
+- **Provenance on the public read surface.** `GET /api/entity/<id>/variation`
+  gains a per-term `provenance` object — state, maximum evidence strength, and a
+  deterministically ordered `sources` array so two independent sources
+  corroborating a term is representable — or `null` for curator-authored terms.
+  A companion route serves the full stored evidence for one assertion on demand,
+  so the hot endpoint stays small. Both are public and database-only and add one
+  query per request, never one per term. A Curator-gated per-entity suggestions
+  route backs the curation form.
+- **Provenance on the public entity page.** Machine-derived terms in the
+  Variation Ontology card carry a quiet affordance — neutral tokens, a small
+  glyph and a dotted underline, never a red alarm, because an unconfirmed
+  annotation is un-reviewed, not broken — opening a keyboard-reachable, labelled
+  evidence dialog. State is always available as text, never by glyph or colour
+  alone. Evidence is fetched on first open and cached per assertion, so the card
+  costs nothing on page load. The dialog shows only what the import genuinely
+  recorded: an unrecorded strength reads "Not recorded" rather than zero stars, a
+  record it cannot resolve is dropped rather than rendered empty, and no HGVS
+  label is invented.
+- **A three-zone curation picker** (Confirmed / Needs confirmation / Suggested)
+  in the Review page's Edit-Review modal, with the modifier shown per term and
+  the evidence inline — in the curation flow the evidence *is* the decision. The
+  zone count is the honest signal a pre-checked box never was. Terms needing
+  confirmation stay selected and stay submitted; only *Confirm* changes state,
+  and saving without touching them is explicitly allowed. Confirmations are
+  excluded from the localStorage draft snapshot, because restoring a draft is not
+  a deliberate act on a term.
+- **Nothing visible changes on deploy.** With no assertion rows — the state on
+  release, because the backfill of the February 2026 import batches lives in the
+  companion administration repository — every term reports `provenance: null` and
+  the public card renders byte-identically to before: no legend, no glyph, no
+  claim. That inertness is locked by tests rather than left to inspection. It is
+  also why a *partial* backfill would be worse than none: absence of an assertion
+  means curator-authored, so backfilling one batch would positively present the
+  others as curated.
+
+### Security
+
+- The public provenance reads expose only the states the public already sees
+  (`active_unconfirmed`, `confirmed`) and resolve the entity through the public
+  entity view inside the same statement, so a deactivated entity or an
+  in-workflow `suggested` / `rejected` assertion produces no row at all and no
+  curation workflow state leaks. Batch ids, source versions and raw evidence
+  payloads are only reachable through the Curator-gated suggestions route. Every
+  parameter is bound rather than interpolated, the not-found response does not
+  echo the requested identifiers, and a malformed identifier is a 400 rather than
+  a lookup.
+- A static guard fails the build if any file under `api/functions`,
+  `api/services` or `api/endpoints` writes the curated variation-ontology join
+  table outside the single sanctioned repository path, and separately asserts
+  that reconciliation is still wired onto the review-save transaction. Policy
+  alone cannot hold that boundary — the original import scripts wrote the curated
+  table directly, and under the new contract any script repeating that pattern
+  immediately creates falsely curated-looking data.
+- **Submitting a review can no longer set its own approval state.** Both review
+  write paths forwarded the request body straight into the row write, so a
+  Reviewer could include `is_primary`, `review_approved` and `approving_user_id`
+  and publish an approved primary review without passing the Curator gate that
+  `/api/review/approve` enforces. Each path is now restricted to the columns that
+  path may legitimately set — `synopsis` and `comment` on update, plus
+  `entity_id` and `review_user_id` on create — and direct approval still goes
+  through the approval helper, where the role check lives. Both restrictions are
+  asserted against the stored row rather than against the absence of an error.
+
+  This matters more after the provenance work than before it: whether a save
+  rejects an entity's omitted assertions is decided by reading exactly those
+  approval columns, so a forged approved primary review would also have flipped
+  that gate.
+
 ## [0.30.14] — 2026-07-30
 
 ### Security

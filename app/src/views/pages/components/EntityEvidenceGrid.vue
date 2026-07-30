@@ -108,25 +108,110 @@
         title="Variation Ontology"
         min-height="9rem"
       >
+        <!--
+          INERTNESS GATE (#608): every provenance affordance below is gated on
+          `hasProvenance`. With the backfill not yet run, every term arrives with
+          `provenance: null` and this card must render byte-identically to its
+          pre-#608 self — including keeping SectionCard's DEFAULT header, which
+          is why this slot is conditional rather than always provided.
+        -->
+        <template v-if="hasProvenance" #header>
+          <div class="variation-card-header">
+            <div data-testid="section-card-title" class="section-card-title">
+              Variation Ontology
+            </div>
+            <button
+              type="button"
+              class="variation-provenance-legend"
+              data-testid="variation-provenance-legend"
+              :aria-expanded="legendOpen ? 'true' : 'false'"
+              @click="legendOpen = !legendOpen"
+            >
+              <i class="bi bi-info-circle" aria-hidden="true" />
+              provenance
+            </button>
+          </div>
+        </template>
         <div class="entity-chip-panel">
-          <a
-            v-for="variant in model.variation.list"
-            :key="String(variant.vario_id)"
-            class="entity-chip entity-chip-variation"
-            :class="modifierChipClass(variant)"
-            :href="varioUrl(variant)"
-            target="_blank"
-            rel="noopener"
-            :aria-label="termAriaLabel(variant, 'vario_id', 'Variation ontology term')"
-            :data-testid="`variation-chip-${asString(variant.vario_id)}`"
-            :data-tooltip="termTitle(variant, 'vario_id')"
-          >
-            <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
-            {{ variant.vario_name }}
-          </a>
-          <span v-if="model.variation.list.length === 0" class="entity-empty-state">
-            No variation ontology terms linked.
-          </span>
+          <template v-if="hasProvenance">
+            <p
+              v-if="legendOpen"
+              class="variation-provenance-legend-text"
+              data-testid="variation-provenance-legend-text"
+            >
+              Terms marked with a provenance button are machine-derived — imported from an external
+              source or extracted from the literature — and are shown with the state of their
+              curator review. Open one to see the evidence behind it. Unmarked terms were authored
+              by a curator.
+            </p>
+            <template v-for="variant in model.variation.list" :key="variationKey(variant)">
+              <!-- Curator-authored: the pre-#608 chip, untouched, no wrapper. -->
+              <a v-if="!provenanceOf(variant)" v-bind="varioChipAttrs(variant)">
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                {{ variant.vario_name }}
+              </a>
+              <!-- Machine-derived: the same chip (same href/tooltip/testid) plus a
+                   SEPARATE trigger, so the external outlink keeps its own target. -->
+              <span
+                v-else
+                class="entity-provenance-group"
+                :data-testid="`variation-provenance-group-${asString(variant.vario_id)}-${asString(variant.modifier_id)}`"
+              >
+                <a v-bind="varioChipAttrs(variant)">
+                  <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                  {{ variant.vario_name }}
+                </a>
+                <button
+                  :ref="(el) => registerTrigger(variant, el)"
+                  type="button"
+                  class="sysndd-chip sysndd-chip--neutral variation-provenance-trigger"
+                  :class="{
+                    'variation-provenance-trigger--unconfirmed':
+                      provenanceOf(variant)!.state === 'active_unconfirmed',
+                  }"
+                  aria-haspopup="dialog"
+                  :aria-expanded="isOpen(variant) ? 'true' : 'false'"
+                  :aria-label="
+                    provenanceTriggerLabel(
+                      asString(variant.vario_name),
+                      provenanceOf(variant)!.state
+                    )
+                  "
+                  :data-testid="`variation-provenance-trigger-${asString(variant.vario_id)}-${asString(variant.modifier_id)}`"
+                  @click="openEvidence(variant)"
+                >
+                  <i
+                    :class="provenanceGlyphClass(provenanceOf(variant)!.state)"
+                    aria-hidden="true"
+                  />
+                </button>
+              </span>
+            </template>
+            <span v-if="model.variation.list.length === 0" class="entity-empty-state">
+              No variation ontology terms linked.
+            </span>
+            <!-- Mounted only while a term is open, so the card costs nothing on
+                 page load. Its wrapper is display:contents, so it adds no flex
+                 item to this panel. -->
+            <VariationProvenanceDialog
+              v-if="openTarget"
+              :target="openTarget"
+              @close="closeEvidence"
+            />
+          </template>
+          <template v-else>
+            <a
+              v-for="variant in model.variation.list"
+              :key="variationKey(variant)"
+              v-bind="varioChipAttrs(variant)"
+            >
+              <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+              {{ variant.vario_name }}
+            </a>
+            <span v-if="model.variation.list.length === 0" class="entity-empty-state">
+              No variation ontology terms linked.
+            </span>
+          </template>
         </div>
       </SectionCard>
     </BCol>
@@ -134,10 +219,24 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import { BRow, BCol } from 'bootstrap-vue-next';
 import SectionCard from '@/components/ui/SectionCard.vue';
 import useText from '@/composables/useText';
 import { varioTermUrl } from '@/assets/js/constants/ontology_links';
+import VariationProvenanceDialog, {
+  type VariationProvenanceDialogTarget,
+} from './VariationProvenanceDialog.vue';
+import {
+  useVariationProvenanceDisclosure,
+  variationAssertionKey as variationKey,
+} from '@/composables/useVariationProvenanceDisclosure';
+import {
+  normalizeVariationProvenance,
+  provenanceGlyphClass,
+  provenanceTriggerLabel,
+  type NormalizedProvenance,
+} from './variationProvenance';
 
 type EntityRowMap = Record<string, unknown>;
 
@@ -155,7 +254,7 @@ export interface EntityEvidenceModel {
   variation: EntityEvidenceResource & { list: EntityRowMap[] };
 }
 
-defineProps<{ model: EntityEvidenceModel }>();
+const props = defineProps<{ model: EntityEvidenceModel }>();
 
 const { publication_hover_text, modifier_text } = useText();
 
@@ -197,6 +296,70 @@ function modifierChipClass(item: EntityRowMap): string {
   const modifier = modifier_text[Number(item.modifier_id)] ?? 'evidence';
   return `entity-chip--${modifier.replace(/\s+/g, '-').toLowerCase()}`;
 }
+
+// ---------------------------------------------------------------------------
+// Variation-ontology provenance (#608)
+// ---------------------------------------------------------------------------
+//
+// Everything below is INERT until at least one term carries a non-null
+// `provenance` block. Absence of provenance means curator-authored, so while the
+// backfill (which lives in another repository) has not run, this card must look
+// exactly as it always did — see the gate comment in the template and the
+// release-gate tests in __tests__/EntityEvidenceGridProvenance.spec.ts.
+
+/**
+ * Attributes of the variation term chip.
+ *
+ * Single source of truth so the curator-authored branch and the
+ * machine-derived branch can never drift: the external OLS4 outlink, tooltip,
+ * aria-label and testid are identical in both. The provenance dialog gets its
+ * OWN trigger rather than stealing this anchor's click.
+ */
+function varioChipAttrs(variant: EntityRowMap): Record<string, unknown> {
+  return {
+    class: ['entity-chip', 'entity-chip-variation', modifierChipClass(variant)],
+    href: varioUrl(variant),
+    target: '_blank',
+    rel: 'noopener',
+    'aria-label': termAriaLabel(variant, 'vario_id', 'Variation ontology term'),
+    'data-testid': `variation-chip-${asString(variant.vario_id)}`,
+    'data-tooltip': termTitle(variant, 'vario_id'),
+  };
+}
+
+function provenanceOf(variant: EntityRowMap): NormalizedProvenance | null {
+  return normalizeVariationProvenance(variant.provenance);
+}
+
+const hasProvenance = computed(() =>
+  props.model.variation.list.some((v) => provenanceOf(v) !== null)
+);
+
+const legendOpen = ref(false);
+
+// Open/close + focus-return live in the composable; this component only supplies
+// the row list and how to describe the open row to the dialog.
+const {
+  openTarget,
+  isOpen,
+  open: openEvidence,
+  close: closeEvidence,
+  registerTrigger,
+} = useVariationProvenanceDisclosure<VariationProvenanceDialogTarget>(
+  computed(() => props.model.variation.list),
+  (variant) => {
+    const provenance = provenanceOf(variant);
+    if (!provenance) return null;
+    return {
+      entityId: asString(variant.entity_id),
+      varioId: asString(variant.vario_id),
+      varioName: asString(variant.vario_name),
+      modifierId: asString(variant.modifier_id),
+      modifierLabel: modifier_text[Number(variant.modifier_id)] ?? 'evidence term',
+      state: provenance.state,
+    };
+  }
+);
 </script>
 
 <style scoped>
@@ -330,6 +493,58 @@ function modifierChipClass(item: EntityRowMap): string {
   color: var(--neutral-600, #667085);
   font-size: 0.84rem;
   font-weight: 650;
+}
+/* --- #608 provenance affordances (rendered only when a term has provenance) ---
+   Quiet by default: neutral tone from the shared token-based chip classes plus a
+   dotted bottom border for the unconfirmed state. Deliberately NOT
+   --status-warning / --status-danger: an unconfirmed annotation is un-reviewed,
+   not broken, and thousands of entity pages must not read as alarming. */
+.variation-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2, 0.5rem);
+}
+.variation-provenance-legend {
+  padding: 0 0.2rem;
+  border: none;
+  background: none;
+  color: var(--neutral-700, #616161);
+  font-size: var(--font-size-xs, 0.75rem);
+  line-height: 1.2;
+}
+.variation-provenance-legend:hover,
+.variation-provenance-legend:focus-visible {
+  color: var(--neutral-900, #212121);
+  text-decoration: underline;
+}
+.variation-provenance-legend-text {
+  flex: 1 0 100%;
+  margin: 0 0 0.15rem;
+  color: var(--neutral-700, #616161);
+  font-size: var(--font-size-xs, 0.75rem);
+  line-height: 1.35;
+  /* An ancestor centres this card's contents, which suits short chips but turns
+     this ~10-line explanatory paragraph into centred body copy in the narrow
+     xl=2 column. Left-align just the prose; the chips keep the panel default. */
+  text-align: left;
+}
+.entity-provenance-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: 100%;
+}
+.variation-provenance-trigger {
+  min-height: 1.55rem;
+  padding: 0.18rem 0.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+/* Dotted underline = "un-reviewed", reinforcing the state that the trigger's
+   aria-label already states in words. */
+.variation-provenance-trigger--unconfirmed {
+  border-bottom: 1px dotted var(--neutral-600, #757575);
 }
 @media (prefers-reduced-motion: reduce) {
   .entity-chip {

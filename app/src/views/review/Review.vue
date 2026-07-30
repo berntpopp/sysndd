@@ -73,6 +73,7 @@
         :loading="reviewFormLoading"
         :is-saving="reviewFormIsSaving"
         :user-icon="user_icon"
+        :variation-zones="reviewVariationZones"
         @show="onReviewModalShow"
         @ok="submitReviewChange"
       />
@@ -255,6 +256,10 @@ export default {
       formData: reviewFormData,
       loading: reviewFormLoading,
       isSaving: reviewFormIsSaving,
+      // #608: the three-zone variation-ontology provenance state. Destructured
+      // to a top-level setup key because a nested object's refs are not
+      // unwrapped in an Options-API template.
+      variationZones: reviewVariationZones,
     } = reviewForm;
 
     // Pagination + curator-mode local state. These are not owned by any
@@ -301,6 +306,7 @@ export default {
       reviewFormData,
       reviewFormLoading,
       reviewFormIsSaving,
+      reviewVariationZones,
 
       // useReviewData state
       items: data.items,
@@ -397,6 +403,12 @@ export default {
       // Clear any existing draft and load fresh data from server
       this.reviewForm.clearDraft();
       await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+      if (generation !== this.modalLoadGeneration) return;
+
+      // #608: entity-scoped variation provenance + Curator-gated suggestions.
+      // Non-throwing by contract — a pre-#608 API or a 403 on the suggestions
+      // route degrades to "no zones", never to a broken review form.
+      await this.reviewForm.loadVariationProvenance(item.entity_id);
       if (generation !== this.modalLoadGeneration) return;
 
       // Load review metadata for the modal footer display
