@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.14] — 2026-07-30
+
 ### Security
 
 - **`brace-expansion` is pinned to the patched release of every major line in
