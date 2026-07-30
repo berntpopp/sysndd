@@ -105,6 +105,7 @@
 import { computed, ref } from 'vue';
 import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next';
 import type { ClinVarVariant } from '@/types/external';
+import { normalizeClinVarSignificance } from '@/types/clinvarSignificance';
 import type {
   ClinVarClassBreakdown,
   ClinVarConsequenceCount,
@@ -113,10 +114,15 @@ import type {
 export interface ClinVarCounts {
   pathogenic: number;
   likely_pathogenic: number;
+  /** Optional at the wire boundary — see ClinVarClassificationCounts (#607). */
+  conflicting?: number;
   vus: number;
   likely_benign: number;
   benign: number;
 }
+
+/** Same buckets, all present — what the card actually renders from. */
+type ResolvedClinVarCounts = Required<ClinVarCounts>;
 
 interface Props {
   geneSymbol: string;
@@ -126,7 +132,7 @@ interface Props {
   // a precomputed `counts`+`totalCount` pair (preferred — see useGeneClinVarCounts).
   data?: ClinVarVariant[] | null;
   counts?: ClinVarCounts | null;
-  classBreakdowns?: Partial<Record<keyof ClinVarCounts, ClinVarClassBreakdown>> | null;
+  classBreakdowns?: Partial<Record<keyof ResolvedClinVarCounts, ClinVarClassBreakdown>> | null;
   consequenceCounts?: ClinVarConsequenceCount[] | null;
   totalCount?: number;
 }
@@ -146,41 +152,29 @@ defineEmits<{
 // Count variants by ACMG pathogenicity classification — derived only when no
 // precomputed counts are passed (keeps backward compat for callers that still
 // hold the full ClinVarVariant[] array).
-const counts = computed<ClinVarCounts>(() => {
-  if (props.counts) return props.counts;
-  if (!props.data || props.data.length === 0) {
-    return {
-      pathogenic: 0,
-      likely_pathogenic: 0,
-      vus: 0,
-      likely_benign: 0,
-      benign: 0,
-    };
-  }
-
-  const result: ClinVarCounts = {
+const counts = computed<ResolvedClinVarCounts>(() => {
+  const empty: ResolvedClinVarCounts = {
     pathogenic: 0,
     likely_pathogenic: 0,
+    conflicting: 0,
     vus: 0,
     likely_benign: 0,
     benign: 0,
   };
 
-  props.data.forEach((variant) => {
-    const significance = variant.clinical_significance?.toLowerCase().replace(/_/g, ' ') || '';
+  // The spread is what zero-fills `conflicting` for a pre-#607 payload, so the
+  // `count > 0` chip filter then omits the chip instead of rendering NaN.
+  if (props.counts) return { ...empty, ...props.counts };
+  if (!props.data || props.data.length === 0) return empty;
 
-    // Match classification (handle both underscore and space formats)
-    if (significance.includes('pathogenic') && !significance.includes('likely')) {
-      result.pathogenic++;
-    } else if (significance.includes('likely') && significance.includes('pathogenic')) {
-      result.likely_pathogenic++;
-    } else if (significance.includes('uncertain') || significance.includes('vus')) {
-      result.vus++;
-    } else if (significance.includes('likely') && significance.includes('benign')) {
-      result.likely_benign++;
-    } else if (significance.includes('benign') && !significance.includes('likely')) {
-      result.benign++;
-    }
+  const result: ResolvedClinVarCounts = { ...empty };
+
+  props.data.forEach((variant) => {
+    // Table-driven, exact-match classification — never substring matching.
+    // See app/src/types/clinvarSignificance.ts and issue #607.
+    const classification = normalizeClinVarSignificance(variant.clinical_significance);
+    if (classification === 'other' || classification === 'unknown') return;
+    result[classification] += 1;
   });
 
   return result;
@@ -193,10 +187,10 @@ const totalCount = computed(() => {
   return props.data?.length ?? 0;
 });
 
-const openChip = ref<keyof ClinVarCounts | null>(null);
+const openChip = ref<keyof ResolvedClinVarCounts | null>(null);
 
 const chipMeta: Array<{
-  key: keyof ClinVarCounts;
+  key: keyof ResolvedClinVarCounts;
   label: string;
   shortLabel: string;
   className: string;
@@ -207,6 +201,12 @@ const chipMeta: Array<{
     label: 'Likely pathogenic',
     shortLabel: 'LP',
     className: 'clinvar-chip--lp',
+  },
+  {
+    key: 'conflicting',
+    label: 'Conflicting classifications',
+    shortLabel: 'CONF',
+    className: 'clinvar-chip--conf',
   },
   { key: 'vus', label: 'VUS', shortLabel: 'VUS', className: 'clinvar-chip--vus' },
   {
@@ -234,7 +234,7 @@ const visibleChips = computed(() =>
     .filter((chip) => chip.count > 0)
 );
 
-function toggleChip(key: keyof ClinVarCounts): void {
+function toggleChip(key: keyof ResolvedClinVarCounts): void {
   openChip.value = openChip.value === key ? null : key;
 }
 
@@ -296,6 +296,11 @@ function formatPercent(count: number, total: number): string {
 .clinvar-chip--lp {
   background: #f97316;
   color: #111827;
+}
+
+.clinvar-chip--conf {
+  background: #6f42c1;
+  color: #fff;
 }
 
 .clinvar-chip--vus {

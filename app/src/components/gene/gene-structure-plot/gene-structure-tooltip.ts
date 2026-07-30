@@ -129,10 +129,12 @@ export function showAggregatedTooltip(
 ): void {
   if (!ctx.tooltipDiv || !ctx.container.value) return;
 
-  // Build classification breakdown
+  // Build classification breakdown. Every non-zero class is listed: there are
+  // now seven possible display classes (Conflicting and other included), so a
+  // fixed top-5 cut would silently drop real counts (issue #607).
   const classificationLines = Object.entries(agg.classifications)
+    .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5) // Show top 5 classifications
     .map(([cls, count]) => {
       const color = PATHOGENICITY_COLORS[cls as keyof typeof PATHOGENICITY_COLORS] || '#888';
       return `<div style="color: ${color}; font-size: 11px;">${cls}: ${count}</div>`;

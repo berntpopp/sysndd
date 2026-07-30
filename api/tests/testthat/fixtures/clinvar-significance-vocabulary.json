@@ -1,0 +1,59 @@
+{
+  "description": "Canonical ClinVar clinical_significance vocabulary shared by app/src/types/clinvarSignificance.ts and api/functions/external-proxy-gnomad.R. Both production tables are asserted against this file in both directions, so neither can drift. Add a new term HERE first. See GitHub issue #607.",
+  "terms": [
+    { "raw": "Pathogenic", "class": "pathogenic" },
+    { "raw": "Pathogenic/Likely pathogenic", "class": "pathogenic" },
+    { "raw": "Pathogenic, low penetrance", "class": "pathogenic" },
+    { "raw": "Likely pathogenic", "class": "likely_pathogenic" },
+    { "raw": "Likely pathogenic, low penetrance", "class": "likely_pathogenic" },
+    { "raw": "Uncertain significance", "class": "vus" },
+    { "raw": "Likely benign", "class": "likely_benign" },
+    { "raw": "Benign/Likely benign", "class": "likely_benign" },
+    { "raw": "Benign", "class": "benign" },
+    { "raw": "Conflicting classifications of pathogenicity", "class": "conflicting" },
+    { "raw": "Conflicting interpretations of pathogenicity", "class": "conflicting" },
+    { "raw": "not provided", "class": "other" },
+    { "raw": "no classification provided", "class": "other" },
+    { "raw": "no classifications from unflagged records", "class": "other" },
+    { "raw": "no classification for the single variant", "class": "other" },
+    { "raw": "drug response", "class": "other" },
+    { "raw": "risk factor", "class": "other" },
+    { "raw": "association", "class": "other" },
+    { "raw": "association not found", "class": "other" },
+    { "raw": "protective", "class": "other" },
+    { "raw": "Affects", "class": "other" },
+    { "raw": "confers sensitivity", "class": "other" },
+    { "raw": "established risk allele", "class": "other" },
+    { "raw": "likely risk allele", "class": "other" },
+    { "raw": "uncertain risk allele", "class": "other" },
+    { "raw": "other", "class": "other" }
+  ],
+  "normalization_variants": [
+    { "raw": "Uncertain_significance", "class": "vus" },
+    { "raw": "Likely_pathogenic", "class": "likely_pathogenic" },
+    { "raw": "Pathogenic/Likely_pathogenic", "class": "pathogenic" },
+    { "raw": "Benign/Likely_benign", "class": "likely_benign" },
+    { "raw": "  PATHOGENIC  ", "class": "pathogenic" },
+    { "raw": "conflicting   classifications  of pathogenicity", "class": "conflicting" }
+  ],
+  "aggregate_terms": [
+    { "raw": "Pathogenic|risk factor", "class": "pathogenic" },
+    { "raw": "Pathogenic; risk factor", "class": "pathogenic" },
+    { "raw": "Pathogenic/Established risk allele", "class": "pathogenic" },
+    {
+      "raw": "Pathogenic/Likely pathogenic/Pathogenic, low penetrance/Established risk allele; risk factor",
+      "class": "pathogenic"
+    },
+    { "raw": "Likely pathogenic/Likely risk allele", "class": "likely_pathogenic" },
+    { "raw": "Uncertain significance/Uncertain risk allele", "class": "vus" },
+    { "raw": "Benign/Likely benign|other", "class": "likely_benign" },
+    { "raw": "Conflicting classifications of pathogenicity; risk factor", "class": "conflicting" },
+    { "raw": "Established risk allele; drug response", "class": "other" }
+  ],
+  "unknown_terms": [
+    "Totally new ClinVar term 2027",
+    "pathogenicity",
+    "Pathogenic/Totally new ClinVar term 2027",
+    ""
+  ]
+}

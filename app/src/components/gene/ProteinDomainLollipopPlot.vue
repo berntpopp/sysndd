@@ -110,6 +110,8 @@ const filterState = reactive<LollipopFilterState>({
   vus: false,
   likelyBenign: false,
   benign: false,
+  conflicting: false,
+  other: false,
   effectFilters: {
     missense: true,
     frameshift: true,
@@ -149,9 +151,17 @@ function setColoringMode(mode: ColoringMode): void {
 /**
  * Computed legend items for pathogenicity filter buttons
  */
-const legendItems = computed(() => {
+interface PathogenicityLegendItem {
+  key: PathogenicityFilterKey;
+  label: string;
+  color: string;
+  visible: boolean;
+  count: number;
+}
+
+const legendItems = computed<PathogenicityLegendItem[]>(() => {
   const counts = countByClassification(props.data.variants);
-  return [
+  const items: PathogenicityLegendItem[] = [
     {
       key: 'pathogenic' as const,
       label: 'Pathogenic',
@@ -187,7 +197,31 @@ const legendItems = computed(() => {
       visible: filterState.benign,
       count: counts['Benign'] || 0,
     },
+    {
+      key: 'conflicting' as const,
+      label: 'Conflicting',
+      color: PATHOGENICITY_COLORS['Conflicting'],
+      visible: filterState.conflicting,
+      count: counts['Conflicting'] || 0,
+    },
   ];
+
+  // "Other" covers recognised non-ACMG terms (drug response, not provided, ...)
+  // and anything the shared vocabulary could not resolve. It only earns a chip
+  // when the gene actually has some, but when it does the count must be visible
+  // rather than silently folded into a tier (issue #607).
+  const otherCount = counts['other'] || 0;
+  if (otherCount > 0) {
+    items.push({
+      key: 'other' as const,
+      label: 'Other',
+      color: PATHOGENICITY_COLORS['other'],
+      visible: filterState.other,
+      count: otherCount,
+    });
+  }
+
+  return items;
 });
 
 /**

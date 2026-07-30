@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **ClinVar "Conflicting classifications of pathogenicity" is no longer counted
+  and drawn as Pathogenic on gene pages** (#607). `"conflicting classifications
+  of pathogenicity".includes('pathogenic')` is `true` — `pathogenic` is a
+  substring of *pathogenic*ity — and the string contains no `likely`, so every
+  client-side visualization filed conflicting variants into the Pathogenic
+  bucket. On PCDH12 the Protein View legend read `Pathogenic 46` (13 Pathogenic +
+  5 Pathogenic/Likely pathogenic + 28 Conflicting) directly below a
+  server-computed ClinVar card reading `P 18`: two contradicting numbers for the
+  same gene on the same screen. Every gene was affected in proportion to its
+  conflicting-variant count.
+
+  The repair is structural rather than a patched branch. Four independent
+  normalizers — three of them wrong, the fourth correct only by the accident of
+  special-casing `conflicting` ahead of its substring tests — are replaced by one
+  vocabulary matched by **exact string equality** against an explicit table, in
+  `app/src/types/clinvarSignificance.ts`, mirrored by
+  `normalize_clinvar_classification()` in the API and driven in test by a single
+  shared fixture that both suites assert against in both directions. ClinVar
+  genuinely aggregates across submissions, so its documented delimiter grammar is
+  parsed and each token exact-matched, with one unresolvable token poisoning the
+  whole value; a term the table does not know becomes an explicit `unknown` and
+  is logged, and can never reach an ACMG tier. `Pathogenic/Likely pathogenic` now
+  resolves identically everywhere, which also fixes the 3D viewer and the
+  lollipop reporting different P/LP splits for identical input.
+
+  Conflicting classifications are clinically meaningful, so they are given
+  somewhere to go rather than being quietly dropped: their own purple legend
+  category and filter chip on the lollipop, the gene-structure plot and the 3D
+  variant panel, and a `CONF` chip on the ClinVar card, which now reconciles with
+  the plots by construction. Two latent defects in the same family are fixed
+  alongside — `other` ranked as the *most* severe class when picking an
+  aggregated position's colour, and unmapped classes bypassed the gene-structure
+  plot's filters entirely.
+
 ## [0.31.1] — 2026-07-30
 
 ### Fixed

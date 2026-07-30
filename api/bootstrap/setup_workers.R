@@ -104,6 +104,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/external-proxy-functions.R", local = FALSE)
     # Source gnomAD proxy functions (fetch_gnomad_constraints + memoised wrapper)
     source("/app/functions/external-proxy-gnomad.R", local = FALSE)
+    source("/app/functions/external-proxy-gnomad-clinvar.R", local = FALSE)
     # Source batched gnomAD GraphQL fallback (used by HGNC enrichment for chrX/Y/M genes
     # absent from the autosomes-only bulk constraint TSV). Load order: depends on
     # external-proxy-functions.R (cache_static, validate_gene_symbol) sourced earlier.

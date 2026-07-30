@@ -16,6 +16,11 @@ const apiBase = import.meta.env.VITE_API_URL ?? '';
 export interface ClinVarClassificationCounts {
   pathogenic: number;
   likely_pathogenic: number;
+  /**
+   * Optional on purpose: a deployed API predating #607, or a cached response,
+   * simply omits it. Consumers zero-fill; they must never render `undefined`.
+   */
+  conflicting?: number;
   vus: number;
   likely_benign: number;
   benign: number;

@@ -179,6 +179,7 @@ const filterState = reactive({
   vus: true,
   likelyBenign: true,
   benign: true,
+  conflicting: true,
 });
 
 // Refs for tooltip positioning
@@ -246,6 +247,13 @@ const legendItems = computed(() => {
       visible: filterState.benign,
       count: counts.benign,
     },
+    {
+      key: 'conflicting' as const,
+      label: 'Conf',
+      color: ACMG_COLORS.conflicting,
+      visible: filterState.conflicting,
+      count: counts.conflicting,
+    },
   ];
 });
 
@@ -288,6 +296,9 @@ watch(
     vus: filterState.vus,
     likelyBenign: filterState.likelyBenign,
     benign: filterState.benign,
+    // Must be watched too, or toggling the Conf chip filters the list but never
+    // re-emits, leaving the 3D markers desynced from the filter (issue #607).
+    conflicting: filterState.conflicting,
   }),
   () => {
     emit('filter-change', { hiddenClassifications: getHiddenClassifications(filterState) });
