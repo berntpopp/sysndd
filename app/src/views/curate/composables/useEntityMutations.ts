@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { apiClient } from '@/api/client';
 import { extractApiErrorMessage } from '@/utils/api-errors';
+import { splitOntologyTag } from '@/utils/ontologyTags';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
@@ -115,12 +116,18 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
     const gene_reviews_clean = args.select_gene_reviews.map((s) => s.replace(/\s+/g, ''));
     const replace_literature = new Literature(additional_clean, gene_reviews_clean);
 
-    const replace_phenotype = args.select_phenotype.map(
-      (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
-    );
-    const replace_variation = args.select_variation.map(
-      (item) => new Variation(item.split('-')[1], item.split('-')[0])
-    );
+    // The curation tag is "<modifier_id>-<ontology_CURIE>", and the CURIE half
+    // may itself contain a hyphen. `split('-')[1]` returned only the segment
+    // between the first two hyphens, silently submitting a truncated id (#611);
+    // splitOntologyTag() splits on the FIRST separator only.
+    const replace_phenotype = args.select_phenotype.map((item) => {
+      const { modifierId, ontologyId } = splitOntologyTag(item);
+      return new Phenotype(ontologyId, modifierId);
+    });
+    const replace_variation = args.select_variation.map((item) => {
+      const { modifierId, ontologyId } = splitOntologyTag(item);
+      return new Variation(ontologyId, modifierId);
+    });
 
     args.review_info.literature = replace_literature;
     args.review_info.phenotypes = replace_phenotype;
