@@ -193,6 +193,66 @@ ON DUPLICATE KEY UPDATE
   `is_active` = VALUES(`is_active`),
   `sort` = VALUES(`sort`);
 
+-- Variation-ontology provenance fixture terms (#608). Three extra VariO terms so
+-- the curation three-zone picker has DISTINCT content in each zone and the public
+-- entity card can show a curator-authored term next to machine-derived ones:
+--   VariO:0015 -> curated + `confirmed`          -> Confirmed zone
+--   VariO:0017 -> curated + `active_unconfirmed`  -> Needs confirmation zone
+--   VariO:0508 -> NOT curated + `suggested`       -> Suggested zone
+-- VariO:0001 (above) deliberately gets NO assertion row, so it stays the
+-- curator-authored (`provenance: null`) control case.
+-- Real VariO ids/names; the definitions are synthetic Playwright-only text,
+-- matching the VariO:0001 row.
+INSERT INTO `variation_ontology_list` (
+  `vario_id`,
+  `vario_name`,
+  `definition`,
+  `obsolete`,
+  `is_active`,
+  `sort`
+) VALUES
+  (
+    'VariO:0015',
+    'protein truncation',
+    'Synthetic Playwright-only fixture term used to exercise the confirmed provenance zone.',
+    0,
+    1,
+    2
+  ),
+  (
+    'VariO:0017',
+    'nonsynonymous variation',
+    'Synthetic Playwright-only fixture term used to exercise the needs-confirmation provenance zone.',
+    0,
+    1,
+    3
+  ),
+  (
+    'VariO:0508',
+    'splice variation',
+    'Synthetic Playwright-only fixture term used to exercise the suggested provenance zone.',
+    0,
+    1,
+    4
+  )
+ON DUPLICATE KEY UPDATE
+  `vario_name` = VALUES(`vario_name`),
+  `definition` = VALUES(`definition`),
+  `obsolete` = VALUES(`obsolete`),
+  `is_active` = VALUES(`is_active`),
+  `sort` = VALUES(`sort`);
+
+-- KNOWN LANDMINE, KEPT DELIBERATELY: PMID 12345678 is a real PubMed record whose
+-- only author is a 74-character `CollectiveName`
+-- ("Ministerial Meeting on Population of the Non-Aligned Movement (1993: Bali)").
+-- `publication`.`Lastname` is VARCHAR(50) and `publication-functions.R` writes the
+-- parsed author name untruncated, so any review save that re-resolves this PMID
+-- fails with "Data too long for column 'Lastname'" and rolls the whole save back
+-- as an opaque 500. That is a PRE-EXISTING api/ defect (consortium-authored papers
+-- are common in NDD genetics), not a fixture bug, and this row is currently the
+-- only thing in the repo that exposes it — see the `reviewSaveWorks` docblock in
+-- app/tests/e2e/curate.variation-provenance.spec.ts. Do NOT "fix" this by swapping
+-- in a short-authored PMID; that would only re-hide the defect.
 INSERT INTO `publication` (
   `publication_id`,
   `publication_type`,
@@ -355,6 +415,176 @@ ON DUPLICATE KEY UPDATE
   `entity_id` = VALUES(`entity_id`),
   `is_active` = VALUES(`is_active`);
 
+-- Two more curated variation-ontology terms on review 123 so the public entity
+-- card serves them alongside VariO:0001. There is deliberately NO connect row
+-- for VariO:0508: a `suggested` assertion must stay OUT of the curated set so it
+-- can be the Suggested-zone case, and it must never surface on the public read.
+INSERT INTO `ndd_review_variation_ontology_connect` (
+  `review_vario_id`,
+  `review_id`,
+  `vario_id`,
+  `modifier_id`,
+  `entity_id`,
+  `is_active`
+) VALUES
+  (9615, 123, 'VariO:0015', 1, 123, 1),
+  (9617, 123, 'VariO:0017', 1, 123, 1)
+ON DUPLICATE KEY UPDATE
+  `review_id` = VALUES(`review_id`),
+  `vario_id` = VALUES(`vario_id`),
+  `modifier_id` = VALUES(`modifier_id`),
+  `entity_id` = VALUES(`entity_id`),
+  `is_active` = VALUES(`is_active`);
+
+-- migration 047's `chk_confirmed_attribution` CHECK REJECTS a `confirmed` row
+-- with a NULL `confirmed_by`/`confirmed_at`, and `confirmed_by` is an FK to
+-- `user`.`user_id`, whose values are AUTO_INCREMENT and therefore not fixed. So
+-- resolve the attribution user by NAME (pw_curator, provisioned by
+-- playwright_users.sql, which `make playwright-stack` and global-setup.ts both
+-- seed BEFORE this file), falling back to the lowest existing user id so the
+-- fixture still applies against a database seeded with different accounts.
+SET @vario_confirmed_by := COALESCE(
+  (SELECT `user_id` FROM `user` WHERE `user_name` = 'pw_curator' LIMIT 1),
+  (SELECT MIN(`user_id`) FROM `user`)
+);
+
+-- Variation-ontology provenance assertions for entity 123 (#608).
+--
+-- DELIBERATE OMISSION — DO NOT "COMPLETE" THIS FIXTURE: there is NO assertion
+-- row for VariO:0001. That absence IS the curator-authored case. The public read
+-- serves `provenance: null` for it, the entity card must render it as the
+-- pre-#608 chip with no provenance affordance, and the curation form must file it
+-- under Confirmed as curator-authored. Adding an assertion for VariO:0001 would
+-- silently delete the only control case in the fixture.
+--
+-- (VariO:0017, modifier 5) is included ON PURPOSE, in a DIFFERENT state from
+-- (VariO:0017, modifier 1): modifier_list defines both `present` (1) and
+-- `absent` (5) as valid for variation, and migration 047 makes modifier_id part
+-- of the assertion identity because those are two different claims. Seeding the
+-- same CURIE in two modifiers and two states proves the identity invariant in a
+-- real browser — the same term appears in Needs-confirmation (modifier 1) and
+-- Suggested (modifier 5) at once, which can only be keyed correctly on the full
+-- `<modifier_id>-<vario_id>` tag. Keyed on vario_id alone, confirming one would
+-- confirm the other and the zone partition would collapse.
+INSERT INTO `variation_ontology_assertion` (
+  `assertion_id`,
+  `entity_id`,
+  `vario_id`,
+  `modifier_id`,
+  `state`,
+  `confirmed_by`,
+  `confirmed_at`,
+  `rejected_reason`
+) VALUES
+  (9615, 123, 'VariO:0015', 1, 'confirmed', @vario_confirmed_by, '2026-02-01 09:00:00', NULL),
+  (9617, 123, 'VariO:0017', 1, 'active_unconfirmed', NULL, NULL, NULL),
+  (9618, 123, 'VariO:0017', 5, 'suggested', NULL, NULL, NULL),
+  (9608, 123, 'VariO:0508', 1, 'suggested', NULL, NULL, NULL)
+ON DUPLICATE KEY UPDATE
+  `entity_id` = VALUES(`entity_id`),
+  `vario_id` = VALUES(`vario_id`),
+  `modifier_id` = VALUES(`modifier_id`),
+  `state` = VALUES(`state`),
+  `confirmed_by` = VALUES(`confirmed_by`),
+  `confirmed_at` = VALUES(`confirmed_at`),
+  `rejected_reason` = VALUES(`rejected_reason`);
+
+-- Evidence rows behind those assertions. `variation_ontology_evidence` is UNIQUE
+-- on (assertion_id, source_key, batch_id) and `evidence_summary` is NOT NULL.
+--
+-- The `evidence_json` payloads carry ONLY fields the real import manifests are
+-- documented to record: ClinVar variation ids, classification, review stars,
+-- consequence, and the matched OMIM identifier. There are deliberately NO
+-- HGVS/protein labels (e.g. `p.Thr215Pro`) — the importer never recorded them,
+-- and fabricating one here would train the UI to render a field that does not
+-- exist in production.
+--
+-- assertion 9617 (VariO:0017) is the load-bearing weak-evidence case from the
+-- issue's worked example: 2 ClinVar records, both Likely pathogenic, both 1-star
+-- single-submitter, `evidence_strength = 1`, summary "2 ClinVar records, max 1 star".
+-- assertion 9615 additionally carries a SECOND source with a NULL
+-- `evidence_strength`, which must render as "Not recorded" with NO stars (zero
+-- stars would assert a score that was never taken) and, per the service's
+-- `(evidence_strength IS NULL) ASC, evidence_strength DESC, source_key ASC`
+-- ordering, must sort AFTER the scored source.
+-- assertion 9608 (VariO:0508) is given a visibly stronger score (3) so
+-- queue ordering and star rendering differ from 9617's single star.
+INSERT INTO `variation_ontology_evidence` (
+  `evidence_id`,
+  `assertion_id`,
+  `source_type`,
+  `source_key`,
+  `batch_id`,
+  `source_version`,
+  `evidence_summary`,
+  `evidence_strength`,
+  `evidence_json`
+) VALUES
+  (
+    9615,
+    9615,
+    'external_database',
+    'clinvar',
+    'pw-fixture-2026-02',
+    '2026-01 release',
+    '3 ClinVar records, max 2 stars',
+    2,
+    '{"records":[{"variation_id":"VCV0000132","classification":"Pathogenic","review_stars":2,"consequence":"nonsense variant"},{"variation_id":"VCV0000418","classification":"Pathogenic","review_stars":2,"consequence":"frameshift variant"},{"variation_id":"VCV0000955","classification":"Likely pathogenic","review_stars":1,"consequence":"frameshift variant"}],"matched":["OMIM:615032"]}'
+  ),
+  (
+    9616,
+    9615,
+    'literature',
+    'pubtator',
+    'pw-fixture-2026-02',
+    NULL,
+    'Co-mentioned in 4 publications; strength not scored',
+    NULL,
+    '{"matched":["OMIM:615032"]}'
+  ),
+  (
+    9617,
+    9617,
+    'external_database',
+    'clinvar',
+    'pw-fixture-2026-02',
+    '2026-01 release',
+    '2 ClinVar records, max 1 star',
+    1,
+    '{"records":[{"variation_id":"VCV1343191","classification":"Likely pathogenic","review_stars":1,"consequence":"missense variant"},{"variation_id":"VCV1804020","classification":"Likely pathogenic","review_stars":1,"consequence":"missense variant"}],"matched":["OMIM:615032"]}'
+  ),
+  (
+    9618,
+    9618,
+    'external_database',
+    'clinvar',
+    'pw-fixture-2026-02',
+    '2026-01 release',
+    '1 ClinVar record, max 1 star',
+    1,
+    '{"records":[{"variation_id":"VCV1902773","classification":"Uncertain significance","review_stars":1,"consequence":"missense variant"}],"matched":["OMIM:615032"]}'
+  ),
+  (
+    9608,
+    9608,
+    'external_database',
+    'clinvar',
+    'pw-fixture-2026-02',
+    '2026-01 release',
+    '5 ClinVar records, max 3 stars',
+    3,
+    '{"records":[{"variation_id":"VCV0002210","classification":"Pathogenic","review_stars":3,"consequence":"splice donor variant"},{"variation_id":"VCV0002211","classification":"Pathogenic","review_stars":3,"consequence":"splice acceptor variant"},{"variation_id":"VCV0002212","classification":"Likely pathogenic","review_stars":2,"consequence":"splice donor variant"},{"variation_id":"VCV0002213","classification":"Likely pathogenic","review_stars":1,"consequence":"splice region variant"},{"variation_id":"VCV0002214","classification":"Uncertain significance","review_stars":1,"consequence":"splice region variant"}],"matched":["OMIM:615032"]}'
+  )
+ON DUPLICATE KEY UPDATE
+  `assertion_id` = VALUES(`assertion_id`),
+  `source_type` = VALUES(`source_type`),
+  `source_key` = VALUES(`source_key`),
+  `batch_id` = VALUES(`batch_id`),
+  `source_version` = VALUES(`source_version`),
+  `evidence_summary` = VALUES(`evidence_summary`),
+  `evidence_strength` = VALUES(`evidence_strength`),
+  `evidence_json` = VALUES(`evidence_json`);
+
 INSERT INTO `ndd_review_publication_join` (
   `review_publication_id`,
   `review_id`,
@@ -377,12 +607,26 @@ ON DUPLICATE KEY UPDATE
   `publication_type` = VALUES(`publication_type`),
   `is_reviewed` = VALUES(`is_reviewed`);
 
+-- Batch 9001 is assigned to BOTH pw_reviewer and pw_curator.
+--
+-- pw_reviewer is the original assignee. pw_curator was added for the #608
+-- variation-provenance curation specs: `GET /api/re_review/table` scopes the
+-- default queue to `re_review_assignment.user_id = <requesting user>`, so only an
+-- ASSIGNED user can open a row's Edit-review modal — which is the only surface
+-- that renders the three-zone provenance picker (ReviewFormFields.vue is consumed
+-- solely by Review.vue's ReviewEditModal). The curator-mode surface
+-- (`curate=true`) is not an alternative: it additionally requires
+-- `re_review_submitted = 1`, and the connect row below is 0.
+-- The Suggested zone needs `GET /api/entity/<id>/variation/suggestions`, which is
+-- gated at Curator — so a Reviewer-only assignment can never render all three
+-- zones. Adding the curator does not change what pw_reviewer sees (the queue is
+-- scoped per user, so there is no row fan-out).
 DELETE FROM `re_review_assignment` WHERE `re_review_batch` = 9001;
 
 INSERT INTO `re_review_assignment` (`user_id`, `re_review_batch`)
 SELECT `user_id`, 9001
 FROM `user`
-WHERE `user_name` = 'pw_reviewer';
+WHERE `user_name` IN ('pw_reviewer', 'pw_curator');
 
 INSERT INTO `re_review_entity_connect` (
   `re_review_entity_id`,
