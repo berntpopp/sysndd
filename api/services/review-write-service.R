@@ -401,44 +401,48 @@ review_write_save_determines_served_set <- function(review_id, direct_approval, 
     isTRUE(as.integer(row$review_approved[[1L]]) == 1L)
 }
 
-#' Project a raw review request body to the columns a SAVE may change
+#' Project a raw review request body to the columns a save may write
 #'
 #' `prepared$review_data` is the request body verbatim -- `req$argsBody$review_json`
 #' (endpoints/review_endpoints.R) -- so besides `synopsis`/`comment` it ALWAYS
 #' carries `literature`, `phenotypes` and `variation_ontology` (the handler reads
 #' those three off the very object it forwards here), plus anything else a client
-#' chooses to send. Handing that whole object to `review_update()` is #613: its
-#' mass-assignment allowlist aborts on the ontology keys, so every save the
-#' frontend actually sends rolled back with an opaque 500. This restores the
-#' intent `review_update()`'s own comment already documents: the save path
-#' passes fixed columns.
+#' chooses to send. Handing that whole object to `review_update()` was #613: its
+#' mass-assignment allowlist aborts on the ontology keys, so every PUT save the
+#' frontend actually sends rolled back with an opaque 500.
 #'
-#' The projection is deliberately NARROWER than `review_update()`'s allowlist.
-#' That allowlist also permits `is_primary`, `review_approved`,
-#' `approving_user_id` and `review_date` -- legitimately, because
-#' `svc_review_update()` and the approval path need them -- so forwarding a
-#' client-supplied body into it would let a Reviewer smuggle
-#' `review_approved = 1` / `is_primary = 1` past the Curator gate that
-#' `/api/review/approve` enforces. The narrow selection is therefore both the bug
-#' fix and the closure of that privilege-escalation vector. Fix it HERE, at the
-#' call site: do not widen `review_update()`'s allowlist, and do not add a column
-#' here without an authorization story for it.
+#' Both projections are deliberately NARROWER than the repository write they
+#' feed. `review_update()`'s allowlist also permits `is_primary`,
+#' `review_approved`, `approving_user_id` and `review_date`; `review_create()`
+#' likewise INSERTs the first three whenever the supplied record carries them --
+#' legitimately, because `svc_review_update()`, entity creation and the approval
+#' path need them. Forwarding a client body into either lets a Reviewer publish an
+#' approved primary review without the Curator gate that `/api/review/approve`
+#' enforces, and post-#608 that forged row also flips
+#' `review_write_save_determines_served_set()`, unlocking the provenance
+#' rejection edges. Approval state belongs to the approval path alone
+#' (`review_approve()`, which `direct_approval` runs after the row exists), never
+#' to a submission. Fix it HERE, at the call site: do not widen the repository
+#' allowlists, and do not add a column to either projection without an
+#' authorization story for it.
 #'
-#' Only keys actually PRESENT are returned, so a body that omits `comment` leaves
-#' the stored comment untouched (the pre-#613 semantics).
-#'
-#' An empty result is unreachable: `review_write_prepare()` rejects a blank
-#' `synopsis` with a 400 before any transaction opens, so `synopsis` is always
-#' present here. Nothing is added for that case on purpose -- were the invariant
-#' ever broken, `review_update()`'s own "No valid fields to update" abort is the
-#' correct loud failure, not a silently skipped write.
+#' Only keys actually PRESENT are returned, so a PUT body that omits `comment`
+#' leaves the stored comment untouched (the pre-#613 semantics) and a POST body
+#' that omits it falls to the column default. An empty projection is unreachable:
+#' `review_write_prepare()` rejects a blank `synopsis` with a 400 and coerces
+#' `entity_id`/`review_user_id` itself, so those are always present here.
 #'
 #' @param review_data Raw review request body (named list).
-#' @return Named list containing only the present, save-writable columns.
+#' @return Named list containing only the present, writable columns.
 #' @keywords internal
 review_write_updatable_review_fields <- function(review_data) {
-  save_writable_cols <- c("synopsis", "comment")
-  review_data[intersect(save_writable_cols, names(review_data))]
+  review_data[intersect(c("synopsis", "comment"), names(review_data))]
+}
+
+#' @rdname review_write_updatable_review_fields
+#' @keywords internal
+review_write_creatable_review_fields <- function(review_data) {
+  review_data[intersect(c("entity_id", "review_user_id", "synopsis", "comment"), names(review_data))]
 }
 
 review_write_mutate <- function(prepared, txn_conn, re_review,
@@ -446,7 +450,8 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
   publication_write_persist(prepared$prepared_publications, conn = txn_conn)
 
   if (identical(prepared$method, "POST")) {
-    review_id <- review_create(prepared$review_data, conn = txn_conn)
+    # #613: pass ONLY the columns a submission may set, never approval state.
+    review_id <- review_create(review_write_creatable_review_fields(prepared$review_data), conn = txn_conn)
     message <- "OK. Review created."
   } else {
     review_id <- as.integer(prepared$review_data$review_id)

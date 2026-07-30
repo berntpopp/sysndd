@@ -1340,3 +1340,100 @@ test_that("#613: the POST create path is unaffected by the same endpoint-shaped 
     )
   })
 })
+
+test_that("#613: review_write_creatable_review_fields() projects a raw request body to the four columns a SUBMISSION may set, never approval state", {
+  full_body <- list(
+    review_id = 5L, entity_id = 7L, synopsis = "s", comment = "c",
+    review_user_id = 9L, is_primary = 1L, review_approved = 1L,
+    approving_user_id = 9L, review_date = "2026-07-30",
+    literature = list(), phenotypes = list(), variation_ontology = list()
+  )
+  expect_identical(
+    review_write_creatable_review_fields(full_body),
+    list(entity_id = 7L, review_user_id = 9L, synopsis = "s", comment = "c")
+  )
+  # A payload without `comment` must not invent one; the column default applies.
+  expect_identical(
+    review_write_creatable_review_fields(
+      list(entity_id = 7L, review_user_id = 9L, synopsis = "s")
+    ),
+    list(entity_id = 7L, review_user_id = 9L, synopsis = "s")
+  )
+})
+
+test_that("SECURITY #613: a POST create cannot mass-assign is_primary / review_approved / approving_user_id -- the review is stored unapproved and non-primary", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 135L)
+
+    # review_create() INSERTs is_primary / review_approved / approving_user_id
+    # whenever the record it is handed carries them (#318, for entity creation and
+    # the rename flow), so forwarding the raw client body would let a Reviewer
+    # publish an approved PRIMARY review without ever passing the Curator gate on
+    # /api/review/approve. Post-#608 it is worse: a forged approved primary review
+    # also satisfies review_write_save_determines_served_set(), which unlocks the
+    # provenance rejection edges.
+    result <- review_write_endpoint_save(
+      conn, fixture, "POST",
+      review_write_endpoint_review_data(
+        fixture, "review-write-613-post-escalation",
+        comment = "post escalation attempt",
+        is_primary = 1L, review_approved = 1L, approving_user_id = fixture$user_id
+      )
+    )
+
+    expect_identical(result$status, 200L)
+    expect_equal(result$message, "OK. Review created.")
+
+    review_id <- result$entry$review_id[[1L]]
+    row <- review_write_review_row(conn, review_id)
+    # Assert the STORED row, not merely the absence of an error. Unlike the PUT
+    # path, nothing downstream resets these columns, so all three would genuinely
+    # persist if the body were forwarded.
+    expect_equal(as.integer(row$is_primary), 0L)
+    expect_equal(as.integer(row$review_approved), 0L)
+    expect_true(is.na(row$approving_user_id))
+    # ...while the columns a submission legitimately sets still saved.
+    expect_equal(row$synopsis, "review-write-613-post-escalation")
+    expect_equal(row$comment, "post escalation attempt")
+  })
+})
+
+test_that("REGRESSION #608 END TO END: a Confirm on one term while another assertion stays UNCHANGED writes state = 'confirmed' WITH attribution instead of failing migration 047's chk_confirmed_attribution", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 136L)
+    # modifier 1: already confirmed and resubmitted -> UNCHANGED, so the planned
+    # rows are a strict subset of the entity's assertions. That is precisely the
+    # regime in which the tibble() data-masking bug turned needs_attribution into
+    # NA, the applier then wrote a confirmed row with a NULL confirmed_by, and the
+    # CHECK constraint rolled the whole save back as an opaque 500.
+    review_write_seed_assertion(conn, fixture, state = "confirmed", modifier_id = 1L)
+    review_write_seed_assertion(
+      conn, fixture, state = "active_unconfirmed", modifier_id = 5L
+    )
+
+    result <- review_write_save(
+      conn, fixture, "review-write-provenance-mixed-confirm",
+      variation_ontology = tibble::tibble(
+        vario_id = rep(fixture$vario_id, 2L),
+        modifier_id = c(1L, 5L),
+        provenance_action = c(NA_character_, "confirm")
+      )
+    )
+
+    expect_identical(result$status, 200L)
+
+    confirmed <- review_write_assertion_row(conn, fixture, modifier_id = 5L)
+    expect_equal(confirmed$state, "confirmed")
+    expect_equal(as.integer(confirmed$confirmed_by), as.integer(fixture$user_id))
+    expect_false(is.na(confirmed$confirmed_at))
+
+    # The pre-existing confirmation was not re-stamped and not disturbed.
+    untouched <- review_write_assertion_row(conn, fixture, modifier_id = 1L)
+    expect_equal(untouched$state, "confirmed")
+    expect_equal(as.integer(untouched$confirmed_by), as.integer(fixture$user_id))
+  })
+})
