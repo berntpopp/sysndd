@@ -22,14 +22,23 @@
 //
 // STATE IS MUTATED, SO EVERY TEST RE-SEEDS
 // ----------------------------------------
-// Saving a review reconciles the entity's assertions server-side. Because fixture
-// review 123 is `is_primary = 1 AND review_approved = 1`, a save DETERMINES the
-// served term set, so `review_write_save_determines_served_set()` is true and every
-// omitted term (both `suggested` rows) is REJECTED. global-setup.ts only re-seeds
-// once per `playwright test` invocation, so without a per-test reseed the tests
-// would be order-coupled. `reseedBaseline()` reuses the same make target
-// global-setup uses; the fixture's `ON DUPLICATE KEY UPDATE` covers `state`,
-// `confirmed_by` and `confirmed_at`, so a reseed genuinely resets the workflow.
+// Saving a review reconciles the entity's assertions server-side, so tests that
+// save are order-coupled unless the fixture is restored. global-setup.ts only
+// re-seeds once per `playwright test` invocation, so `reseedBaseline()` reuses the
+// same make target before EVERY test; the fixture's `ON DUPLICATE KEY UPDATE`
+// covers `state`, `confirmed_by` and `confirmed_at`, so a reseed genuinely resets
+// the workflow.
+//
+// NOTE on reject-by-omission, verified live and deliberately NOT asserted here:
+// `review_write_mutate()` computes `apply_rejections` from
+// `review_write_save_determines_served_set()` AFTER `review_update()` has already
+// run "Reset approval status" (`review_approved = 0`). So on the plain PUT path the
+// flag is always FALSE and omitted terms are never rejected — observed: both
+// `suggested` rows survive an untouched save unchanged. That is consistent with the
+// reconcile module's own "removal becomes real when it becomes public" rationale,
+// but it means reject-by-omission is only reachable via `direct_approval=true`.
+// Reported in the task-8 report rather than asserted, because whether that is the
+// intended end state is a product decision, not a test one.
 import { execSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -81,6 +90,68 @@ async function provenanceFixturePresent(request: APIRequestContext): Promise<boo
   }
 }
 
+/** Cached Curator bearer token for the API-side steps below. */
+let curatorTokenCache: string | null = null;
+
+async function curatorToken(request: APIRequestContext): Promise<string> {
+  if (curatorTokenCache) return curatorTokenCache;
+  const auth = await request.post('/api/auth/authenticate', {
+    data: { user_name: testUsers.curator.username, password: testUsers.curator.password },
+  });
+  expect(auth.ok(), `probe login failed: ${auth.status()}`).toBeTruthy();
+  const parsed: unknown = JSON.parse((await auth.text()).trim());
+  curatorTokenCache = Array.isArray(parsed) ? String(parsed[0]) : String(parsed);
+  return curatorTokenCache;
+}
+
+/**
+ * Re-approve review 123 after a save, so the public read can see it again.
+ *
+ * WHY THIS STEP EXISTS (not a workaround — it is the real workflow):
+ * `review_update()` (api/functions/review-repository.R) deliberately runs
+ * "Reset approval status" — `review_approved = 0` and `approving_user_id = NULL` —
+ * on every review update, because an edited review must be re-approved. Verified
+ * live: `review_approved` goes 1 -> 0 on a successful save. Every public
+ * review-derived read is gated on `primary_approved_reviews()`
+ * (`is_primary = 1 AND review_approved = 1`), so immediately after a save the
+ * entity's variation terms vanish from `GET /api/entity/<id>/variation` entirely
+ * and every state reads back as `undefined`.
+ *
+ * The brief asked to read back through the public endpoint "rather than the
+ * database if you can". Post-save, that is impossible without re-approving — so we
+ * re-approve through the real Curator endpoint and then read publicly, which keeps
+ * the whole assertion on the paths a reader and a curator actually use. (The
+ * `.../evidence` route is the one public read that is approval-INDEPENDENT, since
+ * it resolves the entity via `ndd_entity_view` rather than via the review; it is
+ * used as a cross-check below.)
+ */
+async function reapproveReview(request: APIRequestContext): Promise<void> {
+  const res = await request.put(`/api/review/approve/123`, {
+    headers: { Authorization: `Bearer ${await curatorToken(request)}` },
+    params: { review_ok: 'true' },
+  });
+  expect(res.status(), `re-approve failed: ${await res.text()}`).toBeLessThan(400);
+}
+
+/**
+ * One term's state via the approval-independent public evidence route.
+ * Returns `null` when no publicly visible assertion matches (404).
+ */
+async function evidenceState(
+  request: APIRequestContext,
+  varioId: string,
+  modifierId: number
+): Promise<string | null> {
+  const res = await request.get(
+    `/api/entity/${ENTITY_ID}/variation/${varioId}/${modifierId}/evidence`
+  );
+  if (res.status() === 404) return null;
+  expect(res.status(), await res.text()).toBe(200);
+  const body = (await res.json()) as { state?: unknown };
+  const state = body.state;
+  return String(Array.isArray(state) ? state[0] : state);
+}
+
 /**
  * TWO PRE-EXISTING `api/` DEFECTS BLOCK EVERY REVIEW SAVE. Both were found by
  * this spec (it is the first e2e test in the repo that actually saves a review —
@@ -105,11 +176,25 @@ async function provenanceFixturePresent(request: APIRequestContext): Promise<boo
  *      "Data too long for column 'Lastname'" and rolls the save back too.
  *      `publication-functions.R` writes `Lastname = lastname` untruncated.
  *
+ * D1 is FIXED (#613, `6ef2b35e`): `review_write_updatable_review_fields()` now projects
+ * the body to {synopsis, comment} before `review_update()` sees it.
+ *
  * Rather than hard-fail on a defect this spec may not patch, the save-dependent
  * tests SKIP with this reason and RE-ACTIVATE automatically once a save succeeds
  * (repo convention: cf. `seededEntityPresent` in entity.modify.spec.ts). The
  * assertions below are the real regression guard for #608 and must not be
  * deleted — they are one API fix away from running.
+ *
+ * PROBE PAYLOAD: this deliberately mirrors what the BROWSER actually submits,
+ * which carries EMPTY `literature`. The baseline fixture's
+ * `ndd_review_publication_join` row is seeded with `publication_type = 'PMID'`,
+ * but the API writes/reads that column as `'additional_references'` | `'gene_review'`
+ * (see api/endpoints/review_endpoints.R and publication-write-preparation.R), so
+ * `useReviewForm.loadReviewData()` filters the row out and submits no references.
+ * The probe must therefore NOT include a resolvable PMID: doing so makes the probe
+ * strictly harder than the flow it gates and would trip D2 (which the fixture's
+ * `publication_type` mismatch otherwise masks), skipping these tests for a reason
+ * that has nothing to do with the code path under test.
  */
 let reviewSaveProbe: { ok: boolean; detail: string } | null = null;
 
@@ -138,7 +223,7 @@ async function reviewSaveWorks(
         entity_id: ENTITY_ID,
         synopsis: 'review-save capability probe',
         comment: 'probe',
-        literature: { additional_references: [{ value: 'PMID:12345678' }], gene_review: [] },
+        literature: { additional_references: [], gene_review: [] },
         phenotypes: [{ phenotype_id: 'HP:0001263', modifier_id: 1 }],
         variation_ontology: [{ vario_id: 'VariO:0001', modifier_id: 1 }],
       },
@@ -378,6 +463,14 @@ test.describe('#608 curation: variation ontology provenance zones', () => {
 
     await saveReview(page);
 
+    // Cross-check on the approval-INDEPENDENT route first: the assertion itself is
+    // untouched even before the review is re-approved.
+    expect(
+      await evidenceState(request, 'VariO:0017', 1),
+      'unconfirmed term was silently promoted'
+    ).toBe('active_unconfirmed');
+
+    await reapproveReview(request);
     const states = await servedStates(request);
     // Still served, still NOT promoted.
     expect(states[UNCONFIRMED_TAG], 'unconfirmed term was silently promoted').toBe(
@@ -423,6 +516,7 @@ test.describe('#608 curation: variation ontology provenance zones', () => {
     expect(confirmedTags).toContain(UNCONFIRMED_TAG);
 
     await saveReview(page);
+    await reapproveReview(request);
 
     const states = await servedStates(request);
     expect(states[UNCONFIRMED_TAG]).toBe('confirmed');
@@ -458,6 +552,7 @@ test.describe('#608 curation: variation ontology provenance zones', () => {
     expect(confirmedTags).toContain(SUGGESTED_TAG);
 
     await saveReview(page);
+    await reapproveReview(request);
 
     states = await servedStates(request);
     // Now part of the served curated set, and attributed as confirmed.
