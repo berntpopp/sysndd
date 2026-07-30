@@ -176,7 +176,7 @@ test_that("source version formula and derived-content allowlists are frozen", {
   expect_false(grepl("judge|reasoning|validation_status", paste(allowed_json_keys, collapse = "|")))
 })
 
-test_that("manifest advances contiguously to migration 046", {
-  expect_identical(EXPECTED_LATEST_MIGRATION, "046_add_analysis_snapshot_generator_provenance.sql")
-  expect_identical(EXPECTED_MIGRATION_COUNT, 44L)
+test_that("manifest advances contiguously to the latest migration", {
+  expect_identical(EXPECTED_LATEST_MIGRATION, "047_add_variation_ontology_provenance.sql")
+  expect_identical(EXPECTED_MIGRATION_COUNT, 45L)
 })
