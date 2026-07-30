@@ -18,30 +18,37 @@
 --   variation_ontology_list.vario_id column, or MySQL refuses the FK with "Referencing column
 --   ... and referenced column ... in foreign key constraint ... are incompatible." That
 --   referenced column is NOT guaranteed to be the utf8mb3 the base schema
---   (000_initialize_base_schema.sql) declares: in this repo's own sysndd_db_test (MySQL
---   8.4.11), creation/restore drift has left it as `varchar(10)` with
---   CHARACTER_SET_NAME=utf8mb4, COLLATION_NAME=utf8mb4_0900_ai_ci — the same class of drift as
---   the documented disease_ontology_mapping collation trap (see AGENTS.md). Verified probes
---   against that database: `vario_id VARCHAR(10)` under a static
---   `DEFAULT CHARSET=utf8mb3` table fails FK creation with the incompatibility error above;
---   `vario_id VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci` (matching the live
---   column) succeeds. Therefore this migration derives vario_id's charset/collation from
---   information_schema.COLUMNS at migration time and interpolates them into the CREATE TABLE
---   DDL, falling back to utf8mb3 / utf8mb3_general_ci (the base-schema default) only when the
---   lookup yields nothing (e.g. variation_ontology_list is absent). This makes the FK creatable
---   whether the target environment's variation_ontology_list is utf8mb3 (base schema /
---   production) or utf8mb4 (drifted). Only vario_id needs this treatment: the other three FKs
---   (entity_id -> ndd_entity, modifier_id -> modifier_list, confirmed_by -> user) are all on
---   INT columns, where charset is irrelevant. The table-level DEFAULT CHARSET stays utf8mb3;
---   the explicit per-column override on vario_id wins for that column only.
+--   (000_initialize_base_schema.sql) declares: this repo's own sysndd_db_test (MySQL 8.4.11)
+--   observably has it live as `varchar(10)` with CHARACTER_SET_NAME=utf8mb4,
+--   COLLATION_NAME=utf8mb4_0900_ai_ci. In this particular database that divergence traces to a
+--   test fixture (api/tests/testthat/test-integration-review-write-atomicity.R creates
+--   `variation_ontology_list` itself with an explicit `DEFAULT CHARSET=utf8mb4`), not to a
+--   production restore — but the general risk this migration guards against is the SAME class
+--   already documented for disease_ontology_mapping in AGENTS.md: a live column's charset not
+--   matching what its own base-schema migration declares, whatever the cause (restore, a test
+--   fixture, a manual ALTER, ...). Verified probes against sysndd_db_test: `vario_id
+--   VARCHAR(10)` under a static `DEFAULT CHARSET=utf8mb3` table fails FK creation with the
+--   incompatibility error above; `vario_id VARCHAR(10) CHARACTER SET utf8mb4 COLLATE
+--   utf8mb4_0900_ai_ci` (matching the live column) succeeds. Therefore this migration derives
+--   vario_id's charset/collation from information_schema.COLUMNS at migration time and
+--   interpolates them into the CREATE TABLE DDL, falling back to utf8mb3 / utf8mb3_general_ci
+--   (the base-schema default) only when the lookup yields nothing (e.g. variation_ontology_list
+--   is absent). This makes the FK creatable whether the target environment's
+--   variation_ontology_list is utf8mb3 (as the base schema declares) or something else (as
+--   observed live here). Only vario_id needs this treatment: the other three FKs (entity_id ->
+--   ndd_entity, modifier_id -> modifier_list, confirmed_by -> user) are all on INT columns,
+--   where charset is irrelevant. The table-level DEFAULT CHARSET stays utf8mb3; the explicit
+--   per-column override on vario_id wins for that column only.
 --
 --   Because the DDL must be built dynamically for that reason anyway, both CREATE TABLE
 --   statements use the repo's existing dynamic-DDL idiom (see 043_add_user_session_epoch.sql
 --   and 046_add_analysis_snapshot_generator_provenance.sql): guard on an information_schema
 --   existence count, PREPARE/EXECUTE/DEALLOCATE a @ddl variable built with CONCAT(). This is
 --   idempotent and restore-drift safe: a rerun sees the table already present and no-ops.
---   ENUM/CHECK string literals inside the CONCAT() pieces use double quotes (not single quotes)
---   so they don't need escaping inside the single-quoted DDL fragments they live in.
+--   ENUM/CHECK string literals inside the CONCAT() pieces use single quotes ESCAPED AS '' (not
+--   double quotes) so the migration applies unchanged under a session/server `sql_mode` that
+--   includes ANSI_QUOTES, where a double-quoted string is parsed as an identifier, not a string
+--   literal, and this migration would otherwise fail with a syntax error.
 
 SET @vario_charset := IFNULL((
   SELECT CHARACTER_SET_NAME FROM information_schema.COLUMNS
@@ -68,7 +75,7 @@ SET @ddl := IF(@vopa_exists = 0, CONCAT(
     '`entity_id` INT NOT NULL,',
     '`vario_id` VARCHAR(10) CHARACTER SET ', @vario_charset, ' COLLATE ', @vario_collation, ' NOT NULL,',
     '`modifier_id` INT NOT NULL,',
-    '`state` ENUM("suggested","active_unconfirmed","confirmed","rejected") NOT NULL,',
+    '`state` ENUM(''suggested'',''active_unconfirmed'',''confirmed'',''rejected'') NOT NULL,',
     '`confirmed_by` INT NULL,',
     '`confirmed_at` DATETIME NULL,',
     '`rejected_reason` VARCHAR(255) NULL,',
@@ -77,7 +84,7 @@ SET @ddl := IF(@vopa_exists = 0, CONCAT(
     'PRIMARY KEY (`assertion_id`),',
     'UNIQUE KEY `uq_assertion` (`entity_id`, `vario_id`, `modifier_id`),',
     'KEY `idx_state` (`state`),',
-    'CONSTRAINT `chk_confirmed_attribution` CHECK (`state` <> "confirmed" OR (`confirmed_by` IS NOT NULL AND `confirmed_at` IS NOT NULL)),',
+    'CONSTRAINT `chk_confirmed_attribution` CHECK (`state` <> ''confirmed'' OR (`confirmed_by` IS NOT NULL AND `confirmed_at` IS NOT NULL)),',
     'CONSTRAINT `fk_assertion_entity` FOREIGN KEY (`entity_id`) REFERENCES `ndd_entity` (`entity_id`),',
     'CONSTRAINT `fk_assertion_vario` FOREIGN KEY (`vario_id`) REFERENCES `variation_ontology_list` (`vario_id`),',
     'CONSTRAINT `fk_assertion_modifier` FOREIGN KEY (`modifier_id`) REFERENCES `modifier_list` (`modifier_id`),',
@@ -98,7 +105,7 @@ SET @ddl2 := IF(@vope_exists = 0, CONCAT(
   'CREATE TABLE `variation_ontology_evidence` (',
     '`evidence_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,',
     '`assertion_id` INT UNSIGNED NOT NULL,',
-    '`source_type` ENUM("literature","external_database") NOT NULL,',
+    '`source_type` ENUM(''literature'',''external_database'') NOT NULL,',
     '`source_key` VARCHAR(64) NOT NULL,',
     '`batch_id` VARCHAR(64) NOT NULL,',
     '`source_version` VARCHAR(128) NULL,',

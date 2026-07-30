@@ -5,15 +5,28 @@
 # Applies migration 047 directly to the test database (mirroring the
 # apply_test_analysis_snapshot_release_migration() / apply-through-
 # split_sql_statements() idiom in test-unit-analysis-snapshot-release-migration.R)
-# and asserts the two provenance tables exist, enforce their identity/CHECK
-# constraints, and that the migration text never touches
-# ndd_review_variation_ontology_connect. Migration 047 has FKs to `ndd_entity`,
-# `variation_ontology_list`, `modifier_list`, and `user`, so this test seeds
-# minimal rows in each (creating the user fixture table via
-# ensure_test_user_table() first) and cleans them up. Because the migration's
-# CREATE TABLE statements are guarded via information_schema existence checks
-# (DDL auto-commits and cannot be rolled back), the test drops the two
-# provenance tables itself at the end so reruns stay idempotent.
+# and asserts the two provenance tables exist, enforce their identity/FK/CHECK
+# constraints (including the charset derivation the migration's FK depends on),
+# and that the migration text never touches ndd_review_variation_ontology_connect.
+#
+# Migration 047 has FKs to `ndd_entity`, `variation_ontology_list`,
+# `modifier_list`, and `user`. This file creates ALL FOUR of those fixture
+# tables itself (ensure_test_user_table() for `user`, plus
+# ensure_variation_provenance_fk_fixture_tables() for the other three, mirrored
+# on the stripped-down shapes api/tests/testthat/test-integration-review-write-
+# atomicity.R happens to use) rather than relying on that other file having
+# already created them. Review finding I1 (2026-07-30 review-foundation.md):
+# an earlier revision of this file only *checked* for those three tables and
+# `skip()`ped if absent, so running this file alone (or with that file
+# excluded/reordered) skipped past the table-existence assertions straight to
+# the identity/FK/CHECK/idempotency block with zero of it actually executing,
+# while still reporting green. Creating the fixtures here makes that skip path
+# unreachable and this file self-sufficient in isolation.
+#
+# Because the migration's CREATE TABLE statements are guarded via
+# information_schema existence checks (DDL auto-commits and cannot be rolled
+# back), the test drops the two provenance tables itself at the end so reruns
+# stay idempotent.
 
 migration_test_api_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
 source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), local = FALSE)
@@ -65,6 +78,35 @@ drop_variation_provenance_tables <- function(conn) {
   invisible(TRUE)
 }
 
+#' Ensure the three non-`user` FK-target tables migration 047 references exist,
+#' creating minimal fixtures if not. Mirrors ensure_test_user_table()'s own
+#' idiom and the exact stripped-down shapes
+#' test-integration-review-write-atomicity.R already uses in this test DB
+#' (`CREATE TABLE IF NOT EXISTS`, so if that file's fuller/differently-shaped
+#' tables already exist, this is a no-op and their shape wins -- consistent
+#' with insert_only_existing_columns() below tolerating either shape). This is
+#' the I1 fix (review-foundation.md, 2026-07-30): without creating these here,
+#' this file's own constraint verification silently no-ops if it is ever run
+#' without that other file having run first.
+ensure_variation_provenance_fk_fixture_tables <- function(conn) {
+  statements <- c(
+    "CREATE TABLE IF NOT EXISTS ndd_entity (
+       entity_id INT NOT NULL PRIMARY KEY,
+       entry_user_id INT NULL
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    "CREATE TABLE IF NOT EXISTS variation_ontology_list (
+       vario_id VARCHAR(10) NOT NULL PRIMARY KEY
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    "CREATE TABLE IF NOT EXISTS modifier_list (
+       modifier_id INT NOT NULL PRIMARY KEY
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+  )
+  for (statement in statements) {
+    DBI::dbExecute(conn, statement, immediate = TRUE)
+  }
+  invisible(TRUE)
+}
+
 #' Insert a row into `table` using only the given values whose column name
 #' actually exists on the live table. Mirrors review_write_insert_entity() in
 #' test-integration-review-write-atomicity.R, because this test DB's FK-target
@@ -89,18 +131,11 @@ insert_only_existing_columns <- function(conn, table, values) {
 }
 
 #' Ensure the minimal FK-target rows this migration's tables reference exist,
-#' returning their ids. Skips (does not error) if a required FK target table
-#' is missing entirely.
+#' returning their ids. The four FK-target tables themselves are guaranteed to
+#' exist by the caller (ensure_test_user_table() +
+#' ensure_variation_provenance_fk_fixture_tables(), both called before this),
+#' so there is no longer a missing-table skip path here (I1 fix).
 seed_variation_provenance_fk_targets <- function(conn) {
-  required_tables <- c("ndd_entity", "variation_ontology_list", "modifier_list", "user")
-  missing <- required_tables[!vapply(required_tables, DBI::dbExistsTable, logical(1), conn = conn)]
-  if (length(missing) > 0) {
-    testthat::skip(paste(
-      "Required FK target table(s) missing from test DB:",
-      paste(missing, collapse = ", ")
-    ))
-  }
-
   # Check-before-insert (not just INSERT IGNORE) so a prior interrupted run's
   # leftover row is detected and reused rather than erroring on this rerun,
   # and so cleanup below only removes rows this run actually created.
@@ -218,6 +253,7 @@ test_that("migration 047 creates the assertion + evidence tables with working co
   withr::defer(DBI::dbDisconnect(conn))
 
   ensure_test_user_table(conn)
+  ensure_variation_provenance_fk_fixture_tables(conn)
 
   # Clean slate: drop any leftovers from a prior interrupted run so the
   # dynamic CREATE TABLE guards actually create fresh tables here. The
@@ -244,6 +280,42 @@ test_that("migration 047 creates the assertion + evidence tables with working co
     "evidence_id", "assertion_id", "source_type", "source_key", "batch_id",
     "source_version", "evidence_summary", "evidence_strength", "evidence_json", "created_at"
   ) %in% evidence_cols))
+
+  # --- I2 fix: all five FKs actually exist, naming referenced table/column ---
+  fk_info <- DBI::dbGetQuery(
+    conn,
+    "SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+     FROM information_schema.KEY_COLUMN_USAGE
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME IN ('variation_ontology_assertion', 'variation_ontology_evidence')
+       AND REFERENCED_TABLE_NAME IS NOT NULL"
+  )
+  fk_actual <- setNames(
+    paste(fk_info$COLUMN_NAME, fk_info$REFERENCED_TABLE_NAME, fk_info$REFERENCED_COLUMN_NAME, sep = "->"),
+    fk_info$CONSTRAINT_NAME
+  )
+  fk_expected <- c(
+    fk_assertion_entity   = "entity_id->ndd_entity->entity_id",
+    fk_assertion_vario    = "vario_id->variation_ontology_list->vario_id",
+    fk_assertion_modifier = "modifier_id->modifier_list->modifier_id",
+    fk_assertion_user     = "confirmed_by->user->user_id",
+    fk_evidence_assertion = "assertion_id->variation_ontology_assertion->assertion_id"
+  )
+  expect_setequal(names(fk_actual), names(fk_expected))
+  expect_equal(fk_actual[names(fk_expected)], fk_expected)
+
+  # --- I2 fix: the charset derivation is meaningful, not decorative -- the
+  # FK column on the new table must carry the SAME charset/collation as the
+  # referenced variation_ontology_list.vario_id column, whatever that is live.
+  vario_charset_info <- DBI::dbGetQuery(
+    conn,
+    "SELECT TABLE_NAME, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME = 'vario_id'
+       AND TABLE_NAME IN ('variation_ontology_list', 'variation_ontology_assertion')"
+  )
+  expect_equal(nrow(vario_charset_info), 2L)
+  expect_equal(length(unique(vario_charset_info$CHARACTER_SET_NAME)), 1L)
+  expect_equal(length(unique(vario_charset_info$COLLATION_NAME)), 1L)
 
   ids <- seed_variation_provenance_fk_targets(conn)
   withr::defer(cleanup_variation_provenance_fk_targets(conn, ids))
@@ -317,6 +389,42 @@ test_that("migration 047 creates the assertion + evidence tables with working co
       params = unname(list(ids$entity_id, ids$vario_id_2))
     )
   )
+
+  # --- I2 fix: fk_assertion_entity is actually enforced on INSERT, not just
+  # declared in the schema. Deleting the FK fragments from the migration's
+  # CONCAT() would still pass every assertion above this one.
+  bogus_entity_id <- 999999998L
+  expect_error(
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO variation_ontology_assertion (entity_id, vario_id, modifier_id, state)
+       VALUES (?, ?, 1, 'suggested')",
+      params = unname(list(bogus_entity_id, ids$vario_id))
+    )
+  )
+
+  # --- I2 fix: positive path -- state='confirmed' WITH a valid confirmed_by
+  # and confirmed_at is ACCEPTED. Closes the implementer-flagged gap: a
+  # chk_confirmed_attribution that rejected every legitimate confirm (not just
+  # the NULL-attribution case above) would otherwise still pass this suite.
+  # Reuses (entity_id, vario_id_2, modifier_id=1) -- the immediately preceding
+  # NULL-attribution attempt on this exact key was rejected, so no row exists
+  # for it yet and this insert cannot collide with uq_assertion.
+  DBI::dbExecute(
+    conn,
+    "INSERT INTO variation_ontology_assertion
+       (entity_id, vario_id, modifier_id, state, confirmed_by, confirmed_at)
+     VALUES (?, ?, 1, 'confirmed', ?, NOW())",
+    params = unname(list(ids$entity_id, ids$vario_id_2, ids$user_id))
+  )
+  confirmed_row <- DBI::dbGetQuery(
+    conn,
+    "SELECT state, confirmed_by FROM variation_ontology_assertion
+     WHERE entity_id = ? AND vario_id = ? AND modifier_id = 1",
+    params = unname(list(ids$entity_id, ids$vario_id_2))
+  )
+  expect_equal(confirmed_row$state, "confirmed")
+  expect_equal(as.integer(confirmed_row$confirmed_by), ids$user_id)
 
   # --- Idempotency: applying the migration again does not duplicate the tables ---
   apply_variation_provenance_migration(conn)
