@@ -280,6 +280,10 @@ bootstrap_load_modules <- function() {
     "services/job-query-endpoint-service.R",
     "services/re-review-query-endpoint-service.R",
     "services/re-review-workflow-endpoint-service.R",
+    # Variation-ontology provenance read surface (#608). Sourced BEFORE
+    # entity-read-endpoint-service.R, which consumes it to attach the per-term
+    # `provenance` object to GET /entity/<id>/variation.
+    "services/entity-variation-provenance-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

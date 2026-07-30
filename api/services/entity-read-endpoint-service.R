@@ -287,8 +287,20 @@ svc_entity_phenotypes <- function(sysndd_id, current_review, approved_review_ids
 
 #' `GET /entity/<id>/variation` — DB-touching orchestrator
 #'
+#' Each returned term carries a `provenance` list-column (#608): NULL — i.e.
+#' JSON `null` — when the term has no assertion row, which the API contract
+#' defines as curator-authored, and otherwise the compact
+#' `state`/`max_strength`/`sources` block built by
+#' `svc_variation_attach_provenance()`
+#' (services/entity-variation-provenance-service.R). Provenance costs exactly
+#' ONE extra query per request (`provenance_for_entity()`) followed by a pure
+#' in-memory join — never one query per term — and the route stays DB-only.
+#' With zero assertion rows the response is inert: `provenance` is null on
+#' every term and no other field changes (the release gate, spec 7.1; locked by
+#' tests/testthat/test-unit-variation-provenance-endpoints.R).
+#'
 #' @inheritParams svc_entity_phenotypes
-#' @return Tibble of entity_id, vario_id, vario_name, modifier_id.
+#' @return Tibble of entity_id, vario_id, vario_name, modifier_id, provenance.
 #' @export
 svc_entity_variation <- function(sysndd_id, current_review, approved_review_ids, pool) {
   if (current_review) {
@@ -314,11 +326,23 @@ svc_entity_variation <- function(sysndd_id, current_review, approved_review_ids,
     tbl("variation_ontology_list") %>%
     collect()
 
-  ndd_review_variation_conn_coll %>%
+  variation_terms <- ndd_review_variation_conn_coll %>%
     inner_join(variation_list_collected, by = c("vario_id")) %>%
     dplyr::select(entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id) %>%
     unique()
+
+  # Provenance is attached AFTER unique(): a list-column would break unique().
+  # One query, then a pure join on the full (entity_id, vario_id, modifier_id)
+  # identity — `present` and `absent` are different claims and get independent
+  # provenance. Deliberately NOT tryCatch-wrapped: a swallowed failure here
+  # would render every term as curator-authored, which is the exact
+  # fabrication this feature exists to prevent (see the module header of
+  # services/entity-variation-provenance-service.R).
+  svc_variation_attach_provenance(
+    variation_terms,
+    provenance_for_entity(pool, sysndd_id)
+  )
 }
 
 

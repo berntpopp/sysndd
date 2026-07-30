@@ -248,14 +248,23 @@ function(sysndd_id, current_review = TRUE) {
 #* Retrieves variation ontology terms for entity_id. Defaults to the
 #* currently active (primary + approved) review only.
 #*
+#* Each term carries a `provenance` object (#608) recording where the
+#* annotation came from, or `null` when the term is curator-authored (no
+#* assertion row). The `null="null"` serializer argument is load-bearing:
+#* without it jsonlite renders a NULL list element as `{}` instead of `null`
+#* and the curator-authored contract breaks. `na="string"` would otherwise
+#* render an unrecorded numeric strength as the string "NA", so the service
+#* normalizes unrecorded scalars to NULL — see
+#* services/entity-variation-provenance-service.R.
+#*
 #* @tag entity
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", null="null")
 #*
 #* @param sysndd_id The entity_id for which ontology should be retrieved.
 #* @param current_review A logical, if TRUE (default) returns variations from
 #* the currently active review only. If FALSE, returns all active variations.
 #*
-#* @response 200 OK. A data frame with variation ontology information and review metadata.
+#* @response 200 OK. A data frame with variation ontology information, provenance and review metadata.
 #* @response 500 Internal server error.
 #*
 #* @get /<sysndd_id>/variation
@@ -269,6 +278,77 @@ function(sysndd_id, current_review = TRUE) {
   }
 
   svc_entity_variation(sysndd_id, current_review, approved_review_ids, pool)
+}
+
+
+#* Get Suggested Variation Ontology Terms for Entity
+#*
+#* Retrieves the `suggested` variation-ontology assertions for entity_id, with
+#* their full evidence records, so the curation form can offer them as
+#* candidate terms (#608). Suggestions are NOT part of the curated set and are
+#* deliberately absent from `GET /<sysndd_id>/variation`.
+#*
+#* DECLARATION ORDER IS LOAD-BEARING: this literal route MUST stay declared
+#* before any dynamic `/<sysndd_id>/variation/<...>` route. Plumber matches in
+#* declaration order, so a single-segment dynamic sibling declared first would
+#* capture "suggestions" as a `vario_id` (verified empirically, and the same
+#* trap that `GET /api/status/_list` hit). Locked by
+#* tests/testthat/test-unit-variation-provenance-endpoints.R.
+#*
+#* Curation workflow data, not public content: gated at Curator. Anonymous
+#* requests are forwarded by require_auth, so the handler self-gates.
+#*
+#* @tag entity
+#* @serializer json list(na="string", null="null")
+#*
+#* @param sysndd_id The entity_id for which suggestions should be retrieved.
+#*
+#* @response 200 OK. An array of suggested assertions with their evidence (empty when there are none).
+#* @response 400 Bad Request. entity id is not an integer.
+#* @response 403 Forbidden. Caller is not a Curator or above.
+#* @response 500 Internal server error.
+#*
+#* @get /<sysndd_id>/variation/suggestions
+function(req, res, sysndd_id) {
+  require_role(req, res, "Curator")
+
+  svc_entity_variation_suggestions(sysndd_id, pool)
+}
+
+
+#* Get Variation Ontology Provenance Evidence for One Term
+#*
+#* Retrieves the full evidence payloads (including `evidence_json`) behind one
+#* `(entity_id, vario_id, modifier_id)` assertion (#608). The compact
+#* `provenance.sources` block on `GET /<sysndd_id>/variation` deliberately
+#* omits these payloads to keep that hot path small.
+#*
+#* Public and DB-only. The entity is resolved through `ndd_entity_view` inside
+#* the same statement and the assertion state is gated to the served states, so
+#* a non-public entity or a suggested/rejected assertion can never surface
+#* here. A missing entity and a missing assertion return the SAME 404 with the
+#* same message, so the route cannot be used to probe for either.
+#*
+#* `vario_id` is a CURIE containing a colon (`VariO:0017`). Verified against
+#* plumber 1.3.x: a raw colon routes correctly inside a single path segment,
+#* but plumber does NOT percent-decode path parameters, so the service
+#* URL-decodes the value and both encodings resolve identically.
+#*
+#* @tag entity
+#* @serializer json list(na="string", null="null")
+#*
+#* @param sysndd_id The entity_id the assertion belongs to.
+#* @param vario_id The variation-ontology CURIE, e.g. VariO:0017.
+#* @param modifier_id The modifier id, e.g. 1 (present) or 5 (absent).
+#*
+#* @response 200 OK. The assertion identity, state and its evidence array.
+#* @response 400 Bad Request. Malformed entity id, vario_id or modifier_id.
+#* @response 404 Not Found. No publicly visible assertion matches.
+#* @response 500 Internal server error.
+#*
+#* @get /<sysndd_id>/variation/<vario_id>/<modifier_id>/evidence
+function(sysndd_id, vario_id, modifier_id) {
+  svc_entity_variation_evidence(sysndd_id, vario_id, modifier_id, pool)
 }
 
 
