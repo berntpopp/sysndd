@@ -127,7 +127,7 @@ function starGlyph(strength: number): string {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border-subtle, #d9e0ea);
   border-radius: var(--radius-md, 0.375rem);
-  background: #fff;
+  background: var(--surface-raised, #fff);
   list-style: none;
 }
 

@@ -524,6 +524,10 @@ const {
   color: var(--neutral-700, #616161);
   font-size: var(--font-size-xs, 0.75rem);
   line-height: 1.35;
+  /* An ancestor centres this card's contents, which suits short chips but turns
+     this ~10-line explanatory paragraph into centred body copy in the narrow
+     xl=2 column. Left-align just the prose; the chips keep the panel default. */
+  text-align: left;
 }
 .entity-provenance-group {
   display: inline-flex;
