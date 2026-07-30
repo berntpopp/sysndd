@@ -75,3 +75,42 @@ test_that("the return value is always integer type, never double", {
   expect_identical(normalize_evidence_strength("external_database", 0L), 0L)
   expect_identical(normalize_evidence_strength("external_database", 9), NA_integer_)
 })
+
+test_that("out-of-range values reject cleanly with no coercion warning (M4)", {
+  # A digit string whose numeric value overflows as.integer()'s range used to
+  # let as.integer() run anyway and emit "NAs introduced by coercion to
+  # integer range" before the post-hoc range check caught it. The fix must
+  # range-check before ever calling as.integer() on an out-of-range value.
+  expect_no_warning(
+    result_big_string <- normalize_evidence_strength("external_database", "99999999999"))
+  expect_identical(result_big_string, NA_integer_)
+
+  expect_no_warning(
+    result_big_double <- normalize_evidence_strength("external_database", 1e20))
+  expect_identical(result_big_double, NA_integer_)
+
+  # Ordinary in-range values must still return exactly as before, with no
+  # warning either (guards against an overzealous fix that warns on the
+  # happy path too).
+  expect_no_warning(
+    result_zero <- normalize_evidence_strength("external_database", 0))
+  expect_identical(result_zero, 0L)
+
+  expect_no_warning(
+    result_four_string <- normalize_evidence_strength("external_database", "4"))
+  expect_identical(result_four_string, 4L)
+
+  expect_no_warning(
+    result_two_double <- normalize_evidence_strength("external_database", 2.0))
+  expect_identical(result_two_double, 2L)
+
+  # The other existing out-of-range cases (small negative int, fractional)
+  # must also stay warning-free.
+  expect_no_warning(
+    result_negative <- normalize_evidence_strength("external_database", -1))
+  expect_identical(result_negative, NA_integer_)
+
+  expect_no_warning(
+    result_fractional <- normalize_evidence_strength("external_database", 1.9))
+  expect_identical(result_fractional, NA_integer_)
+})

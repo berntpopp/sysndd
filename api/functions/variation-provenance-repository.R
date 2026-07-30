@@ -75,11 +75,46 @@ provenance_for_entity <- function(pool, entity_id) {
 #' `provenance$entity_id` is an integer straight from DBI. Coercing both
 #' sides to integer up front removes that risk entirely.
 #'
+#' Fails loudly (a classed `stop()`, not a warning) when `terms` is missing
+#' any identity column, or when a non-NULL `provenance` is missing any
+#' column this function reads. Without this guard, `paste()` on a missing
+#' column silently contributes `""` to the join key (verified:
+#' `paste(c(1L, 2L), c("a", "b"), integer(0), sep = "|")` gives
+#' `c("1|a|", "2|b|")`), which matches no `prov_key` -- so a caller typo or
+#' a column-rename refactor would make EVERY term render as `NULL` /
+#' curator-authored with no error and no NA, which is exactly the
+#' fabricated-provenance failure mode this feature exists to prevent. A
+#' zero-ROW `provenance` (e.g. `provenance[0, ]`) still has all its column
+#' NAMES, so this is a column-presence check, not a row-count check, and a
+#' legitimately empty provenance table is unaffected. `provenance = NULL`
+#' (no provenance available at all) is intentionally exempt from this
+#' check -- it is a supported degenerate input distinct from "malformed
+#' non-NULL provenance", and already causes every term to resolve to `NULL`
+#' with no error (verified pre-fix behaviour, preserved on purpose).
+#'
 #' @param terms Tibble with entity_id, vario_id and modifier_id columns.
-#' @param provenance Tibble as returned by provenance_for_entity().
+#' @param provenance Tibble as returned by provenance_for_entity(), or NULL.
 #' @return `terms` with an added list-column `provenance`.
 #' @export
 attach_provenance <- function(terms, provenance) {
+  required_terms_cols <- c("entity_id", "vario_id", "modifier_id")
+  missing_terms_cols <- setdiff(required_terms_cols, names(terms))
+  if (length(missing_terms_cols) > 0) {
+    stop("attach_provenance(): `terms` is missing required column(s): ",
+         paste(missing_terms_cols, collapse = ", "))
+  }
+
+  required_provenance_cols <- c("entity_id", "vario_id", "modifier_id", "state",
+                                "source_type", "source_key", "evidence_strength",
+                                "evidence_summary")
+  if (!is.null(provenance)) {
+    missing_provenance_cols <- setdiff(required_provenance_cols, names(provenance))
+    if (length(missing_provenance_cols) > 0) {
+      stop("attach_provenance(): `provenance` is missing required column(s): ",
+           paste(missing_provenance_cols, collapse = ", "))
+    }
+  }
+
   prov_key <- paste(as.integer(provenance$entity_id), provenance$vario_id,
                     as.integer(provenance$modifier_id), sep = "|")
   term_key <- paste(as.integer(terms$entity_id), terms$vario_id,
@@ -115,7 +150,15 @@ attach_provenance <- function(terms, provenance) {
       )
     })
 
-    max_strength <- if (all(is.na(strength))) NA_integer_ else max(strength, na.rm = TRUE)
+    # as.integer() on the non-NA branch keeps the type stable: max() alone
+    # returns whatever type `strength` arrives as (double if
+    # evidence_strength ever arrives as a double), which would disagree
+    # with the NA_integer_ branch and the documented integer contract.
+    max_strength <- if (all(is.na(strength))) {
+      NA_integer_
+    } else {
+      as.integer(max(strength, na.rm = TRUE))
+    }
 
     list(
       state        = state,

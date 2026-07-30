@@ -27,9 +27,19 @@ normalize_evidence_strength <- function(source_type, raw) {
 
     if (is.character(raw)) {
       if (!grepl("^[0-9]+$", raw)) return(NA_integer_)
-      stars <- as.integer(raw)
+      # Range-check as a double BEFORE coercing to integer. as.double() never
+      # warns on an out-of-range digit string (it saturates to Inf instead),
+      # whereas as.integer() on the same string emits "NAs introduced by
+      # coercion to integer range" -- a validator should reject cleanly, not
+      # warn, so out-of-range values must never reach as.integer().
+      stars_dbl <- as.double(raw)
+      if (is.na(stars_dbl) || stars_dbl < 0 || stars_dbl > 4) return(NA_integer_)
+      stars <- as.integer(stars_dbl)
     } else if (is.numeric(raw)) {
       if (raw != trunc(raw)) return(NA_integer_)
+      # Same reasoning as above: range-check before as.integer() so a huge
+      # integer-valued double (e.g. 1e20) never reaches the coercion warning.
+      if (raw < 0 || raw > 4) return(NA_integer_)
       stars <- as.integer(raw)
     } else {
       return(NA_integer_)

@@ -238,6 +238,82 @@ test_that("type stability: modifier_id as double in terms matches integer in pro
   expect_equal(out$provenance[[1]]$state, "confirmed")
 })
 
+# --- Fix round 1 (review-foundation.md I3 / M5) ------------------------------
+
+test_that("a terms tibble missing an identity column fails loudly, naming the column", {
+  # I3: before this guard, paste() silently renders the missing column as
+  # "" for every row, so every term would match nothing and render as
+  # NULL / curator-authored -- a silent fabrication, not an error. Assert
+  # the actual failure mode (a classed stop() naming the column), not just
+  # "some error happened".
+  terms_missing_modifier <- dplyr::select(terms_fixture, -modifier_id)
+  expect_error(
+    attach_provenance(terms_missing_modifier, provenance_fixture),
+    "modifier_id"
+  )
+
+  terms_missing_entity <- dplyr::select(terms_fixture, -entity_id)
+  expect_error(
+    attach_provenance(terms_missing_entity, provenance_fixture),
+    "entity_id"
+  )
+
+  terms_missing_vario <- dplyr::select(terms_fixture, -vario_id)
+  expect_error(
+    attach_provenance(terms_missing_vario, provenance_fixture),
+    "vario_id"
+  )
+})
+
+test_that("a non-NULL provenance tibble missing a required column fails loudly, naming the column", {
+  provenance_missing_state <- dplyr::select(provenance_fixture, -state)
+  expect_error(
+    attach_provenance(terms_fixture, provenance_missing_state),
+    "state"
+  )
+
+  provenance_missing_source_key <- dplyr::select(provenance_fixture, -source_key)
+  expect_error(
+    attach_provenance(terms_fixture, provenance_missing_source_key),
+    "source_key"
+  )
+
+  provenance_missing_summary <- dplyr::select(provenance_fixture, -evidence_summary)
+  expect_error(
+    attach_provenance(terms_fixture, provenance_missing_summary),
+    "evidence_summary"
+  )
+})
+
+test_that("a zero-row provenance table (all columns intact) still passes validation and works", {
+  # Regression guard distinguishing "0 rows" from "0/missing columns": the
+  # I3 guard must be a column-presence check, not a row-count check.
+  out <- attach_provenance(terms_fixture, provenance_fixture[0, ])
+  expect_true(all(vapply(out$provenance, is.null, logical(1))))
+})
+
+test_that("a zero-row terms table (all columns intact) still passes validation and works", {
+  out <- attach_provenance(terms_fixture[0, ], provenance_fixture)
+  expect_true("provenance" %in% names(out))
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("provenance = NULL is exempt from the column-presence guard and keeps prior behaviour", {
+  # NULL is a supported degenerate input ("no provenance available"),
+  # distinct from a malformed non-NULL provenance object. It must not be
+  # rejected by the I3 guard; every term should resolve to NULL as before.
+  out <- attach_provenance(terms_fixture, NULL)
+  expect_true(all(vapply(out$provenance, is.null, logical(1))))
+})
+
+test_that("max_strength is always integer, never double, when strengths are present", {
+  out <- attach_provenance(terms_fixture, provenance_fixture)
+  prov <- out[out$vario_id == "VariO:0017" & out$modifier_id == 1L, ]$provenance[[1]]
+
+  expect_identical(prov$max_strength, 3L)
+  expect_true(is.integer(prov$max_strength))
+})
+
 test_that("large round entity_id values still match across double/integer (defensive normalization)", {
   # A broader footgun found while empirically checking the claim above:
   # paste(100000, "x") renders "1e+05" for a *double* but paste(100000L, "x")
