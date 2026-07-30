@@ -110,6 +110,7 @@ bootstrap_load_modules <- function() {
     "functions/ontology-repository.R",
     "functions/variation-provenance-evidence.R",
     "functions/variation-provenance-repository.R",
+    "functions/variation-provenance-reconcile.R",
     "functions/mcp-search-repository.R",
     "functions/mcp-repository.R",
     "functions/mcp-analysis-cache-repository.R",

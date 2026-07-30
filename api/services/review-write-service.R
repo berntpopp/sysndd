@@ -97,6 +97,165 @@ review_write_normalize_ontology <- function(terms, id_field) {
   dplyr::select(out, dplyr::all_of(c(id_field, "modifier_id")))
 }
 
+# --- Variation-ontology provenance actions ---------------------------------
+#
+# review_write_normalize_ontology() above deliberately reduces each submitted
+# term to exactly (vario_id, modifier_id): it is shared with the phenotype path
+# (which has no provenance) and its two-column output is the connect-table write
+# payload. Widening it would push an unused column into that write and break its
+# existing contract.
+#
+# So the provenance action is read from the RAW submission instead, before
+# normalization, by the extractor below. It returns a separate table that only
+# the reconciliation consumes; the curated-write payload is unchanged.
+
+#' Zero-row provenance-action table with the exact column contract
+#'
+#' @keywords internal
+review_write_empty_provenance_actions <- function() {
+  tibble::tibble(
+    vario_id          = character(),
+    modifier_id       = integer(),
+    provenance_action = character()
+  )
+}
+
+#' Normalize a raw variation-ontology payload to a list of records
+#'
+#' The three prefill-and-resubmit frontend surfaces differ, and Plumber's body
+#' parser uses jsonlite with `simplifyVector = TRUE`, so the payload arrives as
+#' any of: NULL, `list()`, one un-nested record, a list of records, or a
+#' data.frame (a uniform JSON array of objects simplifies to exactly that).
+#'
+#' The data.frame case is the trap: iterating a data.frame walks its COLUMNS
+#' (atomic vectors), so `vapply(payload, function(x) x$vario_id, ...)` dies with
+#' "$ operator is invalid for atomic vectors" -- see the
+#' async-job-force-apply-payload.R note in AGENTS.md. Shape is therefore
+#' normalized before any field is touched.
+#'
+#' @keywords internal
+review_write_provenance_records <- function(variation_ontology) {
+  if (is.null(variation_ontology) || length(variation_ontology) == 0L) {
+    return(list())
+  }
+
+  if (is.data.frame(variation_ontology)) {
+    return(lapply(
+      seq_len(nrow(variation_ontology)),
+      function(index) as.list(variation_ontology[index, , drop = FALSE])
+    ))
+  }
+
+  if (!is.list(variation_ontology)) {
+    # A bare vector carries no field names; review_write_normalize_ontology()
+    # rejects that shape with a 400, so degrade quietly here.
+    return(list())
+  }
+
+  record_fields <- c("value", "vario_id", "modifier_id", "provenance_action")
+  payload_names <- names(variation_ontology)
+  if (!is.null(payload_names) && any(record_fields %in% payload_names)) {
+    return(list(variation_ontology))
+  }
+
+  variation_ontology
+}
+
+#' Read one scalar character field out of a single raw record
+#'
+#' @keywords internal
+review_write_provenance_field <- function(record, field) {
+  if (!is.list(record) && !is.data.frame(record)) {
+    return(NA_character_)
+  }
+  if (!field %in% names(record)) {
+    return(NA_character_)
+  }
+
+  value <- record[[field]]
+  if (is.null(value) || length(value) == 0L) {
+    return(NA_character_)
+  }
+
+  value <- as.character(value[[1L]])
+  if (length(value) != 1L || is.na(value)) {
+    return(NA_character_)
+  }
+  value
+}
+
+#' Extract per-term provenance actions from the RAW submitted payload
+#'
+#' Handles every raw shape the payload actually arrives in (see
+#' review_write_provenance_records()). A `value` tag
+#' `"<modifier_id>-<vario_id>"` is split on the FIRST "-" only -- mirroring the
+#' normalizer's own `regexpr("-", value, fixed = TRUE)` approach -- because a
+#' VariO id can itself contain a hyphen and numeric coercion of the ontology
+#' half is the #600 bug (see app/src/utils/ontologyTags.ts).
+#'
+#' Rows whose identity is unusable (blank vario_id, non-integer modifier_id) are
+#' DROPPED rather than raising: this is a best-effort projection of the payload
+#' used only as a lookup keyed by identity, and review_write_normalize_ontology()
+#' owns the client-visible 400 for a genuinely malformed submission.
+#'
+#' Rows with no action are still returned, with `provenance_action = NA`, so the
+#' result is a faithful, debuggable projection of the submitted set. Missing,
+#' NULL, NA and blank actions all become NA_character_ -- never "confirm".
+#' Whitespace is trimmed (consistent with this file's other identifier
+#' handling), but case is NOT folded: only the exact string "confirm" confirms,
+#' and any other value falls through to "no action" (fail-closed).
+#'
+#' @param variation_ontology Raw submitted variation-ontology payload.
+#' @return Tibble(vario_id character, modifier_id integer,
+#'   provenance_action character).
+#' @export
+review_write_extract_provenance_actions <- function(variation_ontology) {
+  records <- review_write_provenance_records(variation_ontology)
+  if (length(records) == 0L) {
+    return(review_write_empty_provenance_actions())
+  }
+
+  parsed <- lapply(records, function(record) {
+    tag <- review_write_provenance_field(record, "value")
+    if (!is.na(tag)) {
+      separator <- regexpr("-", tag, fixed = TRUE)
+      if (separator > 0L) {
+        modifier <- substr(tag, 1L, separator - 1L)
+        ontology_id <- substr(tag, separator + 1L, nchar(tag))
+      } else {
+        modifier <- NA_character_
+        ontology_id <- NA_character_
+      }
+    } else {
+      ontology_id <- review_write_provenance_field(record, "vario_id")
+      modifier <- review_write_provenance_field(record, "modifier_id")
+    }
+
+    action <- review_write_provenance_field(record, "provenance_action")
+    if (!is.na(action)) {
+      action <- trimws(action)
+      if (!nzchar(action)) {
+        action <- NA_character_
+      }
+    }
+
+    list(
+      vario_id = if (is.na(ontology_id)) NA_character_ else trimws(ontology_id),
+      modifier_id = suppressWarnings(as.integer(trimws(as.character(modifier)))),
+      provenance_action = action
+    )
+  })
+
+  out <- tibble::tibble(
+    vario_id          = vapply(parsed, function(row) row$vario_id, character(1)),
+    modifier_id       = vapply(parsed, function(row) row$modifier_id, integer(1)),
+    provenance_action = vapply(parsed, function(row) row$provenance_action, character(1))
+  )
+
+  usable <- !is.na(out$vario_id) & nzchar(out$vario_id) & !is.na(out$modifier_id)
+  out[usable, , drop = FALSE]
+}
+
 review_write_validate_required <- function(value, field) {
   if (is.null(value) || length(value) != 1L || is.na(value) ||
       (is.character(value) && !nzchar(trimws(value)))) {
@@ -141,6 +300,10 @@ review_write_prepare <- function(method, review_data, publications,
   if (identical(method, "PUT")) {
     review_write_validate_required(review_data$review_id, "review_id")
   }
+
+  # Read the provenance actions off the RAW payload BEFORE normalization
+  # discards every field except (vario_id, modifier_id).
+  variation_provenance_actions <- review_write_extract_provenance_actions(variation_ontology)
 
   phenotypes <- review_write_normalize_ontology(phenotypes, "phenotype_id")
   variation_ontology <- review_write_normalize_ontology(variation_ontology, "vario_id")
@@ -188,7 +351,8 @@ review_write_prepare <- function(method, review_data, publications,
     publications = tibble::as_tibble(publications),
     prepared_publications = prepared_publications,
     phenotypes = phenotypes,
-    variation_ontology = variation_ontology
+    variation_ontology = variation_ontology,
+    variation_provenance_actions = variation_provenance_actions
   )
 }
 
@@ -231,6 +395,25 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
       review_id, entity_id, prepared$variation_ontology, conn = txn_conn
     )
   }
+
+  # Reconcile the entity's provenance assertions against what was actually
+  # submitted, on the SAME transaction connection as the curated writes above,
+  # so a later failure rolls the state transitions back with everything else.
+  #
+  # Both POST and PUT reconcile: assertions are entity-scoped, not
+  # review-scoped, and the laundering this fixes happens specifically when a
+  # NEW review is created for an entity.
+  #
+  # Deliberately NOT exists()-guarded. A missing module must fail loudly rather
+  # than silently skip reconciliation, which would silently restore the #608
+  # laundering bug; the registration is locked by a static test guard.
+  variation_provenance_reconcile_for_review(
+    entity_id = entity_id,
+    submitted = prepared$variation_ontology,
+    actions = prepared$variation_provenance_actions,
+    review_user_id = review_user_id,
+    conn = txn_conn
+  )
 
   if (isTRUE(re_review)) {
     review_update_re_review_status(entity_id, review_id, conn = txn_conn)
