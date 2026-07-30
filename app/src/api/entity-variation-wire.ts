@@ -134,6 +134,7 @@ const EVIDENCE_RECORD_SCALAR_KEYS = [
   'source_version',
   'evidence_summary',
   'evidence_strength',
+  'created_at',
 ] as const;
 
 /** Top-level scalars of the `list()`-built evidence response. */

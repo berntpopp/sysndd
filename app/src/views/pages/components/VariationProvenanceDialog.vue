@@ -8,13 +8,14 @@
 
   HONESTY RULES (see variationProvenance.ts for the full note)
   -----------------------------------------------------------
-  Only fields the payload actually contains are rendered. There is no import
-  DATE here even though the design sketch showed one: the evidence route does not
-  return `variation_ontology_evidence.created_at`, so `batch` (and `release` when
-  `source_version` is non-null) are all that can honestly be shown. There are no
-  HGVS / protein labels because the importer never recorded them. `summary` is
-  the source's own stored wording, verbatim. An unrecorded strength reads
-  "Not recorded" and draws NO stars.
+  Only fields the payload actually contains are rendered. The Imported row shows
+  the import DATE (`created_at`, #612), the batch, and the release — each part
+  independently omitted when its value is null, so the row degrades to whatever
+  the payload genuinely carries and disappears entirely when it carries none of
+  them. A DATE, not a time: the column behind it is a MySQL `DATETIME` with no
+  timezone. There are no HGVS / protein labels because the importer never
+  recorded them. `summary` is the source's own stored wording, verbatim. An
+  unrecorded strength reads "Not recorded" and draws NO stars.
 
   A11Y
   ----
@@ -114,13 +115,13 @@
             </span>
           </p>
 
-          <p v-if="record.batchId || record.sourceVersion" class="vp-row">
+          <p
+            v-if="importedLineParts(record).length > 0"
+            class="vp-row"
+            :data-testid="`variation-provenance-imported-${index}`"
+          >
             <span class="vp-label">Imported</span>
-            <span>
-              <template v-if="record.batchId">batch {{ record.batchId }}</template>
-              <template v-if="record.batchId && record.sourceVersion"> &middot; </template>
-              <template v-if="record.sourceVersion">release {{ record.sourceVersion }}</template>
-            </span>
+            <span>{{ importedLineParts(record).join(' · ') }}</span>
           </p>
 
           <p class="vp-row" :data-testid="`variation-provenance-strength-${index}`">
@@ -181,6 +182,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, type Ref } from 'vue';
 import {
+  importedLineParts,
   provenanceStatusText,
   sourceDisplayName,
   sourceTypeText,

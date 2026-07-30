@@ -81,6 +81,9 @@ const TWO_SOURCE_EVIDENCE = {
       evidence_summary: ['Explicitly stated in the clinical synopsis'],
       evidence_strength: [3],
       evidence_json: { matched: ['truncating variants'] },
+      // Unrecorded on purpose: the Imported line must drop the date part and
+      // still render the batch, rather than vanishing or printing a blank.
+      created_at: null,
     },
     {
       source_type: ['external_database'],
@@ -89,6 +92,8 @@ const TWO_SOURCE_EVIDENCE = {
       source_version: ['2026-02-01'],
       evidence_summary: ['2 ClinVar records, max 1 star'],
       evidence_strength: [1],
+      // #612: a MySQL DATETIME, sent with no zone designator.
+      created_at: ['2026-02-15T10:23:00'],
       evidence_json: {
         records: [
           {
@@ -184,16 +189,35 @@ describe('VariationProvenanceDialog (#608)', () => {
       'https://www.ncbi.nlm.nih.gov/clinvar/variation/1343191/'
     );
 
-    // No HGVS / protein label is stored, so none may be invented, and no import
-    // date is served by the route either.
+    // No HGVS / protein label is stored, so none may be invented.
     const html = w.get('[data-testid="variation-provenance-dialog"]').html();
     expect(html).not.toContain('p.Thr');
-    expect(html).not.toContain('Imported 1');
 
-    // The literature source omits the absent `source_version` rather than guessing.
+    // The literature source has neither a release nor an import date, so the
+    // Imported line degrades to the batch alone instead of showing empty parts.
     const synopsis = w.get('[data-testid="variation-provenance-source-0"]');
-    expect(synopsis.text()).toContain('batch b-2026-07-01');
+    // The label and value are separate spans, so read the value span rather
+    // than the row's collapsed text ("Importedbatch ...").
+    const synopsisImported = synopsis
+      .get('[data-testid="variation-provenance-imported-0"]')
+      .findAll('span');
+    expect(synopsisImported[1].text()).toBe('batch b-2026-07-01');
     expect(synopsis.text()).not.toContain('release');
+
+    // #612: the ClinVar source carries all three parts, date first. The expected
+    // date string is built independently of the component so the assertion tests
+    // our formatting rather than restating it, and stays locale-agnostic.
+    const expectedDate = new Date(2026, 1, 15).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const clinvarImported = w
+      .get('[data-testid="variation-provenance-imported-1"]')
+      .findAll('span');
+    expect(clinvarImported[1].text()).toBe(
+      `${expectedDate} \u00b7 batch clinvar-2026-02 \u00b7 release 2026-02-01`
+    );
     w.unmount();
   });
 
