@@ -236,9 +236,9 @@ cleanup_variation_provenance_fk_targets <- function(conn, ids) {
   invisible(TRUE)
 }
 
-test_that("migration manifest expects migration 047 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "047_add_variation_ontology_provenance.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 45L)
+test_that("migration manifest tracks the latest migration", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "048_widen_publication_author_columns.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 46L)
 })
 
 test_that("migration 047 never mentions ndd_review_variation_ontology_connect", {
