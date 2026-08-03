@@ -53,7 +53,7 @@
     "file-saver": "^2.0.5",
     "gsap": "^3.15.0",
     "html2canvas": "^1.4.1",
-    "markdown-it": "^14.3.0",
+    "markdown-it": "^15.0.0",
     "ngl": "^2.4.0",
     "pinia": "^4.0.2",
     "splitpanes": "^4.1.2",
