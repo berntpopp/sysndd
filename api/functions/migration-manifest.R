@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "048_widen_publication_author_columns.sql"
-EXPECTED_MIGRATION_COUNT <- 46L
+EXPECTED_LATEST_MIGRATION <- "049_add_evidence_origin_review.sql"
+EXPECTED_MIGRATION_COUNT <- 47L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'
