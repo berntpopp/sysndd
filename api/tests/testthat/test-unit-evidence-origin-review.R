@@ -107,7 +107,15 @@ test_that("migration 049 is idempotent and skips a missing table instead of erro
   expect_match(sql, "'SELECT 1'", fixed = TRUE)
 })
 
-test_that("the migration manifest tracks 049 as the latest migration", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, MIGRATION_049)
-  expect_equal(EXPECTED_MIGRATION_COUNT, 47L)
+test_that("migration 049 is present and counted in the manifest", {
+  # Asserts 049 EXISTS, not that it is the newest. A per-migration guard that
+  # pins the global latest breaks every time an unrelated migration is added —
+  # which is exactly what happened when 050 landed. The latest-migration
+  # assertion belongs in test-unit-core-views-manifest.R, and lives there.
+  candidates <- c(
+    file.path(get_api_dir(), "..", "db", "migrations", MIGRATION_049),
+    file.path(get_api_dir(), "db", "migrations", MIGRATION_049)
+  )
+  expect_true(any(file.exists(candidates)))
+  expect_gte(EXPECTED_MIGRATION_COUNT, 47L)
 })
