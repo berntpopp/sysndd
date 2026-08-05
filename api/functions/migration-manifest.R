@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "049_add_evidence_origin_review.sql"
-EXPECTED_MIGRATION_COUNT <- 47L
+EXPECTED_LATEST_MIGRATION <- "050_variant_view_entity_agreement.sql"
+EXPECTED_MIGRATION_COUNT <- 48L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

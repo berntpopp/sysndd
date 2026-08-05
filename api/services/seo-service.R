@@ -228,11 +228,23 @@ entity_hpo_sql <- function() "
   ORDER BY pl.HPO_term
 "
 
+# `er.entity_id = vc.entity_id` mirrors svc_entity_variation(), which requires the
+# connect row's entity AND the review's entity to agree. Without it this query
+# surfaced 206 rows the entity page drops -- connect rows citing a review that
+# belongs to a DIFFERENT entity (admin#18, a stale-snapshot bug in the 2022 seed).
+# SEO structured data claiming a term the page itself does not show is exactly the
+# kind of divergence that erodes trust in the record.
+#
+# Deliberately NOT applied to entity_phenotypes_sql() or entity_pmids_sql() below:
+# svc_entity_phenotypes() and svc_entity_publications() filter on review_id alone,
+# so those queries already match their endpoints. Adding it there would hide 744
+# phenotype and 166 publication rows that are currently served.
 entity_variation_sql <- function() "
   SELECT DISTINCT vc.vario_id AS id, vl.vario_name AS label
   FROM ndd_review_variation_ontology_connect vc
   JOIN ndd_entity_review er
     ON vc.review_id = er.review_id
+    AND er.entity_id = vc.entity_id
     AND er.is_primary = 1 AND er.review_approved = 1
   JOIN variation_ontology_list vl ON vc.vario_id = vl.vario_id
   WHERE vc.entity_id = ? AND vc.is_active = 1
