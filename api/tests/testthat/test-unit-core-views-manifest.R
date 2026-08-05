@@ -11,15 +11,15 @@ source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), l
 source(file.path(migration_test_api_dir, "functions", "migration-runner.R"), local = FALSE)
 
 test_that("manifest expects the latest migration", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "048_widen_publication_author_columns.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 46L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "049_add_evidence_origin_review.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 47L)
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(migration_test_api_dir, "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "048_widen_publication_author_columns.sql")
+  expect_identical(res$latest, "049_add_evidence_origin_review.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {
