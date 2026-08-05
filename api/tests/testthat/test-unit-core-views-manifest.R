@@ -11,15 +11,15 @@ source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), l
 source(file.path(migration_test_api_dir, "functions", "migration-runner.R"), local = FALSE)
 
 test_that("manifest expects the latest migration", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "050_variant_view_entity_agreement.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 48L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "051_entity_review_agreement_constraint.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 49L)
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(migration_test_api_dir, "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "050_variant_view_entity_agreement.sql")
+  expect_identical(res$latest, "051_entity_review_agreement_constraint.sql")
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {
