@@ -235,10 +235,20 @@ entity_hpo_sql <- function() "
 # SEO structured data claiming a term the page itself does not show is exactly the
 # kind of divergence that erodes trust in the record.
 #
-# Deliberately NOT applied to entity_phenotypes_sql() or entity_pmids_sql() below:
-# svc_entity_phenotypes() and svc_entity_publications() filter on review_id alone,
-# so those queries already match their endpoints. Adding it there would hide 744
-# phenotype and 166 publication rows that are currently served.
+# Deliberately NOT applied to entity_hpo_sql() or entity_pmids_sql(): those
+# anchor on `pc.entity_id = ?` / `rpj.entity_id = ?`, i.e. on entity_id, which
+# admin#19 established IS the authoritative column (for the 188 mismatched
+# publication rows whose two candidate entities are different genes, the cited
+# paper names the connect entity's gene 162 times and the review entity's gene
+# 0 times). Anchoring on it is correct, so there is nothing to add.
+#
+# An earlier version of this comment claimed svc_entity_phenotypes() and
+# svc_entity_publications() "filter on review_id alone" and that the rows were
+# "currently served". Both were wrong: those functions end with
+# left_join(ndd_entity_active, by = "entity_id"), which re-imposes agreement, so
+# the rows were dropped rather than misattributed -- and the real divergence was
+# that SEO emitted terms the entity page did not show. The underlying data was
+# repaired in admin#19 and migration 051 now makes the disagreement impossible.
 entity_variation_sql <- function() "
   SELECT DISTINCT vc.vario_id AS id, vl.vario_name AS label
   FROM ndd_review_variation_ontology_connect vc

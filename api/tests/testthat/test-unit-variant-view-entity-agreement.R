@@ -51,12 +51,16 @@ test_that("migration 050 keeps all three approval gates from migration 042", {
 })
 
 test_that("migration 050 does NOT touch the phenotype view", {
-  # svc_entity_phenotypes() and svc_entity_publications() filter on review_id
-  # alone, so their view already agrees with their endpoint. Adding the predicate
-  # there would HIDE 744 phenotype and 166 publication rows that are currently
-  # served -- a user-visible removal resting on an unproven assumption about which
-  # column is authoritative. This test exists so a future "make it consistent"
-  # change has to argue with it first.
+  # 050 was scoped to the variation view and stays that way.
+  #
+  # The original reason recorded here was wrong and is corrected in admin#19:
+  # svc_entity_phenotypes()/svc_entity_publications() do NOT filter on review_id
+  # alone -- they end with left_join(ndd_entity_active, by = "entity_id"), which
+  # re-imposes agreement. The 744 + 166 rows were therefore never "currently
+  # served"; they were dropped. entity_id was subsequently established as the
+  # authoritative column and the underlying rows were repaired, so the phenotype
+  # view needs no predicate: after the repair there is nothing for it to hide.
+  # Migration 051 enforces the invariant structurally.
   sql <- read_all(migration_050_path())
 
   expect_false(grepl("VIEW `ndd_review_phenotype_connect_view`", sql, fixed = TRUE))
@@ -70,7 +74,9 @@ test_that("the SEO variation query requires entity agreement", {
 })
 
 test_that("the SEO phenotype and publication queries are deliberately unchanged", {
-  # Same reasoning as the migration: they match their endpoints already.
+  # They anchor on entity_id, the authoritative column (admin#19), so they were
+  # already correct. Adding a review-agreement predicate would be redundant with
+  # migration 051 rather than harmful -- but redundant, so it stays out.
   src <- read_all(file.path(get_api_dir(), "services", "seo-service.R"))
 
   expect_false(grepl("AND er.entity_id = pc.entity_id", src, fixed = TRUE))
@@ -88,6 +94,6 @@ test_that("the migration manifest tracks 050 as the latest migration", {
   origin_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "050_variant_view_entity_agreement.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 48L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "051_entity_review_agreement_constraint.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 49L)
 })

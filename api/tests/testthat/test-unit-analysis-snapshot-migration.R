@@ -6,8 +6,8 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "050_variant_view_entity_agreement.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 48L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "051_entity_review_agreement_constraint.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 49L)
 })
 
 test_that("migration 046 adds the additive generator_json manifest column", {

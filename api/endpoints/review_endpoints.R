@@ -347,8 +347,23 @@ function(req, res, review_id_requested) {
     tbl("phenotype_list") %>%
     collect()
 
+  # A connect row names its entity twice: in `entity_id`, and via the entity
+  # owning `review_id`. Migration 051 makes disagreement impossible in MySQL,
+  # but this read must not depend on that -- fixtures and SQLite-backed
+  # environments have no such constraint, and the guard in 051 deliberately
+  # skips a database restored from a pre-repair dump. Showing a foreign row
+  # here is not merely cosmetic: saving a review DELETEs by review_id and
+  # re-inserts the submitted form, so anything displayed under the wrong review
+  # is re-attributed to the wrong entity on the next save (admin#19).
+  review_entity <- pool %>%
+    tbl("ndd_entity_review") %>%
+    dplyr::select(review_id, review_entity_id = entity_id) %>%
+    collect()
+
   phenotype_list <- ndd_review_phenotype_conn_coll %>%
     filter(review_id %in% review_id_requested & is_active) %>%
+    inner_join(review_entity, by = c("review_id")) %>%
+    filter(entity_id == review_entity_id) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     dplyr::select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id)
@@ -435,8 +450,17 @@ function(req, res, review_id_requested) {
     tbl("publication") %>%
     collect()
 
+  # Same entity-agreement guard as the phenotype read above (admin#19).
+  review_entity <- pool %>%
+    tbl("ndd_entity_review") %>%
+    dplyr::select(review_id, review_entity_id = entity_id) %>%
+    collect()
+
   ndd_entity_publication_list <- review_publication_join_coll %>%
     filter(review_id %in% review_id_requested) %>%
+    inner_join(review_entity, by = c("review_id")) %>%
+    filter(entity_id == review_entity_id) %>%
+    dplyr::select(-review_entity_id) %>%
     arrange(publication_id)
 
   ndd_entity_publication_list
