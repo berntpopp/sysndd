@@ -177,6 +177,6 @@ test_that("source version formula and derived-content allowlists are frozen", {
 })
 
 test_that("manifest advances contiguously to the latest migration", {
-  expect_identical(EXPECTED_LATEST_MIGRATION, "052_variation_review_agreement_constraint.sql")
-  expect_identical(EXPECTED_MIGRATION_COUNT, 50L)
+  expect_identical(EXPECTED_LATEST_MIGRATION, "053_fix_variation_agreement_constraint_guard.sql")
+  expect_identical(EXPECTED_MIGRATION_COUNT, 51L)
 })
