@@ -115,11 +115,17 @@ migration_052_ddl <- function() {
   paste(lines[!grepl("^\\s*--", lines)], collapse = "\n")
 }
 
-test_that("052 completes the invariant by constraining the variation table", {
+test_that("052 targets the variation table (but see 053 — it never ran)", {
   # 051 covered two of three tables because this one still held 256 violating
   # rows (admin#18). Those were repaired -- 255 pointed back at their own
   # entity's seed review, and one whose entity had been deleted outright was
-  # removed -- so the third constraint can finally land.
+  # removed -- so the third constraint could finally land.
+  #
+  # 052 did NOT land it: its parent-key guard tested `= 1` against a count that
+  # is 2 for a two-column index, so the ALTER was skipped while the migration
+  # recorded as applied. 053 is the one that actually creates the constraint.
+  # These assertions still hold and are kept so the file stays honest about
+  # what 052 contains.
   expect_true(file.exists(migration_052_path()))
   ddl <- migration_052_ddl()
 
@@ -152,6 +158,43 @@ test_that("052 does not re-add the parent key 051 already created", {
   expect_false(grepl("ADD UNIQUE KEY", ddl, fixed = TRUE))
 })
 
+migration_053_path <- function() {
+  file.path(get_api_dir(), "..", "db", "migrations",
+            "053_fix_variation_agreement_constraint_guard.sql")
+}
+
+migration_053_ddl <- function() {
+  lines <- readLines(migration_053_path(), warn = FALSE)
+  paste(lines[!grepl("^\\s*--", lines)], collapse = "\n")
+}
+
+test_that("053 applies the constraint 052 silently skipped", {
+  expect_true(file.exists(migration_053_path()))
+  ddl <- migration_053_ddl()
+
+  expect_match(ddl, "fk_variation_connect_review_entity", fixed = TRUE)
+  expect_match(ddl, "FOREIGN KEY (`review_id`, `entity_id`)", fixed = TRUE)
+})
+
+test_that("053 counts a multi-column index with > 0, never = 1", {
+  # THE BUG 053 EXISTS FOR. information_schema.STATISTICS has one row PER
+  # COLUMN, so the two-column uq_entity_review_review_entity counts as 2.
+  # Migration 052 guarded on `@parent_key_exists = 1`, which was false, so it
+  # no-opped in silence -- health/ready reported "applied 50, pending 0" and the
+  # foreign key was simply absent. An index-existence guard must test > 0.
+  ddl <- migration_053_ddl()
+
+  expect_match(ddl, "@parent_key_exists > 0", fixed = TRUE)
+  expect_false(grepl("@parent_key_exists = 1", ddl, fixed = TRUE))
+})
+
+test_that("053 still refuses to apply over violating data", {
+  ddl <- migration_053_ddl()
+
+  expect_match(ddl, "WHERE c.`entity_id` <> r.`entity_id`", fixed = TRUE)
+  expect_match(ddl, "@vario_violations = 0", fixed = TRUE)
+})
+
 test_that("the review curation reads require entity agreement", {
   # Defense in depth, and NOT redundant with the FK. The FK holds in MySQL;
   # the testthat fixtures and any SQLite-backed environment have no such
@@ -171,6 +214,6 @@ test_that("the migration manifest tracks 051 as the latest migration", {
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
   expect_equal(EXPECTED_LATEST_MIGRATION,
-               "052_variation_review_agreement_constraint.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 50L)
+               "053_fix_variation_agreement_constraint_guard.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 51L)
 })

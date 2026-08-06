@@ -94,6 +94,6 @@ test_that("the migration manifest tracks 050 as the latest migration", {
   origin_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "052_variation_review_agreement_constraint.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 50L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "053_fix_variation_agreement_constraint_guard.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 51L)
 })
