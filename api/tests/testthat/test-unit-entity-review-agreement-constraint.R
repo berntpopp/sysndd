@@ -105,6 +105,53 @@ test_that("051 refuses to apply while the data still violates the invariant", {
                fixed = TRUE)
 })
 
+migration_052_path <- function() {
+  file.path(get_api_dir(), "..", "db", "migrations",
+            "052_variation_review_agreement_constraint.sql")
+}
+
+migration_052_ddl <- function() {
+  lines <- readLines(migration_052_path(), warn = FALSE)
+  paste(lines[!grepl("^\\s*--", lines)], collapse = "\n")
+}
+
+test_that("052 completes the invariant by constraining the variation table", {
+  # 051 covered two of three tables because this one still held 256 violating
+  # rows (admin#18). Those were repaired -- 255 pointed back at their own
+  # entity's seed review, and one whose entity had been deleted outright was
+  # removed -- so the third constraint can finally land.
+  expect_true(file.exists(migration_052_path()))
+  ddl <- migration_052_ddl()
+
+  expect_match(ddl, "fk_variation_connect_review_entity", fixed = TRUE)
+  expect_match(ddl, "ndd_review_variation_ontology_connect", fixed = TRUE)
+  expect_match(ddl, "FOREIGN KEY (`review_id`, `entity_id`)", fixed = TRUE)
+  expect_match(ddl,
+               "REFERENCES `ndd_entity_review` (`review_id`, `entity_id`)",
+               fixed = TRUE)
+})
+
+test_that("052 keeps the same violation guard as 051", {
+  # Identical reasoning: migrations run at API startup, so an unguarded
+  # ADD FOREIGN KEY against a database that skipped the repair would crash-loop
+  # the API rather than merely report.
+  ddl <- migration_052_ddl()
+
+  expect_match(ddl, "WHERE c.`entity_id` <> r.`entity_id`", fixed = TRUE)
+  expect_match(ddl, "IF(@vario_violations = 0 AND @vario_fk_exists = 0",
+               fixed = TRUE)
+  expect_match(ddl, "information_schema", fixed = TRUE)
+  expect_match(ddl, "PREPARE", fixed = TRUE)
+})
+
+test_that("052 does not re-add the parent key 051 already created", {
+  # ndd_entity_review already carries uq_entity_review_review_entity. Adding it
+  # twice would fail on a database where 051 applied.
+  ddl <- migration_052_ddl()
+
+  expect_false(grepl("ADD UNIQUE KEY", ddl, fixed = TRUE))
+})
+
 test_that("the review curation reads require entity agreement", {
   # Defense in depth, and NOT redundant with the FK. The FK holds in MySQL;
   # the testthat fixtures and any SQLite-backed environment have no such
@@ -124,6 +171,6 @@ test_that("the migration manifest tracks 051 as the latest migration", {
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
   expect_equal(EXPECTED_LATEST_MIGRATION,
-               "051_entity_review_agreement_constraint.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 49L)
+               "052_variation_review_agreement_constraint.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 50L)
 })
