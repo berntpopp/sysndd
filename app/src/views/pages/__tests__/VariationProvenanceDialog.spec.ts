@@ -19,6 +19,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { server } from '@/test-utils/mocks/server';
 import { bootstrapStubs, expectNoA11yViolations } from '@/test-utils';
 import EntityEvidenceGrid, { type EntityEvidenceModel } from '../components/EntityEvidenceGrid.vue';
+import { evidenceShapes } from '@/test-utils/variationEvidenceShapesFixture';
 
 const stubs = {
   ...bootstrapStubs,
@@ -365,6 +366,111 @@ describe('VariationProvenanceDialog (#608)', () => {
     // `region` is disabled because this mounts a card fragment, not a page with
     // landmarks — the same exemption the other component-level a11y specs use.
     await expectNoA11yViolations(w.element, { rules: { region: { enabled: false } } });
+    w.unmount();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #612 — all three evidence_json record shapes render
+// ---------------------------------------------------------------------------
+//
+// Before #612 the dialog understood one shape. The external-database batch
+// showed `consequence` alone and the literature batch showed NOTHING — a
+// curator opened the evidence for 182 assertions and read a summary line above
+// an empty body. These payloads are the shared cross-repo fixture, captured
+// verbatim from the production API, so they are what actually arrives.
+
+function evidenceResponseFor(shapeName: string) {
+  const shape = evidenceShapes[shapeName];
+  return {
+    entity_id: [ENTITY_ID],
+    vario_id: ['VariO:0017'],
+    modifier_id: [1],
+    state: ['active_unconfirmed'],
+    evidence: [
+      {
+        source_type: [shape.source_type],
+        source_key: [shape.source_key],
+        batch_id: [`${shape.source_key}-2026-02`],
+        source_version: null,
+        evidence_summary: ['fixture row'],
+        evidence_strength: [2],
+        created_at: ['2026-08-05T15:31:37'],
+        evidence_json: shape.wire_sample,
+      },
+    ],
+  };
+}
+
+async function openWithShape(shapeName: string) {
+  server.use(http.get(EVIDENCE_PATH, () => HttpResponse.json(evidenceResponseFor(shapeName))));
+  const w = mountGrid([machineTerm()]);
+  await w.get('[data-testid="variation-provenance-trigger-VariO:0017-1"]').trigger('click');
+  await flushPromises();
+  return w;
+}
+
+describe('evidence record rendering by shape (#612)', () => {
+  // A fresh pinia per test: the evidence fetch is SWR-cached by
+  // (entity, vario, modifier), so without this the second test in this block
+  // would replay the first one's payload instead of its own.
+  beforeEach(() => setActivePinia(createPinia()));
+  afterEach(() => server.resetHandlers());
+
+  it('renders every recorded field of an external-database record', async () => {
+    const w = await openWithShape('extdb2');
+    const record = w.get('[data-testid="variation-provenance-record-0-0"]');
+    // Before #612 this row rendered `consequence` and nothing else.
+    expect(record.text()).toContain('Mechanism');
+    expect(record.text()).toContain('dominant negative');
+    expect(record.text()).toContain('Confidence');
+    expect(record.text()).toContain('moderate');
+    expect(record.text()).toContain('Allelic requirement');
+    expect(record.text()).toContain('monoallelic_autosomal');
+    expect(record.text()).toContain('Categorisation');
+    w.unmount();
+  });
+
+  it('renders a literature record with its context and a negated badge', async () => {
+    const w = await openWithShape('synopsis');
+    // Before #612 the whole list was empty: no probed key, so every row dropped.
+    const rows = w.findAll('[data-testid^="variation-provenance-record-0-"]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text()).toContain('Haploinsufficiency');
+    expect(rows[0].text()).toContain('posited as pathomechanism');
+    // Exactly one of the two matches is negated, and it must be impossible to
+    // mistake for a positive one — it is evidence AGAINST the term.
+    expect(rows[0].findAll('[data-testid="evidence-negated-badge"]')).toHaveLength(0);
+    expect(rows[1].findAll('[data-testid="evidence-negated-badge"]')).toHaveLength(1);
+    expect(rows[1].text()).toContain('not pathogenic');
+    w.unmount();
+  });
+
+  it('renders ClinVar review stars, which the payload always carried', async () => {
+    const w = await openWithShape('clinvar');
+    const rows = w.findAll('[data-testid^="variation-provenance-record-0-"]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text()).toContain('Likely pathogenic');
+    // Both captured records are 1-star; the point is that the count renders at
+    // all, having been in the payload and invisible since #608.
+    expect(rows[0].get('[data-testid="evidence-clinvar-stars"]').text()).toBe('1 of 4 stars');
+    expect(rows[1].get('[data-testid="evidence-clinvar-stars"]').text()).toBe('1 of 4 stars');
+    expect(rows[0].get('a').attributes('href')).toBe(
+      'https://www.ncbi.nlm.nih.gov/clinvar/variation/3382378/'
+    );
+    w.unmount();
+  });
+
+  it('keeps the matched-identifier list separate from the record list', async () => {
+    // `matched` holds OMIM CURIEs (strings). Folding it into the record probe
+    // would render each entry through String(object) as "[object Object]".
+    const w = await openWithShape('clinvar');
+    expect(w.get('[data-testid="variation-provenance-matched-0"]').text()).toContain(
+      'OMIM:251280'
+    );
+    expect(w.get('[data-testid="variation-provenance-dialog"]').html()).not.toContain(
+      '[object Object]'
+    );
     w.unmount();
   });
 });

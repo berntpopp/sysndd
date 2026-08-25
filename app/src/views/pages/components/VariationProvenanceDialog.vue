@@ -143,27 +143,11 @@
 
           <template v-if="record.records.length > 0">
             <p class="vp-section-heading">Supporting records</p>
-            <ul class="vp-records" :data-testid="`variation-provenance-records-${index}`">
-              <li
-                v-for="(row, rowIndex) in record.records"
-                :key="`${row.variationId}-${rowIndex}`"
-                :data-testid="`variation-provenance-record-${index}-${rowIndex}`"
-              >
-                <a
-                  v-if="row.url"
-                  class="vp-record-id"
-                  :href="row.url"
-                  target="_blank"
-                  rel="noopener"
-                  >{{ row.variationId }}<i class="bi bi-box-arrow-up-right" aria-hidden="true"
-                /></a>
-                <span v-else-if="row.variationId" class="vp-record-id">{{ row.variationId }}</span>
-                <span v-if="row.consequence" class="vp-record-meta">{{ row.consequence }}</span>
-                <span v-if="row.classification" class="vp-record-meta">{{
-                  row.classification
-                }}</span>
-              </li>
-            </ul>
+            <VariationEvidenceRecordList
+              :records="record.records"
+              :list-testid="`variation-provenance-records-${index}`"
+              :row-testid-prefix="`variation-provenance-record-${index}`"
+            />
           </template>
 
           <p
@@ -181,6 +165,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, type Ref } from 'vue';
+import VariationEvidenceRecordList from './VariationEvidenceRecordList.vue';
 import {
   importedLineParts,
   provenanceStatusText,
