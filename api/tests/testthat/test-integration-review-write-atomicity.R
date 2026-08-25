@@ -7,6 +7,9 @@
 source_api_file("core/errors.R", local = FALSE)
 source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/response-helpers.R", local = FALSE)
+source_api_file("functions/db-transaction-scope.R", local = FALSE)
+source_api_file("functions/variation-provenance-approval.R", local = FALSE)
+source_api_file("services/approval-service.R", local = FALSE)
 source_api_file("functions/publication-write-preparation.R", local = FALSE)
 if (!exists("genereviews_from_pmid", mode = "function")) {
   genereviews_from_pmid <- function(...) FALSE
@@ -1435,5 +1438,187 @@ test_that("REGRESSION #608 END TO END: a Confirm on one term while another asser
     untouched <- review_write_assertion_row(conn, fixture, modifier_id = 1L)
     expect_equal(untouched$state, "confirmed")
     expect_equal(as.integer(untouched$confirmed_by), as.integer(fixture$user_id))
+  })
+})
+
+
+# ---------------------------------------------------------------------------
+# #612: the approval path retires assertions the entity no longer serves
+# ---------------------------------------------------------------------------
+#
+# review_update() unconditionally sets review_approved = 0, so on the ordinary
+# edit-then-approve-separately workflow the WRITE path's rejection edge never
+# fires -- the term stops being served but its assertion stays
+# active_unconfirmed and the curation queue keeps offering it. These tests drive
+# the real svc_approval_review_approve() against a real database, because the
+# unit tests stub the transaction scope and therefore cannot prove atomicity.
+
+test_that("#612: approving a review that omits a term retires that term's assertion", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 612L)
+    assertion_id <- review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+
+    # A draft that drops the term. The draft is not primary+approved, so the
+    # write path deliberately leaves the assertion alone (#608 I2).
+    result <- review_write_save(
+      conn, fixture, "612-approval-drops-term",
+      variation_ontology = tibble::tibble(vario_id = character(), modifier_id = integer())
+    )
+    expect_identical(result$status, 200L)
+    review_id <- result$entry$review_id[[1L]]
+    expect_equal(review_write_assertion_row(conn, fixture)$state, "active_unconfirmed")
+
+    # Approving it is what makes the omission public -- and what retires the
+    # assertion.
+    approval <- svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn)
+    expect_equal(approval$status, 200)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "rejected")
+    expect_equal(assertion$assertion_id, assertion_id)
+    # Rejection is not attribution: nobody confirmed anything.
+    expect_true(is.na(assertion$confirmed_by))
+  })
+})
+
+test_that("#612: approving a review that KEEPS a term leaves its assertion unconfirmed", {
+  # The load-bearing direction. If approval retired a served term's assertion,
+  # the public read's state filter would drop it and the still-served term would
+  # render as CURATOR-AUTHORED -- the exact fabrication this feature prevents.
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 613L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+
+    result <- review_write_save(
+      conn, fixture, "612-approval-keeps-term",
+      variation_ontology = tibble::tibble(vario_id = fixture$vario_id, modifier_id = 1L)
+    )
+    review_id <- result$entry$review_id[[1L]]
+
+    svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn)
+
+    assertion <- review_write_assertion_row(conn, fixture)
+    expect_equal(assertion$state, "active_unconfirmed")
+    expect_true(is.na(assertion$confirmed_by))
+  })
+})
+
+test_that("#612: approval NEVER promotes -- a suggested term stays suggested", {
+  # Approving a review is an act on the review, not a per-term reading of
+  # machine evidence. Promoting here would restore the silent promotion #608
+  # exists to stop.
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 614L)
+    # modifier 5 ('absent') -- the other half of the identity, so this exercises
+    # the same vario_id under a different modifier.
+    review_write_seed_assertion(conn, fixture, state = "suggested", modifier_id = 5L)
+    result <- review_write_save(
+      conn, fixture, "612-approval-no-promote",
+      variation_ontology = tibble::tibble(vario_id = fixture$vario_id, modifier_id = 5L)
+    )
+    review_id <- result$entry$review_id[[1L]]
+
+    # The WRITE path confirms it (submitted + suggested is an affirmative act),
+    # so re-seed the state to prove the APPROVAL path itself does not promote.
+    DBI::dbExecute(
+      conn,
+      "UPDATE variation_ontology_assertion SET state = 'suggested',
+              confirmed_by = NULL, confirmed_at = NULL
+        WHERE entity_id = ? AND vario_id = ? AND modifier_id = 5",
+      params = list(fixture$entity_id, fixture$vario_id)
+    )
+
+    svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn)
+
+    assertion <- review_write_assertion_row(conn, fixture, modifier_id = 5L)
+    expect_equal(assertion$state, "suggested")
+    expect_true(is.na(assertion$confirmed_by))
+  })
+})
+
+test_that("#612: a reconciliation failure rolls the APPROVAL back with it", {
+  # The atomicity claim. Without one shared transaction scope the review would
+  # be left primary+approved while its assertions still described the old
+  # served set.
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 615L)
+    review_write_seed_assertion(conn, fixture, state = "active_unconfirmed")
+
+    result <- review_write_save(
+      conn, fixture, "612-approval-rollback",
+      variation_ontology = tibble::tibble(vario_id = character(), modifier_id = integer())
+    )
+    review_id <- result$entry$review_id[[1L]]
+
+    before <- DBI::dbGetQuery(
+      conn,
+      "SELECT is_primary, review_approved, approving_user_id
+         FROM ndd_entity_review WHERE review_id = ?",
+      params = list(review_id)
+    )
+    expect_equal(as.integer(before$review_approved[[1L]]), 0L)
+
+    target <- environment(variation_provenance_reconcile_on_approval)
+    original <- base::get("variation_provenance_reconcile_on_approval", envir = target)
+    assign("variation_provenance_reconcile_on_approval",
+           function(...) stop("reconcile boom"), envir = target)
+    withr::defer(
+      assign("variation_provenance_reconcile_on_approval", original, envir = target)
+    )
+
+    expect_error(
+      svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn),
+      "reconcile boom"
+    )
+
+    after <- DBI::dbGetQuery(
+      conn,
+      "SELECT is_primary, review_approved, approving_user_id
+         FROM ndd_entity_review WHERE review_id = ?",
+      params = list(review_id)
+    )
+    expect_equal(as.integer(after$review_approved[[1L]]), 0L)
+    expect_equal(as.integer(after$is_primary[[1L]]), as.integer(before$is_primary[[1L]]))
+    expect_true(is.na(after$approving_user_id[[1L]]))
+    # ...and the assertion is untouched too.
+    expect_equal(review_write_assertion_row(conn, fixture)$state, "active_unconfirmed")
+  })
+})
+
+test_that("#612 INERTNESS: approving an entity with no assertion rows writes nothing", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    fixture <- review_write_seed(conn, 616L)
+
+    result <- review_write_save(
+      conn, fixture, "612-approval-inert",
+      variation_ontology = tibble::tibble(vario_id = fixture$vario_id, modifier_id = 1L)
+    )
+    review_id <- result$entry$review_id[[1L]]
+
+    approval <- svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn)
+    expect_equal(approval$status, 200)
+    expect_equal(
+      review_write_count(
+        conn, "variation_ontology_assertion", "entity_id = ?", list(fixture$entity_id)
+      ),
+      0L
+    )
+    # The approval itself still happened.
+    approved <- DBI::dbGetQuery(
+      conn, "SELECT review_approved, is_primary FROM ndd_entity_review WHERE review_id = ?",
+      params = list(review_id)
+    )
+    expect_equal(as.integer(approved$review_approved[[1L]]), 1L)
+    expect_equal(as.integer(approved$is_primary[[1L]]), 1L)
   })
 })
