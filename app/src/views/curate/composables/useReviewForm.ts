@@ -515,6 +515,21 @@ export default function useReviewForm(entityId?: string | number) {
     touched,
     loading,
 
+    /**
+     * The review this form actually loaded, or `null` before any load.
+     *
+     * Exposed so the caller can decide create-vs-update from the review the FORM
+     * is editing rather than from separately-fetched display metadata. `Review.vue`
+     * used to read `review_info.review_id`, which is populated by
+     * `useReviewData.loadReviewInfo()` — a call that reports and SWALLOWS its errors
+     * and still lets the modal open. On that failure `isUpdate` fell to `false` and
+     * the save POSTed, minting a duplicate review for an entity that already had
+     * one. `loadReviewData()` by contrast is atomic (a rejection propagates out of
+     * `infoReview()` before `show()`), so whenever this modal is open `reviewId` is
+     * the id it was opened with. Found by adversarial review of #635.
+     */
+    reviewId,
+
     // Change detection
     hasChanges,
 

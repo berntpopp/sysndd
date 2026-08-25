@@ -209,7 +209,8 @@ publication_connect_to_review <- function(review_id, entity_id, publications, co
 #' - First deletes all existing publications for the review
 #' - Then inserts new publications
 #' - Validates publication IDs and entity_id before operation
-#' - Logs warning if publication count decreases (potential data loss)
+#' - Logs a warning when the publication count decreases, on BOTH the standalone and
+#'   caller-supplied-connection paths (the review write path always supplies one)
 #'
 #' @examples
 #' \dontrun{
@@ -223,21 +224,6 @@ publication_connect_to_review <- function(review_id, entity_id, publications, co
 #' @export
 publication_replace_for_review <- function(review_id, entity_id, publications, conn = NULL) {
   if (is.null(conn)) {
-    existing_count <- pool %>%
-      tbl("ndd_review_publication_join") %>%
-      dplyr::filter(review_id == !!review_id) %>%
-      dplyr::select(publication_id) %>%
-      collect() %>%
-      nrow()
-
-    new_count <- nrow(publications)
-    if (existing_count > 0 && new_count < existing_count) {
-      log_warn(
-        "Publication count decreasing for review {review_id}: {existing_count} -> {new_count}. ",
-        "Ensure all existing publications are included in the update to prevent data loss."
-      )
-    }
-
     publication_validate_ids(publications$publication_id)
     review_entity <- pool %>%
       tbl("ndd_entity_review") %>%
@@ -265,6 +251,27 @@ publication_replace_for_review <- function(review_id, entity_id, publications, c
     dplyr::select(review_id, entity_id, publication_id, publication_type)
 
   replace_connections <- function(txn_conn) {
+    # Shrink observability, on the SAME connection as the write.
+    #
+    # This used to live in the `is.null(conn)` branch above, where the review write
+    # path never reached it -- `review_write_mutate()` always passes its `txn_conn`
+    # -- so the one operation that can drop a curated publication produced no log
+    # line at all. Found by adversarial review of #635, whose fix makes shrinking a
+    # supported, intentional outcome rather than an accident: it must be visible.
+    # Reading the count on `txn_conn` also makes it transaction-local, so it
+    # describes exactly the rows this statement is about to replace.
+    existing_count <- db_execute_query(
+      "SELECT COUNT(*) AS n FROM ndd_review_publication_join WHERE review_id = ?",
+      list(review_id),
+      conn = txn_conn
+    )$n[[1L]]
+    new_count <- nrow(publications_submission)
+    if (existing_count > 0L && new_count < existing_count) {
+      log_warn(
+        "Publication count decreasing for review {review_id}: {existing_count} -> {new_count}."
+      )
+    }
+
     # Delete old publication connections
     db_execute_statement(
       "DELETE FROM ndd_review_publication_join WHERE review_id = ?",

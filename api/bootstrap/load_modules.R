@@ -102,6 +102,7 @@ bootstrap_load_modules <- function() {
     "functions/nddscore-admin-endpoint-helpers.R",
     "functions/entity-repository.R",
     "functions/review-repository.R",
+    "functions/review-literature-parsing.R",
     "functions/publication-write-preparation.R",
     "functions/status-repository.R",
     "functions/re-review-sync.R",

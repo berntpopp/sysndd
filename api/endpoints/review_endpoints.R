@@ -222,24 +222,12 @@ function(req, res, re_review = FALSE, direct_approval = FALSE) {
     return(list(status = 405L, message = "Method Not Allowed."))
   }
 
-  literature <- review_data$literature
-  publications <- if (length(purrr::compact(literature)) > 0L) {
-    dplyr::bind_rows(
-      tibble::as_tibble(purrr::compact(literature$additional_references)),
-      tibble::as_tibble(purrr::compact(literature$gene_review)),
-      .id = "publication_type"
-    ) |>
-      dplyr::transmute(
-        publication_id = gsub("\\s+", "", value),
-        publication_type = dplyr::case_when(
-          publication_type == "1" ~ "additional_references",
-          publication_type == "2" ~ "gene_review"
-        )
-      ) |>
-      dplyr::distinct()
-  } else {
-    tibble::tibble(publication_id = character(), publication_type = character())
-  }
+  # #635: extracted to functions/review-literature-parsing.R so the positional
+  # `bind_rows(.id = )` contract that maps frame 1 -> additional_references and
+  # frame 2 -> gene_review is unit-tested across all four populated/empty
+  # combinations. An empty block yields zero rows, which review_write_mutate()
+  # reads on PUT as "remove every publication from this review".
+  publications <- review_write_literature_to_publications(review_data$literature)
 
   response <- svc_review_write(
     method = req$REQUEST_METHOD,

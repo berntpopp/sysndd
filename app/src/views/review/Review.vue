@@ -460,7 +460,13 @@ export default {
     },
     async submitReviewChange() {
       try {
-        const isUpdate = this.review_info.review_id != null;
+        // Decide create-vs-update from the review the FORM loaded, not from
+        // `review_info` — `loadReviewInfo()` swallows its errors and the modal
+        // opens anyway, so a failed metadata fetch used to leave `review_id`
+        // null, flip this to a POST, and mint a DUPLICATE review for an entity
+        // that already had one. `loadReviewData()` is atomic, so `reviewId` is
+        // always the id this modal was opened with.
+        const isUpdate = this.reviewForm.reviewId.value != null;
         await this.reviewForm.submitForm(isUpdate, true);
         this.makeToast('Review submitted successfully', 'Success', 'success');
         this.announce('Review submitted successfully');

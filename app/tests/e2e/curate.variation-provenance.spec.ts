@@ -170,14 +170,15 @@ async function evidenceState(
  *      -> transaction rollback -> opaque 500. Proven: the identical PUT with
  *      those three keys removed returns 200 "OK. Review updated.".
  *
- *  D2: `publication.Lastname` is VARCHAR(50), but PubMed `CollectiveName`
+ *  D2: `publication.Lastname` was VARCHAR(50), but PubMed `CollectiveName`
  *      (consortium) authors are longer. The baseline fixture's own PMID 12345678
- *      resolves to a 74-char collective author, so the publication write fails
- *      "Data too long for column 'Lastname'" and rolls the save back too.
- *      `publication-functions.R` writes `Lastname = lastname` untruncated.
+ *      resolves to a 74-char collective author, so the publication write failed
+ *      "Data too long for column 'Lastname'" and rolled the save back too.
  *
- * D1 is FIXED (#613, `6ef2b35e`): `review_write_updatable_review_fields()` now projects
- * the body to {synopsis, comment} before `review_update()` sees it.
+ * BOTH ARE NOW FIXED. D1 by #613 (`6ef2b35e`): `review_write_updatable_review_fields()`
+ * projects the body to {synopsis, comment} before `review_update()` sees it. D2 by #614
+ * (migration `048_widen_publication_author_columns.sql`): both author columns are
+ * VARCHAR(255), with `pubmed_clamp_author_name()` as a warning backstop.
  *
  * Rather than hard-fail on a defect this spec may not patch, the save-dependent
  * tests SKIP with this reason and RE-ACTIVATE automatically once a save succeeds
@@ -185,16 +186,17 @@ async function evidenceState(
  * assertions below are the real regression guard for #608 and must not be
  * deleted — they are one API fix away from running.
  *
- * PROBE PAYLOAD: this deliberately mirrors what the BROWSER actually submits,
- * which carries EMPTY `literature`. The baseline fixture's
- * `ndd_review_publication_join` row is seeded with `publication_type = 'PMID'`,
- * but the API writes/reads that column as `'additional_references'` | `'gene_review'`
- * (see api/endpoints/review_endpoints.R and publication-write-preparation.R), so
- * `useReviewForm.loadReviewData()` filters the row out and submits no references.
- * The probe must therefore NOT include a resolvable PMID: doing so makes the probe
- * strictly harder than the flow it gates and would trip D2 (which the fixture's
- * `publication_type` mismatch otherwise masks), skipping these tests for a reason
- * that has nothing to do with the code path under test.
+ * Because both defects are fixed the probe is now expected to PASS. It is kept because
+ * a skip-with-reason is a better failure mode than eight tests failing on an unrelated
+ * save-path outage.
+ *
+ * PROBE PAYLOAD: empty `literature`, mirroring what these flows submit -- none of them
+ * touches the Publications field. Note the baseline's publication row is seeded
+ * production-shaped since #635 (`PMID:12345678` / `additional_references`, where it used
+ * to be `'12345678'` / `'PMID'`), so it now renders as a chip in the modal and IS
+ * resubmitted by a browser save. That is safe: the row already exists in `publication`,
+ * so `publication_write_prepare()` matches it by id and never re-resolves it against
+ * PubMed. These tests do not assert on it -- `review.publication-removal.spec.ts` does.
  */
 let reviewSaveProbe: { ok: boolean; detail: string } | null = null;
 
