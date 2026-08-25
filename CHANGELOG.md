@@ -91,6 +91,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `@unhead/vue` 3.4.0, `@vueuse/core` 14.4.0), dev-dependency group (#634 — `eslint`
   10.9, `typescript-eslint` 8.67, `vue-tsc` 3.3.11, `sass` 1.103.1, `axios` 1.19.0,
   `@playwright/test` 1.62.1 and others), and `axllent/mailpit` v1.30.7 (#628).
+
+  Because the three npm branches conflicted on `app/package-lock.json`, the lockfile was
+  regenerated from the merged `package.json` rather than hand-merged. `npm` resolves each
+  caret range to the newest in-range release, so a few packages land slightly **above**
+  the version their Dependabot PR pinned — `eslint` 10.9.1 (pinned 10.9.0),
+  `typescript-eslint` 8.68.0 (8.67.0), `@types/node` 26.3.0 (26.2.0), `cssnano` 8.0.8
+  (8.0.7), `@testing-library/user-event` 14.6.6 (14.6.5). All are within the ranges the
+  same PRs introduced. It also advances three **transitive, dev-only** packages that
+  `svgo ^4.0.2` itself requires — `svgo` 4.1.0, `css-select` 6.0.0, `css-what` 7.0.0
+  (the latter two are major bumps). They are build-time CSS/SVG minification reached
+  through `cssnano` → `postcss-svgo`, are marked `dev` in the lockfile, and therefore
+  cannot enter the shipped bundle; the production build, route bundle-budget gate, unit
+  suite, and Playwright suite all pass with them.
 - The `literature` → publications parse moved out of `review_endpoints.R` into
   `api/functions/review-literature-parsing.R` so its positional `bind_rows(.id = )`
   contract can be unit-tested. Behaviour is unchanged.

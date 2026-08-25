@@ -245,6 +245,26 @@ describe('useReviewForm publications', () => {
       expect(submittedLiterature().additional_references).toEqual(['PMID:12345678']);
     });
 
+    it('collapses whitespace-equivalent PMIDs into one entry', async () => {
+      primeReadMocks([
+        { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+      ]);
+
+      const { formData, loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      // BFormTags holds these as two distinct tags; they are only equal once
+      // sanitised, so de-duplication has to happen AFTER normalisation. The
+      // previous Set-then-map order shipped both to the API.
+      formData.publications = ['PMID:12345678', 'PMID: 12345678'];
+
+      await submitForm(true, true);
+      await flushPromises();
+
+      expect(submittedLiterature().additional_references).toEqual(['PMID:12345678']);
+    });
+
     it("a second load does not resurrect the first review's publications", async () => {
       primeReadMocks([
         { publication_id: 'PMID:12345678', publication_type: 'additional_references' },

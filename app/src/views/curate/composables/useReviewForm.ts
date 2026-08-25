@@ -389,11 +389,13 @@ export default function useReviewForm(entityId?: string | number) {
     // `useReviewApprovalActions`) always submitted the live selection, which is why
     // removal only ever failed here.
     //
-    // The de-duplication stays: BFormTags can hold two entries that normalise to the
-    // same PMID ("PMID: 123" and "PMID:123"), and the API rejects nothing -- it would
-    // simply attempt two INSERTs against the `review_triple` unique key.
-    const cleanPublications = [...new Set(formData.publications)].map(sanitizePMID);
-    const cleanGenereviews = [...new Set(formData.genereviews)].map(sanitizePMID);
+    // De-duplicate AFTER sanitising, not before: BFormTags can hold "PMID: 123" and
+    // "PMID:123" as two distinct tags, and they are only equal once the whitespace is
+    // gone. Set-then-map would have shipped both to the API. (The API's
+    // `publication_write_classify_genereviews()` also collapses them, so this was never
+    // DB corruption -- but the payload should say what the curator meant.)
+    const cleanPublications = [...new Set(formData.publications.map(sanitizePMID))];
+    const cleanGenereviews = [...new Set(formData.genereviews.map(sanitizePMID))];
 
     // Transform form data to API format
     const literature = new Literature(cleanPublications, cleanGenereviews);

@@ -89,13 +89,17 @@ test_that("whitespace inside a PMID is stripped and duplicates collapse", {
   expect_equal(result$publication_id, "PMID:1111111")
 })
 
-test_that("the same PMID in both lists is kept once per type", {
-  # `distinct()` is over the whole row, so a PMID cited as both an additional
-  # reference and a GeneReview survives as two rows -- which is what the join table's
-  # `review_triple` unique key on (review_id, entity_id, publication_id) will then
-  # reject. Pinned as a KNOWN shape, not endorsed: the frontend cannot produce it
-  # (the two tag widgets are independent lists, but a curator can type the same PMID
-  # into both), and it is a pre-existing condition unchanged by #635.
+test_that("the same PMID in both lists leaves the parser as two rows", {
+  # This parser's `distinct()` is over the whole row, so a PMID a curator typed into
+  # BOTH tag widgets survives here as two rows -- one per type. That is the parser's
+  # contract and nothing more: it does NOT reach the join table's `review_triple`
+  # unique key on (review_id, entity_id, publication_id), because
+  # `review_write_prepare()` immediately passes this through
+  # `publication_write_classify_genereviews()`, whose
+  # `dplyr::distinct(publication_id, .keep_all = TRUE)` collapses it to one row (and
+  # re-derives the type from `genereviews_from_pmid()` anyway). Pinned so a future
+  # change to either side is visible; corrected after adversarial review, which caught
+  # this comment claiming a unique-key violation that cannot happen.
   result <- review_write_literature_to_publications(
     list(
       additional_references = c("PMID:1111111"),

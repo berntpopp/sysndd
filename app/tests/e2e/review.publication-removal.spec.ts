@@ -26,8 +26,15 @@
 // STATE IS MUTATED, SO THE BASELINE IS RE-SEEDED
 // ----------------------------------------------
 // This test deletes a join row. `global-setup.ts` only seeds once per `playwright test`
-// invocation, so the baseline is re-seeded before each test and once after the file, the
-// same discipline as the #608 specs.
+// invocation, so the baseline is re-seeded before and after every test, the same
+// discipline as the #608 specs.
+//
+// IT ALSO SHARES entity/review 123 WITH curate.variation-provenance.spec.ts, which
+// reseeds and writes the same rows. `playwright.config.ts` sets `fullyParallel`, so the
+// two files must not run concurrently: use `--workers=1`, which is the repo's documented
+// way to run this suite (AGENTS.md) and the configuration its known-good baseline is
+// stated against. Playwright offers no cross-file lock, so this is a convention rather
+// than a guarantee — a parallel run produces cross-talk, not a clean failure.
 import { execSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -118,6 +125,16 @@ function publicationChip(page: Page, pmid: string) {
   return publicationTags(page).locator('.b-form-tag').filter({ hasText: pmid });
 }
 
+/**
+ * Save, and require the save to be an UPDATE.
+ *
+ * Deliberately narrower than the sibling specs' permissive matcher. Editing a queued
+ * re-review is always an update, so a `create` here would mean `Review.vue`'s `isUpdate`
+ * fell through and the save minted a duplicate review — the second defect this branch
+ * fixes. A permissive assertion would let that pass, and the reseed's
+ * `ON DUPLICATE KEY UPDATE` on review 123 would not clean the duplicate up either, so
+ * the damage would leak into whatever ran next.
+ */
 async function saveReview(page: Page): Promise<void> {
   const save = page.locator('.modal.show').getByRole('button', { name: /Save Review/i });
   await expect(save).toBeEnabled();
@@ -128,6 +145,9 @@ async function saveReview(page: Page): Promise<void> {
   await save.click();
   const res = await response;
   expect(res.status(), `review save failed: ${await res.text()}`).toBeLessThan(400);
+  expect(res.url(), 'editing a queued re-review must PUT /update, never POST /create').toContain(
+    '/api/review/update'
+  );
   await expect(page.locator('.modal.show')).toHaveCount(0, { timeout: 20_000 });
 }
 
