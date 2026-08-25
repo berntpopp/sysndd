@@ -104,6 +104,20 @@ function publicationTags(page: Page) {
     .filter({ has: page.locator('#review-literature-select') });
 }
 
+/**
+ * One publication chip, matched by its TEXT.
+ *
+ * Not by `[title="PMID:..."]`, which looks like the obvious selector and silently
+ * matches nothing: BFormTag renders `title` from its own internal `tagText`, and
+ * because `ReviewFormFields.vue` fills the tag's default slot with a `<BLink>` rather
+ * than a bare string, the attribute comes out as the literal `"[object Object]"`.
+ * Verified against the running dev stack, not assumed. The anchor's text is
+ * `" PMID:12345678"` (a leading icon and space), so this matches on substring.
+ */
+function publicationChip(page: Page, pmid: string) {
+  return publicationTags(page).locator('.b-form-tag').filter({ hasText: pmid });
+}
+
 async function saveReview(page: Page): Promise<void> {
   const save = page.locator('.modal.show').getByRole('button', { name: /Save Review/i });
   await expect(save).toBeEnabled();
@@ -122,7 +136,9 @@ test.describe('#635 re-review publication removal', () => {
     reseedBaseline();
   });
 
-  test.afterAll(() => {
+  // afterEach, not afterAll: this test deletes a join row, so every test in the file
+  // must hand the next one a clean fixture, not just the file's last test.
+  test.afterEach(() => {
     reseedBaseline();
   });
 
@@ -145,7 +161,7 @@ test.describe('#635 re-review publication removal', () => {
 
     await openReviewModal(page);
 
-    const chip = publicationTags(page).locator(`.b-form-tag[title="${FIXTURE_PMID}"]`);
+    const chip = publicationChip(page, FIXTURE_PMID);
     await expect(chip, 'the seeded publication renders as a chip').toBeVisible({
       timeout: 20_000,
     });
@@ -164,8 +180,6 @@ test.describe('#635 re-review publication removal', () => {
 
     // The reporter's own repro: revisit the tab and confirm it stayed removed.
     await openReviewModal(page);
-    await expect(publicationTags(page).locator(`.b-form-tag[title="${FIXTURE_PMID}"]`)).toHaveCount(
-      0
-    );
+    await expect(publicationChip(page, FIXTURE_PMID)).toHaveCount(0);
   });
 });
