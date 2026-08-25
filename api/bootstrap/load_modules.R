@@ -299,6 +299,9 @@ bootstrap_load_modules <- function() {
     # entity-read-endpoint-service.R, which consumes it to attach the per-term
     # `provenance` object to GET /entity/<id>/variation.
     "services/entity-variation-provenance-service.R",
+    # #612: the Curator curation queue. AFTER entity-variation-provenance-service.R,
+    # whose .svc_vp_* helpers it reuses for evidence ordering and NA handling.
+    "services/curate-variation-suggestion-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

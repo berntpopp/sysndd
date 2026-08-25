@@ -221,33 +221,42 @@ test_that("the listing query binds every filter and never interpolates a value",
 
   # Paging is over ASSERTIONS, not over joined evidence rows.
   expect_match(listing$sql, "LIMIT ? OFFSET ?", fixed = TRUE)
-  expect_match(listing$sql, "GROUP BY a2.assertion_id", fixed = TRUE)
+  expect_match(listing$sql, "GROUP BY pa.assertion_id", fixed = TRUE)
   # Every ordering ends on assertion_id so paging is stable.
-  expect_match(listing$sql, "a2.assertion_id ASC", fixed = TRUE)
+  expect_match(listing$sql, "pa.assertion_id ASC", fixed = TRUE)
 })
 
-test_that("filters are bound twice -- once for the page, once for the outer read", {
-  # The paging subquery repeats the WHERE, because SQL cannot reference a
-  # same-SELECT alias such as `moved`. Both copies must carry the same values.
+test_that("the listing binds each filter exactly once, matching its placeholders", {
+  # The outer query carries NO WHERE of its own: it is constrained entirely by
+  # the JOIN to the paging subquery, which holds the only copy of the predicate.
+  # Binding the filters twice raises "Number of params don't match" the moment a
+  # real driver sees it -- which a mocked db_execute_query never does, so the
+  # count is asserted here and executed for real in
+  # test-integration-variation-suggestions.R.
   captured <- NULL
   mock_module(env = environment(), bindings = list(
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("COUNT(", sql, fixed = TRUE)) {
         return(data.frame(total = 0L))
       }
-      captured <<- params
+      captured <<- list(sql = sql, params = params)
       data.frame()
     }
   ))
 
   params <- svc_curate_variation_suggestion_params(
-    "suggested", "clinvar", NULL, NULL, NULL, NULL, 1L, 25L
+    "suggested", "clinvar", NULL, NULL, "CHD8", NULL, 1L, 25L
   )
   svc_curate_variation_suggestions(params, pool = NULL)
 
-  flat <- vapply(captured, function(p) as.character(p)[[1L]], character(1))
-  expect_equal(sum(flat == "clinvar"), 2L)
-  expect_equal(sum(flat == "suggested"), 2L)
+  placeholders <- lengths(regmatches(captured$sql, gregexpr("?", captured$sql, fixed = TRUE)))
+  expect_equal(length(captured$params), placeholders)
+
+  flat <- vapply(captured$params, function(p) as.character(p)[[1L]], character(1))
+  expect_equal(sum(flat == "clinvar"), 1L)
+  expect_equal(sum(flat == "suggested"), 1L)
+  # ...and LIMIT/OFFSET are the last two.
+  expect_equal(tail(flat, 2L), c("25", "0"))
 })
 
 test_that("sort options put unrecorded strength LAST in both directions", {
