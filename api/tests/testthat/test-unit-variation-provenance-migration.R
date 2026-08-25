@@ -91,7 +91,52 @@ drop_variation_provenance_tables <- function(conn) {
 #' That is exactly how test-integration-entity-rename.R started returning 500s.
 restore_variation_provenance_tables <- function(conn) {
   drop_variation_provenance_tables(conn)
-  apply_variation_provenance_migration(conn)
+
+  # Re-apply through the REAL migration runner, not by hand. 047 alone is not
+  # the current shape (049 adds variation_ontology_evidence.origin_review_id,
+  # and every later reader of that column fails without it), and 049's
+  # idempotency guard uses PREPARE/EXECUTE, which does not survive naive
+  # statement splitting. Clearing these two rows from schema_version and letting
+  # run_migrations() re-apply them uses the same code production does.
+  migrations_dir <- dirname(variation_provenance_migration_path())
+  affected <- list.files(migrations_dir, pattern = "^(047|049)_.*[.]sql$")
+
+  if (DBI::dbExistsTable(conn, "schema_version") && length(affected) > 0L) {
+    DBI::dbExecute(
+      conn,
+      paste0(
+        "DELETE FROM schema_version WHERE filename IN (",
+        paste(rep("?", length(affected)), collapse = ", "), ")"
+      ),
+      params = unname(as.list(affected))
+    )
+  }
+
+  if (!exists("run_migrations", mode = "function")) {
+    source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
+  }
+  run_migrations(migrations_dir = migrations_dir, conn = conn)
+
+  # Verify, do not assume. A restore that silently comes back INCOMPLETE is
+  # worse than no restore: the table exists, so nothing looks wrong, and the
+  # failure surfaces later as an opaque "Unknown column" in an unrelated file.
+  # Fail here, naming the gap, so the next reader is not sent hunting.
+  restored <- DBI::dbGetQuery(
+    conn,
+    "SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'variation_ontology_evidence'
+        AND COLUMN_NAME = 'origin_review_id'"
+  )$n[[1]]
+  if (as.integer(restored) != 1L) {
+    stop(
+      "restore_variation_provenance_tables(): re-applied the migrations but ",
+      "variation_ontology_evidence.origin_review_id (migration 049) is missing. ",
+      "The shared test schema is now incomplete for every later file.",
+      call. = FALSE
+    )
+  }
+
   invisible(TRUE)
 }
 
