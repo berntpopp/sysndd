@@ -17,6 +17,10 @@ source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/variation-provenance-repository.R", local = FALSE)
 source_api_file("services/entity-variation-provenance-service.R", local = FALSE)
 source_api_file("services/curate-variation-suggestion-service.R", local = FALSE)
+source_api_file("functions/db-transaction-scope.R", local = FALSE)
+source_api_file("functions/variation-provenance-reconcile.R", local = FALSE)
+source_api_file("functions/variation-provenance-approval.R", local = FALSE)
+source_api_file("services/curate-variation-apply-service.R", local = FALSE)
 
 cvs_required_tables <- c(
   "variation_ontology_assertion", "variation_ontology_evidence",
@@ -427,5 +431,198 @@ test_that("an entity that ndd_entity_view does not resolve can never reach the q
     DBI::dbExecute(conn, "UPDATE ndd_entity_status SET status_approved = 0 WHERE entity_id = ?",
                    params = list(fixture$entity_id))
     expect_length(cvs_rows_for(cvs_query(conn, q = fixture$symbol), fixture$entity_id), 0L)
+  })
+})
+
+
+# ---------------------------------------------------------------------------
+# The queue's write actions, against the real schema
+# ---------------------------------------------------------------------------
+#
+# The unit tests stub the four collaborators, so they never execute the
+# row-constructor `IN` binding, the `FOR UPDATE` lock, or the state-conditional
+# UPDATE. Those are exactly the constructs a driver can reject or a database can
+# interpret differently, so they are executed here.
+
+cvs_assertion_state <- function(conn, assertion_id) {
+  DBI::dbGetQuery(
+    conn,
+    "SELECT state, confirmed_by, confirmed_at
+       FROM variation_ontology_assertion WHERE assertion_id = ?",
+    params = list(as.integer(assertion_id))
+  )
+}
+
+cvs_apply <- function(conn, fixture, action, ..., modifier_id = 1L, vario_id = NULL) {
+  svc_curate_variation_apply(
+    list(list(entity_id = fixture$entity_id,
+              vario_id = vario_id %||% fixture$vario_id,
+              modifier_id = modifier_id)),
+    action = action, review_user_id = fixture$user_id, db = conn
+  )
+}
+
+test_that("confirming a served, unconfirmed assertion stamps state and attribution", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 31L)
+    review_id <- cvs_seed_review(conn, fixture)
+    cvs_seed_connect(conn, fixture, review_id)
+    assertion_id <- cvs_seed_assertion(conn, fixture, "active_unconfirmed")
+    cvs_seed_evidence(conn, assertion_id)
+
+    result <- cvs_apply(conn, fixture, "confirm")
+
+    expect_equal(result$requested, 1L)
+    expect_equal(result$applied, 1L)
+    expect_length(result$skipped, 0L)
+
+    row <- cvs_assertion_state(conn, assertion_id)
+    expect_equal(row$state, "confirmed")
+    expect_equal(as.integer(row$confirmed_by), fixture$user_id)
+    expect_false(is.na(row$confirmed_at))
+
+    # ...and it leaves the queue.
+    expect_length(cvs_rows_for(cvs_query(conn, q = fixture$symbol), fixture$entity_id), 0L)
+  })
+})
+
+test_that("confirming an assertion the entity does not serve is refused, and writes nothing", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 32L)
+    # No connect row at all: the term is not served.
+    assertion_id <- cvs_seed_assertion(conn, fixture, "active_unconfirmed")
+
+    result <- cvs_apply(conn, fixture, "confirm")
+
+    expect_equal(result$applied, 0L)
+    expect_equal(result$skipped[[1L]]$reason, "not_served")
+    expect_equal(cvs_assertion_state(conn, assertion_id)$state, "active_unconfirmed")
+  })
+})
+
+test_that("dismissing a SERVED assertion is refused and the term keeps its provenance", {
+  # The load-bearing refusal. A `rejected` assertion drops out of the public
+  # read's state filter, so the still-served term would render as
+  # curator-authored -- the fabrication this whole feature exists to prevent.
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 33L)
+    review_id <- cvs_seed_review(conn, fixture)
+    cvs_seed_connect(conn, fixture, review_id)
+    assertion_id <- cvs_seed_assertion(conn, fixture, "suggested")
+
+    result <- cvs_apply(conn, fixture, "dismiss")
+
+    expect_equal(result$applied, 0L)
+    expect_equal(result$skipped[[1L]]$reason, "served")
+    expect_equal(cvs_assertion_state(conn, assertion_id)$state, "suggested")
+  })
+})
+
+test_that("dismissing an unserved suggestion rejects it", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 34L)
+    assertion_id <- cvs_seed_assertion(conn, fixture, "suggested")
+
+    result <- cvs_apply(conn, fixture, "dismiss")
+
+    expect_equal(result$applied, 1L)
+    row <- cvs_assertion_state(conn, assertion_id)
+    expect_equal(row$state, "rejected")
+    # Dismissal is not attribution: nobody confirmed anything.
+    expect_true(is.na(row$confirmed_by))
+  })
+})
+
+test_that("a multi-item batch binds its row-constructor IN correctly and reports each skip", {
+  # One bound scalar per placeholder, flattened in order. Passing a list of
+  # triples raises "Number of params don't match" the moment a driver sees it.
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 35L)
+    review_id <- cvs_seed_review(conn, fixture)
+    cvs_seed_connect(conn, fixture, review_id, modifier_id = 1L)
+    present <- cvs_seed_assertion(conn, fixture, "active_unconfirmed", modifier_id = 1L)
+    absent <- cvs_seed_assertion(conn, fixture, "active_unconfirmed", modifier_id = 5L)
+
+    result <- svc_curate_variation_apply(
+      list(
+        list(entity_id = fixture$entity_id, vario_id = fixture$vario_id, modifier_id = 1L),
+        list(entity_id = fixture$entity_id, vario_id = fixture$vario_id, modifier_id = 5L),
+        list(entity_id = fixture$entity_id, vario_id = "VariO:9999", modifier_id = 1L)
+      ),
+      action = "confirm", review_user_id = fixture$user_id, db = conn
+    )
+
+    expect_equal(result$requested, 3L)
+    # Only the `present` half has a connect row.
+    expect_equal(result$applied, 1L)
+    expect_setequal(
+      vapply(result$skipped, function(s) s$reason, character(1)),
+      c("not_served", "not_found")
+    )
+    expect_equal(cvs_assertion_state(conn, present)$state, "confirmed")
+    expect_equal(cvs_assertion_state(conn, absent)$state, "active_unconfirmed")
+  })
+})
+
+test_that("a case-variant vario_id still names the same assertion", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 36L)
+    review_id <- cvs_seed_review(conn, fixture)
+    cvs_seed_connect(conn, fixture, review_id)
+    assertion_id <- cvs_seed_assertion(conn, fixture, "active_unconfirmed")
+
+    result <- cvs_apply(conn, fixture, "confirm", vario_id = tolower(fixture$vario_id))
+
+    expect_equal(result$applied, 1L)
+    expect_equal(cvs_assertion_state(conn, assertion_id)$state, "confirmed")
+  })
+})
+
+test_that("the queue never writes the curated connect table", {
+  skip_if_no_test_db()
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    skip_if_missing_cvs_schema(conn)
+
+    fixture <- cvs_seed(conn, 37L)
+    review_id <- cvs_seed_review(conn, fixture)
+    cvs_seed_connect(conn, fixture, review_id)
+    cvs_seed_assertion(conn, fixture, "active_unconfirmed")
+
+    count_connect <- function() {
+      DBI::dbGetQuery(
+        conn,
+        "SELECT COUNT(*) AS n FROM ndd_review_variation_ontology_connect WHERE entity_id = ?",
+        params = list(fixture$entity_id)
+      )$n[[1L]]
+    }
+
+    before <- count_connect()
+    cvs_apply(conn, fixture, "confirm")
+    expect_equal(count_connect(), before)
   })
 })

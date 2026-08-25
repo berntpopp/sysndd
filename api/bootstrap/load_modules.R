@@ -302,6 +302,8 @@ bootstrap_load_modules <- function() {
     # #612: the Curator curation queue. AFTER entity-variation-provenance-service.R,
     # whose .svc_vp_* helpers it reuses for evidence ordering and NA handling.
     "services/curate-variation-suggestion-service.R",
+    # The queue's write half, split out to keep both files under the ceiling.
+    "services/curate-variation-apply-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",
