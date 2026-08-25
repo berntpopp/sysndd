@@ -45,6 +45,13 @@ library(testthat)
 
 source_api_file("core/errors.R", local = FALSE)
 source_api_file("functions/publication-write-preparation.R", local = FALSE)
+# #635: the literature -> publications parse moved out of the endpoint into its own
+# module. It must land in .GlobalEnv, not the testthat file environment: the handler is
+# eval'd into `make_review_sandbox()`'s `new.env(parent = globalenv())`, so its lookup
+# chain is sandbox -> globalenv -> search path and never reaches this file's env.
+# (Same idiom as test-unit-re-review-endpoint-services.R. The other source_api_file
+# calls here get away with the default because their symbols are stubbed on the sandbox.)
+source_api_file("functions/review-literature-parsing.R", local = FALSE, envir = .GlobalEnv)
 source_api_file("services/review-write-service.R", local = FALSE)
 
 review_endpoint_path <- function() {

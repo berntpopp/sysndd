@@ -6,7 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.31.2] - 2026-08-25
+
 ### Fixed
+
+- **Publications removed in the re-review tab are actually removed** (#635).
+  `useReviewForm.submitForm()` did not submit the curator's selection; it submitted the
+  union of that selection and the set loaded from the server. Removing a PMID cleared it
+  from the reactive form — which is why the chip disappeared — and the union restored it
+  one line before serialisation, so the save reported "Review submitted successfully"
+  and `publication_replace_for_review()` dutifully re-INSERTed the row that had just
+  been deleted. Reopening the tab, or approving the entity, showed the publication still
+  attached. GeneReviews had the identical defect.
+
+  The union was added as a "never accidentally delete an existing publication" guard
+  against reactivity issues the current bindings cannot produce: `ReviewFormFields.vue`
+  binds `v-model` straight onto the composable's own reactive object, `loadReviewData()`
+  is atomic so a partial load cannot open the modal, and the modal never reads a draft
+  back. It was also the reason removal worked from Modify Entity but not from re-review —
+  the two sibling surfaces (`useEntityInfo`, `useReviewApprovalActions`) never had it. It
+  is gone; the live selection is submitted, as everywhere else. **No API change: the
+  server was always correct.**
+
+- **A failed review-metadata fetch no longer mints a duplicate review** (#635, found by
+  adversarial review of the fix). `Review.vue` decided create-vs-update from
+  `review_info.review_id`, populated by `useReviewData.loadReviewInfo()` — which catches
+  its errors, reports them, and returns, after which the modal opens regardless. On that
+  failure the flag fell to `false` and the save POSTed `/api/review/create`, forking the
+  curation record for an entity that already had a review, with its publications
+  INSERTed onto the new row rather than replacing those on the old one. The decision now
+  comes from `useReviewForm`'s own `reviewId`, whose load is atomic.
+
+- **The publication-count-decrease warning now fires on the path that can lose data**
+  (#635). It lived in `publication_replace_for_review()`'s `is.null(conn)` branch, and
+  the review write path always supplies `txn_conn` — so the one operation that can drop
+  a curated publication logged nothing at all. It is now in the shared write path and
+  reads the count on the write connection, making it transaction-local.
 
 - **ClinVar "Conflicting classifications of pathogenicity" is no longer counted
   and drawn as Pathogenic on gene pages** (#607). `"conflicting classifications
@@ -41,6 +76,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   alongside — `other` ranked as the *most* severe class when picking an
   aggregated position's colour, and unmapped classes bypassed the gene-structure
   plot's filters entirely.
+
+### Changed
+
+- `markdown-it` 14.3.0 → 15.0.0 (#620), with `@types/markdown-it` removed (15 bundles
+  its own declarations). markdown-it 15 uses linkify-it v6, which disables fuzzy links by
+  default — bare `example.com` text would silently have stopped auto-linking in
+  curator-authored About/CMS content while `https://example.com` kept working. The
+  previous behaviour is restored explicitly with `md.linkify.set({ fuzzyLink: true })`,
+  and `useMarkdownRenderer` gains its first unit test, pinning that plus the
+  `html: false` escaping path, the DOMPurify allowlist, and the `javascript:` href sink.
+- Dependency bumps folded in: production minor/patch group (#633 — `vue` 3.5.41,
+  `pinia` 4.0.3, `dompurify` 3.4.14, `cytoscape` 3.34.1, `swagger-ui` 5.32.14,
+  `@unhead/vue` 3.4.0, `@vueuse/core` 14.4.0), dev-dependency group (#634 — `eslint`
+  10.9, `typescript-eslint` 8.67, `vue-tsc` 3.3.11, `sass` 1.103.1, `axios` 1.19.0,
+  `@playwright/test` 1.62.1 and others), and `axllent/mailpit` v1.30.7 (#628).
+- The `literature` → publications parse moved out of `review_endpoints.R` into
+  `api/functions/review-literature-parsing.R` so its positional `bind_rows(.id = )`
+  contract can be unit-tested. Behaviour is unchanged.
+- The Playwright baseline fixture seeds its publication production-shaped
+  (`PMID:12345678` / `additional_references` in both tables, previously `'12345678'` /
+  `'PMID'`). The old shape matched neither of the form's filters, so the row rendered as
+  no chip — which is why #635 had no end-to-end coverage. This also re-activates the
+  four #608 provenance E2E tests that were skipping behind the `reviewSaveWorks` probe.
 
 ## [0.31.1] — 2026-07-30
 
