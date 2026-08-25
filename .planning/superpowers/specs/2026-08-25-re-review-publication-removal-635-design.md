@@ -86,9 +86,12 @@ produce, and the test now asserts the bug:
   `Promise.all` over the four read helpers (`useReviewForm.ts:296-301`); any rejection
   propagates out of `infoReview()` (`Review.vue:405`) *before* `$refs.reviewModalRef.show()`
   at line 415. A modal that opened has a complete load behind it.
-- **A stale draft cannot bleed in.** `infoReview()` calls `clearDraft()` before the load
-  (`Review.vue:404`), and `loadReviewData()` overwrites every publication field from the
-  response.
+- **A stale draft cannot bleed in.** `Review.vue` never calls `restoreFromDraft()` or
+  `checkForDraft()` — the draft this modal writes is never read back. `infoReview()` also
+  calls `clearDraft()` before the load and `loadReviewData()` overwrites every
+  publication field from the response, but the operative reason is non-use, not the
+  clear. (Stated precisely after review: `clearDraft()` does not cancel an already
+  queued debounce, so resting the argument on it would have been wrong.)
 
 So after the fix, `formData.publications` being empty means one thing only: the curator
 emptied it. That is the case the issue asks us to honour.
@@ -106,10 +109,17 @@ surfaces do.
 Deliberately **not** doing:
 
 - **No confirmation prompt on removal.** Removal becomes symmetric with Modify Entity,
-  which has never prompted. `publication_replace_for_review()` already emits a
-  `log_warn` when the count decreases (`publication-repository.R:233-238`), so the audit
-  trail survives. Adding a modal would be new UX the issue did not ask for, on the one
-  surface that already has the most modal chrome.
+  which has never prompted. Adding a modal would be new UX the issue did not ask for, on
+  the one surface that already has the most modal chrome.
+
+  > Corrected after review: this originally cited `publication_replace_for_review()`'s
+  > `log_warn` on a decreasing count as the compensating audit trail. That was **false**.
+  > The warning sat inside the function's `is.null(conn)` branch, and the review write
+  > path always passes `txn_conn` (`review-write-service.R`), so it never fired on the
+  > only path that matters. Rather than drop the claim, the logging was moved into the
+  > shared write path and is read on the write connection, making it transaction-local.
+  > Verified live: a browser removal now emits
+  > `WARN Publication count decreasing for review 3155: 2 -> 1.`
 - **No server change.** The server is correct (§2). A "don't shrink the set" guard there
   would re-implement this bug one layer down, and would break Modify Entity too.
 - **No compensating snapshot kept "just in case".** A guard that cannot distinguish
@@ -203,3 +213,49 @@ branch rather than landed separately so one CI run and one release bump covers t
 
 Both are in scope precisely because folding #620 in without them would be the sloppy
 version of "fold it in".
+
+
+## 9. Adversarial review outcomes (Codex `gpt-5.6-sol`, high)
+
+The spec was reviewed before any code was written. Eleven findings; the verdict was
+DO-NOT-SHIP-as-written. Each was checked against the code rather than accepted, and the
+review's own two factual errors are recorded here as well — a review is evidence, not
+an oracle.
+
+**Accepted and implemented**
+
+| # | Finding | Action |
+|---|---|---|
+| 1 | `submitReviewChange()` derived create-vs-update from `review_info.review_id`, populated by an error-swallowing `loadReviewInfo()`; a failed metadata fetch POSTed and minted a **duplicate review** | Derive from `useReviewForm`'s own `reviewId` (atomic load). Red-green in `Review.submitMode.spec.ts`. A genuine latent bug on the same save path. |
+| 3 | The `bind_rows(.id = )` positional contract was unproven | Parse extracted to `functions/review-literature-parsing.R`; 23 assertions across all four populated/empty combinations |
+| 6 | The `log_warn` audit-trail claim was false on the real path | Logging moved into the shared write path; verified live |
+| 8 | markdown-it 15 disables fuzzy links; `make ci-local` runs neither Vitest nor the bundle build | `md.linkify.set({ fuzzyLink: true })` + a renderer test; verification extended to `npm run test:unit` and `build:bundle-budget` |
+| 9 | No durable-docs update | `AGENTS.md` gotchas added |
+| 5 | Reseed only at the successful end | Moved to `afterEach` |
+| 10, 11 | Draft-safety reasoning imprecise; stale line anchors | Corrected above |
+
+**Rejected, with evidence**
+
+- **Finding 4's sub-claim, "Keep `publication.publication_type='PMID'`; only the join's
+  relation type is wrong."** Wrong. Production's `publication` table holds
+  `additional_references` (4304) and `gene_review` (386) and **zero** `'PMID'` rows —
+  queried live. Both tables are corrected, which is also what makes the seeded id
+  `PMID:12345678` consistent with the `validatePMID` the form applies.
+- **Finding 2, "fail closed on unknown relation types."** The concern is real in
+  principle — an unrecognised type is filtered out of both lists and then deleted by the
+  replace — but the counts above are exhaustive in both tables, so there is no such row
+  to fail closed on. Adding a 400 path for data that does not exist would be speculative.
+  Recorded as a residual in §5 instead.
+- **Findings 5 and 7's implementability objections** (file-local helpers, `getByLabel`,
+  missing bearer, dedupe conflict) describe the spec's prose, not the implementation:
+  the E2E spec carries its own helpers, scopes by `#review-literature-select`, attaches
+  the token explicitly, and `submitForm()` de-duplicates the current selection only.
+- **Finding 8's "preferably keep the four Dependabot updates separate."** The bundling
+  was explicitly requested.
+
+**Found by neither the spec nor the review — only by driving the real stack**
+
+`BFormTag` renders `title` from its internal `tagText`, and `ReviewFormFields.vue` fills
+the tag's default slot with a `<BLink>`, so the attribute is the literal
+`"[object Object]"`. The planned `.b-form-tag[title="PMID:…"]` selector matches nothing
+and would have made the E2E pass vacuously. Chips are matched by text instead.
