@@ -242,17 +242,26 @@ ON DUPLICATE KEY UPDATE
   `is_active` = VALUES(`is_active`),
   `sort` = VALUES(`sort`);
 
--- KNOWN LANDMINE, KEPT DELIBERATELY: PMID 12345678 is a real PubMed record whose
--- only author is a 74-character `CollectiveName`
--- ("Ministerial Meeting on Population of the Non-Aligned Movement (1993: Bali)").
--- `publication`.`Lastname` is VARCHAR(50) and `publication-functions.R` writes the
--- parsed author name untruncated, so any review save that re-resolves this PMID
--- fails with "Data too long for column 'Lastname'" and rolls the whole save back
--- as an opaque 500. That is a PRE-EXISTING api/ defect (consortium-authored papers
--- are common in NDD genetics), not a fixture bug, and this row is currently the
--- only thing in the repo that exposes it — see the `reviewSaveWorks` docblock in
--- app/tests/e2e/curate.variation-provenance.spec.ts. Do NOT "fix" this by swapping
--- in a short-authored PMID; that would only re-hide the defect.
+-- PMID 12345678 is a real PubMed record whose only author is a 74-character
+-- `CollectiveName` ("Ministerial Meeting on Population of the Non-Aligned Movement
+-- (1993: Bali)"). That used to overflow `publication`.`Lastname` VARCHAR(50) and roll
+-- back the whole review save as an opaque 500; migration 048 widened both author
+-- columns to VARCHAR(255) (#614), so it no longer does. It stays as the fixture PMID
+-- deliberately -- it is the repo's only regression pressure on that path. Do NOT swap
+-- in a short-authored PMID.
+--
+-- SHAPE MATTERS (#635). `publication_id` carries the `PMID:` prefix and
+-- `publication_type` is `additional_references` | `gene_review`, exactly as production
+-- stores them (verified live: 8148 / 1099 rows, zero of any other type). This fixture
+-- previously seeded `'12345678'` / `'PMID'`, which matches NEITHER filter in
+-- `useReviewForm.loadReviewData()`, so the row rendered as no chip at all -- which is
+-- why the #635 publication-removal bug shipped without end-to-end coverage. Seeding it
+-- production-shaped is what lets `app/tests/e2e/review.publication-removal.spec.ts`
+-- exist.
+--
+-- Because the row is already in `publication`, `publication_write_prepare()` finds it
+-- by id and skips the PubMed fetch entirely, so a review save is offline and
+-- deterministic.
 INSERT INTO `publication` (
   `publication_id`,
   `publication_type`,
@@ -262,8 +271,8 @@ INSERT INTO `publication` (
   `Journal_abbreviation`,
   `Journal`
 ) VALUES (
-  '12345678',
-  'PMID',
+  'PMID:12345678',
+  'additional_references',
   'Synthetic CHD8 review fixture for documentation screenshots',
   'Synthetic Playwright-only publication fixture.',
   '2026-01-01 00:00:00',
@@ -616,8 +625,8 @@ INSERT INTO `ndd_review_publication_join` (
   123,
   123,
   123,
-  '12345678',
-  'PMID',
+  'PMID:12345678',
+  'additional_references',
   1
 )
 ON DUPLICATE KEY UPDATE
@@ -626,6 +635,12 @@ ON DUPLICATE KEY UPDATE
   `publication_id` = VALUES(`publication_id`),
   `publication_type` = VALUES(`publication_type`),
   `is_reviewed` = VALUES(`is_reviewed`);
+
+-- Transitional cleanup (#635): drop the pre-#635 unprefixed `12345678` publication row
+-- if a database was seeded with the old fixture. Safe to run unconditionally -- the
+-- join row above has just been repointed at `PMID:12345678`, so nothing references it,
+-- and DELETE of an absent row is a no-op.
+DELETE FROM `publication` WHERE `publication_id` = '12345678';
 
 -- Batch 9001 is assigned to BOTH pw_reviewer and pw_curator.
 --

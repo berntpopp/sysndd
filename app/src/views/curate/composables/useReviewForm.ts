@@ -198,11 +198,6 @@ export default function useReviewForm(entityId?: string | number) {
   const reviewId = ref<number | null>(null);
   const entityIdRef = ref<number | null>(null);
 
-  // BUG-05 fix: Store originally loaded publications to ensure they're never accidentally deleted
-  // When submitting, we merge original publications with any user additions
-  const originalPublications = ref<string[]>([]);
-  const originalGenereviews = ref<string[]>([]);
-
   // Draft persistence (key includes entity ID for entity-specific drafts)
   const draftKey = entityId ? `review-form-${entityId}` : 'review-form-new';
   const formDraft = useFormDraft<ReviewFormData>(draftKey);
@@ -327,12 +322,6 @@ export default function useReviewForm(entityId?: string | number) {
         .filter((item) => item.publication_type === 'additional_references')
         .map((item) => item.publication_id);
 
-      // BUG-05 fix: Store original publications to preserve them during submission
-      // This ensures existing publications are never accidentally deleted even if
-      // there are reactivity issues with the form bindings
-      originalPublications.value = [...formData.publications];
-      originalGenereviews.value = [...formData.genereviews];
-
       // Snapshot loaded values for change detection
       loadedData.value = {
         synopsis: formData.synopsis,
@@ -391,17 +380,22 @@ export default function useReviewForm(entityId?: string | number) {
       );
     }
 
-    // BUG-05 fix: Merge original publications with current form data
-    // This ensures existing publications are preserved even if there are reactivity issues
-    // Use Set to deduplicate and preserve both original and newly added publications
-    const mergedPublications = [
-      ...new Set([...originalPublications.value, ...formData.publications]),
-    ];
-    const mergedGenereviews = [...new Set([...originalGenereviews.value, ...formData.genereviews])];
-
-    // Sanitize PMIDs
-    const cleanPublications = mergedPublications.map(sanitizePMID);
-    const cleanGenereviews = mergedGenereviews.map(sanitizePMID);
+    // #635: submit exactly what the curator selected. This deliberately does NOT
+    // union in the set loaded from the server. The union it replaces ("BUG-05")
+    // made removal impossible: dropping a chip cleared it from `formData` -- which
+    // is why the UI updated -- and the union then restored it one line before
+    // serialisation, so `publication_replace_for_review()` re-INSERTed the row the
+    // curator had just deleted. The sibling surfaces (`useEntityInfo`,
+    // `useReviewApprovalActions`) always submitted the live selection, which is why
+    // removal only ever failed here.
+    //
+    // De-duplicate AFTER sanitising, not before: BFormTags can hold "PMID: 123" and
+    // "PMID:123" as two distinct tags, and they are only equal once the whitespace is
+    // gone. Set-then-map would have shipped both to the API. (The API's
+    // `publication_write_classify_genereviews()` also collapses them, so this was never
+    // DB corruption -- but the payload should say what the curator meant.)
+    const cleanPublications = [...new Set(formData.publications.map(sanitizePMID))];
+    const cleanGenereviews = [...new Set(formData.genereviews.map(sanitizePMID))];
 
     // Transform form data to API format
     const literature = new Literature(cleanPublications, cleanGenereviews);
@@ -483,10 +477,6 @@ export default function useReviewForm(entityId?: string | number) {
     reviewId.value = null;
     entityIdRef.value = null;
 
-    // BUG-05 fix: Clear original publications on form reset
-    originalPublications.value = [];
-    originalGenereviews.value = [];
-
     // Clear loaded data snapshot
     loadedData.value = null;
   };
@@ -526,6 +516,21 @@ export default function useReviewForm(entityId?: string | number) {
     formData,
     touched,
     loading,
+
+    /**
+     * The review this form actually loaded, or `null` before any load.
+     *
+     * Exposed so the caller can decide create-vs-update from the review the FORM
+     * is editing rather than from separately-fetched display metadata. `Review.vue`
+     * used to read `review_info.review_id`, which is populated by
+     * `useReviewData.loadReviewInfo()` — a call that reports and SWALLOWS its errors
+     * and still lets the modal open. On that failure `isUpdate` fell to `false` and
+     * the save POSTed, minting a duplicate review for an entity that already had
+     * one. `loadReviewData()` by contrast is atomic (a rejection propagates out of
+     * `infoReview()` before `show()`), so whenever this modal is open `reviewId` is
+     * the id it was opened with. Found by adversarial review of #635.
+     */
+    reviewId,
 
     // Change detection
     hasChanges,
