@@ -116,19 +116,20 @@ source_api_file("functions/disease-ontology-mapping-builder.R", local = FALSE)
   if (nrow(existing) > 0L) {
     return(invisible(TRUE))
   }
-  tryCatch(
-    DBI::dbExecute(
-      conn,
-      paste0(
-        "INSERT INTO disease_ontology_set (disease_ontology_id, disease_ontology_name) ",
-        "VALUES (?, ?)"
-      ),
-      params = unname(list(disease_id, "CTNNB1 syndrome (test seed)"))
+  # `disease_ontology_id_version` is the table's NOT NULL key column and has no
+  # default, so an INSERT that omits it fails with a 1364. That failure used to
+  # be swallowed by a message(): the seed silently did nothing, the refresh then
+  # had no disease to map, and the test asserted 0 mappings against an expected
+  # >= 1. Seed the key column, and let a seed failure be an ERROR -- a fixture
+  # that silently seeds nothing makes every assertion after it meaningless.
+  DBI::dbExecute(
+    conn,
+    paste0(
+      "INSERT INTO disease_ontology_set ",
+      "(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, is_active) ",
+      "VALUES (?, ?, ?, 1)"
     ),
-    error = function(e) {
-      message("[H3] disease_ontology_set seed failed (may already exist or schema differs): ",
-              conditionMessage(e))
-    }
+    params = unname(list(paste0(disease_id, "_1"), disease_id, "CTNNB1 syndrome (test seed)"))
   )
   invisible(TRUE)
 }

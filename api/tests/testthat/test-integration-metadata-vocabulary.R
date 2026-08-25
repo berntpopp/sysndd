@@ -98,11 +98,26 @@ test_that("status category in-use delete is blocked with a 400", {
     new_id <- created$entry$pk
 
     # Reference the new category from ndd_entity_status so the guard trips.
+    #
+    # ndd_entity_status.entity_id is a FOREIGN KEY to ndd_entity, and
+    # ndd_entity.entry_user_id is a NOT NULL foreign key to `user`, so BOTH
+    # parents have to exist. This only surfaced once CI began applying
+    # migrations: on a developer database those rows were already there, and
+    # before that the whole file skipped for want of a schema.
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO user (user_id, user_name, user_role) VALUES (999999, ?, 'Curator')",
+      params = unname(list("metadata-vocab-fixture"))
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO ndd_entity (entity_id, entry_user_id) VALUES (999999, 999999)"
+    )
     DBI::dbExecute(
       conn,
       sprintf(
         "INSERT INTO ndd_entity_status (entity_id, category_id, is_active, status_user_id)
-         VALUES (999999, %d, 1, 1)",
+         VALUES (999999, %d, 1, 999999)",
         new_id
       )
     )

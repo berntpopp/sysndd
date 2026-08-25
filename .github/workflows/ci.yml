@@ -218,6 +218,18 @@ jobs:
           working-directory: ./api
           cache-version: 3
 
+      # Integration tests guard themselves with dbExistsTable() checks, so an
+      # empty database makes every one of them SKIP -- silently. Apply the
+      # project's own migrations so they run against the real schema.
+      - name: Load test database schema
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript scripts/ci-load-test-schema.R
+
       - name: Run fast testthat tests
         env:
           MYSQL_HOST: 127.0.0.1
@@ -290,6 +302,18 @@ jobs:
         with:
           working-directory: ./api
           cache-version: 3
+
+      # Integration tests guard themselves with dbExistsTable() checks, so an
+      # empty database makes every one of them SKIP -- silently. Apply the
+      # project's own migrations so they run against the real schema.
+      - name: Load test database schema
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript scripts/ci-load-test-schema.R
 
       - name: Run full testthat tests
         env:
@@ -395,6 +419,18 @@ jobs:
         with:
           working-directory: ./api
           cache-version: 3
+
+      # Integration tests guard themselves with dbExistsTable() checks, so an
+      # empty database makes every one of them SKIP -- silently. Apply the
+      # project's own migrations so they run against the real schema.
+      - name: Load test database schema
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript scripts/ci-load-test-schema.R
 
       - name: Run slow testthat tests (RUN_SLOW_TESTS=true)
         env:

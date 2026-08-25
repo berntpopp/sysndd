@@ -19,6 +19,11 @@ library(stringr)
 # Source the helper functions used by entity endpoints
 # Uses helper-paths.R (loaded automatically by setup.R)
 # Use local = FALSE to make functions available in test scope
+# core/errors.R FIRST: select_tibble_fields() raises through
+# stop_for_bad_request(), so without it the invalid-field test fails with
+# "could not find function" instead of exercising the 400 contract. It only
+# surfaced once CI started applying migrations, because the file used to skip.
+source_api_file("core/errors.R", local = FALSE)
 source_api_file("functions/helper-functions.R", local = FALSE)
 
 # =============================================================================
