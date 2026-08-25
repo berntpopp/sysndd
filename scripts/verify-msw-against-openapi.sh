@@ -77,6 +77,7 @@ declare -a MOUNTS=(
   "/api/review:review_endpoints.R"
   "/api/status:status_endpoints.R"
   "/api/panels:panels_endpoints.R"
+  "/api/curate/variation:curate_variation_endpoints.R"
   "/api/admin/analysis:admin_analysis_snapshot_endpoints.R"
   "/api/admin/ontology:admin_ontology_mapping_endpoints.R"
   "/api/admin:admin_endpoints.R"

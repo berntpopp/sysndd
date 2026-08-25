@@ -471,6 +471,14 @@ export const routes: RouteRecordRaw[] = [
     beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
+    // #612 Phase 6: the cross-entity variation-ontology curation queue.
+    path: '/curate/variation-suggestions',
+    name: 'VariationSuggestions',
+    component: () => import('@/views/curate/VariationSuggestions.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
+  },
+  {
     path: '/GeneReviews',
     name: 'GeneReviews',
     component: () => import('@/views/curate/GeneReviewsCoverage.vue'),
