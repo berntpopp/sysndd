@@ -78,6 +78,23 @@ drop_variation_provenance_tables <- function(conn) {
   invisible(TRUE)
 }
 
+#' Teardown: drop this file's tables, then PUT THE SCHEMA BACK.
+#'
+#' This file re-applies migration 047 from scratch to verify its DDL, so it must
+#' start from a clean slate -- but it must not LEAVE one. The bare drop was
+#' written when the test database had no provenance tables at all, so dropping
+#' was "remove what I created". Since #612 the suite runs against a fully
+#' migrated database, and a bare drop instead DESTROYS REAL SCHEMA: every later
+#' file that touches an assertion then fails with
+#' "Table 'variation_ontology_assertion' doesn't exist" -- and so does every
+#' subsequent run against that database, because nothing ever puts it back.
+#' That is exactly how test-integration-entity-rename.R started returning 500s.
+restore_variation_provenance_tables <- function(conn) {
+  drop_variation_provenance_tables(conn)
+  apply_variation_provenance_migration(conn)
+  invisible(TRUE)
+}
+
 #' Ensure the three non-`user` FK-target tables migration 047 references exist,
 #' creating minimal fixtures if not. Mirrors ensure_test_user_table()'s own
 #' idiom and the exact stripped-down shapes
@@ -319,7 +336,7 @@ test_that("migration 047 creates the assertion + evidence tables with working co
 
   ids <- seed_variation_provenance_fk_targets(conn)
   withr::defer(cleanup_variation_provenance_fk_targets(conn, ids))
-  withr::defer(drop_variation_provenance_tables(conn))
+  withr::defer(restore_variation_provenance_tables(conn))
 
   # --- Identity: present (1) and absent (5) are independent assertion rows ---
   DBI::dbExecute(
