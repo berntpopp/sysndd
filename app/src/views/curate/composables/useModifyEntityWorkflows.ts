@@ -11,6 +11,7 @@
 
 import { computed, ref, type Ref } from 'vue';
 import { useCombinedStatusReview } from './useCombinedStatusReview';
+import useVariationProvenanceZones from './useVariationProvenanceZones';
 import type { useEntityInfo } from './useEntityInfo';
 import type { useEntityAutocomplete } from './useEntityAutocomplete';
 import type { useEntityMutations } from './useEntityMutations';
@@ -35,6 +36,14 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
   const { info, search, mutations, modals, statusForm, deactivate_check, replace_check } = deps;
   const { onToast, announce } = deps;
 
+  // #612: the three-zone provenance picker for BOTH ModifyEntity workflows.
+  // Bound to the same `select_variation` the picker itself edits, so the zones
+  // and the tree select can never disagree about what is submitted.
+  const variationZones = useVariationProvenanceZones({
+    selectedTags: info.select_variation,
+    confirmedTags: info.confirmed_variation_tags,
+  });
+
   const activeWorkflow = ref<WorkflowKind | null>(null);
   const combinedLoading = ref(false);
 
@@ -46,6 +55,7 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
         review_info: info.review_info.value,
         select_phenotype: info.select_phenotype.value,
         select_variation: info.select_variation.value,
+        provenance_action_for: variationZones.provenanceActionFor,
         select_additional_references: info.select_additional_references.value,
         select_gene_reviews: info.select_gene_reviews.value,
       }),
@@ -129,7 +139,14 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
     combinedLoading.value = true;
     try {
       const entityId = info.entity_info.value.entity_id;
-      await Promise.all([info.loadReview(entityId), statusForm.loadStatusByEntity(entityId)]);
+      await Promise.all([
+        info.loadReview(entityId),
+        statusForm.loadStatusByEntity(entityId),
+        // Best-effort and non-throwing by design: the zone picker is additive
+        // decoration, so a failed or forbidden provenance read degrades to "no
+        // zones" and never blocks the curation form.
+        variationZones.loadForEntity(entityId),
+      ]);
     } finally {
       combinedLoading.value = false;
     }
@@ -140,6 +157,10 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
       review_info: info.review_info.value,
       select_phenotype: info.select_phenotype.value,
       select_variation: info.select_variation.value,
+      // Threaded through BOTH builders: the inline workflow uses reviewArgs()
+      // and the combined status+review workflow uses getReviewArgs(), so
+      // wiring only one silently drops every confirmation from the other.
+      provenance_action_for: variationZones.provenanceActionFor,
       select_additional_references: info.select_additional_references.value,
       select_gene_reviews: info.select_gene_reviews.value,
     };
@@ -147,6 +168,7 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
 
   function clearSelection(): void {
     clearActiveWorkflow();
+    variationZones.reset();
     info.reset();
     search.clearAll();
   }
@@ -251,6 +273,9 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
   return {
     activeWorkflow,
     activeWorkflowLoading,
+    // #612: passed to both workflow components so the zone picker renders
+    // wherever ModifyEntity offers the variation-ontology select.
+    variationZones,
     combinedDirectApproval: combined.directApproval,
     clearActiveWorkflow,
     showEntityRename,

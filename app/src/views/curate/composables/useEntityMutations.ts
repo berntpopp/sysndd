@@ -33,6 +33,15 @@ export interface SubmitReviewArgs {
   review_info: any;
   select_phenotype: string[];
   select_variation: string[];
+  /**
+   * #612: per-tag provenance action from `useVariationProvenanceZones`.
+   *
+   * Optional so every existing caller is unchanged. The value is OMITTED, never
+   * set to null, when there is no action — so a submission from a surface with
+   * no zone picker serialises byte-identically to its pre-#608 self and the
+   * server sees only an explicit curator decision.
+   */
+  provenance_action_for?: (tag: string) => 'confirm' | undefined;
   select_additional_references: string[];
   select_gene_reviews: string[];
   /**
@@ -126,7 +135,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
     });
     const replace_variation = args.select_variation.map((item) => {
       const { modifierId, ontologyId } = splitOntologyTag(item);
-      return new Variation(ontologyId, modifierId);
+      return new Variation(ontologyId, modifierId, args.provenance_action_for?.(item));
     });
 
     args.review_info.literature = replace_literature;
