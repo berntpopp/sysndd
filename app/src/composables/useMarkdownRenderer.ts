@@ -16,6 +16,16 @@ const md = new MarkdownIt({
   typographer: true, // Smart quotes and dashes
 });
 
+// #620: markdown-it 15 moved to linkify-it v6, which turns fuzzy links OFF by default.
+// `linkify: true` alone therefore stopped auto-linking a BARE domain ("example.com")
+// while still linking an explicit scheme ("https://example.com") -- a silent change to
+// how already-published curator-authored content renders on /About and in the CMS
+// preview. A dependency bump should not change product behaviour, so the previous
+// behaviour is restored explicitly here rather than absorbed. linkify-it disabled it
+// upstream mainly for CJK correctness; SysNDD's markdown fields are English prose with
+// occasional bare domains, so the trade-off runs the other way for us.
+md.linkify.set({ fuzzyLink: true });
+
 // Configure DOMPurify allowlist
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
