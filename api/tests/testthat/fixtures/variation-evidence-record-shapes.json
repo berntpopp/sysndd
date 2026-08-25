@@ -1,0 +1,179 @@
+{
+  "$comment": "Cross-repo contract for variation_ontology_evidence.evidence_json (sysndd #612). The WRITER is sysndd-administration scripts/data-corrections/005-variation-provenance-backfill/provenance_builder.py (admin#16); this repository is the READER. A key rename on either side fails SILENTLY -- an unrecognised key is omitted, not guessed at -- which is how the extdb2 batch rendered `consequence` alone and the synopsis batch rendered nothing at all. Both the R suite (api/tests/testthat/test-unit-variation-evidence-record-shapes.R) and the TypeScript suite (app/src/views/pages/components/variationEvidenceRecords.spec.ts) are driven by this one file and assert their understood key sets against it in BOTH directions.",
+  "$stored_vs_wire": "`stored_json` is the exact text the MySQL JSON column holds, as provenance_builder.py writes it (plain scalars). `wire_sample` is what a client receives, captured verbatim from GET /api/entity/<id>/variation/<vario_id>/<modifier_id>/evidence: plumber does not auto-unbox, so every scalar is wrapped in a length-1 array. The R test proves stored -> wire; the TypeScript normalizer is driven by wire.",
+  "$optional_keys": "The writer DROPS an empty field rather than writing null (_clean() returns None and the builders only assign non-empty values), so a record legitimately carries a subset of `record_keys`. `required_record_keys` lists the keys that are always present.",
+  "shapes": {
+    "clinvar": {
+      "source_key": "clinvar",
+      "source_type": "external_database",
+      "captured_from": "entity 2097, VariO:0015, modifier 1 (first two of ten records)",
+      "container_keys": [
+        "records",
+        "matched"
+      ],
+      "record_keys": [
+        "id",
+        "classification",
+        "stars",
+        "consequence",
+        "url"
+      ],
+      "required_record_keys": [
+        "id",
+        "classification",
+        "stars",
+        "consequence",
+        "url"
+      ],
+      "matched_item_type": "string",
+      "stored_json": "{\"matched\":[\"OMIM:251280\"],\"records\":[{\"id\":\"3382378\",\"url\":\"https://www.ncbi.nlm.nih.gov/clinvar/variation/3382378/\",\"stars\":1,\"consequence\":\"SO:0001587|nonsense\",\"classification\":\"Likely pathogenic\"},{\"id\":\"1323420\",\"url\":\"https://www.ncbi.nlm.nih.gov/clinvar/variation/1323420/\",\"stars\":1,\"consequence\":\"SO:0001587|nonsense\",\"classification\":\"Pathogenic\"}]}",
+      "wire_sample": {
+        "matched": [
+          [
+            "OMIM:251280"
+          ]
+        ],
+        "records": [
+          {
+            "id": [
+              "3382378"
+            ],
+            "url": [
+              "https://www.ncbi.nlm.nih.gov/clinvar/variation/3382378/"
+            ],
+            "stars": [
+              1
+            ],
+            "consequence": [
+              "SO:0001587|nonsense"
+            ],
+            "classification": [
+              "Likely pathogenic"
+            ]
+          },
+          {
+            "id": [
+              "1323420"
+            ],
+            "url": [
+              "https://www.ncbi.nlm.nih.gov/clinvar/variation/1323420/"
+            ],
+            "stars": [
+              1
+            ],
+            "consequence": [
+              "SO:0001587|nonsense"
+            ],
+            "classification": [
+              "Pathogenic"
+            ]
+          }
+        ]
+      }
+    },
+    "extdb2": {
+      "source_key": "extdb2",
+      "source_type": "external_database",
+      "captured_from": "entity 2900, VariO:0039, modifier 1 (all eight keys, incl. categorisation)",
+      "container_keys": [
+        "records"
+      ],
+      "record_keys": [
+        "confidence",
+        "mechanism",
+        "categorisation",
+        "consequence",
+        "support",
+        "disease",
+        "allelic_requirement",
+        "layer"
+      ],
+      "required_record_keys": [],
+      "matched_item_type": null,
+      "stored_json": "{\"records\":[{\"layer\":\"mechanism\",\"disease\":\"ZNRF3-related neurodevelopmental disorder with macrocephaly\",\"support\":\"evidence\",\"mechanism\":\"dominant negative\",\"confidence\":\"moderate\",\"consequence\":\"altered gene product structure\",\"categorisation\":\"assembly-mediated dominant negative:evidence\",\"allelic_requirement\":\"monoallelic_autosomal\"}]}",
+      "wire_sample": {
+        "records": [
+          {
+            "layer": [
+              "mechanism"
+            ],
+            "disease": [
+              "ZNRF3-related neurodevelopmental disorder with macrocephaly"
+            ],
+            "support": [
+              "evidence"
+            ],
+            "mechanism": [
+              "dominant negative"
+            ],
+            "confidence": [
+              "moderate"
+            ],
+            "consequence": [
+              "altered gene product structure"
+            ],
+            "categorisation": [
+              "assembly-mediated dominant negative:evidence"
+            ],
+            "allelic_requirement": [
+              "monoallelic_autosomal"
+            ]
+          }
+        ]
+      }
+    },
+    "synopsis": {
+      "source_key": "synopsis",
+      "source_type": "literature",
+      "captured_from": "entity 991, VariO:0043, modifier 1 (one negated match, one not)",
+      "container_keys": [
+        "records"
+      ],
+      "record_keys": [
+        "matched_text",
+        "negated",
+        "pattern",
+        "context"
+      ],
+      "required_record_keys": [
+        "matched_text",
+        "negated"
+      ],
+      "matched_item_type": null,
+      "stored_json": "{\"records\":[{\"context\":\"Haploinsufficiency was posited as pathomechanism.\",\"negated\":false,\"pattern\":\"\\\\bhaploinsufficiency\\\\b\",\"matched_text\":\"Haploinsufficiency\"},{\"context\":\"However, another study identified a truncating variant that did not segregate with ID, concluding that SRGAP3 haploinsufficiency is not pathogenic.\",\"negated\":true,\"pattern\":\"\\\\bhaploinsufficiency\\\\b\",\"matched_text\":\"haploinsufficiency\"}]}",
+      "wire_sample": {
+        "records": [
+          {
+            "context": [
+              "Haploinsufficiency was posited as pathomechanism."
+            ],
+            "negated": [
+              false
+            ],
+            "pattern": [
+              "\\bhaploinsufficiency\\b"
+            ],
+            "matched_text": [
+              "Haploinsufficiency"
+            ]
+          },
+          {
+            "context": [
+              "However, another study identified a truncating variant that did not segregate with ID, concluding that SRGAP3 haploinsufficiency is not pathogenic."
+            ],
+            "negated": [
+              true
+            ],
+            "pattern": [
+              "\\bhaploinsufficiency\\b"
+            ],
+            "matched_text": [
+              "haploinsufficiency"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "$key_order": "`stored_json` preserves the key ORDER MySQL returns, not the writer's. provenance_builder.py writes with sort_keys=True, but a MySQL JSON column normalizes object keys by LENGTH first and then lexicographically, so the text read back differs from the text inserted. The order here is the captured production read order, which is what any consumer actually sees."
+}
