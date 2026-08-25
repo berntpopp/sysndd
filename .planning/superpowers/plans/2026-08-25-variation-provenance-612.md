@@ -133,6 +133,68 @@ docker exec -e MYSQL_HOST=sysndd_mysql_prov612 -e MYSQL_DATABASE=sysndd_db_test 
 
 ---
 
+## Test idioms this repo actually uses (read before writing any R test)
+
+**Mocking a sourced-into-global free function.** `testthat::local_mocked_bindings(..., .env = globalenv())`
+does NOT work here — under testthat 3.3.2 it aborts with "No packages loaded with pkgload", because
+`globalenv()` has no package namespace (documented at
+`api/tests/testthat/test-unit-clustering-gene-universe.R:13`). The repo convention is a direct
+global replacement with a `withr::defer` restore
+(`api/tests/testthat/test-unit-review-write-service.R:151`). Every R test in this plan writes
+`mock_globals(list(...))`, defined once per test file as:
+
+```r
+# Repo idiom for stubbing sourced-into-global free functions. testthat's
+# local_mocked_bindings() cannot target them (globalenv() has no pkgload
+# namespace); see test-unit-clustering-gene-universe.R:13 and the direct
+# assign/defer pattern at test-unit-review-write-service.R:151.
+# `base::get` is explicit because the `config` package masks `base::get` with a
+# signature that has no `envir` argument (AGENTS.md).
+mock_globals <- function(bindings, env = parent.frame()) {
+  for (name in names(bindings)) {
+    local({
+      target <- name
+      had <- base::exists(target, envir = .GlobalEnv, inherits = FALSE)
+      previous <- if (had) base::get(target, envir = .GlobalEnv, inherits = FALSE) else NULL
+      assign(target, bindings[[target]], envir = .GlobalEnv)
+      withr::defer(
+        if (had) {
+          assign(target, previous, envir = .GlobalEnv)
+        } else {
+          rm(list = target, envir = .GlobalEnv)
+        },
+        envir = env
+      )
+    })
+  }
+}
+```
+
+`testthat::local_mocked_bindings(..., .package = "DBI")` IS valid and is used for `dbExecute` /
+`dbGetQuery` / `dbWithTransaction` (`api/tests/testthat/test-unit-pubtator-gene-summary.R:14`).
+`mockery::stub(fn, "name", value)` is the idiom for a binding a function resolves internally
+(`test-unit-review-write-service.R:321`).
+
+**`with_test_db_transaction()` takes an EXPRESSION, not a function.** It is
+`with_test_db_transaction(code)`, `force(code)`, and it publishes its connection through an option
+(`api/tests/testthat/helper-db.R:282-295`). Passing a function merely returns the function and the
+body never runs — a test that "passes" while executing nothing. Always:
+
+```r
+with_test_db_transaction({
+  conn <- getOption(".test_db_con")
+  ...
+})
+```
+
+**Endpoint-level tests** mount the endpoint file in a sandbox and invoke the handler directly;
+copy the harness from `api/tests/testthat/test-endpoint-review.R:109`. That is the only way to
+prove `require_role`, `req$argsBody` and the serializer decorators — a test that calls the service
+function proves none of them.
+
+
+---
+
 ## Task 1: Evidence-shape fixture and the R wire contract
 
 **Files:**
@@ -781,7 +843,9 @@ git commit -m "fix(612): render all three evidence_json record shapes"
 
 **Interfaces:**
 - Consumes: `NormalizedEvidenceRecord` from Task 2.
-- Produces: `<VariationEvidenceRecordList :records="evidence.records" />`.
+- Produces: `<VariationEvidenceRecordList :records="record.records" />`, mounted INSIDE the
+  existing per-source `v-for` (`VariationProvenanceDialog.vue:103`), where `record` is one
+  `NormalizedEvidence` and `record.records` is its record list. There is no `evidence.records`.
 
 - [ ] **Step 1: Write the failing spec additions**
 
@@ -849,8 +913,10 @@ component is presentation-only — no fetching, no props beyond `records`.
 
 - [ ] **Step 4: Replace the record loop in `VariationProvenanceDialog.vue`**
 
-Swap the existing per-record markup for `<VariationEvidenceRecordList :records="evidence.records" />`.
-Leave the "Matched via" section, the Imported line and the summary line untouched.
+Inside the existing `v-for="(record, index) in records"` section (`VariationProvenanceDialog.vue:103`),
+swap the per-record markup for `<VariationEvidenceRecordList :records="record.records" />`. `records`
+at that level is the array of per-SOURCE `NormalizedEvidence` objects; the renderable rows are
+`record.records`. Leave the "Matched via" section, the Imported line and the summary line untouched.
 
 - [ ] **Step 5: Run the specs and the whole provenance suite**
 
@@ -1049,13 +1115,12 @@ source_api_file("functions/variation-provenance-approval.R", local = FALSE)
 
 test_that("served terms come from primary approved reviews with active connect rows", {
   captured <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     db_execute_query = function(sql, params = list(), conn = NULL) {
       captured <<- list(sql = sql, params = params)
       data.frame(vario_id = c("VariO:0015", "VariO:0017"), modifier_id = c(1L, 5L))
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   served <- variation_provenance_served_terms_for_entity(42L)
   expect_equal(served$vario_id, c("VariO:0015", "VariO:0017"))
   expect_equal(served$modifier_id, c(1L, 5L))
@@ -1068,10 +1133,9 @@ test_that("served terms come from primary approved reviews with active connect r
 })
 
 test_that("an empty served set yields a zero-row tibble with the right columns", {
-  local_mocked_bindings(
-    db_execute_query = function(...) data.frame(),
-    .env = globalenv()
-  )
+  mock_globals(list(
+    db_execute_query = function(...) data.frame()
+  ))
   served <- variation_provenance_served_terms_for_entity(42L)
   expect_equal(nrow(served), 0L)
   expect_setequal(names(served), c("vario_id", "modifier_id"))
@@ -1079,7 +1143,7 @@ test_that("an empty served set yields a zero-row tibble with the right columns",
 
 test_that("approval reconciliation rejects an omitted term and leaves a served one alone", {
   applied <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
       tibble::tibble(
         assertion_id = c(1L, 2L),
@@ -1094,9 +1158,8 @@ test_that("approval reconciliation rejects an omitted term and leaves a served o
     variation_provenance_apply_reconciliation = function(plan, review_user_id, conn = NULL) {
       applied <<- plan
       nrow(plan)
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   updated <- variation_provenance_reconcile_on_approval(42L, review_user_id = 7L)
   expect_equal(updated, 1L)
   expect_equal(applied$assertion_id, 2L)
@@ -1105,7 +1168,7 @@ test_that("approval reconciliation rejects an omitted term and leaves a served o
 
 test_that("approval reconciliation never confirms, even for a submitted suggestion", {
   applied <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
       tibble::tibble(assertion_id = 1L, vario_id = "VariO:0017",
                      modifier_id = 1L, state = "suggested")
@@ -1116,9 +1179,8 @@ test_that("approval reconciliation never confirms, even for a submitted suggesti
     variation_provenance_apply_reconciliation = function(plan, review_user_id, conn = NULL) {
       applied <<- plan
       nrow(plan)
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 0L)
   expect_null(applied)
 })
@@ -1129,7 +1191,7 @@ test_that("an EMPTY post-approval served set rejects every assertion for the ent
   # "skip when empty" guard would strand exactly the assertions this hook exists
   # to retire.
   applied <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
       tibble::tibble(assertion_id = c(1L, 2L), vario_id = c("VariO:0015", "VariO:0017"),
                      modifier_id = c(1L, 1L),
@@ -1141,16 +1203,15 @@ test_that("an EMPTY post-approval served set rejects every assertion for the ent
     variation_provenance_apply_reconciliation = function(plan, review_user_id, conn = NULL) {
       applied <<- plan
       nrow(plan)
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 2L)
   expect_true(all(applied$to_state == "rejected"))
 })
 
 test_that("an entity with no assertion rows short-circuits without a served-set query", {
   served_called <- FALSE
-  local_mocked_bindings(
+  mock_globals(list(
     variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
       tibble::tibble(assertion_id = integer(), vario_id = character(),
                      modifier_id = integer(), state = character())
@@ -1158,9 +1219,8 @@ test_that("an entity with no assertion rows short-circuits without a served-set 
     variation_provenance_served_terms_for_entity = function(entity_id, conn = NULL) {
       served_called <<- TRUE
       tibble::tibble(vario_id = character(), modifier_id = integer())
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 0L)
   expect_false(served_called)
 })
@@ -1363,7 +1423,7 @@ test_that("a pool goes through the injected transaction runner", {
 test_that("a direct connection uses a savepoint and releases it on success", {
   statements <- character()
   conn <- structure(list(), class = c("MariaDBConnection", "DBIConnection"))
-  local_mocked_bindings(
+  testthat::local_mocked_bindings(
     dbExecute = function(conn, statement, ...) {
       statements <<- c(statements, statement)
       1L
@@ -1379,7 +1439,7 @@ test_that("a direct connection uses a savepoint and releases it on success", {
 test_that("a direct connection rolls back to the savepoint and rethrows", {
   statements <- character()
   conn <- structure(list(), class = c("MariaDBConnection", "DBIConnection"))
-  local_mocked_bindings(
+  testthat::local_mocked_bindings(
     dbExecute = function(conn, statement, ...) {
       statements <<- c(statements, statement)
       1L
@@ -1403,7 +1463,7 @@ source_api_file("services/approval-service.R", local = FALSE)
 
 test_that("approving one review reconciles each affected entity exactly once", {
   reconciled <- list()
-  local_mocked_bindings(
+  mock_globals(list(
     review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
       review_ids
     },
@@ -1414,9 +1474,8 @@ test_that("approving one review reconciles each affected entity exactly once", {
     variation_provenance_reconcile_on_approval = function(entity_id, review_user_id, conn = NULL) {
       reconciled[[length(reconciled) + 1L]] <<- entity_id
       0L
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   result <- svc_approval_review_approve(42L, user_id = 7L, approve = TRUE, pool = NULL)
   expect_equal(result$status, 200)
   expect_equal(sort(unlist(reconciled)), c(11L, 12L))
@@ -1424,7 +1483,7 @@ test_that("approving one review reconciles each affected entity exactly once", {
 
 test_that("unapproving a review reconciles nothing", {
   called <- FALSE
-  local_mocked_bindings(
+  mock_globals(list(
     review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
       review_ids
     },
@@ -1435,9 +1494,8 @@ test_that("unapproving a review reconciles nothing", {
     variation_provenance_reconcile_on_approval = function(...) {
       called <<- TRUE
       0L
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   svc_approval_review_approve(42L, user_id = 7L, approve = FALSE, pool = NULL)
   expect_false(called)
 })
@@ -1447,16 +1505,15 @@ test_that("a vector of review ids no longer trips the length-1 'all' check", {
   # so this function's documented multi-id support never worked. The per-entity
   # loop depends on it.
   approved <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
       approved <<- review_ids
       review_ids
     },
     db_execute_query = function(sql, params = list(), conn = NULL) data.frame(entity_id = 11L),
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
-    variation_provenance_reconcile_on_approval = function(...) 0L,
-    .env = globalenv()
-  )
+    variation_provenance_reconcile_on_approval = function(...) 0L
+  ))
   result <- svc_approval_review_approve(c(42L, 43L), user_id = 7L, approve = TRUE, pool = NULL)
   expect_equal(result$status, 200)
   expect_equal(approved, c(42L, 43L))
@@ -1695,14 +1752,13 @@ test_that("max_strength accepts only 0-4", {
 
 test_that("the listing query binds every filter and never interpolates a value", {
   captured <- list()
-  local_mocked_bindings(
+  mock_globals(list(
     db_execute_query = function(sql, params = list(), conn = NULL) {
       captured[[length(captured) + 1L]] <<- list(sql = sql, params = params)
       if (grepl("COUNT", sql, fixed = TRUE)) return(data.frame(total = 0L))
       data.frame()
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   params <- svc_curate_variation_suggestion_params(
     "active_unconfirmed", "clinvar", 1L, "true", "CHD8", "strength_asc", 2L, 10L
   )
@@ -1720,7 +1776,7 @@ test_that("the listing query binds every filter and never interpolates a value",
 })
 
 test_that("rows group evidence per assertion and expose the derived flags", {
-  local_mocked_bindings(
+  mock_globals(list(
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("COUNT", sql, fixed = TRUE)) return(data.frame(total = 1L))
       data.frame(
@@ -1739,9 +1795,8 @@ test_that("rows group evidence per assertion and expose the derived flags", {
         evidence_summary = c("10 ClinVar records, max 2 stars", "1 synopsis match"),
         stringsAsFactors = FALSE
       )
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   params <- svc_curate_variation_suggestion_params(
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
   )
@@ -1760,7 +1815,7 @@ test_that("rows group evidence per assertion and expose the derived flags", {
 })
 
 test_that("an assertion with no evidence row yields an empty array, not a phantom", {
-  local_mocked_bindings(
+  mock_globals(list(
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("COUNT", sql, fixed = TRUE)) return(data.frame(total = 1L))
       data.frame(
@@ -1772,9 +1827,8 @@ test_that("an assertion with no evidence row yields an empty array, not a phanto
         batch_id = NA_character_, evidence_strength = NA_integer_,
         evidence_summary = NA_character_, stringsAsFactors = FALSE
       )
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   params <- svc_curate_variation_suggestion_params(
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
   )
@@ -1928,7 +1982,7 @@ git commit -m "feat(612): add the cross-entity variation suggestion queue query"
 test_that("confirm refuses an item that is not served", {
   # A `suggested` assertion is by definition NOT in the curated set. Confirming
   # it would have to ADD the term, which is a review write.
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("FOR UPDATE", sql, fixed = TRUE)) {
@@ -1936,9 +1990,8 @@ test_that("confirm refuses an item that is not served", {
                           modifier_id = 1L, state = "suggested", stringsAsFactors = FALSE))
       }
       data.frame(vario_id = character(), modifier_id = integer())
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   result <- svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0017", modifier_id = 1L)),
     action = "confirm", review_user_id = 7L, db = NULL
@@ -1951,7 +2004,7 @@ test_that("dismiss refuses an item that IS served", {
   # Writing `rejected` onto a served assertion drops it out of the public read's
   # state filter, so the still-served term renders as CURATOR-AUTHORED -- the
   # exact fabrication this feature exists to prevent.
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("FOR UPDATE", sql, fixed = TRUE)) {
@@ -1959,9 +2012,8 @@ test_that("dismiss refuses an item that IS served", {
                           modifier_id = 1L, state = "suggested", stringsAsFactors = FALSE))
       }
       data.frame(vario_id = "VariO:0015", modifier_id = 1L, stringsAsFactors = FALSE)
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   result <- svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L)),
     action = "dismiss", review_user_id = 7L, db = NULL
@@ -1972,7 +2024,7 @@ test_that("dismiss refuses an item that IS served", {
 
 test_that("confirm applies to a served active_unconfirmed assertion", {
   statements <- list()
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("FOR UPDATE", sql, fixed = TRUE)) {
@@ -1985,9 +2037,8 @@ test_that("confirm applies to a served active_unconfirmed assertion", {
     db_execute_statement = function(sql, params = list(), conn = NULL) {
       statements[[length(statements) + 1L]] <<- list(sql = sql, params = params)
       1L
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   result <- svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L)),
     action = "confirm", review_user_id = 7L, db = NULL
@@ -2001,7 +2052,7 @@ test_that("confirm applies to a served active_unconfirmed assertion", {
 })
 
 test_that("a state that changed under the lock is reported skipped, not applied", {
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("FOR UPDATE", sql, fixed = TRUE)) {
@@ -2011,9 +2062,8 @@ test_that("a state that changed under the lock is reported skipped, not applied"
       }
       data.frame(vario_id = "VariO:0015", modifier_id = 1L, stringsAsFactors = FALSE)
     },
-    db_execute_statement = function(sql, params = list(), conn = NULL) 0L,
-    .env = globalenv()
-  )
+    db_execute_statement = function(sql, params = list(), conn = NULL) 0L
+  ))
   result <- svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L)),
     action = "confirm", review_user_id = 7L, db = NULL
@@ -2023,11 +2073,10 @@ test_that("a state that changed under the lock is reported skipped, not applied"
 })
 
 test_that("an unknown assertion is skipped, never created", {
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
-    db_execute_query = function(sql, params = list(), conn = NULL) data.frame(),
-    .env = globalenv()
-  )
+    db_execute_query = function(sql, params = list(), conn = NULL) data.frame()
+  ))
   result <- svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0099", modifier_id = 1L)),
     action = "confirm", review_user_id = 7L, db = NULL
@@ -2038,14 +2087,13 @@ test_that("an unknown assertion is skipped, never created", {
 
 test_that("the locking read orders by assertion_id so concurrent batches cannot deadlock", {
   captured <- NULL
-  local_mocked_bindings(
+  mock_globals(list(
     db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
     db_execute_query = function(sql, params = list(), conn = NULL) {
       if (grepl("FOR UPDATE", sql, fixed = TRUE)) captured <<- sql
       data.frame()
-    },
-    .env = globalenv()
-  )
+    }
+  ))
   svc_curate_variation_apply(
     list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L)),
     action = "confirm", review_user_id = 7L, db = NULL
@@ -2235,12 +2283,13 @@ source_api_file("functions/variation-provenance-approval.R", local = FALSE)
 
 test_that("the queue lists a seeded unconfirmed assertion with its evidence", {
   skip_if_no_test_db()
-  with_test_db_transaction(function(con) {
-    seed <- seed_variation_suggestion_fixture(con)   # helper written in Step 5
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    seed <- seed_variation_suggestion_fixture(conn)   # helper written in Step 5
     params <- svc_curate_variation_suggestion_params(
       NULL, NULL, NULL, NULL, as.character(seed$entity_id), NULL, NULL, NULL
     )
-    result <- svc_curate_variation_suggestions(params, pool = con)
+    result <- svc_curate_variation_suggestions(params, pool = conn)
     expect_equal(result$meta$total, 1L)
     row <- result$data[[1L]]
     expect_equal(row$vario_id, "VariO:0015")
@@ -2251,14 +2300,15 @@ test_that("the queue lists a seeded unconfirmed assertion with its evidence", {
 
 test_that("confirming a served assertion stamps attribution", {
   skip_if_no_test_db()
-  with_test_db_transaction(function(con) {
-    seed <- seed_variation_suggestion_fixture(con)
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    seed <- seed_variation_suggestion_fixture(conn)
     result <- svc_curate_variation_apply(
       list(list(entity_id = seed$entity_id, vario_id = "VariO:0015", modifier_id = 1L)),
-      action = "confirm", review_user_id = seed$user_id, db = con
+      action = "confirm", review_user_id = seed$user_id, db = conn
     )
     expect_equal(result$applied, 1L)
-    row <- DBI::dbGetQuery(con,
+    row <- DBI::dbGetQuery(conn,
       "SELECT state, confirmed_by FROM variation_ontology_assertion WHERE assertion_id = ?",
       params = list(seed$assertion_id))
     expect_equal(row$state, "confirmed")
@@ -2268,15 +2318,16 @@ test_that("confirming a served assertion stamps attribution", {
 
 test_that("dismissing a SERVED assertion is refused", {
   skip_if_no_test_db()
-  with_test_db_transaction(function(con) {
-    seed <- seed_variation_suggestion_fixture(con, state = "suggested")
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    seed <- seed_variation_suggestion_fixture(conn, state = "suggested")
     result <- svc_curate_variation_apply(
       list(list(entity_id = seed$entity_id, vario_id = "VariO:0015", modifier_id = 1L)),
-      action = "dismiss", review_user_id = seed$user_id, db = con
+      action = "dismiss", review_user_id = seed$user_id, db = conn
     )
     expect_equal(result$applied, 0L)
     expect_equal(result$skipped[[1L]]$reason, "served")
-    row <- DBI::dbGetQuery(con,
+    row <- DBI::dbGetQuery(conn,
       "SELECT state FROM variation_ontology_assertion WHERE assertion_id = ?",
       params = list(seed$assertion_id))
     expect_equal(row$state, "suggested")
@@ -2285,14 +2336,15 @@ test_that("dismissing a SERVED assertion is refused", {
 
 test_that("approving a review rejects an assertion the entity no longer serves", {
   skip_if_no_test_db()
-  with_test_db_transaction(function(con) {
-    seed <- seed_variation_suggestion_fixture(con)
+  with_test_db_transaction({
+    conn <- getOption(".test_db_con")
+    seed <- seed_variation_suggestion_fixture(conn)
     # Drop the connect row: the approved review no longer carries the term.
-    DBI::dbExecute(con,
+    DBI::dbExecute(conn,
       "DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?",
       params = list(seed$review_id))
-    variation_provenance_reconcile_on_approval(seed$entity_id, seed$user_id, conn = con)
-    row <- DBI::dbGetQuery(con,
+    variation_provenance_reconcile_on_approval(seed$entity_id, seed$user_id, conn = conn)
+    row <- DBI::dbGetQuery(conn,
       "SELECT state FROM variation_ontology_assertion WHERE assertion_id = ?",
       params = list(seed$assertion_id))
     expect_equal(row$state, "rejected")
@@ -2813,14 +2865,15 @@ export function buildVariationSubmission(
   provenanceActionFor: (tag: string) => 'confirm' | undefined
 ): Variation[] {
   return tags.map((tag) => {
-    const { prefix, id } = splitOntologyTag(tag);
-    return new Variation(id, Number(prefix), provenanceActionFor(tag));
+    const { modifierId, ontologyId } = splitOntologyTag(tag);
+    return new Variation(ontologyId, modifierId, provenanceActionFor(tag));
   });
 }
 ```
 
-Match `splitOntologyTag`'s actual return shape — read `app/src/utils/ontologyTags.ts` and use its
-real property names.
+`splitOntologyTag()` returns `{ modifierId: number; ontologyId: string }`
+(`app/src/utils/ontologyTags.ts:32`) — NOT `{ prefix, id }`. `modifierId` is already a number, so do
+not wrap it in `Number()`.
 
 Then:
 * `useEntityInfo.ts` — add `const confirmed_variation_tags = ref<string[]>([])`, clear it in
@@ -3026,3 +3079,206 @@ Use one `Closes #612` line on its own — a comma-separated closing line only cl
 ```bash
 docker rm -f sysndd_mysql_prov612
 ```
+
+
+---
+
+## Task 16: Endpoint-level authorization and body-shape tests
+
+**Files:**
+- Test: `api/tests/testthat/test-endpoint-curate-variation.R`
+
+Task 9 mounts three routes but its tests call the SERVICE functions, so they prove nothing about
+`require_role`, `req$argsBody$items`, `req$user_id`, or the route decorators. Those are exactly the
+things a Curator-gated write surface must have covered.
+
+- [ ] **Step 1: Write the tests**
+
+Copy the sandbox harness from `api/tests/testthat/test-endpoint-review.R:109` (it mounts an
+endpoint file and pulls handlers out by verb + path). Assert:
+
+* `GET /suggestions` as a Reviewer raises the 403 condition class `error_403`; as a Curator it
+  returns the `{meta, data}` envelope.
+* `POST /suggestions/confirm` reads its items from `req$argsBody$items`, and passes
+  `req$user_id` (or whatever expression `review_endpoints.R:476` actually uses — copy it exactly)
+  through as `review_user_id`.
+* A body with no `items` key raises `error_400`, not a 500.
+* Each of the three routes carries `#* @serializer json list(na="string", null="null")`. Assert
+  this by reading the endpoint file's text, the same way
+  `test-unit-endpoint-error-handler.R` scans for `mount_endpoint`.
+* The route-declaration order in the file text: both `/suggestions/confirm` and
+  `/suggestions/dismiss` appear BEFORE `/suggestions`, so a future dynamic sibling cannot shadow
+  them (the `/api/status/_list` lesson).
+
+- [ ] **Step 2: Run**
+
+```bash
+cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-endpoint-curate-variation.R')"
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add api/tests/testthat/test-endpoint-curate-variation.R
+git commit -m "test(612): cover the curate variation endpoints at the route level"
+```
+
+---
+
+## Task 17: MSW / OpenAPI parity for the new mount
+
+**Files:**
+- Modify: `app/src/test-utils/mocks/handlers.ts`, `scripts/verify-msw-against-openapi.sh`
+
+`make lint-app` runs `scripts/verify-msw-against-openapi.sh` (`Makefile:176`), which maps each
+`/api/<prefix>` to its endpoint file from a hardcoded `MOUNTS` array. A new mount with no mapping
+fails that check, and any MSW handler for a path it cannot map fails too.
+
+- [ ] **Step 1: Add the mount mapping**
+
+In `scripts/verify-msw-against-openapi.sh`, add to the `MOUNTS` array — **longest prefixes first**,
+as the file's own comment requires:
+
+```bash
+  "/api/curate/variation:curate_variation_endpoints.R"
+```
+
+Place it beside the other two-segment entries (`/api/admin/analysis`, `/api/admin/ontology`,
+`/api/admin/publications`), not among the one-segment ones.
+
+- [ ] **Step 2: Add MSW handlers**
+
+In `app/src/test-utils/mocks/handlers.ts`, add handlers for
+`GET /api/curate/variation/suggestions` (returning a `{meta, data}` envelope with one
+plumber-shaped row — every scalar wrapped in a length-1 array, matching the real wire shape) and
+for the two POST routes (returning `{requested, applied, skipped}`). Follow the shape and comment
+style of the neighbouring handlers.
+
+- [ ] **Step 3: Run the verifier and the frontend suite**
+
+```bash
+make lint-app
+cd app && npm run test:unit
+```
+Expected: PASS. If the verifier reports an unmapped path, the `MOUNTS` entry is missing or ordered
+after a shorter prefix that shadows it.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/src/test-utils/mocks/handlers.ts scripts/verify-msw-against-openapi.sh
+git commit -m "test(612): add MSW/OpenAPI parity for the curate variation mount"
+```
+
+---
+
+## Corrections folded in from the Codex plan review
+
+Codex `gpt-5.6-terra`, 2026-08-25, 30 findings. Items 5, 6, 7, 9, 11, 12, 15, 19, 23, 28 and 29
+confirmed the plan; the rest are corrected here or inline above. **Where this section and an
+earlier task disagree, this section wins.**
+
+1. **(P0, fixed inline)** `with_test_db_transaction()` takes an expression, not a function. Every
+   Task 9 test now uses `with_test_db_transaction({ conn <- getOption(".test_db_con"); ... })`.
+2. **(P1, fixed inline)** `local_mocked_bindings(.env = globalenv())` aborts under testthat 3.3.2.
+   All global stubs now use `mock_globals()`; see "Test idioms this repo actually uses".
+3. **(P1, Task 6)** The unit tests stub both `db_with_savepoint_or_transaction()` and
+   `review_approve()`, so they cannot prove atomicity. **Add to Task 6** a real-DB regression test
+   in `api/tests/testthat/test-integration-approval-provenance-atomicity.R`, patterned on the
+   downstream-failure proof at `test-integration-review-write-atomicity.R:987`: seed an entity with
+   a primary approved review and an `active_unconfirmed` assertion, force
+   `variation_provenance_reconcile_on_approval` to throw (stub it via `mock_globals()`), call
+   `svc_approval_review_approve()`, and assert the review's `is_primary` / `review_approved` AND
+   the assertion state all rolled back.
+4. **(P1, Task 6 Step 5)** Add `test-integration-review-write-atomicity.R` to the required run
+   list — it exercises `svc_review_write()` through a caller-owned RMariaDB transaction and
+   savepoint (`:619`), which is exactly what the `review_write_run_mutation()` delegation changes.
+   Run it in the container against the throwaway DB, not on the host.
+6. **(Task 6/8)** Do not pass `pool = NULL` to exercise the transaction branch — with `NULL` the
+   helper falls through to `db_with_transaction(..., pool_obj = NULL)`, which calls
+   `get_db_connection()` and opens a real connection. Inject a fake `transaction_runner` instead,
+   or stub `db_with_savepoint_or_transaction` via `mock_globals()`.
+7. **(Task 6)** Add an `"all"` regression test: `svc_approval_review_approve("all", ...)` must
+   still take the pending-review branch after the length guard is added.
+8. **(P1, Task 8)** Validate `review_user_id` before any confirmation write. `confirm` stamps
+   `confirmed_by`, and migration 047's `chk_confirmed_attribution` forbids a confirmed row with a
+   NULL `confirmed_by`, so a malformed caller would surface as an opaque 500 mid-transaction. Add,
+   before the lock: for `action == "confirm"`, `user <- suppressWarnings(as.integer(review_user_id))`
+   and `stop_for_bad_request()` when it is not a single non-NA integer.
+9. **(Task 8)** Detect the conditional-update miss with
+   `identical(as.integer(affected), 0L)` — `db_execute_statement()` returns
+   `DBI::dbGetRowsAffected()` (`db-helpers.R:320`).
+10. **(P1, Task 8)** The tuple lock binds one scalar per `?`. Build the SQL as
+    `paste(rep("(?, ?, ?)", n), collapse = ", ")` and pass ONE flattened unnamed list in
+    placeholder order — never a list of triples.
+13. **(P1, Task 7)** The paging query must be written out in full, not offered as two options. Use
+    exactly this shape, with the `moved`/`served` predicates repeated inside the paging subquery
+    (SQL cannot reference a same-`SELECT` alias in `WHERE`):
+
+    ```sql
+    SELECT <row cols>, <served EXISTS> AS served, <moved EXISTS> AS moved,
+           e.source_type, e.source_key, e.batch_id, e.evidence_strength, e.evidence_summary
+      FROM variation_ontology_assertion a
+      JOIN ndd_entity_view v ON v.entity_id = a.entity_id
+      LEFT JOIN variation_ontology_list l ON l.vario_id = a.vario_id
+      LEFT JOIN variation_ontology_evidence e ON e.assertion_id = a.assertion_id
+      JOIN (SELECT a2.assertion_id,
+                   MAX(e2.evidence_strength) AS max_strength
+              FROM variation_ontology_assertion a2
+              JOIN ndd_entity_view v2 ON v2.entity_id = a2.entity_id
+              LEFT JOIN variation_ontology_evidence e2 ON e2.assertion_id = a2.assertion_id
+             WHERE a2.state IN ('active_unconfirmed','suggested')
+               <same filters, same bound params>
+             GROUP BY a2.assertion_id
+             ORDER BY <sort clause> , a2.assertion_id ASC
+             LIMIT ? OFFSET ?) page ON page.assertion_id = a.assertion_id
+     ORDER BY page.max_strength DESC, a.assertion_id ASC,
+              (e.evidence_strength IS NULL) ASC, e.evidence_strength DESC,
+              e.source_key ASC, e.evidence_id ASC
+    ```
+
+    `<sort clause>` is chosen from the allowlist and puts unrecorded strength LAST in both
+    directions, mirroring `.svc_vp_evidence_order()`
+    (`entity-variation-provenance-service.R:381`):
+    * `strength_desc` → `(MAX(e2.evidence_strength) IS NULL) ASC, MAX(e2.evidence_strength) DESC`
+    * `strength_asc` → `(MAX(e2.evidence_strength) IS NULL) ASC, MAX(e2.evidence_strength) ASC`
+    * `entity_asc` → `a2.entity_id ASC, a2.vario_id ASC, a2.modifier_id ASC`
+
+    The filter params are bound TWICE (outer WHERE and paging subquery), so build the param list by
+    concatenating the same vector twice plus `limit` and `offset`. Add a unit assertion that the
+    two occurrences use identical clause text.
+14. **(Task 7)** `MAX(evidence_strength)` with `GROUP BY a2.assertion_id` is valid (MySQL
+    functional dependency on the primary key), so no `ONLY_FULL_GROUP_BY` workaround is needed.
+16. **(Spec, §5.1)** The queue read is **two** DB queries (count + page), not one. Correct the
+    spec's "one query per request" wording when updating docs in Task 15; the invariant that
+    matters is that it is DB-only and does not issue one query per row.
+17. **(P1, new Task 17)** MSW/OpenAPI parity — `make lint-app` fails without it.
+18. **(P1, new Task 16)** Endpoint-level authorization/body/serializer tests.
+20. **(P2, Task 1)** The serializer test asserts `jsonlite` behaviour, not the route. Add a static
+    assertion to `test-unit-variation-evidence-record-shapes.R` that
+    `api/endpoints/entity_endpoints.R` still carries
+    `#* @serializer json list(na="string", null="null")` above the evidence route, so losing the
+    decorator fails a test rather than silently changing the wire shape.
+21. **(P1, fixed inline)** The dialog renders one `VariationEvidenceRecordList` per SOURCE, bound
+    to `record.records`.
+22. **(P2, Task 2)** Avoid the import cycle: `variationEvidenceRecords.ts` must NOT import from
+    `variationProvenance.ts` while the latter imports the former. Put `unwrapScalar`, `asText`,
+    `asStrength` and `asBoolean` in a new dependency-free
+    `app/src/views/pages/components/variationWireScalars.ts`; both modules import from there, and
+    `variationProvenance.ts` re-exports `unwrapScalar` so its existing consumers are unaffected.
+24. **(P2, Task 2)** The fixture loader must mirror
+    `app/src/test-utils/clinvarVocabularyFixture.ts` — `readFileSync` plus an upward walk from
+    `process.cwd()`, NOT a JSON `import` from outside `app/`. Copy that file's `resolveFixturePath`
+    verbatim with the new relative path.
+25. **(P1, fixed inline)** `splitOntologyTag()` returns `{ modifierId, ontologyId }`.
+26. **(P1, Task 13)** `useModifyEntityWorkflows` has TWO argument builders — `getReviewArgs()` at
+    `:45` (the combined status+review workflow) and `reviewArgs()` at `:137` (the inline workflow).
+    `provenanceActionFor` must be threaded through BOTH, or combined direct approval silently drops
+    every confirmation.
+27. **(P1, Task 14)** `useApproveReviewController.ts` is already **596** lines. Extract before
+    adding: move the review-edit modal's state and submit adapter into a new
+    `app/src/views/curate/composables/useApproveReviewEditing.ts`, commit that extraction on its
+    own, and only then add the zones. `make code-quality-audit` is the gate.
+30. **(P2, Task 15)** Add `make verify-seo-app` to the final verification list. The new route is
+    `sitemap: { ignoreRoute: true }`, so it must not appear in the sitemap — running the gate is
+    what proves it.
