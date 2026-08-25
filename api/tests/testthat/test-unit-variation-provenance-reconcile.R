@@ -1017,3 +1017,155 @@ test_that("the reconciliation module is registered for runtime loading", {
   )
   expect_match(bootstrap, "functions/variation-provenance-reconcile.R", fixed = TRUE)
 })
+
+
+# ---------------------------------------------------------------------------
+# apply_confirmations (#612)
+# ---------------------------------------------------------------------------
+#
+# The approval-path hook and the curation queue's dismiss endpoint both need
+# REJECTION-ONLY reconciliation. Approving a review is an act on the REVIEW, not
+# a per-term reading of machine evidence, so promoting active_unconfirmed ->
+# confirmed there would restore exactly the silent promotion #608 exists to
+# stop. `apply_confirmations` is the symmetric counterpart of the existing
+# `apply_rejections` gate: it gates the SUBMITTED branch (rows 1-5) and nothing
+# else, and it defaults TRUE so every pre-#612 call site is byte-identical.
+
+test_that("apply_confirmations = FALSE suppresses every confirmation edge", {
+  previous <- tibble::tibble(
+    assertion_id = c(1L, 2L, 3L),
+    vario_id     = c("VariO:0015", "VariO:0017", "VariO:0031"),
+    modifier_id  = c(1L, 1L, 1L),
+    state        = c("active_unconfirmed", "suggested", "rejected")
+  )
+  submitted <- tibble::tibble(
+    vario_id    = c("VariO:0015", "VariO:0017", "VariO:0031"),
+    modifier_id = c(1L, 1L, 1L)
+  )
+  actions <- tibble::tibble(
+    vario_id = "VariO:0015", modifier_id = 1L, provenance_action = "confirm"
+  )
+
+  plan <- variation_provenance_plan_reconciliation(
+    previous, submitted, actions,
+    apply_rejections = TRUE, apply_confirmations = FALSE
+  )
+
+  # Every row is submitted, so no rejection is possible either -- an empty plan
+  # is the whole assertion.
+  expect_equal(nrow(plan), 0L)
+})
+
+test_that("apply_confirmations = FALSE still applies the rejection edges", {
+  previous <- tibble::tibble(
+    assertion_id = c(1L, 2L, 3L, 4L),
+    vario_id     = c("VariO:0015", "VariO:0017", "VariO:0031", "VariO:0043"),
+    modifier_id  = c(1L, 1L, 1L, 1L),
+    state        = c("active_unconfirmed", "suggested", "confirmed", "rejected")
+  )
+  submitted <- tibble::tibble(vario_id = character(), modifier_id = integer())
+
+  plan <- variation_provenance_plan_reconciliation(
+    previous, submitted,
+    actions = NULL, apply_rejections = TRUE, apply_confirmations = FALSE
+  )
+
+  # Rows 7 and 8 only: a confirmed row is terminal, and a rejected row is
+  # already there.
+  expect_setequal(plan$assertion_id, c(1L, 2L))
+  expect_true(all(plan$to_state == "rejected"))
+  expect_true(all(!plan$needs_attribution))
+})
+
+test_that("apply_confirmations = FALSE never re-stamps an already-confirmed row", {
+  previous <- tibble::tibble(
+    assertion_id = 1L, vario_id = "VariO:0015", modifier_id = 1L, state = "confirmed"
+  )
+  submitted <- tibble::tibble(vario_id = "VariO:0015", modifier_id = 1L)
+
+  plan <- variation_provenance_plan_reconciliation(
+    previous, submitted,
+    actions = NULL, apply_rejections = TRUE, apply_confirmations = FALSE
+  )
+  expect_equal(nrow(plan), 0L)
+})
+
+test_that("apply_confirmations = FALSE leaves a submitted unconfirmed term alone", {
+  # The rejection gate must not accidentally reject a term that IS served: the
+  # public read filters rejected assertions out, so the still-served term would
+  # then render as curator-authored -- the fabrication this feature prevents.
+  previous <- tibble::tibble(
+    assertion_id = 1L, vario_id = "VariO:0015", modifier_id = 1L,
+    state = "active_unconfirmed"
+  )
+  submitted <- tibble::tibble(vario_id = "VariO:0015", modifier_id = 1L)
+
+  plan <- variation_provenance_plan_reconciliation(
+    previous, submitted,
+    actions = NULL, apply_rejections = TRUE, apply_confirmations = FALSE
+  )
+  expect_equal(nrow(plan), 0L)
+})
+
+test_that("apply_confirmations defaults TRUE so every existing call site is unchanged", {
+  previous <- tibble::tibble(
+    assertion_id = 1L, vario_id = "VariO:0017", modifier_id = 1L, state = "suggested"
+  )
+  submitted <- tibble::tibble(vario_id = "VariO:0017", modifier_id = 1L)
+
+  plan <- variation_provenance_plan_reconciliation(previous, submitted)
+  expect_equal(plan$to_state, "confirmed")
+  expect_true(plan$needs_attribution)
+})
+
+test_that("apply_confirmations is a pure passthrough on the orchestrator", {
+  seen <- NULL
+  had_query <- base::exists("db_execute_query", envir = .GlobalEnv, inherits = FALSE)
+  previous_query <- if (had_query) {
+    base::get("db_execute_query", envir = .GlobalEnv, inherits = FALSE)
+  }
+  assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+    tibble::tibble(
+      assertion_id = 1L, vario_id = "VariO:0017", modifier_id = 1L, state = "suggested"
+    )
+  }, envir = .GlobalEnv)
+  had_statement <- base::exists("db_execute_statement", envir = .GlobalEnv, inherits = FALSE)
+  previous_statement <- if (had_statement) {
+    base::get("db_execute_statement", envir = .GlobalEnv, inherits = FALSE)
+  }
+  assign("db_execute_statement", function(sql, params = list(), conn = NULL) {
+    seen <<- c(seen, sql)
+    1L
+  }, envir = .GlobalEnv)
+  withr::defer({
+    if (had_query) {
+      assign("db_execute_query", previous_query, envir = .GlobalEnv)
+    } else {
+      rm("db_execute_query", envir = .GlobalEnv)
+    }
+    if (had_statement) {
+      assign("db_execute_statement", previous_statement, envir = .GlobalEnv)
+    } else {
+      rm("db_execute_statement", envir = .GlobalEnv)
+    }
+  })
+
+  submitted <- tibble::tibble(vario_id = "VariO:0017", modifier_id = 1L)
+
+  expect_equal(
+    variation_provenance_reconcile_for_review(
+      entity_id = 42L, submitted = submitted, actions = NULL, review_user_id = 7L,
+      apply_confirmations = FALSE
+    ),
+    0L
+  )
+  expect_null(seen)
+
+  expect_equal(
+    variation_provenance_reconcile_for_review(
+      entity_id = 42L, submitted = submitted, actions = NULL, review_user_id = 7L
+    ),
+    1L
+  )
+  expect_length(seen, 1L)
+})
