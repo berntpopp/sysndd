@@ -199,7 +199,15 @@ new_publication <- function(publications_received) {
   )
 
   if (inherits(prepared, "publication_fetch_error")) {
-    return(list(status = 400, message = paste("Bad Request.", prepared$message)))
+    # `error` carries the raw condition message, matching the shape the entity
+    # endpoints build when the condition reaches THEIR handler instead of being
+    # caught here. Without it, catching the condition one level earlier silently
+    # dropped the field and the endpoint answered `error: null`.
+    return(list(
+      status = 400,
+      message = paste("Bad Request.", prepared$message),
+      error = prepared$message
+    ))
   }
 
   tryCatch(
