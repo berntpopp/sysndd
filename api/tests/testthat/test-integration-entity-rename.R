@@ -18,8 +18,28 @@ source_api_file("functions/status-repository.R", local = FALSE)
 source_api_file("functions/phenotype-repository.R", local = FALSE)
 source_api_file("functions/ontology-repository.R", local = FALSE)
 source_api_file("functions/publication-repository.R", local = FALSE)
+# publication-functions.R guard-sources the PubMed XML parser through a
+# RELATIVE path ("functions/pubmed-xml-parser.R"), which does not resolve from
+# the testthat working directory -- so parse_pubmed_fetch_xml() is missing here
+# unless it is sourced explicitly. Ordered as in bootstrap/load_modules.R,
+# which loads the parser BEFORE publication-functions.R.
+source_api_file("functions/pubmed-xml-parser.R", local = FALSE)
 source_api_file("functions/publication-functions.R", local = FALSE)
+# Pre-existing source-list drift, same class as the provenance gap below: the
+# entity-create endpoint tests reach publication_write_prepare() and errored
+# with "could not find function" whenever this file ran against a schema-loaded
+# test database. Ordered as in bootstrap/load_modules.R, which sources
+# publication-write-preparation.R with the other functions/*.
+source_api_file("functions/publication-write-preparation.R", local = FALSE)
 source_api_file("core/errors.R", local = FALSE)
+# svc_entity_rename_full calls variation_provenance_carry_forward_entity()
+# UNGUARDED (no exists() check -- #608 deliberately made a missing module fail
+# loudly rather than silently skip the copy). Without this source line every
+# DB-backed test below errors with "could not find function" the moment it runs
+# against a schema-loaded test database, instead of merely leaving the
+# carry-forward call site uncovered. Sourced before services/*, mirroring
+# bootstrap/load_modules.R.
+source_api_file("functions/variation-provenance-carry-forward.R", local = FALSE)
 # Production order: entity-service.R before entity-rename-service.R —
 # svc_entity_rename_full (moved out in #346, Wave 4 Task 2) calls
 # svc_entity_check_duplicate defined in entity-service.R.
@@ -162,6 +182,15 @@ cleanup_entity_rename_fixture <- function(conn) {
     "publication_id",
     c(TEST_PUBLICATION, TEST_BOGUS_PMIDS)
   )
+
+  # fk_assertion_entity is NOT ON DELETE CASCADE (only fk_evidence_assertion
+  # is), so assertion rows must go before the ndd_entity rows they reference.
+  # Evidence rows then cascade from the assertion. Guarded on table existence:
+  # the provenance tables come from migration 047 and a test DB predating it is
+  # a legitimate state here.
+  if (DBI::dbExistsTable(conn, "variation_ontology_assertion")) {
+    db_delete_in(conn, "variation_ontology_assertion", "entity_id", entity_ids)
+  }
 
   db_delete_in(conn, "ndd_entity_status", "entity_id", entity_ids)
   db_delete_in(conn, "ndd_entity_review", "entity_id", entity_ids)
@@ -791,6 +820,104 @@ test_that("svc_entity_rename_full preserves approval state on the new entity", {
   })
 })
 
+test_that("svc_entity_rename_full carries variation-ontology provenance forward", {
+  # End-to-end cover for the carry-forward CALL SITE (entity-rename-service.R).
+  # The function itself is unit-tested in
+  # test-integration-variation-provenance-carry-forward.R; what is only
+  # observable here is that the rename actually invokes it, inside its own
+  # transaction, on the new entity id.
+  #
+  # A rename relocates rows; it is NOT an act of confirmation. So the assertion
+  # must arrive on the new entity with its state and attribution untouched --
+  # otherwise every copied term would read as curator-authored the instant it
+  # landed, which is the exact fabrication #608 exists to prevent.
+  with_entity_rename_fixture({
+    skip_if_not(
+      DBI::dbExistsTable(conn, "variation_ontology_assertion"),
+      "variation_ontology_assertion is missing (migration 047 not applied)"
+    )
+
+    user_id <- 1L
+    seed <- seed_approved_entity_bundle(conn, SOURCE_ONTOLOGY, user_id = user_id)
+
+    DBI::dbExecute(
+      conn,
+      paste0(
+        "INSERT INTO variation_ontology_assertion ",
+        "(entity_id, vario_id, modifier_id, state) VALUES (?, ?, ?, ?)"
+      ),
+      params = unname(list(seed$entity_id, TEST_VARIO, 1L, "active_unconfirmed"))
+    )
+    old_assertion_id <- as.integer(db_fetch_params(
+      conn,
+      paste0(
+        "SELECT assertion_id FROM variation_ontology_assertion ",
+        "WHERE entity_id = ? AND vario_id = ? AND modifier_id = ?"
+      ),
+      list(seed$entity_id, TEST_VARIO, 1L)
+    )$assertion_id[[1]])
+
+    DBI::dbExecute(
+      conn,
+      paste0(
+        "INSERT INTO variation_ontology_evidence ",
+        "(assertion_id, source_type, source_key, batch_id, evidence_summary, evidence_strength) ",
+        "VALUES (?, ?, ?, ?, ?, ?)"
+      ),
+      params = unname(list(
+        old_assertion_id, "external_database", "clinvar", "batch-rename", "2 P/LP variants", 3L
+      ))
+    )
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, DEST_ONTOLOGY),
+      user_id = user_id,
+      pool = pool
+    )
+    expect_equal(result$status, 200)
+    new_entity_id <- as.integer(result$entry$entity_id[[1]])
+
+    carried <- db_fetch_params(
+      conn,
+      paste0(
+        "SELECT assertion_id, state, confirmed_by FROM variation_ontology_assertion ",
+        "WHERE entity_id = ? AND vario_id = ? AND modifier_id = ?"
+      ),
+      list(new_entity_id, TEST_VARIO, 1L)
+    )
+    expect_equal(nrow(carried), 1L)
+    expect_equal(carried$state[[1]], "active_unconfirmed")
+    # NOT re-attributed to the renaming curator: a rename is not a confirmation.
+    expect_true(is.na(carried$confirmed_by[[1]]))
+
+    # A COPY, not a move -- the old entity may still be referenced through
+    # ndd_entity.replaced_by, so its provenance must survive the rename.
+    expect_equal(
+      count_query(
+        conn,
+        "SELECT COUNT(*) AS n FROM variation_ontology_assertion WHERE entity_id = ?",
+        list(seed$entity_id)
+      ),
+      1L
+    )
+
+    # The evidence row travels with it, re-attached to the NEW assertion id.
+    expect_equal(
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM variation_ontology_evidence ",
+          "WHERE assertion_id = ? AND source_key = ? AND batch_id = ? AND evidence_summary = ?"
+        ),
+        list(
+          as.integer(carried$assertion_id[[1]]), "clinvar", "batch-rename", "2 P/LP variants"
+        )
+      ),
+      1L
+    )
+  })
+})
+
 test_that("svc_entity_rename_full rolls back when a downstream insert fails", {
   with_entity_rename_fixture({
     user_id <- 1L
@@ -830,9 +957,20 @@ test_that("entity submission with unresolvable PMID returns 400 and writes nothi
       function(...) unrelated_pubmed_xml()
     )
 
+    # check_pmid() and info_from_pmid() are called from publication_write_prepare(),
+    # NOT from new_publication() -- #346 extracted the publication preflight into its
+    # own function. Stubbing them on new_publication() therefore intercepted nothing:
+    # the real check_pmid() ran, esearch reported 0 hits for the bogus PMIDs, and the
+    # call failed early with "Invalid PMIDs detected." instead of reaching the
+    # unresolved-after-fetch branch this test exists to cover. Nobody noticed because
+    # the file needs a schema-loaded test DB, which CI does not provision. Stub the
+    # function that actually makes the calls, and inject it where it is looked up.
+    prepare_fn <- function_with_cloned_env(publication_write_prepare)
+    mockery::stub(prepare_fn, "check_pmid", function(...) TRUE)
+    assign("info_from_pmid", info_fn, envir = environment(prepare_fn))
+
     fn <- function_with_cloned_env(new_publication)
-    mockery::stub(fn, "check_pmid", function(...) TRUE)
-    assign("info_from_pmid", info_fn, envir = environment(fn))
+    assign("publication_write_prepare", prepare_fn, envir = environment(fn))
     assign("pool", pool, envir = environment(fn))
 
     result <- tryCatch(
@@ -864,9 +1002,13 @@ test_that("POST /api/entity/create returns endpoint 400 for unresolvable PMID an
       function(...) unrelated_pubmed_xml()
     )
 
+    # Same stub-target correction as the test above.
+    prepare_fn <- function_with_cloned_env(publication_write_prepare)
+    mockery::stub(prepare_fn, "check_pmid", function(...) TRUE)
+    assign("info_from_pmid", info_fn, envir = environment(prepare_fn))
+
     new_publication_fn <- function_with_cloned_env(new_publication)
-    mockery::stub(new_publication_fn, "check_pmid", function(...) TRUE)
-    assign("info_from_pmid", info_fn, envir = environment(new_publication_fn))
+    assign("publication_write_prepare", prepare_fn, envir = environment(new_publication_fn))
     assign("pool", pool, envir = environment(new_publication_fn))
 
     env <- new.env(parent = globalenv())
