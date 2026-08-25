@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.31.3] - 2026-08-25
+
+### Fixed
+
+- **Every unresolvable PMID is named, not just the first** (#612 follow-up). Publications
+  are fetched one PMID at a time so each row can be bound to its own metadata, and the
+  first failure aborted the run — so a curator submitting two bad references was told
+  about one, fixed it, resubmitted, and was told about the next. `publication_write_prepare()`
+  now collects `publication_fetch_error` conditions across every fetch and raises them once,
+  naming all of them. A failure that is not an unresolvable PMID (no `pmids` field) is
+  re-raised unchanged rather than folded into a "not retrievable from PubMed" list.
+
+- **`POST /api/entity/create` no longer answers `error: null` on a publication failure.**
+  The endpoint builds `{message, error}` when a `publication_fetch_error` reaches its own
+  handler, but `new_publication()` catches that condition one level earlier and returned
+  only `{status, message}`, so the field was silently dropped. It now carries the raw
+  condition message, matching the endpoint's shape either way.
+
+### Tests
+
+- **Two migration-047 constraint assertions** (#612): `evidence_summary NOT NULL` rejects an
+  explicit NULL, and `fk_evidence_assertion` really cascades — the delete removes exactly the
+  evidence rows belonging to the deleted assertion and nothing else. Both were verified against
+  a deliberately weakened copy of the migration, so neither can pass while proving nothing.
+
+- **The rename tests source the modules they actually need** (#612). `svc_entity_rename_full()`
+  calls `variation_provenance_carry_forward_entity()` unguarded, and neither
+  `test-integration-entity-rename.R` nor `test-unit-entity-service.R` sourced it — so all seven
+  DB-backed rename tests would have errored with "could not find function" the moment they ran
+  against a schema-loaded database. Two further gaps of the same class surfaced once they did
+  run: `publication-write-preparation.R` (missing outright) and `pubmed-xml-parser.R` (guard-sourced
+  through a relative path that does not resolve from the testthat working directory).
+
+- **The two entity-create PMID tests stubbed a function that no longer makes the call.**
+  They stub `check_pmid` on `new_publication()`, but #346 moved that call into
+  `publication_write_prepare()`, so the real existence check ran and the request failed early
+  with a different error than the tests assert. The stubs now target the function that makes
+  the calls. Nobody noticed because the file needs a schema-loaded test database, which CI
+  does not provision.
+
+- **New end-to-end cover for the provenance carry-forward call site**: a rename copies the
+  assertion onto the new entity with state and attribution untouched, leaves the old entity's
+  row in place (it is a copy, not a move), and re-attaches the evidence row to the new assertion.
+
+### Documentation
+
+- `AGENTS.md` documents migration `049`'s `origin_review_id` (why a column and not an
+  `evidence_json` key, why nullable, why no FK — and that nothing reads it yet, parked under
+  #612) and adds a section on the `050`–`053` entity/review agreement invariant, including the
+  `053` trap: `information_schema.STATISTICS` holds one row per index *column*, so a two-column
+  index made `052`'s `= 1` guard false, silently skipping its `ALTER` while still recording the
+  migration as applied. The stale `EXPECTED_LATEST_MIGRATION = 047 / 45L` claim is corrected.
+
+
 ## [0.31.2] - 2026-08-25
 
 ### Fixed

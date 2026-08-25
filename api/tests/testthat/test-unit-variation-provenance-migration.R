@@ -378,6 +378,25 @@ test_that("migration 047 creates the assertion + evidence tables with working co
     params = unname(list(assertion_id))
   )
 
+  # --- evidence_summary is NOT NULL: an explicit NULL is rejected ---
+  # `evidence_summary` is a STORED column, not a projection of `evidence_json`:
+  # the hot read path (functions/variation-provenance-repository.R) selects it
+  # and deliberately never selects `evidence_json`, so a NULL that slipped in
+  # would render a provenance line with no supporting text -- a silent, not a
+  # loud, failure. Explicit NULL (rather than an omitted column) is what makes
+  # this assertion sql_mode-independent: a single-row INSERT of NULL into a
+  # NOT NULL column errors in every mode, whereas an omitted column only
+  # errors under STRICT_TRANS_TABLES and would otherwise insert ''.
+  expect_error(
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO variation_ontology_evidence
+         (assertion_id, source_type, source_key, batch_id, evidence_summary, evidence_strength)
+       VALUES (?, 'literature', 'pubmed', 'batch-summary-null', NULL, 3)",
+      params = unname(list(assertion_id))
+    )
+  )
+
   # --- chk_confirmed_attribution rejects state = 'confirmed' with NULL confirmed_by ---
   # Uses a second vario_id (modifier_id 1, already FK-valid) so this insert collides
   # with neither uq_assertion nor fk_assertion_modifier, isolating the CHECK failure.
@@ -447,4 +466,69 @@ test_that("migration 047 creates the assertion + evidence tables with working co
     params = unname(list(ids$entity_id, ids$vario_id))
   )$n
   expect_equal(as.integer(row_count_after), 2L)
+
+  # --- fk_evidence_assertion really cascades ---
+  # ON DELETE CASCADE is declared inside the migration's CONCAT()-built DDL, so
+  # -- exactly like the FKs asserted from information_schema above -- deleting
+  # the clause would still pass every other assertion in this file. Evidence is
+  # meaningless without the assertion that owns it, so an orphan row would be a
+  # provenance record attached to nothing.
+  #
+  # Runs last, on a key no earlier block touched (vario_id_2 + modifier 5), so
+  # the DELETE cannot perturb the counts asserted above.
+  DBI::dbExecute(
+    conn,
+    "INSERT INTO variation_ontology_assertion (entity_id, vario_id, modifier_id, state)
+     VALUES (?, ?, 5, 'suggested')",
+    params = unname(list(ids$entity_id, ids$vario_id_2))
+  )
+  cascade_assertion_id <- as.integer(DBI::dbGetQuery(
+    conn,
+    "SELECT assertion_id FROM variation_ontology_assertion
+     WHERE entity_id = ? AND vario_id = ? AND modifier_id = 5",
+    params = unname(list(ids$entity_id, ids$vario_id_2))
+  )$assertion_id[1])
+
+  evidence_total_before <- as.integer(DBI::dbGetQuery(
+    conn,
+    "SELECT COUNT(*) AS n FROM variation_ontology_evidence"
+  )$n)
+
+  # Two rows, because a cascade that deleted only one would still satisfy a
+  # bare "the row is gone" check. Distinct source_key values keep them clear of
+  # uq_evidence (assertion_id, source_key, batch_id).
+  for (evidence_source_key in c("clinvar", "gene2phenotype")) {
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO variation_ontology_evidence
+         (assertion_id, source_type, source_key, batch_id, evidence_summary, evidence_strength)
+       VALUES (?, 'external_database', ?, 'batch-cascade', 'cascade evidence', 2)",
+      params = unname(list(cascade_assertion_id, evidence_source_key))
+    )
+  }
+
+  owned_evidence <- function() {
+    as.integer(DBI::dbGetQuery(
+      conn,
+      "SELECT COUNT(*) AS n FROM variation_ontology_evidence WHERE assertion_id = ?",
+      params = unname(list(cascade_assertion_id))
+    )$n)
+  }
+  expect_equal(owned_evidence(), 2L)
+
+  DBI::dbExecute(
+    conn,
+    "DELETE FROM variation_ontology_assertion WHERE assertion_id = ?",
+    params = unname(list(cascade_assertion_id))
+  )
+
+  expect_equal(owned_evidence(), 0L)
+
+  # ...and it removed EXACTLY those two rows -- the evidence belonging to the
+  # assertions seeded earlier in this test is untouched.
+  evidence_total_after <- as.integer(DBI::dbGetQuery(
+    conn,
+    "SELECT COUNT(*) AS n FROM variation_ontology_evidence"
+  )$n)
+  expect_equal(evidence_total_after, evidence_total_before)
 })

@@ -29,6 +29,10 @@ source_api_file("functions/publication-repository.R", local = FALSE)
 # svc_entity_validate/svc_entity_check_duplicate defined there).
 source_api_file("services/entity-service.R", local = FALSE)
 source_api_file("services/entity-creation-service.R", local = FALSE)
+# svc_entity_rename_full calls variation_provenance_carry_forward_entity()
+# unguarded, so the module has to be present here too (see the longer note in
+# test-integration-entity-rename.R).
+source_api_file("functions/variation-provenance-carry-forward.R", local = FALSE)
 source_api_file("services/entity-rename-service.R", local = FALSE)
 
 # =============================================================================
