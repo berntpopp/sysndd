@@ -21,6 +21,8 @@
 source_api_file("core/errors.R", local = FALSE)
 source_api_file("functions/variation-provenance-reconcile.R", local = FALSE)
 source_api_file("functions/variation-provenance-approval.R", local = FALSE)
+source_api_file("functions/db-transaction-scope.R", local = FALSE)
+source_api_file("services/approval-service.R", local = FALSE)
 
 # Stub a binding the module under test resolves at call time.
 #
@@ -287,4 +289,158 @@ test_that("the stub helper restores what it replaced", {
     expect_true(base::exists("db_execute_query", envir = MODULE_ENV, inherits = FALSE))
   })
   expect_false(base::exists("db_execute_query", envir = MODULE_ENV, inherits = FALSE))
+})
+
+
+# ---------------------------------------------------------------------------
+# svc_approval_review_approve() -- the hook's call site
+# ---------------------------------------------------------------------------
+
+test_that("approving a review reconciles each affected entity exactly once", {
+  reconciled <- integer()
+  approved <- NULL
+  entity_sql <- NULL
+  mock_module(env = environment(), bindings = list(
+    review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
+      approved <<- review_ids
+      review_ids
+    },
+    db_execute_query = function(sql, params = list(), conn = NULL) {
+      entity_sql <<- sql
+      # One review can only belong to one entity, but "all" spans many, and a
+      # single entity can own several of them -- hence DISTINCT plus unique().
+      data.frame(entity_id = c(11L, 11L, 12L))
+    },
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
+    variation_provenance_reconcile_on_approval = function(entity_id, review_user_id,
+                                                          conn = NULL) {
+      reconciled <<- c(reconciled, as.integer(entity_id))
+      0L
+    }
+  ))
+
+  result <- svc_approval_review_approve(42L, user_id = 7L, approve = TRUE, pool = NULL)
+
+  expect_equal(result$status, 200)
+  expect_equal(sort(reconciled), c(11L, 12L))
+  expect_equal(approved, 42L)
+  expect_match(entity_sql, "DISTINCT", fixed = TRUE)
+  # Bound, never interpolated.
+  expect_false(grepl("42", entity_sql, fixed = TRUE))
+})
+
+test_that("unapproving a review reconciles nothing", {
+  # Unapproving does not establish a served set, so it must not retire anything.
+  called <- FALSE
+  mock_module(env = environment(), bindings = list(
+    review_approve = function(review_ids, ...) review_ids,
+    db_execute_query = function(...) data.frame(entity_id = 11L),
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
+    variation_provenance_reconcile_on_approval = function(...) {
+      called <<- TRUE
+      0L
+    }
+  ))
+
+  svc_approval_review_approve(42L, user_id = 7L, approve = FALSE, pool = NULL)
+  expect_false(called)
+})
+
+test_that("approval and reconciliation run inside ONE transaction scope", {
+  # A reconciliation failure must roll the approval back, or the entity is left
+  # serving terms whose provenance disagrees with what it serves.
+  scoped <- character()
+  inner_conn <- structure(list(), class = "FakeConn")
+  seen_conns <- list()
+  mock_module(env = environment(), bindings = list(
+    review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
+      seen_conns$approve <<- conn
+      review_ids
+    },
+    db_execute_query = function(sql, params = list(), conn = NULL) {
+      seen_conns$query <<- conn
+      data.frame(entity_id = 11L)
+    },
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) {
+      scoped <<- c(scoped, savepoint)
+      fn(inner_conn)
+    },
+    variation_provenance_reconcile_on_approval = function(entity_id, review_user_id,
+                                                          conn = NULL) {
+      seen_conns$reconcile <<- conn
+      0L
+    }
+  ))
+
+  svc_approval_review_approve(42L, user_id = 7L, approve = TRUE, pool = NULL)
+
+  expect_length(scoped, 1L)
+  expect_identical(seen_conns$approve, inner_conn)
+  expect_identical(seen_conns$query, inner_conn)
+  expect_identical(seen_conns$reconcile, inner_conn)
+})
+
+test_that("a reconciliation failure propagates so the scope can roll back", {
+  mock_module(env = environment(), bindings = list(
+    review_approve = function(review_ids, ...) review_ids,
+    db_execute_query = function(...) data.frame(entity_id = 11L),
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
+    variation_provenance_reconcile_on_approval = function(...) stop("reconcile boom")
+  ))
+
+  expect_error(
+    svc_approval_review_approve(42L, user_id = 7L, approve = TRUE, pool = NULL),
+    "reconcile boom"
+  )
+})
+
+test_that("a vector of review ids no longer trips the length-1 'all' check", {
+  # `if (as.character(c(42, 43)) == "all")` raises "the condition has length > 1",
+  # so this function's DOCUMENTED multi-id support has never worked. The
+  # per-entity reconciliation loop depends on it.
+  approved <- NULL
+  mock_module(env = environment(), bindings = list(
+    review_approve = function(review_ids, approving_user_id, approved = TRUE, conn = NULL) {
+      approved <<- review_ids
+      review_ids
+    },
+    db_execute_query = function(...) data.frame(entity_id = 11L),
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) fn(db),
+    variation_provenance_reconcile_on_approval = function(...) 0L
+  ))
+
+  result <- svc_approval_review_approve(c(42L, 43L), user_id = 7L, approve = TRUE, pool = NULL)
+
+  expect_equal(result$status, 200)
+  expect_equal(approved, c(42L, 43L))
+  expect_equal(result$entry, c(42L, 43L))
+})
+
+test_that("null inputs still short-circuit with a 400 before any transaction", {
+  scoped <- FALSE
+  mock_module(env = environment(), bindings = list(
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) {
+      scoped <<- TRUE
+      fn(db)
+    }
+  ))
+
+  result <- svc_approval_review_approve(NULL, user_id = 7L, approve = TRUE, pool = NULL)
+  expect_equal(result$status, 400)
+  expect_false(scoped)
+})
+
+test_that("an empty pending set returns OK without opening a transaction", {
+  scoped <- FALSE
+  mock_module(env = environment(), bindings = list(
+    db_with_savepoint_or_transaction = function(db, savepoint, fn, ...) {
+      scoped <<- TRUE
+      fn(db)
+    }
+  ))
+
+  result <- svc_approval_review_approve(integer(0), user_id = 7L, approve = TRUE, pool = NULL)
+  expect_equal(result$status, 200)
+  expect_equal(result$entry, integer(0))
+  expect_false(scoped)
 })

@@ -57,6 +57,10 @@ bootstrap_load_modules <- function() {
   function_files <- c(
     "functions/config-functions.R",
     "functions/logging-functions.R",
+    # Transaction-scope helper first: db-helpers.R attaches RMariaDB, and this
+    # decision (pool -> transaction, caller-owned connection -> savepoint) needs
+    # only DBI.
+    "functions/db-transaction-scope.R",
     "functions/db-helpers.R",
     "functions/db-version.R",
     "functions/metadata-refresh.R",
