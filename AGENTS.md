@@ -46,6 +46,7 @@ Focused, cross-LLM skill guides live under `.agents/skills/<name>/SKILL.md`. Rea
 - DB-only stack: `make docker-dev-db`
 - API tests: `make test-api`
 - Fast API PR gate: `make test-api-fast`
+- Load the schema into the test DB so integration tests actually run: `make test-db-schema`
 - API lint: `make lint-api`
 - Frontend lint: `make lint-app`
 - Frontend type-check: `cd app && npm run type-check`
@@ -54,6 +55,24 @@ Focused, cross-LLM skill guides live under `.agents/skills/<name>/SKILL.md`. Rea
 - Frontend public-route bundle budget: `make verify-app-bundle-budget`
 - Frontend SEO prerender gate: `make verify-seo-app`
 - Frontend E2E (Playwright, **local-only**): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`. The isolated stack serves the app/API at `http://localhost:8088` by default, and `app/playwright.config.ts` uses that default when `PLAYWRIGHT_BASE_URL` is unset. There is no Playwright CI workflow — the spec files in `app/tests/e2e/` exist for ad-hoc local regression checks. The official lane (lint, type-check, vitest, R API, smoke) is the automated coverage. `make playwright-stack` seeds the deterministic test users **and** the shared E2E baseline fixture `db/fixtures/playwright_e2e_baseline.sql` (genes CHD8/ARID1B/NAA10/SCN2A, one CHD8 entity, a re-review assignment, and simplified copies of the heavy production read views), and `app/tests/e2e/global-setup.ts` re-seeds both before every run — so the data-dependent specs (public table filters, curation comparisons, gene-detail cards, slow-provider resilience, Modify Entity) have rows to assert against. The known-good local baseline at `--workers=1` is **0 failures with 3 legitimately env-gated skips** (ontology-blocked-banner — needs `app/tests/e2e/fixtures/seed-blocked-ontology.sh`; auth password-reset — reset-token retrieval not wired into the stack; mcp transport proxy — disabled in the stack). A gene that a spec navigates to must exist in the baseline fixture or the page redirects to the SPA 404 (see the SCN2A note in the fixture).
+
+**Integration tests need a schema, and CI now gives them one.** Every
+`test-integration-*.R` file guards itself with a `skip_if_missing_*_schema()`
+helper that calls `DBI::dbExistsTable()`. CI provisions a real MySQL service
+container but an EMPTY one, so all 28 files used to SKIP — silently and
+permanently, which is how the entity-rename suite stayed dormant long enough to
+hide two production defects (#638). `api/scripts/ci-load-test-schema.R` now
+applies the project's own migrations before the test step in all three R jobs.
+It is not a mock: the same 51 migrations the API runs at startup, on the same
+`mysql:8.4.8` image, verified as the unprivileged service user under MySQL 8.4's
+**default** `sql_mode` — a GitHub Actions service container cannot override the
+server command line. It is idempotent and fails loudly rather than letting a
+half-loaded database report a wall of skips as success.
+
+Locally, `make test-db-schema` runs the same script against `config.yml`'s
+`sysndd_db_test`. If it reports far fewer tables than expected, `schema_version`
+records migrations whose tables do not exist (a database built ad hoc rather than
+by the runner) — drop and recreate that database and re-run.
 
 Single-test shortcuts:
 
@@ -272,8 +291,71 @@ Row 1 is the fix: a curator who saves without engaging a pre-checked machine-der
 - **Evidence import date (#612).** Both the evidence route and the Curator suggestions route select `e.created_at AS evidence_created_at` — **aliased**, because the suggestions query also selects the assertion's own `a.created_at` and two same-named columns collide in one result set. They share `.svc_vp_evidence_records()`, so **both** queries must select it: a caller that forgets it does not degrade to a missing field, it errors (`NULL[[i]]` → "subscript out of bounds"), which is the intended direction. The column is a MySQL `DATETIME` and carries **no timezone**, so it is serialized with **no zone designator** (`"YYYY-MM-DDTHH:MM:SS"`) and the frontend's `formatImportedDate()` (`app/src/views/pages/components/variationProvenance.ts`) reads the calendar fields off the leading `YYYY-MM-DD` **literally** rather than parsing an instant — `new Date(...)` would have the engine assume a timezone and could shift the displayed day. The dialog's "Imported" line is assembled by `importedLineParts()` as date · batch · release, each part independently omitted when null, and the row disappears entirely when all three are.
 - **`origin_review_id` (migration `049`) records which review an import wrote to — and nothing reads it yet.** Additive, nullable, and deliberately **without** an FK to `ndd_entity_review`: it is a historical audit fact ("the import wrote to review N"), which stays true after that review is deleted or superseded, so an FK would make the audit trail cascade-deletable or block the delete outright; it also avoids taking a shared parent-row lock for each of the ~8,083 evidence rows the backfill inserts. It is a **column and not an `evidence_json` key** because the hot read path (`functions/variation-provenance-repository.R`) never selects `evidence_json`, so a JSON key would be reachable only one assertion at a time from the evidence-detail endpoint, whereas a column makes "which imported terms have **moved**" — i.e. now rest on a later curator review while the underlying machine evidence is unchanged — a single indexed join. No `api/` or `app/` code selects it today; it is Phase-6 fuel, parked deliberately under #612 rather than orphaned. Only `test-unit-evidence-origin-review.R` references it.
 
-- **Register new provenance modules in `api/bootstrap/load_modules.R`** — files are not autodiscovered, and the single loader covers both the API and the durable worker. Current entries: `functions/variation-provenance-evidence.R`, `functions/variation-provenance-repository.R`, `functions/variation-provenance-reconcile.R`, `functions/variation-provenance-carry-forward.R` (in that order), and `services/entity-variation-provenance-service.R` immediately **before** `services/entity-read-endpoint-service.R`, which consumes it.
-- **Deliberately not shipped here** (all tracked in **#612**, together with the residuals above). Phase 6, the **cross-entity suggestion queue** (`GET /api/curate/variation/suggestions` + `/curate/variation-suggestions` page): its purpose is to make the ~1,981-item weak-evidence backlog tractable, and that backlog does not exist until the backfill runs, so the page would have nothing to show and the endpoint no consumer. Phase 7 item (1), the **shared importer write helper** under `scripts/data-corrections/_shared/`: that directory does not exist in this repo — it is administration-repo work. Phase 7 item (3), a **restricted DB grant** for importers: an operator action tracked separately by the spec. The application-repo analogue of item (2) — the static write guard above — does ship.
+- **Register new provenance modules in `api/bootstrap/load_modules.R`** — files are not autodiscovered, and the single loader covers both the API and the durable worker. Current entries: `functions/variation-provenance-evidence.R`, `functions/variation-provenance-repository.R`, `functions/variation-provenance-reconcile.R`, `functions/variation-provenance-carry-forward.R`, `functions/variation-provenance-approval.R` (in that order), and `services/entity-variation-provenance-service.R` → `services/curate-variation-suggestion-service.R` → `services/curate-variation-apply-service.R` immediately **before** `services/entity-read-endpoint-service.R`. The two `curate-variation-*` services reuse `.svc_vp_na_to_null()` / `.svc_vp_evidence_order()` / `.svc_vp_max_strength()` from the entity service, so they must load after it.
+
+### The `evidence_json` record-shape contract (#612)
+
+The backfill emits **three** record shapes under `records`, and the pre-#612 dialog understood one — the external-database batch rendered `consequence` alone and the literature batch rendered **nothing**, because a record carrying none of the probed keys is filtered out. That failure is silent by design (an unrecognised key is omitted rather than guessed at), so the shapes are pinned by `api/tests/testthat/fixtures/variation-evidence-record-shapes.json`, which drives the R suite, the TypeScript suite, and the writer in `sysndd-administration` (admin#16).
+
+| `source_key` | `source_type` | Containers | Record keys |
+|---|---|---|---|
+| `clinvar` | `external_database` | `records`, `matched` | `id`, `classification`, `stars`, `consequence`, `url` |
+| `extdb2` | `external_database` | `records` | `confidence`, `mechanism`, `categorisation`, `consequence`, `support`, `disease`, `allelic_requirement`, `layer` |
+| `synopsis` | `literature` | `records` | `matched_text`, `negated`, `pattern`, `context` |
+
+Four properties the reader must honour, each with a failure mode:
+
+* **Optional keys are DROPPED, not written null**, so a record legitimately carries a subset of its shape's keys.
+* **`matched` holds STRINGS** (OMIM CURIEs), never records. It must stay a separate text list and must never enter the record-container probe — `String(object)` renders `"[object Object]"`.
+* **`negated` is a BOOLEAN and the only field whose FALSE value is meaningful.** A negated literature match is evidence AGAINST the term (the importer scores it 1 instead of 3), and it arrives as `[false]` — which `asText()` renders as the string `"false"` and a truthiness test reads as `true`. `asBoolean()` in `app/src/views/pages/components/variationWireScalars.ts` exists for exactly this; `null` means NOT RECORDED, never "not negated".
+* **Key ORDER in the fixture is MySQL's, not the writer's.** `provenance_builder.py` writes with `sort_keys=True`, but a MySQL JSON column normalizes object keys by **length first, then lexicographically**, so the text read back differs from the text inserted. The fixture stores the captured production read order and asserts `stored_json` → `wire_sample` end to end.
+
+`normalizeEvidenceRecordList()` (`variationEvidenceRecords.ts`) dispatches on `source_key` then `source_type`, and falls back to the pre-#612 generic probe for an unrecognised source so a future batch degrades to the old behaviour rather than to nothing. `variationWireScalars.ts` holds the shared scalar primitives specifically so `variationProvenance.ts` and `variationEvidenceRecords.ts` do not import each other.
+
+### Approval-path rejection (#612)
+
+`variation_provenance_plan_reconciliation()` takes `apply_confirmations` alongside `apply_rejections`; it gates the SUBMITTED branch only and defaults TRUE, so every pre-#612 call site is byte-identical. `variation_provenance_reconcile_on_approval()` (`functions/variation-provenance-approval.R`) uses it with `apply_confirmations = FALSE`: approving a review is an act on the REVIEW, not a per-term reading of machine evidence, so it may only ever RETIRE assertions and must never promote.
+
+`svc_approval_review_approve()` runs `review_approve()` and a per-entity reconciliation in **one** transaction scope, so a reconciliation failure rolls the approval back. Three things about it are load-bearing:
+
+* **The served set is read AFTER `review_approve()`, and an empty set is meaningful.** Approval itself creates the primary approved review, so an entity whose approved review carries no variation terms legitimately serves none and every open assertion must be retired. There is deliberately **no** "skip when empty" guard — it would strand exactly the assertions the curation queue exists to retire.
+* **`direct_approval` does NOT route through it.** `review_write_mutate()` calls `review_approve()` itself on its own transaction after already reconciling there; `review_apply_direct_approval()` has no call site. The one live caller is `PUT /api/review/approve/<review_id_requested>`.
+* **The `"all"` check guards on length first.** `if (as.character(review_id) == "all")` raises "the condition has length > 1" for a vector, so the function's documented multi-id support had never worked — and the per-entity loop needs it.
+
+`db_with_savepoint_or_transaction()` (`functions/db-transaction-scope.R`) is now the single place the pool-vs-caller-owned-connection decision lives: a pool gets a transaction, a caller-owned `DBIConnection` gets a SAVEPOINT because RMariaDB has no nested transaction and `with_test_db_transaction()` has already issued `dbBegin()`. `review_write_run_mutation()` delegates to it with its savepoint name unchanged. It lives in its own file, ahead of `db-helpers.R` in the loader, because `db-helpers.R` attaches RMariaDB and this logic needs only DBI — so it stays testable on a host without the MySQL client runtime.
+
+### The curation queue (#612 Phase 6)
+
+`GET /api/curate/variation/suggestions` plus `POST .../confirm` and `POST .../dismiss`, Curator-gated, mounted at `/api/curate/variation`; page at `/curate/variation-suggestions`.
+
+**It spans TWO states, not `suggested` alone.** The #608 design named a queue over `state = 'suggested'`, but the backfill wrote every one of its 8,083 rows `active_unconfirmed`, so a suggested-only queue renders an empty page while the ~1,981-item weak-evidence backlog it exists to make tractable sits in the other state.
+
+**The two actions are asymmetric, and this is the whole safety design.** `provenance_for_entity()` filters the public read to `('active_unconfirmed','confirmed')`, so writing `rejected` onto an `active_unconfirmed` assertion drops it out of that filter **while the term is still served** — and the entity card then renders it as CURATOR-AUTHORED, the exact fabrication this feature exists to prevent. Hence:
+
+| State | Served? | Safe assertion-only action |
+|---|---|---|
+| `active_unconfirmed` | yes | **Confirm** |
+| `suggested` | no | **Dismiss** |
+
+The other direction of each pair has to ADD or REMOVE a curated term, which is a review write and belongs to `review_write_mutate()`. The queue never writes `ndd_review_variation_ontology_connect`; those rows link out to the entity.
+
+**Concurrency.** Server-side re-derivation alone is not enough: a dismiss could read `suggested + not served` while a concurrent review write adds and approves the term, then commit `rejected` onto a now-served assertion. One batch is one transaction that `SELECT ... FOR UPDATE`s its assertion rows **ordered by `assertion_id`** (so concurrent batches cannot deadlock), re-reads served membership under those locks, and writes `... WHERE assertion_id = ? AND state = ?` with the state observed under the lock. A 0-row result is reported as `state_changed`, never retried. This serializes against `review_write_mutate()`, whose reconciliation updates the very same row.
+
+**`moved`** is `origin_review_id`'s first consumer (migration `049`, 95 rows in production): the assertion has evidence whose `origin_review_id` is not currently a primary-approved review of that entity. Because that column deliberately has no foreign key, a vanished origin review also reads as moved.
+
+Every skipped item is returned with its reason. A silent partial success on a provenance surface is the failure mode this feature exists to avoid.
+
+**Two bugs here were invisible to mocked unit tests** and were found only by executing the SQL: the filters were bound twice against one set of placeholders, and the outer `ORDER BY` led with `assertion_id`, discarding the caller's sort because a JOIN does not inherit its derived table's order. Both are covered by `test-integration-variation-suggestions.R`; keep exercising that file against a real schema.
+
+### The zone picker is now on all four curation surfaces
+
+`views/curate/components/VariationProvenanceZones.vue` is the extracted picker, mounted by `ReviewFormFields.vue` (Review), `InlineEntityWorkflow.vue` and `CombinedStatusReviewWorkflow.vue` (ModifyEntity), and `ReviewEditForm.vue` (ApproveReview). `displayName` is a **prop** because the Review form's resolver also consults its option-tree labels, which no other surface has.
+
+`useModifyEntityWorkflows` has **two** argument builders — `getReviewArgs()` for the combined status+review workflow and `reviewArgs()` for the inline one. Both must thread `provenance_action_for`, or confirmations made through combined direct approval are silently dropped.
+
+This is a **UX** change, not a correctness one: reconciliation is server-side and every surface was already protected. `ModifyEntity.vue`'s scoped styles moved to `./ModifyEntity.styles.css` (`<style scoped src="...">`, as `NddScoreGeneTable.vue` already does) because the file sat at exactly 599 lines against the 600 ceiling.
+
+- **Still not shipped here** (tracked in **#612**). Phase 7 item (1), the **shared importer write helper** under `scripts/data-corrections/_shared/`: that directory does not exist in this repo — it is administration-repo work. Phase 7 item (3), a **restricted DB grant** for importers: an operator action. Also deferred: reconciliation still runs on write and on approval, not on a standalone approval of an already-written draft *edited later* — that residual is unchanged and remains the safe direction.
 
 ### Entity/review agreement invariant (#622–#625)
 

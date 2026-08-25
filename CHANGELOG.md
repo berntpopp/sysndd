@@ -6,6 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-08-25
+
+### Added
+
+- **Variation-ontology curation queue** (#612). A Curator-gated cross-entity worklist at
+  `/curate/variation-suggestions` over the 8,083 machine-derived annotations the February 2026
+  backfill wrote, ~1,981 of which rest on 1-star evidence alone. It spans both
+  `active_unconfirmed` and `suggested` — the backfill wrote every row in the former, so a
+  `suggested`-only queue would have shown an empty page. Confirm is offered only for terms the
+  entity actually serves and Dismiss only for terms it does not: writing `rejected` onto a served
+  term would drop it out of the public read's provenance filter and make it render as
+  curator-authored. Batches take row locks and write conditionally on the state observed under
+  them, and every skipped item is reported with its reason.
+- **The three-zone provenance picker on ModifyEntity and ApproveReview** (#612). Both surfaces
+  prefilled and resubmitted machine-derived terms with no deliberate-act affordance. They were
+  already protected server-side, so this is a UX change: a curator now sees "2 terms need
+  confirmation" instead of two silently pre-checked boxes.
+
+### Fixed
+
+- **All three `evidence_json` record shapes now render** (#612). The evidence dialog understood
+  one of the three shapes the backfill emits: the external-database batch (2,166 assertions)
+  showed `consequence` alone, and the literature batch (182) showed nothing at all. ClinVar review
+  stars were in the payload and never displayed. The shapes are now pinned by a fixture shared
+  with the R suite and with the writing repository.
+- **Approving a review retires assertions the entity no longer serves** (#612). `review_update()`
+  unconditionally un-approves the review it edits, so on the ordinary edit-then-approve-separately
+  workflow a removed term kept its `active_unconfirmed` assertion and the suggestion queue went on
+  offering it. Approval and reconciliation now share one transaction.
+- **`svc_approval_review_approve()` accepts a vector of review ids.** Its `"all"` check was
+  `if (as.character(review_id) == "all")`, which raises "the condition has length > 1" — so the
+  documented multi-id support had never worked.
+
+### Changed
+
+- **CI applies the real schema to its test database** (#612). CI provisioned a MySQL service
+  container but an empty one, so all 28 `test-integration-*.R` files skipped silently and
+  permanently — which is how the entity-rename suite stayed dormant long enough to hide two
+  production defects (#638). `api/scripts/ci-load-test-schema.R` now applies the project's own 51
+  migrations before the test step, putting ~570 previously-dormant assertions into every run.
+  `make test-db-schema` does the same locally. Turning them on surfaced three fixture defects, all
+  fixed here — including one that seeded nothing at all and left three assertions running against
+  no data.
+
 ## [0.31.3] - 2026-08-25
 
 ### Fixed

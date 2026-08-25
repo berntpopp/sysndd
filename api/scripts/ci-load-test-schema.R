@@ -42,11 +42,33 @@ source("functions/db-helpers.R")
 source("functions/migration-runner.R")
 source("functions/migration-manifest.R")
 
-host <- Sys.getenv("MYSQL_HOST", "127.0.0.1")
-port <- as.integer(Sys.getenv("MYSQL_PORT", "3306"))
-dbname <- Sys.getenv("MYSQL_DATABASE", "sysndd_test")
-user <- Sys.getenv("MYSQL_USER", "test")
-password <- Sys.getenv("MYSQL_PASSWORD", "test")
+# CI sets MYSQL_* (matching helper-db.R's own CI mode). Locally, fall back to
+# config.yml's `sysndd_db_test` block, so `make test-db-schema` gives a
+# developer the same schema-loaded database CI now gets.
+local_config <- NULL
+if (Sys.getenv("MYSQL_HOST", "") == "" && file.exists("config.yml")) {
+  local_config <- tryCatch(
+    config::get("sysndd_db_test", file = "config.yml"),
+    error = function(e) NULL
+  )
+}
+
+setting <- function(env_name, config_name, fallback) {
+  value <- Sys.getenv(env_name, "")
+  if (nzchar(value)) {
+    return(value)
+  }
+  if (!is.null(local_config) && !is.null(local_config[[config_name]])) {
+    return(as.character(local_config[[config_name]]))
+  }
+  fallback
+}
+
+host <- setting("MYSQL_HOST", "host", "127.0.0.1")
+port <- as.integer(setting("MYSQL_PORT", "port", "3306"))
+dbname <- setting("MYSQL_DATABASE", "dbname", "sysndd_test")
+user <- setting("MYSQL_USER", "user", "test")
+password <- setting("MYSQL_PASSWORD", "password", "test")
 
 cat(sprintf("Loading schema into %s@%s:%d/%s\n", user, host, port, dbname))
 
@@ -69,6 +91,24 @@ cat(sprintf("Schema loaded: %d tables\n", as.integer(tables)))
 # Fail loudly rather than letting the test job proceed against a half-loaded
 # database and report a wall of skips as success.
 if (as.integer(tables) < 50L) {
-  stop(sprintf("Expected the full schema, found only %d tables.", as.integer(tables)),
-       call. = FALSE)
+  # Loudly, not quietly: a half-loaded database makes every integration file
+  # skip on its dbExistsTable() guard and report a wall of skips as success.
+  #
+  # On a fresh database this cannot happen. It means `schema_version` already
+  # records migrations whose tables are absent -- a database built ad hoc rather
+  # than by the runner. Recreate it (the local target points at
+  # config.yml's `sysndd_db_test`, which is disposable by definition):
+  #
+  #   DROP DATABASE <db>; CREATE DATABASE <db>;   then re-run this script.
+  stop(
+    sprintf(
+      paste(
+        "Expected the full schema, found only %d tables.",
+        "`schema_version` records migrations whose tables do not exist, so the",
+        "runner skipped them. Drop and recreate `%s`, then re-run."
+      ),
+      as.integer(tables), dbname
+    ),
+    call. = FALSE
+  )
 }
