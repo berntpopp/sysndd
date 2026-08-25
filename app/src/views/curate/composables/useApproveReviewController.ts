@@ -57,6 +57,7 @@ import {
 
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
+import useApproveReviewProvenance from './useApproveReviewProvenance';
 
 export function useApproveReviewController() {
   const { makeToast } = useToast();
@@ -90,6 +91,7 @@ export function useApproveReviewController() {
   // Table data
   const {
     items: items_ReviewTable,
+    onFiltered,
     totalRows,
     currentPage,
     perPage,
@@ -148,6 +150,7 @@ export function useApproveReviewController() {
   const status_info = ref<StatusInfoShape>(new Status() as unknown as StatusInfoShape);
   const select_phenotype = ref<string[]>([]);
   const select_variation = ref<string[]>([]);
+  const variationProvenance = useApproveReviewProvenance(select_variation); // #612
   const select_additional_references = ref<string[]>([]);
   const select_gene_reviews = ref<string[]>([]);
   const approve_all_selected = ref(false);
@@ -262,6 +265,7 @@ export function useApproveReviewController() {
       review_info.value = loaded.reviewInfo as ReviewInfoShape;
       select_phenotype.value = loaded.selectPhenotype;
       select_variation.value = loaded.selectVariation;
+      variationProvenance.load(loaded.reviewInfo?.entity_id); // #612 (best-effort)
       select_additional_references.value = loaded.selectAdditionalReferences;
       select_gene_reviews.value = loaded.selectGeneReviews;
       reviewLoadedData.value = loaded.snapshot;
@@ -339,6 +343,7 @@ export function useApproveReviewController() {
         reviewInfo: review_info.value,
         selectPhenotype: select_phenotype.value,
         selectVariation: select_variation.value,
+        provenanceActionFor: variationProvenance.actionFor, // #612
         selectAdditionalReferences: select_additional_references.value,
         selectGeneReviews: select_gene_reviews.value,
         sanitize: sanitizeInput,
@@ -476,6 +481,7 @@ export function useApproveReviewController() {
     }
   }
   function onReviewModalHide(event: ModalHideEvent): void {
+    variationProvenance.reset(); // #612: a confirmation is an act on THIS review
     if (pendingDiscardTarget.value === 'review') {
       pendingDiscardTarget.value = null;
       return;
@@ -489,10 +495,6 @@ export function useApproveReviewController() {
   function onConfirmDiscard(): void {
     if (pendingDiscardTarget.value === 'review') hideModal(reviewModal.id);
     else if (pendingDiscardTarget.value === 'status') hideModal(statusModal.id);
-  }
-  function onFiltered(filteredList: unknown[]): void {
-    totalRows.value = filteredList.length;
-    currentPage.value = 1;
   }
 
   onMounted(() => {
@@ -550,6 +552,7 @@ export function useApproveReviewController() {
     status_info,
     select_phenotype,
     select_variation,
+    variationZones: variationProvenance.zones, // #612
     select_additional_references,
     select_gene_reviews,
     approve_all_selected,

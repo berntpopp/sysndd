@@ -107,6 +107,7 @@
       :review-info="reviewInfo"
       :phenotype-options="phenotypeOptions"
       :variation-options="variationOptions"
+      :variation-zones="variationZones"
       :select-phenotype="selectPhenotype"
       :select-variation="selectVariation"
       :select-additional-references="selectAdditionalReferences"
@@ -130,6 +131,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import ReviewEditForm from '@/components/review/ReviewEditForm.vue';
+import type { VariationProvenanceZonesApi } from '@/views/curate/composables/useVariationProvenanceZones';
 
 export interface ReviewInfoShape {
   synopsis?: string | null;
@@ -165,6 +167,11 @@ defineProps({
   entityInfo: { type: Object as PropType<EntityInfoShape>, required: true },
   phenotypeOptions: { type: Array as PropType<TreeOption[]>, default: () => [] },
   variationOptions: { type: Array as PropType<TreeOption[]>, default: () => [] },
+  /** #612: forwarded straight through to ReviewEditForm. */
+  variationZones: {
+    type: Object as PropType<VariationProvenanceZonesApi | null>,
+    default: null,
+  },
   selectPhenotype: { type: Array as PropType<string[]>, default: () => [] },
   selectVariation: { type: Array as PropType<string[]>, default: () => [] },
   selectAdditionalReferences: { type: Array as PropType<string[]>, default: () => [] },

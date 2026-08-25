@@ -173,6 +173,7 @@
           :entity-info="entity_info"
           :phenotype-options="phenotypes_options"
           :variation-options="variation_ontology_options"
+          :variation-zones="variationZones"
           :select-phenotype="select_phenotype"
           :select-variation="select_variation"
           :select-additional-references="select_additional_references"
@@ -285,6 +286,7 @@ const {
   confirmDiscardDialog,
   phenotypes_options,
   variation_ontology_options,
+  variationZones,
   status_options,
   entity,
   entity_info,
