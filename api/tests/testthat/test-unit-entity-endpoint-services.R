@@ -466,7 +466,11 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
     }
 
     DBI::dbExecute(con, "INSERT IGNORE INTO `user` (user_id, user_name) VALUES (1, 'svc-entity-endpoint-test')") # nolint: line_length_linter
-    hgnc_id <- paste0("HGNC:", sample(9000000:9999999, 1))
+    # non_alt_loci_set.hgnc_id is varchar(10), so the id must fit in ten
+    # characters: "HGNC:" plus five digits. A seven-digit suffix raises
+    # "Data too long for column 'hgnc_id'" -- which stayed invisible while this
+    # test skipped for want of a schema (#612 made CI load one).
+    hgnc_id <- paste0("HGNC:", sample(90000:99999, 1))
     moi_term <- paste0("HP:", sample(9000000:9999999, 1))
     ontology_id <- paste0("OMIM:", sample(9000000:9999999, 1), "_1")
     DBI::dbExecute(
