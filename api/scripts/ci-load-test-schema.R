@@ -76,7 +76,30 @@ conn <- DBI::dbConnect(
   RMariaDB::MariaDB(),
   dbname = dbname, host = host, user = user, password = password, port = port
 )
-run_migrations(migrations_dir = "db/migrations", conn = conn)
+# Resolve the migrations directory rather than assuming a working directory.
+# In the API CONTAINER `db/` is bind-mounted at /app/db, so "db/migrations"
+# resolves; on a CI runner the job's working-directory is ./api and the real
+# path is ../db/migrations. Getting this wrong is SILENT: the runner finds zero
+# files, creates schema_version, and reports success.
+migrations_dir <- NULL
+for (candidate in c("db/migrations", "../db/migrations")) {
+  if (dir.exists(candidate) && length(list.files(candidate, pattern = "[.]sql$")) > 0L) {
+    migrations_dir <- candidate
+    break
+  }
+}
+if (is.null(migrations_dir)) {
+  stop(
+    sprintf(
+      "No migrations directory found from %s (tried db/migrations, ../db/migrations).",
+      getwd()
+    ),
+    call. = FALSE
+  )
+}
+cat(sprintf("Applying migrations from %s\n", migrations_dir))
+
+run_migrations(migrations_dir = migrations_dir, conn = conn)
 
 tables <- DBI::dbGetQuery(
   conn,
@@ -84,12 +107,35 @@ tables <- DBI::dbGetQuery(
   params = list(dbname)
 )$n[[1]]
 
-DBI::dbDisconnect(conn)
-
 cat(sprintf("Schema loaded: %d tables\n", as.integer(tables)))
 
 # Fail loudly rather than letting the test job proceed against a half-loaded
 # database and report a wall of skips as success.
+applied <- DBI::dbGetQuery(conn, "SELECT COUNT(*) AS n FROM schema_version")$n[[1]]
+expected <- length(list.files(migrations_dir, pattern = "[.]sql$"))
+cat(sprintf("Migrations recorded: %d of %d\n", as.integer(applied), expected))
+
+# A table count alone is not a schema-integrity check -- it would accept a
+# database that stopped halfway. Require every migration file to be recorded and
+# a representative set of the objects the integration suites depend on.
+required <- c(
+  "ndd_entity", "ndd_entity_view", "ndd_entity_review",
+  "ndd_review_variation_ontology_connect", "variation_ontology_assertion",
+  "variation_ontology_evidence", "non_alt_loci_set", "disease_ontology_set",
+  "mode_of_inheritance_list", "publication"
+)
+missing <- required[!vapply(required, function(x) DBI::dbExistsTable(conn, x), logical(1))]
+if (length(missing) > 0L || as.integer(applied) < expected) {
+  stop(
+    sprintf(
+      "Schema load incomplete: %d/%d migrations recorded; missing object(s): %s.",
+      as.integer(applied), expected,
+      if (length(missing)) paste(missing, collapse = ", ") else "none"
+    ),
+    call. = FALSE
+  )
+}
+
 if (as.integer(tables) < 50L) {
   # Loudly, not quietly: a half-loaded database makes every integration file
   # skip on its dbExistsTable() guard and report a wall of skips as success.
@@ -112,3 +158,5 @@ if (as.integer(tables) < 50L) {
     call. = FALSE
   )
 }
+
+DBI::dbDisconnect(conn)

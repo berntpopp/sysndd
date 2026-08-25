@@ -117,11 +117,73 @@ variation_provenance_reconcile_on_approval <- function(entity_id, review_user_id
     apply_rejections    = TRUE,
     apply_confirmations = FALSE
   )
-  if (nrow(plan) == 0L) {
+  # No early return on an empty plan: the restore below is INDEPENDENT of it. A
+  # served assertion sitting at `suggested` plans no transition at all (it is
+  # submitted, so no rejection; confirmations are disabled), yet it is exactly
+  # the row that needs restoring.
+  updated <- if (nrow(plan) == 0L) {
+    0L
+  } else {
+    variation_provenance_apply_reconciliation(
+      plan, review_user_id = review_user_id, conn = conn
+    )
+  }
+
+  updated + .variation_provenance_restore_served(previous, served, conn = conn)
+}
+
+
+#' Restore machine provenance for an assertion the entity has started serving
+#'
+#' THE CASE THIS EXISTS FOR. The public read filters provenance to
+#' `state IN ('active_unconfirmed','confirmed')`, so an assertion left
+#' `suggested` or `rejected` while its term IS served renders as
+#' CURATOR-AUTHORED -- the fabrication this whole feature prevents. That is
+#' reachable: a curator dismisses an unserved suggestion in the curation queue
+#' (legitimate: it was not served), a draft review that happens to contain the
+#' term is approved later, and the term becomes served with a `rejected`
+#' assertion behind it.
+#'
+#' The restore is to `active_unconfirmed`, NEVER `confirmed`. Approving a review
+#' is an act on the review, not a per-term reading of machine evidence, so the
+#' term becomes visible again as unconfirmed machine provenance and returns to
+#' the curation queue for a real decision.
+#'
+#' Attribution is deliberately untouched: a previously-confirmed row is not in
+#' scope here (it is already served-visible), and no attribution is written.
+#'
+#' @param previous All assertions for the entity.
+#' @param served Tibble(vario_id, modifier_id) of currently served terms.
+#' @param conn Database connection or pool.
+#' @return Integer count of assertion rows updated.
+#' @noRd
+.variation_provenance_restore_served <- function(previous, served, conn = NULL) {
+  if (nrow(previous) == 0L || nrow(served) == 0L) {
     return(0L)
   }
 
-  variation_provenance_apply_reconciliation(
-    plan, review_user_id = review_user_id, conn = conn
+  served_keys <- .variation_provenance_identity_key(served$vario_id, served$modifier_id)
+  previous_keys <- .variation_provenance_identity_key(
+    previous$vario_id, previous$modifier_id
   )
+
+  hidden <- previous_keys %in% served_keys &
+    as.character(previous$state) %in% c("suggested", "rejected")
+  if (!any(hidden)) {
+    return(0L)
+  }
+
+  restored <- 0L
+  for (assertion_id in as.integer(previous$assertion_id)[hidden]) {
+    # Conditional on the state observed, so a concurrent transition wins rather
+    # than being clobbered.
+    restored <- restored + as.integer(db_execute_statement(
+      "UPDATE variation_ontology_assertion
+          SET state = 'active_unconfirmed'
+        WHERE assertion_id = ? AND state IN ('suggested', 'rejected')",
+      list(assertion_id),
+      conn = conn
+    ))
+  }
+  restored
 }

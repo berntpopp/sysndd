@@ -133,6 +133,8 @@ const GENERIC_VARIATION_ID_KEYS = ['variation_id', 'clinvar_variation_id', 'acce
 // dropping a key that used to render is the exact regression this change exists
 // to fix.
 const CLINVAR_LEGACY_ID_KEYS = ['variation_id', 'clinvar_variation_id', 'accession'];
+const CLINVAR_LEGACY_CLASSIFICATION_KEYS = ['clinical_significance', 'significance'];
+const CLINVAR_LEGACY_CONSEQUENCE_KEYS = ['molecular_consequence'];
 const GENERIC_CONSEQUENCE_KEYS = ['consequence', 'molecular_consequence'];
 const GENERIC_CLASSIFICATION_KEYS = ['classification', 'clinical_significance', 'significance'];
 
@@ -142,6 +144,25 @@ function firstText(row: Record<string, unknown>, keys: readonly string[]): strin
     if (value !== null) return value;
   }
   return null;
+}
+
+/**
+ * An external link we are willing to put in an `href`.
+ *
+ * `evidence_json` is written by an importer in another repository and is stored
+ * verbatim, so a `url` inside it is DATA, not a vetted target. Rendering it
+ * straight into `:href` would make a stored `javascript:` value clickable. Only
+ * absolute http(s) URLs pass; anything else renders as plain text, which is the
+ * same failure direction as every other unrecognised field here.
+ */
+export function safeExternalUrl(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -158,9 +179,13 @@ export function clinvarVariationUrl(variationId: string | null): string | null {
 }
 
 function normalizeClinvarRecord(row: Record<string, unknown>): NormalizedEvidenceRecord | null {
+  // The contract keys first, then the pre-#612 aliases: dropping a key that used
+  // to render is the exact regression this change exists to fix.
   const variationId = asText(row.id) ?? firstText(row, CLINVAR_LEGACY_ID_KEYS);
-  const classification = asText(row.classification);
-  const consequence = asText(row.consequence);
+  const classification =
+    asText(row.classification) ?? firstText(row, CLINVAR_LEGACY_CLASSIFICATION_KEYS);
+  const consequence =
+    asText(row.consequence) ?? firstText(row, CLINVAR_LEGACY_CONSEQUENCE_KEYS);
   const stars = asStrength(row.stars);
 
   if (variationId === null && classification === null && consequence === null && stars === null) {
@@ -173,9 +198,10 @@ function normalizeClinvarRecord(row: Record<string, unknown>): NormalizedEvidenc
     classification,
     stars,
     consequence,
-    // Prefer the stored link; fall back to one derived from the id; null when
-    // neither can be produced honestly.
-    url: asText(row.url) ?? clinvarVariationUrl(variationId),
+    // DERIVED, never the stored value. The importer builds this URL from the
+    // very id above, so deriving it loses nothing — and it means no string from
+    // `evidence_json` can reach an href. See safeExternalUrl().
+    url: clinvarVariationUrl(variationId),
   };
 }
 
@@ -223,7 +249,9 @@ function normalizeGenericRecord(row: Record<string, unknown>): NormalizedEvidenc
     variationId,
     consequence,
     classification,
-    url: asText(row.url),
+    // An unknown source has no id grammar to derive from, so its stored URL is
+    // used — but only when it is an absolute http(s) target.
+    url: safeExternalUrl(asText(row.url)),
   };
 }
 

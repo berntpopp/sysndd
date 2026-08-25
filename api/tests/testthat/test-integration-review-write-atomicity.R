@@ -1507,10 +1507,18 @@ test_that("#612: approving a review that KEEPS a term leaves its assertion uncon
   })
 })
 
-test_that("#612: approval NEVER promotes -- a suggested term stays suggested", {
+test_that("#612: approval RESTORES a now-served suggestion, and never confirms it", {
+  # Two rules meet here.
+  #
   # Approving a review is an act on the review, not a per-term reading of
-  # machine evidence. Promoting here would restore the silent promotion #608
-  # exists to stop.
+  # machine evidence, so it must never promote to `confirmed` -- that is the
+  # silent promotion #608 exists to stop.
+  #
+  # But an assertion left `suggested` while its term IS served falls outside the
+  # public read's state filter, so the served term would render as
+  # CURATOR-AUTHORED. It is therefore restored to `active_unconfirmed`: visible
+  # as machine provenance, unattributed, and back in the curation queue for a
+  # real decision.
   skip_if_no_test_db()
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
@@ -1537,8 +1545,10 @@ test_that("#612: approval NEVER promotes -- a suggested term stays suggested", {
     svc_approval_review_approve(review_id, fixture$user_id, TRUE, pool = conn)
 
     assertion <- review_write_assertion_row(conn, fixture, modifier_id = 5L)
-    expect_equal(assertion$state, "suggested")
+    expect_equal(assertion$state, "active_unconfirmed")
+    # Restored, NOT confirmed: no attribution was written.
     expect_true(is.na(assertion$confirmed_by))
+    expect_true(is.na(assertion$confirmed_at))
   })
 })
 

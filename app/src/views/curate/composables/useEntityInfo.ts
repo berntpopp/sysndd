@@ -123,7 +123,12 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       !arrEqual(select_phenotype.value, snap.phenotypes) ||
       !arrEqual(select_variation.value, snap.variationOntology) ||
       !arrEqual(select_additional_references.value, snap.publications) ||
-      !arrEqual(select_gene_reviews.value, snap.genereviews)
+      !arrEqual(select_gene_reviews.value, snap.genereviews) ||
+      // #612: a confirmation is a change even when the selected term set is
+      // identical -- that is the entire point of the act. Omitting it here made
+      // the submit guard treat a confirm-only edit as "nothing to save" and
+      // skip the request, silently discarding the curator's decision.
+      confirmed_variation_tags.value.length > 0
     );
   });
 

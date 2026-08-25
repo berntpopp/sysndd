@@ -23,7 +23,7 @@
  * carrying it across would attribute one curator's reading to another entity.
  */
 
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 
 import useVariationProvenanceZones from './useVariationProvenanceZones';
 
@@ -51,9 +51,20 @@ export default function useApproveReviewProvenance(selectedTags: Ref<string[]>) 
     zones.reset();
   }
 
+  /**
+   * A pending confirmation is an unsaved CHANGE, even when the selected term set
+   * is byte-identical — that is the entire point of the act.
+   *
+   * The approval form's dirty check gates whether it sends the request at all,
+   * so omitting this made a confirm-only edit read as "nothing to save" and the
+   * curator's decision was silently discarded.
+   */
+  const hasPendingConfirmations = computed(() => confirmedTags.value.length > 0);
+
   return {
     zones,
     confirmedTags,
+    hasPendingConfirmations,
     load,
     reset,
     /** Passed into the submit payload; `undefined` when no act was taken. */

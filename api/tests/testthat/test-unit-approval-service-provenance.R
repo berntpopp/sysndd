@@ -144,8 +144,14 @@ test_that("approval rejects an omitted term and leaves a served one alone", {
   expect_false(applied$needs_attribution)
 })
 
-test_that("approval never confirms, even for a submitted suggestion", {
+test_that("approval never confirms a submitted suggestion -- it restores it instead", {
+  # A `suggested` assertion whose term IS served must not stay invisible (the
+  # public read would then show the term as curator-authored), but approving a
+  # review is not a per-term reading of evidence either. It becomes
+  # `active_unconfirmed`: visible as machine provenance, still awaiting a real
+  # decision in the curation queue.
   applied <- NULL
+  statements <- list()
   mock_module(env = environment(), bindings = list(
     variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
       tibble::tibble(
@@ -158,11 +164,20 @@ test_that("approval never confirms, even for a submitted suggestion", {
     variation_provenance_apply_reconciliation = function(plan, review_user_id, conn = NULL) {
       applied <<- plan
       nrow(plan)
+    },
+    db_execute_statement = function(sql, params = list(), conn = NULL) {
+      statements[[length(statements) + 1L]] <<- sql
+      1L
     }
   ))
 
-  expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 0L)
+  expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 1L)
+  # The state machine planned nothing -- no confirmation, no rejection.
   expect_null(applied)
+  # The restore did the work, and it never writes attribution.
+  expect_length(statements, 1L)
+  expect_match(statements[[1L]], "state = 'active_unconfirmed'", fixed = TRUE)
+  expect_false(grepl("confirmed_by", statements[[1L]], fixed = TRUE))
 })
 
 test_that("approval never re-stamps an already-confirmed assertion", {
@@ -443,4 +458,126 @@ test_that("an empty pending set returns OK without opening a transaction", {
   expect_equal(result$status, 200)
   expect_equal(result$entry, integer(0))
   expect_false(scoped)
+})
+
+
+# ---------------------------------------------------------------------------
+# The restore edge (#612 review follow-up)
+# ---------------------------------------------------------------------------
+#
+# The public read filters provenance to ('active_unconfirmed','confirmed'), so
+# an assertion left `suggested` or `rejected` while its term IS served renders
+# as CURATOR-AUTHORED. That is reachable: a curator dismisses an unserved
+# suggestion in the queue (legitimate), a draft containing that term is approved
+# later, and the term becomes served with a `rejected` assertion behind it.
+
+test_that("approval restores a now-served suggested assertion to active_unconfirmed", {
+  statements <- list()
+  mock_module(env = environment(), bindings = list(
+    variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(
+        assertion_id = 9L, vario_id = "VariO:0015", modifier_id = 1L, state = "suggested"
+      )
+    },
+    variation_provenance_served_terms_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(vario_id = "VariO:0015", modifier_id = 1L)
+    },
+    db_execute_statement = function(sql, params = list(), conn = NULL) {
+      statements[[length(statements) + 1L]] <<- list(sql = sql, params = params)
+      1L
+    }
+  ))
+
+  expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 1L)
+  expect_length(statements, 1L)
+  expect_match(statements[[1L]]$sql, "state = 'active_unconfirmed'", fixed = TRUE)
+  # NEVER confirmed: approving a review is not a per-term reading of evidence.
+  expect_false(grepl("confirmed_by", statements[[1L]]$sql, fixed = TRUE))
+  # Conditional, so a concurrent transition wins rather than being clobbered.
+  expect_match(statements[[1L]]$sql, "AND state IN ('suggested', 'rejected')", fixed = TRUE)
+})
+
+test_that("approval restores a now-served rejected assertion too", {
+  statements <- list()
+  mock_module(env = environment(), bindings = list(
+    variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(
+        assertion_id = 9L, vario_id = "VariO:0015", modifier_id = 1L, state = "rejected"
+      )
+    },
+    variation_provenance_served_terms_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(vario_id = "VariO:0015", modifier_id = 1L)
+    },
+    db_execute_statement = function(sql, params = list(), conn = NULL) {
+      statements[[length(statements) + 1L]] <<- list(sql = sql, params = params)
+      1L
+    }
+  ))
+
+  expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 1L)
+  expect_equal(statements[[1L]]$params, list(9L))
+})
+
+test_that("a served assertion that is already visible is left alone", {
+  called <- FALSE
+  mock_module(env = environment(), bindings = list(
+    variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(
+        assertion_id = c(9L, 10L),
+        vario_id = c("VariO:0015", "VariO:0017"),
+        modifier_id = c(1L, 1L),
+        state = c("active_unconfirmed", "confirmed")
+      )
+    },
+    variation_provenance_served_terms_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(vario_id = c("VariO:0015", "VariO:0017"), modifier_id = c(1L, 1L))
+    },
+    db_execute_statement = function(...) {
+      called <<- TRUE
+      1L
+    }
+  ))
+
+  expect_equal(variation_provenance_reconcile_on_approval(42L, review_user_id = 7L), 0L)
+  expect_false(called)
+})
+
+test_that("an UNSERVED suggested assertion is not restored -- it is not visible anyway", {
+  statements <- list()
+  mock_module(env = environment(), bindings = list(
+    variation_provenance_assertions_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(
+        assertion_id = 9L, vario_id = "VariO:0017", modifier_id = 1L, state = "suggested"
+      )
+    },
+    variation_provenance_served_terms_for_entity = function(entity_id, conn = NULL) {
+      tibble::tibble(vario_id = "VariO:0015", modifier_id = 1L)
+    },
+    db_execute_statement = function(sql, params = list(), conn = NULL) {
+      statements[[length(statements) + 1L]] <<- list(sql = sql, params = params)
+      1L
+    }
+  ))
+
+  # It IS rejected by the omitted-term edge, but never "restored".
+  variation_provenance_reconcile_on_approval(42L, review_user_id = 7L)
+  expect_false(any(vapply(
+    statements,
+    function(s) grepl("state = 'active_unconfirmed'", s$sql, fixed = TRUE),
+    logical(1)
+  )))
+})
+
+test_that("re-review approval routes through the approval service, not the repository", {
+  # Approving a re-review publishes a term set exactly like any other approval,
+  # so it must run the same reconciliation in the same transaction.
+  service <- paste(
+    readLines(
+      file.path(get_api_dir(), "services", "re-review-workflow-endpoint-service.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_match(service, "svc_approval_review_approve(", fixed = TRUE)
+  expect_false(grepl("\n  review_approve(", service, fixed = TRUE))
 })

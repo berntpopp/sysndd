@@ -232,3 +232,68 @@ describe('unknown sources and empty rows', () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+describe('external links are never trusted from the payload', () => {
+  it('derives the ClinVar link and ignores a stored one', () => {
+    // `evidence_json` is written by an importer in another repository and stored
+    // verbatim, so a `url` inside it is DATA. The importer builds this URL from
+    // the very id beside it, so deriving loses nothing.
+    const [row] = normalizeEvidenceRecordList(
+      { records: [{ id: ['817069'], url: ['javascript:alert(1)'] }] },
+      'clinvar',
+      'external_database'
+    );
+    expect(row.kind).toBe('clinvar');
+    if (row.kind !== 'clinvar') return;
+    expect(row.url).toBe('https://www.ncbi.nlm.nih.gov/clinvar/variation/817069/');
+  });
+
+  it('drops a non-http(s) URL on an unknown source rather than rendering it clickable', () => {
+    for (const hostile of ['javascript:alert(1)', 'data:text/html,<script>', 'vbscript:x']) {
+      const [row] = normalizeEvidenceRecordList(
+        { records: [{ accession: ['ACC1'], url: [hostile] }] },
+        'future_source',
+        'external_database'
+      );
+      expect(row.kind).toBe('generic');
+      if (row.kind !== 'generic') return;
+      expect(row.url).toBeNull();
+    }
+  });
+
+  it('keeps a genuine https target on an unknown source', () => {
+    const [row] = normalizeEvidenceRecordList(
+      { records: [{ accession: ['ACC1'], url: ['https://example.org/x'] }] },
+      'future_source',
+      'external_database'
+    );
+    expect(row.kind).toBe('generic');
+    if (row.kind !== 'generic') return;
+    expect(row.url).toBe('https://example.org/x');
+  });
+});
+
+describe('pre-#612 ClinVar aliases still render', () => {
+  it('falls back to the legacy classification and consequence keys', () => {
+    // Dropping a key that used to render is the regression this change fixes.
+    const [row] = normalizeEvidenceRecordList(
+      {
+        records: [
+          {
+            variation_id: ['VCV1343191'],
+            clinical_significance: ['Pathogenic'],
+            molecular_consequence: ['missense'],
+          },
+        ],
+      },
+      'clinvar',
+      'external_database'
+    );
+    expect(row).toMatchObject({
+      kind: 'clinvar',
+      variationId: 'VCV1343191',
+      classification: 'Pathogenic',
+      consequence: 'missense',
+    });
+  });
+});

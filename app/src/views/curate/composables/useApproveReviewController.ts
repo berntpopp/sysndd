@@ -58,6 +58,7 @@ import {
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import useApproveReviewProvenance from './useApproveReviewProvenance';
+import useApproveReviewDiscardGuard from './useApproveReviewDiscardGuard';
 
 export function useApproveReviewController() {
   const { makeToast } = useToast();
@@ -173,7 +174,7 @@ export function useApproveReviewController() {
         genereviews: select_gene_reviews.value,
       },
       reviewLoadedData.value
-    )
+    ) || variationProvenance.hasPendingConfirmations.value // #612
   );
   const hasStatusChanges = computed<boolean>(() =>
     hasStatusSnapshotChanges(
@@ -469,33 +470,16 @@ export function useApproveReviewController() {
   interface ModalHideEvent {
     preventDefault: () => void;
   }
-  function onStatusModalHide(event: ModalHideEvent): void {
-    if (pendingDiscardTarget.value === 'status') {
-      pendingDiscardTarget.value = null;
-      return;
-    }
-    if (hasStatusChanges.value && !isBusy.value) {
-      event.preventDefault();
-      pendingDiscardTarget.value = 'status';
-      confirmDiscardDialog.value?.show();
-    }
-  }
-  function onReviewModalHide(event: ModalHideEvent): void {
-    variationProvenance.reset(); // #612: a confirmation is an act on THIS review
-    if (pendingDiscardTarget.value === 'review') {
-      pendingDiscardTarget.value = null;
-      return;
-    }
-    if (hasReviewChanges.value && !isBusy.value) {
-      event.preventDefault();
-      pendingDiscardTarget.value = 'review';
-      confirmDiscardDialog.value?.show();
-    }
-  }
-  function onConfirmDiscard(): void {
-    if (pendingDiscardTarget.value === 'review') hideModal(reviewModal.id);
-    else if (pendingDiscardTarget.value === 'status') hideModal(statusModal.id);
-  }
+  const { onStatusModalHide, onReviewModalHide, onConfirmDiscard } = useApproveReviewDiscardGuard({
+    pendingDiscardTarget,
+    confirmDiscardDialog,
+    hasReviewChanges,
+    hasStatusChanges,
+    isBusy,
+    hideReview: () => hideModal(reviewModal.id),
+    hideStatus: () => hideModal(statusModal.id),
+    onDiscardReview: () => variationProvenance.reset(), // #612
+  });
 
   onMounted(() => {
     loadStatusList();

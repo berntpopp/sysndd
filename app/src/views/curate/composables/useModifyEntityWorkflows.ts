@@ -118,7 +118,12 @@ export function useModifyEntityWorkflows(deps: UseModifyEntityWorkflowsDeps) {
   async function showReviewModify(): Promise<void> {
     activeWorkflow.value = 'review';
     modals.setLoading('review', true);
-    await info.loadReview(info.entity_info.value.entity_id);
+    const entityId = info.entity_info.value.entity_id;
+    // Load the zones here TOO, not only in the combined workflow: this modal
+    // renders the picker, so without it a curator sees an empty zone area on an
+    // entity that does have machine-derived terms. Best-effort and
+    // non-throwing, like the combined path.
+    await Promise.all([info.loadReview(entityId), variationZones.loadForEntity(entityId)]);
     modals.setLoading('review', false);
   }
 
