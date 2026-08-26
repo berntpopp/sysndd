@@ -216,7 +216,28 @@ arithmetic in the builder and `phenotype_mca_prep_matrix()` is untouched:
 
 Supplementary variables are projected onto axes built from active variables
 only, so **cluster membership is unchanged**; only `desc.var$quanti` v.test
-values change. The single computation helper is shared by all three matrix paths
+values change.
+
+This claim was **verified empirically**, not asserted (the #514 lesson: a
+membership-affecting claim must be checked live). Running the real 1,931-entity
+Definitive matrix through `phenotype_mca_prep_matrix()` and then
+`FactoMineR::MCA(ncp = 8, quali.sup = 1:1, quanti.sup = 2:4)` +
+`HCPC(nb.clust = -1, kk = Inf, consol = TRUE)` twice — once with
+`phenotype_non_id_count` (column mean 5.184) and once with
+`extraneurological_system_count` (column mean 2.593), a 2x shift in the
+supplementary column:
+
+```
+identical MCA active coordinates : TRUE
+identical cluster membership     : TRUE
+n clusters OLD/NEW               : 3 / 3
+```
+
+Membership, and therefore `cluster_signature`, `cluster_hash` and every cached
+LLM summary, are unaffected. `CLUSTER_LOGIC_VERSION` is deliberately **not**
+bumped: the memoise key already includes the matrix content
+(`gen_mca_clust_obj_mem(input$matrix)`), so the changed column invalidates the
+entry on its own and the recomputed partition is identical. The single computation helper is shared by all three matrix paths
 (`generate_phenotype_cluster_input()`, `job-phenotype-submission-service.R`,
 `async-job-handlers.R`) so the served snapshot and the interactive job cannot
 diverge. The frontend renders `variable` verbatim, so
