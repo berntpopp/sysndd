@@ -437,8 +437,9 @@ abstained and the value consumers read was the **judge's**
   primary phenotype. Because it is the one genuinely contestable mapping choice,
   every payload carries `fraction_syndromic_excl_head_size` for the alternative
   reading.
-- **No value is called `isolated`.** The middle call is
-  `no_recorded_extraneurological_involvement`. SysNDD records explicit phenotype
+- **No value is called `isolated`, at EITHER level.** The entity call is
+  `no_recorded_extraneurological_involvement` and the cluster call is
+  `predominantly_no_recorded_involvement`. SysNDD records explicit phenotype
   absence on **6 rows database-wide**, so "no organ system recorded" cannot be
   distinguished from "assessed and unaffected"; naming it `isolated` would infer
   clinical absence from missing documentation — the same defect this repo
@@ -498,6 +499,11 @@ abstained and the value consumers read was the **judge's**
   `pattern_conflicts_with_computed` rather than hiding that.
   `validation_status` now travels with a `validation_scope` string naming what
   the judge does and does not cover.
+- **The summary endpoint serves the FROZEN block the snapshot stored**
+  (`syndromicity_stored_block_for_cluster()`), never a live recomputation:
+  `cluster_hash` hashes membership only, so recomputing would drift from the
+  published `/phenotype_clustering` payload as curation continued, and would add
+  two DB round trips to every cache hit.
 - **The computed block is rendered by `SyndromicityCard.vue`, NOT inside
   `LlmSummaryCard`**, which only mounts when a non-rejected LLM summary exists —
   deterministic, curation-derived data must not disappear because a model output

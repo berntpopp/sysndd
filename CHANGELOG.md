@@ -72,6 +72,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `POST /api/llm/regenerate` returned 409 `SNAPSHOT_NOT_READY` for every cluster type on a fully
+  healthy snapshot: it guarded on `snap$snapshot`, a key neither candidate loader returns, so the
+  Administrator regenerate flow had never worked. The unit tests injected a shape no production
+  function produces and stayed green throughout.
+- The interactive phenotype-clustering submission path collected connect rows without
+  `is_active == 1` and probed the memoised clustering function on the **unprepared** matrix, so its
+  cache key could never match the served path's and a computed result would have used a different
+  active variable set — a #514-class divergence. All three matrix paths now filter, assert the
+  supplementary column layout, and prepare the matrix identically.
 - The per-column filter map on the phenotype-cluster variable table is derived from the field list
   instead of being hand-listed alongside it; the two could desync, and a field rename threw at
   render time.

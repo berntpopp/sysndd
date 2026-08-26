@@ -426,3 +426,51 @@ Findings not adopted as stated: renaming the whole measure away from
 the value vocabulary and the `measures` string, not in hiding the term), and
 removing the categorical `cluster_call` entirely (consumers need a label; it is
 retained but demoted below `fraction_syndromic`, `coverage` and the interval).
+
+
+## Post-implementation adversarial review (diff)
+
+The finished diff was reviewed adversarially by the same model against the code.
+Eleven findings. Two were **regressions this branch introduced**:
+
+- A bulk edit deleted the phenotype branch's
+  `analysis_snapshot_attach_partition_provenance()` call, dropping
+  `validation_json$reference_members` -- the #514 same-partition proof -- so
+  release validation would silently fall back to the weaker label comparison.
+  Restored, with a guard asserting BOTH cluster branches attach it.
+- Migration `054`'s prompt cleanup filtered `prompt_type = 'phenotype_cluster'`,
+  which is not a member of migration `008`'s ENUM (`phenotype_generation` is),
+  so the UPDATE never matched.
+
+Three design corrections:
+
+- The summary endpoint **recomputed** syndromicity from live annotations while
+  the snapshot already held it frozen, so the two public endpoints could report
+  different fractions for the same `cluster_hash` once curation moved on -- and
+  it cost two DB round trips per cache hit. It now reads the stored block.
+- `syndromicity_registry_assert_complete()` was **dead code** while this spec
+  and `AGENTS.md` claimed the check was enforced. The classifier only sees terms
+  that OCCUR, so it cannot detect an unobserved new vocabulary term. The
+  assertion now runs at snapshot publication.
+- The cluster vocabulary still emitted `predominantly_isolated` while the entity
+  vocabulary deliberately avoids the word. The "missing documentation cannot
+  establish clinical isolation" claim has to hold at every level of the
+  contract, not only the one that was remembered.
+
+Plus a **pre-existing** #514-class divergence the review surfaced: the
+interactive submission path probed and ran the memoised clustering on the
+UNPREPARED matrix while the served path prepared it -- different memoise keys,
+so its cache-first probe could never hit, and any computed result would have
+used a different active variable set (root included, no prevalence band, no
+absent/present recoding) and therefore a different partition. The comment above
+it asserting hash parity with the API endpoint was false.
+
+Smaller: `as.integer("1.9")` resolved to entity 1 rather than 400; explicit
+`absent` was counted as equivocal (it is an assertion, not ambiguity); fresh
+generations returned a different schema from cached ones; the Excel export
+emitted four duplicate columns and the raw machine name where the readable label
+was promised.
+
+One finding was **overruled on domain review**: that abnormal head size is a
+core NDD feature and should be excluded from the numerator. See the head-size
+note above.
