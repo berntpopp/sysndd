@@ -66,7 +66,7 @@ svc_entity_syndromicity <- function(entity_id, res) {
         systems = list(character()),
         neuro_systems = list(character()),
         neurological_involvement = FALSE,
-        system_count_with_head_size = 0L,
+        system_count_excl_head_size = 0L,
         present_term_count = 0L,
         equivocal_term_count = 0L,
         call = "insufficient_annotation"

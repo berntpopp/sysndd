@@ -54,14 +54,6 @@ syndromicity_registry <- function() {
     "HP:0002011",  "neuro",           "nervous_system", # Abn. brain morphology
     "HP:0002270",  "neuro",           "nervous_system", # Abn. autonomic n. s.
     "HP:0002376",  "neuro",           "nervous_system", # Developmental regression
-    # Head size is a CORE NDD feature, not extra-systemic involvement: micro- and
-    # macrocephaly are cardinal neurodevelopmental findings, and HPO places them
-    # under skull/head-circumference rather than under a visceral organ system.
-    # Classified `neuro` so they are reported but never enter the numerator; the
-    # classifier also emits a sensitivity count that includes them, so the
-    # alternative operationalization stays inspectable.
-    "HP:0000252",  "neuro",           "head_size",      # Microcephaly
-    "HP:0000256",  "neuro",           "head_size",      # Macrocephaly
     # --- extra-neurological organ systems, collapsed ----------------------
     "HP:0000077",  "organ",           "renal_urogenital", # Abn. kidney
     "HP:0000119",  "organ",           "renal_urogenital", # Abn. genitourinary
@@ -75,6 +67,19 @@ syndromicity_registry <- function() {
     "HP:0001513",  "organ",           "growth",           # Obesity
     "HP:0000202",  "organ",           "craniofacial",     # Oral cleft
     "HP:0001999",  "organ",           "craniofacial",     # Abnormal facial shape
+    # Head size is EXTRA-NEUROLOGICAL, not part of the NDD core phenotype.
+    # Micro-/macrocephaly are measured on physical examination (occipitofrontal
+    # circumference), exactly like stature and weight -- they are growth /
+    # dysmorphology findings, not nervous-system FUNCTION findings. HPO agrees:
+    # HP:0000252 sits under Abnormality of skull size -> Abnormal skull
+    # morphology -> Abnormality of head or neck, NOT under HP:0000707. And
+    # clinically they are among the features that make an intellectual
+    # disability syndromic: "non-syndromic ID" means ID without microcephaly,
+    # dysmorphism or malformation. Kept as its OWN system rather than merged
+    # into craniofacial, because head size is a distinct measurement axis from
+    # facial morphology; the raw per-system counts let a consumer merge them.
+    "HP:0000252",  "organ",           "head_size",        # Microcephaly
+    "HP:0000256",  "organ",           "head_size",        # Macrocephaly
     "HP:0000365",  "organ",           "ear_hearing",      # Hearing impairment
     "HP:0000478",  "organ",           "eye",              # Abn. eye
     "HP:0000818",  "organ",           "endocrine",        # Abn. endocrine system

@@ -43,7 +43,7 @@ syndromicity_rows_for_entities <- function(entity_ids, evidence = NULL) {
     systems = replicate(length(absent), character(), simplify = FALSE),
     neuro_systems = replicate(length(absent), character(), simplify = FALSE),
     neurological_involvement = FALSE,
-    system_count_with_head_size = 0L,
+    system_count_excl_head_size = 0L,
     present_term_count = 0L,
     equivocal_term_count = 0L,
     call = "insufficient_annotation"

@@ -165,15 +165,20 @@ test_that("an empty cluster aggregates without dividing by zero", {
   expect_equal(agg$cluster_call, "insufficient_annotation")
 })
 
-test_that("head size is reported neurologically and as an explicit sensitivity", {
+test_that("abnormal head size counts as extra-neurological involvement", {
+  # OFC is a physical measurement, like stature -- a growth/dysmorphology
+  # finding, not a nervous-system function finding. HPO places HP:0000252 under
+  # head and neck, not under HP:0000707, and clinically micro-/macrocephaly is
+  # one of the features that makes an intellectual disability syndromic.
   out <- syndromicity_classify_entities(ann(
-    list(1L, "HP:0001249", "present"), # ID
-    list(1L, "HP:0000252", "present")  # Microcephaly -> neuro/head_size
+    list(1L, "HP:0001249", "present"), # Intellectual disability
+    list(1L, "HP:0000252", "present")  # Microcephaly -> organ/head_size
   ))
-  expect_equal(out$system_count, 0L)
-  expect_equal(out$system_count_with_head_size, 1L)
-  expect_setequal(out$neuro_systems[[1]], "head_size")
-  expect_equal(out$call, "no_recorded_extraneurological_involvement")
+  expect_equal(out$system_count, 1L)
+  expect_setequal(out$systems[[1]], "head_size")
+  expect_equal(out$call, "syndromic")
+  # The alternative reading stays inspectable without re-running anything.
+  expect_equal(out$system_count_excl_head_size, 0L)
 })
 
 test_that("the aggregate reports coverage and a Wilson interval", {
@@ -213,9 +218,10 @@ test_that("raw per-system frequencies let a consumer re-collapse the mapping", {
   agg <- syndromicity_aggregate_cluster(rows)
   expect_equal(agg$system_frequencies$eye, 1L)
   expect_equal(agg$system_frequencies$ear_hearing, 1L)
-  expect_equal(agg$neurological_system_frequencies$head_size, 1L)
+  expect_equal(agg$system_frequencies$head_size, 1L)
   # eye + ear are kept separate on purpose; the raw counts make a merged
   # "sensory" recomputation possible without regenerating the snapshot.
-  expect_equal(agg$fraction_syndromic, round(2 / 3, 4))
-  expect_equal(agg$fraction_syndromic_with_head_size, 1)
+  expect_equal(agg$fraction_syndromic, 1)
+  # Without head size, entity 3 has no recorded involvement -> 2/3.
+  expect_equal(agg$fraction_syndromic_excl_head_size, round(2 / 3, 4))
 })

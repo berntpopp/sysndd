@@ -427,13 +427,16 @@ abstained and the value consumers read was the **judge's**
   directions** — a new vocabulary term with no registry entry, or a registry
   entry whose term was removed, raises rather than silently shifting the
   numerator or the denominator. Never wrap it in `tryCatch` on a request path.
-- **Abnormal head size is `neuro`, not `organ`.** Micro- and macrocephaly are
-  cardinal neurodevelopmental findings; counting them as extra-systemic would
-  call an entity syndromic on the strength of a core NDD feature. Because that
-  is the one genuinely contestable mapping choice, every payload also carries
-  `fraction_syndromic_with_head_size`. This is not cosmetic: it moved the
-  largest cluster from 0.745 (exactly on the cutoff) to 0.658 with a 95% CI that
-  excludes it.
+- **Abnormal head size is `organ`, in its own `head_size` system.** OFC is a
+  physical measurement -- a growth / dysmorphology finding like stature -- not a
+  nervous-system function finding; HPO places `HP:0000252` under Abnormality of
+  skull size -> head and neck, NOT under `HP:0000707`; and clinically
+  micro-/macrocephaly is one of the features that makes an intellectual
+  disability syndromic. Do not reclassify it as `neuro` on the argument that it
+  "co-occurs with NDD" -- frequent co-occurrence is not the same as being the
+  primary phenotype. Because it is the one genuinely contestable mapping choice,
+  every payload carries `fraction_syndromic_excl_head_size` for the alternative
+  reading.
 - **No value is called `isolated`.** The middle call is
   `no_recorded_extraneurological_involvement`. SysNDD records explicit phenotype
   absence on **6 rows database-wide**, so "no organ system recorded" cannot be

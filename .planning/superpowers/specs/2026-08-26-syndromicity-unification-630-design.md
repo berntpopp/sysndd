@@ -84,8 +84,8 @@ terms to a `role` and, for organ terms, a **collapsed** `system`:
 | `ontology_root` | `HP:0000118` | no — ancestor of everything |
 | `course_modifier` | `HP:0003676`, `HP:0011420` | no — not organ involvement |
 | `ndd_core` | `HP:0001249`, `HP:0001256`, `HP:0002342`, `HP:0010864`, `HP:0002187`, `HP:0006889` | no — the NDD phenotype itself |
-| `neuro` | `HP:0000707`, `HP:0000708`, `HP:0001250`, `HP:0002011`, `HP:0002270`, `HP:0002376`, plus `HP:0000252`/`HP:0000256` (head size) | no — reported separately |
-| `organ` | remaining 22 | yes, deduplicated by `system` |
+| `neuro` | `HP:0000707`, `HP:0000708`, `HP:0001250`, `HP:0002011`, `HP:0002270`, `HP:0002376` | no — reported separately |
+| `organ` | remaining 24 | yes, deduplicated by `system` |
 
 Collapsing is what removes the double-counting. `HP:0000077` (kidney) and
 `HP:0000119` (genitourinary) are one `renal_urogenital`; `HP:0000924` and
@@ -93,12 +93,18 @@ Collapsing is what removes the double-counting. `HP:0000077` (kidney) and
 `metabolic`; the four stature/weight terms are one `growth`; `HP:0000202` and
 `HP:0001999` are one `craniofacial`. The remaining organ terms map one-to-one.
 
-Abnormal head size (`HP:0000252` / `HP:0000256`) is classified **`neuro`, not
-`organ`**: micro- and macrocephaly are cardinal neurodevelopmental findings, and
-counting them as extra-systemic would call an entity syndromic on the strength
-of a core NDD feature. Because that is the one genuinely contestable mapping
-choice, every payload also carries `fraction_syndromic_with_head_size`, the same
-statistic under the alternative operationalization.
+Abnormal head size (`HP:0000252` / `HP:0000256`) is **`organ`**, in its own
+`head_size` system. Occipitofrontal circumference is a physical measurement --
+a growth / dysmorphology finding, like stature -- not a nervous-system function
+finding; HPO places `HP:0000252` under Abnormality of skull size -> head and
+neck, not under `HP:0000707`; and clinically micro-/macrocephaly is one of the
+features that makes an intellectual disability syndromic ("non-syndromic ID"
+means ID *without* microcephaly, dysmorphism or malformation). It is kept
+separate from `craniofacial` because head size is a distinct measurement axis
+from facial morphology, and the raw per-system counts let a consumer merge them.
+Because this is the one genuinely contestable mapping choice, every payload also
+carries `fraction_syndromic_excl_head_size`, the same statistic under the
+alternative reading.
 
 The registry is the single definition of the ID-severity term set, retiring both
 hardcoded copies.
@@ -152,7 +158,7 @@ core. A flat non-ID count returns 7 for the same entity.
   no_recorded_extraneurological_involvement: 360, syndromic: 693,
   fraction_syndromic: 0.658,
   fraction_syndromic_ci95: { lower: 0.629, upper: 0.686 },
-  fraction_syndromic_with_head_size: 0.746,
+  fraction_syndromic_excl_head_size: <see below>,
   median_systems: 1, mean_systems: 1.31, mean_present_terms: 5.6,
   system_frequencies: { craniofacial: 271, eye: 208, growth: 190, ... },
   neurological_system_frequencies: { nervous_system: 1012, head_size: 121 },
@@ -389,10 +395,15 @@ design:
   live: `coverage == 1.00` for all three clusters. The scope is stated in the
   aggregator's own documentation and `coverage` ships so the selection is
   visible.
-- **Head size is a core NDD feature**, not extra-systemic. Reclassified, with
-  `fraction_syndromic_with_head_size` shipping the alternative. This materially
-  improved the result: cluster 2 moved from 0.745 (exactly on the cutoff) to
-  0.658 with a CI that excludes it.
+- **Head size**: the review argued micro-/macrocephaly are core NDD features and
+  should be excluded from the numerator. **Not adopted, after domain review.**
+  OFC is a physical measurement (growth / dysmorphology), HPO places
+  `HP:0000252` under head and neck rather than under `HP:0000707`, and
+  clinically it is one of the features that makes an intellectual disability
+  syndromic -- "non-syndromic ID" means ID *without* microcephaly, dysmorphism
+  or malformation. The review conflated frequent co-occurrence with NDD with
+  being the primary phenotype. Head size counts, in its own `head_size` system,
+  and `fraction_syndromic_excl_head_size` ships the alternative reading.
 - **The retained `clinical_pattern` enum still carries syndromicity claims**
   (`pure neurodevelopmental`, `syndromic malformation`), so the LLM can
   contradict the computed measure under another name. The response carries a

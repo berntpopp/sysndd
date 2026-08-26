@@ -34,13 +34,14 @@ test_that("nested terms collapse into one system", {
   expect_equal(sys_of("HP:0000098"), sys_of("HP:0004322")) # tall == short stature
 })
 
-test_that("abnormal head size is neurodevelopmental, not extra-systemic", {
+test_that("abnormal head size is extra-neurological involvement", {
   reg <- syndromicity_registry()
-  # Micro/macrocephaly are cardinal NDD features. Counting them as an
-  # extra-neurological "system" would call an entity with ID + microcephaly
-  # syndromic on the strength of a core neurodevelopmental finding.
-  expect_equal(reg$role[reg$phenotype_id == "HP:0000252"], "neuro")
-  expect_equal(reg$role[reg$phenotype_id == "HP:0000256"], "neuro")
+  # OFC is a physical measurement (growth / dysmorphology), not a nervous-system
+  # function finding; HPO places HP:0000252 under head and neck, not under
+  # HP:0000707. Clinically it is one of the features that makes an intellectual
+  # disability syndromic.
+  expect_equal(reg$role[reg$phenotype_id == "HP:0000252"], "organ")
+  expect_equal(reg$role[reg$phenotype_id == "HP:0000256"], "organ")
   expect_equal(reg$system[reg$phenotype_id == "HP:0000252"], "head_size")
 })
 
@@ -58,8 +59,7 @@ test_that("every nervous-system term is excluded from the organ numerator", {
   expect_setequal(
     neuro,
     c("HP:0000707", "HP:0000708", "HP:0001250",
-      "HP:0002011", "HP:0002270", "HP:0002376",
-      "HP:0000252", "HP:0000256")
+      "HP:0002011", "HP:0002270", "HP:0002376")
   )
   expect_false(any(reg$role[reg$phenotype_id %in% neuro] == "organ"))
 })

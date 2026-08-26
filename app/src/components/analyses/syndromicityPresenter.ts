@@ -31,7 +31,7 @@ export interface SyndromicityBlock {
   syndromic?: number | null;
   fraction_syndromic?: number | null;
   fraction_syndromic_ci95?: { lower?: number | null; upper?: number | null } | null;
-  fraction_syndromic_with_head_size?: number | null;
+  fraction_syndromic_excl_head_size?: number | null;
   median_systems?: number | null;
   mean_systems?: number | null;
   mean_present_terms?: number | null;

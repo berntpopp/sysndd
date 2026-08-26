@@ -74,7 +74,7 @@ syndromicity_classify_entities <- function(annotations) {
       systems = list(),
       neuro_systems = list(),
       neurological_involvement = logical(),
-      system_count_with_head_size = integer(),
+      system_count_excl_head_size = integer(),
       present_term_count = integer(),
       equivocal_term_count = integer(),
       call = character()
@@ -105,16 +105,19 @@ syndromicity_classify_entities <- function(annotations) {
     n_present <- nrow(p)
 
     # Sensitivity: the same count under the alternative operationalization that
-    # treats abnormal head size as extra-systemic rather than neurodevelopmental.
+    # treats abnormal head size as part of the neurodevelopmental core rather
+    # than as extra-neurological involvement. Head size COUNTS by default (it is
+    # an OFC measurement, a growth/dysmorphology finding, and one of the
+    # features that makes an intellectual disability syndromic); this exposes
+    # the other reading without re-running anything.
     #
-    # Both counts are resolved HERE, not inside the tibble() call below:
+    # All three counts are resolved HERE, not inside the tibble() call below:
     # tibble() evaluates its arguments sequentially with earlier columns in
     # scope, so a `length(systems)` written inline after the `systems` list-column
     # is defined would measure the LIST (always 1), not the character vector.
     n_systems <- length(systems)
     n_neuro_systems <- length(neuro_systems)
-    n_systems_with_head_size <- n_systems +
-      as.integer("head_size" %in% neuro_systems)
+    n_systems_excl_head_size <- length(setdiff(systems, "head_size"))
 
     call <- if (n_present == 0L) {
       "insufficient_annotation"
@@ -130,7 +133,7 @@ syndromicity_classify_entities <- function(annotations) {
       systems = list(as.character(systems)),
       neuro_systems = list(as.character(neuro_systems)),
       neurological_involvement = n_neuro_systems > 0L,
-      system_count_with_head_size = n_systems_with_head_size,
+      system_count_excl_head_size = n_systems_excl_head_size,
       present_term_count = as.integer(n_present),
       equivocal_term_count = as.integer(n_equivocal),
       call = call
@@ -153,7 +156,7 @@ syndromicity_entity_result <- function(row) {
     system_count = as.integer(row$system_count[[1]]),
     neurological_systems = as.character(row$neuro_systems[[1]]),
     neurological_involvement = isTRUE(row$neurological_involvement[[1]]),
-    system_count_with_head_size = as.integer(row$system_count_with_head_size[[1]]),
+    system_count_excl_head_size = as.integer(row$system_count_excl_head_size[[1]]),
     present_term_count = as.integer(row$present_term_count[[1]]),
     equivocal_term_count = as.integer(row$equivocal_term_count[[1]]),
     call = as.character(row$call[[1]])
@@ -240,9 +243,10 @@ syndromicity_aggregate_cluster <- function(entity_rows) {
     # collapse can recompute under their own mapping instead of taking ours.
     system_frequencies = tally(evaluable_rows$systems),
     neurological_system_frequencies = tally(evaluable_rows$neuro_systems),
-    # Sensitivity to the one genuinely contestable mapping choice.
-    fraction_syndromic_with_head_size = if (evaluable > 0L) {
-      round(sum(evaluable_rows$system_count_with_head_size >= 1L) / evaluable, 4)
+    # Sensitivity to the one genuinely contestable mapping choice: what the
+    # fraction would be if abnormal head size did NOT count as involvement.
+    fraction_syndromic_excl_head_size = if (evaluable > 0L) {
+      round(sum(evaluable_rows$system_count_excl_head_size >= 1L) / evaluable, 4)
     } else {
       NA_real_
     },
