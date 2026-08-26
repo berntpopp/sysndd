@@ -45,12 +45,29 @@ job_endpoint_phenotype_single_entity_pool <- function(env) {
     ),
     ndd_review_phenotype_connect = tibble::tibble(
       review_id = 1L, entity_id = 1L, modifier_id = 1L, is_active = 1L,
-      phenotype_id = "HP:0000001", hpo_mode_of_inheritance_term_name = "AD"
+      phenotype_id = "HP:0001250", hpo_mode_of_inheritance_term_name = "AD"
     ),
     modifier_list = tibble::tibble(modifier_id = 1L, modifier_name = "present"),
-    phenotype_list = tibble::tibble(phenotype_id = "HP:0000001", HPO_term = "Term1")
+    phenotype_list = tibble::tibble(phenotype_id = "HP:0001250", HPO_term = "Seizures")
   ))
 }
+
+test_that("direct-sourced phenotype submission resolves syndromicity helpers", {
+  env <- job_endpoint_source_service("job-phenotype-submission-service.R")
+
+  expect_true(exists(
+    "syndromicity_supplementary_counts",
+    envir = env,
+    mode = "function",
+    inherits = FALSE
+  ))
+  expect_true(exists(
+    "phenotype_mca_assert_supplementary_layout",
+    envir = env,
+    mode = "function",
+    inherits = FALSE
+  ))
+})
 
 test_that("phenotype clustering: review set is gated on is_primary AND review_approved", {
   env <- job_endpoint_source_service("job-phenotype-submission-service.R")
@@ -69,12 +86,12 @@ test_that("phenotype clustering: review set is gated on is_primary AND review_ap
     ndd_review_phenotype_connect = tibble::tibble(
       review_id = c(1L, 2L, 3L), entity_id = c(1L, 1L, 2L), modifier_id = c(1L, 1L, 1L),
       is_active = c(1L, 1L, 1L),
-      phenotype_id = c("HP:0000001", "HP:0000002", "HP:0000001"),
+      phenotype_id = c("HP:0001250", "HP:0004322", "HP:0001250"),
       hpo_mode_of_inheritance_term_name = c("AD", "AD", "AD")
     ),
     modifier_list = tibble::tibble(modifier_id = 1L, modifier_name = "present"),
     phenotype_list = tibble::tibble(
-      phenotype_id = c("HP:0000001", "HP:0000002"), HPO_term = c("Term1", "Term2")
+      phenotype_id = c("HP:0001250", "HP:0004322"), HPO_term = c("Seizures", "Short stature")
     )
   ))
   env$check_duplicate_job <- function(...) list(duplicate = FALSE)
@@ -173,7 +190,7 @@ test_that("phenotype clustering: capacity guard (503) then a cache miss under ca
     c(
       "ndd_entity_view_tbl", "ndd_entity_review_tbl",
       "ndd_review_phenotype_connect_tbl", "modifier_list_tbl",
-      "phenotype_list_tbl", "id_phenotype_ids", "categories"
+      "phenotype_list_tbl", "categories"
     )
   )
 })

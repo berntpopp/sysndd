@@ -30,23 +30,47 @@
 # THIS file directly would otherwise fail with
 # `could not find function "syndromicity_supplementary_counts"`. Guard-sourced,
 # mirroring the comparisons-parsers pattern.
-if (!exists("syndromicity_supplementary_counts", mode = "function")) {
+if (!exists(
+  "syndromicity_supplementary_counts",
+  envir = environment(),
+  mode = "function",
+  inherits = FALSE
+)) {
+  .syndromicity_source_env <- environment()
   local({
-    here <- tryCatch(dirname(sys.frame(1)$ofile), error = function(e) NULL)
-    roots <- c(
-      if (!is.null(here) && nzchar(here)) c(here, file.path(here, "..", "functions")),
-      "functions", file.path("api", "functions")
-    )
+    source_dirs <- character()
+    for (i in seq_len(sys.nframe())) {
+      source_file <- tryCatch(sys.frame(i)$ofile, error = function(e) NULL)
+      if (!is.null(source_file) && nzchar(source_file)) {
+        source_dirs <- c(source_dirs, dirname(source_file))
+      }
+    }
+    cwd_dirs <- character()
+    cwd_dir <- normalizePath(getwd(), mustWork = TRUE)
+    repeat {
+      cwd_dirs <- c(cwd_dirs, cwd_dir)
+      parent_dir <- dirname(cwd_dir)
+      if (identical(parent_dir, cwd_dir)) break
+      cwd_dir <- parent_dir
+    }
+    roots <- unique(c(
+      source_dirs,
+      file.path(source_dirs, "..", "functions"),
+      file.path(cwd_dirs, "functions"),
+      file.path(cwd_dirs, "api", "functions"),
+      "functions", file.path("api", "functions"), "/app/functions"
+    ))
     for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
       for (r in roots) {
         p <- file.path(r, mod)
         if (file.exists(p)) {
-          source(p, local = FALSE)
+          sys.source(p, envir = .syndromicity_source_env)
           break
         }
       }
     }
   })
+  rm(.syndromicity_source_env)
 }
 
 .async_job_after_success_noop <- function(result, job, payload, state, worker_config) {
