@@ -62,3 +62,17 @@ JOIN `mcp_public_analysis_manifest` m
  END
 WHERE c.`validation_status` = 'validated' AND c.`is_current` = 1
   AND c.`prompt_version` = '1.0';
+
+-- The stored phenotype prompt template is ADMIN-DISPLAY ONLY: generation builds
+-- the prompt in code (build_phenotype_cluster_prompt, functions/llm-types.R).
+-- It is updated here anyway so an administrator reading GET /api/llm/prompts is
+-- not shown an instruction the model is no longer given. Idempotent: the
+-- REPLACE is a no-op once the substring is gone.
+UPDATE `llm_prompt_templates`
+SET `template_text` = REPLACE(
+      `template_text`,
+      '\n\n8. **Syndromicity:** Based on the syndromicity metrics:\n   - ''predominantly_syndromic'' = positive v.test for phenotype_non_id_count\n   - ''predominantly_id'' = positive v.test for phenotype_id_count\n   - ''mixed'' = both or neither significant\n   - ''unknown'' = no syndromicity data',
+      ''
+    )
+WHERE `prompt_type` = 'phenotype_cluster'
+  AND `template_text` LIKE '%Syndromicity:%';

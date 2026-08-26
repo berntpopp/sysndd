@@ -6,9 +6,12 @@
 # The phenotype MCA operates on an entities x HPO-organ-system presence matrix
 # (see generate_phenotype_cluster_input): each HPO term is a character column
 # coded "yes" where present and NA where absent, preceded by a small set of
-# supplementary columns (the inheritance name, then the phenotype_non_id_count,
-# phenotype_id_count and gene_entity_count integer columns) that MCA carries as
-# quali.sup / quanti.sup and must therefore be preserved untouched.
+# supplementary columns (the inheritance name, then the
+# extraneurological_system_count, phenotype_id_count and gene_entity_count
+# integer columns) that MCA carries as quali.sup / quanti.sup and must
+# therefore be preserved untouched. Their exact names and order are asserted by
+# phenotype_mca_assert_supplementary_layout() at the bottom of this file,
+# because quali.sup/quanti.sup are addressed POSITIONALLY (#630).
 #
 # Using the HPO subtree root ("Phenotypic abnormality", HP:0000118) and
 # near-universal / near-rare terms as *active* MCA variables dilutes inertia and
