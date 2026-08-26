@@ -101,6 +101,49 @@ test_that("an unknown action is a 400", {
   )
 })
 
+test_that("items arrive from plumber as a DATA.FRAME, not a list of records", {
+  # THE SHAPE THAT ACTUALLY REACHES THIS SERVICE OVER HTTP.
+  #
+  # Plumber parses a request body with jsonlite::fromJSON(simplifyVector = TRUE),
+  # which collapses a uniform JSON array of objects into a data.frame. So
+  # `req$argsBody$items` is a data.frame whose [[i]] is a COLUMN (an atomic
+  # vector), never a record -- and every well-formed batch was rejected with
+  # "items[1] must be an object". The queue's two actions were unusable from any
+  # real client, including the app's own typed client.
+  #
+  # Every other test in this file (and in test-endpoint-curate-variation.R)
+  # hand-builds a list of lists, which is the simplifyVector = FALSE shape. That
+  # is why the suite was green while the endpoint 400'd. Same trap, and the same
+  # fix, as the force-apply payload tables in
+  # functions/async-job-force-apply-payload.R.
+  stub_apply(environment(), locked("active_unconfirmed"), served())
+  items <- jsonlite::fromJSON(jsonlite::toJSON(
+    list(items = list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L))),
+    auto_unbox = TRUE
+  ))$items
+  expect_s3_class(items, "data.frame")
+
+  result <- svc_curate_variation_apply(items, "confirm", 7L, db = NULL)
+
+  expect_equal(result$requested, 1L)
+  expect_equal(result$applied, 1L)
+  expect_length(result$skipped, 0L)
+})
+
+test_that("a multi-row plumber data.frame body keeps its rows distinct", {
+  stub_apply(environment(), locked("active_unconfirmed"), served())
+  items <- jsonlite::fromJSON(jsonlite::toJSON(list(items = list(
+    list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L),
+    list(entity_id = 43L, vario_id = "VariO:0017", modifier_id = 5L)
+  )), auto_unbox = TRUE))$items
+  expect_s3_class(items, "data.frame")
+
+  result <- svc_curate_variation_apply(items, "confirm", 7L, db = NULL)
+
+  # Rows, not columns: a data.frame of 3 columns must not read as 3 items.
+  expect_equal(result$requested, 2L)
+})
+
 test_that("an empty item list is a 400, not a no-op success", {
   # A silent 200 with applied = 0 would read as "nothing needed doing".
   expect_error(svc_curate_variation_apply(list(), "confirm", 7L, db = NULL), class = "error_400")

@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The curation queue's Confirm and Dismiss rejected every batch** (#612). Plumber parses a request
+  body with `jsonlite::fromJSON(simplifyVector = TRUE)`, which collapses a uniform JSON array of
+  objects into a **data.frame** — so `items[[1]]` was the first *column*, an atomic vector, and every
+  well-formed batch failed with `items[1] must be an object.` Both actions were unusable from any
+  real client, including the app's own typed client. The unit and endpoint tests were green because
+  both hand-built `argsBody` as a list of lists, which is the `simplifyVector = FALSE` shape; the
+  regression tests now build their fixture through the parser and assert it really is a data.frame.
+  Found by driving the running stack, not by the suite. Same trap as the force-apply payload tables,
+  and the sibling review-write path already handled it.
+
 - **The five newly-awake test failures, none of which was a re-skip** (#612). Loading the real
   schema into CI's test database turned dormant files back on, and five of them then failed for
   reasons unrelated to the code they cover. Each was a distinct defect that had been invisible for

@@ -47,6 +47,36 @@ CURATE_VARIATION_APPLY_ACTIONS <- c("confirm", "dismiss")
 CURATE_VARIATION_APPLY_MAX_ITEMS <- 100L
 
 
+#' Normalize the submitted batch into a list of records.
+#'
+#' THE SHAPE THAT ACTUALLY ARRIVES OVER HTTP. Plumber parses a request body with
+#' `jsonlite::fromJSON(simplifyVector = TRUE)`, which collapses a uniform JSON
+#' array of objects into a **data.frame**. `req$argsBody$items` is therefore a
+#' data.frame whose `[[i]]` is a COLUMN -- an atomic vector, never a record --
+#' so `.svc_cva_identity()` rejected every well-formed batch with
+#' "items[1] must be an object", and `length()` counted COLUMNS rather than
+#' items. Both queue actions were unusable from any real client.
+#'
+#' It stayed green because every test hand-built a list of lists, which is the
+#' `simplifyVector = FALSE` shape. Exactly the trap documented for the
+#' force-apply payload tables in `functions/async-job-force-apply-payload.R`;
+#' accept both shapes here rather than depend on a parser setting.
+#'
+#' A non-collapsible array (mixed types) still arrives as a plain list, so it is
+#' passed through untouched and the per-item validation below still rejects any
+#' element that is not an object.
+#' @noRd
+.svc_cva_normalize_items <- function(items) {
+  if (!is.data.frame(items)) {
+    return(items)
+  }
+  if (nrow(items) == 0L) {
+    return(list())
+  }
+  lapply(seq_len(nrow(items)), function(row) as.list(items[row, , drop = FALSE]))
+}
+
+
 #' Normalize one submitted identity, or raise a 400.
 #'
 #' A malformed identity is a client error, not an item to drop quietly: a caller
@@ -118,6 +148,9 @@ svc_curate_variation_apply <- function(items, action, review_user_id, db) {
              paste(CURATE_VARIATION_APPLY_ACTIONS, collapse = ", "), ".")
     )
   }
+  # BEFORE any length()/[[ ]] use: a data.frame's length() is its COLUMN count.
+  items <- .svc_cva_normalize_items(items)
+
   if (is.null(items) || !is.list(items) || length(items) == 0L) {
     stop_for_bad_request("items must be a non-empty array.")
   }

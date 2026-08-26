@@ -51,6 +51,20 @@ Since CI applies the real schema (`api/scripts/ci-load-test-schema.R`, `make tes
 - **`Nested transactions not supported.`** — the code under test opens its OWN transaction on the connection it is handed, and `with_test_db_transaction()` already issued `dbBegin()`. **Do not "fix" this by switching the production helper to `db_with_savepoint_or_transaction()`** unless production really passes a caller-owned connection inside a transaction: `refresh_disease_ontology_set()` and `analysis_snapshot_refresh()` both receive a raw autocommit connection, where a `SAVEPOINT` silently buys NO atomicity. Either drop the outer transaction and clean up explicitly (documenting why, per AGENTS.md) or stub the thin BEGIN/COMMIT seam if the transaction is not what the test is about.
 - **`could not find function ...` deep in a build path.** The test sources only part of the runtime. Add the missing module in `bootstrap/load_modules.R` order and say why in a comment.
 
+## Test the Shape Plumber Actually Delivers
+
+A handler test that hand-builds `req = list(argsBody = list(items = list(list(...))))` is asserting the `simplifyVector = FALSE` shape. Plumber uses `simplifyVector = TRUE`, so a uniform JSON array of objects reaches the handler as a **data.frame** whose `[[i]]` is a COLUMN. The curation queue's `confirm`/`dismiss` shipped rejecting every well-formed batch with `items[1] must be an object.` while its unit *and* endpoint tests were green, because both fed the hand-built shape.
+
+Build the fixture through the parser instead, so the test sees what the wire sees:
+
+```r
+items <- jsonlite::fromJSON(jsonlite::toJSON(
+  list(items = list(list(entity_id = 42L, vario_id = "VariO:0015", modifier_id = 1L))),
+  auto_unbox = TRUE
+))$items
+expect_s3_class(items, "data.frame")   # assert the shape, so the test can't drift back
+```
+
 ## Teardown Rules (learned the hard way)
 
 - **Register the restore BEFORE the destructive step, not after the assertions.** An expectation failure aborts the block, and a teardown registered later never runs. A migration test that drops its tables and leaves them dropped destroys shared schema for every later file AND every subsequent run.
