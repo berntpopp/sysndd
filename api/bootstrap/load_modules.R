@@ -172,6 +172,7 @@ bootstrap_load_modules <- function() {
     # consumes it for the per-cluster computed block.
     "functions/syndromicity-registry.R",
     "functions/syndromicity-classify.R",
+    "functions/syndromicity-repository.R",
     "functions/analysis-phenotype-mca-prep.R",
     "functions/analysis-phenotype-functions.R",
     "functions/analysis-null-models.R",
@@ -313,6 +314,9 @@ bootstrap_load_modules <- function() {
     "services/curate-variation-suggestion-service.R",
     # The queue's write half, split out to keep both files under the ceiling.
     "services/curate-variation-apply-service.R",
+    # #630: computed syndromicity read surface. Needs the registry/classifier
+    # (function_files, above) and the syndromicity repository.
+    "services/entity-syndromicity-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

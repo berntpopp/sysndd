@@ -426,6 +426,50 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       )
       # #514: same coherence gate as the functional axis (phenotype has no channel).
       clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "phenotype")
+
+      # #630: computed, registry-backed syndromicity per cluster.
+      #
+      # Attached as a clusters-tibble column, which build_cluster_rows() folds
+      # into metadata_json and shape_clusters() merges back onto the served row
+      # -- no schema change. cluster_hash is a hash of the cluster's sorted
+      # entity_id set, so a new column cannot churn it and every cached LLM
+      # summary survives.
+      #
+      # The annotation evidence is loaded ONCE here and classified once, rather
+      # than re-queried per cluster: concurrent curation between two reads could
+      # otherwise attach metrics derived from a different data state than the
+      # membership, and the coherence gate only compares partitions.
+      #
+      # Deliberately NOT exists()-guarded: a missing module must fail loudly
+      # rather than silently publish a snapshot whose syndromicity is absent.
+      snapshot_entity_ids <- unique(unlist(lapply(
+        clusters$identifiers,
+        function(ids) if (is.null(ids) || nrow(ids) == 0L) integer() else as.integer(ids$entity_id)
+      )))
+      syndromicity_evidence <- syndromicity_classify_entities(
+        syndromicity_annotations_for_entities(snapshot_entity_ids)
+      )
+      clusters$syndromicity <- lapply(clusters$identifiers, function(ids) {
+        member_ids <- if (is.null(ids) || nrow(ids) == 0L) integer() else as.integer(ids$entity_id)
+        rows <- syndromicity_evidence[syndromicity_evidence$entity_id %in% member_ids, , drop = FALSE]
+        # Members with no annotation rows at all still belong to the cluster and
+        # must land in the denominator as insufficient_annotation.
+        absent <- setdiff(member_ids, rows$entity_id)
+        if (length(absent) > 0L) {
+          rows <- dplyr::bind_rows(rows, tibble::tibble(
+            entity_id = as.integer(absent),
+            system_count = 0L,
+            systems = replicate(length(absent), character(), simplify = FALSE),
+            neuro_systems = replicate(length(absent), character(), simplify = FALSE),
+            neurological_involvement = FALSE,
+            system_count_with_head_size = 0L,
+            present_term_count = 0L,
+            equivocal_term_count = 0L,
+            call = "insufficient_annotation"
+          ))
+        }
+        syndromicity_aggregate_cluster(rows)
+      })
       val$partition <- analysis_snapshot_attach_partition_provenance(val$partition, clusters)
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
       # #512: additive bundle (MCA coords + membership + served silhouette).
