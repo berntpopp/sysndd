@@ -47,6 +47,12 @@ CURATE_VARIATION_QUEUE_SORTS <- c("strength_desc", "strength_asc", "entity_asc")
 
 CURATE_VARIATION_PAGE_SIZE_DEFAULT <- 25L
 CURATE_VARIATION_PAGE_SIZE_MAX <- 100L
+# The SQL offset is computed as (page - 1) * page_size in R's 32-BIT integer
+# arithmetic, so an unbounded page number silently overflows to NA -- and NA
+# then binds as the OFFSET. Cap the page so that even the largest accepted
+# page_size cannot overflow, and let an over-large page be the same honest 400
+# every other out-of-range parameter gets.
+CURATE_VARIATION_PAGE_MAX <- .Machine$integer.max %/% CURATE_VARIATION_PAGE_SIZE_MAX
 CURATE_VARIATION_QUERY_MAX_CHARS <- 64L
 CURATE_VARIATION_STRENGTH_MAX <- 4L
 
@@ -134,7 +140,10 @@ svc_curate_variation_suggestion_params <- function(state = NULL, source_key = NU
     )
   }
 
-  page_value <- .svc_cvs_integer(page, "page", 0L, .Machine$integer.max, default = 1L)
+  page_value <- .svc_cvs_integer(page, "page", 0L, CURATE_VARIATION_PAGE_MAX, default = 1L)
+  # page_size needs no upper bound here: the untrusted value is CLAMPED to
+  # CURATE_VARIATION_PAGE_SIZE_MAX below (long-standing behaviour) and it is
+  # that clamped value, never this one, that reaches the offset multiplication.
   size_value <- .svc_cvs_integer(
     page_size, "page_size", 0L, .Machine$integer.max,
     default = CURATE_VARIATION_PAGE_SIZE_DEFAULT

@@ -99,6 +99,29 @@ test_that("page_size is capped at 100 and page floors at 1", {
   expect_equal(params$page_size, 100L)
 })
 
+test_that("a page whose offset would overflow is a 400, not an NA OFFSET", {
+  # (page - 1) * page_size is 32-bit integer arithmetic in R, so an unbounded
+  # page silently overflows to NA and binds NA as the SQL OFFSET. Reject the
+  # page instead, at the boundary, with the same error class as every other
+  # out-of-range parameter.
+  expect_error(
+    svc_curate_variation_suggestion_params(
+      NULL, NULL, NULL, NULL, NULL, NULL, page = .Machine$integer.max
+    ),
+    "page must be between"
+  )
+
+  # The largest ACCEPTED page must still produce a finite offset at the largest
+  # accepted page_size -- that is the property the cap exists to guarantee.
+  params <- svc_curate_variation_suggestion_params(
+    NULL, NULL, NULL, NULL, NULL, NULL,
+    page = CURATE_VARIATION_PAGE_MAX, page_size = CURATE_VARIATION_PAGE_SIZE_MAX
+  )
+  offset <- (params$page - 1L) * params$page_size
+  expect_false(is.na(offset))
+  expect_true(offset <= .Machine$integer.max)
+})
+
 test_that("an unknown state, sort or source_key is a 400, never a silent default", {
   # A silently-ignored filter would show a curator a page they did not ask for
   # and let them act on it.
