@@ -343,23 +343,36 @@ llm_summary_normalize_clinical_pattern <- function(value) {
 #' Does the model's `clinical_pattern` contradict the computed measure?
 #'
 #' `clinical_pattern` retains two syndromicity-bearing values, so the LLM can
-#' still assert "pure neurodevelopmental" for a cluster the deterministic rule
-#' calls `predominantly_syndromic` -- the original defect under another name.
-#' Rather than hide that, the response says so.
+#' still assert "pure neurodevelopmental" for a cluster whose entities largely
+#' DO have recorded extra-neurological involvement -- the original defect under
+#' another name. Rather than hide that, the response says so.
+#'
+#' Compared against the FRACTION, not the categorical `cluster_call`. Observed
+#' live: a cluster where 74.6% of entities have recorded involvement is called
+#' `mixed` (it sits just under the 0.75 cutoff) while the model labelled it
+#' "pure neurodevelopmental". Gating on `cluster_call == predominantly_syndromic`
+#' would let exactly that case through unflagged.
 #'
 #' @export
 llm_summary_pattern_conflicts <- function(clinical_pattern, syndromicity) {
   if (is.null(clinical_pattern) || is.null(syndromicity)) {
     return(FALSE)
   }
-  call <- syndromicity$cluster_call
-  if (is.null(call)) {
+  fraction <- syndromicity$fraction_syndromic
+  if (is.null(fraction) || length(fraction) == 0L || is.na(fraction[[1]])) {
     return(FALSE)
   }
-  (identical(clinical_pattern, "pure neurodevelopmental") &&
-    identical(call, "predominantly_syndromic")) ||
-    (identical(clinical_pattern, "syndromic malformation") &&
-      identical(call, "predominantly_isolated"))
+  fraction <- as.numeric(fraction[[1]])
+
+  # A majority either way is the honest boundary for "does this word
+  # contradict the data", independent of where the reporting cutoffs sit.
+  if (identical(clinical_pattern, "pure neurodevelopmental")) {
+    return(fraction > 0.5)
+  }
+  if (identical(clinical_pattern, "syndromic malformation")) {
+    return(fraction < 0.5)
+  }
+  FALSE
 }
 
 #' What `validation_status` actually covers.

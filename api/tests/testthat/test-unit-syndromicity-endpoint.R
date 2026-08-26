@@ -60,31 +60,48 @@ test_that("a missing clinical_pattern stays NULL rather than becoming other", {
   expect_null(llm_summary_normalize_clinical_pattern(character(0)))
 })
 
-test_that("a pattern contradicting the computed call is flagged", {
+test_that("a pattern contradicting the computed measure is flagged", {
   expect_true(llm_summary_pattern_conflicts(
-    "pure neurodevelopmental", list(cluster_call = "predominantly_syndromic")
+    "pure neurodevelopmental", list(fraction_syndromic = 0.892)
   ))
   expect_true(llm_summary_pattern_conflicts(
-    "syndromic malformation", list(cluster_call = "predominantly_isolated")
+    "syndromic malformation", list(fraction_syndromic = 0.10)
+  ))
+})
+
+test_that("the live cluster-2 case is flagged even though its call is 'mixed'", {
+  # 74.6% of entities have recorded extra-neurological involvement, but the
+  # cluster sits just under the 0.75 cutoff so cluster_call is `mixed`. Gating
+  # on the categorical call would let the model's "pure neurodevelopmental"
+  # through unflagged -- which is the exact contradiction this exists for.
+  expect_true(llm_summary_pattern_conflicts(
+    "pure neurodevelopmental",
+    list(fraction_syndromic = 0.7455, cluster_call = "mixed")
   ))
 })
 
 test_that("an agreeing or unrelated pattern is not flagged", {
   expect_false(llm_summary_pattern_conflicts(
-    "syndromic malformation", list(cluster_call = "predominantly_syndromic")
+    "syndromic malformation", list(fraction_syndromic = 1)
   ))
   expect_false(llm_summary_pattern_conflicts(
-    "pure neurodevelopmental", list(cluster_call = "mixed")
+    "pure neurodevelopmental", list(fraction_syndromic = 0.2)
   ))
   expect_false(llm_summary_pattern_conflicts(
-    "overgrowth syndrome", list(cluster_call = "predominantly_syndromic")
+    "overgrowth syndrome", list(fraction_syndromic = 0.9)
+  ))
+  expect_false(llm_summary_pattern_conflicts(
+    "progressive metabolic/degenerative", list(fraction_syndromic = 0.1)
   ))
 })
 
 test_that("conflict detection is safe when either side is absent", {
-  expect_false(llm_summary_pattern_conflicts(NULL, list(cluster_call = "mixed")))
+  expect_false(llm_summary_pattern_conflicts(NULL, list(fraction_syndromic = 0.9)))
   expect_false(llm_summary_pattern_conflicts("pure neurodevelopmental", NULL))
   expect_false(llm_summary_pattern_conflicts("pure neurodevelopmental", list()))
+  expect_false(llm_summary_pattern_conflicts(
+    "pure neurodevelopmental", list(fraction_syndromic = NA_real_)
+  ))
 })
 
 test_that("the validation scope names what the judge does NOT cover", {
