@@ -34,6 +34,28 @@
 #' @param res Plumber response, mutated in place (status + headers).
 #' @return List payload for the `json` serializer.
 #' @export
+
+# #630: the syndromicity registry/classifier supply the MCA supplementary
+# counts. bootstrap_load_modules() sources them first, but tests that source
+# THIS file directly would otherwise fail with
+# `could not find function "syndromicity_supplementary_counts"`. Guard-sourced,
+# mirroring the comparisons-parsers pattern.
+if (!exists("syndromicity_supplementary_counts", mode = "function")) {
+  local({
+    here <- tryCatch(dirname(sys.frame(1)$ofile), error = function(e) NULL)
+    roots <- c(
+      if (!is.null(here) && nzchar(here)) c(here, file.path(here, "..", "functions")),
+      "functions", file.path("api", "functions")
+    )
+    for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
+      for (r in roots) {
+        p <- file.path(r, mod)
+        if (file.exists(p)) { source(p, local = FALSE); break }
+      }
+    }
+  })
+}
+
 svc_job_submit_phenotype_clustering <- function(req, res) {
   # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
   # DB/cache/duplicate work. The phenotype path otherwise collects five whole tables

@@ -24,6 +24,28 @@
 # worker/API entrypoint sources that module via bootstrap_load_modules() before
 # this file; a direct-source test env must source it too (as the async-job tests do).
 
+
+# #630: the syndromicity registry/classifier supply the MCA supplementary
+# counts. bootstrap_load_modules() sources them first, but tests that source
+# THIS file directly would otherwise fail with
+# `could not find function "syndromicity_supplementary_counts"`. Guard-sourced,
+# mirroring the comparisons-parsers pattern.
+if (!exists("syndromicity_supplementary_counts", mode = "function")) {
+  local({
+    here <- tryCatch(dirname(sys.frame(1)$ofile), error = function(e) NULL)
+    roots <- c(
+      if (!is.null(here) && nzchar(here)) c(here, file.path(here, "..", "functions")),
+      "functions", file.path("api", "functions")
+    )
+    for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
+      for (r in roots) {
+        p <- file.path(r, mod)
+        if (file.exists(p)) { source(p, local = FALSE); break }
+      }
+    }
+  })
+}
+
 .async_job_after_success_noop <- function(result, job, payload, state, worker_config) {
   invisible(result)
 }
