@@ -182,7 +182,11 @@ save_prompt_template <- function(prompt_type,
     )
 
     id_result <- db_execute_query("SELECT LAST_INSERT_ID() AS id", conn = txn_conn)
-    id_result$id[1]
+    # LAST_INSERT_ID() is a BIGINT, which RMariaDB returns as bit64::integer64.
+    # template_id is an INT, and an integer64 would both compare unequal to the
+    # value get_prompt_template() reads back and serialize as a JSON *string*.
+    # Return the column's own type.
+    as.integer(id_result$id[1])
   })
 
   log_info("Saved prompt template: type={prompt_type}, version={version}, id={result}")

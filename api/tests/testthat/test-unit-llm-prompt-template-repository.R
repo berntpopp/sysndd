@@ -131,7 +131,12 @@ test_that("save_prompt_template retires the previous current row; get_prompt_tem
   skip_if_no_test_db()
 
   conn <- get_test_db_connection()
-  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  # withr::defer(), not on.exit(add = TRUE): on.exit runs handlers in
+  # REGISTRATION order, so the disconnect registered here would fire BEFORE the
+  # row cleanup registered below and the DELETE would abort with bad_weak_ptr,
+  # leaking fixture rows into the shared test database. defer() unwinds LIFO, so
+  # this disconnect correctly runs last.
+  withr::defer(DBI::dbDisconnect(conn))
 
   if (!DBI::dbExistsTable(conn, "llm_prompt_templates")) {
     skip("llm_prompt_templates table not present in test DB (migration 008 not applied)")
@@ -153,7 +158,7 @@ test_that("save_prompt_template retires the previous current row; get_prompt_tem
   base::assign("pool", test_pool, envir = .GlobalEnv)
 
   inserted_ids <- integer()
-  on.exit(
+  withr::defer(
     {
       if (length(inserted_ids) > 0) {
         DBI::dbExecute(
@@ -171,13 +176,31 @@ test_that("save_prompt_template retires the previous current row; get_prompt_tem
       } else {
         base::rm("pool", envir = .GlobalEnv)
       }
-    },
-    add = TRUE
+    }
   )
 
-  stamp <- format(Sys.time(), "%Y%m%d%H%M%OS6")
-  version_1 <- paste0("task7-test-", stamp, "-a")
-  version_2 <- paste0("task7-test-", stamp, "-b")
+  # llm_prompt_templates.version is varchar(20) with a UNIQUE(prompt_type,
+  # version) key, so the fixture needs a value that is both unique per run and
+  # SHORT. The original "task7-test-" + a microsecond stamp was 34 characters;
+  # it only ever skipped before #612 gave the test database a real schema, and
+  # the first real run failed with an opaque rolled-back
+  # "Data too long for column 'version' [1406]". Same class as the hgnc_id
+  # fixture overflow fixed in 74b0b9f7.
+  version_max_chars <- as.integer(DBI::dbGetQuery(
+    conn,
+    "SELECT CHARACTER_MAXIMUM_LENGTH AS n FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'llm_prompt_templates'
+        AND COLUMN_NAME = 'version'"
+  )$n[[1]])
+
+  # 14 digits: yymmddHHMMSS + centiseconds, no separator.
+  stamp <- gsub("[^0-9]", "", format(Sys.time(), "%y%m%d%H%M%OS2"))
+  version_1 <- paste0("t7-", stamp, "-a")
+  version_2 <- paste0("t7-", stamp, "-b")
+
+  # Assert the fixture fits the real column rather than discovering it as a
+  # rolled-back transaction error three frames deep.
+  expect_lte(max(nchar(c(version_1, version_2))), version_max_chars)
 
   id_1 <- save_prompt_template(
     prompt_type = test_prompt_type,

@@ -364,3 +364,47 @@ get_test_config <- function(key = NULL) {
 
   config[[key]]
 }
+
+
+#' Fetch LAST_INSERT_ID() as a plain R integer
+#'
+#' `LAST_INSERT_ID()` is a MySQL BIGINT, and RMariaDB returns a BIGINT as a
+#' `bit64::integer64` -- a double whose storage carries an int64 BIT PATTERN,
+#' not the numeric value. Interpolating that into a fixture statement with
+#' `sprintf("%d", id)` therefore aborts with
+#'
+#'   invalid format '%d'; use format %f, %e, %g or %a for numeric objects
+#'
+#' because the double is a denormal, not a whole number. The value 0 happens to
+#' work (bit pattern 0 IS the double 0), which is why a fresh connection looks
+#' fine and only a real inserted row fails.
+#'
+#' This was invisible until #612 gave the test database a real schema: with no
+#' tables the seeding tests skipped, so the id was never fetched. Coerce once,
+#' at the source, so every `%d` call site in a fixture stays correct.
+#'
+#' Only valid for a signed-`INT` key, which is every id this suite inserts.
+#' `as.integer()` would return `NA_integer_` (with a warning) for a value above
+#' `2^31 - 1`, so fail loudly instead: a fixture that silently binds NA as a
+#' foreign key is the kind of defect this helper exists to stop.
+#'
+#' @param conn DBI connection that just performed the INSERT.
+#' @param id_column Name to alias the id to (kept for call-site readability).
+#' @return Length-1 plain `integer`.
+test_db_last_insert_id <- function(conn, id_column = "id") {
+  raw_id <- DBI::dbGetQuery(
+    conn,
+    sprintf("SELECT LAST_INSERT_ID() AS %s", id_column)
+  )[[id_column]][[1]]
+
+  id <- suppressWarnings(as.integer(as.character(raw_id)))
+  if (length(id) != 1L || is.na(id)) {
+    stop(
+      "test_db_last_insert_id(): LAST_INSERT_ID() did not yield a plain integer ",
+      "(got '", as.character(raw_id), "'). A value beyond a signed INT cannot be ",
+      "used as a fixture id.",
+      call. = FALSE
+    )
+  }
+  id
+}

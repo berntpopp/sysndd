@@ -133,8 +133,28 @@ describe("refresh_disease_ontology_set", {
   })
 
   it("rolls back real database rows when an auto-fix update fails", {
-    with_test_db_transaction({
-      conn <- getOption(".test_db_con")
+    # Deliberately NOT with_test_db_transaction(). refresh_disease_ontology_set()
+    # opens its OWN transaction on the connection it is handed
+    # (metadata-refresh.R -> DBI::dbWithTransaction), exactly as it does in
+    # production, where it always receives a dedicated worker connection with no
+    # transaction open. An outer BEGIN makes that a NESTED transaction, which
+    # RMariaDB rejects -- so this block used to assert "Data too long" and
+    # actually receive "Nested transactions not supported", proving nothing. It
+    # only ever skipped before #612 gave the test database a real schema.
+    #
+    # That production transaction is the thing under test: its ROLLBACK is the
+    # assertion. So this block owns its own connection, lets the real
+    # transaction be real, and cleans its fixture rows up explicitly -- the
+    # AGENTS.md "or document why rollback is not possible" exception.
+    #
+    # Do NOT "fix" this by giving the production helper a SAVEPOINT instead:
+    # on the raw autocommit connection production actually passes, a SAVEPOINT
+    # would silently buy no atomicity at all.
+    skip_if_no_test_db()
+    conn <- get_test_db_connection()
+    withr::defer(DBI::dbDisconnect(conn))
+
+    {
       required_tables <- c(
         "user",
         "mode_of_inheritance_list",
@@ -160,6 +180,49 @@ describe("refresh_disease_ontology_set", {
       new_version <- paste0("OMIM:", 990000L + suffix %% 500L)
       bad_version <- paste0("OMIM:", paste(rep("9", 40), collapse = ""))
       user_name <- paste0("metadata_refresh_", suffix)
+
+      # SAFETY NET: refresh_disease_ontology_set() opens with an unconditional
+      # DELETE FROM disease_ontology_set. The assertion below is that its
+      # transaction rolls that back -- but if that ever stops holding, this
+      # block would wipe a shared table for every later file and every later
+      # run. Snapshot first, put back anything that went missing. Registered
+      # before the fixture cleanup so it unwinds AFTER it (defer is LIFO), and
+      # so restored rows never reference a fixture row we just deleted.
+      preexisting_ontology <- DBI::dbGetQuery(conn, "SELECT * FROM disease_ontology_set")
+      withr::defer({
+        surviving <- DBI::dbGetQuery(
+          conn, "SELECT disease_ontology_id_version FROM disease_ontology_set"
+        )$disease_ontology_id_version
+        lost <- preexisting_ontology[
+          !(preexisting_ontology$disease_ontology_id_version %in% surviving), ,
+          drop = FALSE
+        ]
+        if (nrow(lost) > 0) {
+          DBI::dbAppendTable(conn, "disease_ontology_set", lost)
+        }
+      })
+
+      # Fixture cleanup, in FK order (child rows first). Registered BEFORE the
+      # rows exist so an error part-way through seeding still cleans up.
+      # mode_of_inheritance_list is left alone on purpose: HP:0000006 is a
+      # shared vocabulary term inserted with INSERT IGNORE, so deleting it could
+      # remove a row this test did not create.
+      withr::defer({
+        DBI::dbExecute(
+          conn, "DELETE FROM ndd_entity WHERE hgnc_id = ?", params = unname(list(hgnc_id))
+        )
+        DBI::dbExecute(
+          conn,
+          "DELETE FROM disease_ontology_set WHERE disease_ontology_id_version IN (?, ?, ?)",
+          params = unname(list(old_version, keep_version, new_version))
+        )
+        DBI::dbExecute(
+          conn, "DELETE FROM non_alt_loci_set WHERE hgnc_id = ?", params = unname(list(hgnc_id))
+        )
+        DBI::dbExecute(
+          conn, "DELETE FROM user WHERE user_id = ?", params = unname(list(user_id))
+        )
+      })
 
       DBI::dbExecute(
         conn,
@@ -238,6 +301,6 @@ describe("refresh_disease_ontology_set", {
 
       fk_checks <- DBI::dbGetQuery(conn, "SELECT @@FOREIGN_KEY_CHECKS AS fk_checks")
       expect_equal(as.integer(fk_checks$fk_checks[[1]]), 1L)
-    })
+    }
   })
 })
