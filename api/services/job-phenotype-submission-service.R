@@ -50,7 +50,10 @@ if (!exists("syndromicity_supplementary_counts", mode = "function")) {
     for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
       for (r in roots) {
         p <- file.path(r, mod)
-        if (file.exists(p)) { source(p, local = FALSE); break }
+        if (file.exists(p)) {
+          source(p, local = FALSE)
+          break
+        }
       }
     }
   })
