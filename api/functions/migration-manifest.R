@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "053_fix_variation_agreement_constraint_guard.sql"
-EXPECTED_MIGRATION_COUNT <- 51L
+EXPECTED_LATEST_MIGRATION <- "054_mcp_llm_summary_drop_syndromicity.sql"
+EXPECTED_MIGRATION_COUNT <- 52L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

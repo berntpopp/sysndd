@@ -304,8 +304,11 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
     }
   }
 
-  # Extract syndromicity metrics from quanti_sup_var
-  syndromicity_terms <- "(no syndromicity data)"
+  # Extract the supplementary cluster-characteristic counts from quanti_sup_var.
+  # #630: these no longer ground a syndromicity verdict -- syndromicity is
+  # computed outside the model and is not the judge's to validate -- but they
+  # still describe the cluster and remain useful context for the prose check.
+  quanti_terms <- "(no supplementary count data)"
   if ("quanti_sup_var" %in% names(cluster_data) && length(cluster_data$quanti_sup_var) > 0) {
     quanti_df <- if (is.data.frame(cluster_data$quanti_sup_var)) {
       cluster_data$quanti_sup_var
@@ -322,7 +325,7 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
         dplyr::arrange(dplyr::desc(abs(`v.test`)))
 
       if (nrow(sig_quanti) > 0) {
-        syndromicity_terms <- sig_quanti %>%
+        quanti_terms <- sig_quanti %>%
           dplyr::mutate(
             direction = dplyr::if_else(`v.test` > 0, "HIGHER", "LOWER"),
             term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction} than average]")
@@ -395,8 +398,6 @@ phenotype gestalt exists. Judge it accordingly:
     "(not specified)"
   }
 
-  syndromicity <- summary$syndromicity %||% "(not specified)"
-
   glue::glue("
 You are a STRICT validator for AI-generated phenotype cluster summaries.
 Your job is to DETECT HALLUCINATIONS and REJECT inaccurate summaries.
@@ -466,8 +467,8 @@ cell cycle, 'plays a role in', 'involved in', 'functions in', 'regulates',
 **Inheritance patterns (from HPO):**
 {inheritance_terms}
 
-**Syndromicity metrics:**
-{syndromicity_terms}
+**Cluster characteristics (counts vs database average):**
+{quanti_terms}
 
 ---
 
@@ -481,8 +482,6 @@ cell cycle, 'plays a role in', 'involved in', 'functions in', 'regulates',
 **Clinical pattern:** {clinical_pattern}
 
 **Inheritance patterns:** {inheritance_patterns}
-
-**Syndromicity:** {syndromicity}
 
 **Self-assessed confidence:** {self_confidence}
 
@@ -521,13 +520,13 @@ For each inheritance pattern in the summary:
 - Standard abbreviations: AD=Autosomal dominant, AR=Autosomal recessive, XL=X-linked, MT=Mitochondrial
 - Mark as INVALID if pattern not in source data
 
-**Step 7 - Syndromicity Check:**
-Compare summary's syndromicity claim against quanti_sup_var data:
-- 'predominantly_syndromic' should match positive v.test for phenotype_non_id_count
-- 'predominantly_id' should match positive v.test for phenotype_id_count
-- 'mixed' is valid if both or neither significant
-- 'unknown' is valid if no syndromicity data
-- Mark as INVALID if mismatch
+**Step 7 - Clinical Pattern Check:**
+`clinical_pattern` must be EXACTLY one of the five allowed strings:
+'syndromic malformation', 'pure neurodevelopmental',
+'progressive metabolic/degenerative', 'overgrowth syndrome', 'other'.
+Mark as INVALID if it is a variant wording or a value outside that set.
+Do NOT judge syndromicity: it is computed from the curated annotations, not
+generated, and is not part of this summary.
 
 ---
 
@@ -574,18 +573,16 @@ If issues are correctable:
 4. Provide corrected_notably_absent with ONLY depleted phenotypes (v.test < 0) from input
 5. Provide corrected_inheritance_patterns with ONLY patterns from quali_sup_var with |v.test| > 2
    - Use standard abbreviations: AD, AR, XL, XLR, XLD, MT, SP
-6. Provide corrected_syndromicity based on quanti_sup_var data
-7. If the MAIN summary text needed wording fixes (isolated molecular phrasing or
+6. If the MAIN summary text needed wording fixes (isolated molecular phrasing or
    an over-reaching label), provide corrected_summary with grounded clinical
    prose; otherwise leave corrected_summary empty
-8. Use verdict = 'accept_with_corrections'
+7. Use verdict = 'accept_with_corrections'
 
 Example correction:
 - corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data',
   'Corrected inheritance from XL to AR based on source data']
 - corrected_notably_absent: ['Progressive', 'Developmental regression'] (only items with v.test < 0)
 - corrected_inheritance_patterns: ['AR', 'AD'] (only from source data)
-- corrected_syndromicity: 'predominantly_id' (based on positive v.test for phenotype_id_count)
 
 ---
 

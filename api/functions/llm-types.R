@@ -76,9 +76,13 @@ phenotype_cluster_summary_type <- ellmer::type_object(
     "2-3 phenotypes that are DEPLETED in this cluster (negative v.test)",
     required = FALSE
   ),
-  clinical_pattern = ellmer::type_string(
-    "Syndrome category suggested by the phenotype pattern (e.g., 'syndromic malformations',
-     'progressive metabolic disorders', 'overgrowth syndromes', 'pure neurodevelopmental')"
+  clinical_pattern = ellmer::type_enum(
+    c("syndromic malformation", "pure neurodevelopmental",
+      "progressive metabolic/degenerative", "overgrowth syndrome", "other"),
+    "Syndrome category suggested by the phenotype pattern. Choose EXACTLY one of
+     the listed values -- do not invent a variant wording. (#630: this was a
+     free-text string and drifted in production between 'progressive metabolic
+     disorders' and 'progressive metabolic/degenerative' for the same cluster.)"
   ),
   syndrome_hints = ellmer::type_array(
     ellmer::type_string("Recognized syndrome name or category"),
@@ -96,16 +100,14 @@ phenotype_cluster_summary_type <- ellmer::type_object(
      AR=Autosomal recessive, XL=X-linked, MT=Mitochondrial, SP=Sporadic.",
     required = FALSE
   ),
-  syndromicity = ellmer::type_enum(
-    c("predominantly_syndromic", "predominantly_id", "mixed", "unknown"),
-    "Overall syndromicity pattern based on phenotype counts:
-     'predominantly_syndromic' = more non-ID phenotypes,
-     'predominantly_id' = more ID phenotypes,
-     'mixed' = balanced,
-     'unknown' = insufficient data.
-     Derived from quanti_sup_var (phenotype_id_count vs phenotype_non_id_count).",
-    required = FALSE
-  ),
+  # #630: `syndromicity` was REMOVED from this contract. It is computed
+  # deterministically from the cluster's curated HPO annotations
+  # (functions/syndromicity-classify.R) and served as its own field. The model
+  # was not reproducible on identical input -- the same cluster hash and model,
+  # 39 seconds apart, produced predominantly_id / mixed / predominantly_id --
+  # and every pre-judge row abstained with "unknown", so the served value was
+  # actually the JUDGE's invention for a field the generator declined to fill.
+  # Do not reintroduce it here.
   confidence = ellmer::type_enum(
     c("high", "medium", "low"),
     "Confidence based on phenotype data strength: high if many significant phenotypes,
@@ -407,8 +409,11 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
     }
   }
 
-  # Process quantitative supplementary variables (phenotype counts)
-  syndromicity_text <- "(No syndromicity data available)"
+  # Process quantitative supplementary variables (cluster characteristics).
+  # #630: these no longer drive a syndromicity call -- that is computed
+  # deterministically outside the model -- but they still describe the cluster
+  # and remain useful grounding for the prose summary.
+  quanti_text <- "(No supplementary count data available)"
   if ("quanti_sup_var" %in% names(cluster_data) && length(cluster_data$quanti_sup_var) > 0) {
     quanti_df <- if (is.data.frame(cluster_data$quanti_sup_var)) {
       cluster_data$quanti_sup_var
@@ -435,10 +440,10 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
                 "(more ID phenotypes than average)",
               grepl("phenotype_id_count", variable) & `v.test` < 0 ~
                 "(fewer ID phenotypes than average)",
-              grepl("phenotype_non_id_count", variable) & `v.test` > 0 ~
-                "(more syndromic features than average)",
-              grepl("phenotype_non_id_count", variable) & `v.test` < 0 ~
-                "(fewer syndromic features than average)",
+              grepl("extraneurological_system_count", variable) & `v.test` > 0 ~
+                "(more extra-neurological organ systems than average)",
+              grepl("extraneurological_system_count", variable) & `v.test` < 0 ~
+                "(fewer extra-neurological organ systems than average)",
               grepl("gene_entity_count", variable) & `v.test` > 0 ~
                 "(genes with more disease associations)",
               grepl("gene_entity_count", variable) & `v.test` < 0 ~
@@ -451,7 +456,7 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
           ) %>%
           dplyr::pull(line) %>%
           paste(collapse = "\n")
-        syndromicity_text <- paste0(
+        quanti_text <- paste0(
           "| Variable | v.test | p-value | Interpretation |\n",
           "|----------|--------|---------|----------------|\n",
           quanti_lines
@@ -493,9 +498,11 @@ Positive v.test = over-represented; Negative v.test = under-represented.
 #### Inheritance Patterns (from HPO)
 {inheritance_text}
 
-#### Syndromicity Metrics
-(phenotype_id_count = intellectual disability phenotypes; phenotype_non_id_count = other syndromic features)
-{syndromicity_text}
+#### Cluster Characteristics (counts, relative to the database average)
+(phenotype_id_count = intellectual disability terms;
+ extraneurological_system_count = distinct organ systems outside the nervous system;
+ gene_entity_count = disease entities per gene)
+{quanti_text}
 
 ---
 
@@ -540,7 +547,8 @@ Based ONLY on the data above:
    - Do NOT paraphrase or interpret - use the exact names
 
 4. **Clinical pattern:** What syndrome category does this suggest?
-   - Choose from: 'syndromic malformation', 'pure neurodevelopmental',
+   - Return EXACTLY one of these five strings, verbatim, with no variation in
+     wording or plurality: 'syndromic malformation', 'pure neurodevelopmental',
      'progressive metabolic/degenerative', 'overgrowth syndrome', 'other'
 
 5. **Syndrome hints (optional):** If the phenotype pattern strongly suggests known syndrome categories, list them.
@@ -554,12 +562,6 @@ Based ONLY on the data above:
      XL (X-linked), MT (Mitochondrial), SP (Sporadic)
    - Only include patterns with significant v.test (>2)
    - Leave empty if no significant inheritance associations
-
-8. **Syndromicity:** Based on the syndromicity metrics in SECTION 2:
-   - 'predominantly_syndromic' = positive v.test for phenotype_non_id_count
-   - 'predominantly_id' = positive v.test for phenotype_id_count
-   - 'mixed' = both or neither significant
-   - 'unknown' = no syndromicity data
 
 ## Self-Verification Checklist
 Before finalizing, verify that:

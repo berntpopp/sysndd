@@ -95,12 +95,9 @@ llm_judge_verdict_type <- ellmer::type_object(
     required = FALSE
   ),
 
-  corrected_syndromicity = ellmer::type_enum(
-    c("predominantly_syndromic", "predominantly_id", "mixed", "unknown"),
-    "Syndromicity corrected based on quanti_sup_var data.
-     Only applicable for phenotype clusters - leave NULL for functional clusters.",
-    required = FALSE
-  ),
+  # #630: corrected_syndromicity REMOVED. The judge was inventing a value for a
+  # field the generator abstained on, and that invention was what consumers
+  # read. Syndromicity is now computed, not judged.
 
   corrected_summary = ellmer::type_string(
     "Corrected main summary text. Provide ONLY when verdict is
@@ -229,7 +226,7 @@ validate_with_llm_judge <- function(summary, cluster_data, model = NULL, cluster
 #'
 #' When the judge returns `corrections_needed = TRUE`, copy any corrected fields
 #' onto the summary. Beyond the supporting fields (tags / notably_absent /
-#' inheritance_patterns / syndromicity), this also applies `corrected_summary`
+#' inheritance_patterns), this also applies `corrected_summary`
 #' to the main summary text (#448) so an otherwise-grounded clinical summary with
 #' an isolated molecular phrase or over-reaching label can be salvaged via
 #' `accept_with_corrections` instead of being permanently rejected. A no-op when
@@ -270,13 +267,6 @@ apply_judge_corrections <- function(summary, judge_result) {
   if (!is.null(corrected_inh) && length(corrected_inh) > 0) {
     summary$inheritance_patterns <- corrected_inh
     log_debug("Applied corrected inheritance_patterns")
-  }
-
-  # Corrected syndromicity
-  if (!is.null(judge_result$corrected_syndromicity) &&
-        nzchar(judge_result$corrected_syndromicity)) {
-    summary$syndromicity <- judge_result$corrected_syndromicity
-    log_debug("Applied corrected syndromicity: {judge_result$corrected_syndromicity}")
   }
 
   summary$corrections_applied <- TRUE
