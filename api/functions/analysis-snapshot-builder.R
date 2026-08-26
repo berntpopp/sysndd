@@ -1,5 +1,22 @@
 # functions/analysis-snapshot-builder.R
 if (!exists("%||%", mode = "function")) `%||%` <- function(x, y) if (is.null(x)) y else x
+
+# Row shaping lives in functions/analysis-snapshot-rows.R (split out for the
+# 600-line ceiling). bootstrap_load_modules() sources it first, but tests that
+# source THIS file directly would otherwise lose build_cluster_rows /
+# build_network_rows / build_correlation_rows. Guard-sourced, mirroring the
+# comparisons-parsers pattern.
+if (!exists("analysis_snapshot_build_cluster_rows", mode = "function")) {
+  local({
+    here <- tryCatch(dirname(sys.frame(1)$ofile), error = function(e) NULL)
+    candidate <- if (!is.null(here) && nzchar(here)) {
+      file.path(here, "analysis-snapshot-rows.R")
+    } else {
+      "functions/analysis-snapshot-rows.R"
+    }
+    if (file.exists(candidate)) source(candidate, local = FALSE)
+  })
+}
 analysis_snapshot_hash_json <- function(value) {
   if (exists("analysis_snapshot_canonical_json", mode = "function")) return(analysis_snapshot_canonical_json(value))
   as.character(jsonlite::toJSON(

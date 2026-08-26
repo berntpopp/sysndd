@@ -44,7 +44,7 @@ job_endpoint_phenotype_single_entity_pool <- function(env) {
       review_id = 1L, entity_id = 1L, is_primary = 1L, review_approved = 1L
     ),
     ndd_review_phenotype_connect = tibble::tibble(
-      review_id = 1L, entity_id = 1L, modifier_id = 1L,
+      review_id = 1L, entity_id = 1L, modifier_id = 1L, is_active = 1L,
       phenotype_id = "HP:0000001", hpo_mode_of_inheritance_term_name = "AD"
     ),
     modifier_list = tibble::tibble(modifier_id = 1L, modifier_name = "present"),
@@ -68,6 +68,7 @@ test_that("phenotype clustering: review set is gated on is_primary AND review_ap
     ),
     ndd_review_phenotype_connect = tibble::tibble(
       review_id = c(1L, 2L, 3L), entity_id = c(1L, 1L, 2L), modifier_id = c(1L, 1L, 1L),
+      is_active = c(1L, 1L, 1L),
       phenotype_id = c("HP:0000001", "HP:0000002", "HP:0000001"),
       hpo_mode_of_inheritance_term_name = c("AD", "AD", "AD")
     ),
