@@ -118,7 +118,35 @@ export function normalizePhenotypeClusterRows(
     ...row,
     p_value: row['p.value'],
     v_test: row['v.test'],
+    // #630: readable name for the registry-derived supplementary variables.
+    // The raw `variable` is preserved for the export and any other consumer.
+    variable_label: phenotypeClusterVariableLabel(row.variable),
   }));
+}
+
+/**
+ * Display labels for the MCA supplementary variables (#630).
+ *
+ * The API serves registry-derived variable names. This is the SINGLE map used
+ * for both the on-screen table and the Excel export headers, so the displayed
+ * name and the exported header cannot drift apart. Any variable not listed here
+ * -- every qualitative HPO term, e.g. "Seizures_present" -- renders verbatim.
+ *
+ * `extraneurological_system_count` replaced `phenotype_non_id_count`, which was
+ * displayed under a name implying it measured syndromic features while actually
+ * counting the HPO root, both clinical-course modifiers and every
+ * nervous-system term, and double-counting nested terms.
+ */
+export const PHENOTYPE_CLUSTER_VARIABLE_LABELS: Record<string, string> = {
+  extraneurological_system_count: 'Extra-neurological organ systems',
+  phenotype_id_count: 'Intellectual disability terms',
+  gene_entity_count: 'Disease entities per gene',
+};
+
+/** Human-readable label for an MCA variable name; unmapped names pass through. */
+export function phenotypeClusterVariableLabel(variable: unknown): string {
+  const key = String(variable ?? '');
+  return PHENOTYPE_CLUSTER_VARIABLE_LABELS[key] ?? key;
 }
 
 /** Sheet-name labels for the Excel export, keyed by table type. */

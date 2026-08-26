@@ -105,6 +105,9 @@
       </BCol>
 
       <BCol md="8">
+        <!-- #630: computed, curation-derived. Rendered from the cluster row, so
+             it survives a missing or judge-rejected LLM summary. -->
+        <SyndromicityCard :block="selectedCluster?.syndromicity" />
         <LlmSummaryCard
           v-if="currentSummary && !summaryLoading && !summaryRejected"
           class="my-3 mx-2"
@@ -170,6 +173,7 @@ import { usePhenotypeCytoscape } from '@/composables/usePhenotypeCytoscape';
 import { useClusterSummary } from '@/composables/useClusterSummary';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
+import SyndromicityCard from '@/components/analyses/SyndromicityCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import PhenotypeClusterVariableTable from '@/components/analyses/PhenotypeClusterVariableTable.vue';
@@ -188,6 +192,7 @@ export default {
     InlineHelpBadge,
     LlmSummaryCard,
     PhenotypeClusterVariableTable,
+    SyndromicityCard,
   },
   props: {
     filterState: {

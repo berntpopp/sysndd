@@ -34,9 +34,9 @@ describe('usePhenotypeClusterTable', () => {
     mocks.exportToExcel.mockClear();
   });
 
-  it('exposes flat de-dotted field keys (variable / p_value / v_test)', () => {
+  it('exposes flat de-dotted field keys (variable_label / p_value / v_test)', () => {
     const { fields } = usePhenotypeClusterTable(makeProps({}));
-    expect(fields.map((f) => f.key)).toEqual(['variable', 'p_value', 'v_test']);
+    expect(fields.map((f) => f.key)).toEqual(['variable_label', 'p_value', 'v_test']);
   });
 
   it('paginates displayedItems by perPage and page', () => {
@@ -86,5 +86,19 @@ describe('usePhenotypeClusterTable', () => {
 
     expect(t.totalRows.value).toBe(1);
     expect(t.currentPage.value).toBe(1);
+  });
+});
+
+describe('filter keys stay in sync with fields (#630)', () => {
+  it('creates a filter entry for every field key', () => {
+    const { fields, filter } = usePhenotypeClusterTable(makeProps({}));
+    // The template binds filter[field.key].content for each field; a missing
+    // entry throws "Cannot read properties of undefined" at render time, which
+    // is how renaming a field key used to break the whole table.
+    for (const field of fields) {
+      expect(filter[field.key]).toBeDefined();
+      expect(filter[field.key]).toHaveProperty('content');
+    }
+    expect(filter.any).toBeDefined();
   });
 });

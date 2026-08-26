@@ -47,7 +47,9 @@ export function usePhenotypeClusterTable(props: PhenotypeClusterTableProps) {
 
   const fields = [
     {
-      key: 'variable',
+      // #630: render the readable alias added by normalizePhenotypeClusterRows().
+      // The raw `variable` stays on the row for the Excel export.
+      key: 'variable_label',
       label: 'Variable',
       class: 'text-start',
       sortable: true,
@@ -90,12 +92,18 @@ export function usePhenotypeClusterTable(props: PhenotypeClusterTableProps) {
   const currentPage = ref(1);
   const sortBy = ref('p_value');
   const sortDesc = ref(false);
-  const filter = reactive<Record<string, PhenotypeFilterEntry>>({
-    any: { content: null, join_char: null, operator: 'contains' },
-    variable: { content: null, join_char: null, operator: 'contains' },
-    p_value: { content: null, join_char: null, operator: 'contains' },
-    v_test: { content: null, join_char: null, operator: 'contains' },
-  });
+  // Derived from `fields` rather than hand-listed: the template renders one
+  // BFormInput per field bound to `filter[field.key].content`, so a field key
+  // that has no filter entry throws "Cannot read properties of undefined".
+  // Hand-listing the same keys twice made a field rename silently fatal.
+  const filter = reactive<Record<string, PhenotypeFilterEntry>>(
+    Object.fromEntries(
+      ['any', ...fields.map((field) => field.key)].map((key) => [
+        key,
+        { content: null, join_char: null, operator: 'contains' } as PhenotypeFilterEntry,
+      ])
+    )
+  );
 
   /** Delegates to the pure global "any" + per-column filter helper. */
   function applyFilters(items: PhenotypeClusterRow[]): PhenotypeClusterRow[] {

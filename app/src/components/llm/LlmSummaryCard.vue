@@ -103,11 +103,14 @@
         </div>
       </div>
 
-      <!-- Syndromicity (if present) -->
-      <div v-if="hasSyndromicity" class="syndromicity-section">
-        <span class="section-label">Pattern</span>
-        <BBadge :variant="syndromicityVariant" class="syndromicity-badge">
-          {{ syndromicityLabel }}
+      <!-- #630: the "Pattern" badge rendered `summary.syndromicity`, a
+           model-generated label that was not reproducible on identical input.
+           It is now computed from curated annotations and rendered by
+           SyndromicityCard.vue, outside this AI-provenance card. -->
+      <div v-if="normalizedSummary?.clinical_pattern" class="syndromicity-section">
+        <span class="section-label">Suggested category</span>
+        <BBadge variant="secondary" class="syndromicity-badge">
+          {{ normalizedSummary.clinical_pattern }}
         </BBadge>
       </div>
 
