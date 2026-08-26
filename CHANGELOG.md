@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-08-26
+
 ### Fixed
 
 - **An entity rename could silently discard a concurrent approved review — and launder provenance**
