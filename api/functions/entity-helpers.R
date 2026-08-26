@@ -212,7 +212,7 @@ get_entity_ids_by_vario <- function(vario_ids, pool) {
   # The view already filters for is_primary=1 and is_active=1
   matching_entities <- pool %>%
     tbl("ndd_review_variant_connect_view") %>%
-    filter(vario_id %in% !!vario_ids) %>%
+    dplyr::filter(vario_id %in% !!vario_ids) %>%
     dplyr::select(entity_id) %>%
     distinct() %>%
     collect() %>%

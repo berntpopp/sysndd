@@ -53,15 +53,15 @@ generate_stat_tibble <- function(
   # conditionally select columns to based on input
   sysndd_db_disease_types <- pool %>%
     tbl("ndd_entity_view") %>%
-    filter(ndd_phenotype == 1) %>%
+    dplyr::filter(ndd_phenotype == 1) %>%
     # this is a fix to remove "not applicable" entries
     # this is a fix to remove "refuted" entries
-    filter(!(category_id %in% c(4, 5))) %>%
+    dplyr::filter(!(category_id %in% c(4, 5))) %>%
     collect() %>%
     arrange(entity_id) %>%
     {
       if (type == "gene") {
-        select(., symbol,
+        dplyr::select(., symbol,
           inheritance = hpo_mode_of_inheritance_term_name,
           category,
           category_id
@@ -72,7 +72,7 @@ generate_stat_tibble <- function(
     } %>%
     {
       if (type == "entity") {
-        select(., entity_id,
+        dplyr::select(., entity_id,
           inheritance = hpo_mode_of_inheritance_term_name,
           category,
           category_id
@@ -88,7 +88,7 @@ generate_stat_tibble <- function(
     status_categories_list <- pool %>%
       tbl("ndd_entity_status_categories_list") %>%
       collect() %>%
-      select(category_id, category)
+      dplyr::select(category_id, category)
 
     # following section computes the max category for a gene
     sysndd_db_disease_types <- sysndd_db_disease_types %>%
@@ -108,7 +108,7 @@ generate_stat_tibble <- function(
       } %>%
       mutate(category_id = min(category_id)) %>%
       ungroup() %>%
-      select(-category) %>%
+      dplyr::select(-category) %>%
       left_join(status_categories_list, by = c("category_id"))
   }
 
@@ -130,10 +130,10 @@ generate_stat_tibble <- function(
     group_by(category_group) %>%
     nest() %>%
     ungroup() %>%
-    select(category = category_group, groups = data)
+    dplyr::select(category = category_group, groups = data)
 
   disease_types_group_category <- sysndd_db_disease_types %>%
-    select(-inheritance) %>%
+    dplyr::select(-inheritance) %>%
     unique() %>%
     group_by(category, category_id) %>%
     tally() %>%
@@ -146,16 +146,16 @@ generate_stat_tibble <- function(
     left_join(disease_types_group_cat_inh,
       by = c("category")
     ) %>%
-    select(-category_id)
+    dplyr::select(-category_id)
 
   # get data for last entry from database as meta
   disease_entry_date_last <- pool %>%
     tbl("ndd_entity_view") %>%
-    select(entry_date) %>%
+    dplyr::select(entry_date) %>%
     arrange(desc(entry_date)) %>%
     head(1) %>%
     collect() %>%
-    select(last_update = entry_date)
+    dplyr::select(last_update = entry_date)
 
   # compute execution time
   end_time <- Sys.time()
@@ -201,7 +201,7 @@ generate_gene_news_tibble <- function(n) {
   sysndd_db_disease_genes_news <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
-    filter(ndd_phenotype == 1 & category == "Definitive") %>%
+    dplyr::filter(ndd_phenotype == 1 & category == "Definitive") %>%
     collect() %>%
     arrange(desc(entry_date)) %>%
     slice(1:n)
@@ -236,7 +236,7 @@ generate_variant_entities_list <- function(sort = "entity_id",
   ndd_review_variant_connect <- pool %>%
     tbl("ndd_review_variant_connect_view") %>%
     collect() %>%
-    select(entity_id, modifier_variant_id) %>%
+    dplyr::select(entity_id, modifier_variant_id) %>%
     group_by(entity_id) %>%
     arrange(entity_id, modifier_variant_id) %>%
     mutate(modifier_variant_id = paste0(modifier_variant_id, collapse = ",")) %>%
@@ -249,11 +249,11 @@ generate_variant_entities_list <- function(sort = "entity_id",
     collect() %>%
     left_join(ndd_review_variant_connect, by = "entity_id") %>%
     # only keep those rows that have a variant
-    filter(!is.na(modifier_variant_id))
+    dplyr::filter(!is.na(modifier_variant_id))
 
   # 4) Apply user filter/sort
   sysndd_db_entity_variant_table <- entity_variant_table %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # 5) Generate field specs

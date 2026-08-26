@@ -146,16 +146,16 @@ function(res,
 
   sysndd_db_phenotypes <- phenotype_entities_data %>%
     mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-5]-")) %>%
-    filter(phenotype_id != "HP:0001249") %>%
+    dplyr::filter(phenotype_id != "HP:0001249") %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-    select(entity_id, phenotype_id, HPO_term)
+    dplyr::select(entity_id, phenotype_id, HPO_term)
 
   sysndd_db_phenotypes_count <- sysndd_db_phenotypes %>%
     group_by(HPO_term, phenotype_id) %>%
     tally() %>%
     arrange(desc(n)) %>%
     ungroup() %>%
-    select(HPO_term, phenotype_id, count = n)
+    dplyr::select(HPO_term, phenotype_id, count = n)
 
   sysndd_db_phenotypes_count
 }

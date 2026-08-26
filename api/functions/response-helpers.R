@@ -288,7 +288,7 @@ generate_filter_expressions <- function(
 
       # check if hash is in filter expression
       filter_string_hash <- filter_string_tibble %>%
-        filter(str_detect(column, "hash"))
+        dplyr::filter(str_detect(column, "hash"))
 
       filter_string_has_hash <- (nrow(filter_string_hash) >= 1)
 
@@ -297,7 +297,7 @@ generate_filter_expressions <- function(
         table_hash_filter <- pool %>%
           tbl("table_hash") %>%
           collect() %>%
-          filter(hash_256 == filter_string_hash$filter_value[1])
+          dplyr::filter(hash_256 == filter_string_hash$filter_value[1])
 
         hash_found <- (nrow(table_hash_filter) == 1)
       }
@@ -333,7 +333,7 @@ generate_filter_expressions <- function(
       } else {
         # compute filter expressions if hash keyword NOT found
         filter_tibble <- filter_string_tibble %>%
-          filter(!str_detect(column, "hash")) %>%
+          dplyr::filter(!str_detect(column, "hash")) %>%
           mutate(exprs = case_when(
             ## logic for contains based on regex
             column == "any" & logic == "contains" ~
@@ -541,8 +541,8 @@ generate_filter_expressions <- function(
               ),
           )) %>%
           ## remove non fitting values
-          filter(logic %in% operations_allowed) %>%
-          filter(!is.na(exprs))
+          dplyr::filter(logic %in% operations_allowed) %>%
+          dplyr::filter(!is.na(exprs))
 
         ## generate a list of filters
         filter_list <- filter_tibble$exprs

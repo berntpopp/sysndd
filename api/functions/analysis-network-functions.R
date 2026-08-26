@@ -138,8 +138,8 @@ gen_network_edges <- function(
   } else {
     sysndd_db_string_id_table <- pool %>%
       tbl("non_alt_loci_set") %>%
-      filter(!is.na(STRING_id)) %>%
-      select(symbol, hgnc_id, STRING_id) %>%
+      dplyr::filter(!is.na(STRING_id)) %>%
+      dplyr::select(symbol, hgnc_id, STRING_id) %>%
       collect()
   }
 
@@ -147,8 +147,8 @@ gen_network_edges <- function(
   genes_from_entity_table <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id) %>%
+    dplyr::filter(ndd_phenotype == 1) %>%
+    dplyr::select(hgnc_id) %>%
     collect() %>%
     unique()
 
@@ -156,8 +156,8 @@ gen_network_edges <- function(
   # Order: Definitive > Moderate > Limited > Refuted
   gene_categories <- pool %>%
     tbl("ndd_entity_view") %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id, category) %>%
+    dplyr::filter(ndd_phenotype == 1) %>%
+    dplyr::select(hgnc_id, category) %>%
     distinct() %>%
     collect() %>%
     group_by(hgnc_id) %>%
@@ -179,26 +179,26 @@ gen_network_edges <- function(
   if (cluster_type == "subclusters") {
     # Flatten subclusters
     cluster_map <- functional_clusters %>%
-      select(cluster, subclusters) %>%
+      dplyr::select(cluster, subclusters) %>%
       unnest(cols = c(subclusters)) %>%
       rename(parent_cluster = cluster, cluster = cluster.1) %>%
-      select(parent_cluster, cluster, identifiers) %>%
+      dplyr::select(parent_cluster, cluster, identifiers) %>%
       unnest(cols = c(identifiers)) %>%
-      select(hgnc_id, cluster = parent_cluster, subcluster = cluster) %>%
+      dplyr::select(hgnc_id, cluster = parent_cluster, subcluster = cluster) %>%
       # Create combined cluster ID for subclusters
       mutate(cluster_id = paste0(cluster, ".", subcluster)) %>%
-      select(hgnc_id, cluster = cluster_id)
+      dplyr::select(hgnc_id, cluster = cluster_id)
   } else {
     # Use main clusters
     cluster_map <- functional_clusters %>%
-      select(cluster, identifiers) %>%
+      dplyr::select(cluster, identifiers) %>%
       unnest(cols = c(identifiers)) %>%
-      select(hgnc_id, cluster)
+      dplyr::select(hgnc_id, cluster)
   }
 
   # Get unique HGNC IDs with their STRING IDs
   gene_table <- sysndd_db_string_id_table %>%
-    filter(hgnc_id %in% cluster_map$hgnc_id)
+    dplyr::filter(hgnc_id %in% cluster_map$hgnc_id)
 
   # Get cached STRINGdb instance (singleton avoids repeated version API calls)
   string_db <- get_string_db(min_confidence)
@@ -222,7 +222,7 @@ gen_network_edges <- function(
   # Use distinct() and group_by to handle cases where multiple HGNC IDs map to same STRING ID
   # Pick the first (alphabetically) HGNC ID for each STRING ID to ensure 1:1 mapping
   string_to_hgnc <- gene_table %>%
-    select(STRING_id, hgnc_id, symbol) %>%
+    dplyr::select(STRING_id, hgnc_id, symbol) %>%
     distinct() %>%
     group_by(STRING_id) %>%
     arrange(hgnc_id) %>%
@@ -239,8 +239,8 @@ gen_network_edges <- function(
   ) %>%
     left_join(string_to_hgnc, by = "STRING_id") %>%
     left_join(cluster_map, by = "hgnc_id") %>%
-    select(hgnc_id, symbol, cluster, degree) %>%
-    filter(!is.na(hgnc_id)) %>%
+    dplyr::select(hgnc_id, symbol, cluster, degree) %>%
+    dplyr::filter(!is.na(hgnc_id)) %>%
     distinct()
 
   # Get edge list from subgraph
@@ -253,7 +253,7 @@ gen_network_edges <- function(
   if (nrow(edge_list) > 0) {
     # Create lookup table for STRING to HGNC mapping
     string_hgnc_lookup <- string_to_hgnc %>%
-      select(STRING_id, hgnc_id)
+      dplyr::select(STRING_id, hgnc_id)
 
     edges <- tibble(
       source_string = edge_list[, 1],
@@ -273,8 +273,8 @@ gen_network_edges <- function(
       rename(target = hgnc_id) %>%
       # Normalize confidence to 0-1 range
       mutate(confidence = combined_score / 1000) %>%
-      select(source, target, confidence) %>%
-      filter(!is.na(source) & !is.na(target)) %>%
+      dplyr::select(source, target, confidence) %>%
+      dplyr::filter(!is.na(source) & !is.na(target)) %>%
       distinct() # Remove any duplicate edges
   } else {
     edges <- tibble(
@@ -337,12 +337,12 @@ gen_network_edges <- function(
   # Add positions and category to nodes
   nodes <- nodes %>%
     left_join(
-      string_to_hgnc %>% select(STRING_id, hgnc_id),
+      string_to_hgnc %>% dplyr::select(STRING_id, hgnc_id),
       by = "hgnc_id"
     ) %>%
     left_join(layout_normalized, by = "STRING_id") %>%
     left_join(gene_categories, by = "hgnc_id") %>%
-    select(hgnc_id, symbol, cluster, degree, category, x, y) %>%
+    dplyr::select(hgnc_id, symbol, cluster, degree, category, x, y) %>%
     distinct()
 
   # Count genes by category for metadata

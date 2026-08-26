@@ -38,11 +38,11 @@ search_entities <- function(query, pool) {
   # Execute search
   pool %>%
     tbl("ndd_entity_view") %>%
-    filter(
+    dplyr::filter(
       symbol %like% !!search_pattern |
         disease_ontology_name %like% !!search_pattern
     ) %>%
-    select(
+    dplyr::select(
       entity_id, hgnc_id, symbol, disease_ontology_id_version,
       disease_ontology_name
     ) %>%
@@ -85,8 +85,8 @@ search_genes <- function(query, pool) {
   # Execute search
   pool %>%
     tbl("search_non_alt_loci_view") %>%
-    filter(result %like% !!search_pattern) %>%
-    select(hgnc_id, symbol, name, search) %>%
+    dplyr::filter(result %like% !!search_pattern) %>%
+    dplyr::select(hgnc_id, symbol, name, search) %>%
     head(100) %>%
     collect()
 }
@@ -126,8 +126,8 @@ search_phenotypes <- function(query, pool) {
   # Execute search
   pool %>%
     tbl("search_disease_ontology_set") %>%
-    filter(result %like% !!search_pattern) %>%
-    select(
+    dplyr::filter(result %like% !!search_pattern) %>%
+    dplyr::select(
       disease_ontology_id_version, disease_ontology_id,
       disease_ontology_name, result, search
     ) %>%
@@ -170,8 +170,8 @@ search_inheritance <- function(query, pool) {
   # Execute search
   pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
-    filter(result %like% !!search_pattern) %>%
-    select(
+    dplyr::filter(result %like% !!search_pattern) %>%
+    dplyr::select(
       hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
       result, search, sort
     ) %>%

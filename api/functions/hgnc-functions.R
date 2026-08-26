@@ -129,7 +129,7 @@ hgnc_id_from_symbol_grouped <- function(input_tibble, request_max = 150) {
     ungroup()
 
   input_tibble_request_repair <- input_tibble_request %>%
-    filter(is.na(response)) %>%
+    dplyr::filter(is.na(response)) %>%
     dplyr::select(value) %>%
     unique() %>%
     {
@@ -301,7 +301,7 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
 
   # Convert the mapped data to a tibble
   non_alt_loci_set_mapped_tibble <- as_tibble(non_alt_loci_set_mapped) %>%
-    filter(!is.na(STRING_id)) %>%
+    dplyr::filter(!is.na(STRING_id)) %>%
     group_by(symbol) %>%
     summarise(STRING_id = str_c(STRING_id, collapse = ";")) %>%
     ungroup() %>%

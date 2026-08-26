@@ -186,7 +186,7 @@ svc_entity_list_query <- function(sort = "entity_id", filter = "", fields = "",
   if (is_compact && has_text_filter && !has_vario_filter) {
     fast_path_filtered <- tryCatch(
       ndd_entity_view_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         collect(),
       error = function(e) {
         message(sprintf(
@@ -208,12 +208,12 @@ svc_entity_list_query <- function(sort = "entity_id", filter = "", fields = "",
     if (has_vario_filter) {
       matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
       ndd_entity_view <- ndd_entity_view %>%
-        filter(entity_id %in% matching_entity_ids)
+        dplyr::filter(entity_id %in% matching_entity_ids)
     }
 
     sysndd_db_disease_table <- ndd_entity_view %>%
       arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
+      dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
   }
 
   result <- svc_entity_shape_entity_page(
@@ -257,12 +257,12 @@ svc_entity_phenotypes <- function(sysndd_id, current_review, approved_review_ids
 
     ndd_review_phenotype_conn_coll <- pool %>%
       tbl("ndd_review_phenotype_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id & is_active == 1) %>%
+      dplyr::filter(review_id %in% ndd_entity_review_list$review_id & is_active == 1) %>%
       collect()
   } else {
     ndd_review_phenotype_conn_coll <- pool %>%
       tbl("ndd_review_phenotype_connect") %>%
-      filter(is_active == 1 & review_id %in% approved_review_ids) %>%
+      dplyr::filter(is_active == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -277,7 +277,7 @@ svc_entity_phenotypes <- function(sysndd_id, current_review, approved_review_ids
 
   ndd_entity_active %>%
     left_join(ndd_review_phenotype_conn_coll, by = c("entity_id")) %>%
-    filter(entity_id == sysndd_id) %>%
+    dplyr::filter(entity_id == sysndd_id) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     dplyr::select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id) %>%
@@ -312,13 +312,13 @@ svc_entity_variation <- function(sysndd_id, current_review, approved_review_ids,
 
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id
+      dplyr::filter(review_id %in% ndd_entity_review_list$review_id
         & entity_id == sysndd_id & is_active == 1) %>%
       collect()
   } else {
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(is_active == 1 & entity_id == sysndd_id & review_id %in% approved_review_ids) %>%
+      dplyr::filter(is_active == 1 & entity_id == sysndd_id & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -385,7 +385,7 @@ svc_entity_status <- function(sysndd_id, pool) {
     collect()
 
   ndd_entity_status_collected %>%
-    filter(entity_id == sysndd_id & is_active & status_approved == 1) %>%
+    dplyr::filter(entity_id == sysndd_id & is_active & status_approved == 1) %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     dplyr::select(
       status_id,
@@ -415,12 +415,12 @@ svc_entity_publications <- function(sysndd_id, current_review, approved_review_i
 
     review_publication_join_coll <- pool %>%
       tbl("ndd_review_publication_join") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      dplyr::filter(review_id %in% ndd_entity_review_list$review_id) %>%
       collect()
   } else {
     review_publication_join_coll <- pool %>%
       tbl("ndd_review_publication_join") %>%
-      filter(is_reviewed == 1 & review_id %in% approved_review_ids) %>%
+      dplyr::filter(is_reviewed == 1 & review_id %in% approved_review_ids) %>%
       collect()
   }
 
@@ -431,7 +431,7 @@ svc_entity_publications <- function(sysndd_id, current_review, approved_review_i
 
   ndd_entity_active %>%
     left_join(review_publication_join_coll, by = c("entity_id")) %>%
-    filter(entity_id == sysndd_id) %>%
+    dplyr::filter(entity_id == sysndd_id) %>%
     dplyr::select(entity_id, publication_id, publication_type, is_reviewed) %>%
     arrange(publication_id) %>%
     unique()

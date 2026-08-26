@@ -38,7 +38,7 @@ function(searchterm, helper = TRUE, limit = 50, offset = 0) {
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
     collect() %>%
-    select(
+    dplyr::select(
       entity_id,
       hgnc_id,
       symbol,
@@ -63,10 +63,10 @@ function(searchterm, helper = TRUE, limit = 50, offset = 0) {
       search == "disease_ontology_name" ~ paste0("/Ontology/", results_url),
       search == "entity_id" ~ paste0("/Entities/", results_url)
     )) %>%
-    select(-results_url)
+    dplyr::select(-results_url)
 
   sysndd_db_entity_search_length <- sysndd_db_entity_search %>%
-    filter(searchdist < 0.1) %>%
+    dplyr::filter(searchdist < 0.1) %>%
     tally()
 
   return_count <- if (sysndd_db_entity_search_length$n > 10) {
@@ -126,7 +126,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   do_set_search <- pool %>%
     tbl("search_disease_ontology_set") %>%
-    filter(result %like% paste0("%", searchterm, "%")) %>%
+    dplyr::filter(result %like% paste0("%", searchterm, "%")) %>%
     collect() %>%
     mutate(searchdist = stringdist(
       str_to_lower(result),
@@ -137,7 +137,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
     arrange(searchdist, result)
 
   do_set_search_length <- do_set_search %>%
-    filter(searchdist < 0.1) %>%
+    dplyr::filter(searchdist < 0.1) %>%
     tally()
 
   return_count <- if (do_set_search_length$n > 10) {
@@ -151,7 +151,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   if (tree) {
     do_set_search_return_helper <- do_set_search_return %>%
-      select(
+      dplyr::select(
         id = disease_ontology_id_version,
         label = result,
         disease_ontology_id_version,
@@ -201,7 +201,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   non_alt_loci_set_search <- pool %>%
     tbl("search_non_alt_loci_view") %>%
-    filter(result %like% paste0("%", searchterm, "%")) %>%
+    dplyr::filter(result %like% paste0("%", searchterm, "%")) %>%
     collect() %>%
     mutate(searchdist = stringdist(
       str_to_lower(result),
@@ -212,7 +212,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
     arrange(searchdist, result)
 
   non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
-    filter(searchdist < 0.1) %>%
+    dplyr::filter(searchdist < 0.1) %>%
     tally()
 
   return_count <- if (non_alt_loci_set_search_length$n > 10) {
@@ -226,7 +226,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   if (tree) {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
-      select(
+      dplyr::select(
         id = hgnc_id,
         label = result,
         symbol,
@@ -280,7 +280,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   moi_list_search <- pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
-    filter(result %like% paste0("%", searchterm, "%")) %>%
+    dplyr::filter(result %like% paste0("%", searchterm, "%")) %>%
     collect() %>%
     mutate(searchdist = stringdist(
       str_to_lower(result),
@@ -291,7 +291,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
     arrange(searchdist, sort)
 
   moi_list_search_length <- moi_list_search %>%
-    filter(searchdist < 0.1) %>%
+    dplyr::filter(searchdist < 0.1) %>%
     tally()
 
   return_count <- if (moi_list_search_length$n > 10) {
@@ -305,7 +305,7 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
 
   if (tree) {
     moi_list_search_return_helper <- moi_list_search_return %>%
-      select(
+      dplyr::select(
         id = hpo_mode_of_inheritance_term,
         label = result,
         search,

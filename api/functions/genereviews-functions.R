@@ -155,7 +155,7 @@ info_from_genereviews <- function(Bookshelf_ID) {
       "-",
       str_pad(Day, 2, pad = "0")
     )) %>%
-    select(
+    dplyr::select(
       publication_id,
       other_publication_id,
       Title, Abstract,
@@ -166,7 +166,7 @@ info_from_genereviews <- function(Bookshelf_ID) {
       Lastname,
       Firstname
     ) %>%
-    select(-publication_id) %>%
+    dplyr::select(-publication_id) %>%
     mutate(across(everything(), ~ replace_na(.x, "")))
 
   return(return_tibble)

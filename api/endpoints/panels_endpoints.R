@@ -31,18 +31,18 @@
 function(limit = 50, offset = 0) {
   categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
-    select(category) %>%
+    dplyr::select(category) %>%
     collect() %>%
-    filter(category != "not applicable") %>%
+    dplyr::filter(category != "not applicable") %>%
     add_row(category = "All") %>%
     arrange(category)
 
   inheritance_list <- tibble::as_tibble(inheritance_input_allowed) %>%
-    select(inheritance = value) %>%
+    dplyr::select(inheritance = value) %>%
     arrange(inheritance)
 
   columns_list <- tibble::as_tibble(output_columns_allowed) %>%
-    select(column = value)
+    dplyr::select(column = value)
 
   options <- tibble(
     lists = c("categories_list", "inheritance_list", "columns_list"),

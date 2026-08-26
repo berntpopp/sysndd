@@ -88,7 +88,10 @@ gen_mca_clust_obj <- function(
   # generate cluster tibble
   # Sort all variable tables by p.value ascending so most significant appear first
   clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
-    select(entity_id, cluster = clust) %>%
+    # Namespaced: biomaRt's S4 `select` masks dplyr's in the loaded API/worker
+    # search path, and a bare call fails with "unable to find an inherited
+    # method for function 'select' for signature 'x = \"tbl_df\"'".
+    dplyr::select(entity_id, cluster = clust) %>%
     tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
     mutate(hash_filter = purrr::map(identifiers, function(ids) {
       # Pass identifiers tibble with entity_id column (post_db_hash expects named column)
@@ -100,7 +103,7 @@ gen_mca_clust_obj <- function(
       if (nrow(.) > 0) {
         rowwise(.) %>%
           mutate(cluster_size = nrow(identifiers)) %>%
-          filter(cluster_size >= min_size) %>%
+          dplyr::filter(cluster_size >= min_size) %>%
           mutate(quali_inp_var = list(tibble::as_tibble(
             mca_hcpc$desc.var$category[[cluster]],
             rownames = "variable",
@@ -108,8 +111,8 @@ gen_mca_clust_obj <- function(
               repair = "universal", quiet = TRUE
             )
           ) %>%
-            filter(!str_detect(variable, "NA")) %>%
-            filter(!str_detect(variable, "hpo")) %>%
+            dplyr::filter(!str_detect(variable, "NA")) %>%
+            dplyr::filter(!str_detect(variable, "hpo")) %>%
             mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
             arrange(p.value))) %>%
           mutate(quali_sup_var = list(tibble::as_tibble(
@@ -119,8 +122,8 @@ gen_mca_clust_obj <- function(
               repair = "universal", quiet = TRUE
             )
           ) %>%
-            filter(!str_detect(variable, "NA")) %>%
-            filter(str_detect(variable, "hpo")) %>%
+            dplyr::filter(!str_detect(variable, "NA")) %>%
+            dplyr::filter(str_detect(variable, "hpo")) %>%
             mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
             arrange(p.value))) %>%
           mutate(quanti_sup_var = list(tibble::as_tibble(

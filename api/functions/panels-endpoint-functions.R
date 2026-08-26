@@ -35,14 +35,14 @@ generate_panels_list <- function(
   # get allowed values for category
   entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
-    select(category) %>%
+    dplyr::select(category) %>%
     collect()
 
   # get allowed values for inheritance
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%
-    filter(is_active) %>%
-    select(inheritance_filter) %>%
+    dplyr::filter(is_active) %>%
+    dplyr::select(inheritance_filter) %>%
     collect() %>%
     unique()
 
@@ -104,7 +104,7 @@ generate_panels_list <- function(
   # Manual specification used for panels endpoint to ensure consistent UI behavior
   # All fields treated as sortable text for simplicity
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
-    select(key = value) %>%
+    dplyr::select(key = value) %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
     mutate(sortable = "true") %>%
     mutate(class = "text-left") %>%
@@ -115,13 +115,13 @@ generate_panels_list <- function(
   status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     collect() %>%
-    select(category_id, max_category = category)
+    dplyr::select(category_id, max_category = category)
 
   # join entity_view and non_alt_loci_set tables
   sysndd_db_ndd_entity_view <- pool %>%
     tbl("ndd_entity_view") %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id,
+    dplyr::filter(ndd_phenotype == 1) %>%
+    dplyr::select(hgnc_id,
       symbol,
       inheritance = hpo_mode_of_inheritance_term_name,
       inheritance_filter,
@@ -134,28 +134,28 @@ generate_panels_list <- function(
     mutate(category_id = min(category_id)) %>%
     ungroup() %>%
     left_join(status_categories_list, by = c("category_id")) %>%
-    select(-category_id) %>%
+    dplyr::select(-category_id) %>%
     # When max_category=FALSE, remove the max_category column (not needed)
     {
-      if (!max_category) select(., -max_category) else .
+      if (!max_category) dplyr::select(., -max_category) else .
     }
 
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
+    dplyr::select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
     collect()
 
   sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
     left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id"))
 
   disease_genes_filter <- sysndd_db_disease_genes %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-    select(-inheritance_filter) %>%
+    dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    dplyr::select(-inheritance_filter) %>%
     # When max_category=TRUE, replace category column with max_category
     # This ensures arrange, mutate, and output use the max category per gene
     {
       if (max_category) {
-        select(., -category) %>%
+        dplyr::select(., -category) %>%
           rename(category = max_category)
       } else {
         .

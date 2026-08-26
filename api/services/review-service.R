@@ -150,13 +150,13 @@ svc_review_add_publications <- function(publication_data, entity_id, review_id, 
   publications_submission <- publication_data %>%
     add_column(review_id = review_id) %>%
     add_column(entity_id = entity_id) %>%
-    select(review_id, entity_id, publication_id, publication_type)
+    dplyr::select(review_id, entity_id, publication_id, publication_type)
 
   # For PUT request, verify entity_id matches (prevent changing entity association)
   review_publication_for_match <- (pool %>%
       tbl("ndd_entity_review") %>%
-      select(review_id, entity_id) %>%
-      filter(review_id == {{ review_id }}) %>%
+      dplyr::select(review_id, entity_id) %>%
+      dplyr::filter(review_id == {{ review_id }}) %>%
       collect() %>%
       unique()
   )$entity_id[1]

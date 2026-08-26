@@ -40,29 +40,29 @@ function(limit = 50, offset = 0) {
 
   # Identify the "list" column options
   list_df <- ndd_database_comparison_view %>%
-    select(list) %>%
+    dplyr::select(list) %>%
     group_by(list) %>%
     mutate(count = n()) %>%
     unique() %>%
     mutate(self = (list == "SysNDD")) %>%
     arrange(desc(self), desc(count)) %>%
-    select(list)
+    dplyr::select(list)
 
   # Identify inheritance options
   inheritance_df <- ndd_database_comparison_view %>%
-    select(inheritance) %>%
+    dplyr::select(inheritance) %>%
     unique() %>%
     arrange(inheritance)
 
   # Identify category options
   category_df <- ndd_database_comparison_view %>%
-    select(category) %>%
+    dplyr::select(category) %>%
     unique() %>%
     arrange(category)
 
   # Identify pathogenicity_mode options
   pathogenicity_mode_df <- ndd_database_comparison_view %>%
-    select(pathogenicity_mode) %>%
+    dplyr::select(pathogenicity_mode) %>%
     unique() %>%
     arrange(pathogenicity_mode)
 
@@ -116,7 +116,7 @@ function(res, fields = "", definitive_only = "false", limit = 50, offset = 0) {
   } else {
     # If no fields specified, use all unique 'list' values
     fields <- ndd_database_comp_gene_list %>%
-      select(list) %>%
+      dplyr::select(list) %>%
       distinct() %>%
       pull(list)
   }
@@ -126,19 +126,19 @@ function(res, fields = "", definitive_only = "false", limit = 50, offset = 0) {
 
   # Filter to selected sources
   filtered_data <- ndd_database_comp_gene_list %>%
-    filter(list %in% fields)
+    dplyr::filter(list %in% fields)
 
   # If definitive_only is TRUE, filter each source to only include Definitive entries
   if (definitive_only) {
     # Normalize categories to identify "Definitive" entries, then filter
     filtered_data <- filtered_data %>%
       normalize_comparison_categories() %>%
-      filter(category == "Definitive")
+      dplyr::filter(category == "Definitive")
   }
 
   # Construct the data for UpSet
   comparison_upset_data <- filtered_data %>%
-    select(name = hgnc_id, sets = list) %>%
+    dplyr::select(name = hgnc_id, sets = list) %>%
     distinct() %>%
     group_by(name) %>%
     arrange(name) %>%
@@ -181,7 +181,7 @@ function(limit = 50, offset = 0) {
     distinct(hgnc_id, list) %>%
     mutate(in_list = list) %>%
     pivot_wider(names_from = list, values_from = in_list) %>%
-    select(-hgnc_id) %>%
+    dplyr::select(-hgnc_id) %>%
     mutate_all(~ if_else(is.na(.), 0, 1))
 
   # Compute similarity matrix
@@ -189,7 +189,7 @@ function(limit = 50, offset = 0) {
 
   # Melt the similarity matrix
   ndd_database_comp_sim_melted <- melt(ndd_database_comp_sim) %>%
-    select(x = Var1, y = Var2, value)
+    dplyr::select(x = Var1, y = Var2, value)
 
   # Preserve legacy response shape (AnalysesCurationMatrixPlot.vue assigns
   # response.data directly to itemsMatrix). limit/offset remain in the

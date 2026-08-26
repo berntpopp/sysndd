@@ -138,7 +138,7 @@ generate_cursor_pag_inf <- function(
   # find the current row of the requested page_after entry
   page_after_row <- (pagination_tibble %>%
       mutate(row = row_number()) %>%
-      filter(!!sym(pagination_identifier) == page_after)
+      dplyr::filter(!!sym(pagination_identifier) == page_after)
   )$row
 
   # Page 1 sends a sentinel page_after (0) that matches no row; anchor it at
@@ -165,25 +165,25 @@ generate_cursor_pag_inf <- function(
   page_after_row_end <- page_after_row + page_size
   if (page_after_row_end < pagination_tibble_rows) {
     page_after_row_next <- (pagination_tibble %>%
-                              filter(row_number() == page_after_row_end) %>%
+                              dplyr::filter(row_number() == page_after_row_end) %>%
                               dplyr::select(!!sym(pagination_identifier)))[[1]]
   } else {
     page_after_row_next <- (pagination_tibble %>%
-                              filter(row_number() == 0) %>%
+                              dplyr::filter(row_number() == 0) %>%
                               dplyr::select(!!sym(pagination_identifier)))[[1]]
   }
 
   # find next and prev item row
   page_after_row_prev <- (pagination_tibble %>%
-                            filter(row_number() == page_after_row - page_size) %>%
+                            dplyr::filter(row_number() == page_after_row - page_size) %>%
                             dplyr::select(!!sym(pagination_identifier)))[[1]]
   page_after_row_last <- (pagination_tibble %>%
-                            filter(row_number() == page_size * (page_count - 1)) %>%
+                            dplyr::filter(row_number() == page_size * (page_count - 1)) %>%
                             dplyr::select(!!sym(pagination_identifier)))[[1]]
 
   # filter by row
   pagination_tibble <- pagination_tibble %>%
-    filter((row_number() > page_after_row) &
+    dplyr::filter((row_number() > page_after_row) &
              (row_number() <= page_after_row + page_size))
 
   # generate links for self, next and prev pages
@@ -329,7 +329,7 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
     mutate(sortable = TRUE) %>%
     mutate(class = "text-left") %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-    filter(key %in% fspecInput) %>%
+    dplyr::filter(key %in% fspecInput) %>%
     arrange(factor(key, levels = fspecInput)) %>%
     {
       if ("details" %in% fspecInput) {

@@ -154,7 +154,7 @@ publication_connect_to_review <- function(review_id, entity_id, publications, co
     review_entity <- pool %>%
       tbl("ndd_entity_review") %>%
       dplyr::select(review_id, entity_id) %>%
-      filter(review_id == !!review_id) %>%
+      dplyr::filter(review_id == !!review_id) %>%
       collect() %>%
       unique()
 

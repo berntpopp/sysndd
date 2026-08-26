@@ -17,8 +17,8 @@
 svc_user_fetch_for_approval <- function(user_id_approval) {
   pool %>%
     tbl("user") %>%
-    select(user_id, user_name, approved, first_name, family_name, email, user_role) %>%
-    filter(user_id == user_id_approval) %>%
+    dplyr::select(user_id, user_name, approved, first_name, family_name, email, user_role) %>%
+    dplyr::filter(user_id == user_id_approval) %>%
     collect()
 }
 
@@ -256,8 +256,8 @@ svc_user_update_details <- function(req, res) {
     user_table <- pool %>%
       tbl("user") %>%
       collect() %>%
-      filter(user_id == user_details$user_id) %>%
-      select(first_name, family_name, email, password)
+      dplyr::filter(user_id == user_details$user_id) %>%
+      dplyr::select(first_name, family_name, email, password)
 
     if (nrow(user_table) > 0) {
       if (is.null(user_table$password) || user_table$password == "") {

@@ -44,7 +44,7 @@ generate_phenotype_entities_list <- function(
   ndd_review_phenotype_connect <- pool %>%
     tbl("ndd_review_phenotype_connect_view") %>%
     collect() %>%
-    select(entity_id, modifier_phenotype_id) %>%
+    dplyr::select(entity_id, modifier_phenotype_id) %>%
     group_by(entity_id) %>%
     arrange(entity_id, modifier_phenotype_id) %>%
     mutate(modifier_phenotype_id = paste0(modifier_phenotype_id,
@@ -58,11 +58,11 @@ generate_phenotype_entities_list <- function(
     tbl("ndd_entity_view") %>%
     collect() %>%
     left_join(ndd_review_phenotype_connect, by = c("entity_id")) %>%
-    filter(!is.na(modifier_phenotype_id))
+    dplyr::filter(!is.na(modifier_phenotype_id))
 
   # apply filters
   sysndd_db_entity_phenotype_table <- entity_phenotype_table %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # use the helper generate_tibble_fspec to

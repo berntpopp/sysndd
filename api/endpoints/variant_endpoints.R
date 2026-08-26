@@ -116,16 +116,16 @@ function(res,
     left_join(variation_ontology_list_tbl, by = "vario_id") %>%
     # Rename vario_name -> variant_name for pivot convenience
     rename(variant_name = vario_name) %>%
-    select(entity_id, vario_id, variant_name)
+    dplyr::select(entity_id, vario_id, variant_name)
 
   # 4) Construct a presence/absence matrix
   db_variants_matrix <- db_variants %>%
     mutate(has_variant = 1) %>%
-    select(entity_id, variant_name, has_variant) %>%
+    dplyr::select(entity_id, variant_name, has_variant) %>%
     unique() %>%
     pivot_wider(names_from = variant_name, values_from = has_variant) %>%
     replace(is.na(.), 0) %>%
-    select(-entity_id)
+    dplyr::select(-entity_id)
 
   # Edge case: If no variant columns remain, return an empty tibble
   if (ncol(db_variants_matrix) == 0) {
@@ -143,7 +143,7 @@ function(res,
 
   # 6) Melt correlation matrix to long form
   variants_corr_melted <- reshape2::melt(db_variants_corr) %>%
-    select(x = Var1, y = Var2, value)
+    dplyr::select(x = Var1, y = Var2, value)
 
   # 7) Build a local lookup for (vario_id, variant_name) so we can rejoin
   local_vario_lookup <- db_variants %>%
@@ -157,7 +157,7 @@ function(res,
     # Join 'y' by a second rename
     left_join(local_vario_lookup %>%
       rename(y = x, y_vario_id = x_id), by = "y") %>%
-    select(
+    dplyr::select(
       x, x_vario_id,
       y, y_vario_id,
       value
@@ -209,7 +209,7 @@ function(res,
     mutate(vario_id = str_remove(modifier_variant_id, "^[0-9]+-")) %>%
     left_join(variation_ontology_list_tbl, by = "vario_id") %>%
     rename(variant_name = vario_name) %>%
-    select(entity_id, vario_id, variant_name)
+    dplyr::select(entity_id, vario_id, variant_name)
 
   # 4) Count occurrences
   db_variants_count <- db_variants %>%
@@ -218,7 +218,7 @@ function(res,
     arrange(desc(n)) %>%
     ungroup() %>%
     # rename for clarity: we store vario_id + variant_name + count
-    select(vario_id, variant_name, count = n)
+    dplyr::select(vario_id, variant_name, count = n)
 
   # Preserve legacy response shape (frontend AnalysesVariantCounts.vue reads
   # response.data directly). limit/offset remain in the signature for the
