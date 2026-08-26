@@ -23,13 +23,19 @@
 # end-to-end verification (submitting `category_filter` against the running
 # dev stack), which the controller performs separately.
 #
-# Instead, this file is SKIP-GUARDED on a populated view: it probes the live
-# `ndd_entity_view` for a real, currently-active category with >=2 distinct
-# NDD (`ndd_phenotype = 1`) genes, and only then runs. On a fresh/empty test
-# DB (CI default) every test here SKIPs cleanly. When the test DB is a
-# populated clone (a local/staging run), this file exercises the resolver
-# against the true view for real -- genuine resolver-vs-real-MySQL-view
-# coverage without fragile fixture seeding.
+# So this file PREFERS a populated view: it probes the live `ndd_entity_view`
+# for a real, currently-active category with >=2 distinct NDD
+# (`ndd_phenotype = 1`) genes and uses that when it exists, which on a
+# populated clone gives genuine resolver-vs-real-MySQL-view coverage without
+# fragile fixture seeding.
+#
+# UPDATE (#612): it no longer SKIPs when that probe finds nothing. It did, and
+# a fresh/CI database ALWAYS finds nothing -- so these three tests ran only when
+# an unrelated file happened to leave data behind, and reported green by
+# skipping the rest of the time. `.clustering_seed_category_universe()` now
+# seeds a minimal two-gene universe inside the caller's rollback instead. The
+# concern above stands and is why the seed is minimal and commented: it must
+# stay in step with the view's join contract.
 # ---------------------------------------------------------------------------
 
 library(testthat)
@@ -120,7 +126,26 @@ source_api_file("functions/analyses-functions.R", local = FALSE)
     DBI::dbExecute(conn, sql, params = unname(params))
   }
   suffix <- as.integer(Sys.time()) %% 10000L
-  category_id <- 1L  # "Definitive"
+  # Pick an ACTIVE category rather than assuming category_id 1 is active: the
+  # category list is admin-editable (soft-deactivatable via is_active), so
+  # hardcoding an id could seed entities under a category
+  # clustering_resolve_category_universe() then rejects. Activate one if the
+  # whole list happens to be inactive -- still inside the caller's rollback.
+  active <- DBI::dbGetQuery(
+    conn,
+    "SELECT category_id, category FROM ndd_entity_status_categories_list WHERE is_active = 1 LIMIT 1"
+  )
+  if (nrow(active) == 0L) {
+    DBI::dbExecute(
+      conn,
+      "UPDATE ndd_entity_status_categories_list SET is_active = 1 WHERE category_id = 1"
+    )
+    active <- DBI::dbGetQuery(
+      conn,
+      "SELECT category_id, category FROM ndd_entity_status_categories_list WHERE category_id = 1"
+    )
+  }
+  category_id <- as.integer(active$category_id[[1]])
   user_id <- 880000L + suffix
   moi <- DBI::dbGetQuery(
     conn, "SELECT hpo_mode_of_inheritance_term AS t FROM mode_of_inheritance_list LIMIT 1"
@@ -168,11 +193,7 @@ source_api_file("functions/analyses-functions.R", local = FALSE)
     )
   }
 
-  DBI::dbGetQuery(
-    conn,
-    "SELECT category FROM ndd_entity_status_categories_list WHERE category_id = ?",
-    params = list(category_id)
-  )$category[[1]]
+  as.character(active$category[[1]])
 }
 
 test_that("clustering_resolve_category_universe matches a direct MySQL query on the real ndd_entity_view", {

@@ -146,10 +146,12 @@ test_that("anchored inheritance vocabulary lists and updates curated fields", {
       metadata_vocabulary_descriptor("inheritance"), conn = conn
     )
     if (nrow(rows) == 0) {
-      # Seed our own ACTIVE term rather than skip. A fresh/CI database has no
-      # active inheritance term (the descriptor filters is_active = 1), so this
-      # block only ever ran when another file happened to leave one behind.
-      # Written inside the caller's transaction, so it rolls back.
+      # Seed our own term rather than skip. A fresh/CI database has NO
+      # inheritance terms at all, so this block only ever ran when another file
+      # happened to leave one behind. (metadata_vocabulary_list() returns
+      # inactive rows too, so the empty case really is "none seeded", not
+      # "none active".) Written inside the caller's transaction, so it rolls
+      # back.
       DBI::dbExecute(
         conn,
         paste(

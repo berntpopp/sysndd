@@ -84,8 +84,15 @@ svc_entity_rename_load_source <- function(old_entity_id, conn) {
   ))
 
   if (nrow(status) == 0) {
-    # Classed so the caller maps it to the same 409 it returned when this check
-    # ran before the transaction, rather than a generic 500.
+    # Reaching here means the active status VANISHED between the caller's
+    # precondition check and this locked read -- a genuine concurrent deletion,
+    # not the ordinary "entity has no active status" case (that one is caught
+    # before the transaction opens and returns 409).
+    #
+    # Be precise about what happens next: db_with_transaction() re-raises every
+    # error as `db_transaction_error` and FLATTENS the class, so this class does
+    # NOT reach the service's handler -- the caller returns a rolled-back 500.
+    # That is the honest outcome for a lost race, and nothing is written.
     rlang::abort(
       message = "Active source status could not be loaded for rename.",
       class = "entity_rename_missing_status_error"

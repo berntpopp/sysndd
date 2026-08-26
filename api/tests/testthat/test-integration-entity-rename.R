@@ -1240,5 +1240,35 @@ test_that("the copy-forward snapshot is read inside the transaction, under a loc
       all(grepl("entity_id\\s*=\\s*\\?", seen$statements[locking])),
       label = "the locking reads are scoped to a single entity_id"
     )
+
+    # Asserting only that SOME locking read happened would still pass if an
+    # implementation added the lock but went on loading the copied datasets from
+    # the pool beforehand. Pin EVERY source read individually: each must appear,
+    # and each must have run inside the transaction.
+    sources <- c(
+      review = "FROM ndd_entity_review",
+      status = "FROM ndd_entity_status",
+      publications = "FROM ndd_review_publication_join",
+      phenotypes = "FROM ndd_review_phenotype_connect",
+      variation = "FROM ndd_review_variation_ontology_connect",
+      # #640 P1: the assertion copy is locked too, or a concurrent queue
+      # Confirm is silently dropped from the replacement entity.
+      assertions = "FROM variation_ontology_assertion"
+    )
+    for (name in names(sources)) {
+      hits <- grepl(sources[[name]], seen$statements, fixed = TRUE)
+      expect_true(any(hits), label = paste0("the ", name, " source read was issued"))
+      expect_true(
+        all(seen$in_transaction[hits]),
+        label = paste0("every ", name, " source read ran inside the transaction")
+      )
+    }
+
+    # The assertion copy specifically must be a LOCKING read.
+    assertion_reads <- grepl("FROM variation_ontology_assertion", seen$statements, fixed = TRUE)
+    expect_true(
+      all(grepl("FOR UPDATE", seen$statements[assertion_reads], fixed = TRUE)),
+      label = "the assertion carry-forward read takes FOR UPDATE"
+    )
   })
 })
