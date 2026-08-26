@@ -135,6 +135,18 @@ apply_test_async_job_migration <- function(conn) {
 #'
 #' @param conn DBI connection to the test database
 #' @param reset Drop and recreate existing async-job tables
+#' `reset = TRUE` DROPs both tables and re-applies their migration. That is a
+#' complete DDL restore, not the destructive-teardown class fixed elsewhere in
+#' #612: migration `020_add_async_job_schema.sql` is the ONLY migration that
+#' touches `async_jobs` / `async_job_events` (verified by grepping the whole
+#' `db/migrations` directory), so re-applying it reproduces their current shape
+#' exactly. If a later migration ever alters either table, this must replay that
+#' one too -- exactly the gap that made restoring migration 047 alone leave
+#' `variation_ontology_evidence` without 049's `origin_review_id`.
+#'
+#' Queued and historical job ROWS are lost, which is fine on a test database
+#' where they are test artifacts.
+#'
 #' @return Invisibly TRUE
 ensure_test_async_job_schema <- function(conn, reset = FALSE) {
   ensure_test_user_table(conn)

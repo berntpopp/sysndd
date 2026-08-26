@@ -496,8 +496,34 @@ with_release_build_db <- function(code) {
 
   conn <- get_test_db_connection()
   withr::defer(DBI::dbDisconnect(conn))
-  DBI::dbExecute(conn, "DELETE FROM analysis_snapshot_release")
-  withr::defer(DBI::dbExecute(conn, "DELETE FROM analysis_snapshot_release"))
+
+  # Delete only what THIS block creates, never the whole table. A blanket
+  # `DELETE FROM analysis_snapshot_release` is a no-op on a freshly migrated CI
+  # database but wipes a developer's real releases -- and the head row cascades
+  # to every member and file. Release ids are content-addressed, so they cannot
+  # be predicted up front; capture the pre-existing set instead and remove the
+  # difference.
+  preexisting_releases <- DBI::dbGetQuery(
+    conn, "SELECT release_id FROM analysis_snapshot_release"
+  )$release_id
+  drop_new_releases <- function() {
+    current <- DBI::dbGetQuery(
+      conn, "SELECT release_id FROM analysis_snapshot_release"
+    )$release_id
+    created <- setdiff(current, preexisting_releases)
+    if (length(created) > 0) {
+      DBI::dbExecute(
+        conn,
+        paste0(
+          "DELETE FROM analysis_snapshot_release WHERE release_id IN (",
+          paste(rep("?", length(created)), collapse = ", "), ")"
+        ),
+        params = unname(as.list(created))
+      )
+    }
+  }
+  drop_new_releases()
+  withr::defer(drop_new_releases())
 
   code(conn)
 }

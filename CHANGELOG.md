@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **An entity rename could silently discard a concurrent approved review — and launder provenance**
+  (#640). `svc_entity_rename_full()` read the review, status, publications, phenotypes and
+  variation-ontology terms it copies forward **before** opening its write transaction, so a review
+  write committing in that window was overwritten by the stale snapshot while the source was
+  deactivated with `replaced_by` pointing at an entity that did not reflect it. Post-#612 it was
+  worse than a lost update: the carry-forward copies each assertion's `state` verbatim, so a
+  concurrent removal-and-approval could put a still-served connect row beside a `rejected`
+  assertion, which the public read renders as *curator-authored*. The snapshot is now read inside
+  the transaction under a `FOR UPDATE` row lock scoped to that one entity, closing the window by
+  construction. The lock was verified to actually block a concurrent writer, not assumed.
+- **Five tests that skipped on ambient data now assert for real** (#612). Three clustering-category
+  tests required a populated `ndd_entity_view` and a metadata-vocabulary test required an active
+  inheritance term — neither exists on a freshly migrated database, so they ran only when an
+  unrelated file had left data behind. A fifth, `primary_approved_reviews carries both predicates`,
+  was a **static guard that skipped itself** (`skip_if_not(exists(...))`) and so guarded nothing.
+  The metadata-refresh test also stopped leaving an inactive `HP:0000006` row behind — the ambient
+  state the vocabulary test had been keying off.
+
 - **The curation queue's Confirm and Dismiss rejected every batch** (#612). Plumber parses a request
   body with `jsonlite::fromJSON(simplifyVector = TRUE)`, which collapses a uniform JSON array of
   objects into a **data.frame** — so `items[[1]]` was the first *column*, an atomic vector, and every

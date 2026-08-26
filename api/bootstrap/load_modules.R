@@ -122,6 +122,8 @@ bootstrap_load_modules <- function() {
     # definitions (e.g. .variation_provenance_identity_key()) are already
     # bound in the global environment before this file is sourced.
     "functions/variation-provenance-carry-forward.R",
+    # #640: the locked source snapshot the rename copies forward.
+    "functions/entity-rename-source-snapshot.R",
     # #612: approval-time (rejection-only) reconciliation. Depends on the state
     # machine in variation-provenance-reconcile.R above.
     "functions/variation-provenance-approval.R",

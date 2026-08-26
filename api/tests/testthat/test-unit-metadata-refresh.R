@@ -203,9 +203,24 @@ describe("refresh_disease_ontology_set", {
 
     # Fixture cleanup, in FK order (child rows first). Registered BEFORE the
     # rows exist so an error part-way through seeding still cleans up.
-    # mode_of_inheritance_list is left alone on purpose: HP:0000006 is a
-    # shared vocabulary term inserted with INSERT IGNORE, so deleting it could
-    # remove a row this test did not create.
+    #
+    # HP:0000006 is a shared vocabulary term inserted with INSERT IGNORE, so it
+    # is removed ONLY when this run created it. Leaving it behind unconditionally
+    # put an `is_active = NULL` row into a fresh database -- ambient state a
+    # later file could read, and did: test-integration-metadata-vocabulary.R
+    # keyed a skip off whether any inheritance term existed at all.
+    moi_preexisting <- nrow(DBI::dbGetQuery(
+      conn,
+      "SELECT 1 FROM mode_of_inheritance_list WHERE hpo_mode_of_inheritance_term = 'HP:0000006'"
+    )) > 0
+    withr::defer({
+      if (!moi_preexisting) {
+        DBI::dbExecute(
+          conn,
+          "DELETE FROM mode_of_inheritance_list WHERE hpo_mode_of_inheritance_term = 'HP:0000006'"
+        )
+      }
+    })
     withr::defer({
       DBI::dbExecute(
         conn, "DELETE FROM ndd_entity WHERE hgnc_id = ?", params = unname(list(hgnc_id))

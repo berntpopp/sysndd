@@ -145,7 +145,25 @@ test_that("anchored inheritance vocabulary lists and updates curated fields", {
     rows <- metadata_vocabulary_list(
       metadata_vocabulary_descriptor("inheritance"), conn = conn
     )
-    skip_if(nrow(rows) == 0, "no inheritance terms seeded in test DB")
+    if (nrow(rows) == 0) {
+      # Seed our own ACTIVE term rather than skip. A fresh/CI database has no
+      # active inheritance term (the descriptor filters is_active = 1), so this
+      # block only ever ran when another file happened to leave one behind.
+      # Written inside the caller's transaction, so it rolls back.
+      DBI::dbExecute(
+        conn,
+        paste(
+          "INSERT INTO mode_of_inheritance_list",
+          "(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,",
+          "inheritance_filter, inheritance_short_text, is_active, sort)",
+          "VALUES ('HP:9900006', 'vocabulary test inheritance', 'Autosomal dominant', 'AD', 1, 990001)"
+        )
+      )
+      rows <- metadata_vocabulary_list(
+        metadata_vocabulary_descriptor("inheritance"), conn = conn
+      )
+    }
+    expect_gt(nrow(rows), 0)
     term <- rows$hpo_mode_of_inheritance_term[[1]]
 
     updated <- svc_metadata_update(

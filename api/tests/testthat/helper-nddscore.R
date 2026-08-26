@@ -55,6 +55,18 @@ ensure_nddscore_schema <- function(conn) {
   invisible(TRUE)
 }
 
+#' Empty nddscore_release between tests.
+#'
+#' The blanket DELETE is deliberate and is NOT the destructive-teardown class
+#' fixed elsewhere in #612. Callers use this as setup before each test and then
+#' assert on exact release counts and on active-release uniqueness, so they
+#' require an empty table, not merely the absence of their own rows -- a
+#' baseline-diff cleanup leaves the previous test's fixture in place and the
+#' next import fails with "release_id is currently active and cannot be
+#' re-imported". `nddscore_release` also holds only imported, re-importable
+#' artifacts, so emptying it on a TEST database destroys nothing irreplaceable.
+#' Do not "harden" this into a scoped delete without giving the callers a
+#' different way to reach a known-empty table.
 nddscore_clean_tables <- function(conn) {
   ensure_nddscore_schema(conn)
   DBI::dbExecute(conn, "DELETE FROM nddscore_release")

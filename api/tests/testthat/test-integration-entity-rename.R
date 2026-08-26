@@ -31,6 +31,9 @@ source_api_file("functions/publication-functions.R", local = FALSE)
 # test database. Ordered as in bootstrap/load_modules.R, which sources
 # publication-write-preparation.R with the other functions/*.
 source_api_file("functions/publication-write-preparation.R", local = FALSE)
+# #640: the locked source snapshot svc_entity_rename_full() reads inside its
+# write transaction.
+source_api_file("functions/entity-rename-source-snapshot.R", local = FALSE)
 source_api_file("core/errors.R", local = FALSE)
 # svc_entity_rename_full calls variation_provenance_carry_forward_entity()
 # UNGUARDED (no exists() check -- #608 deliberately made a missing module fail
@@ -1127,5 +1130,115 @@ test_that("svc_entity_rename_full returns 409 when destination quadruple exists"
     expect_equal(result$message, "Conflict. Destination quadruple already exists.")
     expect_true(!is.null(result$entry))
     expect_equal(as.integer(result$entry$entity_id[[1]]), conflict$entity_id)
+  })
+})
+
+test_that("a source entity with no active status is still a 409, not a 500", {
+  # #640 moved the copy-forward reads INSIDE the write transaction. This
+  # precondition check deliberately stayed OUTSIDE it: db_with_transaction()
+  # re-raises every error as `db_transaction_error` and flattens the class, so
+  # an abort raised inside cannot be mapped back to a 409 without changing that
+  # shared helper for every caller. Pin the 409 so the branch cannot silently
+  # become an opaque 500.
+  with_entity_rename_fixture({
+    user_id <- 1L
+    seed <- seed_approved_entity_bundle(conn, SOURCE_ONTOLOGY, user_id = user_id)
+    db_execute_params(
+      conn,
+      "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ?",
+      list(seed$entity_id)
+    )
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, DEST_ONTOLOGY),
+      user_id = user_id,
+      pool = pool
+    )
+
+    expect_equal(result$status, 409)
+    expect_match(result$message, "Active source status")
+    expect_equal(
+      count_query(
+        conn,
+        "SELECT COUNT(*) AS n FROM ndd_entity WHERE disease_ontology_id_version = ?",
+        list(DEST_ONTOLOGY)
+      ),
+      0L
+    )
+  })
+})
+
+test_that("the copy-forward snapshot is read inside the transaction, under a lock", {
+  # WHY THIS MATTERS (#640). svc_entity_rename_full() copies the source entity's
+  # review, status, publications, phenotypes and variation-ontology terms onto a
+  # brand-new entity. Reading them BEFORE opening the write transaction left a
+  # window in which a concurrent approved review write commits: the rename then
+  # copied the stale snapshot forward and that write was silently discarded,
+  # while the source was deactivated with `replaced_by` pointing at an entity
+  # that did not reflect it.
+  #
+  # Post-#612 it is worse than a lost update.
+  # variation_provenance_carry_forward_entity() copies each assertion's `state`
+  # verbatim, so a concurrent removal-and-approval can put a still-served connect
+  # row (stale read) beside a `rejected` assertion (fresh read) on the new
+  # entity -- and provenance_for_entity() filters the public read to
+  # ('active_unconfirmed','confirmed'), so the term then renders as
+  # CURATOR-AUTHORED. That is the exact fabrication #608 exists to prevent.
+  #
+  # Reading inside the transaction is necessary but NOT sufficient: InnoDB takes
+  # its REPEATABLE READ snapshot at the first read while writes see the latest
+  # committed rows. Only the LOCKING read closes the window, so assert on that.
+  with_entity_rename_fixture({
+    user_id <- 1L
+    seed <- seed_approved_entity_bundle(conn, SOURCE_ONTOLOGY, user_id = user_id)
+
+    seen <- new.env(parent = emptyenv())
+    seen$statements <- character(0)
+    seen$in_transaction <- logical(0)
+    depth <- 0L
+
+    # Stub in the env the SERVICE resolves names from, not globalenv: these
+    # modules are source()d into testthat's per-file environment, which SHADOWS
+    # globalenv, so a stub written there would be invisible. See
+    # .agents/skills/sysndd-api-testing/SKILL.md.
+    target_env <- environment(svc_entity_rename_full)
+    real_query <- base::get("db_execute_query", envir = target_env)
+    real_txn <- base::get("db_with_transaction", envir = target_env)
+    frame <- environment()
+    stub_target <- function(name, value) {
+      old <- base::get(name, envir = target_env)
+      assign(name, value, envir = target_env)
+      withr::defer(assign(name, old, envir = target_env), envir = frame)
+    }
+
+    stub_target("db_with_transaction", function(code, pool_obj = NULL) {
+      depth <<- depth + 1L
+      on.exit(depth <<- depth - 1L, add = TRUE)
+      real_txn(code, pool_obj = pool_obj)
+    })
+    stub_target("db_execute_query", function(sql, params = list(), conn = NULL) {
+      seen$statements <- c(seen$statements, sql)
+      seen$in_transaction <- c(seen$in_transaction, depth > 0L)
+      real_query(sql, params = params, conn = conn)
+    })
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, DEST_ONTOLOGY),
+      user_id = user_id,
+      pool = pool
+    )
+    expect_equal(result$status, 200)
+
+    locking <- grepl("FOR UPDATE", seen$statements, fixed = TRUE)
+    expect_true(any(locking), label = "a FOR UPDATE read was issued")
+    expect_true(
+      all(seen$in_transaction[locking]),
+      label = "every FOR UPDATE read ran inside db_with_transaction"
+    )
+    # Scoped to ONE entity's rows -- never a table-wide lock.
+    expect_true(
+      all(grepl("entity_id\\s*=\\s*\\?", seen$statements[locking])),
+      label = "the locking reads are scoped to a single entity_id"
+    )
   })
 })
