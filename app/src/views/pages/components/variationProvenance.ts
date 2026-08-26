@@ -33,12 +33,31 @@
 // scalars — never blanket-recursively, because `sources` / `evidence` / `records`
 // are genuine arrays that happen to be length 1 sometimes.
 
+import {
+  asBoolean,
+  asStrength,
+  asText,
+  isWireRecord,
+  STRENGTH_SCALE_MAX,
+  unwrapScalar,
+} from './variationWireScalars';
+import {
+  clinvarVariationUrl as clinvarUrlFromId,
+  normalizeEvidenceRecordList,
+  type NormalizedEvidenceRecord,
+} from './variationEvidenceRecords';
+
+// Re-exported so the existing consumers of this module (EntityEvidenceGrid.vue,
+// VariationProvenanceDialog.vue, useVariationEvidence.ts, and the specs) keep
+// importing from one place, while the primitives themselves live in a
+// dependency-free module that `variationEvidenceRecords.ts` can also use
+// without importing back.
+export { unwrapScalar, asBoolean, STRENGTH_SCALE_MAX };
+export type { NormalizedEvidenceRecord };
+
 /** States the public read may ever carry. `suggested`/`rejected` never appear. */
 export const PUBLIC_PROVENANCE_STATES = ['active_unconfirmed', 'confirmed'] as const;
 export type PublicProvenanceState = (typeof PUBLIC_PROVENANCE_STATES)[number];
-
-/** Highest strength the 0-4 comparability scale can take. */
-export const STRENGTH_SCALE_MAX = 4;
 
 export interface NormalizedSource {
   sourceType: string | null;
@@ -53,15 +72,6 @@ export interface NormalizedProvenance {
   sources: NormalizedSource[];
 }
 
-export interface NormalizedEvidenceRecordRow {
-  /** Source-recorded variation identifier, e.g. a ClinVar `VCV…` accession. */
-  variationId: string | null;
-  consequence: string | null;
-  classification: string | null;
-  /** External deep-link, or null when none can be built honestly. */
-  url: string | null;
-}
-
 export interface NormalizedEvidence {
   sourceType: string | null;
   sourceKey: string | null;
@@ -71,51 +81,13 @@ export interface NormalizedEvidence {
   strength: number | null;
   /** Import date, already formatted for display; `null` when not recorded. */
   importedOn: string | null;
-  records: NormalizedEvidenceRecordRow[];
+  records: NormalizedEvidenceRecord[];
   matched: string[];
 }
 
 // ---------------------------------------------------------------------------
 // Wire-shape helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Unwrap plumber's length-1 array around a value that is contractually scalar.
- *
- * Only ever call this on a field documented as a scalar. Length-1 arrays that
- * are genuinely arrays (`sources`, `evidence`, `records`) must not pass through.
- */
-export function unwrapScalar(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.length === 1 ? value[0] : undefined;
-  }
-  return value;
-}
-
-function asText(value: unknown): string | null {
-  const raw = unwrapScalar(value);
-  if (raw === null || raw === undefined) return null;
-  const text = String(raw).trim();
-  return text === '' ? null : text;
-}
-
-/**
- * A recorded 0-4 strength, or `null` for "not recorded".
- *
- * Anything non-finite or out of range is treated as not recorded rather than
- * being clamped into a plausible-looking score.
- */
-function asStrength(value: unknown): number | null {
-  const raw = unwrapScalar(value);
-  if (raw === null || raw === undefined || raw === '') return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > STRENGTH_SCALE_MAX) return null;
-  return n;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 // ---------------------------------------------------------------------------
 // Compact provenance (the hot `/variation` read)
@@ -132,7 +104,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * leaking curation state.
  */
 export function normalizeVariationProvenance(raw: unknown): NormalizedProvenance | null {
-  if (!isRecord(raw)) return null;
+  if (!isWireRecord(raw)) return null;
   const state = asText(raw.state);
   if (state === null) return null;
   if (!(PUBLIC_PROVENANCE_STATES as readonly string[]).includes(state)) return null;
@@ -142,7 +114,7 @@ export function normalizeVariationProvenance(raw: unknown): NormalizedProvenance
     state: state as PublicProvenanceState,
     maxStrength: asStrength(raw.max_strength),
     // Order is the API's (strength desc, then source_key asc). NEVER re-sorted.
-    sources: sourcesRaw.filter(isRecord).map((src) => ({
+    sources: sourcesRaw.filter(isWireRecord).map((src) => ({
       sourceType: asText(src.source_type),
       sourceKey: asText(src.source_key),
       strength: asStrength(src.strength),
@@ -234,74 +206,31 @@ export function strengthDisplay(strength: number | null): StrengthDisplay {
 // Full evidence records (the on-demand `/evidence` read)
 // ---------------------------------------------------------------------------
 
-// Keys the import manifests are documented to carry (design spec §7.3: ClinVar
-// variation id, classification, review stars, consequence, matched identifiers).
-// The manifests are produced in a different repository, so each field is probed
-// through a small alias list and OMITTED when absent — the safe failure
-// direction. A key we do not recognise is never rendered under a guessed label.
-const RECORD_LIST_KEYS = ['records', 'variants', 'evidence_records'];
-const VARIATION_ID_KEYS = ['variation_id', 'clinvar_variation_id', 'accession', 'id'];
-const CONSEQUENCE_KEYS = ['consequence', 'molecular_consequence'];
-const CLASSIFICATION_KEYS = ['classification', 'clinical_significance', 'significance'];
-const MATCHED_KEYS = ['matched', 'matched_diseases', 'matched_terms'];
-
-function firstText(row: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const text = asText(row[key]);
-    if (text !== null) return text;
-  }
-  return null;
-}
-
 /**
- * ClinVar deep-link for a recorded variation identifier.
+ * ClinVar deep-link for a recorded variation identifier, gated on the source.
  *
- * Built only for the `clinvar` source and only from a value that is genuinely a
- * VCV accession or a bare numeric id; anything else returns `null` so the id
- * renders as plain text instead of a link that might not resolve.
+ * The link-building rule itself lives in `./variationEvidenceRecords`, where the
+ * per-shape normalizers use it; this wrapper keeps the source gate that callers
+ * of this module rely on, so a non-ClinVar identifier can never acquire a
+ * ClinVar URL.
  */
 export function clinvarVariationUrl(
   sourceKey: string | null,
   variationId: string | null
 ): string | null {
-  if (!sourceKey || sourceKey.toLowerCase() !== 'clinvar' || !variationId) return null;
-  const match = /^(?:VCV)?0*(\d+)(?:\.\d+)?$/i.exec(variationId);
-  if (!match) return null;
-  return `https://www.ncbi.nlm.nih.gov/clinvar/variation/${match[1]}/`;
+  if (!sourceKey || sourceKey.toLowerCase() !== 'clinvar') return null;
+  return clinvarUrlFromId(variationId);
 }
 
-function normalizeRecordRows(
-  payload: unknown,
-  sourceKey: string | null
-): NormalizedEvidenceRecordRow[] {
-  if (!isRecord(payload)) return [];
-  let list: unknown[] = [];
-  for (const key of RECORD_LIST_KEYS) {
-    if (Array.isArray(payload[key])) {
-      list = payload[key] as unknown[];
-      break;
-    }
-  }
-  return (
-    list
-      .filter(isRecord)
-      .map((row) => {
-        const variationId = firstText(row, VARIATION_ID_KEYS);
-        return {
-          variationId,
-          consequence: firstText(row, CONSEQUENCE_KEYS),
-          classification: firstText(row, CLASSIFICATION_KEYS),
-          url: clinvarVariationUrl(sourceKey, variationId),
-        };
-      })
-      // A row that carries none of the documented fields would render as an empty
-      // bullet — omit it rather than implying an unnamed record exists.
-      .filter((row) => row.variationId || row.consequence || row.classification)
-  );
-}
+// Record normalization now lives in `./variationEvidenceRecords`, which
+// dispatches on the source and renders all three shapes the importer writes.
+// `matched` stays HERE and stays separate: it holds STRINGS (OMIM CURIEs), and
+// folding it into the record-container probe would render each entry through
+// `String(object)`.
+const MATCHED_KEYS = ['matched', 'matched_diseases', 'matched_terms'];
 
 function normalizeMatched(payload: unknown): string[] {
-  if (!isRecord(payload)) return [];
+  if (!isWireRecord(payload)) return [];
   for (const key of MATCHED_KEYS) {
     const value = payload[key];
     if (Array.isArray(value)) {
@@ -368,7 +297,7 @@ export function importedLineParts(evidence: NormalizedEvidence): string[] {
 export function normalizeEvidenceRecords(raw: unknown): NormalizedEvidence[] {
   const list = Array.isArray(raw) ? raw : [];
   // Order is the API's (recorded strength desc, then source_key asc). Not re-sorted.
-  return list.filter(isRecord).map((row) => {
+  return list.filter(isWireRecord).map((row) => {
     const sourceKey = asText(row.source_key);
     return {
       sourceType: asText(row.source_type),
@@ -378,7 +307,11 @@ export function normalizeEvidenceRecords(raw: unknown): NormalizedEvidence[] {
       summary: asText(row.evidence_summary),
       strength: asStrength(row.evidence_strength),
       importedOn: formatImportedDate(row.created_at),
-      records: normalizeRecordRows(row.evidence_json, sourceKey),
+      records: normalizeEvidenceRecordList(
+        row.evidence_json,
+        sourceKey,
+        asText(row.source_type)
+      ),
       matched: normalizeMatched(row.evidence_json),
     };
   });

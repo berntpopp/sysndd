@@ -7,7 +7,8 @@ review_write_service_path <- file.path(
   get_api_dir(), "services", "review-write-service.R"
 )
 if (file.exists(review_write_service_path)) {
-  source_api_file("services/review-write-service.R", local = FALSE)
+  source_api_file("functions/db-transaction-scope.R", local = FALSE)
+source_api_file("services/review-write-service.R", local = FALSE)
 }
 
 review_write_minimum_request <- function(phenotypes = tibble::tibble(),

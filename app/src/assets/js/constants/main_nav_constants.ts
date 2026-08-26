@@ -142,6 +142,11 @@ const MAIN_NAV = {
         { text: 'Approve status', path: '/ApproveStatus', icons: ['check', 'stoplights'] },
         { text: 'Approve user', path: '/ApproveUser', icons: ['check', 'person-circle'] },
         { text: 'Manage re-review', path: '/ManageReReview', icons: ['gear', 'clipboard-check'] },
+        {
+          text: 'Variation suggestions',
+          path: '/curate/variation-suggestions',
+          icons: ['cpu', 'clipboard-check'],
+        },
         { text: 'GeneReviews coverage', path: '/GeneReviews', icons: ['journal-medical', 'link'] },
       ],
     },

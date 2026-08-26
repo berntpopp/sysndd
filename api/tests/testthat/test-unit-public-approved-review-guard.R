@@ -15,7 +15,13 @@ test_that("entity_endpoints.R never filters ndd_entity_review by is_primary alon
 })
 
 test_that("primary_approved_reviews carries both predicates", {
-  skip_if_not(exists("primary_approved_reviews"))
+  # Source the definition rather than skip when it is absent. `skip_if_not(
+  # exists(...))` made this guard silently VACUOUS: the whole point is to fail
+  # if the gate loses a predicate, and a guard that skips itself guards nothing.
+  if (!exists("primary_approved_reviews", mode = "function")) {
+    source_api_file("functions/review-repository.R", local = FALSE)
+  }
+  expect_true(exists("primary_approved_reviews", mode = "function"))
   body <- paste(deparse(body(primary_approved_reviews)), collapse = " ")
   expect_true(grepl("is_primary", body))
   expect_true(grepl("review_approved", body))

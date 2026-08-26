@@ -567,6 +567,26 @@ test_that("svc_entity_rename_full rolls back when source deactivation affects no
   deactivation_sql <- NULL
 
   mockery::stub(fn, "svc_entity_check_duplicate", function(entity_data, pool) NULL)
+  # #640: the copy-forward snapshot is now read INSIDE the transaction, through
+  # svc_entity_rename_load_source() and under a `FOR UPDATE` lock. Stub that seam
+  # -- the unstubbed real one would issue SQL against the literal string
+  # "txn_conn" this test passes as a connection, abort the transaction before the
+  # deactivation statement, and leave `deactivation_sql` NULL.
+  mockery::stub(fn, "svc_entity_rename_load_source", function(old_entity_id, conn) {
+    list(
+      review = tibble::tibble(
+        review_id = 5L, entity_id = old_entity_id, synopsis = "s",
+        is_primary = 1L, review_approved = 1L, approving_user_id = 3L, comment = "c"
+      ),
+      status = tibble::tibble(
+        status_id = 6L, entity_id = old_entity_id, category_id = 1L, is_active = 1L,
+        status_approved = 1L, approving_user_id = 3L, problematic = 0L, comment = "c"
+      ),
+      publications = tibble::tibble(),
+      phenotypes = tibble::tibble(),
+      vario = tibble::tibble()
+    )
+  })
   mockery::stub(fn, "entity_create", function(entity_data, conn = NULL) 11L)
   mockery::stub(fn, "review_create", function(review_data, conn = NULL) 12L)
   mockery::stub(fn, "status_create", function(status_data, conn = NULL) 13L)

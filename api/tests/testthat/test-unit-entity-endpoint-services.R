@@ -466,7 +466,15 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
     }
 
     DBI::dbExecute(con, "INSERT IGNORE INTO `user` (user_id, user_name) VALUES (1, 'svc-entity-endpoint-test')") # nolint: line_length_linter
-    hgnc_id <- paste0("HGNC:", sample(9000000:9999999, 1))
+    # non_alt_loci_set.hgnc_id is varchar(10), so the id must fit in ten
+    # characters: "HGNC:" plus five digits. A seven-digit suffix raises
+    # "Data too long for column 'hgnc_id'" -- which stayed invisible while this
+    # test skipped for want of a schema (#612 made CI load one).
+    # Range stops below 99900: other files hard-code fixture ids in the
+    # HGNC:999xx band (HGNC:99901 / 99941 / 99951 / 99999). Serial execution
+    # plus per-file cleanup makes a clash unlikely, but "unlikely" is not a
+    # reason to draw from a namespace someone else has claimed.
+    hgnc_id <- paste0("HGNC:", sample(90000:99899, 1))
     moi_term <- paste0("HP:", sample(9000000:9999999, 1))
     ontology_id <- paste0("OMIM:", sample(9000000:9999999, 1), "_1")
     DBI::dbExecute(

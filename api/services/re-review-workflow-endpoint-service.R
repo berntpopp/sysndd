@@ -98,10 +98,17 @@ svc_re_review_approve <- function(re_review_id, status_ok, review_ok, user_id, r
     user_id,
     approved = status_ok
   )
-  review_approve(
+  # #612: through the approval SERVICE, not the repository. Approving a
+  # re-review publishes a term set exactly like any other approval, so it must
+  # run the same provenance reconciliation in the same transaction -- otherwise
+  # a re-review that drops a term leaves its assertion active_unconfirmed, and
+  # one that adds a previously-dismissed term serves it with no provenance at
+  # all.
+  svc_approval_review_approve(
     re_review_entity_connect_data$review_id,
     user_id,
-    approved = review_ok
+    approve = review_ok,
+    pool = pool
   )
 
   list(message = "Re-review approved successfully")

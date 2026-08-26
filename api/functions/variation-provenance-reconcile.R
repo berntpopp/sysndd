@@ -48,9 +48,14 @@
 # | no         | confirmed          | --                     | confirmed (unchanged)          | --                     |
 # | no         | rejected           | --                     | rejected (unchanged)           | --                     |
 #
-# The two rejection rows additionally require `apply_rejections = TRUE`; the
-# confirmation rows always apply. See the planner's @param apply_rejections for
-# the rule and why it exists.
+# The two rejection rows additionally require `apply_rejections = TRUE`, and the
+# confirmation rows require `apply_confirmations = TRUE`. Both default TRUE, so
+# a plain call runs the whole machine. See the planner's @param blocks for what
+# each gate exists for: `apply_rejections` keeps a Reviewer's draft omission from
+# suppressing provenance the approved review is still serving, and
+# `apply_confirmations` lets the approval hook (#612) reject WITHOUT promoting --
+# approving a review is an act on the review, not a per-term reading of machine
+# evidence.
 #
 # Why each extension is what it is
 # --------------------------------
@@ -275,10 +280,27 @@ variation_provenance_empty_plan <- function() {
 #'   also more faithful to rows 7/8's purpose ("makes removal correct for every
 #'   surface"): removal becomes real when it becomes public. `review_write_mutate()`
 #'   computes the flag, so the planner stays pure and never queries the DB for it.
+#' @param apply_confirmations Whether the SUBMITTED branch's promotion edges
+#'   (rows 1-5) apply. Rejection edges are NEVER gated by this.
+#'
+#'   The symmetric counterpart of `apply_rejections`, added for #612. Two callers
+#'   set it FALSE:
+#'
+#'   * `variation_provenance_reconcile_on_approval()`
+#'     (functions/variation-provenance-approval.R) -- approving a review is an act
+#'     on the REVIEW, not a per-term reading of machine evidence. Promoting
+#'     active_unconfirmed -> confirmed there would restore exactly the silent
+#'     promotion #608 exists to stop, so approval may only ever RETIRE assertions
+#'     the entity no longer serves.
+#'   * the curation queue's dismiss endpoint, which must be unable to plan a
+#'     confirmation even if its input somehow named a submitted term.
+#'
+#'   It defaults TRUE, so every pre-#612 call site behaves byte-identically.
 #' @return Tibble(assertion_id, from_state, to_state, needs_attribution).
 #' @export
 variation_provenance_plan_reconciliation <- function(previous, submitted, actions = NULL,
-                                                    apply_rejections = TRUE) {
+                                                    apply_rejections = TRUE,
+                                                    apply_confirmations = TRUE) {
   previous <- .variation_provenance_as_rows(
     previous, c("assertion_id", "vario_id", "modifier_id", "state")
   )
@@ -300,11 +322,16 @@ variation_provenance_plan_reconciliation <- function(previous, submitted, action
   confirm_requested <- previous_keys %in% .variation_provenance_confirm_keys(actions)
 
   to_state <- from_state
-  # Submitted branch (rows 1-5). Never gated: an affirmative act is always
-  # honoured, on a draft save exactly as on an approved one.
-  to_state[is_submitted & from_state == "suggested"] <- "confirmed"
-  to_state[is_submitted & from_state == "rejected"] <- "confirmed"
-  to_state[is_submitted & from_state == "active_unconfirmed" & confirm_requested] <- "confirmed"
+  # Submitted branch (rows 1-5). On a review save this is never gated -- an
+  # affirmative act is honoured on a draft exactly as on an approved review --
+  # but the approval hook and the queue's dismiss endpoint set
+  # apply_confirmations = FALSE so they can reject without ever promoting. A
+  # non-logical/NA flag falls to FALSE, which is the non-promoting direction.
+  if (isTRUE(apply_confirmations)) {
+    to_state[is_submitted & from_state == "suggested"] <- "confirmed"
+    to_state[is_submitted & from_state == "rejected"] <- "confirmed"
+    to_state[is_submitted & from_state == "active_unconfirmed" & confirm_requested] <- "confirmed"
+  }
   # Omitted branch (rows 7-10; confirmed and rejected are deliberately absent),
   # gated on the save determining the served term set -- see @param
   # apply_rejections. A non-logical/NA flag is treated as FALSE: the safe
@@ -468,11 +495,14 @@ variation_provenance_apply_reconciliation <- function(plan, review_user_id, conn
 #' @param apply_rejections Whether this save determines the entity's served term
 #'   set, and may therefore reject omitted terms. Passed straight to the planner;
 #'   the caller decides (review_write_mutate()), so this stays a pure passthrough.
+#' @param apply_confirmations Whether the submitted branch's promotion edges
+#'   apply. Also a pure passthrough; see the planner's @param of the same name.
 #' @return Integer count of assertion rows updated.
 #' @export
 variation_provenance_reconcile_for_review <- function(entity_id, submitted, actions,
                                                       review_user_id, conn = NULL,
-                                                      apply_rejections = TRUE) {
+                                                      apply_rejections = TRUE,
+                                                      apply_confirmations = TRUE) {
   previous <- variation_provenance_assertions_for_entity(entity_id, conn = conn)
   if (nrow(previous) == 0L) {
     return(0L)
@@ -480,7 +510,7 @@ variation_provenance_reconcile_for_review <- function(entity_id, submitted, acti
 
   plan <- variation_provenance_plan_reconciliation(
     previous = previous, submitted = submitted, actions = actions,
-    apply_rejections = apply_rejections
+    apply_rejections = apply_rejections, apply_confirmations = apply_confirmations
   )
   if (nrow(plan) == 0L) {
     return(0L)

@@ -125,6 +125,12 @@ test-api: check-r ## [test] Run R API tests with testthat
 		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
 
+test-db-schema: check-r ## [test] Apply all migrations to the local test database so integration tests run
+	@printf "$(CYAN)==> Loading schema into the local test database...$(RESET)\n"
+	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/ci-load-test-schema.R && \
+		printf "$(GREEN)✓ test-db-schema complete$(RESET)\n" || \
+		(printf "$(RED)✗ test-db-schema failed$(RESET)\n" && exit 1)
+
 test-api-fast: check-r ## [test] Run the fast R API test gate used on pull requests
 	@printf "$(CYAN)==> Running fast R API tests...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/run-ci-tests.R fast && \

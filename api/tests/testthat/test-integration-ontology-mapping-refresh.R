@@ -102,7 +102,12 @@ source_api_file("functions/disease-ontology-mapping-builder.R", local = FALSE)
   get_test_db_connection()
 }
 
-# Seed disease_ontology_set with a minimal OMIM row.
+#' Seed disease_ontology_set with a minimal OMIM row.
+#'
+#' Returns TRUE only when THIS call created the row, so the caller can remove
+#' exactly what it added. Deleting unconditionally would take out a real row on
+#' a populated database; not deleting at all leaks a disease into the shared
+#' test database for every later file, which is how residue accumulates.
 .seed_disease_ontology_set_omim <- function(conn, disease_id = "OMIM:618524") {
   existing <- tryCatch(
     DBI::dbGetQuery(
@@ -114,26 +119,58 @@ source_api_file("functions/disease-ontology-mapping-builder.R", local = FALSE)
     error = function(e) data.frame()
   )
   if (nrow(existing) > 0L) {
-    return(invisible(TRUE))
+    return(invisible(FALSE))
   }
-  tryCatch(
-    DBI::dbExecute(
-      conn,
-      paste0(
-        "INSERT INTO disease_ontology_set (disease_ontology_id, disease_ontology_name) ",
-        "VALUES (?, ?)"
-      ),
-      params = unname(list(disease_id, "CTNNB1 syndrome (test seed)"))
+  # `disease_ontology_id_version` is the table's NOT NULL key column and has no
+  # default, so an INSERT that omits it fails with a 1364. That failure used to
+  # be swallowed by a message(): the seed silently did nothing, the refresh then
+  # had no disease to map, and the test asserted 0 mappings against an expected
+  # >= 1. Seed the key column, and let a seed failure be an ERROR -- a fixture
+  # that silently seeds nothing makes every assertion after it meaningless.
+  DBI::dbExecute(
+    conn,
+    paste0(
+      "INSERT INTO disease_ontology_set ",
+      "(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, is_active) ",
+      "VALUES (?, ?, ?, 1)"
     ),
-    error = function(e) {
-      message("[H3] disease_ontology_set seed failed (may already exist or schema differs): ",
-              conditionMessage(e))
-    }
+    params = unname(list(paste0(disease_id, "_1"), disease_id, "CTNNB1 syndrome (test seed)"))
   )
   invisible(TRUE)
 }
 
-# Clean out the mapping tables between tests.
+#' Remove a seeded disease row, but only if this run created it.
+#'
+#' @param created Logical returned by .seed_disease_ontology_set_omim().
+.unseed_disease_ontology_set_omim <- function(conn, created,
+                                              disease_id = "OMIM:618524") {
+  if (!isTRUE(created)) {
+    return(invisible(FALSE))
+  }
+  tryCatch(
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM disease_ontology_set WHERE disease_ontology_id_version = ?",
+      params = unname(list(paste0(disease_id, "_1")))
+    ),
+    error = function(e) NULL
+  )
+  invisible(TRUE)
+}
+
+#' Clean out the mapping tables between tests.
+#'
+#' These four are DERIVED artifacts -- `disease_ontology_mapping_refresh_run()`
+#' rebuilds all of them from the MONDO release -- so emptying them in a test
+#' database destroys nothing that is not reproducible, and both tests below
+#' genuinely require an empty starting point (they assert a full rebuild). On a
+#' freshly migrated CI database this is a no-op: all four are empty.
+#'
+#' It is deliberately NOT a snapshot/restore: `mondo_term`/`mondo_xref` hold a
+#' full ontology index on a populated database, and copying it in and out of R
+#' per test would cost more than the artifact is worth. Source data
+#' (`disease_ontology_set`) is never touched here -- see
+#' .unseed_disease_ontology_set_omim() for the row this file DOES add.
 .cleanup_mapping_tables <- function(conn) {
   tryCatch(DBI::dbExecute(conn, "DELETE FROM disease_ontology_mapping_meta"),
            error = function(e) NULL)
@@ -178,7 +215,8 @@ test_that("full refresh run populates tables and writes a success meta row", {
   )
 
   # Seed disease_ontology_set row so projection UPDATE can find a target.
-  .seed_disease_ontology_set_omim(conn)
+  seeded_disease <- .seed_disease_ontology_set_omim(conn)
+  withr::defer(.unseed_disease_ontology_set_omim(conn, seeded_disease))
 
   result <- disease_ontology_mapping_refresh_run(
     job             = list(job_id = "test-h3-full"),
@@ -277,7 +315,8 @@ test_that("second run with 304 OBO and populated tables skips rebuild", {
     function(...) .fixture_sssom_path()
   )
 
-  .seed_disease_ontology_set_omim(conn)
+  seeded_disease <- .seed_disease_ontology_set_omim(conn)
+  withr::defer(.unseed_disease_ontology_set_omim(conn, seeded_disease))
 
   # -----------------------------------------------------------------------
   # Pre-populate tables (full rebuild first).

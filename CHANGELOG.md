@@ -6,6 +6,127 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-08-26
+
+### Fixed
+
+- **An entity rename could silently discard a concurrent approved review — and launder provenance**
+  (#640). `svc_entity_rename_full()` read the review, status, publications, phenotypes and
+  variation-ontology terms it copies forward **before** opening its write transaction, so a review
+  write committing in that window was overwritten by the stale snapshot while the source was
+  deactivated with `replaced_by` pointing at an entity that did not reflect it. Post-#612 it was
+  worse than a lost update: the carry-forward copies each assertion's `state` verbatim, so a
+  concurrent removal-and-approval could put a still-served connect row beside a `rejected`
+  assertion, which the public read renders as *curator-authored*. The snapshot is now read inside
+  the transaction under a `FOR UPDATE` row lock scoped to that one entity, closing the window by
+  construction. The lock was verified to actually block a concurrent writer, not assumed.
+- **Five tests that skipped on ambient data now assert for real** (#612). Three clustering-category
+  tests required a populated `ndd_entity_view` and a metadata-vocabulary test required an active
+  inheritance term — neither exists on a freshly migrated database, so they ran only when an
+  unrelated file had left data behind. A fifth, `primary_approved_reviews carries both predicates`,
+  was a **static guard that skipped itself** (`skip_if_not(exists(...))`) and so guarded nothing.
+  The metadata-refresh test also stopped leaving an inactive `HP:0000006` row behind — the ambient
+  state the vocabulary test had been keying off.
+
+- **The curation queue's Confirm and Dismiss rejected every batch** (#612). Plumber parses a request
+  body with `jsonlite::fromJSON(simplifyVector = TRUE)`, which collapses a uniform JSON array of
+  objects into a **data.frame** — so `items[[1]]` was the first *column*, an atomic vector, and every
+  well-formed batch failed with `items[1] must be an object.` Both actions were unusable from any
+  real client, including the app's own typed client. The unit and endpoint tests were green because
+  both hand-built `argsBody` as a list of lists, which is the `simplifyVector = FALSE` shape; the
+  regression tests now build their fixture through the parser and assert it really is a data.frame.
+  Found by driving the running stack, not by the suite. Same trap as the force-apply payload tables,
+  and the sibling review-write path already handled it.
+
+- **The five newly-awake test failures, none of which was a re-skip** (#612). Loading the real
+  schema into CI's test database turned dormant files back on, and five of them then failed for
+  reasons unrelated to the code they cover. Each was a distinct defect that had been invisible for
+  as long as the file skipped: `LAST_INSERT_ID()` comes back as a `bit64::integer64` whose storage
+  is an int64 *bit pattern*, so `sprintf("%d", id)` aborted (two files); a template `version`
+  fixture was 34 characters against a `varchar(20)`; a stub written to `globalenv()` was silently
+  shadowed by the real function, which `source_api_file(local = FALSE)` had put in the per-file
+  test environment, so the production STRING clustering path ran instead; and a block wrapped in
+  `with_test_db_transaction()` called production code that opens its own transaction, so it
+  asserted `"Data too long"` and actually received `"Nested transactions not supported"` — proving
+  nothing. The suite now runs **0 failures with no table drift**.
+- **A migration test's restore is registered before its destructive step** (#612). The teardown
+  that puts `variation_ontology_assertion` / `variation_ontology_evidence` back was registered
+  after ~50 lines of assertions, so any expectation failure in between aborted the block and left
+  the shared schema destroyed — for every later file in the run *and* every subsequent run. Found
+  by adversarial review; covered by a red test that aborts mid-block.
+- **Two tests no longer leak into, or depend on, the shared test database** (#612).
+  `test-integration-ontology-mapping-refresh.R` seeded an `OMIM:618524` disease and never removed
+  it; `test-integration-mondo-index.R` then *skipped unless that leak was present*, so it passed
+  for the wrong reason and would have gone silent the moment the leak was fixed. Both now seed
+  what they need and remove only what they created. `test-unit-llm-prompt-template-repository.R`
+  also leaked its rows: its cleanup was registered with `on.exit(add = TRUE)` after the
+  disconnect, and `on.exit` runs handlers in *registration* order, so the `DELETE` aborted with
+  `bad_weak_ptr`.
+- **The curation queue rejects a page whose offset would overflow** (#612). `page` accepted
+  `.Machine$integer.max`; `(page - 1) * page_size` is 32-bit integer arithmetic in R, so it
+  overflowed to `NA` and bound `NA` as the SQL `OFFSET`. It is now capped so the largest accepted
+  `page_size` cannot overflow, and an over-large page is the same 400 every other out-of-range
+  parameter gets.
+- **`save_prompt_template()` returns the column's own type.** It returned `LAST_INSERT_ID()`
+  verbatim — a `bit64::integer64` — which compares unequal to the `INT` `template_id`
+  `get_prompt_template()` reads back and would serialise as a JSON *string*.
+
+### Changed
+
+- **The two `*.provenance.spec.ts` files exercise the production submit path** (#612). Both
+  re-declared the payload mapping inside the test and asserted the copy, and the ModifyEntity
+  wiring check counted occurrences of a literal string in the source — so the production path
+  could have stopped forwarding `provenance_action` entirely and both files would have stayed
+  green. They now drive the real `submitReviewUpdate()`, `useEntityMutations.submitReview()` and
+  both `useModifyEntityWorkflows` argument builders against a mocked HTTP client and assert the
+  body that is actually sent. Verified by removing each forward in turn and watching exactly the
+  corresponding test fail — which matters here because `useCombinedStatusReview` bridges the two
+  with `args as never`, so the type checker cannot catch a dropped field.
+
+## [0.32.0] - 2026-08-25
+
+### Added
+
+- **Variation-ontology curation queue** (#612). A Curator-gated cross-entity worklist at
+  `/curate/variation-suggestions` over the 8,083 machine-derived annotations the February 2026
+  backfill wrote, ~1,981 of which rest on 1-star evidence alone. It spans both
+  `active_unconfirmed` and `suggested` — the backfill wrote every row in the former, so a
+  `suggested`-only queue would have shown an empty page. Confirm is offered only for terms the
+  entity actually serves and Dismiss only for terms it does not: writing `rejected` onto a served
+  term would drop it out of the public read's provenance filter and make it render as
+  curator-authored. Batches take row locks and write conditionally on the state observed under
+  them, and every skipped item is reported with its reason.
+- **The three-zone provenance picker on ModifyEntity and ApproveReview** (#612). Both surfaces
+  prefilled and resubmitted machine-derived terms with no deliberate-act affordance. They were
+  already protected server-side, so this is a UX change: a curator now sees "2 terms need
+  confirmation" instead of two silently pre-checked boxes.
+
+### Fixed
+
+- **All three `evidence_json` record shapes now render** (#612). The evidence dialog understood
+  one of the three shapes the backfill emits: the external-database batch (2,166 assertions)
+  showed `consequence` alone, and the literature batch (182) showed nothing at all. ClinVar review
+  stars were in the payload and never displayed. The shapes are now pinned by a fixture shared
+  with the R suite and with the writing repository.
+- **Approving a review retires assertions the entity no longer serves** (#612). `review_update()`
+  unconditionally un-approves the review it edits, so on the ordinary edit-then-approve-separately
+  workflow a removed term kept its `active_unconfirmed` assertion and the suggestion queue went on
+  offering it. Approval and reconciliation now share one transaction.
+- **`svc_approval_review_approve()` accepts a vector of review ids.** Its `"all"` check was
+  `if (as.character(review_id) == "all")`, which raises "the condition has length > 1" — so the
+  documented multi-id support had never worked.
+
+### Changed
+
+- **CI applies the real schema to its test database** (#612). CI provisioned a MySQL service
+  container but an empty one, so all 28 `test-integration-*.R` files skipped silently and
+  permanently — which is how the entity-rename suite stayed dormant long enough to hide two
+  production defects (#638). `api/scripts/ci-load-test-schema.R` now applies the project's own 51
+  migrations before the test step, putting ~570 previously-dormant assertions into every run.
+  `make test-db-schema` does the same locally. Turning them on surfaced three fixture defects, all
+  fixed here — including one that seeded nothing at all and left three assertions running against
+  no data.
+
 ## [0.31.3] - 2026-08-25
 
 ### Fixed

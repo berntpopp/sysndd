@@ -102,6 +102,10 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
 
   const select_phenotype = ref<string[]>([]);
   const select_variation = ref<string[]>([]);
+  // #612: tags the curator explicitly confirmed in THIS session. Session-only —
+  // it is never loaded from the server, because a confirmation is an act, not a
+  // stored preference.
+  const confirmed_variation_tags = ref<string[]>([]);
   const select_additional_references = ref<string[]>([]);
   const select_gene_reviews = ref<string[]>([]);
 
@@ -119,7 +123,12 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       !arrEqual(select_phenotype.value, snap.phenotypes) ||
       !arrEqual(select_variation.value, snap.variationOntology) ||
       !arrEqual(select_additional_references.value, snap.publications) ||
-      !arrEqual(select_gene_reviews.value, snap.genereviews)
+      !arrEqual(select_gene_reviews.value, snap.genereviews) ||
+      // #612: a confirmation is a change even when the selected term set is
+      // identical -- that is the entire point of the act. Omitting it here made
+      // the submit guard treat a confirm-only edit as "nothing to save" and
+      // skip the request, silently discarding the curator's decision.
+      confirmed_variation_tags.value.length > 0
     );
   });
 
@@ -174,6 +183,9 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       select_variation.value = variation_data.map(
         (item: any) => `${item.modifier_id}-${item.vario_id}`
       );
+      // #612: a freshly loaded entity carries no confirmations. Anything left
+      // over would attribute one curator's act to another entity's terms.
+      confirmed_variation_tags.value = [];
 
       const literature_gene_reviews = publications_data
         .filter((item: any) => item.publication_type === 'gene_review')
@@ -245,6 +257,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
     status_info.value = new Status();
     select_phenotype.value = [];
     select_variation.value = [];
+    confirmed_variation_tags.value = [];
     select_additional_references.value = [];
     select_gene_reviews.value = [];
     reviewLoadedData.value = null;
@@ -256,6 +269,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
     status_info,
     select_phenotype,
     select_variation,
+    confirmed_variation_tags,
     select_additional_references,
     select_gene_reviews,
     reviewLoadedData,

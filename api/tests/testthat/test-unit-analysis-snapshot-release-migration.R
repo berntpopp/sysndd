@@ -69,7 +69,18 @@ test_that("migration 045 creates the three analysis-snapshot release tables", {
   # Clean slate: drop any leftovers from a prior interrupted run so the
   # CREATE TABLE IF NOT EXISTS statements actually create fresh tables here.
   drop_analysis_snapshot_release_tables(conn)
-  withr::defer(drop_analysis_snapshot_release_tables(conn))
+  # Restore, do not merely drop. This file re-applies migration 045 from scratch
+  # to verify its DDL, so it must START from a clean slate -- but it must not
+  # LEAVE one. The bare drop was written when the test database had no release
+  # tables at all, so dropping was "remove what I created". Since #612 the suite
+  # runs against a fully migrated database, and a bare drop DESTROYS REAL
+  # SCHEMA: every later file that touches a release table fails, and so does
+  # every subsequent run, because nothing puts it back. Same bug, same fix, as
+  # test-unit-variation-provenance-migration.R.
+  withr::defer({
+    drop_analysis_snapshot_release_tables(conn)
+    apply_analysis_snapshot_release_migration(conn)
+  })
 
   apply_analysis_snapshot_release_migration(conn)
 

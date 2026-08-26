@@ -69,6 +69,8 @@ export interface LoadedReview {
   reviewInfo: ReviewInfoPartial;
   selectPhenotype: string[];
   selectVariation: string[];
+  /** #612: per-tag provenance action from `useVariationProvenanceZones`. */
+  provenanceActionFor?: (tag: string) => 'confirm' | undefined;
   selectAdditionalReferences: string[];
   selectGeneReviews: string[];
   snapshot: ReviewLoadedSnapshot;
@@ -209,6 +211,8 @@ export interface ReviewSubmitPayload {
   reviewInfo: ReviewInfoPartial;
   selectPhenotype: string[];
   selectVariation: string[];
+  /** #612: per-tag provenance action from `useVariationProvenanceZones`. */
+  provenanceActionFor?: (tag: string) => 'confirm' | undefined;
   selectAdditionalReferences: string[];
   selectGeneReviews: string[];
   sanitize: (v: string) => string;
@@ -233,7 +237,10 @@ export function submitReviewUpdate(axiosClient: AxiosLike, payload: ReviewSubmit
   });
   const variation = payload.selectVariation.map((it) => {
     const { modifierId, ontologyId } = splitOntologyTag(it);
-    return new Variation(ontologyId, modifierId);
+    // #612: `provenance_action` is OMITTED, never null, when the curator took no
+    // action — so a submission from a client without the zone picker serialises
+    // byte-identically to its pre-#608 self.
+    return new Variation(ontologyId, modifierId, payload.provenanceActionFor?.(it));
   });
   payload.reviewInfo.literature = literature;
   payload.reviewInfo.phenotypes = phenotype;

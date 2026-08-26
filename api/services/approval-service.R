@@ -9,27 +9,40 @@ library(dplyr)
 
 #' Approve or unapprove reviews (service layer)
 #'
-#' Business logic for review approval workflow. Handles single review_id,
-#' multiple review_ids, or "all" for batch approval of pending reviews.
-#' Delegates to repository which handles approval atomically.
+#' Business logic for the review approval workflow. Handles a single review_id, a
+#' vector of them, or "all" for batch approval of pending reviews. Delegates the
+#' row writes to `review_approve()`.
+#'
+#' #612 -- APPROVAL IS WHEN THE SERVED SET BECOMES REAL. Write reconciliation
+#' gates its rejection edges on `review_write_save_determines_served_set()`, and
+#' `review_update()` unconditionally sets `review_approved = 0`, so on the
+#' ordinary edit-then-approve-separately workflow a removed term never has its
+#' assertion retired: it stops being served but stays `active_unconfirmed`, and
+#' the curation queue keeps offering it. This function therefore reconciles each
+#' affected entity after approving, REJECTION-ONLY
+#' (`variation_provenance_reconcile_on_approval()`): approving a review is an act
+#' on the review, not a per-term reading of machine evidence, so it must never
+#' promote anything to `confirmed`.
+#'
+#' The approval and the reconciliation share ONE transaction scope, so a
+#' reconciliation failure rolls the approval back rather than leaving an entity
+#' whose served terms and provenance disagree.
+#'
+#' Direct approval does NOT come through here: `review_write_mutate()`
+#' (services/review-write-service.R) calls `review_approve()` itself on its own
+#' transaction, having already reconciled in that same transaction. The one live
+#' caller is `PUT /api/review/approve/<review_id_requested>`.
 #'
 #' @param review_id Review ID(s) to approve, or "all" for all pending
 #' @param user_id User performing the approval
 #' @param approve Logical - TRUE to approve, FALSE to unapprove
-#' @param pool Database connection pool
+#' @param pool Database connection pool (or a caller-owned DBI connection)
 #' @return List with status, message, and entry (review_id(s))
 #' @examples
 #' \dontrun{
-#' # Approve single review
 #' result <- svc_approval_review_approve(42, user_id = 10, approve = TRUE, pool = pool)
-#'
-#' # Approve multiple reviews
 #' result <- svc_approval_review_approve(c(42, 43), user_id = 10, approve = TRUE, pool = pool)
-#'
-#' # Approve all pending reviews
 #' result <- svc_approval_review_approve("all", user_id = 10, approve = TRUE, pool = pool)
-#'
-#' # Unapprove review
 #' result <- svc_approval_review_approve(42, user_id = 10, approve = FALSE, pool = pool)
 #' }
 svc_approval_review_approve <- function(review_id, user_id, approve = FALSE, pool) {
@@ -44,15 +57,19 @@ svc_approval_review_approve <- function(review_id, user_id, approve = FALSE, poo
   # Convert approve to logical
   approve <- as.logical(approve)
 
-  # Handle "all" case - get all pending reviews
-  if (as.character(review_id) == "all") {
+  # Guard on LENGTH first. `if (as.character(c(42, 43)) == "all")` raises "the
+  # condition has length > 1", so the documented vector support above has never
+  # actually worked -- and the per-entity reconciliation below needs it to.
+  is_all <- length(review_id) == 1L && identical(as.character(review_id), "all")
+
+  if (is_all) {
     pending_reviews <- pool %>%
       tbl("ndd_entity_review") %>%
       filter(review_approved == 0, is.na(approving_user_id)) %>%
-      select(review_id) %>%
+      dplyr::select(review_id) %>%
       collect()
 
-    review_ids <- pending_reviews$review_id
+    review_ids <- as.integer(pending_reviews$review_id)
   } else {
     review_ids <- as.integer(review_id)
   }
@@ -66,8 +83,40 @@ svc_approval_review_approve <- function(review_id, user_id, approve = FALSE, poo
     ))
   }
 
-  # Use repository to approve/unapprove reviews
-  review_approve(review_ids, user_id, approve)
+  # Approve and reconcile in ONE scope. Pool -> transaction; caller-owned
+  # connection -> savepoint (db_with_savepoint_or_transaction, #612).
+  db_with_savepoint_or_transaction(pool, "review_approve_reconcile", fn = function(conn) {
+    review_approve(review_ids, user_id, approve, conn = conn)
+
+    if (!isTRUE(approve)) {
+      # Unapproving does not establish a served set, so nothing is retired.
+      return(invisible(NULL))
+    }
+
+    placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
+    entity_rows <- db_execute_query(
+      paste0(
+        "SELECT DISTINCT entity_id FROM ndd_entity_review WHERE review_id IN (",
+        placeholders, ")"
+      ),
+      as.list(review_ids),
+      conn = conn
+    )
+    if (is.null(entity_rows) || nrow(entity_rows) == 0L) {
+      return(invisible(NULL))
+    }
+
+    # The served set is read AFTER review_approve() has run on this connection,
+    # so it observes the review this scope just made primary and approved. An
+    # empty served set is meaningful, not a reason to skip -- see
+    # variation_provenance_reconcile_on_approval().
+    for (entity_id in unique(as.integer(entity_rows$entity_id))) {
+      variation_provenance_reconcile_on_approval(
+        entity_id = entity_id, review_user_id = user_id, conn = conn
+      )
+    }
+    invisible(NULL)
+  })
 
   # Return success
   return(list(

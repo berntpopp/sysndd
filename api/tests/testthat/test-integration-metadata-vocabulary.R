@@ -98,11 +98,26 @@ test_that("status category in-use delete is blocked with a 400", {
     new_id <- created$entry$pk
 
     # Reference the new category from ndd_entity_status so the guard trips.
+    #
+    # ndd_entity_status.entity_id is a FOREIGN KEY to ndd_entity, and
+    # ndd_entity.entry_user_id is a NOT NULL foreign key to `user`, so BOTH
+    # parents have to exist. This only surfaced once CI began applying
+    # migrations: on a developer database those rows were already there, and
+    # before that the whole file skipped for want of a schema.
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO user (user_id, user_name, user_role) VALUES (999999, ?, 'Curator')",
+      params = unname(list("metadata-vocab-fixture"))
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO ndd_entity (entity_id, entry_user_id) VALUES (999999, 999999)"
+    )
     DBI::dbExecute(
       conn,
       sprintf(
         "INSERT INTO ndd_entity_status (entity_id, category_id, is_active, status_user_id)
-         VALUES (999999, %d, 1, 1)",
+         VALUES (999999, %d, 1, 999999)",
         new_id
       )
     )
@@ -130,7 +145,27 @@ test_that("anchored inheritance vocabulary lists and updates curated fields", {
     rows <- metadata_vocabulary_list(
       metadata_vocabulary_descriptor("inheritance"), conn = conn
     )
-    skip_if(nrow(rows) == 0, "no inheritance terms seeded in test DB")
+    if (nrow(rows) == 0) {
+      # Seed our own term rather than skip. A fresh/CI database has NO
+      # inheritance terms at all, so this block only ever ran when another file
+      # happened to leave one behind. (metadata_vocabulary_list() returns
+      # inactive rows too, so the empty case really is "none seeded", not
+      # "none active".) Written inside the caller's transaction, so it rolls
+      # back.
+      DBI::dbExecute(
+        conn,
+        paste(
+          "INSERT INTO mode_of_inheritance_list",
+          "(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,",
+          "inheritance_filter, inheritance_short_text, is_active, sort)",
+          "VALUES ('HP:9900006', 'vocabulary test inheritance', 'Autosomal dominant', 'AD', 1, 990001)"
+        )
+      )
+      rows <- metadata_vocabulary_list(
+        metadata_vocabulary_descriptor("inheritance"), conn = conn
+      )
+    }
+    expect_gt(nrow(rows), 0)
     term <- rows$hpo_mode_of_inheritance_term[[1]]
 
     updated <- svc_metadata_update(

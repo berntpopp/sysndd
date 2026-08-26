@@ -105,6 +105,7 @@
 
             <div class="inline-entity-workflow__field">
               <label for="review-variation-select">Variation ontology</label>
+              <VariationProvenanceZones :variation-zones="variationZones" />
               <TreeMultiSelect
                 v-if="variationOptions && variationOptions.length > 0"
                 id="review-variation-select"
@@ -264,6 +265,8 @@
 </template>
 
 <script setup lang="ts">
+import VariationProvenanceZones from '@/views/curate/components/VariationProvenanceZones.vue';
+import type { VariationProvenanceZonesApi } from '@/views/curate/composables/useVariationProvenanceZones';
 import { computed } from 'vue';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
@@ -292,6 +295,8 @@ const props = defineProps<{
   selectGeneReviews: string[];
   phenotypeOptions: any[];
   variationOptions: any[];
+  /** #612: three-zone provenance picker; null renders nothing. */
+  variationZones?: VariationProvenanceZonesApi | null;
   statusOptions: any[] | null;
   statusOptionsLoading: boolean;
   formData: any;

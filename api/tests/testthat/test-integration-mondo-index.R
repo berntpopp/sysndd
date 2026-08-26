@@ -165,16 +165,28 @@ test_that("disease_mapping_derive + write populates disease_ontology_mapping", {
     )
     DBI::dbAppendTable(conn, "mondo_xref", xref_rows)
 
-    # Check if disease_ontology_set has OMIM:618524 test row
-    existing <- DBI::dbGetQuery(
+    # disease_mapping_derive() joins mondo_xref to disease_ontology_set, so it
+    # needs the disease to exist. This block used to SKIP when it did not --
+    # which meant it ran only when an unrelated file
+    # (test-integration-ontology-mapping-refresh.R) happened to have leaked its
+    # own OMIM:618524 seed earlier in the same run. That is a test depending on
+    # another test's residue: it passed for the wrong reason, and it went silent
+    # the moment that leak was fixed. Seed the row here instead. The whole block
+    # runs inside with_test_db_transaction(), so this rolls back.
+    seeded <- DBI::dbGetQuery(
       conn,
       "SELECT disease_ontology_id FROM disease_ontology_set
        WHERE disease_ontology_id = 'OMIM:618524' LIMIT 1"
     )
-
-    if (nrow(existing) == 0L) {
-      testthat::skip(
-        "disease_ontology_set has no OMIM:618524 test row — skip DB write test"
+    if (nrow(seeded) == 0L) {
+      DBI::dbExecute(
+        conn,
+        paste0(
+          "INSERT INTO disease_ontology_set ",
+          "(disease_ontology_id_version, disease_ontology_id, ",
+          "disease_ontology_name, is_active) VALUES (?, ?, ?, 1)"
+        ),
+        params = unname(list("OMIM:618524_1", "OMIM:618524", "CTNNB1 syndrome (test seed)"))
       )
     }
 
@@ -251,13 +263,25 @@ test_that("disease_mapping_derive returns native rows for all disease_ontology_i
     # Empty xref table — should still get native rows
     DBI::dbExecute(conn, "DELETE FROM mondo_xref")
 
+    # Same residue dependency as the block above: this used to skip whenever
+    # disease_ontology_set was empty, so it ran only when some earlier file had
+    # left a disease behind. Seed one and assert for real; the surrounding
+    # with_test_db_transaction() rolls it back.
     dos_count <- DBI::dbGetQuery(
       conn,
       "SELECT COUNT(DISTINCT disease_ontology_id) AS n FROM disease_ontology_set"
     )$n
 
     if (dos_count == 0L) {
-      testthat::skip("disease_ontology_set is empty")
+      DBI::dbExecute(
+        conn,
+        paste0(
+          "INSERT INTO disease_ontology_set ",
+          "(disease_ontology_id_version, disease_ontology_id, ",
+          "disease_ontology_name, is_active) VALUES (?, ?, ?, 1)"
+        ),
+        params = unname(list("OMIM:618524_1", "OMIM:618524", "CTNNB1 syndrome (test seed)"))
+      )
     }
 
     derived <- disease_mapping_derive(conn, MONDO_TARGET_ALLOWLIST)

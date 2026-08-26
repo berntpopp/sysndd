@@ -170,10 +170,23 @@ variation_provenance_carry_forward_entity <- function(old_entity_id, new_entity_
   old_entity_id <- as.integer(old_entity_id)
   new_entity_id <- as.integer(new_entity_id)
 
+  # LOCKING read (#640). The rename copies each assertion's `state` verbatim, so
+  # an unlocked read loses a concurrent decision: the curation queue's Confirm
+  # takes `SELECT ... FOR UPDATE` on these very rows and then UPDATEs the state
+  # (services/curate-variation-apply-service.R), so a curator confirming the
+  # source between this read and the rename's commit would have that
+  # confirmation silently dropped from the replacement entity.
+  #
+  # `ORDER BY assertion_id` matches the order the queue's batch apply locks in,
+  # so the two cannot deadlock by grabbing the same rows in opposite orders. The
+  # queue never requests a review lock, so there is no cycle with the review
+  # rows this transaction already holds.
   old_assertions <- db_execute_query(
     "SELECT assertion_id, vario_id, modifier_id, state, confirmed_by, confirmed_at, rejected_reason
        FROM variation_ontology_assertion
-      WHERE entity_id = ?",
+      WHERE entity_id = ?
+      ORDER BY assertion_id
+      FOR UPDATE",
     list(old_entity_id),
     conn = conn
   )

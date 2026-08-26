@@ -121,52 +121,25 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
                 entry = duplicate))
   }
 
-  # Load source review (primary, active) and status (active) — to be copied forward
-  review_original <- pool %>%
-    dplyr::tbl("ndd_entity_review") %>%
-    dplyr::filter(entity_id == !!old_entity_id, is_primary == 1) %>%
-    dplyr::collect()
-
-  status_original <- pool %>%
+  # Cheap precondition check, deliberately OUTSIDE the transaction and
+  # deliberately NOT the read the copy uses (#640). Its only job is to turn the
+  # ordinary "this entity has no active status" case into a friendly 409 rather
+  # than a rolled-back 500: db_with_transaction() re-raises every error as
+  # `db_transaction_error`, flattening the class, so an abort raised inside
+  # cannot be mapped back to a 409 without changing that shared helper's
+  # behaviour for every caller. The AUTHORITATIVE, locked read still happens
+  # inside the transaction; if the status disappears in between, that is a
+  # genuine concurrent deletion and a rolled-back 500 is the honest answer.
+  status_precheck <- pool %>%
     dplyr::tbl("ndd_entity_status") %>%
     dplyr::filter(entity_id == !!old_entity_id, is_active == 1) %>%
     dplyr::collect()
 
-  if (nrow(status_original) == 0) {
+  if (nrow(status_precheck) == 0) {
     return(list(
       status = 409,
       message = "Conflict. Active source status could not be loaded for rename."
     ))
-  }
-
-  publications_original <- if (nrow(review_original) > 0) {
-    pool %>%
-      dplyr::tbl("ndd_review_publication_join") %>%
-      dplyr::filter(review_id == !!review_original$review_id[1]) %>%
-      dplyr::select(publication_id, publication_type) %>%
-      dplyr::collect()
-  } else {
-    tibble::tibble()
-  }
-
-  phenotypes_original <- if (nrow(review_original) > 0) {
-    pool %>%
-      dplyr::tbl("ndd_review_phenotype_connect") %>%
-      dplyr::filter(review_id == !!review_original$review_id[1]) %>%
-      dplyr::select(phenotype_id, modifier_id) %>%
-      dplyr::collect()
-  } else {
-    tibble::tibble()
-  }
-
-  vario_original <- if (nrow(review_original) > 0) {
-    pool %>%
-      dplyr::tbl("ndd_review_variation_ontology_connect") %>%
-      dplyr::filter(review_id == !!review_original$review_id[1]) %>%
-      dplyr::select(vario_id, modifier_id) %>%
-      dplyr::collect()
-  } else {
-    tibble::tibble()
   }
 
   logger::log_warn(
@@ -181,6 +154,17 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
   tryCatch(
     {
       result <- db_with_transaction(function(txn_conn) {
+        # 0. Read the snapshot we are about to copy forward INSIDE this
+        #    transaction, under a row lock (#640). See
+        #    svc_entity_rename_load_source() for why reading it beforehand was a
+        #    lost-update and a provenance-laundering bug.
+        source_rows <- svc_entity_rename_load_source(old_entity_id, conn = txn_conn)
+        review_original <- source_rows$review
+        status_original <- source_rows$status
+        publications_original <- source_rows$publications
+        phenotypes_original <- source_rows$phenotypes
+        vario_original <- source_rows$vario
+
         # 1. Create new entity (carries hgnc_id/MOI/ndd_phenotype from source, new ontology)
         new_entity_id <- entity_create(list(
           hgnc_id                       = rename_entity$hgnc_id,

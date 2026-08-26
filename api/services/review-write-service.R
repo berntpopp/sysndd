@@ -531,25 +531,16 @@ review_write_mutate <- function(prepared, txn_conn, re_review,
 
 review_write_run_mutation <- function(prepared, db, mutation_fn,
                                       transaction_runner = db_with_transaction) {
-  run <- function(txn_conn) mutation_fn(prepared, txn_conn)
-  if (inherits(db, "DBIConnection")) {
-    # Direct connections are caller-owned (notably with_test_db_transaction()).
-    # A savepoint gives this write unit rollback semantics without asking
-    # RMariaDB to start an unsupported nested transaction.
-    DBI::dbExecute(db, "SAVEPOINT review_write_mutation")
-    return(tryCatch(
-      {
-        result <- run(db)
-        DBI::dbExecute(db, "RELEASE SAVEPOINT review_write_mutation")
-        result
-      },
-      error = function(error) {
-        DBI::dbExecute(db, "ROLLBACK TO SAVEPOINT review_write_mutation")
-        stop(error)
-      }
-    ))
-  }
-  transaction_runner(run, pool_obj = db)
+  # Pool -> a real transaction; caller-owned DBIConnection (notably
+  # with_test_db_transaction()) -> a SAVEPOINT, because RMariaDB has no nested
+  # transaction. That decision now lives in db_with_savepoint_or_transaction()
+  # (functions/db-helpers.R), which the approval path and the curation queue
+  # share; the savepoint NAME is unchanged.
+  db_with_savepoint_or_transaction(
+    db, "review_write_mutation",
+    fn = function(txn_conn) mutation_fn(prepared, txn_conn),
+    transaction_runner = transaction_runner
+  )
 }
 
 svc_review_write <- function(method, review_data, publications = tibble::tibble(),

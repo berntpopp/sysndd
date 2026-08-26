@@ -45,6 +45,9 @@
         <template #label>
           <span class="fw-semibold">Variation Ontology</span>
         </template>
+        <!-- #612: the deliberate-act picker. Renders nothing when the entity has
+             no machine-derived terms, so this form is unchanged for most reviews. -->
+        <VariationProvenanceZones :variation-zones="variationZones" :readonly="loading" />
         <TreeMultiSelect
           v-if="variationOptions && variationOptions.length > 0"
           id="review-variation-select"
@@ -181,6 +184,8 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
+import VariationProvenanceZones from '@/views/curate/components/VariationProvenanceZones.vue';
+import type { VariationProvenanceZonesApi } from '@/views/curate/composables/useVariationProvenanceZones';
 
 export interface ReviewInfoShape {
   synopsis?: string | null;
@@ -203,6 +208,11 @@ const props = defineProps({
   reviewInfo: { type: Object as PropType<ReviewInfoShape>, required: true },
   phenotypeOptions: { type: Array as PropType<TreeOption[]>, default: () => [] },
   variationOptions: { type: Array as PropType<TreeOption[]>, default: () => [] },
+  /** #612: three-zone provenance picker for this review's entity; null renders nothing. */
+  variationZones: {
+    type: Object as PropType<VariationProvenanceZonesApi | null>,
+    default: null,
+  },
   selectPhenotype: { type: Array as PropType<string[]>, default: () => [] },
   selectVariation: { type: Array as PropType<string[]>, default: () => [] },
   selectAdditionalReferences: { type: Array as PropType<string[]>, default: () => [] },

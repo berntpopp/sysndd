@@ -13,6 +13,10 @@ library(dplyr)
 library(tibble)
 library(stringr)
 library(rlang)
+# generate_panels_list() calls pivot_longer()/pivot_wider() unqualified, as the
+# loaded API does. Attach tidyr so the direct-behaviour block below runs against
+# the same set of visible functions production has.
+library(tidyr)
 library(DBI)
 
 # Source helper functions
@@ -343,7 +347,10 @@ test_that("panels filter rejects an injected column token", {
 
 .panels_direct_insert_and_id <- function(conn, sql, id_column) {
   DBI::dbExecute(conn, sql)
-  DBI::dbGetQuery(conn, sprintf("SELECT LAST_INSERT_ID() AS %s", id_column))[[id_column]][[1]]
+  # Plain integer, NOT the raw bit64::integer64 RMariaDB returns for a BIGINT:
+  # the "%d" interpolations below abort on an integer64. See
+  # test_db_last_insert_id() in helper-db.R.
+  test_db_last_insert_id(conn, id_column)
 }
 
 #' Seed one entity with an APPROVED status (Definitive / Autosomal dominant,

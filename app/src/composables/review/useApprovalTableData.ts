@@ -42,6 +42,8 @@ export interface ApprovalTableFilters {
 export interface UseApprovalTableDataReturn<Row extends ApprovalRowLike> {
   // state from useTableData
   items: Ref<Row[]>;
+  /** BTable `filtered` handler: re-count and return to page 1. */
+  onFiltered: (filteredList: unknown[]) => void;
   totalRows: Ref<number>;
   currentPage: Ref<number>;
   perPage: Ref<number>;
@@ -179,8 +181,21 @@ export default function useApprovalTableData<Row extends ApprovalRowLike>(
     filters.dateEnd.value = null;
   };
 
+  /**
+   * BTable's `filtered` handler: re-count and return to page 1.
+   *
+   * Lives here rather than in each consuming controller because both values it
+   * mutates are this composable's own — leaving a curator on page 4 of a
+   * two-page filtered result is a pagination bug, not a view concern.
+   */
+  function onFiltered(filteredList: unknown[]): void {
+    table.totalRows.value = filteredList.length;
+    table.currentPage.value = 1;
+  }
+
   return {
     items,
+    onFiltered,
     totalRows: table.totalRows,
     currentPage: table.currentPage,
     perPage: table.perPage,

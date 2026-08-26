@@ -57,6 +57,10 @@ bootstrap_load_modules <- function() {
   function_files <- c(
     "functions/config-functions.R",
     "functions/logging-functions.R",
+    # Transaction-scope helper first: db-helpers.R attaches RMariaDB, and this
+    # decision (pool -> transaction, caller-owned connection -> savepoint) needs
+    # only DBI.
+    "functions/db-transaction-scope.R",
     "functions/db-helpers.R",
     "functions/db-version.R",
     "functions/metadata-refresh.R",
@@ -118,6 +122,11 @@ bootstrap_load_modules <- function() {
     # definitions (e.g. .variation_provenance_identity_key()) are already
     # bound in the global environment before this file is sourced.
     "functions/variation-provenance-carry-forward.R",
+    # #640: the locked source snapshot the rename copies forward.
+    "functions/entity-rename-source-snapshot.R",
+    # #612: approval-time (rejection-only) reconciliation. Depends on the state
+    # machine in variation-provenance-reconcile.R above.
+    "functions/variation-provenance-approval.R",
     "functions/mcp-search-repository.R",
     "functions/mcp-repository.R",
     "functions/mcp-analysis-cache-repository.R",
@@ -292,6 +301,11 @@ bootstrap_load_modules <- function() {
     # entity-read-endpoint-service.R, which consumes it to attach the per-term
     # `provenance` object to GET /entity/<id>/variation.
     "services/entity-variation-provenance-service.R",
+    # #612: the Curator curation queue. AFTER entity-variation-provenance-service.R,
+    # whose .svc_vp_* helpers it reuses for evidence ordering and NA handling.
+    "services/curate-variation-suggestion-service.R",
+    # The queue's write half, split out to keep both files under the ceiling.
+    "services/curate-variation-apply-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

@@ -453,7 +453,10 @@ test_that("phenotype filter rejects an injected column token", {
 
 .px_insert_id <- function(conn, sql, id_column, ...) {
   .px_exec(conn, sql, ...)
-  DBI::dbGetQuery(conn, sprintf("SELECT LAST_INSERT_ID() AS %s", id_column))[[id_column]][[1]]
+  # Plain integer, NOT the raw bit64::integer64 RMariaDB returns for a BIGINT:
+  # the "%d" interpolations below abort on an integer64. See
+  # test_db_last_insert_id() in helper-db.R.
+  test_db_last_insert_id(conn, id_column)
 }
 .px_cleanup <- function(conn) {
   ids <- .px_ids
@@ -537,6 +540,15 @@ test_that("generate_phenotype_entities_list: approved views, empty/meta/xlsx sha
   )
   missing <- required[!vapply(required, function(t) DBI::dbExistsTable(con, t), logical(1))]
   if (length(missing) > 0) skip(paste("Missing table(s):", paste(missing, collapse = ", ")))
+
+  # Alias the memoised binding API startup makes (bootstrap/init_cache.R) to the
+  # unmemoised implementation -- memoisation is caching, not behaviour. It must
+  # land in the GLOBAL env: the modules under test are source()d above with the
+  # default local = FALSE, so their closures resolve names there, not here.
+  if (!exists("generate_tibble_fspec_mem", mode = "function")) {
+    assign("generate_tibble_fspec_mem", generate_tibble_fspec, envir = globalenv())
+    withr::defer(rm("generate_tibble_fspec_mem", envir = globalenv()))
+  }
 
   .px_cleanup(con)
   withr::defer(.px_cleanup(con))

@@ -23,13 +23,19 @@
 # end-to-end verification (submitting `category_filter` against the running
 # dev stack), which the controller performs separately.
 #
-# Instead, this file is SKIP-GUARDED on a populated view: it probes the live
-# `ndd_entity_view` for a real, currently-active category with >=2 distinct
-# NDD (`ndd_phenotype = 1`) genes, and only then runs. On a fresh/empty test
-# DB (CI default) every test here SKIPs cleanly. When the test DB is a
-# populated clone (a local/staging run), this file exercises the resolver
-# against the true view for real -- genuine resolver-vs-real-MySQL-view
-# coverage without fragile fixture seeding.
+# So this file PREFERS a populated view: it probes the live `ndd_entity_view`
+# for a real, currently-active category with >=2 distinct NDD
+# (`ndd_phenotype = 1`) genes and uses that when it exists, which on a
+# populated clone gives genuine resolver-vs-real-MySQL-view coverage without
+# fragile fixture seeding.
+#
+# UPDATE (#612): it no longer SKIPs when that probe finds nothing. It did, and
+# a fresh/CI database ALWAYS finds nothing -- so these three tests ran only when
+# an unrelated file happened to leave data behind, and reported green by
+# skipping the rest of the time. `.clustering_seed_category_universe()` now
+# seeds a minimal two-gene universe inside the caller's rollback instead. The
+# concern above stands and is why the seed is minimal and commented: it must
+# stay in step with the view's join contract.
 # ---------------------------------------------------------------------------
 
 library(testthat)
@@ -90,14 +96,114 @@ source_api_file("functions/analyses-functions.R", local = FALSE)
   as.character(eligible$category[[1]])
 }
 
+
+#' Seed two NDD entities sharing one approved category, so the probe above finds
+#' something on a FRESH test database.
+#'
+#' Before this, all three tests below `skip()`ed whenever `ndd_entity_view` was
+#' empty -- which is every CI run, because CI's database is migrated but not
+#' populated. A test that only runs when someone else happened to leave data
+#' behind is not a test (same lesson as the `OMIM:618524` residue dependency in
+#' test-integration-mondo-index.R). Everything here is written inside the
+#' caller's `with_test_db_transaction()`, so it rolls back.
+#'
+#' `ndd_entity_view` joins ndd_entity -> non_alt_loci_set, disease_ontology_set,
+#' mode_of_inheritance_list, ndd_entity_status_approved_view (status_approved = 1
+#' AND is_active = 1), ndd_entity_status_categories_list and boolean_list. Note
+#' boolean_list and the category list are BASE-SCHEMA seeds and are deliberately
+#' NOT inserted here: adding a second `logical = 1` row makes the view emit two
+#' rows per entity and silently doubles every count.
+#'
+#' @param conn Connection inside the caller's open transaction.
+#' @return The category name the seeded entities share.
+.clustering_seed_category_universe <- function(conn) {
+  # RMariaDB raises "Query has no parameters" when `params` is supplied for a
+  # statement with no placeholders, so omit the argument entirely in that case.
+  exec <- function(sql, params = list()) {
+    if (length(params) == 0L) {
+      return(DBI::dbExecute(conn, sql))
+    }
+    DBI::dbExecute(conn, sql, params = unname(params))
+  }
+  suffix <- as.integer(Sys.time()) %% 10000L
+  # Pick an ACTIVE category rather than assuming category_id 1 is active: the
+  # category list is admin-editable (soft-deactivatable via is_active), so
+  # hardcoding an id could seed entities under a category
+  # clustering_resolve_category_universe() then rejects. Activate one if the
+  # whole list happens to be inactive -- still inside the caller's rollback.
+  active <- DBI::dbGetQuery(
+    conn,
+    "SELECT category_id, category FROM ndd_entity_status_categories_list WHERE is_active = 1 LIMIT 1"
+  )
+  if (nrow(active) == 0L) {
+    DBI::dbExecute(
+      conn,
+      "UPDATE ndd_entity_status_categories_list SET is_active = 1 WHERE category_id = 1"
+    )
+    active <- DBI::dbGetQuery(
+      conn,
+      "SELECT category_id, category FROM ndd_entity_status_categories_list WHERE category_id = 1"
+    )
+  }
+  category_id <- as.integer(active$category_id[[1]])
+  user_id <- 880000L + suffix
+  moi <- DBI::dbGetQuery(
+    conn, "SELECT hpo_mode_of_inheritance_term AS t FROM mode_of_inheritance_list LIMIT 1"
+  )$t
+  if (length(moi) == 0L) {
+    exec("INSERT INTO mode_of_inheritance_list (hpo_mode_of_inheritance_term) VALUES ('HP:0000006')")
+    moi <- "HP:0000006"
+  }
+
+  exec("INSERT INTO user (user_id, user_name) VALUES (?, ?)",
+       list(user_id, paste0("clustering_seed_", suffix)))
+
+  ontology <- sprintf("OMIM:%06d_1", 880000L + suffix %% 500L)
+  exec(
+    paste(
+      "INSERT INTO disease_ontology_set",
+      "(disease_ontology_id_version, disease_ontology_id, disease_ontology_name,",
+      "disease_ontology_source, is_active) VALUES (?, ?, ?, 'test', 1)"
+    ),
+    list(ontology, sub("_1$", "", ontology), "Clustering seed disease")
+  )
+
+  # Two DISTINCT genes, so COUNT(DISTINCT hgnc_id) >= 2 for this category.
+  for (index in seq_len(2L)) {
+    hgnc <- sprintf("HGNC:%05d", 88000L + (suffix %% 400L) * 2L + index)
+    exec("INSERT INTO non_alt_loci_set (hgnc_id, symbol) VALUES (?, ?)",
+         list(hgnc, sprintf("CLSEED%d%d", suffix %% 1000L, index)))
+    exec(
+      paste(
+        "INSERT INTO ndd_entity",
+        "(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version,",
+        "ndd_phenotype, entry_user_id, is_active) VALUES (?, ?, ?, 1, ?, 1)"
+      ),
+      list(hgnc, moi, ontology, user_id)
+    )
+    entity_id <- test_db_last_insert_id(conn, "entity_id")
+    exec(
+      paste(
+        "INSERT INTO ndd_entity_status",
+        "(entity_id, category_id, is_active, status_user_id, status_approved,",
+        "approving_user_id, problematic, comment)",
+        "VALUES (?, ?, 1, ?, 1, ?, 0, 'clustering seed')"
+      ),
+      list(entity_id, category_id, user_id, user_id)
+    )
+  }
+
+  as.character(active$category[[1]])
+}
+
 test_that("clustering_resolve_category_universe matches a direct MySQL query on the real ndd_entity_view", {
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
     probe_category <- .clustering_category_probe(conn)
-    skip_if(
-      is.null(probe_category),
-      "no populated ndd_entity_view category with >=2 distinct NDD genes (empty/fresh test DB)"
-    )
+    if (is.null(probe_category)) {
+      # Fresh/CI database: seed our own universe rather than skip.
+      probe_category <- .clustering_seed_category_universe(conn)
+    }
 
     resolved <- clustering_resolve_category_universe(probe_category, conn = conn)
 
@@ -120,10 +226,10 @@ test_that("clustering_resolve_category_universe rejects an unknown category, nam
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
     probe_category <- .clustering_category_probe(conn)
-    skip_if(
-      is.null(probe_category),
-      "no populated ndd_entity_view category with >=2 distinct NDD genes (empty/fresh test DB)"
-    )
+    if (is.null(probe_category)) {
+      # Fresh/CI database: seed our own universe rather than skip.
+      probe_category <- .clustering_seed_category_universe(conn)
+    }
 
     err <- tryCatch(
       clustering_resolve_category_universe("Definative", conn = conn),
@@ -143,10 +249,10 @@ test_that("clustering_resolve_category_universe(NULL) matches the default all-ND
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
     probe_category <- .clustering_category_probe(conn)
-    skip_if(
-      is.null(probe_category),
-      "no populated ndd_entity_view category with >=2 distinct NDD genes (empty/fresh test DB)"
-    )
+    if (is.null(probe_category)) {
+      # Fresh/CI database: seed our own universe rather than skip.
+      probe_category <- .clustering_seed_category_universe(conn)
+    }
 
     # `generate_ndd_hgnc_ids()` (analyses-functions.R) reads the package-global
     # `pool` directly -- the resolver's `is.null(selector)` branch does NOT
