@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **The five newly-awake test failures, none of which was a re-skip** (#612). Loading the real
+  schema into CI's test database turned dormant files back on, and five of them then failed for
+  reasons unrelated to the code they cover. Each was a distinct defect that had been invisible for
+  as long as the file skipped: `LAST_INSERT_ID()` comes back as a `bit64::integer64` whose storage
+  is an int64 *bit pattern*, so `sprintf("%d", id)` aborted (two files); a template `version`
+  fixture was 34 characters against a `varchar(20)`; a stub written to `globalenv()` was silently
+  shadowed by the real function, which `source_api_file(local = FALSE)` had put in the per-file
+  test environment, so the production STRING clustering path ran instead; and a block wrapped in
+  `with_test_db_transaction()` called production code that opens its own transaction, so it
+  asserted `"Data too long"` and actually received `"Nested transactions not supported"` — proving
+  nothing. The suite now runs **0 failures with no table drift**.
+- **A migration test's restore is registered before its destructive step** (#612). The teardown
+  that puts `variation_ontology_assertion` / `variation_ontology_evidence` back was registered
+  after ~50 lines of assertions, so any expectation failure in between aborted the block and left
+  the shared schema destroyed — for every later file in the run *and* every subsequent run. Found
+  by adversarial review; covered by a red test that aborts mid-block.
+- **Two tests no longer leak into, or depend on, the shared test database** (#612).
+  `test-integration-ontology-mapping-refresh.R` seeded an `OMIM:618524` disease and never removed
+  it; `test-integration-mondo-index.R` then *skipped unless that leak was present*, so it passed
+  for the wrong reason and would have gone silent the moment the leak was fixed. Both now seed
+  what they need and remove only what they created. `test-unit-llm-prompt-template-repository.R`
+  also leaked its rows: its cleanup was registered with `on.exit(add = TRUE)` after the
+  disconnect, and `on.exit` runs handlers in *registration* order, so the `DELETE` aborted with
+  `bad_weak_ptr`.
+- **The curation queue rejects a page whose offset would overflow** (#612). `page` accepted
+  `.Machine$integer.max`; `(page - 1) * page_size` is 32-bit integer arithmetic in R, so it
+  overflowed to `NA` and bound `NA` as the SQL `OFFSET`. It is now capped so the largest accepted
+  `page_size` cannot overflow, and an over-large page is the same 400 every other out-of-range
+  parameter gets.
+- **`save_prompt_template()` returns the column's own type.** It returned `LAST_INSERT_ID()`
+  verbatim — a `bit64::integer64` — which compares unequal to the `INT` `template_id`
+  `get_prompt_template()` reads back and would serialise as a JSON *string*.
+
+### Changed
+
+- **The two `*.provenance.spec.ts` files exercise the production submit path** (#612). Both
+  re-declared the payload mapping inside the test and asserted the copy, and the ModifyEntity
+  wiring check counted occurrences of a literal string in the source — so the production path
+  could have stopped forwarding `provenance_action` entirely and both files would have stayed
+  green. They now drive the real `submitReviewUpdate()`, `useEntityMutations.submitReview()` and
+  both `useModifyEntityWorkflows` argument builders against a mocked HTTP client and assert the
+  body that is actually sent. Verified by removing each forward in turn and watching exactly the
+  corresponding test fail — which matters here because `useCombinedStatusReview` bridges the two
+  with `args as never`, so the type checker cannot catch a dropped field.
+
 ## [0.32.0] - 2026-08-25
 
 ### Added

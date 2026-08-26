@@ -74,6 +74,37 @@ Locally, `make test-db-schema` runs the same script against `config.yml`'s
 records migrations whose tables do not exist (a database built ad hoc rather than
 by the runner) — drop and recreate that database and re-run.
 
+**Waking those tests up broke them in ways unrelated to the code under test**,
+and the errors do not name their causes. `.agents/skills/sysndd-api-testing/SKILL.md`
+carries the full list with each trap's tell; the two that reach beyond tests:
+
+- **A destructive teardown must register its restore BEFORE the destructive
+  step**, never after the assertions — an expectation failure aborts the block,
+  and a teardown registered later simply never runs. A migration test that
+  drops its tables to re-apply its migration and then leaves them dropped
+  destroys shared schema for **every later file in the run and every subsequent
+  run**, because nothing puts it back. Restore through the real migration runner
+  (clear exactly those `schema_version` rows, re-apply, then VERIFY and fail
+  loudly naming the gap): the migration under test is usually not the whole
+  current shape, e.g. `047` creates `variation_ontology_evidence` but `049` adds
+  its `origin_review_id`.
+- **`db_with_savepoint_or_transaction()` is NOT the fix for
+  "Nested transactions not supported" in a test.** It is correct only where the
+  caller genuinely owns an open transaction. `refresh_disease_ontology_set()`
+  and `analysis_snapshot_refresh()` are handed a raw, autocommit connection in
+  production (`async_job_db_connect()`, or a pool checkout), and a `SAVEPOINT`
+  on such a connection silently buys **no atomicity at all** — swapping it in to
+  make a test pass would quietly remove the rollback that a half-rebuilt
+  `disease_ontology_set` depends on. Fix the test instead: drop the outer
+  `with_test_db_transaction()` and clean up explicitly (documenting why), or
+  stub the thin BEGIN/COMMIT seam when the transaction is not what is under
+  test.
+
+A test must also never depend on another test's residue: `test-integration-mondo-index.R`
+skipped unless some *other* file had leaked an `OMIM:618524` row into
+`disease_ontology_set`, so it passed for the wrong reason and went silent the
+moment that leak was fixed. Seed what you need inside your own rollback.
+
 Single-test shortcuts:
 
 ```bash
@@ -344,6 +375,8 @@ The other direction of each pair has to ADD or REMOVE a curated term, which is a
 **`moved`** is `origin_review_id`'s first consumer (migration `049`, 95 rows in production): the assertion has evidence whose `origin_review_id` is not currently a primary-approved review of that entity. Because that column deliberately has no foreign key, a vanished origin review also reads as moved.
 
 Every skipped item is returned with its reason. A silent partial success on a provenance surface is the failure mode this feature exists to avoid.
+
+`page` is capped at `CURATE_VARIATION_PAGE_MAX` (`.Machine$integer.max %/% CURATE_VARIATION_PAGE_SIZE_MAX`), not at `.Machine$integer.max`: the SQL offset is `(page - 1) * page_size` in R's **32-bit** integer arithmetic, so an unbounded page overflows to `NA` and binds `NA` as the `OFFSET`. `page_size` needs no such bound — it is clamped, not multiplied.
 
 **Two bugs here were invisible to mocked unit tests** and were found only by executing the SQL: the filters were bound twice against one set of placeholders, and the outer `ORDER BY` led with `assertion_id`, discarding the caller's sort because a JOIN does not inherit its derived table's order. Both are covered by `test-integration-variation-suggestions.R`; keep exercising that file against a real schema.
 
