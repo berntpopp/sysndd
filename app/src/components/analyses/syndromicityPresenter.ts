@@ -58,7 +58,7 @@ export function hasSyndromicity(block: SyndromicityBlock | null | undefined): bo
 
 const CALL_LABELS: Record<string, string> = {
   predominantly_syndromic: 'Predominantly syndromic',
-  predominantly_isolated: 'Predominantly non-syndromic',
+  predominantly_no_recorded_involvement: 'No recorded involvement in most',
   mixed: 'Mixed',
   insufficient_annotation: 'Insufficient annotation',
 };
@@ -80,7 +80,7 @@ export function syndromicityVariant(
   switch (scalar(block?.cluster_call)) {
     case 'predominantly_syndromic':
       return 'warning';
-    case 'predominantly_isolated':
+    case 'predominantly_no_recorded_involvement':
       return 'info';
     case 'mixed':
       return 'secondary';

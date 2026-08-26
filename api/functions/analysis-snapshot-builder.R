@@ -170,6 +170,7 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       )
       # #514: same coherence gate as the functional axis (phenotype has no channel).
       clusters <- analysis_snapshot_join_validated_clusters(clusters, val, kind = "phenotype")
+      val$partition <- analysis_snapshot_attach_partition_provenance(val$partition, clusters)
 
       # #630: computed, registry-backed syndromicity per cluster. Loads the
       # annotation evidence once for the whole snapshot; see

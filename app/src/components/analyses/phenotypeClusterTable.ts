@@ -149,6 +149,35 @@ export function phenotypeClusterVariableLabel(variable: unknown): string {
   return PHENOTYPE_CLUSTER_VARIABLE_LABELS[key] ?? key;
 }
 
+/**
+ * Build the rows the Excel export writes.
+ *
+ * `useExcelExport` creates one column per key on the row, so exporting the
+ * normalized rows wholesale emitted BOTH `variable` and `variable_label`, and
+ * both `p.value`/`p_value` and `v.test`/`v_test` -- four duplicate columns and
+ * the raw machine name where the readable label was promised. This projects an
+ * explicit column set instead: the mapped label in the single `variable`
+ * column, one p-value and one v-test.
+ */
+export function buildPhenotypeClusterExportRows(
+  rows: PhenotypeClusterRow[] | null | undefined
+): PhenotypeClusterRow[] {
+  return (rows || []).map((row) => {
+    const out: PhenotypeClusterRow = {
+      variable: phenotypeClusterVariableLabel(row.variable),
+      'p.value': row['p.value'] ?? row.p_value,
+      'v.test': row['v.test'] ?? row.v_test,
+    };
+    // Carry any additional stat columns (Mean_in_category, Overall_mean, ...)
+    // through unchanged, minus the de-dotted aliases and the display alias.
+    const skip = new Set(['variable', 'variable_label', 'p.value', 'v.test', 'p_value', 'v_test']);
+    for (const key of Object.keys(row)) {
+      if (!skip.has(key)) out[key] = row[key];
+    }
+    return out;
+  });
+}
+
 /** Sheet-name labels for the Excel export, keyed by table type. */
 export const PHENOTYPE_CLUSTER_EXPORT_LABELS: Record<PhenotypeClusterTableType, string> = {
   quali_inp_var: 'Qualitative Input Variables',

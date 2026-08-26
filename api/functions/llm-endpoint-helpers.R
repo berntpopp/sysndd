@@ -139,17 +139,24 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res,
     ))
   }
 
-  # Return generated summary
-  list(
-    cache_id = result$cache_id,
-    cluster_type = cluster_type,
-    cluster_number = as.integer(cluster_number),
-    model_name = result$summary$model_name %||% get_default_gemini_model(),
-    created_at = as.character(Sys.time()),
-    validation_status = result$validation_status %||% "pending",
-    summary_json = result$summary,
-    generated = TRUE # Flag indicating this was freshly generated
+  # Freshly generated summaries must have the SAME shape as cached ones, or a
+  # curator gets one schema immediately after generating and a different one on
+  # the next read. Reuse the cached formatter over a synthetic single row.
+  fresh <- format_summary_response(
+    data.frame(
+      cache_id = result$cache_id %||% NA_integer_,
+      cluster_type = cluster_type,
+      cluster_hash = raw_hash,
+      model_name = result$summary$model_name %||% get_default_gemini_model(),
+      created_at = as.character(Sys.time()),
+      validation_status = result$validation_status %||% "pending",
+      summary_json = I(list(result$summary)),
+      stringsAsFactors = FALSE
+    ),
+    cluster_number
   )
+  fresh$generated <- TRUE # Flag indicating this was freshly generated
+  fresh
 }
 
 #' Extract Raw Hash from Filter Format

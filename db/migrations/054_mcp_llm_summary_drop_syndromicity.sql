@@ -28,7 +28,9 @@
 -- test-unit-llm-prompt-version-pin.R fails if they diverge, so the next
 -- legitimate bump is a loud failure rather than a silent outage.
 --
--- Idempotent: CREATE OR REPLACE VIEW. No data is read or written.
+-- Idempotent: CREATE OR REPLACE VIEW. The template UPDATE targets
+-- `phenotype_generation`, which is the value migration 008's prompt_type ENUM
+-- actually defines and seeds (there is no 'phenotype_cluster' member).
 
 CREATE OR REPLACE ALGORITHM = UNDEFINED DEFINER = CURRENT_USER SQL SECURITY DEFINER
 VIEW `mcp_public_llm_cluster_summary` AS
@@ -74,5 +76,5 @@ SET `template_text` = REPLACE(
       '\n\n8. **Syndromicity:** Based on the syndromicity metrics:\n   - ''predominantly_syndromic'' = positive v.test for phenotype_non_id_count\n   - ''predominantly_id'' = positive v.test for phenotype_id_count\n   - ''mixed'' = both or neither significant\n   - ''unknown'' = no syndromicity data',
       ''
     )
-WHERE `prompt_type` = 'phenotype_cluster'
+WHERE `prompt_type` = 'phenotype_generation'
   AND `template_text` LIKE '%Syndromicity:%';

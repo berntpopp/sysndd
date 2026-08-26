@@ -69,6 +69,11 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::select(review_id)
   ndd_review_phenotype_connect_tbl <- pool %>%
     dplyr::tbl("ndd_review_phenotype_connect") %>%
+    # #514-class divergence: the served snapshot path
+    # (generate_phenotype_cluster_input) filters is_active == 1 and this one did
+    # not, so a deactivated annotation could put the interactive job on a
+    # different partition from the published snapshot.
+    dplyr::filter(is_active == 1) %>%
     dplyr::collect()
   modifier_list_tbl <- pool %>%
     dplyr::tbl("modifier_list") %>%
@@ -137,6 +142,23 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::select(-entity_id) %>%
     as.data.frame()
   row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # #630: the positional quali.sup/quanti.sup contract, asserted on every
+  # matrix-producing path.
+  phenotype_mca_assert_supplementary_layout(sysndd_db_phenotypes_wider_df)
+
+  # #508 MCA feature hygiene, applied BEFORE the cache probe. This path used to
+  # probe and run gen_mca_clust_obj_mem() on the UNPREPARED matrix while the
+  # served snapshot path (generate_phenotype_cluster_input) prepared it -- two
+  # different memoise keys, so the cache-first probe below could never hit, and
+  # a computed result would have used a different active variable set (HPO root
+  # included, no prevalence band, no absent/present recoding) and therefore a
+  # different partition. That is the #514 failure mode, and the comment below
+  # asserting hash parity with the API endpoint was false.
+  sysndd_db_phenotypes_wider_df <- phenotype_mca_prep_matrix(
+    sysndd_db_phenotypes_wider_df,
+    hpo_lookup = dplyr::select(phenotype_list_tbl, HPO_term, phenotype_id)
+  )
 
   # Cache-first: if the memoized function already has a cached result,
   # return it immediately without submitting a durable worker job.

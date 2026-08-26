@@ -128,7 +128,7 @@ test_that("cluster_call thresholds are inclusive at exactly 0.75 and 0.25", {
     syndromicity_aggregate_cluster(syndromicity_classify_entities(rows))
   }
   expect_equal(mk(3, 1)$cluster_call, "predominantly_syndromic") # exactly 0.75
-  expect_equal(mk(1, 3)$cluster_call, "predominantly_isolated")  # exactly 0.25
+  expect_equal(mk(1, 3)$cluster_call, "predominantly_no_recorded_involvement") # 0.25
   expect_equal(mk(2, 1)$cluster_call, "mixed")                   # 0.667
 })
 
@@ -253,4 +253,36 @@ test_that("a call whose interval straddles its threshold is flagged borderline",
   clear <- mk(535, 0)
   expect_equal(clear$cluster_call, "predominantly_syndromic")
   expect_false(clear$cluster_call_borderline)
+})
+
+test_that("an explicit `absent` annotation is not counted as equivocal", {
+  # `absent` is a curator ASSERTION of absence, not ambiguity. Folding it into
+  # equivocal_term_count would misreport the one modifier carrying negative
+  # evidence -- and equivocal_term_count exists precisely to make ambiguity
+  # visible.
+  out <- syndromicity_classify_entities(ann(
+    list(1L, "HP:0000077", "present"),
+    list(1L, "HP:0001627", "absent"),
+    list(1L, "HP:0000478", "uncertain")
+  ))
+  expect_equal(out$equivocal_term_count, 1L)
+  expect_equal(out$absent_term_count, 1L)
+  expect_equal(out$present_term_count, 1L)
+  expect_equal(out$system_count, 1L)
+})
+
+test_that("the cluster vocabulary avoids the word 'isolated' too", {
+  rows <- syndromicity_classify_entities(do.call(rbind, c(
+    list(data.frame(entity_id = 1L, phenotype_id = "HP:0000077",
+                    modifier_name = "present", stringsAsFactors = FALSE)),
+    lapply(2:20, function(i) {
+      data.frame(entity_id = i, phenotype_id = "HP:0001249",
+                 modifier_name = "present", stringsAsFactors = FALSE)
+    })
+  )))
+  agg <- syndromicity_aggregate_cluster(rows)
+  expect_equal(agg$cluster_call, "predominantly_no_recorded_involvement")
+  # Missing documentation cannot establish clinical isolation, at ANY level of
+  # the vocabulary -- entity or cluster.
+  expect_false(grepl("isolated", agg$cluster_call, fixed = TRUE))
 })

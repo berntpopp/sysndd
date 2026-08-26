@@ -61,3 +61,19 @@ test_that("a cluster with no members still builds", {
   expect_equal(nrow(built$clusters), 1L)
   expect_equal(nrow(built$members), 0L)
 })
+
+test_that("BOTH cluster branches persist partition provenance", {
+  # Regression guard: an edit to the phenotype branch deleted its
+  # attach_partition_provenance() call, which silently drops
+  # validation_json$reference_members -- the #514 same-partition proof -- so
+  # release validation falls back to the weaker legacy label comparison.
+  src <- paste(readLines(
+    file.path(get_api_dir(), "functions/analysis-snapshot-builder.R"), warn = FALSE
+  ), collapse = "\n")
+  hits <- gregexpr("analysis_snapshot_attach_partition_provenance(", src, fixed = TRUE)[[1]]
+  hits <- hits[hits > 0]
+  expect_equal(
+    length(hits), 2L,
+    info = "functional AND phenotype branches must each attach partition provenance"
+  )
+})

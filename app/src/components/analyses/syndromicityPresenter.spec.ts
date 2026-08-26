@@ -46,8 +46,8 @@ describe('syndromicityLabel', () => {
     expect(syndromicityLabel({ cluster_call: 'predominantly_syndromic' })).toBe(
       'Predominantly syndromic'
     );
-    expect(syndromicityLabel({ cluster_call: 'predominantly_isolated' })).toBe(
-      'Predominantly non-syndromic'
+    expect(syndromicityLabel({ cluster_call: 'predominantly_no_recorded_involvement' })).toBe(
+      'No recorded involvement in most'
     );
     expect(syndromicityLabel({ cluster_call: 'mixed' })).toBe('Mixed');
     expect(syndromicityLabel({ cluster_call: 'insufficient_annotation' })).toBe(
@@ -63,7 +63,7 @@ describe('syndromicityLabel', () => {
 
 describe('syndromicityVariant', () => {
   it('never reuses the retired AI badge "light" variant for a real value', () => {
-    for (const call of ['predominantly_syndromic', 'predominantly_isolated', 'mixed']) {
+    for (const call of ['predominantly_syndromic', 'predominantly_no_recorded_involvement', 'mixed']) {
       expect(syndromicityVariant({ cluster_call: call })).not.toBe('light');
     }
   });

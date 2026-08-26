@@ -2,10 +2,13 @@
 #
 # DB reads for the computed syndromicity measure (#630).
 #
-# One query per call, never one per entity. Parameters are BOUND, never
-# interpolated. Entity visibility is enforced inside the same statement via
-# `ndd_entity_view`, so a non-public entity cannot leak its annotations through
-# this path.
+# One query per CALL, never one per entity -- a set of entities costs a single
+# statement, not N. (The entity endpoint issues a second, separate visibility
+# probe only when an entity returns zero annotation rows, to distinguish "not
+# public" from "public but unannotated"; that is a distinct call, not a
+# per-entity fan-out.) Parameters are BOUND, never interpolated. Entity
+# visibility is enforced inside the same statement via `ndd_entity_view`, so a
+# non-public entity cannot leak its annotations through this path.
 #
 # These functions deliberately return ALL active modifiers, not a pre-filtered
 # `present`-only set: the classifier needs the `uncertain` / `variable` / `rare`
@@ -87,6 +90,59 @@ syndromicity_cluster_member_ids <- function(cluster_hash, conn = NULL) {
     return(integer())
   }
   as.integer(rows$entity_id)
+}
+
+#' The FROZEN syndromicity block stored on a cluster in the current
+#' public-ready phenotype snapshot.
+#'
+#' The summary endpoint must serve the same numbers `/phenotype_clustering`
+#' serves for the same `cluster_hash`. Recomputing from live annotations would
+#' drift the moment curation changed -- the snapshot is a frozen artifact and
+#' `cluster_hash` hashes membership only, so two endpoints could report
+#' different fractions for the same hash. It also costs two extra round trips on
+#' every cache hit.
+#'
+#' @param cluster_hash Character scalar.
+#' @param conn Optional DBI connection.
+#' @return The parsed block, or NULL when the hash is not in the current
+#'   public-ready snapshot or that snapshot predates the block.
+#' @export
+syndromicity_stored_block_for_cluster <- function(cluster_hash, conn = NULL) {
+  hash <- as.character(cluster_hash)[1]
+  if (is.na(hash) || !nzchar(hash)) {
+    return(NULL)
+  }
+
+  rows <- db_execute_query(
+    "SELECT cl.metadata_json
+       FROM analysis_snapshot_manifest man
+       JOIN analysis_snapshot_cluster cl
+         ON cl.snapshot_id = man.snapshot_id
+        AND cl.cluster_kind = 'phenotype'
+      WHERE man.analysis_type = 'phenotype_clusters'
+        AND man.public_ready = 1
+        AND man.status = 'public_ready'
+        AND cl.cluster_hash = ?
+      LIMIT 1",
+    params = list(hash),
+    conn = conn
+  )
+  if (is.null(rows) || nrow(rows) == 0L) {
+    return(NULL)
+  }
+
+  raw <- rows$metadata_json[[1]]
+  if (is.null(raw) || is.na(raw) || !nzchar(as.character(raw))) {
+    return(NULL)
+  }
+  parsed <- tryCatch(
+    jsonlite::fromJSON(as.character(raw), simplifyVector = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(parsed)) {
+    return(NULL)
+  }
+  parsed$syndromicity
 }
 
 #' The live phenotype vocabulary, for the fail-closed registry assertion.

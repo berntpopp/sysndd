@@ -46,6 +46,7 @@ syndromicity_rows_for_entities <- function(entity_ids, evidence = NULL) {
     system_count_excl_head_size = 0L,
     present_term_count = 0L,
     equivocal_term_count = 0L,
+    absent_term_count = 0L,
     call = "insufficient_annotation"
   ))
 }
@@ -76,6 +77,15 @@ syndromicity_aggregate_for_entities <- function(entity_ids, evidence = NULL) {
 #' @return The same tibble with a `syndromicity` list-column.
 #' @export
 syndromicity_attach_to_clusters <- function(clusters) {
+  # FAIL-CLOSED, at the one moment it matters: publication. The classifier only
+  # sees terms that happen to OCCUR in the queried annotations, so on its own it
+  # cannot detect a newly added vocabulary term that nothing is annotated with
+  # yet, nor a registry entry whose term was removed. Asserting against the live
+  # vocabulary here means a snapshot can never be published with a measure
+  # computed over a vocabulary the registry does not fully cover. Deliberately
+  # unguarded: a failure must stop the publish, not degrade it.
+  syndromicity_registry_assert_complete(syndromicity_vocabulary_ids())
+
   member_ids <- lapply(clusters$identifiers, function(ids) {
     if (is.null(ids) || nrow(ids) == 0L) integer() else as.integer(ids$entity_id)
   })

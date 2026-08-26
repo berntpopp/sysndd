@@ -22,6 +22,10 @@
 # (analysis-phenotype-missingness.R) and the one the sibling kidney-genetics
 # implementation ships via `COALESCE(is_syndromic, FALSE)`.
 
+# Modifiers that mean "recorded but ambiguous". `absent` is deliberately NOT
+# here: it is an assertion, not ambiguity (see syndromicity_classify_entities).
+SYNDROMICITY_EQUIVOCAL_MODIFIERS <- c("uncertain", "variable", "rare")
+
 SYNDROMICITY_THRESHOLDS <- list(
   syndromic_system_count  = 1L,
   predominantly_syndromic = 0.75,
@@ -77,6 +81,7 @@ syndromicity_classify_entities <- function(annotations) {
       system_count_excl_head_size = integer(),
       present_term_count = integer(),
       equivocal_term_count = integer(),
+      absent_term_count = integer(),
       call = character()
     ))
   }
@@ -93,12 +98,18 @@ syndromicity_classify_entities <- function(annotations) {
 
   ann <- dplyr::left_join(ann, reg, by = "phenotype_id")
   is_present <- !is.na(ann$modifier_name) & ann$modifier_name == "present"
+  # `equivocal` means uncertain / variable / rare -- an explicit `absent` is a
+  # curator ASSERTION of absence, not ambiguity, and counting it as equivocal
+  # would misreport the one modifier that actually carries negative evidence.
+  is_equivocal <- !is.na(ann$modifier_name) &
+    ann$modifier_name %in% SYNDROMICITY_EQUIVOCAL_MODIFIERS
 
   entity_ids <- sort(unique(as.integer(ann$entity_id)))
   rows <- lapply(entity_ids, function(id) {
     mine <- ann$entity_id == id
     p <- ann[mine & is_present, , drop = FALSE]
-    n_equivocal <- sum(mine & !is_present)
+    n_equivocal <- sum(mine & is_equivocal)
+    n_absent <- sum(mine & !is.na(ann$modifier_name) & ann$modifier_name == "absent")
 
     systems <- sort(unique(p$system[!is.na(p$system) & p$role == "organ"]))
     neuro_systems <- sort(unique(p$system[!is.na(p$system) & p$role == "neuro"]))
@@ -136,6 +147,7 @@ syndromicity_classify_entities <- function(annotations) {
       system_count_excl_head_size = n_systems_excl_head_size,
       present_term_count = as.integer(n_present),
       equivocal_term_count = as.integer(n_equivocal),
+      absent_term_count = as.integer(n_absent),
       call = call
     )
   })
@@ -159,6 +171,7 @@ syndromicity_entity_result <- function(row) {
     system_count_excl_head_size = as.integer(row$system_count_excl_head_size[[1]]),
     present_term_count = as.integer(row$present_term_count[[1]]),
     equivocal_term_count = as.integer(row$equivocal_term_count[[1]]),
+    absent_term_count = as.integer(row$absent_term_count[[1]]),
     call = as.character(row$call[[1]])
   )
 }
@@ -197,7 +210,10 @@ syndromicity_aggregate_cluster <- function(entity_rows) {
   } else if (fraction >= SYNDROMICITY_THRESHOLDS$predominantly_syndromic) {
     "predominantly_syndromic"
   } else if (fraction <= SYNDROMICITY_THRESHOLDS$predominantly_isolated) {
-    "predominantly_isolated"
+    # NOT "predominantly_isolated": the entity vocabulary deliberately avoids
+    # the word because missing documentation cannot establish clinical
+    # isolation, and the cluster vocabulary must make the same claim.
+    "predominantly_no_recorded_involvement"
   } else {
     "mixed"
   }

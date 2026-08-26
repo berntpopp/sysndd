@@ -24,6 +24,7 @@ import {
   buildPhenotypeClusterExportFilename,
   phenotypeClusterExportSheetName,
   PHENOTYPE_CLUSTER_EXPORT_HEADERS,
+  buildPhenotypeClusterExportRows,
 } from './phenotypeClusterTable';
 import type {
   PhenotypeClusterRow,
@@ -155,7 +156,7 @@ export function usePhenotypeClusterTable(props: PhenotypeClusterTableProps) {
 
     const filename = buildPhenotypeClusterExportFilename(props.activeCluster, tableType.value);
 
-    exportToExcel(dataArray, {
+    exportToExcel(buildPhenotypeClusterExportRows(dataArray), {
       filename,
       sheetName: phenotypeClusterExportSheetName(tableType.value),
       headers: PHENOTYPE_CLUSTER_EXPORT_HEADERS,

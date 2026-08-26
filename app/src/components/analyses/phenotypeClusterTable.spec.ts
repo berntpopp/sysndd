@@ -8,6 +8,7 @@ import {
   PHENOTYPE_CLUSTER_EXPORT_HEADERS,
   type PhenotypeClusterFilter,
   phenotypeClusterVariableLabel,
+  buildPhenotypeClusterExportRows,
 } from './phenotypeClusterTable';
 
 const emptyFilter = (): PhenotypeClusterFilter => ({
@@ -175,5 +176,33 @@ describe('normalizePhenotypeClusterRows adds the display alias (#630)', () => {
     ]);
     expect(rows[0].variable).toBe('extraneurological_system_count');
     expect(rows[0].variable_label).toBe('Extra-neurological organ systems');
+  });
+});
+
+describe('buildPhenotypeClusterExportRows (#630)', () => {
+  it('writes the readable label into the single variable column', () => {
+    const rows = normalizePhenotypeClusterRows([
+      { variable: 'extraneurological_system_count', 'p.value': 0.01, 'v.test': 2.4 },
+    ]);
+    const out = buildPhenotypeClusterExportRows(rows);
+    expect(out[0].variable).toBe('Extra-neurological organ systems');
+  });
+
+  it('emits no duplicate stat columns', () => {
+    const rows = normalizePhenotypeClusterRows([
+      { variable: 'Seizures_present', 'p.value': 0.01, 'v.test': 2.4 },
+    ]);
+    const keys = Object.keys(buildPhenotypeClusterExportRows(rows)[0]);
+    expect(keys).not.toContain('variable_label');
+    expect(keys).not.toContain('p_value');
+    expect(keys).not.toContain('v_test');
+    expect(keys.filter((k) => k === 'p.value')).toHaveLength(1);
+  });
+
+  it('carries additional stat columns through unchanged', () => {
+    const out = buildPhenotypeClusterExportRows([
+      { variable: 'x', 'p.value': 1, 'v.test': 2, Mean_in_category: 3.5 },
+    ]);
+    expect(out[0].Mean_in_category).toBe(3.5);
   });
 });

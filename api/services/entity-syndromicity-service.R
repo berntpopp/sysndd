@@ -39,9 +39,16 @@
 #'   `ndd_entity_view` (a non-public or non-existent entity), never a leak.
 #' @export
 svc_entity_syndromicity <- function(entity_id, res) {
-  id <- suppressWarnings(as.integer(entity_id))
-  if (is.na(id)) {
-    stop_for_bad_request("entity_id must be an integer")
+  # Strict grammar BEFORE coercion: as.integer("1.9") is 1 and as.integer("1e2")
+  # is 100, so a malformed id would silently resolve to a DIFFERENT real entity
+  # rather than being rejected.
+  raw <- as.character(entity_id)
+  if (length(raw) != 1L || is.na(raw) || !grepl("^[0-9]+$", raw)) {
+    stop_for_bad_request("entity_id must be a positive integer")
+  }
+  id <- suppressWarnings(as.integer(raw))
+  if (is.na(id) || id <= 0L) {
+    stop_for_bad_request("entity_id must be a positive integer")
   }
 
   annotations <- syndromicity_annotations_for_entities(id)
@@ -69,6 +76,7 @@ svc_entity_syndromicity <- function(entity_id, res) {
         system_count_excl_head_size = 0L,
         present_term_count = 0L,
         equivocal_term_count = 0L,
+        absent_term_count = 0L,
         call = "insufficient_annotation"
       ))
     ))
@@ -80,15 +88,18 @@ svc_entity_syndromicity <- function(entity_id, res) {
 
 #' Cluster-level computed syndromicity, resolved by cluster hash.
 #'
+#' Reads the FROZEN block the snapshot builder stored, so this endpoint and
+#' `/analysis/phenotype_clustering` can never report different numbers for the
+#' same `cluster_hash`. It is deliberately NOT a live recomputation: the
+#' snapshot is a frozen artifact and `cluster_hash` hashes membership only, so a
+#' recompute would silently drift from the published payload as curation
+#' continued -- and would add two DB round trips to every cache hit.
+#'
 #' @param cluster_hash Character scalar.
-#' @return The aggregate block, or NULL when the hash is not in the current
+#' @return The stored block, or NULL when the hash is not in the current
 #'   public-ready phenotype snapshot (an unknown hash and a superseded one are
-#'   indistinguishable, deliberately).
+#'   indistinguishable, deliberately), or when that snapshot predates the block.
 #' @export
 svc_cluster_syndromicity <- function(cluster_hash) {
-  entity_ids <- syndromicity_cluster_member_ids(cluster_hash)
-  if (length(entity_ids) == 0L) {
-    return(NULL)
-  }
-  syndromicity_aggregate_for_entities(entity_ids)
+  syndromicity_stored_block_for_cluster(cluster_hash)
 }

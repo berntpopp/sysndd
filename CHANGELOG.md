@@ -63,8 +63,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `GET /api/entity/<id>/syndromicity` — the per-entity computation behind every cluster aggregate,
-  so the aggregate is auditable rather than an unverifiable claim. DB-only, one query, approved
-  public data only.
+  so the aggregate is auditable rather than an unverifiable claim. DB-only and approved public data
+  only (a second visibility probe runs only when an entity has no annotations, to keep "not public"
+  distinguishable from "public but unannotated").
 - A `SyndromicityCard` on the phenotype-clusters page, rendered from the cluster row rather than
   from inside the LLM summary card, so deterministic curation-derived data does not disappear when
   a model summary is missing or judge-rejected.
