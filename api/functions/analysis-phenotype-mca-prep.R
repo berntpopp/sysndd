@@ -252,3 +252,41 @@ phenotype_mca_ncp <- function(eigenvalues, q_active, floor = 2L,
     adjusted_inertia = adjusted_inertia
   )
 }
+
+# The exact leading columns every phenotype MCA matrix must carry, in order.
+# Column 1 is the qualitative supplementary variable (quali.sup = 1:1); columns
+# 2-4 are the quantitative supplementary variables (quanti.sup = 2:4).
+PHENOTYPE_MCA_SUPPLEMENTARY_COLUMNS <- c(
+  "hpo_mode_of_inheritance_term_name",
+  "extraneurological_system_count",
+  "phenotype_id_count",
+  "gene_entity_count"
+)
+
+#' Assert the supplementary block is where FactoMineR is told it is (#630).
+#'
+#' `gen_mca_clust_obj()` and `validate_phenotype_clusters()` pass POSITIONAL
+#' indices. A reordered or renamed leading column would silently hand an HPO
+#' presence column to `quanti.sup`, or promote a count to an active variable and
+#' change the partition, with no error. Every matrix-producing path calls this.
+#'
+#' @param matrix data.frame, the wide phenotype matrix before MCA prep.
+#' @return invisible(TRUE), or stops.
+#' @export
+phenotype_mca_assert_supplementary_layout <- function(matrix) {
+  observed <- utils::head(colnames(matrix), length(PHENOTYPE_MCA_SUPPLEMENTARY_COLUMNS))
+  if (!identical(observed, PHENOTYPE_MCA_SUPPLEMENTARY_COLUMNS)) {
+    stop(sprintf(
+      paste0(
+        "phenotype MCA supplementary layout drifted.\n",
+        "  expected: %s\n",
+        "  observed: %s\n",
+        "quali.sup = 1:1 and quanti.sup = 2:4 are positional; fix the column ",
+        "order rather than the indices."
+      ),
+      paste(PHENOTYPE_MCA_SUPPLEMENTARY_COLUMNS, collapse = ", "),
+      paste(observed, collapse = ", ")
+    ), call. = FALSE)
+  }
+  invisible(TRUE)
+}

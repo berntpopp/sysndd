@@ -188,13 +188,20 @@
       entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
       HPO_term, hgnc_id
     ) |>
-    dplyr::group_by(entity_id) |>
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% payload$id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% payload$id_phenotype_ids)
-    ) |>
-    dplyr::ungroup() |>
     unique()
+
+  # #630: registry-derived supplementary counts, identical to the served
+  # snapshot path. The payload no longer carries an id_phenotype_ids list.
+  sysndd_db_phenotypes <- sysndd_db_phenotypes |>
+    dplyr::left_join(
+      syndromicity_supplementary_counts(
+        dplyr::mutate(
+          dplyr::select(sysndd_db_phenotypes, entity_id, phenotype_id),
+          modifier_name = "present"
+        )
+      ),
+      by = "entity_id"
+    )
 
   sysndd_db_phenotypes_wider <- sysndd_db_phenotypes |>
     dplyr::mutate(present = "yes") |>
@@ -203,6 +210,8 @@
     dplyr::group_by(hgnc_id) |>
     dplyr::mutate(gene_entity_count = dplyr::n()) |>
     dplyr::ungroup() |>
+    dplyr::relocate(extraneurological_system_count, .after = hpo_mode_of_inheritance_term_name) |>
+    dplyr::relocate(phenotype_id_count, .after = extraneurological_system_count) |>
     dplyr::relocate(gene_entity_count, .after = phenotype_id_count) |>
     dplyr::select(-hgnc_id)
 
@@ -210,6 +219,9 @@
     dplyr::select(-entity_id) |>
     as.data.frame()
   row.names(phenotype_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # #630: positional quali.sup/quanti.sup contract (see the helper's docs).
+  phenotype_mca_assert_supplementary_layout(phenotype_df)
 
   # #508 MCA feature hygiene via the shared helper (same as
   # generate_phenotype_cluster_input) so the interactive/durable clustering job

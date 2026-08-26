@@ -176,14 +176,10 @@ analysis_empty_phenotype_correlation <- function() {
 
 
 generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
-  id_phenotype_ids <- c(
-    "HP:0001249",
-    "HP:0001256",
-    "HP:0002187",
-    "HP:0002342",
-    "HP:0006889",
-    "HP:0010864"
-  )
+  # #630: the ID-severity term list and the syndromicity counts both come from
+  # functions/syndromicity-registry.R. They used to be hardcoded here and in
+  # two other places; test-unit-id-term-hardcode-guard.R fails if a copy
+  # reappears.
 
   ndd_entity_view_tbl <- pool %>%
     dplyr::tbl("ndd_entity_view") %>%
@@ -208,13 +204,25 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
     dplyr::tbl("phenotype_list") %>%
     dplyr::collect()
 
-  joined <- ndd_entity_view_tbl %>%
+  # All in-scope annotations, BEFORE the present-only filter. The supplementary
+  # counts are derived from this frame so the classifier can also observe the
+  # equivocal (uncertain / variable / rare) rows; only `present` rows become MCA
+  # matrix rows, exactly as before.
+  scoped <- ndd_entity_view_tbl %>%
     dplyr::left_join(phenotype_rows, by = "entity_id") %>%
     dplyr::inner_join(primary_review_tbl, by = c("entity_id", "review_id")) %>%
     dplyr::left_join(modifier_rows, by = "modifier_id") %>%
     dplyr::left_join(phenotype_terms, by = "phenotype_id") %>%
     dplyr::filter(ndd_phenotype == 1) %>%
-    dplyr::filter(category %in% categories) %>%
+    dplyr::filter(category %in% categories)
+
+  supplementary <- syndromicity_supplementary_counts(
+    scoped %>%
+      dplyr::filter(!is.na(phenotype_id)) %>%
+      dplyr::select(entity_id, phenotype_id, modifier_name)
+  )
+
+  joined <- scoped %>%
     dplyr::filter(modifier_name == "present") %>%
     dplyr::select(
       entity_id,
@@ -223,12 +231,7 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
       HPO_term,
       hgnc_id
     ) %>%
-    dplyr::group_by(entity_id) %>%
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
-    ) %>%
-    dplyr::ungroup() %>%
+    dplyr::left_join(supplementary, by = "entity_id") %>%
     unique()
 
   entity_gene_map <- ndd_entity_view_tbl %>%
@@ -246,6 +249,8 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
     dplyr::group_by(hgnc_id) %>%
     dplyr::mutate(gene_entity_count = dplyr::n()) %>%
     dplyr::ungroup() %>%
+    dplyr::relocate(extraneurological_system_count, .after = hpo_mode_of_inheritance_term_name) %>%
+    dplyr::relocate(phenotype_id_count, .after = extraneurological_system_count) %>%
     dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
     dplyr::select(-hgnc_id)
 
@@ -253,6 +258,14 @@ generate_phenotype_cluster_input <- function(categories = c("Definitive")) {
     dplyr::select(-entity_id) %>%
     as.data.frame()
   row.names(matrix) <- wider$entity_id
+
+  # #630: gen_mca_clust_obj() and validate_phenotype_clusters() address the
+  # supplementary block POSITIONALLY (quali.sup = 1:1, quanti.sup = 2:4). An
+  # unchanged column COUNT does not prove an unchanged column ORDER, so assert
+  # the names. A silent shift would hand FactoMineR an HPO presence column as a
+  # quantitative supplementary variable, or promote a count to an active
+  # variable and change the partition.
+  phenotype_mca_assert_supplementary_layout(matrix)
 
   # #508: MCA feature hygiene BEFORE clustering, applied once via the shared
   # phenotype_mca_prep_matrix() helper so the served partition (gen_mca_clust_obj),

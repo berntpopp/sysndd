@@ -48,10 +48,9 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
   # worker boundary.
   # This replicates the data gathering from phenotype_clustering endpoint
 
-  id_phenotype_ids <- c(
-    "HP:0001249", "HP:0001256", "HP:0002187",
-    "HP:0002342", "HP:0006889", "HP:0010864"
-  )
+  # #630: ID terms and the syndromicity supplementary counts come from
+  # functions/syndromicity-registry.R -- one definition shared with the served
+  # snapshot path, so the interactive job and the snapshot cannot diverge.
   categories <- c("Definitive")
 
   # Gather all data from database
@@ -111,13 +110,16 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::filter(modifier_name == "present") %>%
     dplyr::filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
     dplyr::select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
-    dplyr::group_by(entity_id) %>%
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
-    ) %>%
-    dplyr::ungroup() %>%
     unique()
+
+  sysndd_db_phenotypes <- sysndd_db_phenotypes %>%
+    dplyr::left_join(
+      syndromicity_supplementary_counts(
+        dplyr::select(sysndd_db_phenotypes, entity_id, phenotype_id) %>%
+          dplyr::mutate(modifier_name = "present")
+      ),
+      by = "entity_id"
+    )
 
   sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
     dplyr::mutate(present = "yes") %>%
@@ -126,6 +128,8 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::group_by(hgnc_id) %>%
     dplyr::mutate(gene_entity_count = dplyr::n()) %>%
     dplyr::ungroup() %>%
+    dplyr::relocate(extraneurological_system_count, .after = hpo_mode_of_inheritance_term_name) %>%
+    dplyr::relocate(phenotype_id_count, .after = extraneurological_system_count) %>%
     dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
     dplyr::select(-hgnc_id)
 
@@ -163,7 +167,6 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
         ndd_review_phenotype_connect_tbl = ndd_review_phenotype_connect_tbl,
         modifier_list_tbl = modifier_list_tbl,
         phenotype_list_tbl = phenotype_list_tbl,
-        id_phenotype_ids = id_phenotype_ids,
         categories = categories
       ),
       result = cached_clusters_with_ids,
@@ -215,7 +218,6 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
       ndd_review_phenotype_connect_tbl = ndd_review_phenotype_connect_tbl,
       modifier_list_tbl = modifier_list_tbl,
       phenotype_list_tbl = phenotype_list_tbl,
-      id_phenotype_ids = id_phenotype_ids,
       categories = categories
     )
   )

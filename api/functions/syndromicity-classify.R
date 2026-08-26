@@ -250,3 +250,60 @@ syndromicity_aggregate_cluster <- function(entity_rows) {
     thresholds = SYNDROMICITY_THRESHOLDS
   )
 }
+
+#' Registry-derived MCA quantitative supplementary counts.
+#'
+#' Returns exactly TWO count columns; the caller adds `gene_entity_count`,
+#' keeping the quantitative supplementary block at three columns so the
+#' POSITIONAL addressing in `gen_mca_clust_obj(quanti_sup_var = 2:4)` and
+#' `validate_phenotype_clusters()` stays valid. Callers must additionally assert
+#' the leading column NAMES -- an unchanged column count does not prove an
+#' unchanged column order.
+#'
+#' `extraneurological_system_count` replaces the former `phenotype_non_id_count`,
+#' which counted the ontology root, both clinical-course modifiers and every
+#' nervous-system term as a syndromic feature, and double-counted nested terms
+#' (kidney + genitourinary scored 2).
+#'
+#' Supplementary variables are projected onto axes built from ACTIVE variables
+#' only, so this changes no cluster membership. Verified end to end on the live
+#' 1931-entity matrix: identical MCA coordinates, identical partition.
+#'
+#' @param annotations data.frame with `entity_id`, `phenotype_id`,
+#'   `modifier_name`.
+#' @return tibble with `entity_id`, `extraneurological_system_count`,
+#'   `phenotype_id_count`.
+#' @export
+syndromicity_supplementary_counts <- function(annotations) {
+  classified <- syndromicity_classify_entities(annotations)
+  if (nrow(classified) == 0L) {
+    return(tibble::tibble(
+      entity_id = integer(),
+      extraneurological_system_count = integer(),
+      phenotype_id_count = integer()
+    ))
+  }
+
+  ann <- tibble::as_tibble(annotations)
+  id_terms <- syndromicity_id_severity_terms()
+  present <- !is.na(ann$modifier_name) & ann$modifier_name == "present"
+  id_rows <- ann[present & ann$phenotype_id %in% id_terms, , drop = FALSE]
+  id_counts <- dplyr::count(
+    dplyr::distinct(id_rows, entity_id, phenotype_id),
+    entity_id,
+    name = "phenotype_id_count"
+  )
+
+  out <- dplyr::left_join(
+    dplyr::select(
+      classified,
+      entity_id,
+      extraneurological_system_count = "system_count"
+    ),
+    id_counts,
+    by = "entity_id"
+  )
+  out$extraneurological_system_count <- as.integer(out$extraneurological_system_count)
+  out$phenotype_id_count <- as.integer(dplyr::coalesce(out$phenotype_id_count, 0L))
+  out
+}

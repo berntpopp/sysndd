@@ -165,6 +165,13 @@ bootstrap_load_modules <- function() {
     # this same bootstrap_load_modules() call) -- registered before the
     # submission service that will consume it.
     "functions/clustering-gene-universe.R",
+    # #630: the single definition of syndromicity (term roles + collapsed organ
+    # systems) and of the ID-severity term list. Registered BEFORE the phenotype
+    # MCA prep and the phenotype functions, which consume it for the MCA
+    # quantitative supplementary counts, and before the snapshot builder, which
+    # consumes it for the per-cluster computed block.
+    "functions/syndromicity-registry.R",
+    "functions/syndromicity-classify.R",
     "functions/analysis-phenotype-mca-prep.R",
     "functions/analysis-phenotype-functions.R",
     "functions/analysis-null-models.R",
