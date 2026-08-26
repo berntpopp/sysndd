@@ -6,6 +6,78 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-08-26
+
+### Changed
+
+- **Syndromicity is now computed, not model-generated** (#630).
+  `/api/analysis/phenotype_cluster_summary` returned a per-cluster `syndromicity`
+  string produced by Gemini. It was not reproducible on identical input: cache rows for
+  `cluster_hash = f4a3dd1a27…` — same membership, same model, 39 seconds apart — hold
+  `predominantly_id`, `mixed`, `predominantly_id`, and one cluster was served as both
+  `predominantly_syndromic` and `predominantly_id` under `validation_status: "validated"`.
+  Every pre-judge row carried `syndromicity: "unknown"`, so the value consumers actually read
+  was the *judge's* `corrected_syndromicity` — invented for a field the generator had declined
+  to fill. It also disagreed with the underlying data in the sense readers take it: the largest
+  cluster was served as "pure neurodevelopmental" while two thirds of its entities have
+  documented extra-neurological organ involvement, because the rule the prompt encoded was
+  stated over v.test scores *relative to the database average* while the served word reads as
+  absolute.
+
+  Syndromicity is now derived from each entity's own curated HPO annotations under a stated,
+  versioned rule (`SYNDROMICITY_RULE_VERSION`), with the thresholds emitted inline in every
+  payload so a frozen downstream artifact self-identifies. `api/functions/syndromicity-registry.R`
+  is the single source of truth: it classifies all 39 `phenotype_list` terms by role and collapses
+  nested terms into one organ system, so kidney + genitourinary counts once rather than twice.
+  It is fail-closed in both directions — a new vocabulary term with no entry, or an entry whose
+  term was removed, raises rather than silently shifting the numerator or denominator.
+
+  The reported quantity is the fraction of entities with at least one *recorded* extra-neurological
+  organ system, with a Wilson 95% interval; the categorical `cluster_call` is a convenience label
+  over that. No value is called "isolated": SysNDD records explicit phenotype absence on six rows
+  database-wide, so the middle value is `no_recorded_extraneurological_involvement` and
+  `insufficient_annotation` stays distinct — "not annotated" must never read as an established
+  clinical finding.
+
+  Existing cached summaries keep serving. `cluster_hash` is a hash of the cluster's sorted entity
+  set and membership is unchanged, and the retired field is stripped on read rather than forcing a
+  regeneration.
+
+- **The MCA quantitative supplementary variables are unified onto the same registry** (#630).
+  `phenotype_non_id_count` — which counted the HPO root, both clinical-course modifiers and every
+  nervous-system term as a "syndromic feature", and double-counted nested terms — is now
+  `extraneurological_system_count`, and the ID-severity term list it depended on had three
+  hardcoded copies reduced to one. Verified against the live database: the rewired pipeline
+  reproduces the published partition exactly, with identical member sets for all three clusters.
+  `/PhenotypeCorrelations/PhenotypeClusters` renders readable labels for these variables through
+  a single map shared with the Excel export headers.
+
+- `clinical_pattern` is now an enumerated field rather than free text, validated server-side on
+  read. It had already drifted in production between `"progressive metabolic disorders"` and
+  `"progressive metabolic/degenerative"` for the same cluster; the observed variants are aliased
+  into the vocabulary rather than degraded. Because it retains two syndromicity-bearing values and
+  can therefore still contradict the computed measure, responses carry
+  `pattern_conflicts_with_computed`. `validation_status` now travels with a `validation_scope`
+  string naming what the LLM judge does and does not cover.
+
+### Added
+
+- `GET /api/entity/<id>/syndromicity` — the per-entity computation behind every cluster aggregate,
+  so the aggregate is auditable rather than an unverifiable claim. DB-only, one query, approved
+  public data only.
+- A `SyndromicityCard` on the phenotype-clusters page, rendered from the cluster row rather than
+  from inside the LLM summary card, so deterministic curation-derived data does not disappear when
+  a model summary is missing or judge-rejected.
+
+### Fixed
+
+- The per-column filter map on the phenotype-cluster variable table is derived from the field list
+  instead of being hand-listed alongside it; the two could desync, and a field rename threw at
+  render time.
+- `gen_mca_clust_obj()` called `select()` unqualified, which fails wherever `biomaRt`'s S4 method
+  masks `dplyr`'s in the loaded search path.
+
+
 ## [0.33.0] - 2026-08-26
 
 ### Fixed
