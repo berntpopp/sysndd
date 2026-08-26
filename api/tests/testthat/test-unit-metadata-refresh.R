@@ -154,121 +154,97 @@ describe("refresh_disease_ontology_set", {
     conn <- get_test_db_connection()
     withr::defer(DBI::dbDisconnect(conn))
 
-    {
-      required_tables <- c(
-        "user",
-        "mode_of_inheritance_list",
-        "non_alt_loci_set",
-        "disease_ontology_set",
-        "ndd_entity"
-      )
-      missing_tables <- required_tables[
-        !vapply(required_tables, DBI::dbExistsTable, logical(1), conn = conn)
+    required_tables <- c(
+      "user",
+      "mode_of_inheritance_list",
+      "non_alt_loci_set",
+      "disease_ontology_set",
+      "ndd_entity"
+    )
+    missing_tables <- required_tables[
+      !vapply(required_tables, DBI::dbExistsTable, logical(1), conn = conn)
+    ]
+    if (length(missing_tables) > 0) {
+      skip(paste(
+        "Test database schema is not initialized; missing table(s):",
+        paste(missing_tables, collapse = ", ")
+      ))
+    }
+
+    suffix <- as.integer(Sys.time()) %% 100000L
+    user_id <- 900000L + suffix
+    hgnc_id <- paste0("HGNC:", 9000L + suffix %% 500L)
+    old_version <- paste0("OMIM:", 970000L + suffix %% 500L)
+    keep_version <- paste0("OMIM:", 980000L + suffix %% 500L)
+    new_version <- paste0("OMIM:", 990000L + suffix %% 500L)
+    bad_version <- paste0("OMIM:", paste(rep("9", 40), collapse = ""))
+    user_name <- paste0("metadata_refresh_", suffix)
+
+    # SAFETY NET: refresh_disease_ontology_set() opens with an unconditional
+    # DELETE FROM disease_ontology_set. The assertion below is that its
+    # transaction rolls that back -- but if that ever stops holding, this
+    # block would wipe a shared table for every later file and every later
+    # run. Snapshot first, put back anything that went missing. Registered
+    # before the fixture cleanup so it unwinds AFTER it (defer is LIFO), and
+    # so restored rows never reference a fixture row we just deleted.
+    preexisting_ontology <- DBI::dbGetQuery(conn, "SELECT * FROM disease_ontology_set")
+    withr::defer({
+      surviving <- DBI::dbGetQuery(
+        conn, "SELECT disease_ontology_id_version FROM disease_ontology_set"
+      )$disease_ontology_id_version
+      lost <- preexisting_ontology[
+        !(preexisting_ontology$disease_ontology_id_version %in% surviving), ,
+        drop = FALSE
       ]
-      if (length(missing_tables) > 0) {
-        skip(paste(
-          "Test database schema is not initialized; missing table(s):",
-          paste(missing_tables, collapse = ", ")
-        ))
+      if (nrow(lost) > 0) {
+        DBI::dbAppendTable(conn, "disease_ontology_set", lost)
       }
+    })
 
-      suffix <- as.integer(Sys.time()) %% 100000L
-      user_id <- 900000L + suffix
-      hgnc_id <- paste0("HGNC:", 9000L + suffix %% 500L)
-      old_version <- paste0("OMIM:", 970000L + suffix %% 500L)
-      keep_version <- paste0("OMIM:", 980000L + suffix %% 500L)
-      new_version <- paste0("OMIM:", 990000L + suffix %% 500L)
-      bad_version <- paste0("OMIM:", paste(rep("9", 40), collapse = ""))
-      user_name <- paste0("metadata_refresh_", suffix)
-
-      # SAFETY NET: refresh_disease_ontology_set() opens with an unconditional
-      # DELETE FROM disease_ontology_set. The assertion below is that its
-      # transaction rolls that back -- but if that ever stops holding, this
-      # block would wipe a shared table for every later file and every later
-      # run. Snapshot first, put back anything that went missing. Registered
-      # before the fixture cleanup so it unwinds AFTER it (defer is LIFO), and
-      # so restored rows never reference a fixture row we just deleted.
-      preexisting_ontology <- DBI::dbGetQuery(conn, "SELECT * FROM disease_ontology_set")
-      withr::defer({
-        surviving <- DBI::dbGetQuery(
-          conn, "SELECT disease_ontology_id_version FROM disease_ontology_set"
-        )$disease_ontology_id_version
-        lost <- preexisting_ontology[
-          !(preexisting_ontology$disease_ontology_id_version %in% surviving), ,
-          drop = FALSE
-        ]
-        if (nrow(lost) > 0) {
-          DBI::dbAppendTable(conn, "disease_ontology_set", lost)
-        }
-      })
-
-      # Fixture cleanup, in FK order (child rows first). Registered BEFORE the
-      # rows exist so an error part-way through seeding still cleans up.
-      # mode_of_inheritance_list is left alone on purpose: HP:0000006 is a
-      # shared vocabulary term inserted with INSERT IGNORE, so deleting it could
-      # remove a row this test did not create.
-      withr::defer({
-        DBI::dbExecute(
-          conn, "DELETE FROM ndd_entity WHERE hgnc_id = ?", params = unname(list(hgnc_id))
-        )
-        DBI::dbExecute(
-          conn,
-          "DELETE FROM disease_ontology_set WHERE disease_ontology_id_version IN (?, ?, ?)",
-          params = unname(list(old_version, keep_version, new_version))
-        )
-        DBI::dbExecute(
-          conn, "DELETE FROM non_alt_loci_set WHERE hgnc_id = ?", params = unname(list(hgnc_id))
-        )
-        DBI::dbExecute(
-          conn, "DELETE FROM user WHERE user_id = ?", params = unname(list(user_id))
-        )
-      })
-
+    # Fixture cleanup, in FK order (child rows first). Registered BEFORE the
+    # rows exist so an error part-way through seeding still cleans up.
+    # mode_of_inheritance_list is left alone on purpose: HP:0000006 is a
+    # shared vocabulary term inserted with INSERT IGNORE, so deleting it could
+    # remove a row this test did not create.
+    withr::defer({
       DBI::dbExecute(
-        conn,
-        "INSERT INTO user (user_id, user_name) VALUES (?, ?)",
-        params = unname(list(user_id, user_name))
-      )
-
-      DBI::dbExecute(
-        conn,
-        "INSERT IGNORE INTO mode_of_inheritance_list (hpo_mode_of_inheritance_term) VALUES ('HP:0000006')"
+        conn, "DELETE FROM ndd_entity WHERE hgnc_id = ?", params = unname(list(hgnc_id))
       )
       DBI::dbExecute(
         conn,
-        "INSERT INTO non_alt_loci_set (hgnc_id, symbol) VALUES (?, ?)",
-        params = unname(list(hgnc_id, paste0("MR", suffix)))
-      )
-      DBI::dbAppendTable(
-        conn,
-        "disease_ontology_set",
-        tibble::tibble(
-          disease_ontology_id_version = c(old_version, keep_version),
-          disease_ontology_id = c(old_version, keep_version),
-          disease_ontology_name = c("Original old disease", "Original keep disease"),
-          disease_ontology_source = "test",
-          disease_ontology_date = as.POSIXct("2026-05-25", tz = "UTC"),
-          disease_ontology_is_specific = TRUE,
-          hgnc_id = hgnc_id,
-          hpo_mode_of_inheritance_term = "HP:0000006",
-          is_active = TRUE
-        )
+        "DELETE FROM disease_ontology_set WHERE disease_ontology_id_version IN (?, ?, ?)",
+        params = unname(list(old_version, keep_version, new_version))
       )
       DBI::dbExecute(
-        conn,
-        paste(
-          "INSERT INTO ndd_entity",
-          "(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version,",
-          "ndd_phenotype, entry_user_id, is_active)",
-          "VALUES (?, 'HP:0000006', ?, 1, ?, 1)"
-        ),
-        params = unname(list(hgnc_id, old_version, user_id))
+        conn, "DELETE FROM non_alt_loci_set WHERE hgnc_id = ?", params = unname(list(hgnc_id))
       )
+      DBI::dbExecute(
+        conn, "DELETE FROM user WHERE user_id = ?", params = unname(list(user_id))
+      )
+    })
 
-      update_rows <- tibble::tibble(
-        disease_ontology_id_version = new_version,
-        disease_ontology_id = new_version,
-        disease_ontology_name = "Replacement disease",
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO user (user_id, user_name) VALUES (?, ?)",
+      params = unname(list(user_id, user_name))
+    )
+
+    DBI::dbExecute(
+      conn,
+      "INSERT IGNORE INTO mode_of_inheritance_list (hpo_mode_of_inheritance_term) VALUES ('HP:0000006')"
+    )
+    DBI::dbExecute(
+      conn,
+      "INSERT INTO non_alt_loci_set (hgnc_id, symbol) VALUES (?, ?)",
+      params = unname(list(hgnc_id, paste0("MR", suffix)))
+    )
+    DBI::dbAppendTable(
+      conn,
+      "disease_ontology_set",
+      tibble::tibble(
+        disease_ontology_id_version = c(old_version, keep_version),
+        disease_ontology_id = c(old_version, keep_version),
+        disease_ontology_name = c("Original old disease", "Original keep disease"),
         disease_ontology_source = "test",
         disease_ontology_date = as.POSIXct("2026-05-25", tz = "UTC"),
         disease_ontology_is_specific = TRUE,
@@ -276,31 +252,53 @@ describe("refresh_disease_ontology_set", {
         hpo_mode_of_inheritance_term = "HP:0000006",
         is_active = TRUE
       )
-      auto_fixes <- tibble::tibble(old_version = old_version, new_version = bad_version)
+    )
+    DBI::dbExecute(
+      conn,
+      paste(
+        "INSERT INTO ndd_entity",
+        "(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version,",
+        "ndd_phenotype, entry_user_id, is_active)",
+        "VALUES (?, 'HP:0000006', ?, 1, ?, 1)"
+      ),
+      params = unname(list(hgnc_id, old_version, user_id))
+    )
 
-      expect_error(
-        refresh_disease_ontology_set(
-          conn = conn,
-          disease_ontology_set_update = update_rows,
-          auto_fixes = auto_fixes
-        ),
-        "Data too long|too long|1406"
-      )
+    update_rows <- tibble::tibble(
+      disease_ontology_id_version = new_version,
+      disease_ontology_id = new_version,
+      disease_ontology_name = "Replacement disease",
+      disease_ontology_source = "test",
+      disease_ontology_date = as.POSIXct("2026-05-25", tz = "UTC"),
+      disease_ontology_is_specific = TRUE,
+      hgnc_id = hgnc_id,
+      hpo_mode_of_inheritance_term = "HP:0000006",
+      is_active = TRUE
+    )
+    auto_fixes <- tibble::tibble(old_version = old_version, new_version = bad_version)
 
-      remaining <- DBI::dbGetQuery(
-        conn,
-        paste(
-          "SELECT disease_ontology_id_version",
-          "FROM disease_ontology_set",
-          "WHERE disease_ontology_id_version IN (?, ?)",
-          "ORDER BY disease_ontology_id_version"
-        ),
-        params = unname(list(old_version, keep_version))
-      )
-      expect_equal(remaining$disease_ontology_id_version, sort(c(old_version, keep_version)))
+    expect_error(
+      refresh_disease_ontology_set(
+        conn = conn,
+        disease_ontology_set_update = update_rows,
+        auto_fixes = auto_fixes
+      ),
+      "Data too long|too long|1406"
+    )
 
-      fk_checks <- DBI::dbGetQuery(conn, "SELECT @@FOREIGN_KEY_CHECKS AS fk_checks")
-      expect_equal(as.integer(fk_checks$fk_checks[[1]]), 1L)
-    }
+    remaining <- DBI::dbGetQuery(
+      conn,
+      paste(
+        "SELECT disease_ontology_id_version",
+        "FROM disease_ontology_set",
+        "WHERE disease_ontology_id_version IN (?, ?)",
+        "ORDER BY disease_ontology_id_version"
+      ),
+      params = unname(list(old_version, keep_version))
+    )
+    expect_equal(remaining$disease_ontology_id_version, sort(c(old_version, keep_version)))
+
+    fk_checks <- DBI::dbGetQuery(conn, "SELECT @@FOREIGN_KEY_CHECKS AS fk_checks")
+    expect_equal(as.integer(fk_checks$fk_checks[[1]]), 1L)
   })
 })
