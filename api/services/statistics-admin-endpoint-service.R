@@ -176,7 +176,7 @@ svc_statistics_admin_contributor_leaderboard <- function(top = 10,
   # Use ndd_entity_status to find the initial submitter for each entity
   entity_status <- pool %>%
     tbl("ndd_entity_status") %>%
-    select(entity_id, status_user_id, status_date) %>%
+    dplyr::select(entity_id, status_user_id, status_date) %>%
     collect() %>%
     group_by(entity_id) %>%
     arrange(status_date) %>%
@@ -187,9 +187,9 @@ svc_statistics_admin_contributor_leaderboard <- function(top = 10,
   # ndd_phenotype is stored as 1/0 in the database, not "Yes"/"No"
   entity_info <- pool %>%
     tbl("ndd_entity_view") %>%
-    select(entity_id, entry_date, ndd_phenotype) %>%
+    dplyr::select(entity_id, entry_date, ndd_phenotype) %>%
     collect() %>%
-    filter(ndd_phenotype == 1)
+    dplyr::filter(ndd_phenotype == 1)
 
   # Join to get entities with their creators
   entity_data <- entity_info %>%
@@ -198,13 +198,13 @@ svc_statistics_admin_contributor_leaderboard <- function(top = 10,
   # Apply date range filter if scope is "range" and dates provided
   if (scope == "range" && !is.null(start_date) && !is.null(end_date)) {
     entity_data <- entity_data %>%
-      filter(entry_date >= as.Date(start_date) & entry_date <= as.Date(end_date))
+      dplyr::filter(entry_date >= as.Date(start_date) & entry_date <= as.Date(end_date))
   }
 
   # Get user table for names
   user_data <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, first_name, family_name) %>%
+    dplyr::select(user_id, user_name, first_name, family_name) %>%
     collect()
 
   # Aggregate by creator (status_user_id) and join with user names
@@ -219,7 +219,7 @@ svc_statistics_admin_contributor_leaderboard <- function(top = 10,
       paste(first_name, family_name),
       user_name
     )) %>%
-    select(user_id = status_user_id, user_name, display_name, entity_count)
+    dplyr::select(user_id = status_user_id, user_name, display_name, entity_count)
 
   list(
     data = leaderboard,
@@ -258,12 +258,12 @@ svc_statistics_admin_rereview_leaderboard <- function(top = 10,
   # Get review dates for filtering
   review_dates <- pool %>%
     tbl("ndd_entity_review") %>%
-    select(review_id, review_date) %>%
+    dplyr::select(review_id, review_date) %>%
     collect()
 
   status_dates <- pool %>%
     tbl("ndd_entity_status") %>%
-    select(status_id, status_date) %>%
+    dplyr::select(status_id, status_date) %>%
     collect()
 
   # Get ALL re-review assignments (not just submitted ones); see @details above.
@@ -286,7 +286,7 @@ svc_statistics_admin_rereview_leaderboard <- function(top = 10,
   # Get assignments to link batches to users
   assignments <- pool %>%
     tbl("re_review_assignment") %>%
-    select(re_review_batch, user_id) %>%
+    dplyr::select(re_review_batch, user_id) %>%
     collect()
 
   # Join to get user for each re-review
@@ -296,13 +296,13 @@ svc_statistics_admin_rereview_leaderboard <- function(top = 10,
   # Apply date range filter if scope is "range" and dates provided
   if (scope == "range" && !is.null(start_date) && !is.null(end_date)) {
     re_review_with_users <- re_review_with_users %>%
-      filter(date >= as.Date(start_date) & date <= as.Date(end_date))
+      dplyr::filter(date >= as.Date(start_date) & date <= as.Date(end_date))
   }
 
   # Get user table for names
   user_data <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, first_name, family_name) %>%
+    dplyr::select(user_id, user_name, first_name, family_name) %>%
     collect()
 
   # Aggregate by user

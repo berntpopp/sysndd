@@ -98,7 +98,7 @@ read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote
 
   # Rearrange columns to move row_id to the first position
   combined_logs <- combined_logs %>%
-    select(row_id, everything())
+    dplyr::select(row_id, everything())
 
   return(combined_logs)
 }

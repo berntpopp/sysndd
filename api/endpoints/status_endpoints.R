@@ -34,15 +34,15 @@ function(req, res, filter_status_approved = FALSE) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, user_role)
+    dplyr::select(user_id, user_name, user_role)
 
   non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, symbol)
+    dplyr::select(hgnc_id, symbol)
 
   disease_ontology_set <- pool %>%
     tbl("disease_ontology_set") %>%
-    select(
+    dplyr::select(
       disease_ontology_id,
       disease_ontology_id_version,
       disease_ontology_name
@@ -50,11 +50,11 @@ function(req, res, filter_status_approved = FALSE) {
 
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%
-    select(-is_active, -sort)
+    dplyr::select(-is_active, -sort)
 
   ndd_entity_status_approved_view <- pool %>%
     tbl("ndd_entity_status_approved_view") %>%
-    select(entity_id, status_approved, category_id)
+    dplyr::select(entity_id, status_approved, category_id)
 
   ndd_entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list")
@@ -70,7 +70,7 @@ function(req, res, filter_status_approved = FALSE) {
     left_join(ndd_entity_status_approved_view, by = c("entity_id")) %>%
     left_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
     left_join(boolean_list, by = c("ndd_phenotype" = "logical")) %>%
-    select(
+    dplyr::select(
       entity_id,
       hgnc_id,
       symbol,
@@ -86,12 +86,12 @@ function(req, res, filter_status_approved = FALSE) {
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     left_join(ndd_entity_tbl, by = c("entity_id")) %>%
-    filter(status_approved == filter_status_approved) %>%
+    dplyr::filter(status_approved == filter_status_approved) %>%
     {
-      if (!filter_status_approved) filter(., is.na(approving_user_id)) else .
+      if (!filter_status_approved) dplyr::filter(., is.na(approving_user_id)) else .
     } %>%
     collect() %>%
-    select(
+    dplyr::select(
       status_id,
       entity_id,
       hgnc_id,
@@ -127,8 +127,8 @@ function(req, res, filter_status_approved = FALSE) {
   review_table <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
-    filter(entity_id %in% status_table_collected$entity_id) %>%
-    select(entity_id, review_id, is_primary, review_date) %>%
+    dplyr::filter(entity_id %in% status_table_collected$entity_id) %>%
+    dplyr::select(entity_id, review_id, is_primary, review_date) %>%
     arrange(entity_id) %>%
     group_by(entity_id) %>%
     mutate(active_review = case_when(
@@ -137,7 +137,7 @@ function(req, res, filter_status_approved = FALSE) {
     mutate(newest_review = case_when(
       review_date == max(review_date) ~ review_id
     )) %>%
-    select(entity_id, active_review, newest_review) %>%
+    dplyr::select(entity_id, active_review, newest_review) %>%
     mutate(
       active_review = max(active_review, na.rm = TRUE),
       newest_review = max(newest_review, na.rm = TRUE)
@@ -229,18 +229,18 @@ function(req, res, status_id_requested) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, user_role)
+    dplyr::select(user_id, user_name, user_role)
 
   entity_status_categories_coll <- pool %>%
     tbl("ndd_entity_status_categories_list")
 
   status_table_collected <- sysndd_db_status_table %>%
-    filter(status_id %in% status_id_requested) %>%
+    dplyr::filter(status_id %in% status_id_requested) %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     collect() %>%
-    select(
+    dplyr::select(
       status_id,
       entity_id,
       category,

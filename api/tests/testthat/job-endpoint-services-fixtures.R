@@ -33,11 +33,14 @@ library(tidyr)
 #' stub the DB/cache-touching siblings from that same file
 #' (`clustering_resolve_category_universe`, `analysis_string_cache_fingerprint`,
 #' `clustering_gene_list_sha256`, `clustering_cached_source_data_version`) as needed;
-#' this sourcing only supplies defaults those stubs override.
+#' The phenotype MCA preparation helper is likewise sourced before the service,
+#' matching bootstrap order for direct-source tests. This sourcing only supplies
+#' defaults that individual tests may override.
 job_endpoint_source_service <- function(filename) {
   env <- new.env(parent = globalenv())
   env$async_job_submit_admission_guard <- function(req, res) list(admitted = TRUE)
   sys.source(file.path(get_api_dir(), "functions", "clustering-gene-universe.R"), envir = env)
+  sys.source(file.path(get_api_dir(), "functions", "analysis-phenotype-mca-prep.R"), envir = env)
   sys.source(file.path(get_api_dir(), "services", filename), envir = env)
   env
 }

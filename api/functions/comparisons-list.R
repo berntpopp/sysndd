@@ -53,7 +53,7 @@ generate_comparisons_list <- function(
   # Get canonical symbols from HGNC table
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, canonical_symbol = symbol)  # Rename to avoid conflict
+    dplyr::select(hgnc_id, canonical_symbol = symbol)  # Rename to avoid conflict
 
   ndd_database_comparison_table_col <- ndd_database_comparison_view %>%
     left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
@@ -90,7 +90,7 @@ generate_comparisons_list <- function(
   # This means each source column will only show genes that are Definitive in that source
   if (definitive_only_bool) {
     table_data <- table_data %>%
-      filter(category == "Definitive")
+      dplyr::filter(category == "Definitive")
   }
 
   ndd_database_comparison_table <- table_data %>%
@@ -110,7 +110,7 @@ generate_comparisons_list <- function(
   # arrange and apply filters according to input
   ndd_database_comparison_table <- ndd_database_comparison_table %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+    dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
 
   # Filtered field spec -> `count_filtered`, so the column-header tooltips
   # report "<filtered>/<total>" consistently with the other table endpoints.

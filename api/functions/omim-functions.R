@@ -94,7 +94,7 @@ validate_omim_data <- function(omim_data) {
 
   # Check for missing disease_ontology_id
   missing_id <- omim_data %>%
-    filter(is.na(disease_ontology_id)) %>%
+    dplyr::filter(is.na(disease_ontology_id)) %>%
     nrow()
 
   if (missing_id > 0) {
@@ -106,7 +106,7 @@ validate_omim_data <- function(omim_data) {
 
   # Check for missing disease_ontology_name
   missing_name_data <- omim_data %>%
-    filter(is.na(disease_ontology_name))
+    dplyr::filter(is.na(disease_ontology_name))
   missing_name <- nrow(missing_name_data)
 
   if (missing_name > 0) {
@@ -129,7 +129,7 @@ validate_omim_data <- function(omim_data) {
   if ("disease_ontology_id_version" %in% names(omim_data)) {
     duplicates <- omim_data %>%
       count(disease_ontology_id_version) %>%
-      filter(n > 1)
+      dplyr::filter(n > 1)
 
     if (nrow(duplicates) > 0) {
       dup_ids <- duplicates$disease_ontology_id_version %>%
@@ -186,7 +186,7 @@ validate_omim_data <- function(omim_data) {
 #' @export
 get_deprecated_mim_numbers <- function(mim2gene_data) {
   deprecated <- mim2gene_data %>%
-    filter(mim_entry_type == "moved/removed") %>%
+    dplyr::filter(mim_entry_type == "moved/removed") %>%
     pull(mim_number)
 
   return(deprecated)
@@ -225,8 +225,8 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
   # Query for affected entities
   # Join disease_ontology_set with ndd_entity to find affected entities
   affected_entities <- tbl(pool, "disease_ontology_set") %>%
-    filter(disease_ontology_id %in% !!deprecated_omim_ids) %>%
-    select(
+    dplyr::filter(disease_ontology_id %in% !!deprecated_omim_ids) %>%
+    dplyr::select(
       disease_ontology_id_version,
       disease_ontology_id,
       disease_ontology_name
@@ -236,7 +236,7 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
   # If there are affected entries, join with entity view to get entity IDs
   if (nrow(affected_entities) > 0) {
     entity_usage <- tbl(pool, "ndd_entity_view") %>%
-      filter(disease_ontology_id_version %in% !!affected_entities$disease_ontology_id_version) %>%
+      dplyr::filter(disease_ontology_id_version %in% !!affected_entities$disease_ontology_id_version) %>%
       dplyr::select(
         entity_id,
         disease_ontology_id_version,
@@ -386,7 +386,7 @@ build_omim_from_genemap2 <- function(genemap2_parsed, hgnc_list, moi_list) { # n
 
   # Check for unmapped inheritance terms and warn
   unmapped <- combined %>%
-    filter(!is.na(original_moi) & is.na(hpo_mode_of_inheritance_term_name)) %>%
+    dplyr::filter(!is.na(original_moi) & is.na(hpo_mode_of_inheritance_term_name)) %>%
     pull(original_moi) %>%
     unique()
 

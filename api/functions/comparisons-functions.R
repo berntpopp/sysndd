@@ -459,7 +459,7 @@ comparisons_update_async <- function(params) {
       # Filter out rows without HGNC ID. (comparison_id is AUTO_INCREMENT and is
       # intentionally NOT assigned here so the per-list replace below never
       # collides with rows retained from sources that were not refreshed.)
-      filter(!is.na(hgnc_id) & hgnc_id != "HGNC:NA")
+      dplyr::filter(!is.na(hgnc_id) & hgnc_id != "HGNC:NA")
 
     message(sprintf("[%s] [job:%s] Final dataset: %d rows with HGNC IDs", Sys.time(), job_id, nrow(merged_data)))
 

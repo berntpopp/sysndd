@@ -194,7 +194,7 @@ test_that("production-shape extraction: raw {yes,NA} through mca prep, then posi
   source_api_file("functions/analysis-phenotype-mca-prep.R", local = FALSE, envir = globalenv())
   raw <- data.frame(
     inh = c("AD", "AR", "AD", "AR"),
-    phenotype_non_id_count = c(1, 1, 1, 1),
+    extraneurological_system_count = c(1, 1, 1, 1),
     phenotype_id_count = c(1, 1, 1, 1),
     gene_entity_count = c(1, 1, 1, 1),
     Seizures = c("yes", "yes", NA, NA),

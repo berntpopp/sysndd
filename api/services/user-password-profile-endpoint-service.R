@@ -30,7 +30,7 @@ svc_user_password_update <- function(req, res, body) {
   # Get user info including password for verification
   user_table <- pool %>%
     tbl("user") %>%
-    select(
+    dplyr::select(
       user_id,
       user_name,
       password,
@@ -39,7 +39,7 @@ svc_user_password_update <- function(req, res, body) {
       family_name,
       email
     ) %>%
-    filter(user_id == user_id_pass_change) %>%
+    dplyr::filter(user_id == user_id_pass_change) %>%
     collect()
 
   user_id_pass_change_exists <- as.logical(length(user_table$user_id))
@@ -135,7 +135,7 @@ svc_user_profile_update <- function(req, res) {
     # Check if email is already taken by another user
     existing_email <- pool %>%
       tbl("user") %>%
-      filter(email == new_email, user_id != !!user_id) %>%
+      dplyr::filter(email == new_email, user_id != !!user_id) %>%
       collect()
 
     if (nrow(existing_email) > 0) {
@@ -258,11 +258,11 @@ svc_user_password_reset_change <- function(req, res) {
     user_table <- pool %>%
       tbl("user") %>%
       collect() %>%
-      filter(user_id == user_jwt$user_id) %>%
+      dplyr::filter(user_id == user_jwt$user_id) %>%
       mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
       mutate(reset_posix = as.POSIXct(password_reset_date, tz = "UTC")) %>%
       mutate(timestamp_iat = as.integer(reset_posix)) %>%
-      select(user_id, user_name, hash, email, timestamp_iat)
+      dplyr::select(user_id, user_name, hash, email, timestamp_iat)
 
     # Check user was found
     if (nrow(user_table) == 0) {

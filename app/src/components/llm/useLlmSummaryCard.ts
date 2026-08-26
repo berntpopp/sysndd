@@ -28,7 +28,10 @@ export interface SummaryJson {
   derived_confidence?: DerivedConfidence;
   // Phenotype cluster specific fields
   inheritance_patterns?: string[];
-  syndromicity?: 'predominantly_syndromic' | 'predominantly_id' | 'mixed' | 'unknown';
+  // #630: `syndromicity` was REMOVED from the LLM contract and is stripped from
+  // historical cached rows on read. It is computed from curated HPO annotations
+  // and rendered by SyndromicityCard.vue instead. Do not reintroduce it here.
+  clinical_pattern?: string;
   // Judge metadata (if present)
   llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject';
   llm_judge_reasoning?: string;
@@ -60,9 +63,6 @@ export interface UseLlmSummaryCard {
   hasPathways: ComputedRef<boolean>;
   hasTags: ComputedRef<boolean>;
   hasInheritancePatterns: ComputedRef<boolean>;
-  hasSyndromicity: ComputedRef<boolean>;
-  syndromicityVariant: ComputedRef<LlmBadgeVariant>;
-  syndromicityLabel: ComputedRef<string>;
   getInheritanceTooltip: (pattern: string) => string;
   judgeVerdict: ComputedRef<string | null>;
   judgePoints: ComputedRef<number | null>;
@@ -158,47 +158,8 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
     );
   });
 
-  /**
-   * Check if syndromicity data is present
-   */
-  const hasSyndromicity = computed<boolean>(() => {
-    const syndromicity = normalize(props.summary?.syndromicity);
-    return syndromicity !== undefined && syndromicity !== null && syndromicity !== 'unknown';
-  });
 
-  /**
-   * Syndromicity badge variant
-   */
-  const syndromicityVariant = computed<LlmBadgeVariant>(() => {
-    const syndromicity = normalize(props.summary?.syndromicity);
-    switch (syndromicity) {
-      case 'predominantly_syndromic':
-        return 'warning';
-      case 'predominantly_id':
-        return 'info';
-      case 'mixed':
-        return 'secondary';
-      default:
-        return 'light';
-    }
-  });
 
-  /**
-   * Syndromicity label for display
-   */
-  const syndromicityLabel = computed<string>(() => {
-    const syndromicity = normalize(props.summary?.syndromicity);
-    switch (syndromicity) {
-      case 'predominantly_syndromic':
-        return 'Syndromic';
-      case 'predominantly_id':
-        return 'ID-focused';
-      case 'mixed':
-        return 'Mixed';
-      default:
-        return 'Unknown';
-    }
-  });
 
   /**
    * Get tooltip for inheritance pattern abbreviation
@@ -337,9 +298,6 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
     hasPathways,
     hasTags,
     hasInheritancePatterns,
-    hasSyndromicity,
-    syndromicityVariant,
-    syndromicityLabel,
     getInheritanceTooltip,
     judgeVerdict,
     judgePoints,

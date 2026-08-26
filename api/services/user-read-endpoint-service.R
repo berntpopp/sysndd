@@ -33,20 +33,20 @@ svc_user_table_list <- function(req, filter, sort, page_after, page_size, fspec)
   if (req$user_role == "Administrator") {
     user_table <- pool %>%
       tbl("user") %>%
-      select(dplyr::all_of(user_columns)) %>%
+      dplyr::select(dplyr::all_of(user_columns)) %>%
       collect()
   } else {
     # Curator sees only unapproved users
     user_table <- pool %>%
       tbl("user") %>%
-      select(dplyr::all_of(user_columns)) %>%
-      filter(approved == 0) %>%
+      dplyr::select(dplyr::all_of(user_columns)) %>%
+      dplyr::filter(approved == 0) %>%
       collect()
   }
 
   if (filter_exprs != "") {
     user_table <- user_table %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
+      dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
   }
 
   user_table <- user_table %>%
@@ -116,21 +116,21 @@ svc_user_contributions <- function(user_id) {
 
   active_user_reviews <- pool %>%
     tbl("ndd_entity_review") %>%
-    filter(is_primary == 1) %>%
-    filter(review_user_id == user_requested) %>%
-    select(review_id) %>%
+    dplyr::filter(is_primary == 1) %>%
+    dplyr::filter(review_user_id == user_requested) %>%
+    dplyr::select(review_id) %>%
     collect() %>%
     tally() %>%
-    select(active_reviews = n)
+    dplyr::select(active_reviews = n)
 
   active_user_status <- pool %>%
     tbl("ndd_entity_status") %>%
-    filter(is_active == 1) %>%
-    filter(status_user_id == user_requested) %>%
-    select(status_id) %>%
+    dplyr::filter(is_active == 1) %>%
+    dplyr::filter(status_user_id == user_requested) %>%
+    dplyr::select(status_id) %>%
     collect() %>%
     tally() %>%
-    select(active_status = n)
+    dplyr::select(active_status = n)
 
   list(
     user_id = user_requested,
@@ -148,13 +148,13 @@ svc_user_contributions <- function(user_id) {
 svc_user_role_list <- function(req) {
   if (req$user_role == "Administrator") {
     role_list <- tibble::as_tibble(user_status_allowed) %>%
-      select(role = value)
+      dplyr::select(role = value)
     role_list
   } else {
     # Curator sees all except Administrator
     role_list <- tibble::as_tibble(user_status_allowed) %>%
-      select(role = value) %>%
-      filter(role != "Administrator")
+      dplyr::select(role = value) %>%
+      dplyr::filter(role != "Administrator")
     role_list
   }
 }
@@ -186,9 +186,9 @@ svc_user_list_by_roles <- function(res, roles) {
 
   user_table_roles <- pool %>%
     tbl("user") %>%
-    filter(approved == 1) %>%
-    filter(user_role %in% roles_list) %>%
-    select(user_id, user_name, user_role) %>%
+    dplyr::filter(approved == 1) %>%
+    dplyr::filter(user_role %in% roles_list) %>%
+    dplyr::select(user_id, user_name, user_role) %>%
     collect()
   user_table_roles
 }

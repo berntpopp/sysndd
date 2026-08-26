@@ -60,19 +60,19 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
 
   re_review_entity_connect <- pool %>%
     tbl("re_review_entity_connect") %>%
-    filter(re_review_approved == 0) %>%
+    dplyr::filter(re_review_approved == 0) %>%
     {
       switch(filter_mode,
-        refused = filter(., re_review_refused == 1),
-        curate  = filter(., re_review_submitted == 1, re_review_refused == 0),
-        filter(., re_review_submitted == 0, re_review_refused == 0)
+        refused = dplyr::filter(., re_review_refused == 1),
+        curate  = dplyr::filter(., re_review_submitted == 1, re_review_refused == 0),
+        dplyr::filter(., re_review_submitted == 0, re_review_refused == 0)
       )
     }
 
   re_review_assignment <- pool %>%
     tbl("re_review_assignment") %>%
     {
-      if (scope_to_user) filter(., user_id == requesting_user_id) else .
+      if (scope_to_user) dplyr::filter(., user_id == requesting_user_id) else .
     }
 
   ndd_entity_view <- pool %>%
@@ -80,19 +80,19 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
 
   ndd_entity_status_category <- pool %>%
     tbl("ndd_entity_status") %>%
-    select(status_id, category_id)
+    dplyr::select(status_id, category_id)
 
   ndd_entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list")
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, user_role)
+    dplyr::select(user_id, user_name, user_role)
 
   review_user_collected <- pool %>%
     tbl("ndd_entity_review") %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
-    select(
+    dplyr::select(
       review_id,
       review_date,
       review_user_id,
@@ -104,7 +104,7 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
   status_user_collected <- pool %>%
     tbl("ndd_entity_status") %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
-    select(
+    dplyr::select(
       status_id,
       status_date,
       status_user_id,
@@ -119,14 +119,14 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
   # errors. No fspec contract on this endpoint, so unconditional pushdown is safe.
   refused_user_collected <- pool %>%
     tbl("user") %>%
-    select(
+    dplyr::select(
       re_review_refused_user_id = user_id,
       re_review_refused_user_name = user_name
     )
 
   re_review_user_list_lazy <- re_review_entity_connect %>%
     inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-    select(
+    dplyr::select(
       re_review_entity_id,
       entity_id,
       re_review_review_saved,
@@ -142,7 +142,7 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
     ) %>%
     left_join(refused_user_collected, by = c("re_review_refused_user_id")) %>%
     inner_join(ndd_entity_view, by = c("entity_id")) %>%
-    select(-category_id, -category) %>%
+    dplyr::select(-category_id, -category) %>%
     inner_join(ndd_entity_status_category, by = c("status_id")) %>%
     inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
     inner_join(review_user_collected, by = c("review_id")) %>%
@@ -152,7 +152,7 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
   if (has_filter) {
     tryCatch(
       re_review_user_list_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         collect() %>%
         arrange(re_review_entity_id),
       error = function(e) {
@@ -163,7 +163,7 @@ svc_re_review_table_query <- function(filter, curate, refused, requesting_user_i
         re_review_user_list_lazy %>%
           collect() %>%
           arrange(re_review_entity_id) %>%
-          filter(!!!rlang::parse_exprs(filter_exprs))
+          dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
       }
     )
   } else {
@@ -199,7 +199,7 @@ svc_re_review_paginate <- function(re_review_user_list, page_size, page_after) {
 svc_re_review_assignment_entity_summary <- function(pool) {
   pool %>%
     tbl("re_review_entity_connect") %>%
-    select(
+    dplyr::select(
       re_review_batch,
       re_review_review_saved,
       re_review_status_saved,
@@ -220,7 +220,7 @@ svc_re_review_assignment_user_table <- function(pool) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name)
+    dplyr::select(user_id, user_name)
 
   re_review_assignment_table %>%
     left_join(user_table, by = c("user_id")) %>%
@@ -238,7 +238,7 @@ svc_re_review_assignment_user_table <- function(pool) {
 svc_re_review_assignment_table_combine <- function(assignment_user_df, entity_connect_summary_df) {
   assignment_user_df %>%
     left_join(entity_connect_summary_df, by = c("re_review_batch")) %>%
-    select(
+    dplyr::select(
       assignment_id,
       user_id,
       user_name,

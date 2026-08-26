@@ -40,7 +40,7 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
   if (tree) {
     # Format for treeselect library: id and label columns
     status_list_return_helper <- status_list_collected %>%
-      select(id = category_id, label = category)
+      dplyr::select(id = category_id, label = category)
 
     status_list_return_helper
   } else {
@@ -87,32 +87,32 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
   if (tree) {
     modifier_list_collected <- pool %>%
       tbl("modifier_list") %>%
-      filter(allowed_phenotype) %>%
-      select(modifier_id, modifier_name) %>%
+      dplyr::filter(allowed_phenotype) %>%
+      dplyr::select(modifier_id, modifier_name) %>%
       arrange(modifier_id) %>%
       collect()
 
     phenotype_list_collected <- pool %>%
       tbl("phenotype_list") %>%
-      select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+      dplyr::select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
       arrange(HPO_term) %>%
       collect() %>%
       mutate(children = list(modifier_list_collected)) %>%
       unnest(children) %>%
-      filter(modifier_id != 1) %>%
+      dplyr::filter(modifier_id != 1) %>%
       mutate(id = paste0(modifier_id, "-", phenotype_id)) %>%
       mutate(label = paste0(modifier_name, ": ", HPO_term)) %>%
-      select(-modifier_id, -modifier_name) %>%
+      dplyr::select(-modifier_id, -modifier_name) %>%
       nest(data = c(id, label)) %>%
       mutate(phenotype_id = paste0("1-", phenotype_id)) %>%
       mutate(HPO_term = paste0("present: ", HPO_term)) %>%
-      select(id = phenotype_id, label = HPO_term, children = data)
+      dplyr::select(id = phenotype_id, label = HPO_term, children = data)
 
     phenotype_list_collected
   } else {
     phenotype_list_collected <- pool %>%
       tbl("phenotype_list") %>%
-      select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+      dplyr::select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
       arrange(phenotype_id) %>%
       collect()
 
@@ -160,12 +160,12 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
     tbl("mode_of_inheritance_list") %>%
     arrange(hpo_mode_of_inheritance_term) %>%
     collect() %>%
-    filter(is_active == 1) %>%
-    select(-is_active, -update_date)
+    dplyr::filter(is_active == 1) %>%
+    dplyr::select(-is_active, -update_date)
 
   if (tree) {
     moi_list_return_helper <- moi_list_collected %>%
-      select(
+      dplyr::select(
         id = hpo_mode_of_inheritance_term,
         label = hpo_mode_of_inheritance_term_name
       )
@@ -224,37 +224,37 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
   if (tree) {
     modifier_list_collected <- pool %>%
       tbl("modifier_list") %>%
-      filter(allowed_variation) %>%
-      select(modifier_id, modifier_name) %>%
+      dplyr::filter(allowed_variation) %>%
+      dplyr::select(modifier_id, modifier_name) %>%
       arrange(modifier_id) %>%
       collect()
 
     variation_ontology_list_coll <- pool %>%
       tbl("variation_ontology_list") %>%
-      filter(is_active) %>%
-      select(vario_id, vario_name, definition, sort) %>%
+      dplyr::filter(is_active) %>%
+      dplyr::select(vario_id, vario_name, definition, sort) %>%
       arrange(sort) %>%
       collect() %>%
-      select(-sort) %>%
+      dplyr::select(-sort) %>%
       mutate(children = list(modifier_list_collected)) %>%
       unnest(children) %>%
-      filter(modifier_id != 1) %>%
+      dplyr::filter(modifier_id != 1) %>%
       mutate(id = paste0(modifier_id, "-", vario_id)) %>%
       mutate(label = paste0(modifier_name, ": ", vario_name)) %>%
-      select(-modifier_id, -modifier_name) %>%
+      dplyr::select(-modifier_id, -modifier_name) %>%
       nest(data = c(id, label)) %>%
       mutate(vario_id = paste0("1-", vario_id)) %>%
       mutate(vario_name = paste0("present: ", vario_name)) %>%
-      select(id = vario_id, label = vario_name, children = data)
+      dplyr::select(id = vario_id, label = vario_name, children = data)
 
     variation_ontology_list_coll
   } else {
     variation_ontology_list_coll <- pool %>%
       tbl("variation_ontology_list") %>%
-      select(vario_id, vario_name, definition, sort) %>%
+      dplyr::select(vario_id, vario_name, definition, sort) %>%
       arrange(vario_id) %>%
       collect() %>%
-      select(-sort)
+      dplyr::select(-sort)
 
     # Apply pagination
     pagination_info <- generate_cursor_pag_inf_safe(

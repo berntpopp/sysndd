@@ -65,7 +65,7 @@ svc_approval_review_approve <- function(review_id, user_id, approve = FALSE, poo
   if (is_all) {
     pending_reviews <- pool %>%
       tbl("ndd_entity_review") %>%
-      filter(review_approved == 0, is.na(approving_user_id)) %>%
+      dplyr::filter(review_approved == 0, is.na(approving_user_id)) %>%
       dplyr::select(review_id) %>%
       collect()
 
@@ -168,8 +168,8 @@ svc_approval_status_approve <- function(status_id, user_id, approve = FALSE, poo
   if (as.character(status_id) == "all") {
     pending_statuses <- pool %>%
       tbl("ndd_entity_status") %>%
-      filter(status_approved == 0, is.na(approving_user_id)) %>%
-      select(status_id) %>%
+      dplyr::filter(status_approved == 0, is.na(approving_user_id)) %>%
+      dplyr::select(status_id) %>%
       collect()
 
     status_ids <- pending_statuses$status_id

@@ -159,6 +159,8 @@ test_that("052 does not re-add the parent key 051 already created", {
 })
 
 migration_053_path <- function() {
+  # Pinned to 053 deliberately: this block asserts what THAT migration does.
+  # It must not follow EXPECTED_LATEST_MIGRATION, which advances.
   file.path(get_api_dir(), "..", "db", "migrations",
             "053_fix_variation_agreement_constraint_guard.sql")
 }
@@ -209,11 +211,15 @@ test_that("the review curation reads require entity agreement", {
   expect_match(src, "entity_id == review_entity_id", fixed = TRUE)
 })
 
-test_that("the migration manifest tracks 051 as the latest migration", {
+test_that("the migration manifest tracks the latest migration on disk", {
   origin_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION,
-               "053_fix_variation_agreement_constraint_guard.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 51L)
+  # Derived rather than hardcoded; see test-unit-core-views-manifest.R for why.
+  migrations <- sort(basename(list.files(
+    file.path(dirname(origin_dir), "db", "migrations"), pattern = "[.]sql$"
+  )))
+  expect_gt(length(migrations), 0L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, migrations[length(migrations)])
+  expect_equal(EXPECTED_MIGRATION_COUNT, length(migrations))
 })

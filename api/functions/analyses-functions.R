@@ -177,14 +177,14 @@ gen_string_clust_obj <- function(
   # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
   if (!is.null(string_id_table)) {
     sysndd_db_string_id_table <- string_id_table %>%
-      filter(hgnc_id %in% hgnc_list)
+      dplyr::filter(hgnc_id %in% hgnc_list)
   } else {
     sysndd_db_string_id_table <- pool %>%
       tbl("non_alt_loci_set") %>%
-      filter(!is.na(STRING_id)) %>%
-      select(symbol, hgnc_id, STRING_id) %>%
+      dplyr::filter(!is.na(STRING_id)) %>%
+      dplyr::select(symbol, hgnc_id, STRING_id) %>%
       collect() %>%
-      filter(hgnc_id %in% hgnc_list)
+      dplyr::filter(hgnc_id %in% hgnc_list)
   }
 
   # convert to dataframe
@@ -263,7 +263,7 @@ gen_string_clust_obj <- function(
   }
 
   clusters_tibble <- tibble(clusters_list) %>%
-    select(STRING_id = clusters_list) %>%
+    dplyr::select(STRING_id = clusters_list) %>%
     mutate(cluster = row_number()) %>%
     unnest_longer(col = "STRING_id") %>%
     left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
@@ -278,10 +278,10 @@ gen_string_clust_obj <- function(
       if (nrow(.) > 0) {
         rowwise(.) %>%
           mutate(cluster_size = nrow(identifiers)) %>%
-          filter(cluster_size >= min_size) %>%
-          select(cluster, cluster_size, identifiers, hash_filter)
+          dplyr::filter(cluster_size >= min_size) %>%
+          dplyr::select(cluster, cluster_size, identifiers, hash_filter)
       } else {
-        select(., cluster, cluster_size = integer(), identifiers, hash_filter)
+        dplyr::select(., cluster, cluster_size = integer(), identifiers, hash_filter)
       }
     } %>%
     {
@@ -369,7 +369,7 @@ gen_string_enrich_tib <- function(hgnc_list) {
   # Sort by FDR ascending so most significant terms appear first
   enrichment_tibble <- string_db$get_enrichment(hgnc_list) %>%
     tibble() %>%
-    select(-ncbiTaxonId, -inputGenes, -preferredNames) %>%
+    dplyr::select(-ncbiTaxonId, -inputGenes, -preferredNames) %>%
     arrange(fdr)
 
   # return result

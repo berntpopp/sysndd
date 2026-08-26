@@ -92,6 +92,11 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/analysis-string-channels.R", local = FALSE)
     source("/app/functions/analysis-cache-fingerprint.R", local = FALSE)
     source("/app/functions/analyses-functions.R", local = FALSE)
+    # #630: registry + classifier BEFORE the phenotype paths that consume them
+    # for the MCA quantitative supplementary counts (mirai parity with
+    # bootstrap/load_modules.R).
+    source("/app/functions/syndromicity-registry.R", local = FALSE)
+    source("/app/functions/syndromicity-classify.R", local = FALSE)
     source("/app/functions/analysis-phenotype-mca-prep.R", local = FALSE)
     source("/app/functions/analysis-phenotype-functions.R", local = FALSE)
     source("/app/functions/analysis-null-models.R", local = FALSE)
@@ -135,6 +140,7 @@ bootstrap_setup_workers <- function() {
     # Additive generator provenance (#585); sourced after analysis-cache-fingerprint.R
     # (CLUSTER_LOGIC_VERSION, above) and before the builder (its consumer).
     source("/app/functions/analysis-snapshot-provenance-generator.R", local = FALSE)
+    source("/app/functions/analysis-snapshot-rows.R", local = FALSE)
     source("/app/functions/analysis-snapshot-builder.R", local = FALSE)
     source("/app/functions/analysis-reproducibility.R", local = FALSE)
     source("/app/functions/async-job-analysis-snapshot-handlers.R", local = FALSE)

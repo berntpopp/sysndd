@@ -24,6 +24,55 @@
 # worker/API entrypoint sources that module via bootstrap_load_modules() before
 # this file; a direct-source test env must source it too (as the async-job tests do).
 
+
+# #630: the syndromicity registry/classifier supply the MCA supplementary
+# counts. bootstrap_load_modules() sources them first, but tests that source
+# THIS file directly would otherwise fail with
+# `could not find function "syndromicity_supplementary_counts"`. Guard-sourced,
+# mirroring the comparisons-parsers pattern.
+if (!exists(
+  "syndromicity_supplementary_counts",
+  envir = environment(),
+  mode = "function",
+  inherits = FALSE
+)) {
+  .syndromicity_source_env <- environment()
+  local({
+    source_dirs <- character()
+    for (i in seq_len(sys.nframe())) {
+      source_file <- tryCatch(sys.frame(i)$ofile, error = function(e) NULL)
+      if (!is.null(source_file) && nzchar(source_file)) {
+        source_dirs <- c(source_dirs, dirname(source_file))
+      }
+    }
+    cwd_dirs <- character()
+    cwd_dir <- normalizePath(getwd(), mustWork = TRUE)
+    repeat {
+      cwd_dirs <- c(cwd_dirs, cwd_dir)
+      parent_dir <- dirname(cwd_dir)
+      if (identical(parent_dir, cwd_dir)) break
+      cwd_dir <- parent_dir
+    }
+    roots <- unique(c(
+      source_dirs,
+      file.path(source_dirs, "..", "functions"),
+      file.path(cwd_dirs, "functions"),
+      file.path(cwd_dirs, "api", "functions"),
+      "functions", file.path("api", "functions"), "/app/functions"
+    ))
+    for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
+      for (r in roots) {
+        p <- file.path(r, mod)
+        if (file.exists(p)) {
+          sys.source(p, envir = .syndromicity_source_env)
+          break
+        }
+      }
+    }
+  })
+  rm(.syndromicity_source_env)
+}
+
 .async_job_after_success_noop <- function(result, job, payload, state, worker_config) {
   invisible(result)
 }
@@ -188,13 +237,20 @@
       entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
       HPO_term, hgnc_id
     ) |>
-    dplyr::group_by(entity_id) |>
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% payload$id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% payload$id_phenotype_ids)
-    ) |>
-    dplyr::ungroup() |>
     unique()
+
+  # #630: registry-derived supplementary counts, identical to the served
+  # snapshot path. The payload no longer carries an id_phenotype_ids list.
+  sysndd_db_phenotypes <- sysndd_db_phenotypes |>
+    dplyr::left_join(
+      syndromicity_supplementary_counts(
+        dplyr::mutate(
+          dplyr::select(sysndd_db_phenotypes, entity_id, phenotype_id),
+          modifier_name = "present"
+        )
+      ),
+      by = "entity_id"
+    )
 
   sysndd_db_phenotypes_wider <- sysndd_db_phenotypes |>
     dplyr::mutate(present = "yes") |>
@@ -203,6 +259,8 @@
     dplyr::group_by(hgnc_id) |>
     dplyr::mutate(gene_entity_count = dplyr::n()) |>
     dplyr::ungroup() |>
+    dplyr::relocate(extraneurological_system_count, .after = hpo_mode_of_inheritance_term_name) |>
+    dplyr::relocate(phenotype_id_count, .after = extraneurological_system_count) |>
     dplyr::relocate(gene_entity_count, .after = phenotype_id_count) |>
     dplyr::select(-hgnc_id)
 
@@ -210,6 +268,9 @@
     dplyr::select(-entity_id) |>
     as.data.frame()
   row.names(phenotype_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # #630: positional quali.sup/quanti.sup contract (see the helper's docs).
+  phenotype_mca_assert_supplementary_layout(phenotype_df)
 
   # #508 MCA feature hygiene via the shared helper (same as
   # generate_phenotype_cluster_input) so the interactive/durable clustering job

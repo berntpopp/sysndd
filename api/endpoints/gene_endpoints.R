@@ -90,7 +90,7 @@ function(req,
   if (is_compact && has_text_filter) {
     fast_path_filtered <- tryCatch(
       ndd_entity_view_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         collect() %>%
         group_by(symbol) %>%
         mutate(entities_count = n()) %>%
@@ -119,7 +119,7 @@ function(req,
       mutate(entities_count = n()) %>%
       ungroup()
     sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
-      filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+      dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
       arrange(!!!rlang::parse_exprs(sort_exprs))
   }
 
@@ -270,19 +270,19 @@ function(gene_input, input_type = "hgnc") {
     tbl("non_alt_loci_set") %>%
     {
       if (input_type == "hgnc") {
-        filter(., hgnc_id == gene_input)
+        dplyr::filter(., hgnc_id == gene_input)
       } else {
         .
       }
     } %>%
     {
       if (input_type == "symbol") {
-        filter(., str_to_lower(symbol) == gene_input)
+        dplyr::filter(., str_to_lower(symbol) == gene_input)
       } else {
         .
       }
     } %>%
-    select(
+    dplyr::select(
       hgnc_id,
       symbol,
       name,

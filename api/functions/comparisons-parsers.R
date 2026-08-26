@@ -48,17 +48,17 @@ parse_radboudumc_pdf <- function(file_path) {
              sep = " ",
              fill = "right",
              extra = "drop") %>%
-    filter(!is.na(gene_symbol)) %>%
+    dplyr::filter(!is.na(gene_symbol)) %>%
     # Filter out PDF header/footer text and non-gene entries
-    filter(!(gene_symbol %in% c(
+    dplyr::filter(!(gene_symbol %in% c(
       "", "%", "OMIM", "Gene", "Genes", "Median", "Ad",
       "Coverage", "Covered", "Non", "EAS.GenProductCoverage.pdf.footer.ad01",
       "PHENOTYPE", "DESCRIPTION", "ALACRIMIA", "ADDISONIANISM-"
     ))) %>%
     # Valid gene symbols are uppercase, 1-12 chars, alphanumeric with optional dash/number
     # Filter out entries that look like descriptions (contain lowercase, end with dash, etc.)
-    filter(str_detect(gene_symbol, "^[A-Z0-9][A-Z0-9-]*[A-Z0-9]$|^[A-Z0-9]$")) %>%
-    filter(nchar(gene_symbol) <= 15)
+    dplyr::filter(str_detect(gene_symbol, "^[A-Z0-9][A-Z0-9-]*[A-Z0-9]$|^[A-Z0-9]$")) %>%
+    dplyr::filter(nchar(gene_symbol) <= 15)
 
   # Clean up OMIM IDs
   result <- radboudumc_pdf_list %>%
@@ -121,7 +121,7 @@ parse_panelapp_tsv <- function(file_path) {
 
   # Filter for genes only (not regions/STRs)
   result <- data %>%
-    filter(`Entity type` == "gene") %>%
+    dplyr::filter(`Entity type` == "gene") %>%
     dplyr::select(
       gene_symbol = `Gene Symbol`,
       disease_ontology = Phenotypes,
@@ -254,7 +254,7 @@ parse_ndd_genehub_csv <- function(file_path, category_lookup = NULL) {
   data <- data %>%
     rename(gene_symbol = !!gene_col) %>%
     mutate(gene_symbol = as.character(gene_symbol)) %>%
-    filter(!is.na(gene_symbol) & gene_symbol != "")
+    dplyr::filter(!is.na(gene_symbol) & gene_symbol != "")
 
   # Phenotype-category flags -> human-readable labels (present only if flagged).
   pheno_labels <- c(
@@ -276,7 +276,7 @@ parse_ndd_genehub_csv <- function(file_path, category_lookup = NULL) {
       dplyr::select(gene_symbol, dplyr::all_of(names(pheno_labels))) %>%
       mutate(across(dplyr::all_of(names(pheno_labels)), as.character)) %>%
       pivot_longer(-gene_symbol, names_to = "code", values_to = "flag") %>%
-      filter(!is.na(flag) & flag != "") %>%
+      dplyr::filter(!is.na(flag) & flag != "") %>%
       mutate(pheno = unname(pheno_labels[code])) %>%
       dplyr::distinct(gene_symbol, pheno) %>%
       group_by(gene_symbol) %>%
@@ -291,7 +291,7 @@ parse_ndd_genehub_csv <- function(file_path, category_lookup = NULL) {
     pub_agg <- data %>%
       dplyr::transmute(gene_symbol, pmid = str_extract_all(as.character(`PubMed ID`), "[0-9]+")) %>%
       tidyr::unnest(pmid) %>%
-      filter(!is.na(pmid) & pmid != "") %>%
+      dplyr::filter(!is.na(pmid) & pmid != "") %>%
       dplyr::distinct(gene_symbol, pmid) %>%
       group_by(gene_symbol) %>%
       summarise(publication_id = paste(unique(pmid), collapse = ";"), .groups = "drop")
@@ -318,7 +318,7 @@ parse_ndd_genehub_csv <- function(file_path, category_lookup = NULL) {
           TRUE ~ NA_character_
         )
       ) %>%
-      filter(!is.na(inheritance_term)) %>%
+      dplyr::filter(!is.na(inheritance_term)) %>%
       dplyr::distinct(gene_symbol, inheritance_term) %>%
       group_by(gene_symbol) %>%
       summarise(inheritance = paste(sort(unique(inheritance_term)), collapse = ";"), .groups = "drop")
@@ -362,7 +362,7 @@ parse_orphanet_json <- function(file_path) {
   json_data <- fromJSON(json_content)
 
   result <- as_tibble(json_data$data) %>%
-    filter(GeneType != "Disorder-associated locus") %>%
+    dplyr::filter(GeneType != "Disorder-associated locus") %>%
     mutate(
       list = "orphanet_id",
       version = basename(file_path) %>% str_remove(pattern = "\\.json$"),

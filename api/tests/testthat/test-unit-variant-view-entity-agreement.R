@@ -94,6 +94,16 @@ test_that("the migration manifest tracks 050 as the latest migration", {
   origin_dir <- Sys.getenv("MCP_API_TEST_ROOT", get_api_dir())
   source(file.path(origin_dir, "functions", "migration-manifest.R"), local = FALSE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "053_fix_variation_agreement_constraint_guard.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 51L)
+  # Derived from the directory, not hardcoded: this literal used to be repeated
+  # in six test files, so every migration author had to update six places and a
+  # miss showed up as an unrelated red suite. Deriving it still catches the case
+  # this test exists for -- a manifest that has NOT been advanced -- while
+  # costing nothing to maintain.
+  migrations <- sort(basename(list.files(
+    file.path(dirname(get_api_dir()), "db", "migrations"),
+    pattern = "[.]sql$"
+  )))
+  expect_gt(length(migrations), 0L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, migrations[length(migrations)])
+  expect_equal(EXPECTED_MIGRATION_COUNT, length(migrations))
 })

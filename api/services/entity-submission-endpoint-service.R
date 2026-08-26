@@ -207,7 +207,7 @@ svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, p
   ndd_entity_original <- pool %>%
     tbl("ndd_entity") %>%
     collect() %>%
-    filter(entity_id == deactivate_data$entity$entity_id)
+    dplyr::filter(entity_id == deactivate_data$entity$entity_id)
 
   decision <- svc_entity_deactivate_decision(deactivate_data, ndd_entity_original)
 

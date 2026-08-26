@@ -34,8 +34,8 @@ function(ontology_input, input_type = "ontology_id") {
 
   mode_of_inheritance_list_coll <- pool %>%
     tbl("mode_of_inheritance_list") %>%
-    filter(is_active == 1) %>%
-    select(
+    dplyr::filter(is_active == 1) %>%
+    dplyr::select(
       hpo_mode_of_inheritance_term,
       hpo_mode_of_inheritance_term_name,
       inheritance_filter
@@ -54,8 +54,8 @@ function(ontology_input, input_type = "ontology_id") {
       names_to = "type",
       values_to = "search"
     ) %>%
-    filter(search == ontology_input) %>%
-    select(
+    dplyr::filter(search == ontology_input) %>%
+    dplyr::select(
       disease_ontology_id_version,
       disease_ontology_id,
       disease_ontology_name,
@@ -120,7 +120,7 @@ function(req, res, filter = "", sort = "+vario_id", page_after = 0,
   # Retrieve ontology data
   ontology_table <- pool %>%
     tbl("variation_ontology_list") %>%
-    select(
+    dplyr::select(
       vario_id,
       vario_name,
       definition,
@@ -134,7 +134,7 @@ function(req, res, filter = "", sort = "+vario_id", page_after = 0,
   # Apply filtering (if filter expression is not empty)
   if (filter_exprs != "") {
     ontology_table <- ontology_table %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
+      dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
   }
 
   # Store total count before pagination

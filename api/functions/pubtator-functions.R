@@ -177,7 +177,7 @@ pubtator_db_update <- function(
                 id = if (!"id" %in% names(.)) NA_character_ else id,
                 date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
               ) %>%
-              select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
+              dplyr::select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
 
             for (r in seq_len(nrow(df_insert))) {
               db_execute_statement(
@@ -242,7 +242,7 @@ pubtator_db_update <- function(
 
         df_ann <- flat_df_j %>%
           mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
-          select(
+          dplyr::select(
             search_id, pmid, id, text, identifier, type, ncbi_homologene,
             valid, normalized, `database`, normalized_id, biotype, name, accession
           )

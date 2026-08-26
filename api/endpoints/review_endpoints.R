@@ -99,9 +99,9 @@ function(req, res, filter_review_approved = FALSE) {
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     left_join(ndd_entity_tbl, by = c("entity_id")) %>%
-    filter(review_approved == filter_review_approved) %>%
+    dplyr::filter(review_approved == filter_review_approved) %>%
     {
-      if (!filter_review_approved) filter(., is.na(approving_user_id)) else .
+      if (!filter_review_approved) dplyr::filter(., is.na(approving_user_id)) else .
     } %>%
     collect() %>%
     dplyr::select(
@@ -139,7 +139,7 @@ function(req, res, filter_review_approved = FALSE) {
   status_table <- pool %>%
     tbl("ndd_entity_status") %>%
     collect() %>%
-    filter(entity_id %in% review_table_collected$entity_id) %>%
+    dplyr::filter(entity_id %in% review_table_collected$entity_id) %>%
     dplyr::select(entity_id, status_id, category_id, is_active, status_date) %>%
     arrange(entity_id) %>%
     group_by(entity_id) %>%
@@ -279,7 +279,7 @@ function(req, res, review_id_requested) {
     dplyr::select(user_id, user_name, user_role)
 
   review_table_collected <- sysndd_db_review_table %>%
-    filter(review_id %in% review_id_requested) %>%
+    dplyr::filter(review_id %in% review_id_requested) %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     collect() %>%
@@ -349,9 +349,9 @@ function(req, res, review_id_requested) {
     collect()
 
   phenotype_list <- ndd_review_phenotype_conn_coll %>%
-    filter(review_id %in% review_id_requested & is_active) %>%
+    dplyr::filter(review_id %in% review_id_requested & is_active) %>%
     inner_join(review_entity, by = c("review_id")) %>%
-    filter(entity_id == review_entity_id) %>%
+    dplyr::filter(entity_id == review_entity_id) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     dplyr::select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id)
@@ -395,7 +395,7 @@ function(req, res, review_id_requested) {
     collect()
 
   variation_list <- review_variation_ontology_con %>%
-    filter(review_id %in% review_id_requested & is_active) %>%
+    dplyr::filter(review_id %in% review_id_requested & is_active) %>%
     inner_join(variation_ontology_list_col, by = c("vario_id")) %>%
     dplyr::select(review_id, entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id)
@@ -445,9 +445,9 @@ function(req, res, review_id_requested) {
     collect()
 
   ndd_entity_publication_list <- review_publication_join_coll %>%
-    filter(review_id %in% review_id_requested) %>%
+    dplyr::filter(review_id %in% review_id_requested) %>%
     inner_join(review_entity, by = c("review_id")) %>%
-    filter(entity_id == review_entity_id) %>%
+    dplyr::filter(entity_id == review_entity_id) %>%
     dplyr::select(-review_entity_id) %>%
     arrange(publication_id)
 

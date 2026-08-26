@@ -34,6 +34,55 @@
 #' @param res Plumber response, mutated in place (status + headers).
 #' @return List payload for the `json` serializer.
 #' @export
+
+# #630: the syndromicity registry/classifier supply the MCA supplementary
+# counts. bootstrap_load_modules() sources them first, but tests that source
+# THIS file directly would otherwise fail with
+# `could not find function "syndromicity_supplementary_counts"`. Guard-sourced,
+# mirroring the comparisons-parsers pattern.
+if (!exists(
+  "syndromicity_supplementary_counts",
+  envir = environment(),
+  mode = "function",
+  inherits = FALSE
+)) {
+  .syndromicity_source_env <- environment()
+  local({
+    source_dirs <- character()
+    for (i in seq_len(sys.nframe())) {
+      source_file <- tryCatch(sys.frame(i)$ofile, error = function(e) NULL)
+      if (!is.null(source_file) && nzchar(source_file)) {
+        source_dirs <- c(source_dirs, dirname(source_file))
+      }
+    }
+    cwd_dirs <- character()
+    cwd_dir <- normalizePath(getwd(), mustWork = TRUE)
+    repeat {
+      cwd_dirs <- c(cwd_dirs, cwd_dir)
+      parent_dir <- dirname(cwd_dir)
+      if (identical(parent_dir, cwd_dir)) break
+      cwd_dir <- parent_dir
+    }
+    roots <- unique(c(
+      source_dirs,
+      file.path(source_dirs, "..", "functions"),
+      file.path(cwd_dirs, "functions"),
+      file.path(cwd_dirs, "api", "functions"),
+      "functions", file.path("api", "functions"), "/app/functions"
+    ))
+    for (mod in c("syndromicity-registry.R", "syndromicity-classify.R")) {
+      for (r in roots) {
+        p <- file.path(r, mod)
+        if (file.exists(p)) {
+          sys.source(p, envir = .syndromicity_source_env)
+          break
+        }
+      }
+    }
+  })
+  rm(.syndromicity_source_env)
+}
+
 svc_job_submit_phenotype_clustering <- function(req, res) {
   # Guard FIRST (#535 S6): per-caller submit admission throttle, applied before any
   # DB/cache/duplicate work. The phenotype path otherwise collects five whole tables
@@ -48,10 +97,9 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
   # worker boundary.
   # This replicates the data gathering from phenotype_clustering endpoint
 
-  id_phenotype_ids <- c(
-    "HP:0001249", "HP:0001256", "HP:0002187",
-    "HP:0002342", "HP:0006889", "HP:0010864"
-  )
+  # #630: ID terms and the syndromicity supplementary counts come from
+  # functions/syndromicity-registry.R -- one definition shared with the served
+  # snapshot path, so the interactive job and the snapshot cannot diverge.
   categories <- c("Definitive")
 
   # Gather all data from database
@@ -70,6 +118,11 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::select(review_id)
   ndd_review_phenotype_connect_tbl <- pool %>%
     dplyr::tbl("ndd_review_phenotype_connect") %>%
+    # #514-class divergence: the served snapshot path
+    # (generate_phenotype_cluster_input) filters is_active == 1 and this one did
+    # not, so a deactivated annotation could put the interactive job on a
+    # different partition from the published snapshot.
+    dplyr::filter(is_active == 1) %>%
     dplyr::collect()
   modifier_list_tbl <- pool %>%
     dplyr::tbl("modifier_list") %>%
@@ -111,13 +164,16 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::filter(modifier_name == "present") %>%
     dplyr::filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
     dplyr::select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
-    dplyr::group_by(entity_id) %>%
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
-    ) %>%
-    dplyr::ungroup() %>%
     unique()
+
+  sysndd_db_phenotypes <- sysndd_db_phenotypes %>%
+    dplyr::left_join(
+      syndromicity_supplementary_counts(
+        dplyr::select(sysndd_db_phenotypes, entity_id, phenotype_id) %>%
+          dplyr::mutate(modifier_name = "present")
+      ),
+      by = "entity_id"
+    )
 
   sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
     dplyr::mutate(present = "yes") %>%
@@ -126,6 +182,8 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::group_by(hgnc_id) %>%
     dplyr::mutate(gene_entity_count = dplyr::n()) %>%
     dplyr::ungroup() %>%
+    dplyr::relocate(extraneurological_system_count, .after = hpo_mode_of_inheritance_term_name) %>%
+    dplyr::relocate(phenotype_id_count, .after = extraneurological_system_count) %>%
     dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
     dplyr::select(-hgnc_id)
 
@@ -133,6 +191,23 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
     dplyr::select(-entity_id) %>%
     as.data.frame()
   row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # #630: the positional quali.sup/quanti.sup contract, asserted on every
+  # matrix-producing path.
+  phenotype_mca_assert_supplementary_layout(sysndd_db_phenotypes_wider_df)
+
+  # #508 MCA feature hygiene, applied BEFORE the cache probe. This path used to
+  # probe and run gen_mca_clust_obj_mem() on the UNPREPARED matrix while the
+  # served snapshot path (generate_phenotype_cluster_input) prepared it -- two
+  # different memoise keys, so the cache-first probe below could never hit, and
+  # a computed result would have used a different active variable set (HPO root
+  # included, no prevalence band, no absent/present recoding) and therefore a
+  # different partition. That is the #514 failure mode, and the comment below
+  # asserting hash parity with the API endpoint was false.
+  sysndd_db_phenotypes_wider_df <- phenotype_mca_prep_matrix(
+    sysndd_db_phenotypes_wider_df,
+    hpo_lookup = dplyr::select(phenotype_list_tbl, HPO_term, phenotype_id)
+  )
 
   # Cache-first: if the memoized function already has a cached result,
   # return it immediately without submitting a durable worker job.
@@ -163,7 +238,6 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
         ndd_review_phenotype_connect_tbl = ndd_review_phenotype_connect_tbl,
         modifier_list_tbl = modifier_list_tbl,
         phenotype_list_tbl = phenotype_list_tbl,
-        id_phenotype_ids = id_phenotype_ids,
         categories = categories
       ),
       result = cached_clusters_with_ids,
@@ -215,7 +289,6 @@ svc_job_submit_phenotype_clustering <- function(req, res) {
       ndd_review_phenotype_connect_tbl = ndd_review_phenotype_connect_tbl,
       modifier_list_tbl = modifier_list_tbl,
       phenotype_list_tbl = phenotype_list_tbl,
-      id_phenotype_ids = id_phenotype_ids,
       categories = categories
     )
   )

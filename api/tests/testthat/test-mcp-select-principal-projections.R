@@ -170,13 +170,13 @@ test_that("source version formula and derived-content allowlists are frozen", {
   allowed_json_keys <- c(
     "summary", "key_themes", "pathways", "tags", "clinical_relevance", "confidence",
     "key_phenotype_themes", "notably_absent", "clinical_pattern", "syndrome_hints",
-    "inheritance_patterns", "syndromicity", "data_quality_note"
+    "inheritance_patterns", "data_quality_note"
   )
   expect_identical(mcp_readonly_llm_summary_json_keys(), allowed_json_keys)
   expect_false(grepl("judge|reasoning|validation_status", paste(allowed_json_keys, collapse = "|")))
 })
 
 test_that("manifest advances contiguously to the latest migration", {
-  expect_identical(EXPECTED_LATEST_MIGRATION, "053_fix_variation_agreement_constraint_guard.sql")
-  expect_identical(EXPECTED_MIGRATION_COUNT, 51L)
+  expect_identical(EXPECTED_LATEST_MIGRATION, "054_mcp_llm_summary_drop_syndromicity.sql")
+  expect_identical(EXPECTED_MIGRATION_COUNT, 52L)
 })

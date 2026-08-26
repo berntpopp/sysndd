@@ -85,7 +85,7 @@ svc_re_review_approve <- function(re_review_id, status_ok, review_ok, user_id, r
 
   re_review_entity_connect_data <- pool %>%
     tbl("re_review_entity_connect") %>%
-    filter(re_review_entity_id == re_review_id) %>%
+    dplyr::filter(re_review_entity_id == re_review_id) %>%
     collect()
 
   if (nrow(re_review_entity_connect_data) == 0) {
@@ -122,11 +122,11 @@ svc_re_review_batch_apply <- function(user_id, pool) {
     collect()
 
   user_info <- user_table %>%
-    filter(user_id == !!user_id) %>%
-    select(user_id, user_name, email, orcid)
+    dplyr::filter(user_id == !!user_id) %>%
+    dplyr::select(user_id, user_name, email, orcid)
 
   curator_mail <- user_table %>%
-    filter(user_role == "Curator") %>%
+    dplyr::filter(user_role == "Curator") %>%
     pull(email)
 
   email_html <- email_rereview_request(
@@ -151,8 +151,8 @@ svc_re_review_batch_apply <- function(user_id, pool) {
 svc_re_review_batch_assign <- function(user_id_assign, res, pool) {
   user_info <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, email, approved) %>%
-    filter(user_id == user_id_assign) %>%
+    dplyr::select(user_id, user_name, email, approved) %>%
+    dplyr::filter(user_id == user_id_assign) %>%
     collect()
 
   user_id_assign_exists <- as.logical(length(user_info$user_id))
@@ -164,11 +164,11 @@ svc_re_review_batch_assign <- function(user_id_assign, res, pool) {
 
   re_review_assignment <- pool %>%
     tbl("re_review_assignment") %>%
-    select(re_review_batch)
+    dplyr::select(re_review_batch)
 
   re_review_entity_connect <- pool %>%
     tbl("re_review_entity_connect") %>%
-    select(re_review_batch) %>%
+    dplyr::select(re_review_batch) %>%
     anti_join(re_review_assignment, by = c("re_review_batch")) %>%
     collect() %>%
     unique() %>%
@@ -183,7 +183,7 @@ svc_re_review_batch_assign <- function(user_id_assign, res, pool) {
 
   entity_count <- pool %>%
     tbl("re_review_entity_connect") %>%
-    filter(re_review_batch == re_review_batch_next) %>%
+    dplyr::filter(re_review_batch == re_review_batch_next) %>%
     summarize(n = n()) %>%
     collect() %>%
     pull(n)
@@ -226,8 +226,8 @@ svc_re_review_batch_unassign <- function(re_review_batch, res, pool) {
 
   re_review_assignment_table <- pool %>%
     tbl("re_review_assignment") %>%
-    select(re_review_batch) %>%
-    filter(re_review_batch == re_review_batch_unassign) %>%
+    dplyr::select(re_review_batch) %>%
+    dplyr::filter(re_review_batch == re_review_batch_unassign) %>%
     collect()
 
   re_review_batch_unassign_ex <- as.logical(

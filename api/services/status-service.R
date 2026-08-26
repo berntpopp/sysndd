@@ -52,7 +52,7 @@ service_status_create <- function(status_data, pool, re_review = FALSE) {
   # Convert to tibble and remove null values
   status_tibble <- purrr::compact(status_data) %>%
     tibble::as_tibble() %>%
-    select(-any_of("status_id"))
+    dplyr::select(-any_of("status_id"))
 
   # Get connection for transaction
   conn <- pool::poolCheckout(pool)
@@ -153,7 +153,7 @@ service_status_update <- function(status_data, pool) {
 
   # Remove entity_id and status_id from update data
   status_received_data <- status_tibble %>%
-    select(-any_of(c("entity_id", "status_id")))
+    dplyr::select(-any_of(c("entity_id", "status_id")))
 
   if (ncol(status_received_data) == 0) {
     stop("No valid fields to update")

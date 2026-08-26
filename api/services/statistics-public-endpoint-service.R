@@ -259,14 +259,14 @@ svc_statistics_publication_stats <- function(res,
   publication_tbl <- if (has_text_filter) {
     tryCatch(
       publication_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         collect(),
       error = function(e) {
         message(sprintf(
           "[publication_stats] SQL filter pushdown failed (%s); falling back to in-R filter",
           conditionMessage(e)
         ))
-        publication_lazy %>% collect() %>% filter(!!!rlang::parse_exprs(filter_exprs))
+        publication_lazy %>% collect() %>% dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
       }
     )
   } else {
@@ -281,23 +281,23 @@ svc_statistics_publication_stats <- function(res,
 
   # 4) Aggregate counts for Journal, then filter out below min_journal_count
   journal_counts <- publication_tbl %>%
-    filter(!is.na(Journal) & Journal != "") %>%
+    dplyr::filter(!is.na(Journal) & Journal != "") %>%
     group_by(Journal) %>%
     summarise(count = n()) %>%
-    filter(count >= min_journal_count) %>%
+    dplyr::filter(count >= min_journal_count) %>%
     arrange(desc(count))
 
   # 5) Aggregate counts for Lastname, then filter out below min_lastname_count
   last_name_counts <- publication_tbl %>%
-    filter(!is.na(Lastname) & Lastname != "") %>%
+    dplyr::filter(!is.na(Lastname) & Lastname != "") %>%
     group_by(Lastname) %>%
     summarise(count = n()) %>%
-    filter(count >= min_lastname_count) %>%
+    dplyr::filter(count >= min_lastname_count) %>%
     arrange(desc(count))
 
   # 6) Summarize update_date by time_aggregate (using summarize_by_time)
   update_date_by_time <- publication_tbl %>%
-    filter(!is.na(update_date)) %>%
+    dplyr::filter(!is.na(update_date)) %>%
     mutate(update_date = as.Date(update_date)) %>%
     summarize_by_time(
       .date_var = update_date,
@@ -311,7 +311,7 @@ svc_statistics_publication_stats <- function(res,
 
   # 7) Summarize Publication_date by time_aggregate
   publication_date_by_time <- publication_tbl %>%
-    filter(!is.na(Publication_date)) %>%
+    dplyr::filter(!is.na(Publication_date)) %>%
     mutate(Publication_date = as.Date(Publication_date)) %>%
     summarize_by_time(
       .date_var = Publication_date,
@@ -326,14 +326,14 @@ svc_statistics_publication_stats <- function(res,
   # 8) Aggregate counts for Keywords (split by semicolon),
   #    then filter out those below min_keyword_count.
   keyword_counts <- publication_tbl %>%
-    filter(!is.na(Keywords) & Keywords != "") %>%
+    dplyr::filter(!is.na(Keywords) & Keywords != "") %>%
     mutate(Keywords = str_squish(Keywords)) %>%
     tidyr::separate_rows(Keywords, sep = ";") %>%
     mutate(Keywords = str_trim(Keywords)) %>%
-    filter(Keywords != "") %>%
+    dplyr::filter(Keywords != "") %>%
     group_by(Keywords) %>%
     summarise(count = n()) %>%
-    filter(count >= min_keyword_count) %>%
+    dplyr::filter(count >= min_keyword_count) %>%
     arrange(desc(count))
 
   # 9) Build a result list

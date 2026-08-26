@@ -94,7 +94,9 @@ const docsPhenotypeClusters = [
     quali_sup_var: [
       { variable: 'Autosomal dominant inheritance', 'p.value': 0.003, 'v.test': 2.9 },
     ],
-    quanti_sup_var: [{ variable: 'phenotype_non_id_count', 'p.value': 0.012, 'v.test': 2.4 }],
+    quanti_sup_var: [
+      { variable: 'extraneurological_system_count', 'p.value': 0.012, 'v.test': 2.4 },
+    ],
   },
   {
     cluster: '2',

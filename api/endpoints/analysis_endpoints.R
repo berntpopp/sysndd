@@ -269,7 +269,7 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000",
 #* - Returns summary_json with structured content (summary, key_themes, pathways, etc.)
 #*
 #* @tag analysis
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", null="null")
 #* @param cluster_hash:str SHA256 hash of cluster composition (or equals(hash,...) format)
 #* @param cluster_number:str Cluster number (integer as string)
 #*
@@ -299,7 +299,7 @@ function(cluster_hash = NULL, cluster_number = NULL, req, res) {
 #* - Returns summary_json with structured content (summary, key_themes, pathways, etc.)
 #*
 #* @tag analysis
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", null="null")
 #* @param cluster_hash:str SHA256 hash of cluster composition (or equals(hash,...) format)
 #* @param cluster_number:str Cluster number (integer as string)
 #*

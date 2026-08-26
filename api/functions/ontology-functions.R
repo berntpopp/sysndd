@@ -302,7 +302,7 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
     # this splits columns with multiple values (separated by ";") into multiple rows for OMIM
     # then it groups by OMIM summarizes the other columns (";" separated) ommiting NA values
     mondo_mappings_omim <- mondo_mappings %>%
-      filter(OMIM != "NA") %>%
+      dplyr::filter(OMIM != "NA") %>%
       separate_rows(OMIM, sep = ";") %>%
       unique() %>%
       group_by(OMIM) %>%
@@ -320,7 +320,7 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
     mondo_terms_mappings <- left_join(mondo_terms, mondo_mappings, by = c("disease_ontology_id_version" = "MONDO"))
 
     disease_ontology_set <- bind_rows(mondo_terms_mappings, omim_terms_mappings) %>%
-      select(-OMIM) %>%
+      dplyr::select(-OMIM) %>%
       mutate(is_active = TRUE, update_date = format(Sys.Date(), "%Y-%m-%d"))
 
     # Download and apply MONDO SSSOM mappings for OMIM-to-MONDO equivalence
@@ -378,7 +378,7 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
     all_terms <- get_descendants(ontology = mondo_ontology, roots = "MONDO:0000001")
     all_terms_tibble <- all_terms %>%
       tidyr::as_tibble() %>%
-      select(MONDO = value)
+      dplyr::select(MONDO = value)
 
     all_terms_tibble_mapping <- all_terms_tibble %>%
       {
@@ -403,7 +403,7 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
 
   # Return only the specified columns, or all columns if `columns_to_return` is NULL
   if (!is.null(columns_to_return)) {
-    return(mappings_tibble %>% select(all_of(columns_to_return)))
+    return(mappings_tibble %>% dplyr::select(all_of(columns_to_return)))
   } else {
     return(mappings_tibble)
   }
@@ -439,7 +439,7 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
     mutate(hgnc_id = NA) %>%
     mutate(hpo_mode_of_inheritance_term = NA) %>%
     mutate(disease_ontology_id_version = disease_ontology_id) %>%
-    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_date, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term) # nolint: line_length_linter
+    dplyr::select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_date, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term) # nolint: line_length_linter
 }
 
 

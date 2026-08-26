@@ -97,7 +97,7 @@ test_that("llm_regenerate_from_snapshot forwards snapshot-shaped clusters whose 
   get_snapshot <- function(analysis_type, params) {
     captured$analysis_type <- analysis_type
     captured$params <- params
-    list(snapshot = list(id = 17L))
+    list(status_code = "available", manifest = data.frame(snapshot_id = 17L))
   }
   # Mirror service_analysis_snapshot_shape_clusters: hash_filter == cluster_hash.
   shape_clusters <- function(snapshot, cluster_kind) {
@@ -161,7 +161,7 @@ test_that("llm_regenerate_from_snapshot reports empty when snapshot has no clust
   out <- env$llm_regenerate_from_snapshot(
     "functional",
     parent_job_id = "p1",
-    get_snapshot = function(...) list(snapshot = list(id = 1L)),
+    get_snapshot = function(...) list(status_code = "available", manifest = data.frame(snapshot_id = 1L)),
     shape_clusters = function(...) tibble::tibble(),
     trigger = function(...) stop("must not trigger on empty")
   )
@@ -182,4 +182,74 @@ test_that("the /regenerate handler no longer recomputes clustering inline", {
   expect_false(grepl("Build data exactly like analysis_endpoints.R", joined, fixed = TRUE))
   # It DOES drive from the snapshot helper.
   expect_true(grepl("llm_regenerate_from_snapshot", joined, fixed = TRUE))
+})
+
+# ---------------------------------------------------------------------------
+# Regression: the helper must accept the shape the REAL loader returns.
+#
+# Sourced explicitly: the blocks above run inside describe() scopes that source
+# their own dependencies, so these top-level tests need theirs too.
+#
+# The fakes above inject `list(snapshot = ...)`, a shape no production function
+# produces. `analysis_snapshot_get_public()` returns
+# `list(manifest=, status_code=, clusters=, cluster_members=, ...)` and
+# `mcp_analysis_repo_get_public_snapshot()` returns
+# `list(normalized=, manifest=)` -- neither has a `$snapshot` key. Testing
+# against an invented shape is why `POST /api/llm/regenerate` returned 409
+# SNAPSHOT_NOT_READY for every cluster type, on a fully healthy snapshot.
+# ---------------------------------------------------------------------------
+
+source_api_file("functions/analysis-snapshot-repository.R", local = FALSE)
+source_api_file("services/analysis-snapshot-service.R", local = FALSE)
+source_api_file("functions/llm-regenerate-helpers.R", local = FALSE)
+
+test_that("a real-shaped public snapshot is accepted, not reported not-ready", {
+  real_shaped <- list(
+    manifest = data.frame(snapshot_id = 73L, analysis_type = "phenotype_clusters",
+                          stringsAsFactors = FALSE),
+    status_code = "available",
+    clusters = data.frame(
+      cluster_kind = "phenotype", cluster_id = "1", cluster_hash = "abc",
+      cluster_size = 2L, label = NA_character_, metadata_json = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    cluster_members = data.frame(
+      cluster_kind = "phenotype", cluster_id = "1", member_rank = 1:2,
+      entity_id = c(1L, 2L), hgnc_id = c("HGNC:1", "HGNC:2"),
+      symbol = c("A", "B"), stringsAsFactors = FALSE
+    )
+  )
+
+  out <- llm_regenerate_from_snapshot(
+    "phenotype",
+    parent_job_id = "job-1",
+    force = TRUE,
+    get_snapshot = function(analysis_type, params, ...) real_shaped,
+    shape_clusters = service_analysis_snapshot_shape_clusters,
+    trigger = function(clusters, ...) list(total = nrow(clusters))
+  )
+
+  expect_true(out$ready)
+  expect_equal(out$cluster_count, 1L)
+})
+
+test_that("a non-available status_code is reported not-ready", {
+  out <- llm_regenerate_from_snapshot(
+    "phenotype", parent_job_id = "job-2",
+    get_snapshot = function(...) list(
+      manifest = data.frame(snapshot_id = 1L), status_code = "snapshot_stale"
+    ),
+    shape_clusters = function(...) stop("must not be reached"),
+    trigger = function(...) stop("must not be reached")
+  )
+  expect_false(out$ready)
+  expect_equal(out$reason, "snapshot_not_ready")
+})
+
+test_that("the default snapshot loader returns clusters, not a $snapshot key", {
+  # Pins the contract this regression violated. Both candidate loaders are
+  # checked so a future swap cannot silently reintroduce the mismatch.
+  expect_true(exists("analysis_snapshot_get_public", mode = "function"))
+  fmls <- names(formals(analysis_snapshot_get_public))
+  expect_true(all(c("analysis_type", "parameter_hash") %in% fmls))
 })

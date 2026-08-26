@@ -406,8 +406,8 @@ function(symbol, res) {
     {
       pool %>%
         tbl("non_alt_loci_set") %>%
-        filter(str_to_lower(!!rlang::sym("symbol")) == str_to_lower(!!symbol)) %>%
-        select(rgd_id) %>%
+        dplyr::filter(str_to_lower(!!rlang::sym("symbol")) == str_to_lower(!!symbol)) %>%
+        dplyr::select(rgd_id) %>%
         collect() %>%
         pull(rgd_id) %>%
         first()

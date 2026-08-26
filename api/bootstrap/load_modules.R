@@ -82,6 +82,9 @@ bootstrap_load_modules <- function() {
     # runs long after boot, and cache-fingerprint is sourced later in this same
     # list), so source order relative to analysis-cache-fingerprint.R is immaterial.
     "functions/analysis-snapshot-provenance-generator.R",
+    # #630: row shaping split out of the builder (600-line ceiling). Must be
+    # sourced BEFORE the builder, which calls these helpers.
+    "functions/analysis-snapshot-rows.R",
     "functions/analysis-snapshot-builder.R",
     "functions/analysis-reproducibility.R",
     # Immutable, content-addressed public analysis-snapshot releases (#573
@@ -165,6 +168,15 @@ bootstrap_load_modules <- function() {
     # this same bootstrap_load_modules() call) -- registered before the
     # submission service that will consume it.
     "functions/clustering-gene-universe.R",
+    # #630: the single definition of syndromicity (term roles + collapsed organ
+    # systems) and of the ID-severity term list. Registered BEFORE the phenotype
+    # MCA prep and the phenotype functions, which consume it for the MCA
+    # quantitative supplementary counts, and before the snapshot builder, which
+    # consumes it for the per-cluster computed block.
+    "functions/syndromicity-registry.R",
+    "functions/syndromicity-classify.R",
+    "functions/syndromicity-repository.R",
+    "functions/syndromicity-snapshot.R",
     "functions/analysis-phenotype-mca-prep.R",
     "functions/analysis-phenotype-functions.R",
     "functions/analysis-null-models.R",
@@ -306,6 +318,9 @@ bootstrap_load_modules <- function() {
     "services/curate-variation-suggestion-service.R",
     # The queue's write half, split out to keep both files under the ceiling.
     "services/curate-variation-apply-service.R",
+    # #630: computed syndromicity read surface. Needs the registry/classifier
+    # (function_files, above) and the syndromicity repository.
+    "services/entity-syndromicity-service.R",
     "services/entity-read-endpoint-service.R",
     "services/entity-submission-endpoint-service.R",
     "services/statistics-public-endpoint-service.R",

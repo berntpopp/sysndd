@@ -25,7 +25,7 @@ mcp_llm_summary_allowlist <- function(summary) {
     c(
       "summary", "key_themes", "pathways", "tags", "clinical_relevance", "confidence",
       "key_phenotype_themes", "notably_absent", "clinical_pattern", "syndrome_hints",
-      "inheritance_patterns", "syndromicity", "data_quality_note"
+      "inheritance_patterns", "data_quality_note"
     )
   }
   if (!is.list(summary) || is.null(names(summary))) return(list())

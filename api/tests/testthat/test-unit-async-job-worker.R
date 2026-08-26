@@ -42,6 +42,17 @@ load_async_job_worker_runtime <- function() {
   runtime_env
 }
 
+test_that("direct-sourced async job handlers resolve syndromicity helpers", {
+  runtime <- load_async_job_worker_runtime()
+
+  expect_true(exists(
+    "syndromicity_supplementary_counts",
+    envir = runtime,
+    mode = "function",
+    inherits = FALSE
+  ))
+})
+
 test_that("async_job_worker_config_from_env reads bounded worker settings", {
   runtime <- load_async_job_worker_runtime()
 
@@ -673,15 +684,14 @@ test_that("phenotype clustering durable handler restores identifiers and chains 
         entity_id = c(11L, 22L),
         review_id = c(101L, 202L),
         modifier_id = c(1L, 1L),
-        phenotype_id = c("HP:0000001", "HP:0000002")
+        phenotype_id = c("HP:0001250", "HP:0004322")
       ),
       modifier_list_tbl = tibble::tibble(modifier_id = 1L, modifier_name = "present"),
       phenotype_list_tbl = tibble::tibble(
-        phenotype_id = c("HP:0000001", "HP:0000002"),
-        HPO_term = c("Phenotype A", "Phenotype B"),
+        phenotype_id = c("HP:0001250", "HP:0004322"),
+        HPO_term = c("Seizures", "Short stature"),
         category = "Definitive"
       ),
-      id_phenotype_ids = c("HP:0001249"),
       categories = "Definitive"
     ),
     state = runtime$async_job_worker_state(),

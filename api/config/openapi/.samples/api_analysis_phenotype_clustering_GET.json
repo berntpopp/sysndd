@@ -305,7 +305,7 @@
     ],
     "quanti_sup_var": [
       {
-        "variable": "phenotype_non_id_count",
+        "variable": "extraneurological_system_count",
         "v.test": 16.2746,
         "Mean.in.category": 6.7352,
         "Overall.mean": 5.213,
@@ -3459,7 +3459,7 @@
     ],
     "quanti_sup_var": [
       {
-        "variable": "phenotype_non_id_count",
+        "variable": "extraneurological_system_count",
         "v.test": -23.637,
         "Mean.in.category": 3.2347,
         "Overall.mean": 5.213,
@@ -7055,7 +7055,7 @@
         "p.value": 2.6863E-59
       },
       {
-        "variable": "phenotype_non_id_count",
+        "variable": "extraneurological_system_count",
         "v.test": 8.4402,
         "Mean.in.category": 6.4682,
         "Overall.mean": 5.213,
@@ -11154,7 +11154,7 @@
     ],
     "quanti_sup_var": [
       {
-        "variable": "phenotype_non_id_count",
+        "variable": "extraneurological_system_count",
         "v.test": 4.1333,
         "Mean.in.category": 7.36,
         "Overall.mean": 5.213,

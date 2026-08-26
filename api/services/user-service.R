@@ -25,12 +25,12 @@
 user_get_list <- function(requesting_role, pool) {
   base_query <- pool %>%
     tbl("user") %>%
-    filter(account_status == "active")
+    dplyr::filter(account_status == "active")
 
   if (requesting_role == "Administrator") {
     # Admins see all users with full details
     base_query %>%
-      select(
+      dplyr::select(
         user_id, user_name, email, user_role, orcid, abbreviation,
         first_name, family_name, created_at
       ) %>%
@@ -38,13 +38,13 @@ user_get_list <- function(requesting_role, pool) {
   } else if (requesting_role == "Curator") {
     # Curators see reviewers and viewers
     base_query %>%
-      filter(user_role %in% c("Reviewer", "Viewer")) %>%
-      select(user_id, user_name, email, user_role) %>%
+      dplyr::filter(user_role %in% c("Reviewer", "Viewer")) %>%
+      dplyr::select(user_id, user_name, email, user_role) %>%
       collect()
   } else {
     # Reviewers and Viewers see limited info
     base_query %>%
-      select(user_id, user_name) %>%
+      dplyr::select(user_id, user_name) %>%
       collect()
   }
 }
@@ -68,8 +68,8 @@ user_get_list <- function(requesting_role, pool) {
 user_get_by_id <- function(user_id, pool) {
   pool %>%
     tbl("user") %>%
-    filter(user_id == !!user_id) %>%
-    select(
+    dplyr::filter(user_id == !!user_id) %>%
+    dplyr::select(
       user_id, user_name, email, user_role, orcid, abbreviation,
       first_name, family_name, account_status, created_at
     ) %>%
@@ -105,8 +105,8 @@ user_approve <- function(user_id, approving_user_id, approve, pool) {
   # Get user details
   user <- pool %>%
     tbl("user") %>%
-    filter(user_id == !!user_id) %>%
-    select(
+    dplyr::filter(user_id == !!user_id) %>%
+    dplyr::select(
       user_id, user_name, email, first_name, family_name,
       account_status, password
     ) %>%
@@ -295,8 +295,8 @@ user_change_password <- function(user_id, old_password, new_password,
   # Get user info including password for verification
   user <- pool %>%
     tbl("user") %>%
-    filter(user_id == !!user_id) %>%
-    select(user_id, password, account_status) %>%
+    dplyr::filter(user_id == !!user_id) %>%
+    dplyr::select(user_id, password, account_status) %>%
     collect()
 
   if (nrow(user) == 0) {
@@ -479,12 +479,12 @@ user_bulk_delete <- function(user_ids, requesting_user_id, pool) {
   # First, query all user_ids to get their roles (outside transaction)
   users <- pool %>%
     tbl("user") %>%
-    filter(user_id %in% !!user_ids) %>%
-    select(user_id, user_role) %>%
+    dplyr::filter(user_id %in% !!user_ids) %>%
+    dplyr::select(user_id, user_role) %>%
     collect()
 
   # Check if ANY user has Administrator role
-  admin_users <- users %>% filter(user_role == "Administrator")
+  admin_users <- users %>% dplyr::filter(user_role == "Administrator")
   if (nrow(admin_users) > 0) {
     admin_ids <- paste(admin_users$user_id, collapse = ", ")
     stop(paste("Cannot delete: selection contains admin users (IDs:", admin_ids, ")"))

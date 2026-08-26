@@ -34,7 +34,7 @@ auth_signin <- function(user_name, password, pool, config) {
   # Rename created_at to user_created so downstream JWT code works without warning
   user <- pool %>%
     tbl("user") %>%
-    filter(user_name == !!user_name) %>%
+    dplyr::filter(user_name == !!user_name) %>%
     dplyr::rename(user_created = created_at) %>%
     collect()
 

@@ -281,6 +281,39 @@ function(sysndd_id, current_review = TRUE) {
 }
 
 
+#* Get Computed Syndromicity for Entity
+#*
+#* Recorded extra-neurological organ involvement for one entity (#630),
+#* computed from the entity's curated HPO annotations under a stated,
+#* versioned rule -- NOT a model-generated label.
+#*
+#* # `Details`
+#* - DB-only, one query, no external calls.
+#* - Approved public data only: evidence is the entity's PRIMARY APPROVED
+#*   review, and visibility is enforced through `ndd_entity_view`, so a
+#*   non-public entity returns `status: "missing"` and never leaks annotations.
+#* - `call` is one of `syndromic`,
+#*   `no_recorded_extraneurological_involvement`, `insufficient_annotation`.
+#*   The middle value says only what the data support: SysNDD records explicit
+#*   phenotype absence on 6 rows database-wide, so "no organ system recorded"
+#*   is not evidence of isolated NDD.
+#* - `data_class` is `curated_derived_analysis`.
+#*
+#* @tag entity
+#* @serializer json list(na="string", null="null")
+#*
+#* @param sysndd_id The entity_id to compute syndromicity for.
+#*
+#* @response 200 OK. The computed syndromicity result.
+#* @response 400 Bad Request. entity_id is not an integer.
+#* @response 404 Not Found. Entity is not in the public entity view.
+#*
+#* @get /<sysndd_id>/syndromicity
+function(sysndd_id, res) {
+  svc_entity_syndromicity(sysndd_id, res)
+}
+
+
 #* Get Suggested Variation Ontology Terms for Entity
 #*
 #* Retrieves the `suggested` variation-ontology assertions for entity_id, with

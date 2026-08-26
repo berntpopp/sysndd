@@ -96,8 +96,8 @@ adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_pat
 
   # Filter for any NDD term (seed + descendants) and OMIM diseases only
   ndd_omim_diseases <- ptg %>%
-    filter(hpo_id %in% ndd_terms) %>%
-    filter(str_detect(disease_id, "^OMIM:")) %>%
+    dplyr::filter(hpo_id %in% ndd_terms) %>%
+    dplyr::filter(str_detect(disease_id, "^OMIM:")) %>%
     dplyr::select(disease_id) %>%
     unique()
 
@@ -107,7 +107,7 @@ adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_pat
       genemap2_data,
       by = c("disease_id" = "disease_ontology_id")
     ) %>%
-    filter(!is.na(Approved_Symbol)) %>%
+    dplyr::filter(!is.na(Approved_Symbol)) %>%
     mutate(
       list = "omim_ndd",
       version = format(Sys.Date(), "%Y-%m-%d"),
