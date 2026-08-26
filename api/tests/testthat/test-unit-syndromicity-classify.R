@@ -225,3 +225,32 @@ test_that("raw per-system frequencies let a consumer re-collapse the mapping", {
   # Without head size, entity 3 has no recorded involvement -> 2/3.
   expect_equal(agg$fraction_syndromic_excl_head_size, round(2 / 3, 4))
 })
+
+test_that("a call whose interval straddles its threshold is flagged borderline", {
+  # A categorical label at a fixed cutoff is a cliff; when the interval contains
+  # the cutoff, the word implies a precision the data does not carry.
+  mk <- function(n_syn, n_none) {
+    rows <- do.call(rbind, c(
+      lapply(seq_len(n_syn), function(i) {
+        data.frame(entity_id = i, phenotype_id = "HP:0000077",
+                   modifier_name = "present", stringsAsFactors = FALSE)
+      }),
+      lapply(seq_len(n_none), function(i) {
+        data.frame(entity_id = 100000L + i, phenotype_id = "HP:0001249",
+                   modifier_name = "present", stringsAsFactors = FALSE)
+      })
+    ))
+    syndromicity_aggregate_cluster(syndromicity_classify_entities(rows))
+  }
+  # 785 / 1053 = 0.746, CI [0.718, 0.771] -> straddles 0.75
+  near <- mk(785, 268)
+  expect_equal(near$cluster_call, "mixed")
+  expect_true(near$cluster_call_borderline)
+  expect_lt(near$fraction_syndromic_ci95$lower, 0.75)
+  expect_gt(near$fraction_syndromic_ci95$upper, 0.75)
+
+  # 535 / 535 = 1.0, CI nowhere near a cutoff
+  clear <- mk(535, 0)
+  expect_equal(clear$cluster_call, "predominantly_syndromic")
+  expect_false(clear$cluster_call_borderline)
+})

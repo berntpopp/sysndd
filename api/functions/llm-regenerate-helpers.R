@@ -46,6 +46,21 @@ llm_regenerate_cluster_type_map <- function(cluster_type) {
   )
 }
 
+#' Resolve the public-ready snapshot for a cluster type.
+#'
+#' Wraps `analysis_snapshot_get_public()`, which takes a PARAMETER HASH rather
+#' than a params list, so the caller's `params` are normalized first.
+#'
+#' @keywords internal
+llm_regenerate_default_snapshot_loader <- function(analysis_type, params = list(), conn = NULL) {
+  normalized <- analysis_snapshot_normalize_params(analysis_type, params)
+  analysis_snapshot_get_public(
+    normalized$analysis_type,
+    normalized$parameter_hash,
+    conn = conn
+  )
+}
+
 #' Regenerate LLM summaries for one cluster type from the published snapshot.
 #'
 #' Reads the public-ready snapshot, reshapes its stored clusters into the batch
@@ -66,7 +81,7 @@ llm_regenerate_cluster_type_map <- function(cluster_type) {
 llm_regenerate_from_snapshot <- function(cluster_type,
                                          parent_job_id,
                                          force = FALSE,
-                                         get_snapshot = mcp_analysis_repo_get_public_snapshot,
+                                         get_snapshot = llm_regenerate_default_snapshot_loader,
                                          shape_clusters = service_analysis_snapshot_shape_clusters,
                                          trigger = trigger_llm_batch_generation) {
   map <- llm_regenerate_cluster_type_map(cluster_type)
@@ -75,7 +90,11 @@ llm_regenerate_from_snapshot <- function(cluster_type,
   }
 
   snap <- get_snapshot(map$analysis_type, map$params)
-  if (is.null(snap) || is.null(snap$snapshot)) {
+  # The loader returns list(manifest=, status_code=, clusters=, cluster_members=).
+  # It has NO `$snapshot` key -- testing for one made this endpoint return 409
+  # SNAPSHOT_NOT_READY for every cluster type on a fully healthy snapshot, and
+  # the unit fakes hid it by inventing that shape.
+  if (is.null(snap) || !identical(snap$status_code %||% NA_character_, "available")) {
     return(list(
       ready = FALSE,
       reason = "snapshot_not_ready",
@@ -84,7 +103,7 @@ llm_regenerate_from_snapshot <- function(cluster_type,
     ))
   }
 
-  clusters <- shape_clusters(snap$snapshot, cluster_kind = map$cluster_kind)
+  clusters <- shape_clusters(snap, cluster_kind = map$cluster_kind)
   if (is.null(clusters) || !is.data.frame(clusters) || nrow(clusters) == 0L) {
     return(list(
       ready = FALSE,

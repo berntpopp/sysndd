@@ -11,15 +11,25 @@ source(file.path(migration_test_api_dir, "functions", "migration-manifest.R"), l
 source(file.path(migration_test_api_dir, "functions", "migration-runner.R"), local = FALSE)
 
 test_that("manifest expects the latest migration", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "053_fix_variation_agreement_constraint_guard.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 51L)
+  # Derived from the directory, not hardcoded: this literal used to be repeated
+  # in six test files, so every migration author had to update six places and a
+  # miss showed up as an unrelated red suite. Deriving it still catches the case
+  # this test exists for -- a manifest that has NOT been advanced -- while
+  # costing nothing to maintain.
+  migrations <- sort(basename(list.files(
+    file.path(dirname(migration_test_api_dir), "db", "migrations"),
+    pattern = "[.]sql$"
+  )))
+  expect_gt(length(migrations), 0L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, migrations[length(migrations)])
+  expect_equal(EXPECTED_MIGRATION_COUNT, length(migrations))
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(migration_test_api_dir, "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "053_fix_variation_agreement_constraint_guard.sql")
+  expect_identical(res$latest, EXPECTED_LATEST_MIGRATION)
 })
 
 test_that("migration 036 file exists and contains disease_ontology_mapping table", {

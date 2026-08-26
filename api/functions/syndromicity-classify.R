@@ -202,6 +202,19 @@ syndromicity_aggregate_cluster <- function(entity_rows) {
     "mixed"
   }
 
+  # A categorical call at a fixed cutoff is a cliff: a handful of entities can
+  # flip the word. When the interval CONTAINS the threshold the call actually
+  # made, say so, rather than letting the label imply a precision the data does
+  # not carry. (Observed live: the largest cluster sits at 0.746 with a CI of
+  # [0.718, 0.771], which straddles 0.75.)
+  borderline <- FALSE
+  if (!is.na(fraction) && !is.na(interval$lower)) {
+    for (cut in c(SYNDROMICITY_THRESHOLDS$predominantly_syndromic,
+                  SYNDROMICITY_THRESHOLDS$predominantly_isolated)) {
+      if (interval$lower <= cut && interval$upper >= cut) borderline <- TRUE
+    }
+  }
+
   evaluable_rows <- rows[rows$call != "insufficient_annotation", , drop = FALSE]
 
   tally <- function(values) {
@@ -251,6 +264,7 @@ syndromicity_aggregate_cluster <- function(entity_rows) {
       NA_real_
     },
     cluster_call = cluster_call,
+    cluster_call_borderline = borderline,
     thresholds = SYNDROMICITY_THRESHOLDS
   )
 }
