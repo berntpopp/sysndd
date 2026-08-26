@@ -3,6 +3,7 @@
 # set, so a new column cannot affect it -- but that is exactly the kind of
 # claim that has to be locked by a test rather than asserted in a comment.
 
+source_api_file("functions/analysis-snapshot-rows.R", local = FALSE)
 source_api_file("functions/analysis-snapshot-builder.R", local = FALSE)
 
 mk_clusters <- function() {

@@ -90,26 +90,5 @@ svc_cluster_syndromicity <- function(cluster_hash) {
   if (length(entity_ids) == 0L) {
     return(NULL)
   }
-  annotations <- syndromicity_annotations_for_entities(entity_ids)
-  classified <- syndromicity_classify_entities(annotations)
-
-  # Entities in the cluster with no annotation rows at all still belong to the
-  # cluster and must appear in the denominator as insufficient_annotation --
-  # dropping them would inflate coverage to a constant 1.
-  absent <- setdiff(entity_ids, classified$entity_id)
-  if (length(absent) > 0L) {
-    classified <- dplyr::bind_rows(classified, tibble::tibble(
-      entity_id = as.integer(absent),
-      system_count = 0L,
-      systems = replicate(length(absent), character(), simplify = FALSE),
-      neuro_systems = replicate(length(absent), character(), simplify = FALSE),
-      neurological_involvement = FALSE,
-      system_count_with_head_size = 0L,
-      present_term_count = 0L,
-      equivocal_term_count = 0L,
-      call = "insufficient_annotation"
-    ))
-  }
-
-  syndromicity_aggregate_cluster(classified)
+  syndromicity_aggregate_for_entities(entity_ids)
 }

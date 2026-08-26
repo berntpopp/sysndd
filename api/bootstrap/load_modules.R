@@ -82,6 +82,9 @@ bootstrap_load_modules <- function() {
     # runs long after boot, and cache-fingerprint is sourced later in this same
     # list), so source order relative to analysis-cache-fingerprint.R is immaterial.
     "functions/analysis-snapshot-provenance-generator.R",
+    # #630: row shaping split out of the builder (600-line ceiling). Must be
+    # sourced BEFORE the builder, which calls these helpers.
+    "functions/analysis-snapshot-rows.R",
     "functions/analysis-snapshot-builder.R",
     "functions/analysis-reproducibility.R",
     # Immutable, content-addressed public analysis-snapshot releases (#573
@@ -173,6 +176,7 @@ bootstrap_load_modules <- function() {
     "functions/syndromicity-registry.R",
     "functions/syndromicity-classify.R",
     "functions/syndromicity-repository.R",
+    "functions/syndromicity-snapshot.R",
     "functions/analysis-phenotype-mca-prep.R",
     "functions/analysis-phenotype-functions.R",
     "functions/analysis-null-models.R",
