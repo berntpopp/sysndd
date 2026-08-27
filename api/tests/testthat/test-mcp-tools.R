@@ -74,6 +74,39 @@ test_that("MCP server instructions describe workflow, resources, errors, and con
   expect_match(instructions, "research", ignore.case = TRUE)
 })
 
+test_that("MCP Origin validation is exact and fails closed", {
+  source_mcp_tools()
+
+  allowed <- c("https://sysndd.dbmr.unibe.ch", "http://localhost:5173")
+  expect_true(mcp_origin_allowed(list(), allowed))
+  expect_true(mcp_origin_allowed(
+    list(HTTP_ORIGIN = "https://sysndd.dbmr.unibe.ch"),
+    allowed
+  ))
+  expect_true(mcp_origin_allowed(list(HTTP_ORIGIN = "http://localhost:5173"), allowed))
+  expect_false(mcp_origin_allowed(list(HTTP_ORIGIN = "https://attacker.invalid"), allowed))
+  expect_false(mcp_origin_allowed(list(HTTP_ORIGIN = "null"), allowed))
+  expect_false(mcp_origin_allowed(list(HTTP_ORIGIN = ""), allowed))
+  expect_false(mcp_origin_allowed(
+    list(HTTP_ORIGIN = c("https://sysndd.dbmr.unibe.ch", "https://attacker.invalid")),
+    allowed
+  ))
+})
+
+test_that("MCP Origin patch replaces the mcptools runtime validator", {
+  skip_if_not_installed("mcptools")
+
+  source_mcp_tools()
+  allowed <- "https://sysndd.dbmr.unibe.ch"
+  expect_true(mcp_patch_mcptools_origin(allowed))
+
+  validate_origin <- get("validate_origin", envir = asNamespace("mcptools"))
+  expect_true(validate_origin(list()))
+  expect_true(validate_origin(list(HTTP_ORIGIN = allowed)))
+  expect_false(validate_origin(list(HTTP_ORIGIN = "https://attacker.invalid")))
+  expect_false(validate_origin(list(HTTP_ORIGIN = "")))
+})
+
 test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   skip_if_not_installed("mcptools")
 

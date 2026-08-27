@@ -41,7 +41,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke smoke-lane-isolation coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-e2e-baseline analysis-release-zenodo-package analysis-release-zenodo-upload-draft
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app verify-app-bundle-budget watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke test-mcp-edge smoke-lane-isolation coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-e2e-baseline analysis-release-zenodo-package analysis-release-zenodo-upload-draft
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -155,6 +155,9 @@ test-mcp-smoke: check-r ## [test] Probe a running MCP sidecar with initialize an
 		printf "$(GREEN)✓ test-mcp-smoke complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-mcp-smoke failed$(RESET)\n" && exit 1)
 
+test-mcp-edge: ## [test] #629: verify public MCP routing and edge controls in disposable Traefik
+	@bash $(ROOT_DIR)/scripts/tests/test-mcp-traefik-edge.sh
+
 smoke-lane-isolation: ## [test] #344: prove /api/health stays fast while /api/external is saturated (needs the two-lane prod stack up)
 	@printf "$(CYAN)==> Running two-lane bulkhead isolation smoke...$(RESET)\n"
 	@bash $(ROOT_DIR)/scripts/smoke-lane-isolation.sh
@@ -236,9 +239,11 @@ pre-commit: ## [quality] Run all quality checks before committing
 
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
 	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
-	@printf "\n$(CYAN)[1/7] Running CI script harnesses...$(RESET)\n"
+	@printf "\n$(CYAN)[1/8] Running CI script harnesses...$(RESET)\n"
 	@$(MAKE) test-ci-scripts
-	@printf "\n$(CYAN)[2/7] Starting test database...$(RESET)\n"
+	@printf "\n$(CYAN)[2/8] Running MCP edge smoke...$(RESET)\n"
+	@$(MAKE) test-mcp-edge
+	@printf "\n$(CYAN)[3/8] Starting test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) up -d mysql-test && \
 		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
@@ -281,17 +286,17 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		$(MAKE) -C $(ROOT_DIR) _ci-cleanup; \
 		exit 1; \
 	fi
-	@printf "\n$(CYAN)[3/7] Linting R code...$(RESET)\n"
+	@printf "\n$(CYAN)[4/8] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[4/7] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[5/8] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[5/7] Type-checking frontend...$(RESET)\n"
+	@printf "\n$(CYAN)[6/8] Type-checking frontend...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[6/7] Type-checking frontend (strict scopes)...$(RESET)\n"
+	@printf "\n$(CYAN)[7/8] Type-checking frontend (strict scopes)...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Strict type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[7/7] Running R API tests (with database)...$(RESET)\n"
+	@printf "\n$(CYAN)[8/8] Running R API tests (with database)...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \

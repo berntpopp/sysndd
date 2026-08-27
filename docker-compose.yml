@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3.7.3
     container_name: sysndd_traefik
     restart: unless-stopped
     security_opt:
@@ -16,12 +16,24 @@ services:
       - "--api=true"
       - "--api.insecure=true"
       - "--api.dashboard=false"
+      - "--entryPoints.traefik.address=:8080"
+      - "--entryPoints.traefik.observability.accessLogs=false"
       # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=sysndd_proxy"
       # HTTP entrypoint
       - "--entryPoints.web.address=:80"
+      # Bound slow/incomplete bodies. Enable privacy-bounded access logs globally,
+      # opt the shared web entrypoint out, then opt only MCP routers back in.
+      - "--entryPoints.web.transport.respondingTimeouts.readTimeout=60s"
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+      - "--accesslog.fields.headers.defaultmode=drop"
+      - "--accesslog.fields.queryparameters.defaultmode=drop"
+      - "--accesslog.fields.names.ClientAddr=drop"
+      - "--accesslog.fields.names.ClientHost=drop"
+      - "--entryPoints.web.observability.accessLogs=false"
       # RFC 3986 encoded characters - allow all (backend handles decoding)
       # See: https://doc.traefik.io/traefik/v3.6/security/request-path/
       - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
@@ -37,6 +49,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - proxy
+      - mcp_edge
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
@@ -591,10 +604,42 @@ services:
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8787
       MCP_OUTPUT_MODE: ${MCP_OUTPUT_MODE:-json_text}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}
     networks:
-      # Internal-only by default: no Traefik labels are set for mcp.
-      # Operators may add a protected /mcp proxy route explicitly later.
+      # Public ingress arrives only through the dedicated internal edge network;
+      # MCP keeps its internal DB path and receives no internet egress.
+      - mcp_edge
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=sysndd_mcp_edge"
+      - "traefik.http.routers.mcp-post.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`POST`)"
+      - "traefik.http.routers.mcp-post.entrypoints=web"
+      - "traefik.http.routers.mcp-post.priority=200"
+      - "traefik.http.routers.mcp-post.service=mcp"
+      - "traefik.http.routers.mcp-post.middlewares=mcp-shared-rate,mcp-post-body,mcp-post-inflight,mcp-strip"
+      - "traefik.http.routers.mcp-post.observability.accesslogs=true"
+      - "traefik.http.routers.mcp-get.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && HeaderRegexp(`Accept`, `(?i)(^|[[:space:],])text/event-stream([[:space:];,]|$)`)"
+      - "traefik.http.routers.mcp-get.entrypoints=web"
+      - "traefik.http.routers.mcp-get.priority=200"
+      - "traefik.http.routers.mcp-get.service=mcp"
+      - "traefik.http.routers.mcp-get.middlewares=mcp-shared-rate,mcp-strip"
+      - "traefik.http.routers.mcp-get.observability.accesslogs=true"
+      - "traefik.http.routers.mcp-delete.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`DELETE`)"
+      - "traefik.http.routers.mcp-delete.entrypoints=web"
+      - "traefik.http.routers.mcp-delete.priority=200"
+      - "traefik.http.routers.mcp-delete.service=mcp"
+      - "traefik.http.routers.mcp-delete.middlewares=mcp-shared-rate,mcp-strip"
+      - "traefik.http.routers.mcp-delete.observability.accesslogs=true"
+      - "traefik.http.middlewares.mcp-shared-rate.ratelimit.average=120"
+      - "traefik.http.middlewares.mcp-shared-rate.ratelimit.period=1m"
+      - "traefik.http.middlewares.mcp-shared-rate.ratelimit.burst=20"
+      - "traefik.http.middlewares.mcp-shared-rate.ratelimit.sourcecriterion.requesthost=true"
+      - "traefik.http.middlewares.mcp-post-body.buffering.maxrequestbodybytes=262144"
+      - "traefik.http.middlewares.mcp-post-inflight.inflightreq.amount=4"
+      - "traefik.http.middlewares.mcp-post-inflight.inflightreq.sourcecriterion.requesthost=true"
+      - "traefik.http.middlewares.mcp-strip.stripprefix.prefixes=/mcp"
+      - "traefik.http.services.mcp.loadbalancer.server.port=8787"
     healthcheck:
       test: ["CMD", "Rscript", "scripts/mcp-healthcheck.R"]
       interval: 30s
@@ -995,6 +1040,10 @@ networks:
   proxy:
     name: sysndd_proxy
     driver: bridge
+  mcp_edge:
+    name: sysndd_mcp_edge
+    driver: bridge
+    internal: true
   backend:
     name: sysndd_backend
     driver: bridge

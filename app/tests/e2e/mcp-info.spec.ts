@@ -5,10 +5,14 @@ test.describe('MCP public information and protocol proxy', () => {
     await page.goto('/mcp');
 
     await expect(page.getByRole('heading', { name: 'SysNDD MCP' })).toBeVisible();
-    await expect(page.getByText('not the public MCP transport endpoint')).toBeVisible();
+    await expect(
+      page.getByText('No SysNDD account, API key, or access token is required')
+    ).toBeVisible();
     await expect(
       page.locator('dl code').filter({ hasText: `${new URL(page.url()).origin}/mcp` })
     ).toBeVisible();
+    await expect(page.getByText(/operational probes negotiate MCP 2025-11-25/)).toBeVisible();
+    await expect(page.getByText(/invalid browser Origin.*HTTP 403/i)).toBeVisible();
   });
 
   test('proxies MCP initialize requests through /mcp', async ({ request }) => {
@@ -30,17 +34,19 @@ test.describe('MCP public information and protocol proxy', () => {
       },
     });
 
-    // The MCP transport proxy is opt-in: by design (AGENTS.md) the mcp sidecar is
-    // internal-only with no /mcp proxy route in the default stack, and
-    // `make playwright-stack` does not start it. When the transport is not wired
-    // up, /mcp serves the SPA (info page) rather than the JSON-RPC endpoint —
-    // skip with a clear reason instead of failing. The info-page test above
-    // still validates the deployed public /mcp surface. When a protected
-    // transport route IS configured, this assertion runs and verifies it.
+    // The standard Playwright stack does not enable the opt-in `mcp` profile.
+    // When MCP is absent, POST /mcp reaches the SPA service and this protocol-only
+    // assertion is environment-gated. The browser test above always verifies the
+    // public information contract; scripts/tests/test-mcp-traefik-edge.sh verifies
+    // the production router labels against a disposable Traefik instance.
     if (!response.ok()) {
-      test.skip(true, 'MCP transport proxy is not enabled in this stack (/mcp serves the info page only)');
+      test.skip(
+        true,
+        'MCP transport proxy is not enabled in this stack (/mcp serves the info page only)'
+      );
     }
     const body = await response.json();
+    expect(body.result.protocolVersion).toBe('2025-11-25');
     expect(body.result.serverInfo.name).toBe('SysNDD read-only MCP');
     expect(body.result.instructions).toContain('read-only access');
   });

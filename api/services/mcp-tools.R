@@ -98,11 +98,44 @@ mcp_patch_mcptools_result_formatter <- function(output_mode = Sys.getenv("MCP_OU
   TRUE
 }
 
+mcp_allowed_origins <- function(raw = Sys.getenv(
+  "MCP_ALLOWED_ORIGINS",
+  "https://sysndd.dbmr.unibe.ch"
+)) {
+  if (!is.character(raw) || length(raw) != 1L || is.na(raw)) {
+    return(character())
+  }
+  origins <- trimws(strsplit(raw, ",", fixed = TRUE)[[1L]])
+  unique(origins[nzchar(origins)])
+}
+
+mcp_origin_allowed <- function(req, allowed_origins = mcp_allowed_origins()) {
+  origin <- req$HTTP_ORIGIN
+  if (is.null(origin)) {
+    return(TRUE)
+  }
+  if (!is.character(origin) || length(origin) != 1L || is.na(origin) || !nzchar(origin)) {
+    return(FALSE)
+  }
+  origin %in% allowed_origins
+}
+
+mcp_patch_mcptools_origin <- function(allowed_origins = mcp_allowed_origins()) {
+  if (!requireNamespace("mcptools", quietly = TRUE)) {
+    return(FALSE)
+  }
+  patched <- function(req) mcp_origin_allowed(req, allowed_origins)
+  environment(patched) <- environment()
+  assignInNamespace("validate_origin", patched, ns = "mcptools")
+  TRUE
+}
+
 mcp_patch_mcptools_protocol <- function(registry, instructions = mcp_server_instructions()) {
   if (!requireNamespace("mcptools", quietly = TRUE)) {
     return(FALSE)
   }
   ns <- asNamespace("mcptools")
+  mcp_patch_mcptools_origin()
   mcp_patch_mcptools_instructions(instructions)
 
   patched_tools <- function() mcp_tool_metadata(registry$tools)

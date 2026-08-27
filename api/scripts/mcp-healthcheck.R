@@ -11,7 +11,7 @@ if (length(missing) > 0L) {
 }
 
 endpoint <- Sys.getenv("MCP_URL", "http://127.0.0.1:8787")
-token <- Sys.getenv("MCP_BEARER_TOKEN", "")
+MCP_PROTOCOL_VERSION <- "2025-11-25"
 
 rpc <- function(method, params = NULL, id = 1L) {
   body <- list(jsonrpc = "2.0", id = id, method = method)
@@ -20,14 +20,10 @@ rpc <- function(method, params = NULL, id = 1L) {
   req <- httr2::request(endpoint) |>
     httr2::req_headers(
       `Content-Type` = "application/json",
-      `MCP-Protocol-Version` = "2025-11-25"
+      `MCP-Protocol-Version` = MCP_PROTOCOL_VERSION
     ) |>
     httr2::req_body_json(body, auto_unbox = TRUE) |>
     httr2::req_timeout(5)
-
-  if (nzchar(token)) {
-    req <- httr2::req_headers(req, Authorization = paste("Bearer", token))
-  }
 
   resp <- httr2::req_perform(req)
   payload <- jsonlite::fromJSON(httr2::resp_body_string(resp), simplifyVector = FALSE)
@@ -38,12 +34,18 @@ rpc <- function(method, params = NULL, id = 1L) {
 }
 
 init <- rpc("initialize", list(
-  protocolVersion = "2025-11-25",
+  protocolVersion = MCP_PROTOCOL_VERSION,
   capabilities = list(),
   clientInfo = list(name = "sysndd-mcp-healthcheck", version = "0.1.0")
 ), 1L)
 if (is.null(init$result$serverInfo$name)) {
   stop("MCP initialize did not return serverInfo")
+}
+if (!identical(init$result$protocolVersion, MCP_PROTOCOL_VERSION)) {
+  stop(
+    "MCP initialize negotiated unexpected protocol version: ",
+    init$result$protocolVersion %||% "<missing>"
+  )
 }
 
 listed <- rpc("tools/list", id = 2L)

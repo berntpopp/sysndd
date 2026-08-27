@@ -11,7 +11,7 @@ if (length(missing) > 0L) {
 }
 
 endpoint <- Sys.getenv("MCP_URL", "http://127.0.0.1:8787")
-token <- Sys.getenv("MCP_BEARER_TOKEN", "")
+MCP_PROTOCOL_VERSION <- "2025-11-25"
 
 rpc <- function(method, params = NULL, id = 1L) {
   body <- list(jsonrpc = "2.0", id = id, method = method)
@@ -20,25 +20,27 @@ rpc <- function(method, params = NULL, id = 1L) {
   req <- httr2::request(endpoint) |>
     httr2::req_headers(
       `Content-Type` = "application/json",
-      `MCP-Protocol-Version` = "2025-11-25"
+      `MCP-Protocol-Version` = MCP_PROTOCOL_VERSION
     ) |>
     httr2::req_body_json(body, auto_unbox = TRUE) |>
     httr2::req_timeout(5)
-
-  if (nzchar(token)) {
-    req <- httr2::req_headers(req, Authorization = paste("Bearer", token))
-  }
 
   resp <- httr2::req_perform(req)
   jsonlite::fromJSON(httr2::resp_body_string(resp), simplifyVector = FALSE)
 }
 
 init <- rpc("initialize", list(
-  protocolVersion = "2025-11-25",
+  protocolVersion = MCP_PROTOCOL_VERSION,
   capabilities = list(),
   clientInfo = list(name = "sysndd-mcp-smoke", version = "0.1.0")
 ), 1L)
 if (is.null(init$result)) stop("MCP initialize failed")
+if (!identical(init$result$protocolVersion, MCP_PROTOCOL_VERSION)) {
+  stop(
+    "MCP initialize negotiated unexpected protocol version: ",
+    init$result$protocolVersion %||% "<missing>"
+  )
+}
 if (!grepl("SysNDD", init$result$instructions %||% "", fixed = TRUE)) {
   stop("MCP initialize did not return SysNDD-specific instructions")
 }
@@ -47,6 +49,34 @@ if (!grepl("research", init$result$instructions %||% "", ignore.case = TRUE)) {
 }
 if (is.null(init$result$capabilities$resources)) {
   stop("MCP initialize did not advertise resources capability")
+}
+
+invalid_origin_body <- list(
+  jsonrpc = "2.0",
+  id = 629L,
+  method = "initialize",
+  params = list(
+    protocolVersion = MCP_PROTOCOL_VERSION,
+    capabilities = list(),
+    clientInfo = list(name = "sysndd-mcp-origin-smoke", version = "0.1.0")
+  )
+)
+invalid_origin_response <- httr2::request(endpoint) |>
+  httr2::req_headers(
+    `Content-Type` = "application/json",
+    `MCP-Protocol-Version` = MCP_PROTOCOL_VERSION,
+    Origin = "https://attacker.invalid"
+  ) |>
+  httr2::req_body_json(invalid_origin_body, auto_unbox = TRUE) |>
+  httr2::req_timeout(5) |>
+  httr2::req_error(is_error = function(...) FALSE) |>
+  httr2::req_perform()
+if (!identical(httr2::resp_status(invalid_origin_response), 403L)) {
+  stop(
+    "MCP invalid Origin returned ",
+    httr2::resp_status(invalid_origin_response),
+    "; expected 403"
+  )
 }
 
 listed <- rpc("tools/list", id = 2L)

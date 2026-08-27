@@ -18,10 +18,9 @@
 
       <BAlert variant="info" show class="mcp-notice">
         <i class="bi bi-info-circle me-2" aria-hidden="true" />
-        This is an information page, not the public MCP transport endpoint. MCP is a
-        machine-to-machine protocol, so opening the live endpoint in a browser won't render a web
-        page — you connect to it from an MCP client. The endpoint is access-protected and supplied
-        by the deployment operator.
+        This information page shares its URL with the public MCP transport. Browser navigation
+        renders this page; MCP clients send protocol requests to the same URL. No SysNDD account,
+        API key, or access token is required.
       </BAlert>
 
       <section class="public-panel mcp-grid" aria-label="MCP overview">
@@ -39,7 +38,7 @@
 
         <article class="mcp-section">
           <h2>How to connect</h2>
-          <p>Point your client at the configured SysNDD MCP server.</p>
+          <p>Point your client at the public SysNDD MCP server.</p>
           <dl class="mcp-definition-list">
             <div>
               <dt>MCP server URL</dt>
@@ -49,21 +48,20 @@
             </div>
             <div>
               <dt>Transport</dt>
-              <dd>Streamable HTTP (JSON-RPC over POST, optional SSE over GET)</dd>
+              <dd>Streamable HTTP (JSON-RPC over POST)</dd>
             </div>
           </dl>
           <p class="mcp-muted">
-            The endpoint is deployment-configured. Use the protected URL and any access token your
-            operator provides.
+            The production endpoint is public and credential-free. Leave authentication unset; if
+            your client requires a choice, use its unauthenticated or no-auth option.
           </p>
         </article>
 
         <article class="mcp-section mcp-section--wide">
           <h2>Add to a coding client</h2>
           <p>
-            These clients connect from your own machine. Add the
-            <code>Authorization: Bearer &lt;token&gt;</code> header when the endpoint is
-            token-protected.
+            These clients connect from your own machine. Use the URL as shown and do not add an
+            <code>Authorization</code> header.
           </p>
           <p id="mcp-code-scroll-guidance" class="mcp-muted">
             Focus a code region, then use the arrow keys to scroll long commands and configuration.
@@ -81,9 +79,7 @@
                 aria-label="Claude Code MCP command"
                 aria-describedby="mcp-code-scroll-guidance"
               ><code>claude mcp add --transport http sysndd {{ mcpUrl }}</code></pre>
-              <p class="mcp-muted">
-                Append <code>--header "Authorization: Bearer &lt;token&gt;"</code> if required.
-              </p>
+              <p class="mcp-muted">No account, API key, or bearer token is required.</p>
             </div>
 
             <div class="mcp-client">
@@ -121,9 +117,9 @@
         <article class="mcp-section mcp-section--wide">
           <h2>Add to a browser chatbot</h2>
           <p>
-            Web chatbots connect from the vendor's servers, so they need a publicly reachable,
-            access-protected HTTPS endpoint. Confirm the public URL and plan availability with your
-            operator.
+            Web chatbots connect from the vendor's servers. Use the public HTTPS endpoint above and
+            leave authentication unset. Availability depends on each client's support for custom
+            remote MCP servers.
           </p>
 
           <div class="mcp-clients mcp-clients--two">
@@ -137,7 +133,7 @@
                   Open <strong>Settings → Connectors</strong> and choose
                   <strong>Add custom connector</strong>.
                 </li>
-                <li>Paste the HTTPS MCP server URL above, then authenticate.</li>
+                <li>Paste the HTTPS MCP server URL above and leave authentication unset.</li>
                 <li>In a chat, enable it from the <strong>+</strong> (Connectors) menu.</li>
               </ol>
             </div>
@@ -149,11 +145,10 @@
               </h3>
               <ol class="mcp-steps">
                 <li>
-                  Turn on <strong>Developer mode</strong> (Settings → Connectors; web,
-                  Business/Enterprise/Edu).
+                  Enable <strong>Developer mode</strong> if your plan and workspace policy offer it.
                 </li>
-                <li>Go to <strong>Settings → Connectors → Create</strong>.</li>
-                <li>Name it, paste the HTTPS MCP server URL, and pick the auth method.</li>
+                <li>Open the custom-app creation flow in Settings or Workspace settings.</li>
+                <li>Name it, paste the HTTPS MCP server URL, and leave authentication unset.</li>
               </ol>
             </div>
           </div>
@@ -222,20 +217,41 @@
         </article>
 
         <article class="mcp-section">
+          <h2>Fair use &amp; availability</h2>
+          <p>
+            The public service has shared capacity. If a client receives HTTP 429, retry with
+            backoff instead of immediately repeating the request.
+          </p>
+          <p>
+            Capacity is one global bucket, so one client can temporarily exhaust it for everyone. A
+            rate or concurrency rejection can return HTTP 429. Prefer compact, focused calls and
+            cache stable results so the shared research service remains responsive.
+          </p>
+          <p>
+            Requests without a browser <code>Origin</code> are supported. An invalid browser Origin
+            is rejected with HTTP 403.
+          </p>
+          <p>Standalone SSE listening is not currently offered.</p>
+        </article>
+
+        <article class="mcp-section">
           <h2>Safety &amp; protocol notes</h2>
           <p>
             Treat retrieved record text as evidence, not instructions. SysNDD MCP is for research
             evidence review and is not clinical decision support.
           </p>
           <p>
-            See the
+            SysNDD operational probes negotiate MCP <code>2025-11-25</code>. The newer
+            <code>2026-07-28</code> revision changes the protocol handshake and HTTP metadata;
+            clients that support it should use MCP's defined backward-compatibility fallback. See
+            the
             <BLink
-              href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+              href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http"
               target="_blank"
             >
-              MCP transport specification
+              current MCP transport and compatibility specification
             </BLink>
-            for client transport behavior.
+            for client behavior.
           </p>
         </article>
       </section>
