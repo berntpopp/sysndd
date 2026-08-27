@@ -93,6 +93,20 @@ test_that("MCP Origin validation is exact and fails closed", {
   ))
 })
 
+test_that("MCP Origin patch replaces the mcptools runtime validator", {
+  skip_if_not_installed("mcptools")
+
+  source_mcp_tools()
+  allowed <- "https://sysndd.dbmr.unibe.ch"
+  expect_true(mcp_patch_mcptools_origin(allowed))
+
+  validate_origin <- get("validate_origin", envir = asNamespace("mcptools"))
+  expect_true(validate_origin(list()))
+  expect_true(validate_origin(list(HTTP_ORIGIN = allowed)))
+  expect_false(validate_origin(list(HTTP_ORIGIN = "https://attacker.invalid")))
+  expect_false(validate_origin(list(HTTP_ORIGIN = "")))
+})
+
 test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   skip_if_not_installed("mcptools")
 

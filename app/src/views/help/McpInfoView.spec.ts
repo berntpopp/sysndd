@@ -34,6 +34,17 @@ describe('McpInfoView', () => {
     expect(text).toContain('retry with backoff');
     expect(text).toContain('cache stable results');
     expect(text).toContain('Standalone SSE listening is not currently offered');
+    expect(text).toContain('operational probes negotiate MCP 2025-11-25');
+    expect(text).toContain('newer 2026-07-28 revision');
+    expect(text).toContain('one client can temporarily exhaust it for everyone');
+    expect(text).toContain('HTTP 403');
+    expect(
+      wrapper
+        .find(
+          'a[href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http"]'
+        )
+        .exists()
+    ).toBe(true);
     expect(text).not.toMatch(
       /access-protected|protected URL|token-protected|Authorization:\s*Bearer|Bearer\s*<token>|access token your operator|then authenticate|pick the auth method/i
     );

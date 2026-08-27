@@ -85,7 +85,7 @@ mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructio
   } else {
     original <- original[[1]]
   }
-  patched <- function(protocol_version = "2025-06-18") {
+  patched <- function(protocol_version = "2025-11-25") {
     res <- original(protocol_version = protocol_version)
     res$serverInfo$name <- "SysNDD read-only MCP"
     res$instructions <- instructions

@@ -239,9 +239,11 @@ pre-commit: ## [quality] Run all quality checks before committing
 
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
 	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
-	@printf "\n$(CYAN)[1/7] Running CI script harnesses...$(RESET)\n"
+	@printf "\n$(CYAN)[1/8] Running CI script harnesses...$(RESET)\n"
 	@$(MAKE) test-ci-scripts
-	@printf "\n$(CYAN)[2/7] Starting test database...$(RESET)\n"
+	@printf "\n$(CYAN)[2/8] Running MCP edge smoke...$(RESET)\n"
+	@$(MAKE) test-mcp-edge
+	@printf "\n$(CYAN)[3/8] Starting test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) up -d mysql-test && \
 		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
@@ -284,17 +286,17 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		$(MAKE) -C $(ROOT_DIR) _ci-cleanup; \
 		exit 1; \
 	fi
-	@printf "\n$(CYAN)[3/7] Linting R code...$(RESET)\n"
+	@printf "\n$(CYAN)[4/8] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[4/7] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[5/8] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[5/7] Type-checking frontend...$(RESET)\n"
+	@printf "\n$(CYAN)[6/8] Type-checking frontend...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[6/7] Type-checking frontend (strict scopes)...$(RESET)\n"
+	@printf "\n$(CYAN)[7/8] Type-checking frontend (strict scopes)...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Strict type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[7/7] Running R API tests (with database)...$(RESET)\n"
+	@printf "\n$(CYAN)[8/8] Running R API tests (with database)...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \

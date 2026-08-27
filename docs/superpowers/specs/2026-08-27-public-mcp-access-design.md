@@ -35,6 +35,9 @@ public projection views.
    invariants remain unchanged.
 8. Fast structural tests and an isolated live-Traefik smoke make the routing and
    abuse-control posture executable rather than comment-only.
+9. Documentation distinguishes the probed MCP `2025-11-25` transport from
+   the breaking upstream `2026-07-28` revision and treats adoption as a separate
+   compatibility migration.
 
 ## Standards Position
 
@@ -62,11 +65,24 @@ The substantive controls are:
 - no egress-capable network attached to the MCP container;
 - shared edge request-rate, POST concurrency, request-body, and read-time limits.
 
+The staleness check on 2026-08-27 found that upstream MCP released revision
+`2026-07-28` after SysNDD's pinned `mcptools` runtime. SysNDD's operational
+probes negotiate `2025-11-25` (and fail on a different initialize response),
+while production also accepts `2025-06-18`; issue #629 changes exposure and
+admission controls, not the wire protocol. The newer revision removes the initialize/session era,
+removes standalone GET streams, and requires per-request protocol metadata
+headers. Adopting it requires an explicit dependency and compatibility migration
+covering the server, health/smoke clients, routing assumptions, and old/new
+client fallback. The latest revision still makes authorization optional and
+requires invalid present Origins to fail with 403, so this design's security
+decision remains aligned with current upstream guidance.
+
 References:
 
-- [MCP authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
-- [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
-- [MCP security best practices](https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices)
+- [Probed MCP 2025-11-25 transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+- [Latest MCP 2026-07-28 authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
+- [Latest MCP 2026-07-28 Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
+- [MCP versioning and backward compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
 - [Traefik routing rules](https://doc.traefik.io/traefik/reference/routing-configuration/http/routing/rules-and-priority/)
 - [Traefik rate limiting](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/ratelimit/)
 - [Traefik in-flight request limiting](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/inflightreq/)
@@ -93,6 +109,8 @@ app catch-all:
 - exact `POST /mcp` for JSON-RPC messages;
 - exact `GET /mcp` whose `Accept` header contains the case-insensitive
   `text/event-stream` media-type token (not an arbitrary substring).
+- exact `DELETE /mcp`, which reaches the sessionless transport and returns 405
+  instead of falling through to the SPA.
 
 Traefik is pinned to v3.7.3 because the query-parameter access-log privacy
 setting requires that patch level. It uses the singular `HeaderRegexp` matcher. Both routers explicitly
@@ -104,7 +122,8 @@ when a Streamable HTTP server does not offer a standalone SSE listening stream.
 Routing an SSE-shaped GET to MCP therefore yields a protocol-appropriate 405
 instead of misleading SPA HTML. The UI and docs must not claim that standalone
 SSE is currently supported. The server is stateless and issues no session ID;
-DELETE-based session termination is therefore not offered. Direct browser CORS
+DELETE-based session termination is therefore not offered and exact DELETE also
+returns 405. Direct browser CORS
 clients and `/mcp/` are outside the v1 contract.
 
 ### Edge controls

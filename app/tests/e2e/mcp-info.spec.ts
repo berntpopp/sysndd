@@ -11,6 +11,8 @@ test.describe('MCP public information and protocol proxy', () => {
     await expect(
       page.locator('dl code').filter({ hasText: `${new URL(page.url()).origin}/mcp` })
     ).toBeVisible();
+    await expect(page.getByText(/operational probes negotiate MCP 2025-11-25/)).toBeVisible();
+    await expect(page.getByText(/invalid browser Origin.*HTTP 403/i)).toBeVisible();
   });
 
   test('proxies MCP initialize requests through /mcp', async ({ request }) => {
@@ -44,6 +46,7 @@ test.describe('MCP public information and protocol proxy', () => {
       );
     }
     const body = await response.json();
+    expect(body.result.protocolVersion).toBe('2025-11-25');
     expect(body.result.serverInfo.name).toBe('SysNDD read-only MCP');
     expect(body.result.instructions).toContain('read-only access');
   });

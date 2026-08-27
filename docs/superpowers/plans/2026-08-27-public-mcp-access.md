@@ -817,6 +817,7 @@ Rate limiting / abuse handling    -> shared-rate/body/work/read controls plus is
 Browser information page retained -> exact method/header routers plus browser-route smoke
 Read-only guarantees preserved    -> no-egress internal network and unchanged MCP/principal code
 Community standards               -> optional-auth rationale, Origin handling, 405, backoff, observability
+Protocol posture current          -> probed 2025-11-25 plus explicit 2026-07-28 migration boundary
 ```
 
 - [ ] **Step 6: Apply any review correction through a fresh red-green cycle**

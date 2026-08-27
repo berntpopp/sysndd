@@ -187,6 +187,13 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
     "traefik.http.routers.mcp-get.service" = "mcp",
     "traefik.http.routers.mcp-get.middlewares" = "mcp-shared-rate,mcp-strip",
     "traefik.http.routers.mcp-get.observability.accesslogs" = "true",
+    "traefik.http.routers.mcp-delete.rule" =
+      "Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`DELETE`)",
+    "traefik.http.routers.mcp-delete.entrypoints" = "web",
+    "traefik.http.routers.mcp-delete.priority" = "200",
+    "traefik.http.routers.mcp-delete.service" = "mcp",
+    "traefik.http.routers.mcp-delete.middlewares" = "mcp-shared-rate,mcp-strip",
+    "traefik.http.routers.mcp-delete.observability.accesslogs" = "true",
     "traefik.http.middlewares.mcp-shared-rate.ratelimit.average" = "120",
     "traefik.http.middlewares.mcp-shared-rate.ratelimit.period" = "1m",
     "traefik.http.middlewares.mcp-shared-rate.ratelimit.burst" = "20",
@@ -238,6 +245,8 @@ test_that("MCP operator and contributor documentation matches the public edge co
   for (section in list(agents, api_docs, deployment)) {
     expect_match(section, "public and credential-free", fixed = TRUE)
     expect_match(section, "approved-public", fixed = TRUE)
+    expect_match(section, "2025-11-25", fixed = TRUE)
+    expect_match(section, "2026-07-28", fixed = TRUE)
     expect_false(grepl("private/internal by default", section, fixed = TRUE))
     expect_false(grepl("static bearer", section, ignore.case = TRUE))
     expect_false(grepl("mcp-auth", section, fixed = TRUE))
@@ -251,6 +260,10 @@ test_that("MCP operator and contributor documentation matches the public edge co
   expect_match(deployment, "HTTP 429", fixed = TRUE)
   expect_match(deployment, "HTTP 413", fixed = TRUE)
   expect_match(deployment, "shared Host bucket", fixed = TRUE)
+  expect_match(deployment, "single global bucket", fixed = TRUE)
+  expect_match(deployment, "temporarily exhaust shared capacity for everyone", fixed = TRUE)
+  expect_match(deployment, "in-flight overflow also returns HTTP 429", fixed = TRUE)
+  expect_match(deployment, "trusted proxy", fixed = TRUE)
   expect_match(deployment, "mcp_edge", fixed = TRUE)
   expect_match(deployment, "no outbound internet egress", fixed = TRUE)
   expect_match(deployment, "invalid non-empty `Origin`", fixed = TRUE)
@@ -280,4 +293,41 @@ test_that("MCP operator and contributor documentation matches the public edge co
   )
   expect_match(changelog, "credential-free", fixed = TRUE)
   expect_match(changelog, "#629", fixed = TRUE)
+
+  expect_false(grepl("mounts `api_cache` read-only", agents, fixed = TRUE))
+  expect_false(grepl("mcp` service now mounts it", agents, fixed = TRUE))
+})
+
+test_that("MCP probes enforce the advertised protocol and credential-free contract", {
+  healthcheck <- paste(readLines(
+    file.path(.mcp_compose_repo_root, "api", "scripts", "mcp-healthcheck.R"),
+    warn = FALSE
+  ), collapse = "\n")
+  smoke <- paste(readLines(
+    file.path(.mcp_compose_repo_root, "api", "scripts", "mcp-smoke.R"),
+    warn = FALSE
+  ), collapse = "\n")
+
+  for (probe in list(healthcheck, smoke)) {
+    expect_match(probe, 'MCP_PROTOCOL_VERSION <- "2025-11-25"', fixed = TRUE)
+    expect_match(probe, "init$result$protocolVersion", fixed = TRUE)
+    expect_false(grepl("MCP_BEARER_TOKEN|Authorization", probe))
+  }
+  expect_match(smoke, 'Origin = "https://attacker.invalid"', fixed = TRUE)
+  expect_match(smoke, "403L", fixed = TRUE)
+})
+
+test_that("real MCP edge smoke runs in Docker-backed local and hosted CI gates", {
+  makefile <- paste(readLines(
+    file.path(.mcp_compose_repo_root, "Makefile"), warn = FALSE
+  ), collapse = "\n")
+  workflow <- paste(readLines(
+    file.path(.mcp_compose_repo_root, ".github", "workflows", "ci.yml"), warn = FALSE
+  ), collapse = "\n")
+
+  expect_match(makefile, "Running MCP edge smoke", fixed = TRUE)
+  expect_match(makefile, "$(MAKE) test-mcp-edge", fixed = TRUE)
+  expect_match(workflow, "Run MCP edge smoke", fixed = TRUE)
+  expect_match(workflow, "make test-mcp-edge", fixed = TRUE)
+  expect_match(workflow, "scripts/tests/test-mcp-traefik-edge.sh", fixed = TRUE)
 })

@@ -90,6 +90,9 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.reply(405, b"method not allowed", "text/plain")
 
+    def do_DELETE(self):
+        self.reply(405, b"method not allowed", "text/plain")
+
 ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
 PY
 
@@ -124,6 +127,8 @@ jq -e '[.[] | select(.name == "mcp-post@docker" and .status == "enabled")] | len
   <<<"${ROUTERS}" >/dev/null
 jq -e '[.[] | select(.name == "mcp-get@docker" and .status == "enabled")] | length == 1' \
   <<<"${ROUTERS}" >/dev/null
+jq -e '[.[] | select(.name == "mcp-delete@docker" and .status == "enabled")] | length == 1' \
+  <<<"${ROUTERS}" >/dev/null
 
 HTML="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' -H 'Accept: text/html' "${BASE}/mcp")"
 [[ "${HTML}" == "SYSNDD-APP" ]]
@@ -138,6 +143,10 @@ GET_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
   -H 'Host: sysndd.dbmr.unibe.ch' \
   -H 'Accept: application/json, Text/Event-Stream; q=1' "${BASE}/mcp")"
 [[ "${GET_STATUS}" == "405" ]]
+
+DELETE_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
+  -H 'Host: sysndd.dbmr.unibe.ch' -X DELETE "${BASE}/mcp")"
+[[ "${DELETE_STATUS}" == "405" ]]
 
 INVALID_ACCEPT="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
   -H 'Accept: application/x-text/event-stream-foo' "${BASE}/mcp")"
@@ -167,6 +176,7 @@ for _ in $(seq 1 20); do
   sleep 0.1
 done
 grep -q '"RouterName":"mcp-post@docker"' <<<"${ACCESS_LOGS}"
+grep -q '"RouterName":"mcp-delete@docker"' <<<"${ACCESS_LOGS}"
 if grep -q '"RouterName":"app@docker"' <<<"${ACCESS_LOGS}"; then
   echo "[mcp-edge] app router must not be access-logged" >&2
   exit 1
@@ -182,4 +192,4 @@ if grep -Eq '"Client(Addr|Host)"' <<<"${ACCESS_LOGS}"; then
   exit 1
 fi
 
-echo "[mcp-edge] PASS: routing, 405/413/429 controls, and privacy-bounded MCP-only logs verified"
+echo "[mcp-edge] PASS: routing, GET/DELETE 405, 413/429 controls, and privacy-bounded MCP-only logs verified"

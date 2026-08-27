@@ -223,9 +223,15 @@
             backoff instead of immediately repeating the request.
           </p>
           <p>
-            Prefer compact, focused calls and cache stable results so the shared research service
-            remains responsive. Standalone SSE listening is not currently offered.
+            Capacity is one global bucket, so one client can temporarily exhaust it for everyone. A
+            rate or concurrency rejection can return HTTP 429. Prefer compact, focused calls and
+            cache stable results so the shared research service remains responsive.
           </p>
+          <p>
+            Requests without a browser <code>Origin</code> are supported. An invalid browser Origin
+            is rejected with HTTP 403.
+          </p>
+          <p>Standalone SSE listening is not currently offered.</p>
         </article>
 
         <article class="mcp-section">
@@ -235,14 +241,17 @@
             evidence review and is not clinical decision support.
           </p>
           <p>
-            See the
+            SysNDD operational probes negotiate MCP <code>2025-11-25</code>. The newer
+            <code>2026-07-28</code> revision changes the protocol handshake and HTTP metadata;
+            clients that support it should use MCP's defined backward-compatibility fallback. See
+            the
             <BLink
-              href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+              href="https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http"
               target="_blank"
             >
-              MCP transport specification
+              current MCP transport and compatibility specification
             </BLink>
-            for client transport behavior.
+            for client behavior.
           </p>
         </article>
       </section>
