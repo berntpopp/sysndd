@@ -30,6 +30,16 @@ library(testthat)
   stats::setNames(values, keys)
 }
 
+.mcp_markdown_section <- function(path, heading, next_heading_pattern) {
+  lines <- readLines(path, warn = FALSE)
+  start <- grep(paste0("^", heading, "$"), lines)
+  stopifnot(length(start) == 1L)
+  later_headings <- grep(next_heading_pattern, lines)
+  later_headings <- later_headings[later_headings > start]
+  end <- if (length(later_headings)) min(later_headings) - 1L else length(lines)
+  paste(lines[start:end], collapse = "\n")
+}
+
 test_that("MCP compose wiring injects only its dedicated database principal", {
   compose <- file.path(.mcp_compose_repo_root, "docker-compose.yml")
   block <- .mcp_compose_service_block(compose, "mcp")
@@ -191,4 +201,59 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
   expect_true("--accesslog.fields.headers.defaultmode=drop" %in% command)
   expect_true("--accesslog.fields.queryparameters.defaultmode=drop" %in% command)
   expect_true("--entryPoints.web.observability.accessLogs=false" %in% command)
+})
+
+test_that("MCP operator and contributor documentation matches the public edge contract", {
+  agents <- .mcp_markdown_section(
+    file.path(.mcp_compose_repo_root, "AGENTS.md"),
+    "### Read-only MCP sidecar",
+    "^### "
+  )
+  api_docs <- .mcp_markdown_section(
+    file.path(.mcp_compose_repo_root, "documentation", "03-api.qmd"),
+    "## Read-only MCP sidecar",
+    "^## "
+  )
+  deployment <- .mcp_markdown_section(
+    file.path(.mcp_compose_repo_root, "documentation", "09-deployment.qmd"),
+    "### MCP sidecar settings",
+    "^#{2,3} "
+  )
+
+  for (section in list(agents, api_docs, deployment)) {
+    expect_match(section, "public and credential-free", fixed = TRUE)
+    expect_match(section, "approved-public", fixed = TRUE)
+    expect_false(grepl("private/internal by default", section, fixed = TRUE))
+    expect_false(grepl("static bearer", section, ignore.case = TRUE))
+    expect_false(grepl("mcp-auth", section, fixed = TRUE))
+  }
+
+  expect_match(deployment, "120 requests per minute", fixed = TRUE)
+  expect_match(deployment, "20-request burst", fixed = TRUE)
+  expect_match(deployment, "256 KiB", fixed = TRUE)
+  expect_match(deployment, "4 concurrent POST requests", fixed = TRUE)
+  expect_match(deployment, "60-second", fixed = TRUE)
+  expect_match(deployment, "HTTP 429", fixed = TRUE)
+  expect_match(deployment, "HTTP 413", fixed = TRUE)
+  expect_match(deployment, "shared Host bucket", fixed = TRUE)
+  expect_match(deployment, "mcp_edge", fixed = TRUE)
+  expect_match(deployment, "no outbound internet egress", fixed = TRUE)
+  expect_match(deployment, "invalid non-empty `Origin`", fixed = TRUE)
+  expect_match(deployment, "does not replace authentication", fixed = TRUE)
+  expect_match(deployment, "bodies, headers, and query parameters are not logged", fixed = TRUE)
+
+  override <- paste(readLines(
+    file.path(.mcp_compose_repo_root, "docker-compose.override.yml"),
+    warn = FALSE
+  ), collapse = "\n")
+  expect_match(override, "Production MCP uses the public\\s+credential-free Traefik route")
+  expect_false(grepl("Production compose does not expose", override, fixed = TRUE))
+
+  changelog <- .mcp_markdown_section(
+    file.path(.mcp_compose_repo_root, "CHANGELOG.md"),
+    "## \\[Unreleased\\]",
+    "^## \\["
+  )
+  expect_match(changelog, "credential-free", fixed = TRUE)
+  expect_match(changelog, "#629", fixed = TRUE)
 })
