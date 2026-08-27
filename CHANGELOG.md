@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-08-27
+
 ### Changed
 
 - **The read-only MCP transport is now explicitly public and credential-free** (#629). Production Traefik routes protocol traffic on `/mcp` while preserving the browser information page, and bounds the shared service with rate, request-body, concurrency, timeout, Origin-validation, network-isolation, and privacy-minimized logging controls. Client and operator documentation no longer instructs users to provide bearer credentials.
