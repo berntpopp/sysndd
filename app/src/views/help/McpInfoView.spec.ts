@@ -12,22 +12,31 @@ const bootstrapStubs = {
 };
 
 describe('McpInfoView', () => {
-  it('explains that /mcp is an information page, not the public tool endpoint', () => {
+  it('documents the credential-free public MCP transport and shared fair-use behavior', () => {
     const wrapper = mount(McpInfoView, {
       global: {
         stubs: bootstrapStubs,
       },
     });
 
+    const text = wrapper.text().replace(/\s+/g, ' ');
     expect(wrapper.find('.public-page').exists()).toBe(true);
     expect(wrapper.find('.public-shell').exists()).toBe(true);
     expect(wrapper.find('.public-hero').exists()).toBe(true);
     expect(wrapper.find('.public-panel').exists()).toBe(true);
-    expect(wrapper.text()).toContain('SysNDD MCP');
-    expect(wrapper.text()).toContain('Read-only');
-    expect(wrapper.text()).toContain('not the public MCP transport endpoint');
-    expect(wrapper.text()).toContain(`${window.location.origin}/mcp`);
-    expect(wrapper.text()).toContain('protected');
+    expect(text).toContain('SysNDD MCP');
+    expect(text).toContain('Read-only');
+    expect(text).toContain(`${window.location.origin}/mcp`);
+    expect(text).toContain('No SysNDD account, API key, or access token is required');
+    expect(text).toContain('leave authentication unset');
+    expect(text).toContain('shared capacity');
+    expect(text).toContain('HTTP 429');
+    expect(text).toContain('retry with backoff');
+    expect(text).toContain('cache stable results');
+    expect(text).toContain('Standalone SSE listening is not currently offered');
+    expect(text).not.toMatch(
+      /access-protected|protected URL|token-protected|Authorization:\s*Bearer|Bearer\s*<token>|access token your operator|then authenticate|pick the auth method/i
+    );
   });
 
   it('names every code region and makes long commands keyboard-scrollable', async () => {
