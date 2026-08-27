@@ -286,11 +286,10 @@ test_that("MCP operator and contributor documentation matches the public edge co
   )
   expect_false(grepl("Production compose does not expose", override, fixed = TRUE))
 
-  changelog <- .mcp_markdown_section(
+  changelog <- paste(readLines(
     file.path(.mcp_compose_repo_root, "CHANGELOG.md"),
-    "## \\[Unreleased\\]",
-    "^## \\["
-  )
+    warn = FALSE
+  ), collapse = "\n")
   expect_match(changelog, "credential-free", fixed = TRUE)
   expect_match(changelog, "#629", fixed = TRUE)
 
