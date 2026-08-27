@@ -188,10 +188,12 @@ for label in "${MCP_LABELS[@]}"; do
   fi
   MCP_ARGS+=(--label "${label}")
 done
+MCP_ARGS+=(--label "sysndd.mcp-edge-smoke=${SUFFIX}")
 APP_ARGS=()
 for label in "${APP_LABELS[@]}"; do
   APP_ARGS+=(--label "${label}")
 done
+APP_ARGS+=(--label "sysndd.mcp-edge-smoke=${SUFFIX}")
 
 read -r -d '' STUB <<'PY' || true
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -244,6 +246,7 @@ docker run -d --name "${TRAEFIK}" --network "${NETWORK}" \
   --providers.docker=true \
   --providers.docker.exposedbydefault=false \
   --providers.docker.network="${NETWORK}" \
+  --providers.docker.constraints="Label(\`sysndd.mcp-edge-smoke\`, \`${SUFFIX}\`)" \
   --entrypoints.web.address=:80 \
   --api=true --api.insecure=true --log.level=ERROR >/dev/null
 

@@ -17,6 +17,19 @@ library(testthat)
   lines[start:end]
 }
 
+.mcp_compose_model <- function() {
+  yaml::read_yaml(file.path(.mcp_compose_repo_root, "docker-compose.yml"))
+}
+
+.mcp_compose_label_map <- function(service) {
+  labels <- unlist(service$labels, use.names = FALSE)
+  stopifnot(is.character(labels), is.null(names(labels)))
+  parts <- strsplit(labels, "=", fixed = TRUE)
+  keys <- vapply(parts, `[[`, character(1), 1L)
+  values <- vapply(parts, function(x) paste(x[-1L], collapse = "="), character(1))
+  stats::setNames(values, keys)
+}
+
 test_that("MCP compose wiring injects only its dedicated database principal", {
   compose <- file.path(.mcp_compose_repo_root, "docker-compose.yml")
   block <- .mcp_compose_service_block(compose, "mcp")
@@ -118,4 +131,64 @@ test_that("deployment documents a containerized file-only provisioner", {
   )
   expect_match(text, "docker compose --profile mcp up -d mcp", fixed = TRUE)
   expect_false(grepl("MCP_ADMIN_DB_PASSWORD=", text, fixed = TRUE))
+})
+
+test_that("MCP profile exposes a bounded credential-free transport without egress", {
+  model <- .mcp_compose_model()
+  mcp <- model$services$mcp
+  traefik <- model$services$traefik
+  labels <- .mcp_compose_label_map(mcp)
+
+  expect_setequal(unlist(mcp$networks), c("backend", "mcp_edge"))
+  expect_false("proxy" %in% unlist(mcp$networks))
+  expect_true("mcp_edge" %in% unlist(traefik$networks))
+  expect_true(isTRUE(model$networks$mcp_edge$internal))
+  expect_identical(model$networks$mcp_edge$name, "sysndd_mcp_edge")
+
+  expected <- c(
+    "traefik.enable" = "true",
+    "traefik.docker.network" = "sysndd_mcp_edge",
+    "traefik.http.routers.mcp-post.rule" =
+      "Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`POST`)",
+    "traefik.http.routers.mcp-post.entrypoints" = "web",
+    "traefik.http.routers.mcp-post.priority" = "200",
+    "traefik.http.routers.mcp-post.service" = "mcp",
+    "traefik.http.routers.mcp-post.middlewares" =
+      "mcp-shared-rate,mcp-post-body,mcp-post-inflight,mcp-strip",
+    "traefik.http.routers.mcp-post.observability.accesslogs" = "true",
+    "traefik.http.routers.mcp-get.rule" =
+      paste0(
+        "Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && ",
+        "HeaderRegexp(`Accept`, `text/event-stream`)"
+      ),
+    "traefik.http.routers.mcp-get.entrypoints" = "web",
+    "traefik.http.routers.mcp-get.priority" = "200",
+    "traefik.http.routers.mcp-get.service" = "mcp",
+    "traefik.http.routers.mcp-get.middlewares" = "mcp-shared-rate,mcp-strip",
+    "traefik.http.routers.mcp-get.observability.accesslogs" = "true",
+    "traefik.http.middlewares.mcp-shared-rate.ratelimit.average" = "120",
+    "traefik.http.middlewares.mcp-shared-rate.ratelimit.period" = "1m",
+    "traefik.http.middlewares.mcp-shared-rate.ratelimit.burst" = "20",
+    "traefik.http.middlewares.mcp-shared-rate.ratelimit.sourcecriterion.requesthost" = "true",
+    "traefik.http.middlewares.mcp-post-body.buffering.maxrequestbodybytes" = "262144",
+    "traefik.http.middlewares.mcp-post-inflight.inflightreq.amount" = "4",
+    "traefik.http.middlewares.mcp-post-inflight.inflightreq.sourcecriterion.requesthost" = "true",
+    "traefik.http.middlewares.mcp-strip.stripprefix.prefixes" = "/mcp",
+    "traefik.http.services.mcp.loadbalancer.server.port" = "8787"
+  )
+
+  expect_identical(labels[names(expected)], expected)
+  expect_false(any(grepl(
+    "basic.?auth|forward.?auth|oauth|bearer|mcp-auth",
+    paste(names(labels), labels),
+    ignore.case = TRUE
+  )))
+
+  command <- unlist(traefik$command, use.names = FALSE)
+  expect_true("--entryPoints.web.transport.respondingTimeouts.readTimeout=60s" %in% command)
+  expect_true("--accesslog=true" %in% command)
+  expect_true("--accesslog.format=json" %in% command)
+  expect_true("--accesslog.fields.headers.defaultmode=drop" %in% command)
+  expect_true("--accesslog.fields.queryparameters.defaultmode=drop" %in% command)
+  expect_true("--entryPoints.web.observability.accessLogs=false" %in% command)
 })
