@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3.7.3
     container_name: sysndd_traefik
     restart: unless-stopped
     security_opt:
@@ -600,6 +600,7 @@ services:
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8787
       MCP_OUTPUT_MODE: ${MCP_OUTPUT_MODE:-json_text}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}
     networks:
       # Public ingress arrives only through the dedicated internal edge network;
       # MCP keeps its internal DB path and receives no internet egress.
@@ -614,7 +615,7 @@ services:
       - "traefik.http.routers.mcp-post.service=mcp"
       - "traefik.http.routers.mcp-post.middlewares=mcp-shared-rate,mcp-post-body,mcp-post-inflight,mcp-strip"
       - "traefik.http.routers.mcp-post.observability.accesslogs=true"
-      - "traefik.http.routers.mcp-get.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && HeaderRegexp(`Accept`, `text/event-stream`)"
+      - "traefik.http.routers.mcp-get.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && HeaderRegexp(`Accept`, `(?i)(^|[[:space:],])text/event-stream([[:space:];,]|$)`)"
       - "traefik.http.routers.mcp-get.entrypoints=web"
       - "traefik.http.routers.mcp-get.priority=200"
       - "traefik.http.routers.mcp-get.service=mcp"

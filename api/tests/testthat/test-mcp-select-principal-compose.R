@@ -113,6 +113,11 @@ test_that("example environment documents reader and operator inputs without valu
     fixed = TRUE
   )
   expect_match(text, "MCP_EXPECTED_VIEW_DEFINER=", fixed = TRUE)
+  expect_match(
+    text,
+    "MCP_ALLOWED_ORIGINS=https://sysndd.dbmr.unibe.ch",
+    fixed = TRUE
+  )
   expect_false(any(grepl("^MCP_ADMIN_DB_PASSWORD=", example)))
   expect_false(grepl("MCP_DB_USER=", text, fixed = TRUE))
 })
@@ -149,6 +154,11 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
   traefik <- model$services$traefik
   labels <- .mcp_compose_label_map(mcp)
 
+  expect_identical(traefik$image, "traefik:v3.7.3")
+  expect_identical(
+    mcp$environment$MCP_ALLOWED_ORIGINS,
+    "${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}"
+  )
   expect_setequal(unlist(mcp$networks), c("backend", "mcp_edge"))
   expect_false("proxy" %in% unlist(mcp$networks))
   expect_true("mcp_edge" %in% unlist(traefik$networks))
@@ -169,7 +179,8 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
     "traefik.http.routers.mcp-get.rule" =
       paste0(
         "Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && ",
-        "HeaderRegexp(`Accept`, `text/event-stream`)"
+        "HeaderRegexp(`Accept`, `(?i)(^|[[:space:],])text/event-stream",
+        "([[:space:];,]|$)`)"
       ),
     "traefik.http.routers.mcp-get.entrypoints" = "web",
     "traefik.http.routers.mcp-get.priority" = "200",

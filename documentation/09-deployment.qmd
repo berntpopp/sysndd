@@ -520,6 +520,7 @@ The optional `mcp` service runs `api/start_sysndd_mcp.R` as a separate read-only
 - `MCP_DB_POOL_SIZE` defaults to `2` and controls the MCP-only DB pool.
 - `MCP_PORT` defaults to `8787`.
 - `MCP_OUTPUT_MODE` defaults to `json_text`, matching the transport spike result for `mcptools 0.2.1.9000`.
+- `MCP_ALLOWED_ORIGINS` is a comma-separated exact allowlist for non-empty browser `Origin` headers and defaults to `https://sysndd.dbmr.unibe.ch`. Requests without `Origin` remain valid for server-side MCP clients; empty, malformed, or unlisted values fail closed.
 - `MCP_DB_HOST/PORT/NAME` and fixed `MCP_DB_USER=sysndd_mcp` are the only database identity inputs. Compose injects the provisioned mode-0600 file as `MCP_DB_PASSWORD_FILE`.
 - `MCP_URL` is used by `make test-mcp-smoke` and the lightweight MCP container liveness probe. Inside the container the default is `http://127.0.0.1:8787`.
 

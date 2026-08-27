@@ -6,7 +6,7 @@
 
 **Architecture:** Traefik routes only exact-path MCP-shaped traffic over a dedicated internal ingress network, leaving normal browser GET navigation on the Vue page and leaving MCP without internet egress. Fixed shared-rate, POST body/concurrency, and read-time bounds protect the single R process; MCP-only access logs make edge rejections observable without logging payloads.
 
-**Tech Stack:** Docker Compose, Traefik 3.7, Bash/Docker/curl/jq smoke testing, R/testthat/yaml, Vue 3/TypeScript, BootstrapVueNext, Vitest, Playwright, Quarto Markdown.
+**Tech Stack:** Docker Compose, Traefik 3.7.3, Bash/Docker/curl/jq smoke testing, R/testthat/yaml, Vue 3/TypeScript, BootstrapVueNext, Vitest, Playwright, Quarto Markdown.
 
 **Spec:** `docs/superpowers/specs/2026-08-27-public-mcp-access-design.md`
 
@@ -14,13 +14,13 @@
 
 - Production MCP is public and credential-free only while every tool remains approved-public and read-only.
 - The MCP container must remain on internal-only networks and receive no internet egress.
-- Traefik v3.7 router rules use `HeaderRegexp`, singular.
+- Traefik is pinned to v3.7.3 because the privacy-preserving query-parameter access-log setting is unavailable in earlier 3.7 patch releases; router rules use `HeaderRegexp`, singular.
 - The shared limiter is exactly 120 requests/minute per request Host with burst 20.
 - POST is capped at four in-flight requests per request Host and 256 KiB bodies.
 - The `web` entrypoint whole-request read timeout is explicitly 60 seconds.
 - MCP access logs must omit bodies, headers, and query parameters; other application routers remain opted out.
 - Standalone SSE, sessions, direct-browser CORS, `/mcp/`, OAuth, and per-user identity are non-goals.
-- Untrusted `Origin` remains rejected; absent `Origin` remains accepted.
+- `MCP_ALLOWED_ORIGINS` exactly allows the canonical production Origin; absent Origin remains accepted, while empty, malformed, and untrusted values fail closed.
 - Do not load-test production.
 
 ---
@@ -28,6 +28,8 @@
 ## File Structure
 
 - Modify `api/tests/testthat/test-mcp-select-principal-compose.R`: parse exact Compose structure and scope documentation/policy assertions.
+- Modify `api/services/mcp-tools.R` and `api/tests/testthat/test-mcp-tools.R`: replace the localhost-only upstream Origin validator with an exact configurable fail-closed allowlist.
+- Modify `.env.example`: document the canonical `MCP_ALLOWED_ORIGINS` value.
 - Create `scripts/tests/test-mcp-traefik-edge.sh`: run the resolved production labels against disposable app/MCP stubs and Traefik 3.7.
 - Modify `Makefile`: expose the isolated edge smoke as `test-mcp-edge`.
 - Modify `docker-compose.yml`: add the internal edge network, exact routers, controls, timeout, and MCP-only access logging.
@@ -82,6 +84,7 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
   traefik <- model$services$traefik
   labels <- .mcp_compose_label_map(mcp)
 
+  expect_identical(traefik$image, "traefik:v3.7.3")
   expect_setequal(unlist(mcp$networks), c("backend", "mcp_edge"))
   expect_false("proxy" %in% unlist(mcp$networks))
   expect_true("mcp_edge" %in% unlist(traefik$networks))
@@ -102,7 +105,8 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
     "traefik.http.routers.mcp-get.rule" =
       paste0(
         "Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && ",
-        "HeaderRegexp(`Accept`, `text/event-stream`)"
+        "HeaderRegexp(`Accept`, `(?i)(^|[[:space:],])text/event-stream",
+        "([[:space:];,]|$)`)"
       ),
     "traefik.http.routers.mcp-get.entrypoints" = "web",
     "traefik.http.routers.mcp-get.priority" = "200",
@@ -175,6 +179,10 @@ mapfile -t MCP_LABELS < <(
 mapfile -t APP_LABELS < <(
   jq -r '.services.app.labels | to_entries[] | "\(.key)=\(.value)"' <<<"${MODEL}"
 )
+mapfile -t TRAEFIK_COMMAND < <(
+  jq -r '.services.traefik.command[]' <<<"${MODEL}"
+)
+TRAEFIK_IMAGE="$(jq -r '.services.traefik.image' <<<"${MODEL}")"
 
 if ((${#MCP_LABELS[@]} == 0)); then
   echo "[mcp-edge] resolved MCP service has no Traefik labels" >&2
@@ -242,13 +250,10 @@ docker run -d --name "${APP}" --network "${NETWORK}" \
 docker run -d --name "${TRAEFIK}" --network "${NETWORK}" \
   -p 127.0.0.1::80 -p 127.0.0.1::8080 \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  traefik:v3.7 \
-  --providers.docker=true \
-  --providers.docker.exposedbydefault=false \
+  "${TRAEFIK_IMAGE}" "${TRAEFIK_COMMAND[@]}" \
   --providers.docker.network="${NETWORK}" \
   --providers.docker.constraints="Label(\`sysndd.mcp-edge-smoke\`, \`${SUFFIX}\`)" \
-  --entrypoints.web.address=:80 \
-  --api=true --api.insecure=true --log.level=ERROR >/dev/null
+  --log.level=ERROR >/dev/null
 
 WEB_PORT="$(docker port "${TRAEFIK}" 80/tcp | awk -F: 'NR == 1 { print $NF }')"
 API_PORT="$(docker port "${TRAEFIK}" 8080/tcp | awk -F: 'NR == 1 { print $NF }')"
@@ -275,8 +280,13 @@ POST="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
 jq -e '.result.server == "MCP-STUB"' <<<"${POST}" >/dev/null
 
 GET_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
-  -H 'Host: sysndd.dbmr.unibe.ch' -H 'Accept: text/event-stream' "${BASE}/mcp")"
+  -H 'Host: sysndd.dbmr.unibe.ch' \
+  -H 'Accept: application/json, Text/Event-Stream; q=1' "${BASE}/mcp")"
 [[ "${GET_STATUS}" == "405" ]]
+
+INVALID_ACCEPT="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
+  -H 'Accept: application/x-text/event-stream-foo' "${BASE}/mcp")"
+[[ "${INVALID_ACCEPT}" == "SYSNDD-APP" ]]
 
 BODY_STATUS="$(head -c 300000 /dev/zero | tr '\0' x | curl -sS -o /dev/null \
   -w '%{http_code}' -H 'Host: sysndd.dbmr.unibe.ch' \
@@ -292,7 +302,7 @@ for _ in $(seq 1 30); do
 done
 [[ "${RATE_LIMITED}" == "1" ]]
 
-echo "[mcp-edge] PASS: routers enabled; browser, POST, GET 405, body 413, and rate 429 verified"
+echo "[mcp-edge] PASS: routers enabled; browser, POST, Accept routing, GET 405, body 413, and rate 429 verified"
 ```
 
 - [ ] **Step 4: Add the smoke target**
@@ -319,7 +329,7 @@ Expected: the R contract fails on missing `mcp_edge`/labels, and the smoke exits
 
 In `docker-compose.yml`:
 
-1. Add these Traefik command arguments after `--entryPoints.web.address=:80`:
+1. Pin the Traefik image to `traefik:v3.7.3`, then add these command arguments after `--entryPoints.web.address=:80`:
 
 ```yaml
       - "--entryPoints.web.transport.respondingTimeouts.readTimeout=60s"
@@ -331,7 +341,7 @@ In `docker-compose.yml`:
 ```
 
 2. Add `mcp_edge` to the Traefik service networks.
-3. Replace the MCP service network comment/block and add these labels:
+3. Set `MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}`, replace the MCP service network comment/block, and add these labels:
 
 ```yaml
     networks:
@@ -348,7 +358,7 @@ In `docker-compose.yml`:
       - "traefik.http.routers.mcp-post.service=mcp"
       - "traefik.http.routers.mcp-post.middlewares=mcp-shared-rate,mcp-post-body,mcp-post-inflight,mcp-strip"
       - "traefik.http.routers.mcp-post.observability.accesslogs=true"
-      - "traefik.http.routers.mcp-get.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && HeaderRegexp(`Accept`, `text/event-stream`)"
+      - "traefik.http.routers.mcp-get.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`GET`) && HeaderRegexp(`Accept`, `(?i)(^|[[:space:],])text/event-stream([[:space:];,]|$)`)"
       - "traefik.http.routers.mcp-get.entrypoints=web"
       - "traefik.http.routers.mcp-get.priority=200"
       - "traefik.http.routers.mcp-get.service=mcp"

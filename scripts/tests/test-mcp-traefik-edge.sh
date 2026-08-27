@@ -31,6 +31,10 @@ mapfile -t MCP_LABELS < <(
 mapfile -t APP_LABELS < <(
   jq -r '.services.app.labels | to_entries[] | "\(.key)=\(.value)"' <<<"${MODEL}"
 )
+mapfile -t TRAEFIK_COMMAND < <(
+  jq -r '.services.traefik.command[]' <<<"${MODEL}"
+)
+TRAEFIK_IMAGE="$(jq -r '.services.traefik.image' <<<"${MODEL}")"
 
 if ((${#MCP_LABELS[@]} == 0)); then
   echo "[mcp-edge] resolved MCP service has no Traefik labels" >&2
@@ -99,13 +103,10 @@ docker run -d --name "${APP}" --network "${NETWORK}" \
 docker run -d --name "${TRAEFIK}" --network "${NETWORK}" \
   -p 127.0.0.1::80 -p 127.0.0.1::8080 \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  traefik:v3.7 \
-  --providers.docker=true \
-  --providers.docker.exposedbydefault=false \
+  "${TRAEFIK_IMAGE}" "${TRAEFIK_COMMAND[@]}" \
   --providers.docker.network="${NETWORK}" \
   --providers.docker.constraints="Label(\`sysndd.mcp-edge-smoke\`, \`${SUFFIX}\`)" \
-  --entrypoints.web.address=:80 \
-  --api=true --api.insecure=true --log.level=ERROR >/dev/null
+  --log.level=ERROR >/dev/null
 
 WEB_PORT="$(docker port "${TRAEFIK}" 80/tcp | awk -F: 'NR == 1 { print $NF }')"
 API_PORT="$(docker port "${TRAEFIK}" 8080/tcp | awk -F: 'NR == 1 { print $NF }')"
@@ -132,8 +133,13 @@ POST="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
 jq -e '.result.server == "MCP-STUB"' <<<"${POST}" >/dev/null
 
 GET_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
-  -H 'Host: sysndd.dbmr.unibe.ch' -H 'Accept: text/event-stream' "${BASE}/mcp")"
+  -H 'Host: sysndd.dbmr.unibe.ch' \
+  -H 'Accept: application/json, Text/Event-Stream; q=1' "${BASE}/mcp")"
 [[ "${GET_STATUS}" == "405" ]]
+
+INVALID_ACCEPT="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
+  -H 'Accept: application/x-text/event-stream-foo' "${BASE}/mcp")"
+[[ "${INVALID_ACCEPT}" == "SYSNDD-APP" ]]
 
 BODY_STATUS="$(head -c 300000 /dev/zero | tr '\0' x | curl -sS -o /dev/null \
   -w '%{http_code}' -H 'Host: sysndd.dbmr.unibe.ch' \
@@ -149,4 +155,4 @@ for _ in $(seq 1 30); do
 done
 [[ "${RATE_LIMITED}" == "1" ]]
 
-echo "[mcp-edge] PASS: routers enabled; browser, POST, GET 405, body 413, and rate 429 verified"
+echo "[mcp-edge] PASS: routers enabled; browser, POST, Accept routing, GET 405, body 413, and rate 429 verified"

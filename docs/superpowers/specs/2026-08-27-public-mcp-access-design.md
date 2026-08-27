@@ -48,8 +48,9 @@ tools are exposed.
 The Streamable HTTP Origin check is retained and tested, but it is not described
 as authentication or an abuse control. Its purpose is to reject untrusted
 browser-originated requests and DNS-rebinding attacks. Server-to-server MCP
-clients normally omit `Origin`; an absent Origin remains accepted, while an
-untrusted third-party Origin remains a 403.
+clients normally omit `Origin`; an absent Origin remains accepted. The canonical
+production Origin is accepted through the exact `MCP_ALLOWED_ORIGINS` allowlist,
+while empty, malformed, and untrusted third-party values fail closed with 403.
 
 The substantive controls are:
 
@@ -88,9 +89,11 @@ Two priority-200 routers take only protocol-shaped traffic from the priority-1
 app catch-all:
 
 - exact `POST /mcp` for JSON-RPC messages;
-- exact `GET /mcp` whose `Accept` header matches `text/event-stream`.
+- exact `GET /mcp` whose `Accept` header contains the case-insensitive
+  `text/event-stream` media-type token (not an arbitrary substring).
 
-Traefik v3.7 uses the singular `HeaderRegexp` matcher. Both routers explicitly
+Traefik is pinned to v3.7.3 because the query-parameter access-log privacy
+setting requires that patch level. It uses the singular `HeaderRegexp` matcher. Both routers explicitly
 bind to service `mcp`, and both strip `/mcp` before forwarding to the `mcptools`
 root endpoint. Ordinary browser GET requests remain on the Vue app.
 
@@ -159,7 +162,8 @@ not assert private reachability, so it does not change.
 ## Error behavior
 
 - No Origin or no authentication header: protocol handling proceeds.
-- Untrusted Origin: 403 from the pinned MCP transport.
+- Exact configured Origin: protocol handling proceeds.
+- Empty, malformed, or untrusted Origin: 403 from the patched MCP transport.
 - SSE-shaped GET: 405 from the current transport.
 - Oversized POST: 413 from Traefik.
 - Shared rate or POST concurrency exceeded: 429 from Traefik.
