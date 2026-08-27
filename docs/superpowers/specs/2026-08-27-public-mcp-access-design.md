@@ -2,175 +2,215 @@
 
 **Issue:** [#629](https://github.com/berntpopp/sysndd/issues/629)
 
-**Status:** Approved for implementation
+**Status:** Approved for implementation after adversarial review
 
 ## Problem
 
 Production intentionally serves the SysNDD MCP transport at
 `https://sysndd.dbmr.unibe.ch/mcp` without client credentials. The repository
-describes a different deployment: `docker-compose.yml` keeps the sidecar on the
-internal network, the deployment guide requires a protected operator overlay,
-and the public information page tells users to obtain a bearer token. The live
-service is usable, but the repository makes that behavior look accidental and
-does not encode an abuse-control policy for it.
+describes a different deployment: Compose keeps the sidecar internal, the
+deployment guide requires a protected operator overlay, the canonical agent
+policy forbids public unauthenticated MCP, and the public information page asks
+users for a bearer token that does not exist.
 
-The mismatch is the root cause. The read boundary itself is not changing: MCP
-continues to use the attested SELECT-only database principal and approved-public
-projection views.
+The mismatch is the root cause. The approved-public read boundary is not
+changing: MCP continues to use its attested SELECT-only database principal and
+public projection views.
 
 ## Requirements
 
-1. Enabling the opt-in Compose `mcp` profile exposes the MCP transport publicly
-   at `/mcp` without authentication.
-2. Normal browser navigation to `GET /mcp` continues to render the Vue
+1. Enabling the opt-in production Compose `mcp` profile exposes exact-path MCP
+   protocol traffic at `/mcp` without authentication.
+2. Ordinary browser `GET /mcp` navigation continues to render the Vue
    information page.
-3. Public protocol traffic is bounded before it reaches the single R process.
-4. Documentation and client setup instructions state that the production
-   endpoint is public and credential-free; they must not request a bearer token.
-5. The approved-public, read-only, no-external-call, and no-generation MCP
+3. Public protocol traffic is rate-, body-, concurrency-, and read-time bounded
+   before it reaches the single R process.
+4. Public reachability must not give the MCP container outbound internet access.
+5. Rejections generated at the edge must be observable without logging request
+   bodies, headers, or query parameters.
+6. Documentation, canonical agent policy, tests, and client setup instructions
+   state that the production endpoint is public and credential-free and do not
+   request a bearer token.
+7. The approved-public, read-only, no-external-call, and no-generation MCP
    invariants remain unchanged.
-6. Tests make the reachability and abuse-control posture explicit so a future
-   deployment change cannot silently recreate the mismatch.
+8. Fast structural tests and an isolated live-Traefik smoke make the routing and
+   abuse-control posture executable rather than comment-only.
 
 ## Standards Position
 
-MCP authorization is optional. The Streamable HTTP transport nevertheless
-recommends authentication and requires Origin validation. SysNDD deliberately
-does not authenticate this endpoint because it exposes the same approved public
-research data to every caller, has no user-specific authorization decisions,
-and offers no write-capable tools. Compensating controls are:
+MCP authorization is optional. SysNDD deliberately does not authenticate this
+endpoint because all callers receive the same approved public research data,
+there are no user-specific authorization decisions, and there are no
+write-capable tools. If private, user-specific, or write-capable tools are ever
+added, this decision must be revisited and MCP-compliant OAuth used before those
+tools are exposed.
 
-- the pinned `mcptools` transport's Origin validation;
-- an attested SELECT-only database principal limited to public projection views;
-- bounded, validated tool arguments and response budgets;
+The Streamable HTTP Origin check is retained and tested, but it is not described
+as authentication or an abuse control. Its purpose is to reject untrusted
+browser-originated requests and DNS-rebinding attacks. Server-to-server MCP
+clients normally omit `Origin`; an absent Origin remains accepted, while an
+untrusted third-party Origin remains a 403.
+
+The substantive controls are:
+
+- the attested SELECT-only principal limited to approved-public projection views;
+- bounded and validated tool arguments and response budgets;
 - no writes, raw SQL/R, external provider calls, or on-demand LLM generation;
-- edge request-rate, concurrency, and body-size limits.
-
-If private or user-specific tools are ever added, this decision must be revisited
-and MCP-compliant OAuth used rather than accepting arbitrary bearer tokens.
+- no egress-capable network attached to the MCP container;
+- shared edge request-rate, POST concurrency, request-body, and read-time limits.
 
 References:
 
 - [MCP authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
 - [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
 - [MCP security best practices](https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices)
+- [Traefik routing rules](https://doc.traefik.io/traefik/reference/routing-configuration/http/routing/rules-and-priority/)
 - [Traefik rate limiting](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/ratelimit/)
 - [Traefik in-flight request limiting](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/inflightreq/)
 - [Traefik request buffering](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/buffering/)
 
 ## Architecture
 
+### Network isolation
+
+Add a dedicated `sysndd_mcp_edge` bridge with `internal: true`. Traefik joins
+that network in addition to its existing public `proxy` network; MCP joins it in
+addition to the internal `backend` database network. The MCP service does not
+join `proxy`. Its per-service `traefik.docker.network` label selects
+`sysndd_mcp_edge`.
+
+This lets Traefik reach port 8787 without restoring internet egress to the MCP
+container or placing Traefik on the database network.
+
 ### Routing
 
-The existing opt-in `mcp` service joins both networks:
+Two priority-200 routers take only protocol-shaped traffic from the priority-1
+app catch-all:
 
-- `backend` for its SELECT-only MySQL connection;
-- `proxy` so Traefik can reach the HTTP transport.
+- exact `POST /mcp` for JSON-RPC messages;
+- exact `GET /mcp` whose `Accept` header matches `text/event-stream`.
 
-Two priority-200 Traefik routers take only protocol-shaped traffic from the
-priority-1 app catch-all:
+Traefik v3.7 uses the singular `HeaderRegexp` matcher. Both routers explicitly
+bind to service `mcp`, and both strip `/mcp` before forwarding to the `mcptools`
+root endpoint. Ordinary browser GET requests remain on the Vue app.
 
-- `POST /mcp` for JSON-RPC messages;
-- `GET /mcp` with an `Accept` header containing `text/event-stream` for
-  Streamable HTTP/SSE compatibility.
+The pinned `mcptools` transport currently returns 405 for GET, which is permitted
+when a Streamable HTTP server does not offer a standalone SSE listening stream.
+Routing an SSE-shaped GET to MCP therefore yields a protocol-appropriate 405
+instead of misleading SPA HTML. The UI and docs must not claim that standalone
+SSE is currently supported. The server is stateless and issues no session ID;
+DELETE-based session termination is therefore not offered. Direct browser CORS
+clients and `/mcp/` are outside the v1 contract.
 
-The middleware chain strips `/mcp` before forwarding to the `mcptools` root
-endpoint. A normal `GET /mcp` without the SSE accept header does not match the
-MCP router and therefore continues to render `McpInfoView.vue`.
+### Edge controls
 
-### Edge Controls
+The public route uses fixed source-controlled values so Traefik's zero-means-
+disabled defaults cannot silently remove a control:
 
-The public route uses fixed, source-controlled safe limits rather than
-environment variables that can accidentally resolve to Traefik's disabling
-zero value:
+- **Shared rate:** 120 requests per minute per request Host, burst 20. The router
+  matches one production Host, making this a deliberately shared global bucket.
+  This remains correct behind the current institutional TLS proxy and resists
+  distributed source-address rotation without trusting client-supplied XFF.
+- **POST concurrency:** four fully received JSON-RPC requests in flight per
+  request Host. The criterion is explicit. The GET router does not share this
+  small work cap because a future long-lived stream must not starve POST work.
+- **Body size:** 262,144 bytes (256 KiB) for POST. Oversized bodies receive 413
+  before R parses them.
+- **Read time:** the `web` entrypoint's 60-second whole-request read timeout is
+  made explicit. Slow or incomplete uploads cannot hold Traefik indefinitely.
 
-- **Rate:** 120 requests per minute per remote address, burst 20. IPv6 callers
-  are grouped by `/64` so rotating addresses inside one allocation cannot create
-  unlimited buckets.
-- **Concurrency:** four in-flight MCP requests globally. This bounds queued work
-  in front of the single R process and its two-connection DB pool.
-- **Body size:** 262,144 bytes (256 KiB). Oversized JSON-RPC bodies receive 413
-  from Traefik without being parsed by R.
+The POST middleware order is `shared rate -> body limit -> in-flight -> strip`.
+Rate rejection is cheapest; buffering reads and caps the body within the edge
+timeout; only a complete admitted request occupies an R-work slot. The GET chain
+is `shared rate -> strip`.
 
-Middleware order is `in-flight -> rate -> body limit -> strip prefix`: slow
-uploads consume an in-flight slot, excessive frequency is rejected before body
-buffering, and only admitted requests reach the sidecar.
+The local token bucket is sufficient for the shipped single-Traefik topology.
+Operators who scale Traefik horizontally must use the distributed Redis-backed
+limiter or document that each instance has an independent bucket.
 
-Traefik's local token bucket is sufficient because the shipped deployment has
-one Traefik instance. Operators who scale Traefik horizontally must replace it
-with the distributed Redis-backed limiter or accept a per-instance effective
-limit. Operators placing a trusted reverse proxy in front of Traefik must
-configure forwarded-header trust and rate-limit IP selection together; otherwise
-the proxy address becomes the shared bucket, which fails toward throttling rather
-than bypassing the limit.
+### Edge observability
 
-### User-Facing Contract
+Enable Traefik JSON access logging globally but disable it by default on the
+shared `web` entrypoint. Opt only the two MCP routers back in. Headers remain
+dropped, query parameters are dropped explicitly, and bodies are never logged.
+Existing Docker log rotation bounds storage. This records route, status, peer,
+and duration for successful MCP traffic and edge-generated 403/405/413/429
+responses without widening logs for the rest of the application.
 
-`McpInfoView.vue` will state:
+### User-facing and repository contract
 
-- the displayed URL is both the human information route for browser navigation
-  and the public protocol URL used by MCP clients;
-- the protocol endpoint needs no SysNDD account, API key, or bearer token;
-- clients should select "No authentication" when they request an auth method;
-- calls may receive HTTP 429 and should retry with backoff;
-- callers should cache stable results and prefer compact, focused requests.
+`McpInfoView.vue` will state that the displayed URL is both the browser
+information route and the credential-free protocol URL. Product guidance remains
+conservative: leave authentication unset, or select the client's unauthenticated
+option if it requires a choice. It will explain shared capacity, HTTP 429,
+backoff, compact calls, and caching stable results.
 
-Claude Code, Claude Desktop, Cursor, and generic browser-chatbot instructions
-retain their credential-free URL/configuration examples. Product-specific UI
-wording stays conservative where current official documentation does not prove
-an exact label.
+Update all persistent sources of the old policy:
 
-`documentation/03-api.qmd` describes the public runtime contract and its safety
-boundary. `documentation/09-deployment.qmd` treats the public route as built-in,
-documents the fixed limits and reverse-proxy/scaling caveats, and removes the
-obsolete protected-overlay example. Compose comments use the same terminology.
+- `AGENTS.md`;
+- base and development Compose comments;
+- API and deployment chapters;
+- the Vue page, Vitest, and Playwright spec;
+- the Unreleased changelog.
 
-## Error Behavior
+The subsystem skill already defines only the read/data-safety contract and does
+not assert private reachability, so it does not change.
 
-- Invalid Origin: 403 from the pinned MCP transport.
-- Oversized request: 413 from Traefik.
-- Rate or concurrency limit exceeded: 429 from Traefik.
-- Tool validation and availability errors: the existing MCP JSON error envelope.
+## Error behavior
+
+- No Origin or no authentication header: protocol handling proceeds.
+- Untrusted Origin: 403 from the pinned MCP transport.
+- SSE-shaped GET: 405 from the current transport.
+- Oversized POST: 413 from Traefik.
+- Shared rate or POST concurrency exceeded: 429 from Traefik.
+- Tool validation/availability errors: the existing MCP JSON error envelope.
 - Sidecar unavailable: the existing proxy/service failure response.
-
-Authentication errors are not part of the public v1 contract because no
-credential is requested or interpreted.
 
 ## Testing
 
 Implementation follows test-driven development:
 
-1. Extend `McpInfoView.spec.ts` first so it fails while protected/token wording
-   remains and passes only when credential-free public access and fair-use
-   guidance are visible.
-2. Add a focused R contract test first for the Compose routers, network
-   attachment, absence of auth middleware, rate limit, IPv6 grouping, global
-   in-flight cap, body cap, middleware order, and documentation alignment.
-3. Run each test in its red state before changing production/configuration files.
-4. Verify the final Compose model with `docker compose --profile mcp config`.
-5. Run targeted Vitest and testthat files, frontend lint/type-check, API lint,
-   `make code-quality-audit`, and the appropriate pre-commit gate.
+1. Parse Compose as YAML and compare exact label keys/values, service bindings,
+   network membership, network isolation, middleware chains, and observability.
+2. Run that test red before changing Compose.
+3. Add an isolated Docker smoke that reads the resolved labels from the base
+   Compose model, attaches them to disposable app/MCP stubs behind Traefik 3.7,
+   and proves router status plus browser HTML, POST forwarding, GET 405, 413, and
+   429 behavior. It never contacts production.
+4. Normalize rendered whitespace in Vitest and assert positive public/no-auth
+   guidance plus comprehensive negative token/protected wording.
+5. Scope documentation assertions to each MCP section and the Unreleased
+   changelog rather than concatenating entire files.
+6. Update the focused Playwright information-page assertion; the protocol test
+   remains environment-gated because the standard Playwright stack does not run
+   the MCP profile.
+7. Run Compose resolution, isolated edge smoke, targeted Vitest/testthat,
+   frontend lint/type-check, API lint, code-quality audit, and pre-commit.
 
-The live deployment check is limited to one credential-free initialization and
-one invalid-Origin initialization; abuse-control verification belongs in an
-isolated local stack rather than load-testing production.
+The already-performed production probe is limited to one credential-free
+initialize (200) and one invalid-Origin initialize (403). Do not rate-limit or
+body-limit test production.
 
-## Non-Goals
+## Non-goals
 
-- Adding OAuth, API keys, accounts, quotas, billing, or user identity.
-- Changing MCP schemas, tools, resources, prompts, repository queries, or data
-  classes.
-- Adding Redis solely for this single-Traefik deployment.
-- Weakening the SELECT-only/public-projection attestation.
-- Load-testing the production endpoint.
+- Adding OAuth, API keys, accounts, per-user quotas, billing, or identity.
+- Trusting arbitrary `X-Forwarded-For` or discovering institutional proxy CIDRs.
+- Changing MCP schemas, tools, resources, prompts, queries, or data classes.
+- Adding Redis solely for the shipped single-Traefik deployment.
+- Adding standalone SSE, sessions, browser CORS, or `/mcp/` compatibility.
+- Load-testing production.
 
-## Deployment and Rollback
+## Deployment and rollback
 
-After deployment, verify browser `GET /mcp`, credential-free MCP initialize and
-`tools/list`, invalid-Origin rejection, and an isolated-stack 413/429 response.
-Monitor Traefik 429/413 volume and MCP latency; adjust limits only through a
-reviewed Compose change.
+After deployment, verify browser `GET /mcp`, credential-free initialize and
+`tools/list`, absent-Origin success, invalid-Origin rejection, and MCP-only
+access-log entries. The isolated smoke—not production—proves 405/413/429.
 
-Rollback removes the MCP Traefik labels and `proxy` attachment, returning the
-sidecar to internal-only reachability. The read-only database boundary and MCP
-schema are unaffected in either state.
+Monitor MCP router access logs for 4xx volume and request duration. Any limit
+change is a reviewed Compose change. Horizontal Traefik scaling requires an
+explicit limiter review.
+
+Rollback must revert the Compose route/network/observability configuration and
+the public-access UI/docs/policy in the same release. Removing only the labels
+would recreate issue #629 in the opposite direction. The read-only database
+boundary and MCP schema are unchanged in either state.
