@@ -211,7 +211,11 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
   expect_true("--accesslog.format=json" %in% command)
   expect_true("--accesslog.fields.headers.defaultmode=drop" %in% command)
   expect_true("--accesslog.fields.queryparameters.defaultmode=drop" %in% command)
+  expect_true("--accesslog.fields.names.ClientAddr=drop" %in% command)
+  expect_true("--accesslog.fields.names.ClientHost=drop" %in% command)
   expect_true("--entryPoints.web.observability.accessLogs=false" %in% command)
+  expect_true("--entryPoints.traefik.address=:8080" %in% command)
+  expect_true("--entryPoints.traefik.observability.accessLogs=false" %in% command)
 })
 
 test_that("MCP operator and contributor documentation matches the public edge contract", {
@@ -251,13 +255,22 @@ test_that("MCP operator and contributor documentation matches the public edge co
   expect_match(deployment, "no outbound internet egress", fixed = TRUE)
   expect_match(deployment, "invalid non-empty `Origin`", fixed = TRUE)
   expect_match(deployment, "does not replace authentication", fixed = TRUE)
-  expect_match(deployment, "bodies, headers, and query parameters are not logged", fixed = TRUE)
+  expect_match(
+    deployment,
+    "Bodies, headers, query parameters, `ClientAddr`, and `ClientHost` are dropped",
+    fixed = TRUE
+  )
 
   override <- paste(readLines(
     file.path(.mcp_compose_repo_root, "docker-compose.override.yml"),
     warn = FALSE
   ), collapse = "\n")
   expect_match(override, "Production MCP uses the public\\s+credential-free Traefik route")
+  expect_match(
+    override,
+    "MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,https://sysndd.dbmr.unibe.ch}",
+    fixed = TRUE
+  )
   expect_false(grepl("Production compose does not expose", override, fixed = TRUE))
 
   changelog <- .mcp_markdown_section(

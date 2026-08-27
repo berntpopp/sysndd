@@ -129,7 +129,9 @@ HTML="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' -H 'Accept: text/html' "${BASE
 [[ "${HTML}" == "SYSNDD-APP" ]]
 
 POST="$(curl -fsS -H 'Host: sysndd.dbmr.unibe.ch' \
-  -H 'Content-Type: application/json' -X POST --data '{}' "${BASE}/mcp")"
+  -H 'Content-Type: application/json' -H 'X-Mcp-Secret: edge-header-secret-629' \
+  -X POST --data '{"probe":"edge-body-secret-629"}' \
+  "${BASE}/mcp?edge_query_secret_629=hidden")"
 jq -e '.result.server == "MCP-STUB"' <<<"${POST}" >/dev/null
 
 GET_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
@@ -147,12 +149,37 @@ BODY_STATUS="$(head -c 300000 /dev/zero | tr '\0' x | curl -sS -o /dev/null \
 [[ "${BODY_STATUS}" == "413" ]]
 
 RATE_LIMITED=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 80); do
   status="$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Host: sysndd.dbmr.unibe.ch' -H 'Content-Type: application/json' \
     -X POST --data '{}' "${BASE}/mcp")"
-  [[ "${status}" == "429" ]] && RATE_LIMITED=1
+  if [[ "${status}" == "429" ]]; then
+    RATE_LIMITED=1
+    break
+  fi
 done
 [[ "${RATE_LIMITED}" == "1" ]]
 
-echo "[mcp-edge] PASS: routers enabled; browser, POST, Accept routing, GET 405, body 413, and rate 429 verified"
+ACCESS_LOGS=""
+for _ in $(seq 1 20); do
+  ACCESS_LOGS="$(docker logs "${TRAEFIK}" 2>&1)"
+  grep -q '"RouterName":"mcp-post@docker"' <<<"${ACCESS_LOGS}" && break
+  sleep 0.1
+done
+grep -q '"RouterName":"mcp-post@docker"' <<<"${ACCESS_LOGS}"
+if grep -q '"RouterName":"app@docker"' <<<"${ACCESS_LOGS}"; then
+  echo "[mcp-edge] app router must not be access-logged" >&2
+  exit 1
+fi
+for private_value in edge-header-secret-629 edge-body-secret-629 edge_query_secret_629; do
+  if grep -q "${private_value}" <<<"${ACCESS_LOGS}"; then
+    echo "[mcp-edge] private request content leaked into access logs" >&2
+    exit 1
+  fi
+done
+if grep -Eq '"Client(Addr|Host)"' <<<"${ACCESS_LOGS}"; then
+  echo "[mcp-edge] client address fields must not be access-logged" >&2
+  exit 1
+fi
+
+echo "[mcp-edge] PASS: routing, 405/413/429 controls, and privacy-bounded MCP-only logs verified"

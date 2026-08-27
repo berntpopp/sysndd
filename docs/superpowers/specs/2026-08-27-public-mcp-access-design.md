@@ -51,6 +51,8 @@ browser-originated requests and DNS-rebinding attacks. Server-to-server MCP
 clients normally omit `Origin`; an absent Origin remains accepted. The canonical
 production Origin is accepted through the exact `MCP_ALLOWED_ORIGINS` allowlist,
 while empty, malformed, and untrusted third-party values fail closed with 403.
+The development override adds the exact Vite localhost origins without weakening
+the production default.
 
 The substantive controls are:
 
@@ -210,7 +212,9 @@ After deployment, verify browser `GET /mcp`, credential-free initialize and
 `tools/list`, absent-Origin success, invalid-Origin rejection, and MCP-only
 access-log entries. The isolated smoke—not production—proves 405/413/429.
 
-Monitor MCP router access logs for 4xx volume and request duration. Any limit
+Monitor privacy-bounded MCP router access logs for 4xx volume and request duration;
+request content and client address fields are dropped, and app/internal entrypoints
+are opted out. Any limit
 change is a reviewed Compose change. Horizontal Traefik scaling requires an
 explicit limiter review.
 

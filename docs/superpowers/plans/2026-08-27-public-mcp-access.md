@@ -18,7 +18,7 @@
 - The shared limiter is exactly 120 requests/minute per request Host with burst 20.
 - POST is capped at four in-flight requests per request Host and 256 KiB bodies.
 - The `web` entrypoint whole-request read timeout is explicitly 60 seconds.
-- MCP access logs must omit bodies, headers, and query parameters; other application routers remain opted out.
+- MCP access logs must omit bodies, headers, query parameters, `ClientAddr`, and `ClientHost`; application and Traefik-internal routers remain opted out.
 - Standalone SSE, sessions, direct-browser CORS, `/mcp/`, OAuth, and per-user identity are non-goals.
 - `MCP_ALLOWED_ORIGINS` exactly allows the canonical production Origin; absent Origin remains accepted, while empty, malformed, and untrusted values fail closed.
 - Do not load-test production.
@@ -294,15 +294,20 @@ BODY_STATUS="$(head -c 300000 /dev/zero | tr '\0' x | curl -sS -o /dev/null \
 [[ "${BODY_STATUS}" == "413" ]]
 
 RATE_LIMITED=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 80); do
   status="$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Host: sysndd.dbmr.unibe.ch' -H 'Content-Type: application/json' \
     -X POST --data '{}' "${BASE}/mcp")"
-  [[ "${status}" == "429" ]] && RATE_LIMITED=1
+  if [[ "${status}" == "429" ]]; then
+    RATE_LIMITED=1
+    break
+  fi
 done
 [[ "${RATE_LIMITED}" == "1" ]]
 
-echo "[mcp-edge] PASS: routers enabled; browser, POST, Accept routing, GET 405, body 413, and rate 429 verified"
+# Poll `docker logs` for `mcp-post@docker`, prove `app@docker` is absent,
+# and prove header/body/query sentinels plus ClientAddr/ClientHost are absent.
+echo "[mcp-edge] PASS: routing, 405/413/429 controls, and privacy-bounded MCP-only logs verified"
 ```
 
 - [ ] **Step 4: Add the smoke target**
@@ -337,11 +342,15 @@ In `docker-compose.yml`:
       - "--accesslog.format=json"
       - "--accesslog.fields.headers.defaultmode=drop"
       - "--accesslog.fields.queryparameters.defaultmode=drop"
+      - "--accesslog.fields.names.ClientAddr=drop"
+      - "--accesslog.fields.names.ClientHost=drop"
       - "--entryPoints.web.observability.accessLogs=false"
+      - "--entryPoints.traefik.address=:8080"
+      - "--entryPoints.traefik.observability.accessLogs=false"
 ```
 
 2. Add `mcp_edge` to the Traefik service networks.
-3. Set `MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}`, replace the MCP service network comment/block, and add these labels:
+3. Set production `MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}` and let the development override add exact localhost origins, replace the MCP service network comment/block, and add these labels:
 
 ```yaml
     networks:
@@ -631,7 +640,8 @@ test_that("public MCP policy and documentation match the Compose edge", {
   expect_match(api_section, "HTTP 429", fixed = TRUE)
   expect_match(deployment_section, "sysndd_mcp_edge", fixed = TRUE)
   expect_match(deployment_section, "60-second", fixed = TRUE)
-  expect_match(deployment_section, "MCP-only access logs", fixed = TRUE)
+  expect_match(deployment_section, "ClientAddr", fixed = TRUE)
+  expect_match(deployment_section, "ClientHost", fixed = TRUE)
   expect_match(agents_section, "MCP-compliant OAuth", fixed = TRUE)
   expect_match(override, "dedicated internal edge network", fixed = TRUE)
   expect_match(changelog, "#629", fixed = TRUE)
@@ -692,7 +702,7 @@ Traefik and MCP share only the internal `sysndd_mcp_edge` network; MCP separatel
 
 The source-controlled edge policy is shared across all callers to the one production Host: 120 requests per minute with burst 20; four fully received POST requests in flight; 256 KiB maximum POST body; and a 60-second whole-request read timeout. POST middleware order is shared rate, body limit, in-flight work cap, then path stripping. Rate or concurrency rejection returns HTTP 429; callers should back off and cache stable results. The shared Host bucket is deliberate: it remains trustworthy behind the institutional TLS proxy without accepting spoofable forwarding headers and also bounds distributed-source abuse. A horizontally scaled Traefik deployment needs the distributed Redis limiter or an explicit per-instance-limit decision.
 
-Traefik enables JSON access logging only for the two MCP routers: the shared web entrypoint opts out by default, headers stay dropped, query parameters are dropped, and request bodies are never logged. Existing Docker log rotation bounds retention. Use those MCP-only access logs for response status, request duration, and 403/405/413/429 volume.
+Traefik enables JSON access logging only for the two MCP routers: the shared web and internal API/ping entrypoints opt out, while headers, query parameters, request bodies, `ClientAddr`, and `ClientHost` are dropped. Existing Docker log rotation bounds retention. Use those privacy-bounded MCP-only logs for response status, request duration, and 403/405/413/429 volume. The live smoke proves the router scope and sentinel omission against the resolved production command.
 
 No-auth public access is valid only while every tool exposes approved-public research data, remains read-only, and makes no user-specific authorization decision. Origin validation is retained for browser-origin/DNS-rebinding protection, not as authentication: server clients without Origin are accepted and untrusted Origins are rejected. Private, user-specific, or write-capable tools require MCP-compliant OAuth before exposure.
 ```
@@ -791,7 +801,7 @@ Inspect `git diff master...HEAD` and confirm:
 - MCP joins only backend and mcp_edge; both are internal, so sidecar egress remains absent.
 - The shared limiter explicitly keys on request Host; no XFF trust was introduced.
 - Only complete POST requests occupy the four-request R-work cap.
-- Bodies, headers, and query parameters are absent from MCP access logs.
+- Bodies, headers, query parameters, `ClientAddr`, and `ClientHost` are absent from MCP access logs; app/internal router requests are not access-logged.
 - AGENTS, Compose comments, UI, API docs, deployment docs, tests, and changelog agree.
 - Existing SELECT-only principal and approved-public projection tests remain green.
 ```

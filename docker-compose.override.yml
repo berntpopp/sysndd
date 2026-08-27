@@ -87,6 +87,7 @@ services:
     environment:
       ENVIRONMENT: development
       MCP_DB_POOL_SIZE: ${MCP_DB_POOL_SIZE:-2}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,https://sysndd.dbmr.unibe.ch}
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:

@@ -16,6 +16,8 @@ services:
       - "--api=true"
       - "--api.insecure=true"
       - "--api.dashboard=false"
+      - "--entryPoints.traefik.address=:8080"
+      - "--entryPoints.traefik.observability.accessLogs=false"
       # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -29,6 +31,8 @@ services:
       - "--accesslog.format=json"
       - "--accesslog.fields.headers.defaultmode=drop"
       - "--accesslog.fields.queryparameters.defaultmode=drop"
+      - "--accesslog.fields.names.ClientAddr=drop"
+      - "--accesslog.fields.names.ClientHost=drop"
       - "--entryPoints.web.observability.accessLogs=false"
       # RFC 3986 encoded characters - allow all (backend handles decoding)
       # See: https://doc.traefik.io/traefik/v3.6/security/request-path/
