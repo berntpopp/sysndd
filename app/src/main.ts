@@ -22,6 +22,9 @@ import './assets/scss/custom.scss';
 // import axios (side-effects: sets defaults + 401 interceptor)
 import axios from './plugins/axios';
 
+// Bootstrap-Vue-Next global component defaults (see module for rationale)
+import { bootstrapVueNextOptions } from './plugins/bootstrapVueNext';
+
 // Import all Bootstrap-Vue-Next components for global registration
 import * as BvnComponents from './bootstrap-vue-next-components';
 
@@ -48,7 +51,7 @@ app.config.globalProperties.$http = axios;
 app.provide('axios', axios);
 
 // Register Bootstrap-Vue-Next plugin (Vue 3 native)
-app.use(createBootstrap());
+app.use(createBootstrap(bootstrapVueNextOptions));
 
 // Register Bootstrap-Vue-Next directives globally
 app.directive('b-tooltip', vBTooltip);

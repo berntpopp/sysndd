@@ -226,10 +226,16 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
 })
 
 test_that("MCP operator and contributor documentation matches the public edge contract", {
+  # The sidecar contract lived in AGENTS.md until #647 turned that file into a
+  # lean index; it now lives in the skill that owns the subsystem. The guard
+  # follows the content rather than the old location.
   agents <- .mcp_markdown_section(
-    file.path(.mcp_compose_repo_root, "AGENTS.md"),
-    "### Read-only MCP sidecar",
-    "^### "
+    file.path(
+      .mcp_compose_repo_root,
+      ".agents", "skills", "sysndd-mcp-readonly", "references", "sidecar-contract.md"
+    ),
+    "# Read-only MCP sidecar contract",
+    "^# "
   )
   api_docs <- .mcp_markdown_section(
     file.path(.mcp_compose_repo_root, "documentation", "03-api.qmd"),
