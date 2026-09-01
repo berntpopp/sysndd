@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.34.3] - 2026-09-01
+
+### Fixed
+
+- **`get_db_connection()` no longer floods production logs.** The function runs on every
+  repository call and opened with an unconditional `message("[get_db_connection] ENTRY")`.
+  In production that one line WAS the log: 2,000 of the worker's last 2,000 lines and 1,993
+  of the api's last 2,000 (sampled 2026-09-01). With bounded `json-file` logging (10m x 3),
+  real diagnostics rotated out within minutes. All five `message()` calls in the function
+  now go through {logger} (`log_trace` on the per-call hot path, `log_debug` for reconnect
+  paths, `log_warn` for validation failure), so the lines remain available behind the logger
+  threshold without destroying the logs' diagnostic value. Guarded by a test asserting the
+  hot path emits no unconditional message. (#650)
+
 ### Changed
 
 - **`AGENTS.md` is now a lean index rather than a subsystem encyclopedia.** It had grown to
