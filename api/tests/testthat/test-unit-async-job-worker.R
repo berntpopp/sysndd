@@ -760,3 +760,95 @@ test_that("legacy durable handlers inject the current durable job id into reused
   expect_equal(llm_result$worker_job, "job-llm")
   expect_equal(llm_params$.__job_id__, "job-llm")
 })
+
+test_that("a transient handler error is failed WITH a retry time (dependency ordering)", {
+  # Production 2026-09-01 22:03 UTC: phenotype_functional_correlations failed
+  # with "Dependency snapshot functional_clusters is not available" because the
+  # #447 stagger delays its HEAVY dependencies while the light dependent runs
+  # immediately -- and this generic error path set no next_attempt_at, so the
+  # failure was terminal despite max_attempts = 3. A handler error carrying the
+  # async_job_transient_error class must schedule a retry instead.
+  runtime <- load_async_job_worker_runtime()
+  captured <- new.env()
+
+  runtime$async_job_repository_append_event <- function(...) 1L
+  runtime$async_job_repository_heartbeat <- function(...) 1L
+  runtime$async_job_repository_complete <- function(...) {
+    stop("completion path should not be used in this test")
+  }
+  runtime$async_job_repository_fail <- function(job_id, error_code, error_message,
+                                                claim_token, next_attempt_at = NULL,
+                                                conn = NULL) {
+    captured$error_code <- error_code
+    captured$next_attempt_at <- next_attempt_at
+    1L
+  }
+
+  registry <- list(
+    hgnc_update = list(
+      cancel_mode = "non_interruptible",
+      run = function(job, payload, state, worker_config) {
+        stop(structure(
+          class = c("analysis_snapshot_dependency_unavailable",
+                    "async_job_transient_error", "error", "condition"),
+          list(message = "Dependency snapshot functional_clusters is not available",
+               call = NULL)
+        ))
+      },
+      after_success = function(result, job, payload, state, worker_config) result
+    )
+  )
+
+  runtime$async_job_worker_run_claimed_job(
+    claimed_job = tibble(
+      job_id = "job-transient", job_type = "hgnc_update",
+      request_payload_json = "{}", claim_token = "claim-t"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "w", lease_seconds = 60L,
+                         job_run_lease_seconds = 300L),
+    registry = registry
+  )
+
+  expect_equal(captured$error_code, "TRANSIENT_DEPENDENCY")
+  expect_false(is.null(captured$next_attempt_at))
+  expect_s3_class(captured$next_attempt_at, "POSIXct")
+})
+
+test_that("a plain handler error stays terminal (no retry time)", {
+  runtime <- load_async_job_worker_runtime()
+  captured <- new.env()
+
+  runtime$async_job_repository_append_event <- function(...) 1L
+  runtime$async_job_repository_heartbeat <- function(...) 1L
+  runtime$async_job_repository_complete <- function(...) 1L
+  runtime$async_job_repository_fail <- function(job_id, error_code, error_message,
+                                                claim_token, next_attempt_at = NULL,
+                                                conn = NULL) {
+    captured$error_code <- error_code
+    captured$next_attempt_at <- next_attempt_at
+    1L
+  }
+
+  registry <- list(
+    hgnc_update = list(
+      cancel_mode = "non_interruptible",
+      run = function(job, payload, state, worker_config) stop("plain failure"),
+      after_success = function(result, job, payload, state, worker_config) result
+    )
+  )
+
+  runtime$async_job_worker_run_claimed_job(
+    claimed_job = tibble(
+      job_id = "job-plain", job_type = "hgnc_update",
+      request_payload_json = "{}", claim_token = "claim-p"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "w", lease_seconds = 60L,
+                         job_run_lease_seconds = 300L),
+    registry = registry
+  )
+
+  expect_equal(captured$error_code, "EXECUTION_ERROR")
+  expect_true(is.null(captured$next_attempt_at))
+})
