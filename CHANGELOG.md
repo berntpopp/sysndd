@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.34.4] - 2026-09-02
+
+### Fixed
+
+- **Analysis-snapshot bootstrap no longer races its own dependencies.** The #447
+  startup stagger delays HEAVY presets (`functional_clusters`,
+  `phenotype_clusters`) 120s -- but `phenotype_functional_correlations` is light,
+  became claim-eligible immediately, and DEPENDS on those two. After any data
+  change the dependent ran first, found its dependency snapshots
+  `source_version_mismatch`, and failed; and because the worker's generic error
+  path set no `next_attempt_at`, the failure was terminal despite
+  `max_attempts = 3` (observed in production 2026-09-01 22:03 UTC; the
+  GeneNetworks and correlation pages sat on "being prepared" until serve-time
+  self-heal happened to resubmit). Three coordinated changes: presets declare
+  `depends_on` and the staggered bootstrap schedules a dependent after its
+  slowest dependency; a missing dependency raises a typed
+  `async_job_transient_error`; and the worker fails transient errors WITH a
+  retry time (`TRANSIENT_DEPENDENCY`, env-tunable
+  `ASYNC_JOB_TRANSIENT_RETRY_SECONDS`, default 90s), finally wiring handler
+  errors into the existing attempt machinery. (#652)
+
 ## [0.34.3] - 2026-09-01
 
 ### Fixed
