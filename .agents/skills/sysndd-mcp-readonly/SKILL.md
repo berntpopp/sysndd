@@ -49,3 +49,9 @@ The sidecar binds the same memoised wrapper names as the API and mounts `api_cac
 | Present NDDScore as the evidence verdict | NDDScore is `ml_prediction`, not an evidence tier |
 | Return raw R error on bad input | Clients expect the recoverable JSON error envelope |
 | Add a tool without bumping `MCP_SCHEMA_VERSION` / updating capabilities | Breaks the discovery + compatibility contract |
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/sidecar-contract.md` — transport, protocol-version policy, client ergonomics, data-class labels, v1 exclusions.

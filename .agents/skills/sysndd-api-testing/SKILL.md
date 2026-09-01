@@ -80,3 +80,10 @@ Behavior changes must not break the guard tests that encode invariants: `test-un
 ## Output
 
 Report which lane you ran and paste the real summary line. Never claim green on a run that only SKIPped.
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/ci-schema-and-traps.md` — CI test schema, the traps that woke up with it, destructive-teardown and nested-transaction rules.
+- `references/e2e-playwright-stack.md` — Playwright stack, baseline fixture, known-good local baseline.

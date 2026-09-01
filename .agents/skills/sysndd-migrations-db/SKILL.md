@@ -34,3 +34,9 @@ The core read views (`ndd_entity_view`, `users_view`, `search_non_alt_loci_view`
 ## Verify
 
 Confirm the API starts cleanly (migration runner logs each applied migration), run `make lint-api` (prefix check), and consult `db/migrations/README.md`.
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/schema-and-views.md` — core read views, `MODIFY COLUMN` charset preservation, the `TRUNCATE`-is-DDL metadata-refresh rule.

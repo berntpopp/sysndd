@@ -39,3 +39,10 @@ Batch jobs with their own pacing (e.g. `publication_date_backfill`) intentionall
 ## Verify
 
 `test-unit-external-budget-guard.R`, `test-unit-external-proxy-budgets.R`, `test-unit-external-slow-provider.R`, `test-unit-cheap-route-isolation.R`, and the router-level `test-integration-slow-provider-isolation.R`.
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/api-lanes.md` — the core vs `api-enrichment` synchronous bulkhead (#344).
+- `references/budgets-and-pubmed.md` — `memoise_external_success_only()`, per-request ceiling, NCBI E-utilities ingestion and the `NCBI_API_KEY` requirement.
