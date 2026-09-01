@@ -598,3 +598,21 @@ describe("db_execute_statement NA parameter handling", {
     )
   })
 })
+
+# ============================================================================
+# get_db_connection() logging (admin: production log flooding)
+# ============================================================================
+
+describe("get_db_connection logging", {
+
+  it("does not emit an unconditional message on the hot path", {
+    # In production this function runs on EVERY repository call. An
+    # unconditional message() made it 100% of the worker log and 99.7% of the
+    # api log (last-2000-line samples, 2026-09-01), rotating real diagnostics
+    # out of the bounded json-file logs within minutes. Trace-level logging
+    # belongs behind the logger threshold, not on stderr unconditionally.
+    msgs <- capture_messages(try(get_db_connection(), silent = TRUE))
+
+    expect_false(any(grepl("get_db_connection] ENTRY", msgs, fixed = TRUE)))
+  })
+})
