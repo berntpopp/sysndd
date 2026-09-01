@@ -515,15 +515,9 @@ async_job_worker_run_claimed_job <- function(
       invisible(TRUE)
     },
     error = function(error) {
-      # A handler error carrying async_job_transient_error is a scheduling
-      # condition (e.g. an analysis-snapshot dependency whose own refresh has
-      # not completed yet -- see analysis-snapshot-dependencies.R), not a build
-      # defect. Fail the attempt WITH a retry time so the claim query
-      # (status = 'failed' AND attempt_count < max_attempts AND
-      # next_attempt_at IS NOT NULL) picks it up again; without
-      # next_attempt_at a "failed" job is terminal regardless of max_attempts,
-      # which is what left phenotype_functional_correlations dead after the
-      # 2026-09-01 bootstrap raced its staggered dependencies.
+      # async_job_transient_error = scheduling condition (snapshot dependency
+      # not built yet): fail WITH a retry time, since the claim query only
+      # retries failed jobs whose next_attempt_at IS NOT NULL (PR #652).
       transient <- inherits(error, "async_job_transient_error")
       .async_job_worker_fail_safe(
         fail_fn = fail_fn,
