@@ -62,3 +62,9 @@ Run the guard tests for the touched areas, then `make lint-api` and the appropri
 `test-unit-security.R`, `test-unit-filter-column-allowlist.R`, `test-unit-endpoint-error-handler.R`, `test-endpoint-auth.R` / `test-integration-auth.R`, `test-unit-*-endpoint-guard.R`, `test-unit-external-budget-guard.R`, `test-unit-cheap-route-isolation.R`.
 
 Lead with findings ordered by severity, each with `file:line` and the in-repo fix. If nothing is found, say so and list the checks run plus residual risk.
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/auth-and-public-surface.md` — body-only credentials, filter/sort column allowlist, public throttling, token refresh + `session_epoch`, draft-route role gates, Gemini model allowlist.

@@ -39,3 +39,9 @@ Submit a job; confirm the worker logs claim it on the expected lane and it compl
 | Function-not-found at run time | New file not added to `bootstrap/load_modules.R` |
 | Heavy job blocks interactive work | Type missing from `ASYNC_MAINTENANCE_JOB_TYPES` (stuck on `default`) |
 | External calls 503 mid-batch | Per-call budget not reset in a batch job |
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/background-jobs.md` — durable-job credential resolution, lanes/priorities, external-budget resets, PubTatorNDD nightly, GeneNetworks layouts, snapshot bootstrap.

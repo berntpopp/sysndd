@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`AGENTS.md` is now a lean index rather than a subsystem encyclopedia.** It had grown to
+  167,804 characters — past the 150,000-character ceiling agent harnesses load it under, so it
+  was at risk of being truncated or dropped entirely, taking every invariant in it along.
+  It is now 12,267 characters (-92.7%) carrying only what is genuinely repository-wide: the
+  skill index, code organization/quality rules, the verify-before-handoff commands, five
+  cross-cutting architecture invariants, and one-line rules that each point at their skill.
+  No guidance was deleted. The ~155,000 characters of subsystem detail were relocated
+  **verbatim** into 21 `references/` files under the skills that already own those areas
+  (`.agents/skills/<name>/references/`), and each `SKILL.md` gained a `## Deep reference`
+  section listing them. Three new skills were added for content that had no owner:
+  `sysndd-variation-provenance` (#608/#612), `sysndd-curation-data-sources` (comparator,
+  MONDO mappings, metadata vocabularies, NDDScore), and `sysndd-r-plumber` (R/Plumber runtime
+  footguns). The documentation contract now directs new subsystem knowledge to the owning
+  skill, which is what keeps the root file from re-accreting.
+
 ## [0.34.1] - 2026-08-27
 
 ### Changed

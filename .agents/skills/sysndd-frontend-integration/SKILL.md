@@ -32,3 +32,9 @@ cd app && npm run type-check          # (+ npm run type-check:strict for touched
 cd app && npm run test:unit           # or: npx vitest run <spec> / -t "<name>"
 make lint-app                         # ESLint + MSW↔OpenAPI drift check
 ```
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/frontend-gotchas.md` — BVN dotted keys and tooltip reactivity, ontology tag parsing, review-form submit rules, ClinVar significance vocabulary, Playwright tag matching.

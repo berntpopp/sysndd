@@ -47,3 +47,12 @@ Keyed by per-cluster `cluster_hash` **plus `LLM_SUMMARY_PROMPT_VERSION`** (`llm-
 - Snapshot refresh job in history is **succeeded, not failed** (a coherence throw shows here — the tell you forgot the version bump).
 - Public endpoint: every visible cluster has a **non-null stability score** (the #514 symptom was `n/a`), metrics agree, and `weight_channel`/`membership_weight_channel == experimental_database`.
 - LLM: summaries map to a **new** `cluster_hash`. In the batch-generation log, "all cached / 0 generated" means membership did **not** change — the change was additive and a forced regen is wasteful.
+
+## Deep reference
+
+Authoritative detail, extracted from `AGENTS.md`:
+
+- `references/cache-coherence-514.md` — the memoise fingerprint, the snapshot integrity gate, channel observability, deploy runbook.
+- `references/cluster-soundness-508-512.md` — null models, MCA hygiene, reproducibility bundles, missingness sensitivity, generator provenance.
+- `references/analysis-releases-573.md` — immutable content-addressed releases, the fail-closed build gate, Zenodo operator scripts.
+- `references/computed-syndromicity-630.md` — the syndromicity registry, why no value is called `isolated`, the LLM prompt-version pin.
