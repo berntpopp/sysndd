@@ -23,6 +23,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   footguns). The documentation contract now directs new subsystem knowledge to the owning
   skill, which is what keeps the root file from re-accreting.
 
+## [0.34.2] - 2026-09-01
+
+### Changed
+
+- **Frontend dependencies updated; `bootstrap-vue-next` crosses to 1.x** (supersedes #643,
+  #644, #645, #646). The four open Dependabot pull requests all rewrote `app/package-lock.json`,
+  so merging them serially would have forced three rebases and three separately-unreviewed
+  lockfile regenerations. They are landed here as one resolved tree instead, and the four
+  pull requests are closed as superseded.
+
+  Direct dependencies, as proposed: `vue` 3.5.42 (3.5.41), `vue-router` 5.3.0 (5.2.0),
+  `cytoscape` 3.34.2 (3.34.1), `markdown-it` 15.0.1 (15.0.0), `@types/node` 26.4.0 (26.2.0),
+  `@vue/compiler-sfc` 3.5.42 (3.5.41), `@vue/test-utils` 2.5.0 (2.4.11), `axios` 1.20.0
+  (1.19.0), `lint-staged` 17.4.1 (17.3.0).
+
+  **Two resolutions deliberately exceed what Dependabot proposed**, because the manifest
+  ranges the pull requests themselves request (`^1.0.1`, `^9.0.1`) admit newer releases:
+  `bootstrap-vue-next` resolves to **1.1.0**, not 1.0.1, and `cssnano` to **9.0.2**, not 9.0.1.
+  Both were taken knowingly rather than pinned back. 1.0.2 carries a `BFormSelect` fix
+  ("preserve empty string modelValue by reordering SelectValue union type") that matters
+  directly — this app mounts `BFormSelect` in 84 places — and 1.1.0 adds only an additive
+  `BCard` `imgAttrs` prop. cssnano 9.0.2 is bug fixes over 9.0.1.
+
+  The `bootstrap-vue-next` bump's real breaking surface is **0.46.0**, not the 1.0.0 tag;
+  1.0.0's only documented breaks are to `BFormRating`, which this app does not use. From
+  0.46.0, three changes were assessed against the codebase:
+
+  - **`BFormCheckbox`'s `uncheckedValue` default changed from `false` to `null`.** This is
+    load-bearing here: ~40 checkboxes and switches feed typed API payloads, and
+    `direct_approval` / `clear_old` are declared `boolean | string` while `problematic` is
+    `number | string`. An unchecked switch emitting `null` would silently drop the field
+    from the query string (axios omits `null` params) or send JSON `null` where the Plumber
+    handler expects `FALSE`/`0`. Neither `vue-tsc` nor the unit suite caught it — the
+    component's `modelValue` is loosely typed and no test unchecks a box and reads the value.
+    The historical default is restored globally in `app/src/plugins/bootstrapVueNext.ts`
+    rather than by patching 40 call sites, and `app/src/plugins/__tests__/bootstrapVueNext.spec.ts`
+    fails if that pin is ever dropped.
+  - **Orchestrator composables no longer accept an object of nested refs.** `useToast` passes
+    `toast.create()` a flat plain object, so it was already in the supported shape.
+  - **The package is ESM-only (the CJS build was removed).** The app is `"type": "module"`
+    throughout; the production build, the SEO prerender pipeline, and the jsdom test
+    environment all resolve it unchanged.
+
+  `cssnano` 9's breaking change is its own move to ESM plus config-loading changes. Neither
+  reaches this repo: `cssnano` is referenced by no PostCSS or Vite configuration, so it is
+  an inert devDependency here.
+
+  Transitively, the `bootstrap-vue-next` bump pulls `@floating-ui/vue` to 2.x, `reka-ui` to
+  2.10.4, and `@internationalized/date`, `@tanstack/vue-virtual`, `ohash`, and `@swc/helpers`
+  forward with it; `reka-ui` keeps a nested `@floating-ui/vue` 1.1.11 and
+  `bootstrap-vue-next` a nested `@vueuse/core` 14.2.1 (it pins `~14.2.1` while the app
+  requests `^14.4.0`). Those duplicates cost effectively nothing after tree-shaking: measured
+  against the recorded route baselines, gzipped static-path payload moves by +226 B
+  (HomeView), +215 B (SearchView), +908 B (OntologyView), and +333 B (AnalysisView) — under
+  0.35% each, with 17–21% budget headroom retained. The 33 removed and 26 changed
+  dev-only lockfile entries are the `cssnano` 8→9 preset cascade and `lint-staged`'s
+  `picomatch` floor.
+
+  Verified locally: `vue-tsc --noEmit` clean, ESLint 0 errors, 313/313 unit test files and
+  2543 tests passing, `make verify-app-bundle-budget` and `make verify-seo-app` passing, and
+  `make code-quality-audit` clean.
+
+### Fixed
+
+- **The MCP documentation guard follows its contract to the skill that now owns it.**
+  `test-mcp-select-principal-compose.R` asserted that `AGENTS.md` contains a
+  `### Read-only MCP sidecar` section. #647 turned `AGENTS.md` into a lean index and
+  relocated that content to
+  `.agents/skills/sysndd-mcp-readonly/references/sidecar-contract.md`, but left the guard
+  pointing at the old location, so it errored on `length(start) == 1L is not TRUE` and
+  `make test-api-fast` was red on `master` for every branch cut after that merge. The guard
+  now reads the relocated file; every assertion it makes about the public edge contract is
+  unchanged and still satisfied.
+
 ## [0.34.1] - 2026-08-27
 
 ### Changed
