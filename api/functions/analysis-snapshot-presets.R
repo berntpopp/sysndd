@@ -34,6 +34,7 @@ analysis_snapshot_supported_presets <- function() {
     ),
     list(
       analysis_type = "phenotype_functional_correlations",
+      depends_on = c("functional_clusters", "phenotype_clusters"),
       data_class = "curated_derived_analysis",
       params = list(algorithm = "leiden"),
       weight = "light"
@@ -71,6 +72,33 @@ analysis_snapshot_preset_weight <- function(analysis_type) {
     }
   }
   "light"
+}
+
+
+#' Dependency analysis types for a supported preset.
+#'
+#' A dependent snapshot is built FROM other active snapshots
+#' (analysis_snapshot_load_cluster_dependency), so its refresh must run after
+#' theirs. Declared here as data so the bootstrap stagger can order the queue
+#' (services/analysis-snapshot-refresh-service.R) instead of the dependent job
+#' racing its own inputs and failing with "Dependency snapshot ... is not
+#' available". Unknown types fail open to no dependencies.
+#'
+#' @param analysis_type Character analysis type.
+#' @return Character vector of dependency analysis types (possibly empty).
+#' @export
+analysis_snapshot_preset_depends_on <- function(analysis_type) {
+  at <- as.character(analysis_type[[1]])
+  for (p in analysis_snapshot_supported_presets()) {
+    if (identical(p$analysis_type, at)) {
+      deps <- p$depends_on
+      if (is.null(deps)) {
+        return(character(0))
+      }
+      return(as.character(deps))
+    }
+  }
+  character(0)
 }
 
 analysis_snapshot_canonical_json <- function(value) {

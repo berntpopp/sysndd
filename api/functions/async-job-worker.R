@@ -168,7 +168,8 @@ if (!exists("async_job_get_handler", mode = "function")) {
   job_id,
   claim_token,
   error_code,
-  error_message
+  error_message,
+  next_attempt_at = NULL
 ) {
   tryCatch(
     {
@@ -176,7 +177,8 @@ if (!exists("async_job_get_handler", mode = "function")) {
         job_id = job_id,
         error_code = error_code,
         error_message = error_message,
-        claim_token = claim_token
+        claim_token = claim_token,
+        next_attempt_at = next_attempt_at
       )
     },
     error = function(error) {
@@ -513,12 +515,27 @@ async_job_worker_run_claimed_job <- function(
       invisible(TRUE)
     },
     error = function(error) {
+      # A handler error carrying async_job_transient_error is a scheduling
+      # condition (e.g. an analysis-snapshot dependency whose own refresh has
+      # not completed yet -- see analysis-snapshot-dependencies.R), not a build
+      # defect. Fail the attempt WITH a retry time so the claim query
+      # (status = 'failed' AND attempt_count < max_attempts AND
+      # next_attempt_at IS NOT NULL) picks it up again; without
+      # next_attempt_at a "failed" job is terminal regardless of max_attempts,
+      # which is what left phenotype_functional_correlations dead after the
+      # 2026-09-01 bootstrap raced its staggered dependencies.
+      transient <- inherits(error, "async_job_transient_error")
       .async_job_worker_fail_safe(
         fail_fn = fail_fn,
         job_id = job_id,
         claim_token = claim_token,
-        error_code = "EXECUTION_ERROR",
-        error_message = conditionMessage(error)
+        error_code = if (transient) "TRANSIENT_DEPENDENCY" else "EXECUTION_ERROR",
+        error_message = conditionMessage(error),
+        next_attempt_at = if (transient) {
+          Sys.time() + .async_job_worker_int_env("ASYNC_JOB_TRANSIENT_RETRY_SECONDS", 90L)
+        } else {
+          NULL
+        }
       )
 
       .async_job_worker_append_event_safe(

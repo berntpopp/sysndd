@@ -26,14 +26,27 @@ analysis_snapshot_load_cluster_dependency <- function(analysis_type,
   )
   if (is.null(snapshot) || !identical(snapshot$status_code %||% "", "available")) {
     status <- snapshot$status_code %||% "snapshot_missing"
-    stop(
-      sprintf(
-        "Dependency snapshot %s is not available (status: %s)",
-        normalized$analysis_type,
-        status
+    # Typed + transient: a missing/stale dependency is a SCHEDULING condition
+    # (its refresh job simply has not completed yet), not a build defect. The
+    # async_job_transient_error class tells the worker to fail this attempt
+    # WITH a retry time instead of terminally (async-job-worker.R), so the
+    # dependent snapshot converges once its dependencies land.
+    stop(structure(
+      class = c(
+        "analysis_snapshot_dependency_unavailable",
+        "async_job_transient_error", "error", "condition"
       ),
-      call. = FALSE
-    )
+      list(
+        message = sprintf(
+          "Dependency snapshot %s is not available (status: %s)",
+          normalized$analysis_type,
+          status
+        ),
+        call = NULL,
+        analysis_type = normalized$analysis_type,
+        status = status
+      )
+    ))
   }
 
   manifest <- tibble::as_tibble(snapshot$manifest %||% tibble::tibble())

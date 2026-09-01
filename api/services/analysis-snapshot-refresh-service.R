@@ -145,10 +145,32 @@ service_analysis_snapshot_submit_refresh <- function(analysis_type = NULL,
 
     # Stagger heavy presets behind the cheap ones at first-start (#447). Light
     # presets stay eligible immediately; the operator force path never staggers.
+    #
+    # A preset with declared dependencies is additionally scheduled AFTER its
+    # slowest dependency. Without this the light
+    # phenotype_functional_correlations became claim-eligible immediately
+    # while its two HEAVY cluster dependencies were deliberately delayed --
+    # the dependent ran first, found the stale dependency snapshots the
+    # bootstrap was about to rebuild, and failed. With the single
+    # default-queue worker, claim order follows scheduled_at, so ordering
+    # eligibility orders execution; the transient-retry path in
+    # async-job-worker.R covers any remaining race.
     sched <- now
-    if (stagger && stagger_seconds > 0L &&
-        identical(analysis_snapshot_preset_weight(at), "heavy")) {
-      sched <- now + stagger_seconds
+    if (stagger && stagger_seconds > 0L) {
+      if (identical(analysis_snapshot_preset_weight(at), "heavy")) {
+        sched <- now + stagger_seconds
+      }
+      deps <- analysis_snapshot_preset_depends_on(at)
+      if (length(deps) > 0L) {
+        dep_scheds <- vapply(deps, function(dep) {
+          if (identical(analysis_snapshot_preset_weight(dep), "heavy")) {
+            stagger_seconds
+          } else {
+            0L
+          }
+        }, numeric(1))
+        sched <- max(sched, now + max(dep_scheds) + 30L)
+      }
     }
 
     outcome <- tryCatch(
