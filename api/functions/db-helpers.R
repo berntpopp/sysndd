@@ -25,7 +25,12 @@ library(tibble)
 #' @return Pool object or direct DBI connection
 #' @keywords internal
 get_db_connection <- function() {
-  message("[get_db_connection] ENTRY")
+  # Trace-level, behind the logger threshold -- NEVER an unconditional
+  # message(). This function runs on every repository call; as a bare
+  # message() it was 100% of the worker log and 99.7% of the api log
+  # (last-2000-line samples, production 2026-09-01), rotating real
+  # diagnostics out of the bounded json-file logs within minutes.
+  log_trace("[get_db_connection] ENTRY")
   # If pool exists in global environment, use it (main process)
   if (base::exists("pool", envir = .GlobalEnv) && !is.null(base::get("pool", envir = .GlobalEnv))) {
     return(base::get("pool", envir = .GlobalEnv))
@@ -51,14 +56,14 @@ get_db_connection <- function() {
     conn_valid <- tryCatch({
       DBI::dbIsValid(conn)
     }, error = function(e) {
-      message("[get_db_connection] Connection validation failed: ", e$message)
+      log_warn("[get_db_connection] Connection validation failed: {e$message}")
       FALSE
     })
 
     if (conn_valid) {
       return(conn)
     } else {
-      message("[get_db_connection] daemon_db_conn invalid, will create new connection")
+      log_debug("[get_db_connection] daemon_db_conn invalid, will create new connection")
       # Remove invalid connection
       base::rm("daemon_db_conn", envir = .GlobalEnv)
     }
@@ -91,7 +96,7 @@ get_db_connection <- function() {
   }
 
   # Create direct connection
-  message("[get_db_connection] Creating new daemon connection to ", host, ":", port, "/", dbname)
+  log_debug("[get_db_connection] Creating new daemon connection to {host}:{port}/{dbname}")
   conn <- DBI::dbConnect(
     RMariaDB::MariaDB(),
     host = host,
@@ -103,7 +108,7 @@ get_db_connection <- function() {
 
   # Store in global environment for reuse within this daemon
   base::assign("daemon_db_conn", conn, envir = .GlobalEnv)
-  message("[get_db_connection] New daemon connection created and stored")
+  log_debug("[get_db_connection] New daemon connection created and stored")
 
   return(conn)
 }
