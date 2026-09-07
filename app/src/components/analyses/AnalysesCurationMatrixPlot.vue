@@ -15,9 +15,8 @@
         </p>
         <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
           <template #title>Cosine Similarity Analysis</template>
-          Cosine similarity measures the angle between two non-zero vectors. Here it compares
-          curation efforts by their gene lists. Values range from -1 for dissimilar to 1 for
-          completely similar, with 0 indicating no similarity.
+          Cosine similarity measures gene list overlap between curation efforts. Because gene indicator
+          vectors are non-negative, values range from 0.0 (no shared genes) to 1.0 (identical gene lists).
         </BPopover>
       </div>
 
@@ -26,6 +25,15 @@
 
     <div class="matrix-body position-relative">
       <div id="matrix_dataviz" class="svg-container" />
+      <div class="d-flex justify-content-center mt-2 mb-2">
+        <ColorLegend
+          :min="0"
+          :max="1"
+          :colors="['#ffffff', '#0d47a1']"
+          title="Cosine Similarity"
+          :labels="similarityLabels"
+        />
+      </div>
       <div v-show="loadingMatrix" class="loading-state">
         <BSpinner label="Loading..." class="spinner" />
       </div>
@@ -38,6 +46,7 @@ import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import ColorLegend from '@/components/analyses/ColorLegend.vue';
 
 // Typed API client (W5)
 import { getSimilarity } from '@/api/comparisons';
@@ -47,6 +56,7 @@ export default {
   components: {
     DownloadImageButtons,
     InlineHelpBadge,
+    ColorLegend,
   },
   setup() {
     const { makeToast } = useToast();
@@ -57,6 +67,11 @@ export default {
       items: [],
       itemsMatrix: [],
       loadingMatrix: true, // Added loading state
+      similarityLabels: [
+        { value: 0, text: '0.0 (no overlap)' },
+        { value: 0.5, text: '0.5' },
+        { value: 1, text: '1.0 (identical)' },
+      ],
     };
   },
   mounted() {
@@ -136,7 +151,7 @@ export default {
       svg.append('g').call(d3.axisLeft(y)).style('font-size', '16px');
 
       // Build color scale
-      const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
+      const myColor = d3.scaleLinear().range(['#ffffff', '#0d47a1']).domain([0, 1]);
 
       // Create a tooltip
       const tooltip = d3
@@ -144,11 +159,12 @@ export default {
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('background-color', 'var(--surface-raised)')
+        .style('border', '1px solid var(--border-subtle)')
+        .style('border-radius', 'var(--radius-sm, 4px)')
+        .style('padding', '4px 8px')
+        .style('color', 'var(--neutral-900)')
+        .style('font-size', '12px');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -205,8 +221,8 @@ export default {
 .analysis-panel {
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-raised);
 }
 
 .panel-header {
@@ -215,8 +231,8 @@ export default {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
-  border-bottom: 1px solid #e6ebf2;
-  background: #fbfcfe;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
 }
 
 .panel-heading {
@@ -229,7 +245,7 @@ export default {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  color: #27364a;
+  color: var(--neutral-900);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
@@ -237,7 +253,7 @@ export default {
 
 .panel-description {
   margin: 0.25rem 0 0;
-  color: #526070;
+  color: var(--neutral-700);
   font-size: 0.875rem;
   line-height: 1.35;
 }

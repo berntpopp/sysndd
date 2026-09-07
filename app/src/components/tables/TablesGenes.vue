@@ -87,7 +87,7 @@
                       )
                     "
                   >
-                    {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                    {{ /hpo mode of inheritance/i.test(data.label) ? 'Inheritance' : truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
                   </div>
                 </template>
 
@@ -101,7 +101,7 @@
                       <BFormInput
                         v-if="field.filterable"
                         v-model="filter[field.key].content"
-                        :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                        :placeholder="'Filter ' + field.label + '...'"
                         :aria-label="'Filter by ' + field.label"
                         debounce="500"
                         type="search"
@@ -127,7 +127,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              .. {{ truncate(field.label, 20) }} ..
+                              Any {{ field.label }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>
@@ -155,7 +155,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              .. {{ truncate(field.label, 20) }} ..
+                              Any {{ field.label }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>

@@ -115,7 +115,7 @@
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
                 class="filter-input"
-                :placeholder="'Filter ' + truncate(field.label, 20)"
+                :placeholder="'Filter ' + field.label + '...'"
                 :aria-label="`Filter by ${field.label}`"
                 debounce="500"
                 type="search"
@@ -138,7 +138,7 @@
               >
                 <template #first>
                   <BFormSelectOption :value="null">
-                    .. {{ truncate(field.label, 20) }} ..
+                    Any {{ field.label }}
                   </BFormSelectOption>
                 </template>
               </BFormSelect>
@@ -160,7 +160,7 @@
               >
                 <template #first>
                   <BFormSelectOption :value="null">
-                    .. {{ truncate(field.label, 20) }} ..
+                    Any {{ field.label }}
                   </BFormSelectOption>
                 </template>
               </BFormSelect>

@@ -1,55 +1,54 @@
 <!-- views/components/small/TableDownloadLinkCopyButtons.vue -->
-<!-- views/components/small/TableDownloadLinkCopyButtons.vue -->
 <template>
-  <div class="download-buttons">
-    <!-- Download CSV Button -->
+  <div class="download-buttons" role="group" aria-label="Table export and sharing actions">
+    <!-- Download CSV/Excel Button -->
     <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
-      title="Download data as Excel file."
+      variant="outline-secondary"
+      title="Download table data as .xlsx Excel file"
+      aria-label="Download table data as .xlsx Excel file"
       :disabled="downloading"
       @click="$emit('request-excel')"
     >
-      <i class="bi bi-table mx-1" />
-      <i v-if="!downloading" class="bi bi-download" />
+      <i class="bi bi-table me-1" aria-hidden="true" />
+      <i v-if="!downloading" class="bi bi-download" aria-hidden="true" />
       <BSpinner v-if="downloading" small />
-      .xlsx
+      <span>.xlsx</span>
     </BButton>
-    <!-- Download CSV Button -->
 
     <!-- Copy Link Button -->
     <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
-      title="Copy link to this page."
+      variant="outline-secondary"
+      title="Copy link to this page"
       aria-label="Copy link to this page"
-      variant="success"
       @click="$emit('copy-link')"
     >
-      <i class="bi bi-link" aria-hidden="true" />
+      <i class="bi bi-link-45deg" aria-hidden="true" />
     </BButton>
-    <!-- Copy Link Button -->
 
     <!-- Remove Filters Button -->
     <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
+      variant="outline-secondary"
       :title="removeFiltersTitle"
       :aria-label="removeFiltersTitle"
-      :variant="removeFiltersVariant"
       @click="$emit('remove-filters')"
     >
-      <i class="bi bi-filter" aria-hidden="true" />
+      <i class="bi bi-funnel" aria-hidden="true" />
     </BButton>
-    <!-- Remove Filters Button -->
   </div>
 </template>
 
 <script>
 export default {
+  name: 'TableDownloadLinkCopyButtons',
   props: {
     downloading: {
       type: Boolean,
@@ -61,7 +60,7 @@ export default {
     },
     removeFiltersVariant: {
       type: String,
-      default: 'info',
+      default: 'outline-secondary',
     },
   },
   emits: ['request-excel', 'copy-link', 'remove-filters'],
@@ -70,10 +69,34 @@ export default {
 
 <style scoped>
 .download-buttons {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .download-button {
-  margin: 0.1rem 0.1rem; /* Vertical margin for small screens */
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-sm, 0.25rem);
+  background: var(--surface-raised, #ffffff);
+  color: var(--neutral-700, #616161);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  transition:
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    color 0.15s ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--medical-blue-600, #1e88e5);
+    background: var(--medical-blue-50, #e3f2fd);
+    color: var(--medical-blue-700, #0d47a1);
+    outline: none;
+  }
 }
 </style>

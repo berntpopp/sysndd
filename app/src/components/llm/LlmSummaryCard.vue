@@ -6,11 +6,11 @@
       <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
           <span class="ai-indicator me-2">
-            <i class="bi bi-stars text-warning" />
-            <span class="ai-label">AI</span>
+            <i class="bi bi-file-earmark-medical text-primary" aria-hidden="true" />
+            <span class="ai-label">Synthesis</span>
           </span>
           <span class="header-title">
-            Summary<span v-if="clusterNumber" class="text-muted fw-normal">
+            Phenotypic Profile<span v-if="clusterNumber" class="text-muted fw-normal">
               — Cluster {{ clusterNumber }}</span
             >
           </span>
@@ -222,18 +222,18 @@ export default defineComponent({
 .ai-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.5rem;
-  background: rgba(255, 193, 7, 0.15);
-  border-radius: 4px;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--medical-blue-50, #e3f2fd);
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-full, 9999px);
   font-size: 0.75rem;
 }
 
 .ai-label {
   font-weight: 600;
-  color: var(--bs-warning);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--medical-blue-700, #0d47a1);
+  letter-spacing: 0;
 }
 
 .header-title {

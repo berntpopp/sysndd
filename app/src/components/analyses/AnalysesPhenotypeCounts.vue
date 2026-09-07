@@ -36,6 +36,17 @@ import * as d3 from 'd3';
 // Typed API client (W5)
 import { getPhenotypeCount } from '@/api/phenotype';
 
+/**
+ * Truncate label with ellipsis if it exceeds maximum length
+ * @param {string} str - Label text
+ * @param {number} maxLen - Maximum allowed length
+ * @returns {string} Truncated string
+ */
+function truncateLabel(str, maxLen = 26) {
+  if (!str) return '';
+  return str.length > maxLen ? `${str.slice(0, maxLen - 1)}…` : str;
+}
+
 export default {
   name: 'AnalysesPhenotypeCounts',
   components: {
@@ -72,6 +83,7 @@ export default {
 
         this.generateCountGraph();
       } catch (e) {
+        this.error = e.message || 'Failed to load phenotype counts. Please try again.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingCount = false; // Set loading to false after data is fetched
@@ -118,11 +130,13 @@ export default {
       svg
         .append('g')
         .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x))
+        .call(d3.axisBottom(x).tickFormat((d) => truncateLabel(d, 26)))
         .selectAll('text')
         .attr('transform', 'translate(-10,0)rotate(-45)')
         .style('text-anchor', 'end')
-        .style('font-size', '12px');
+        .style('font-size', '11px')
+        .append('title')
+        .text((d) => d);
 
       // Add Y axis
       const maxY = d3.max(data, (d) => d.count);
@@ -138,11 +152,12 @@ export default {
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('background-color', 'var(--surface-raised)')
+        .style('border', '1px solid var(--border-subtle)')
+        .style('border-radius', 'var(--radius-sm, 4px)')
+        .style('padding', '4px 8px')
+        .style('color', 'var(--neutral-900)')
+        .style('font-size', '12px');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -193,7 +208,7 @@ export default {
         .attr('y', (d) => y(d.count))
         .attr('width', x.bandwidth())
         .attr('height', (d) => height - y(d.count))
-        .attr('fill', '#69b3a2')
+        .attr('fill', '#2563eb')
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);

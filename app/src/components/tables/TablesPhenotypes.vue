@@ -141,7 +141,7 @@
                 )
               "
             >
-              {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+              {{ /hpo mode of inheritance/i.test(data.label) ? 'Inheritance' : truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
             </div>
           </template>
 
@@ -155,7 +155,7 @@
                 <BFormInput
                   v-if="field.filterable"
                   v-model="filter[field.key].content"
-                  :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                  :placeholder="'Filter ' + field.label + '...'"
                   :aria-label="'Filter by ' + field.label"
                   debounce="500"
                   type="search"
@@ -182,7 +182,7 @@
                   >
                     <template #first>
                       <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
+                        Any {{ field.label }}
                       </BFormSelectOption>
                     </template>
                   </BFormSelect>
@@ -208,7 +208,7 @@
                   >
                     <template #first>
                       <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
+                        Any {{ field.label }}
                       </BFormSelectOption>
                     </template>
                   </BFormSelect>
@@ -378,10 +378,10 @@ export default defineComponent({
 /* AND/OR Toggle - Pill Button Group */
 .logic-toggle {
   display: inline-flex;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--surface-subtle);
 }
 
 .logic-btn {

@@ -16,10 +16,10 @@
     <BCardBody>
       <div class="d-flex justify-content-between align-items-start mb-2">
         <div>
-          <h6 class="card-title mb-1">
+          <h3 class="card-title mb-1">
             <i class="bi bi-clipboard2-pulse me-1" />
             Organ-system involvement
-          </h6>
+          </h3>
           <small class="text-muted">{{ subtitle }}</small>
         </div>
         <BBadge :variant="variant" class="call-badge">{{ label }}</BBadge>

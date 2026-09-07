@@ -249,7 +249,7 @@ export default {
   box-sizing: border-box;
   min-height: 100%;
   padding: 0.75rem 1rem 1.5rem;
-  background: #f6f8fb;
+  background: var(--surface-canvas, #f6f8fb);
   text-align: left;
 }
 
@@ -262,14 +262,14 @@ export default {
   margin: 0 auto 1rem;
   padding: 1.1rem 1rem;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--surface-raised, #ffffff);
+  box-shadow: var(--shadow-sm);
 }
 
 .home-hero__title {
   margin: 0;
-  color: var(--neutral-900, #172033);
+  color: var(--neutral-900);
   font-size: var(--font-size-xl, 1.25rem);
   font-weight: var(--font-weight-semibold, 600);
   line-height: 1.2;
@@ -278,7 +278,7 @@ export default {
 .home-hero__summary {
   max-width: 44rem;
   margin: 0.25rem 0 0;
-  color: var(--neutral-600, #526070);
+  color: var(--neutral-700);
   font-size: 0.875rem;
   line-height: 1.45;
 }

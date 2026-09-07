@@ -94,7 +94,7 @@
 
           <template #footer>
             <div class="d-flex justify-content-between align-items-center">
-              <BLink :to="entitiesLink"> Entities for cluster {{ selectedCluster.cluster }} </BLink>
+              <BLink :to="entitiesLink" class="cluster-entities-link"> Entities for cluster {{ selectedCluster.cluster }} </BLink>
               <small class="text-muted">
                 <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
                 <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
@@ -431,8 +431,19 @@ export default {
 .cytoscape-container {
   width: 100%;
   height: 380px;
-  background: #fafafa;
+  background: var(--surface-canvas);
   border-radius: var(--radius-md, 6px);
+}
+
+.cluster-entities-link {
+  color: var(--medical-blue-700);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cluster-entities-link:hover {
+  color: var(--medical-blue-800);
+  text-decoration: underline;
 }
 
 .spinner {

@@ -16,12 +16,11 @@ label,
   color: var(--bs-body-color);
 }
 
-// Required field indicator (accessible)
+// Required field indicator
 .required-label::after,
 label.required::after {
   content: ' *';
   color: var(--status-danger);
-  aria-label: 'required';
 }
 
 // Form control base styles

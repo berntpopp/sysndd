@@ -15,6 +15,7 @@
     <InlineHelpBadge
       id="popover-badge-tier-mapping"
       ref="badge"
+      title="Evidence tier definitions"
       aria-label="Explain normalized evidence-tier mapping"
       aria-haspopup="dialog"
       :aria-expanded="open ? 'true' : 'false'"
@@ -122,6 +123,18 @@ export default {
 .tier-mapping-help {
   display: inline-flex;
   align-items: center;
+}
+
+.tier-mapping-help :deep(.inline-help-badge) {
+  background: var(--surface-subtle) !important;
+  color: var(--neutral-700) !important;
+  border: 1px solid var(--border-medium) !important;
+}
+
+.tier-mapping-help :deep(.inline-help-badge:hover) {
+  background: var(--surface-raised) !important;
+  color: var(--neutral-900) !important;
+  border-color: var(--border-dark) !important;
 }
 
 .crosswalk-link {

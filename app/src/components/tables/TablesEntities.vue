@@ -79,7 +79,7 @@
                       )
                     "
                   >
-                    {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                    {{ /hpo mode of inheritance/i.test(data.label) ? 'Inheritance' : truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
                   </div>
                 </template>
 
@@ -89,7 +89,7 @@
                     <BFormInput
                       v-if="field.filterable"
                       v-model="filter[field.key].content"
-                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                      :placeholder="'Filter ' + field.label + '...'"
                       :aria-label="'Filter by ' + field.label"
                       debounce="500"
                       type="search"
@@ -117,7 +117,7 @@
                       >
                         <template #first>
                           <BFormSelectOption :value="null">
-                            .. {{ truncate(field.label, 20) }} ..
+                            Any {{ field.label }}
                           </BFormSelectOption>
                         </template>
                       </BFormSelect>
@@ -153,7 +153,7 @@
                       >
                         <template #first>
                           <BFormSelectOption :value="null">
-                            .. {{ truncate(field.label, 20) }} ..
+                            Any {{ field.label }}
                           </BFormSelectOption>
                         </template>
                       </BFormSelect>
@@ -361,12 +361,12 @@ export default {
 
 /* Card styling improvements */
 :deep(.card) {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
 }
 
 :deep(.card-header) {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 </style>
