@@ -37,127 +37,166 @@
       </div>
     </template>
 
-    <BRow>
-      <BCol md="4">
-        <BCard
-          header-tag="header"
-          class="my-3 mx-2 text-start"
-          body-class="p-0"
-          header-class="p-1"
-          footer-class="p-1"
-          border-variant="light"
-        >
-          <template #header>
-            <p class="mb-0 fw-semibold" style="font-size: 0.875rem">
-              Selected cluster {{ selectedCluster.cluster }}
-              with
-              <span class="sysndd-chip sysndd-chip--blue">
-                {{ selectedCluster.cluster_size }}
-              </span>
-              entities
-            </p>
-          </template>
+    <!-- Resizable split panes: LEFT = Cytoscape Cluster Graph, RIGHT = Summary + Table -->
+    <AccessibleSplitter
+      v-model:size="leftPaneSize"
+      class="default-theme"
+      :min="25"
+      :max="60"
+      orientation="vertical"
+      label="Resize phenotype cluster network and variable table"
+      @resized="handleSplitterResized"
+    >
+      <template #first>
+        <div class="pane-content">
+          <BCard
+            header-tag="header"
+            class="cluster-graph-card text-start mb-3"
+            body-class="p-0"
+            header-class="py-2 px-3"
+            footer-class="py-2 px-3"
+          >
+            <template #header>
+              <div class="d-flex justify-content-between align-items-center">
+                <p class="mb-0 fw-semibold" style="font-size: 0.875rem">
+                  Selected cluster {{ selectedCluster.cluster }} with
+                  <span class="sysndd-chip sysndd-chip--blue">
+                    {{ selectedCluster.cluster_size }}
+                  </span>
+                  entities
+                </p>
+                <div
+                  class="btn-group btn-group-sm"
+                  role="group"
+                  aria-label="Export phenotype cluster network"
+                >
+                  <BButton
+                    variant="outline-secondary"
+                    size="sm"
+                    title="Export as PNG"
+                    aria-label="Export network as PNG image"
+                    @click="exportPNG"
+                  >
+                    <i class="bi bi-image" aria-hidden="true" />
+                  </BButton>
+                  <BButton
+                    variant="outline-secondary"
+                    size="sm"
+                    title="Export as SVG"
+                    aria-label="Export network as SVG image"
+                    @click="exportSVG"
+                  >
+                    <i class="bi bi-filetype-svg" aria-hidden="true" />
+                  </BButton>
+                </div>
+              </div>
+            </template>
 
-          <div id="cluster_dataviz" class="svg-container">
-            <div v-if="isPreparing" class="error-state text-center p-4">
-              <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
-              <p class="text-muted mb-3">
-                This analysis is being prepared and will appear here shortly. This can take a couple
-                of minutes after a deploy or data update.
-              </p>
-              <BButton variant="primary" @click="retryLoad">
-                <i class="bi bi-arrow-clockwise me-1" />
-                Check again
-              </BButton>
+            <div id="cluster_dataviz" class="svg-container">
+              <div v-if="isPreparing" class="error-state text-center p-4">
+                <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
+                <p class="text-muted mb-3">
+                  This analysis is being prepared and will appear here shortly. This can take a couple
+                  of minutes after a deploy or data update.
+                </p>
+                <BButton variant="primary" @click="retryLoad">
+                  <i class="bi bi-arrow-clockwise me-1" />
+                  Check again
+                </BButton>
+              </div>
+
+              <div v-else-if="error" class="error-state text-center p-4">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+                <p class="text-muted mb-3">
+                  {{ error }}
+                </p>
+                <BButton variant="primary" @click="retryLoad">
+                  <i class="bi bi-arrow-clockwise me-1" />
+                  Retry
+                </BButton>
+              </div>
+
+              <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
+
+              <div
+                v-else
+                ref="cytoscapeContainer"
+                class="cytoscape-container"
+                :style="{ height: '480px', width: '100%' }"
+              />
             </div>
 
-            <div v-else-if="error" class="error-state text-center p-4">
-              <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
-              <p class="text-muted mb-3">
-                {{ error }}
-              </p>
-              <BButton variant="primary" @click="retryLoad">
-                <i class="bi bi-arrow-clockwise me-1" />
-                Retry
-              </BButton>
-            </div>
-
-            <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
-
-            <div
-              v-else
-              ref="cytoscapeContainer"
-              class="cytoscape-container"
-              :style="{ height: '380px', width: '100%' }"
-            />
-          </div>
-
-          <template #footer>
-            <div class="d-flex justify-content-between align-items-center">
-              <BLink :to="entitiesLink" class="cluster-entities-link"> Entities for cluster {{ selectedCluster.cluster }} </BLink>
-              <small class="text-muted">
-                <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
-                <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
-              </small>
-            </div>
-          </template>
-        </BCard>
-      </BCol>
-
-      <BCol md="8">
-        <!-- #630: computed, curation-derived. Rendered from the cluster row, so
-             it survives a missing or judge-rejected LLM summary. -->
-        <SyndromicityCard :block="selectedCluster?.syndromicity" />
-        <LlmSummaryCard
-          v-if="currentSummary && !summaryLoading && !summaryRejected"
-          class="my-3 mx-2"
-          :summary="currentSummary.summary_json"
-          :model-name="
-            Array.isArray(currentSummary.model_name)
-              ? currentSummary.model_name[0]
-              : currentSummary.model_name
-          "
-          :created-at="
-            Array.isArray(currentSummary.created_at)
-              ? currentSummary.created_at[0]
-              : currentSummary.created_at
-          "
-          :validation-status="
-            Array.isArray(currentSummary.validation_status)
-              ? currentSummary.validation_status[0]
-              : currentSummary.validation_status
-          "
-          :cluster-number="Number(selectedCluster?.cluster)"
-        />
-        <BCard
-          v-else-if="summaryRejected && !summaryLoading"
-          class="my-3 mx-2"
-          border-variant="warning"
-          data-testid="ai-summary-unavailable"
-        >
-          <div class="d-flex align-items-start">
-            <i class="bi bi-shield-exclamation text-warning fs-4 me-2" aria-hidden="true" />
-            <div>
-              <p class="fw-semibold mb-1">AI summary could not be validated for this cluster</p>
-              <p class="text-muted small mb-0">
-                The automated reviewer could not validate an AI-generated summary for this
-                cluster, so none is shown.
-                <span v-if="summaryRejectionReason"> Reason: {{ summaryRejectionReason }}</span>
-              </p>
-            </div>
-          </div>
-        </BCard>
-        <div v-else-if="summaryLoading" class="my-3 mx-2">
-          <BSpinner small class="me-2" />
-          <span class="text-muted">Loading AI summary...</span>
+            <template #footer>
+              <div class="d-flex justify-content-between align-items-center">
+                <BLink :to="entitiesLink" class="cluster-entities-link">
+                  Entities for cluster {{ selectedCluster.cluster }}
+                </BLink>
+                <small class="text-muted">
+                  <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
+                  <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
+                </small>
+              </div>
+            </template>
+          </BCard>
         </div>
-        <PhenotypeClusterVariableTable
-          :selected-cluster="selectedCluster"
-          :loading="loading"
-          :active-cluster="activeCluster"
-        />
-      </BCol>
-    </BRow>
+      </template>
+
+      <template #second>
+        <div class="pane-content">
+          <!-- #630: computed, curation-derived. Rendered from the cluster row, so
+               it survives a missing or judge-rejected LLM summary. -->
+          <SyndromicityCard :block="selectedCluster?.syndromicity" class="mb-3" />
+          <LlmSummaryCard
+            v-if="currentSummary && !summaryLoading && !summaryRejected"
+            class="mb-3"
+            :summary="currentSummary.summary_json"
+            :model-name="
+              Array.isArray(currentSummary.model_name)
+                ? currentSummary.model_name[0]
+                : currentSummary.model_name
+            "
+            :created-at="
+              Array.isArray(currentSummary.created_at)
+                ? currentSummary.created_at[0]
+                : currentSummary.created_at
+            "
+            :validation-status="
+              Array.isArray(currentSummary.validation_status)
+                ? currentSummary.validation_status[0]
+                : currentSummary.validation_status
+            "
+            :cluster-number="Number(selectedCluster?.cluster)"
+          />
+          <BCard
+            v-else-if="summaryRejected && !summaryLoading"
+            class="mb-3"
+            border-variant="warning"
+            data-testid="ai-summary-unavailable"
+          >
+            <div class="d-flex align-items-start">
+              <i class="bi bi-shield-exclamation text-warning fs-4 me-2" aria-hidden="true" />
+              <div>
+                <p class="fw-semibold mb-1">AI summary could not be validated for this cluster</p>
+                <p class="text-muted small mb-0">
+                  The automated reviewer could not validate an AI-generated summary for this
+                  cluster, so none is shown.
+                  <span v-if="summaryRejectionReason"> Reason: {{ summaryRejectionReason }}</span>
+                </p>
+              </div>
+            </div>
+          </BCard>
+          <div v-else-if="summaryLoading" class="mb-3">
+            <BSpinner small class="me-2" />
+            <span class="text-muted">Loading AI summary...</span>
+          </div>
+          <PhenotypeClusterVariableTable
+            :selected-cluster="selectedCluster"
+            :loading="loading"
+            :active-cluster="activeCluster"
+          />
+        </div>
+      </template>
+    </AccessibleSplitter>
     <ClusterValidationCard
       analysis-type="phenotype_clusters"
       :snapshot-meta="snapshotMeta"
@@ -177,6 +216,7 @@ import SyndromicityCard from '@/components/analyses/SyndromicityCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import PhenotypeClusterVariableTable from '@/components/analyses/PhenotypeClusterVariableTable.vue';
+import AccessibleSplitter from '@/components/accessibility/AccessibleSplitter.vue';
 import {
   getPhenotypeClustering,
   getPhenotypeClusterSummary,
@@ -187,6 +227,7 @@ import { normalizePhenotypeClusterRows } from './phenotypeClusterTable';
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
+    AccessibleSplitter,
     AnalysisPanel,
     ClusterValidationCard,
     InlineHelpBadge,
@@ -204,6 +245,7 @@ export default {
     const { makeToast } = useToast();
     const cytoscapeContainer = ref(null);
     const activeClusterRef = ref('1');
+    const leftPaneSize = ref(35);
 
     const cytoscape = usePhenotypeCytoscape({
       container: cytoscapeContainer,
@@ -211,6 +253,11 @@ export default {
         activeClusterRef.value = String(clusterId);
       },
     });
+
+    const handleSplitterResized = () => {
+      cytoscape.cy()?.resize();
+      cytoscape.fitToScreen();
+    };
 
     // LLM cluster-summary state and fetch logic (request-id race guarded).
     // The phenotype endpoint silences both 404 and a transient 503.
@@ -238,6 +285,8 @@ export default {
       summaryRejectionReason,
       fetchClusterSummary,
       clearClusterSummary,
+      leftPaneSize,
+      handleSplitterResized,
     };
   },
   data() {
@@ -418,6 +467,46 @@ export default {
 </script>
 
 <style scoped>
+/* Splitpanes layout matching AnalyseGeneClusters */
+.splitpanes {
+  min-height: 650px;
+}
+
+.pane-content {
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+.cluster-graph-card {
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-lg, 8px);
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter) {
+  background-color: var(--border-subtle, #e2e8f0);
+  min-width: 8px;
+  border-left: 1px solid var(--neutral-300, #e0e0e0);
+  border-right: 1px solid var(--neutral-300, #e0e0e0);
+  cursor: col-resize;
+  position: relative;
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter:hover) {
+  background-color: var(--neutral-300, #e0e0e0);
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter::before) {
+  content: '⋮';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: var(--neutral-600, #757575);
+  font-weight: bold;
+}
+
 /* Block-level container with reserved height prevents CLS when Cytoscape mounts */
 .svg-container {
   display: block;
@@ -425,12 +514,12 @@ export default {
   width: 100%;
   overflow: hidden;
   /* Reserve space before graph mounts to prevent layout shift */
-  min-height: 380px;
+  min-height: 480px;
 }
 
 .cytoscape-container {
   width: 100%;
-  height: 380px;
+  height: 480px;
   background: var(--surface-canvas);
   border-radius: var(--radius-md, 6px);
 }

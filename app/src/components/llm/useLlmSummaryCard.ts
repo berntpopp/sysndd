@@ -242,7 +242,7 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Judge verdict label for display
+   * Judge verdict label for display (explicitly notes automated AI evaluation)
    */
   const judgeVerdictLabel = computed<string>(() => {
     const verdict = judgeVerdict.value;
@@ -250,11 +250,11 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
 
     switch (verdict) {
       case 'accept':
-        return 'Verified';
+        return 'AI evaluated';
       case 'accept_with_corrections':
-        return 'Verified';
+        return 'AI evaluated (corrected)';
       case 'low_confidence':
-        return 'Review';
+        return 'Needs review';
       case 'reject':
         return 'Rejected';
       default:
@@ -263,15 +263,15 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Bootstrap variant for judge verdict badge
+   * Bootstrap variant for judge verdict badge (calm secondary/neutral instead of clinical success)
    */
   const judgeVerdictVariant = computed<LlmBadgeVariant>(() => {
     const verdict = judgeVerdict.value;
     switch (verdict) {
       case 'accept':
-        return 'success';
+        return 'secondary';
       case 'accept_with_corrections':
-        return 'success';
+        return 'secondary';
       case 'low_confidence':
         return 'warning';
       case 'reject':
@@ -282,7 +282,7 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Tooltip for validation badge
+   * Tooltip for validation badge with explicit automated provenance disclosure
    */
   const validatedTooltip = computed<string>(() => {
     const verdict = judgeVerdict.value;
@@ -292,23 +292,25 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
 
     switch (verdict) {
       case 'accept':
-        tooltip = 'Content verified by AI judge';
+        tooltip =
+          'Consistency verified by automated AI evaluation. Note: this text is model-generated and automated-evaluated, not manual clinical curation.';
         break;
       case 'accept_with_corrections':
-        tooltip = 'Verified with minor corrections applied';
+        tooltip =
+          'Consistency verified by automated AI evaluation with minor corrections applied. Note: not manual clinical curation.';
         break;
       case 'low_confidence':
-        tooltip = 'Low confidence - manual review recommended';
+        tooltip = 'Low confidence from automated evaluation - manual review recommended';
         break;
       case 'reject':
-        tooltip = 'Content rejected by AI judge';
+        tooltip = 'Content rejected by automated evaluation model';
         break;
       default:
         tooltip = 'Validation status';
     }
 
     if (reasoning) {
-      tooltip += `\n\n${reasoning}`;
+      tooltip += `\n\nEvaluator notes: ${reasoning}`;
     }
 
     return tooltip;

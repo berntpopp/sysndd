@@ -3,16 +3,19 @@
   <BCard v-if="summary" class="llm-summary-card mb-3">
     <!-- Header: AI disclosure with inline verification status -->
     <template #header>
-      <div class="d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center">
-          <span class="ai-indicator me-2">
-            <i class="bi bi-file-earmark-medical text-primary" aria-hidden="true" />
-            <span class="ai-label">Synthesis</span>
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <span class="ai-indicator" aria-label="AI-generated summary">
+            <i class="bi bi-stars" aria-hidden="true" />
+            <span class="ai-label">AI</span>
           </span>
           <span class="header-title">
-            Phenotypic Profile<span v-if="clusterNumber" class="text-muted fw-normal">
+            {{ title }}<span v-if="clusterNumber" class="text-muted fw-normal">
               — Cluster {{ clusterNumber }}</span
             >
+          </span>
+          <span class="ai-disclosure d-none d-md-inline-block text-muted">
+            · Automated summary, not manual curation
           </span>
         </div>
         <!-- Verification badge inline with header -->
@@ -24,10 +27,10 @@
             class="verification-badge"
             pill
           >
-            <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
+            <i v-if="judgeVerdict === 'accept'" class="bi bi-shield-check me-1" />
             <i
               v-else-if="judgeVerdict === 'accept_with_corrections'"
-              class="bi bi-check2-circle me-1"
+              class="bi bi-shield-check me-1"
             />
             <i
               v-else-if="judgeVerdict === 'low_confidence'"
@@ -186,6 +189,13 @@ export default defineComponent({
       type: Number,
       default: null,
     },
+    /**
+     * Card title label (default 'Summary')
+     */
+    title: {
+      type: String,
+      default: 'Summary',
+    },
   },
 
   setup(props) {
@@ -197,7 +207,7 @@ export default defineComponent({
 <style scoped>
 .llm-summary-card {
   border: 1px solid var(--bs-border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-lg, 8px);
   background: var(--bs-body-bg, #ffffff);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -218,22 +228,29 @@ export default defineComponent({
   padding: 0.5rem 1rem;
 }
 
-/* Header styles */
+/* Header styles: AI provenance clearly styled matching NDDScore */
 .ai-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   padding: 0.15rem 0.5rem;
-  background: var(--medical-blue-50, #e3f2fd);
-  border: 1px solid var(--border-subtle, #d9e0ea);
-  border-radius: var(--radius-full, 9999px);
+  background: var(--status-warning-bg, #fff3e0);
+  border: 1px solid rgba(184, 77, 0, 0.25);
+  border-radius: var(--radius-sm, 4px);
   font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.ai-indicator .bi {
+  color: #b84d00;
+  font-size: 0.8rem;
 }
 
 .ai-label {
-  font-weight: 600;
-  color: var(--medical-blue-700, #0d47a1);
-  letter-spacing: 0;
+  font-weight: 700;
+  color: #7a3400;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .header-title {
@@ -242,9 +259,19 @@ export default defineComponent({
   color: var(--bs-body-color);
 }
 
-.verification-badge {
+.ai-disclosure {
   font-size: 0.75rem;
   font-weight: 500;
+  color: var(--neutral-600, #616161);
+}
+
+.verification-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  background: var(--neutral-100, #f5f5f5);
+  color: var(--neutral-800, #333333);
 }
 
 .pending-badge {

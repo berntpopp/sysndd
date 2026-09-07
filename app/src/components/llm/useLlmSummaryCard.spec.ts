@@ -74,4 +74,34 @@ describe('useLlmSummaryCard', () => {
     expect(composable.normalizedSummary.value?.summary).toBe('Quoted summary text');
     expect(composable.normalizedSummary.value?.clinical_relevance).toBe('High relevance');
   });
+
+  it('marks judge verdict as AI evaluated with calm secondary variant and explicit automated disclosure', () => {
+    const composable = useLlmSummaryCard({
+      summary: {
+        summary: 'Test summary',
+        llm_judge_verdict: 'accept',
+        llm_judge_reasoning: 'Grounded in enrichment data',
+      },
+      createdAt: '2026-01-01',
+    });
+
+    expect(composable.judgeVerdictLabel.value).toBe('AI evaluated');
+    expect(composable.judgeVerdictVariant.value).toBe('secondary');
+    expect(composable.validatedTooltip.value).toContain('Consistency verified by automated AI evaluation');
+    expect(composable.validatedTooltip.value).toContain('not manual clinical curation');
+    expect(composable.validatedTooltip.value).toContain('Grounded in enrichment data');
+  });
+
+  it('marks accept_with_corrections as AI evaluated (corrected)', () => {
+    const composable = useLlmSummaryCard({
+      summary: {
+        summary: 'Test summary',
+        llm_judge_verdict: 'accept_with_corrections',
+      },
+      createdAt: '2026-01-01',
+    });
+
+    expect(composable.judgeVerdictLabel.value).toBe('AI evaluated (corrected)');
+    expect(composable.judgeVerdictVariant.value).toBe('secondary');
+  });
 });

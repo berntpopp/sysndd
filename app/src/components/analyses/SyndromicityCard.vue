@@ -12,7 +12,7 @@
   It also carries no AI-provenance affordances, because it is not AI output.
 -->
 <template>
-  <BCard v-if="hasBlock" class="my-3 mx-2 syndromicity-card" no-body>
+  <BCard v-if="hasBlock" class="syndromicity-card" no-body>
     <BCardBody>
       <div class="d-flex justify-content-between align-items-start mb-2">
         <div>
