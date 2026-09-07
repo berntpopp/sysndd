@@ -31,12 +31,12 @@ export interface SummaryJson {
   // #630: `syndromicity` was REMOVED from the LLM contract and is stripped from
   // historical cached rows on read. It is computed from curated HPO annotations
   // and rendered by SyndromicityCard.vue instead. Do not reintroduce it here.
-  clinical_pattern?: string;
+  clinical_pattern?: string | string[];
   // Judge metadata (if present)
-  llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject';
-  llm_judge_reasoning?: string;
-  llm_judge_points?: number;
-  corrections_applied?: boolean;
+  llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject' | string[];
+  llm_judge_reasoning?: string | string[];
+  llm_judge_points?: number | number[];
+  corrections_applied?: boolean | boolean[];
   corrections_made?: string[];
 }
 
@@ -80,6 +80,39 @@ function normalize<T>(val: T | T[] | undefined): T | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
 
+/**
+ * Cleanly extract a scalar string from values that may arrive as single-element
+ * arrays from R Plumber, JSON-stringified arrays like '[ "..." ]', or quoted strings.
+ */
+export function parseCleanString(val: unknown): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  let s = val;
+  if (Array.isArray(s)) {
+    if (s.length === 0) return undefined;
+    s = s.map((item) => (typeof item === 'string' ? item.trim() : String(item))).join(', ');
+  }
+  if (typeof s !== 'string') return String(s);
+  let str = s.trim();
+  if (str.startsWith('[') && str.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item).trim()).filter(Boolean).join(', ');
+      }
+    } catch {
+      str = str.slice(1, -1).trim();
+    }
+  }
+  // Strip surrounding quotes
+  while (
+    (str.startsWith('"') && str.endsWith('"')) ||
+    (str.startsWith("'") && str.endsWith("'"))
+  ) {
+    str = str.slice(1, -1).trim();
+  }
+  return str || undefined;
+}
+
 export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard {
   /**
    * Normalized summary with scalar fields extracted from R's array format
@@ -88,8 +121,9 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
     if (!props.summary) return null;
     return {
       ...props.summary,
-      summary: normalize(props.summary.summary) ?? '',
-      clinical_relevance: normalize(props.summary.clinical_relevance),
+      summary: parseCleanString(props.summary.summary) ?? '',
+      clinical_relevance: parseCleanString(props.summary.clinical_relevance),
+      clinical_pattern: parseCleanString(props.summary.clinical_pattern),
     };
   });
 
