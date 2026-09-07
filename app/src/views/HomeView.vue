@@ -127,9 +127,11 @@ export default {
       gene_statistics: INIT_OBJ.GENE_STAT_INIT,
       news: INIT_OBJ.NEWS_INIT,
       loadingStates: {
-        statistics: false,
-        news: false,
+        statistics: true,
+        news: true,
       },
+      initialStatsLoaded: false,
+      initialGenesLoaded: false,
       errors: {
         statistics: null,
         news: null,
@@ -150,12 +152,20 @@ export default {
   watch: {
     'entity_statistics.data': {
       handler(after, before) {
+        if (!this.initialStatsLoaded) {
+          this.initialStatsLoaded = true;
+          return;
+        }
         this.animateOnChange(after, before);
       },
       deep: true,
     },
     'gene_statistics.data': {
       handler(after, before) {
+        if (!this.initialGenesLoaded) {
+          this.initialGenesLoaded = true;
+          return;
+        }
         this.animateOnChange(after, before);
       },
       deep: true,
