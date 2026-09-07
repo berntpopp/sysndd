@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-09-07
+
+### Added
+
+- **ClinVar condition display and filtering across genomic visualizations.** Gene structure and protein domain lollipop plots now enrich ClinVar variants with phenotypic conditions, complete with search, condition chip toggles, and unified summary badges. (#659)
+- **NCBI E-utilities trait enrichment proxy.** New backend integration (`external-proxy-clinvar-traits.R`) resolves condition names from ClinVar variation and trait set records with persistent caching and rate-limited chunking. (#659)
+- **Dedicated loading skeletons for genomic visualizations.** Introduced `ProteinLollipopSkeleton` for a polished loading experience that eliminates layout shifts while structures and variants are fetched. (#659)
+
+### Fixed
+
+- **Eliminate Cumulative Layout Shift (CLS) on entity and table views.** Kept search and filtering toolbars mounted in `TablesEntities`, `TablesGenes`, `TablesPhenotypes`, and `PanelsTable` during initial fetch to eliminate layout jumping. (#659)
+- **Prevent lollipop marker clipping and overflow.** SVG headroom calculations now dynamically scale with maximum variant count, ensuring tall lollipop stems and count badges stay fully within plot bounds. (#659)
+- **Normalize ClinVar placeholder conditions.** Consolidated ambiguous variations of empty, missing, or unspecified trait names into a single unified "Not provided / Not specified" category. (#659)
+- **Genomic plot visual clarity and z-ordering.** Splice variants now render as distinct diamond glyphs with purple accent, high-severity variants render in front of lower-severity variants, and exons have rounded geometry. (#659)
+- **UI/UX polish and design token alignment.** Resolved contrast, border styling, and responsive layout quirks across mobile and desktop breakpoints following impeccable design guidelines. (#659)
+
+
 ## [0.34.4] - 2026-09-02
 
 ### Fixed
