@@ -185,6 +185,21 @@ describe('ProteinLollipopControlsPanel', () => {
       expect(wrapper.find('.condition-filter-row').findAll('.filter-group')).toHaveLength(12);
       expect(toggleBtn.text()).toContain('less');
     });
+
+    it('renders "Not provided" as a distinct pinned trailing chip with unspecified styling', () => {
+      const items = [
+        { condition: 'Coffin-Siris syndrome 1', visible: true, count: 127 },
+        { condition: 'ARID1B-Related Disorder', visible: true, count: 47 },
+        { condition: 'Not provided', visible: true, count: 820 },
+      ];
+
+      const wrapper = mountPanel({ conditionLegendItems: items });
+      const unspecifiedChip = wrapper.find('.filter-chip--unspecified');
+      expect(unspecifiedChip.exists()).toBe(true);
+      expect(unspecifiedChip.text()).toContain('Not provided');
+      expect(unspecifiedChip.find('.filter-count').text()).toBe('820');
+      expect(wrapper.find('.filter-separator').exists()).toBe(true);
+    });
   });
 });
 

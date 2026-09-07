@@ -35,3 +35,36 @@ test_that("enrich_variants_with_clinvar_traits successfully extracts traits for 
   expect_true("MONDO:0018997" %in% unlist(res[[1]]$mondo_ids))
   expect_true("PS163950" %in% unlist(res[[1]]$omim_ids))
 })
+
+test_that("is_clinvar_placeholder_trait correctly identifies placeholders", {
+  placeholders <- c(
+    "not provided", "Not provided", "NOT PROVIDED",
+    "not specified", "Not specified", "NOT SPECIFIED",
+    "See cases", "see cases", "not reported",
+    "unknown", "unspecified", "none", "-", ".", "", "NA"
+  )
+  for (p in placeholders) {
+    expect_true(is_clinvar_placeholder_trait(p), info = paste("Failed for:", p))
+  }
+
+  expect_true(is_clinvar_placeholder_trait(NULL))
+  expect_true(is_clinvar_placeholder_trait(NA))
+
+  informative <- c(
+    "Noonan syndrome", "Coffin-Siris syndrome 1",
+    "ARID1B-Related Disorder", "Inborn genetic diseases",
+    "Ataxia, not otherwise specified"
+  )
+  for (inf in informative) {
+    expect_false(is_clinvar_placeholder_trait(inf), info = paste("Failed for:", inf))
+  }
+})
+
+test_that("normalize_clinvar_trait_name normalizes placeholders to 'Not provided'", {
+  expect_equal(normalize_clinvar_trait_name("not provided"), "Not provided")
+  expect_equal(normalize_clinvar_trait_name("not specified"), "Not provided")
+  expect_equal(normalize_clinvar_trait_name("See cases"), "Not provided")
+  expect_equal(normalize_clinvar_trait_name(""), "Not provided")
+  expect_equal(normalize_clinvar_trait_name("Coffin-Siris syndrome 1"), "Coffin-Siris syndrome 1")
+})
+

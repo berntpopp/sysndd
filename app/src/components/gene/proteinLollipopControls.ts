@@ -167,31 +167,94 @@ export function selectAllEffectTypes(filterState: LollipopFilterState): void {
   }
 }
 
-/** Fallback condition label for variants with missing or empty condition list */
-export const NOT_SPECIFIED_CONDITION = 'Not specified';
+/** Canonical label for variants with missing, uninformative, or placeholder conditions */
+export const NOT_PROVIDED_CONDITION = 'Not provided';
+
+/** Alias for backwards compatibility with earlier filter states and tests */
+export const NOT_SPECIFIED_CONDITION = NOT_PROVIDED_CONDITION;
+
+/** Regular expression identifying non-informative ClinVar condition strings */
+const PLACEHOLDER_CONDITION_REGEX =
+  /^(not\s*(provided|specified|reported)|see\s*cases|unknown|unspecified|none|[.\-])$/i;
 
 /**
- * Count variants per distinct reported condition, sorted by count descending.
+ * Check whether a raw condition string is an uninformative placeholder.
+ */
+export function isUnspecifiedCondition(cond?: string | null): boolean {
+  if (!cond || !cond.trim() || cond.trim().toUpperCase() === 'NA') {
+    return true;
+  }
+  return PLACEHOLDER_CONDITION_REGEX.test(cond.trim());
+}
+
+/**
+ * Normalize a condition string into a canonical label.
+ * Maps all variations of "not provided", "not specified", "see cases", etc. to "Not provided".
+ */
+export function normalizeCondition(cond?: string | null): string {
+  if (isUnspecifiedCondition(cond)) {
+    return NOT_PROVIDED_CONDITION;
+  }
+  return cond!.trim();
+}
+
+/**
+ * Normalize and deduplicate a variant's condition list.
+ * Specific disease conditions are sorted alphabetically, followed by "Not provided" if present.
+ */
+export function normalizeConditionList(conditions?: string[] | null): string[] {
+  if (!conditions || conditions.length === 0) {
+    return [NOT_PROVIDED_CONDITION];
+  }
+
+  const set = new Set<string>();
+  for (const c of conditions) {
+    set.add(normalizeCondition(c));
+  }
+
+  return Array.from(set).sort((a, b) => {
+    if (a === NOT_PROVIDED_CONDITION) return 1;
+    if (b === NOT_PROVIDED_CONDITION) return -1;
+    return a.localeCompare(b);
+  });
+}
+
+/**
+ * Count variants per distinct reported condition.
+ * Specific clinical conditions are sorted by count descending (then alphabetical).
+ * "Not provided" is grouped into a single consolidated count and placed at the very end
+ * so that informative clinical syndromes take visual precedence in filter chips.
  */
 export function countByCondition(
-  variants: ProcessedVariant[]
+  variants: Array<{ conditions?: string[] }>
 ): Array<{ condition: string; count: number }> {
   const counts = new Map<string, number>();
 
   for (const variant of variants) {
-    const conds = variant.conditions && variant.conditions.length > 0
-      ? variant.conditions
-      : [NOT_SPECIFIED_CONDITION];
-
-    for (const rawCond of conds) {
-      const cond = rawCond.trim() || NOT_SPECIFIED_CONDITION;
+    const conds = normalizeConditionList(variant.conditions);
+    for (const cond of conds) {
       counts.set(cond, (counts.get(cond) || 0) + 1);
     }
   }
 
-  return Array.from(counts.entries())
-    .map(([condition, count]) => ({ condition, count }))
-    .sort((a, b) => b.count - a.count || a.condition.localeCompare(b.condition));
+  const specificConditions: Array<{ condition: string; count: number }> = [];
+  let notProvidedEntry: { condition: string; count: number } | null = null;
+
+  for (const [condition, count] of counts.entries()) {
+    if (condition === NOT_PROVIDED_CONDITION) {
+      notProvidedEntry = { condition, count };
+    } else {
+      specificConditions.push({ condition, count });
+    }
+  }
+
+  specificConditions.sort((a, b) => b.count - a.count || a.condition.localeCompare(b.condition));
+
+  if (notProvidedEntry) {
+    specificConditions.push(notProvidedEntry);
+  }
+
+  return specificConditions;
 }
 
 /**
@@ -205,11 +268,8 @@ export function isConditionVisible(
     return true;
   }
 
-  const variantConds = conditions && conditions.length > 0
-    ? conditions.map((c) => c.trim() || NOT_SPECIFIED_CONDITION)
-    : [NOT_SPECIFIED_CONDITION];
-
-  return variantConds.some((c) => filterState.selectedConditions!.includes(c));
+  const normalized = normalizeConditionList(conditions);
+  return normalized.some((c) => filterState.selectedConditions!.includes(c));
 }
 
 /**

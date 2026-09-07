@@ -156,8 +156,10 @@
       <span class="condition-prefix small text-muted me-1">
         <i class="bi bi-tag small" aria-hidden="true" /> Condition:
       </span>
+
+      <!-- Specific clinical syndrome / disease chips -->
       <span
-        v-for="item in visibleConditionItems"
+        v-for="item in visibleSpecificConditions"
         :key="item.condition"
         class="filter-group"
       >
@@ -188,15 +190,55 @@
           only
         </button>
       </span>
+
+      <!-- Show more / less specific conditions toggle button -->
       <button
-        v-if="hasMoreConditions"
+        v-if="hasMoreSpecificConditions"
         type="button"
         class="btn btn-outline-secondary btn-xs ms-1 toggle-all-conditions-btn"
         :title="showAllConditionsExpanded ? 'Collapse condition list' : 'Show more conditions'"
         @click="showAllConditionsExpanded = !showAllConditionsExpanded"
       >
-        {{ showAllConditionsExpanded ? 'less' : `+${conditionLegendItems.length - MAX_VISIBLE_CONDITIONS} more` }}
+        {{ showAllConditionsExpanded ? 'less' : `+${specificConditionItems.length - MAX_VISIBLE_CONDITIONS} more` }}
       </button>
+
+      <!-- Visual separator before Not provided chip if specific conditions exist -->
+      <span v-if="specificConditionItems.length > 0 && notProvidedItem" class="filter-separator">|</span>
+
+      <!-- Consolidated 'Not provided' chip pinned at the end -->
+      <span
+        v-if="notProvidedItem"
+        class="filter-group"
+      >
+        <button
+          type="button"
+          class="filter-chip filter-chip--condition filter-chip--unspecified"
+          :class="{ 'filter-chip--hidden': !notProvidedItem.visible }"
+          :aria-label="`Toggle ${notProvidedItem.condition} variants`"
+          :aria-pressed="notProvidedItem.visible"
+          :title="`${notProvidedItem.condition} (no specific clinical condition reported)`"
+          @click="$emit('toggle-condition', notProvidedItem.condition)"
+        >
+          <span
+            class="filter-dot filter-dot--unspecified"
+            :style="{ backgroundColor: notProvidedItem.visible ? '#78909c' : '#ccc' }"
+          />
+          <span class="filter-label text-muted font-italic">
+            {{ notProvidedItem.condition }}
+          </span>
+          <span class="filter-count">{{ notProvidedItem.count }}</span>
+        </button>
+        <button
+          type="button"
+          class="only-btn"
+          :title="`Show only ${notProvidedItem.condition}`"
+          @click="$emit('select-only-condition', notProvidedItem.condition)"
+        >
+          only
+        </button>
+      </span>
+
+      <!-- Show all conditions button -->
       <button
         type="button"
         class="all-btn"
@@ -293,14 +335,21 @@ defineEmits<{
 const MAX_VISIBLE_CONDITIONS = 5;
 const showAllConditionsExpanded = ref(false);
 
-const visibleConditionItems = computed(() => {
-  const items = props.conditionLegendItems || [];
-  if (showAllConditionsExpanded.value) return items;
-  return items.slice(0, MAX_VISIBLE_CONDITIONS);
+const notProvidedItem = computed(() => {
+  return props.conditionLegendItems?.find((item) => item.condition === 'Not provided') || null;
 });
 
-const hasMoreConditions = computed(() => {
-  return (props.conditionLegendItems?.length || 0) > MAX_VISIBLE_CONDITIONS;
+const specificConditionItems = computed(() => {
+  return (props.conditionLegendItems || []).filter((item) => item.condition !== 'Not provided');
+});
+
+const visibleSpecificConditions = computed(() => {
+  if (showAllConditionsExpanded.value) return specificConditionItems.value;
+  return specificConditionItems.value.slice(0, MAX_VISIBLE_CONDITIONS);
+});
+
+const hasMoreSpecificConditions = computed(() => {
+  return specificConditionItems.value.length > MAX_VISIBLE_CONDITIONS;
 });
 </script>
 
@@ -343,12 +392,25 @@ const hasMoreConditions = computed(() => {
   background: #f5f5f5;
 }
 
+.filter-chip--unspecified {
+  border-style: dashed;
+  background-color: #fafbfc;
+}
+
+.filter-chip--unspecified:hover {
+  background-color: #f1f3f5;
+}
+
 .filter-dot {
   display: inline-block;
   width: 9px;
   height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.filter-dot--unspecified {
+  border-radius: 2px;
 }
 
 .filter-label {

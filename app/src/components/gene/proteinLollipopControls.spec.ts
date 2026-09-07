@@ -3,12 +3,16 @@ import { describe, expect, it } from 'vitest';
 import type { LollipopFilterState, ProcessedVariant } from '@/types/protein';
 import {
   EFFECT_TYPE_ORDER,
+  NOT_PROVIDED_CONDITION,
   NOT_SPECIFIED_CONDITION,
   countByClassification,
   countByCondition,
   countByEffectType,
   formatDomainType,
   isConditionVisible,
+  isUnspecifiedCondition,
+  normalizeCondition,
+  normalizeConditionList,
   selectAllConditions,
   selectAllEffectTypes,
   selectAllPathogenicity,
@@ -189,20 +193,69 @@ describe('conflicting and other pathogenicity filters (#607)', () => {
 });
 
 describe('condition filtering (ClinVar disease phenotypes)', () => {
-  it('countByCondition tallies conditions and sorts by count descending', () => {
+  it('isUnspecifiedCondition recognizes various ClinVar placeholder strings', () => {
+    const placeholders = [
+      'not provided',
+      'Not provided',
+      'NOT PROVIDED',
+      'not specified',
+      'Not specified',
+      'See cases',
+      'see cases',
+      'not reported',
+      'unknown',
+      'unspecified',
+      'none',
+      '-',
+      '.',
+      '',
+      '   ',
+      'NA',
+      null,
+      undefined,
+    ];
+    for (const p of placeholders) {
+      expect(isUnspecifiedCondition(p)).toBe(true);
+    }
+
+    expect(isUnspecifiedCondition('Noonan syndrome 1')).toBe(false);
+    expect(isUnspecifiedCondition('Coffin-Siris syndrome 1')).toBe(false);
+    expect(isUnspecifiedCondition('Ataxia, not otherwise specified')).toBe(false);
+  });
+
+  it('normalizeCondition normalizes placeholders to Not provided and trims valid conditions', () => {
+    expect(normalizeCondition('not provided')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('not specified')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('See cases')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('  Noonan syndrome 1  ')).toBe('Noonan syndrome 1');
+  });
+
+  it('normalizeConditionList deduplicates placeholders and orders specific conditions before Not provided', () => {
+    expect(normalizeConditionList([])).toEqual([NOT_PROVIDED_CONDITION]);
+    expect(normalizeConditionList(null)).toEqual([NOT_PROVIDED_CONDITION]);
+    expect(normalizeConditionList(['not provided', 'not specified'])).toEqual([NOT_PROVIDED_CONDITION]);
+
+    const mixed = normalizeConditionList(['not provided', 'Coffin-Siris syndrome 1', 'ARID1B-Related Disorder']);
+    expect(mixed).toEqual(['ARID1B-Related Disorder', 'Coffin-Siris syndrome 1', NOT_PROVIDED_CONDITION]);
+  });
+
+  it('countByCondition consolidates placeholders, avoids double counting, and puts Not provided at end', () => {
     const variants = [
-      makeVariant({ conditions: ['Noonan syndrome 1', 'LEOPARD syndrome 1'] }),
+      makeVariant({ conditions: ['Noonan syndrome 1', 'not provided'] }),
       makeVariant({ conditions: ['Noonan syndrome 1'] }),
       makeVariant({ conditions: ['Metachondromatosis'] }),
-      makeVariant({ conditions: [] }),
+      makeVariant({ conditions: ['not provided', 'not specified'] }), // Multiple placeholders on one variant
+      makeVariant({ conditions: ['See cases'] }),
+      makeVariant({ conditions: [] }), // Empty conditions fallback to Not provided
     ];
 
     const counts = countByCondition(variants);
     expect(counts).toEqual([
       { condition: 'Noonan syndrome 1', count: 2 },
-      { condition: 'LEOPARD syndrome 1', count: 1 },
       { condition: 'Metachondromatosis', count: 1 },
-      { condition: NOT_SPECIFIED_CONDITION, count: 1 },
+      // 4 variants have Not provided: variant 0, variant 3 (deduplicated), variant 4, variant 5
+      { condition: NOT_PROVIDED_CONDITION, count: 4 },
     ]);
   });
 
@@ -217,7 +270,7 @@ describe('condition filtering (ClinVar disease phenotypes)', () => {
     expect(isConditionVisible(['Noonan syndrome 1'], state)).toBe(true);
   });
 
-  it('isConditionVisible filters variants according to selectedConditions', () => {
+  it('isConditionVisible filters variants according to selectedConditions with normalization', () => {
     const state = makeFilterState({ selectedConditions: ['Noonan syndrome 1'] });
 
     // Variant with matching condition -> visible
@@ -226,13 +279,17 @@ describe('condition filtering (ClinVar disease phenotypes)', () => {
     // Variant without matching condition -> hidden
     expect(isConditionVisible(['Metachondromatosis'], state)).toBe(false);
 
-    // Variant with no condition matches NOT_SPECIFIED_CONDITION
+    // Variant with no condition matches NOT_PROVIDED_CONDITION
     expect(isConditionVisible([], state)).toBe(false);
     expect(isConditionVisible(undefined, state)).toBe(false);
+    expect(isConditionVisible(['not specified'], state)).toBe(false);
 
-    state.selectedConditions = [NOT_SPECIFIED_CONDITION];
+    state.selectedConditions = [NOT_PROVIDED_CONDITION];
     expect(isConditionVisible([], state)).toBe(true);
     expect(isConditionVisible(undefined, state)).toBe(true);
+    expect(isConditionVisible(['not provided'], state)).toBe(true);
+    expect(isConditionVisible(['not specified'], state)).toBe(true);
+    expect(isConditionVisible(['See cases'], state)).toBe(true);
     expect(isConditionVisible(['Noonan syndrome 1'], state)).toBe(false);
   });
 

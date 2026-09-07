@@ -11,6 +11,42 @@
 require(httr2)
 require(jsonlite)
 
+#' Canonical label for uninformative or placeholder ClinVar conditions
+CANONICAL_NOT_PROVIDED_CONDITION <- "Not provided"
+
+#' Check whether a condition string is an uninformative placeholder
+#'
+#' Matches variations such as "not provided", "not specified", "see cases",
+#' "not reported", "unknown", "unspecified", "none", "-", ".", or empty strings.
+#'
+#' @param name Character condition string
+#' @return Logical TRUE if name is a placeholder, FALSE if it is an informative condition
+#' @export
+is_clinvar_placeholder_trait <- function(name) {
+  if (is.null(name) || is.na(name)) return(TRUE)
+  cleaned <- trimws(as.character(name))
+  if (!nzchar(cleaned) || identical(cleaned, "NA")) return(TRUE)
+  grepl(
+    "^(not\\s*(provided|specified|reported)|see\\s*cases|unknown|unspecified|none|[.\\-])$",
+    cleaned,
+    ignore.case = TRUE
+  )
+}
+
+#' Normalize a ClinVar condition string
+#'
+#' Replaces non-informative placeholder strings with CANONICAL_NOT_PROVIDED_CONDITION.
+#'
+#' @param name Character condition string
+#' @return Normalized condition string
+#' @export
+normalize_clinvar_trait_name <- function(name) {
+  if (is_clinvar_placeholder_trait(name)) {
+    return(CANONICAL_NOT_PROVIDED_CONDITION)
+  }
+  trimws(as.character(name))
+}
+
 #' Enrich a list of ClinVar variants with condition traits from NCBI E-utilities
 #'
 #' @param variants List of variant objects returned by gnomAD ClinVar proxy
@@ -105,7 +141,8 @@ enrich_variants_with_clinvar_traits <- function(variants) {
             for (trait in t_set) {
               name <- trimws(as.character(trait$trait_name %||% ""))
               if (nzchar(name)) {
-                cond_names <- c(cond_names, name)
+                norm_name <- normalize_clinvar_trait_name(name)
+                cond_names <- c(cond_names, norm_name)
               }
               xrefs <- trait$trait_xrefs %||% list()
               for (xref in xrefs) {
@@ -120,8 +157,16 @@ enrich_variants_with_clinvar_traits <- function(variants) {
             }
           }
 
+          unique_conds <- unique(cond_names)
+          if (length(unique_conds) > 1 && CANONICAL_NOT_PROVIDED_CONDITION %in% unique_conds) {
+            unique_conds <- c(
+              setdiff(unique_conds, CANONICAL_NOT_PROVIDED_CONDITION),
+              CANONICAL_NOT_PROVIDED_CONDITION
+            )
+          }
+
           trait_map[[uid_str]] <- list(
-            conditions = as.list(unique(cond_names)),
+            conditions = as.list(unique_conds),
             mondo_ids = as.list(unique(mondo_set)),
             omim_ids = as.list(unique(omim_set))
           )

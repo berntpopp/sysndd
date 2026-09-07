@@ -1,5 +1,6 @@
 import type { EffectType } from '@/types/protein';
 import { normalizeEffectType } from '@/types/protein';
+import { normalizeConditionList } from './proteinLollipopControls';
 
 export interface GeneStructureVariantLike {
   genomicPosition: number;
@@ -97,9 +98,7 @@ export function isGeneStructureVariantVisible(
 
   let conditionVisible = true;
   if (filterState.selectedConditions && filterState.selectedConditions.length > 0) {
-    const conds = variant.conditions && variant.conditions.length > 0
-      ? variant.conditions
-      : ['Not specified'];
+    const conds = normalizeConditionList(variant.conditions);
     conditionVisible = conds.some((c) => filterState.selectedConditions!.includes(c));
   }
 

@@ -17,6 +17,7 @@ import type {
 import { normalizeClassification, parseProteinPosition } from '@/types/protein';
 import type { EnsemblGeneStructure } from '@/types/ensembl';
 import type { ClinVarVariant } from '@/types/external';
+import { normalizeConditionList } from './proteinLollipopControls';
 
 /**
  * UniProt domain feature from the API response
@@ -114,7 +115,7 @@ export function buildProteinPlotData(args: {
             majorConsequence: v.major_consequence,
             isSpliceVariant: parsed.isSplice,
             inGnomad: v.in_gnomad,
-            conditions: v.conditions ?? [],
+            conditions: normalizeConditionList(v.conditions),
             mondoIds: v.mondo_ids ?? [],
             omimIds: v.omim_ids ?? [],
           } as ProcessedVariant;
@@ -259,7 +260,7 @@ export function buildGenomicVariants(
         clinvarId: String(v.clinvar_variation_id),
         variantId: v.variant_id,
         majorConsequence: v.major_consequence,
-        conditions: v.conditions ?? [],
+        conditions: normalizeConditionList(v.conditions),
         mondoIds: v.mondo_ids ?? [],
         omimIds: v.omim_ids ?? [],
       } as GenomicVariant;
