@@ -3,8 +3,12 @@
     <TableShell
       title="Panel compilation"
       :heading-level="1"
-      :meta="`Genes: ${totalRows}`"
-      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :meta="loading && !totalRows ? 'Loading...' : `Genes: ${totalRows}`"
+      :description="
+        loading && !totalRows
+          ? 'Loading panel genes...'
+          : `Loaded ${perPage}/${totalRows} in ${executionTime}`
+      "
       :loading="loading"
     >
       <template #actions>
@@ -69,7 +73,7 @@
       </template>
 
       <template #loading>
-        <TableLoadingState label="Loading panel genes" />
+        <TableLoadingState :rows="10" label="Loading panel genes" />
       </template>
 
       <div class="d-none d-md-block">

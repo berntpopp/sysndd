@@ -3,60 +3,23 @@
     <TableShell
       title="Phenotype search"
       :heading-level="headingLevel"
-      :meta="`Associated entities: ${totalRows}`"
-      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :meta="loading && !totalRows ? 'Loading...' : `Associated entities: ${totalRows}`"
+      :description="
+        loading && !totalRows
+          ? 'Loading phenotype entities...'
+          : `Loaded ${perPage}/${totalRows} in ${executionTime}`
+      "
       :loading="loading"
     >
       <template v-if="showFilterControls" #actions>
-        <BButton
-          v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          title="Download data as Excel file."
-          @click="requestSelectedExcel()"
-        >
-          <i class="bi bi-table mx-1" />
-          <i v-if="!downloading" class="bi bi-download" />
-          <BSpinner v-if="downloading" small />
-          .xlsx
-        </BButton>
-
-        <BButton
-          v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          title="Copy link to this page."
-          aria-label="Copy link to this page"
-          variant="success"
-          @click="copyLinkToClipboard()"
-        >
-          <i class="bi bi-link" />
-        </BButton>
-
-        <BButton
-          v-b-tooltip.hover.bottom
-          size="sm"
-          class="me-1"
-          aria-label="Remove all filters"
-          :title="
-            'The table is ' +
-            (filter_string === '' || filter_string === null || filter_string === 'null'
-              ? 'not'
-              : '') +
-            ' filtered.' +
-            (filter_string === '' || filter_string === null || filter_string === 'null'
-              ? ''
-              : ' Click to remove all filters.')
-          "
-          :variant="
-            filter_string === '' || filter_string === null || filter_string === 'null'
-              ? 'info'
-              : 'warning'
-          "
-          @click="removeFilters()"
-        >
-          <i class="bi bi-filter" />
-        </BButton>
+        <TableDownloadLinkCopyButtons
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          @request-excel="requestSelectedExcel"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
       </template>
 
       <template #toolbar>
@@ -108,7 +71,7 @@
       </template>
 
       <template #loading>
-        <TableLoadingState label="Loading phenotype-associated entities" />
+        <TableLoadingState :rows="10" label="Loading phenotype-associated entities" />
       </template>
 
       <div class="d-none d-md-block">
@@ -311,6 +274,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import table components
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import PhenotypesMobileRows from '@/components/tables/PhenotypesMobileRows.vue';
@@ -330,6 +294,7 @@ export default defineComponent({
     DiseaseBadge,
     InheritanceBadge,
     TablePaginationControls,
+    TableDownloadLinkCopyButtons,
     TableShell,
     TableLoadingState,
     PhenotypesMobileRows,

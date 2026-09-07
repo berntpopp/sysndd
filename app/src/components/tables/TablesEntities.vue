@@ -7,8 +7,12 @@
           <TableShell
             :title="headerLabel"
             :heading-level="headingLevel"
-            :meta="'Entities: ' + totalRows"
-            :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+            :meta="loading && !totalRows ? 'Loading...' : ('Entities: ' + totalRows)"
+            :description="
+              loading && !totalRows
+                ? 'Loading entities...'
+                : 'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
+            "
             :loading="loading"
           >
             <template #actions>

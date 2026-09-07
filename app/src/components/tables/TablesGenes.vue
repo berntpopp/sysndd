@@ -7,8 +7,12 @@
           <TableShell
             :title="headerLabel"
             :heading-level="headingLevel"
-            :meta="'Genes: ' + totalRows"
-            :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+            :meta="loading && !totalRows ? 'Loading...' : ('Genes: ' + totalRows)"
+            :description="
+              loading && !totalRows
+                ? 'Loading genes...'
+                : 'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
+            "
             :loading="loading"
           >
             <template #actions>
@@ -53,7 +57,7 @@
             </template>
 
             <template #loading>
-              <TableLoadingState mode="cards" />
+              <TableLoadingState :rows="10" label="Loading genes" data-testid="genes-skeleton" />
             </template>
 
             <!-- Main table element -->
