@@ -5,7 +5,10 @@
         <h2 id="home-news-title" class="home-panel__title">New entities</h2>
         <p class="home-panel__description">Recently added curated gene-disease relationships.</p>
       </div>
-      <BLink to="/Entities?sort=-entry_date&page_size=10" class="home-panel__link home-panel__link--accent">
+      <BLink
+        to="/Entities?sort=-entry_date&page_size=10"
+        class="home-panel__link home-panel__link--accent"
+      >
         Browse all
       </BLink>
     </header>
@@ -63,7 +66,11 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!news || news.length === 0" class="home-panel-state home-panel-state--empty" role="status">
+    <div
+      v-else-if="!news || news.length === 0"
+      class="home-panel-state home-panel-state--empty"
+      role="status"
+    >
       <i class="bi bi-inbox home-panel-state__icon" aria-hidden="true" />
       <span>No recent entities found.</span>
     </div>

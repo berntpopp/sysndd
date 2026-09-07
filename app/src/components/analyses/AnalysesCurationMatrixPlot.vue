@@ -15,8 +15,9 @@
         </p>
         <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
           <template #title>Cosine Similarity Analysis</template>
-          Cosine similarity measures gene list overlap between curation efforts. Because gene indicator
-          vectors are non-negative, values range from 0.0 (no shared genes) to 1.0 (identical gene lists).
+          Cosine similarity measures gene list overlap between curation efforts. Because gene
+          indicator vectors are non-negative, values range from 0.0 (no shared genes) to 1.0
+          (identical gene lists).
         </BPopover>
       </div>
 

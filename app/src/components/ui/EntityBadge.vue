@@ -104,7 +104,14 @@ export default {
   justify-content: center;
   gap: 0.2rem;
   border-radius: var(--radius-full, 9999px);
-  font-family: var(--font-family-mono, 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace);
+  font-family: var(
+    --font-family-mono,
+    'SF Mono',
+    'Monaco',
+    'Inconsolata',
+    'Roboto Mono',
+    monospace
+  );
   font-weight: 600;
   color: #fff;
   border-style: solid;

@@ -69,7 +69,9 @@
           coverage with external curation efforts.
         </p>
         <div class="home-action-links">
-          <BLink to="/Entities?sort=%2Bentity_id&page_size=10" class="home-action-links__primary">Entities</BLink>
+          <BLink to="/Entities?sort=%2Bentity_id&page_size=10" class="home-action-links__primary"
+            >Entities</BLink
+          >
           <BLink to="/Genes?sort=%2Bsymbol&page_size=10">Genes</BLink>
           <BLink to="/CurationComparisons">Comparisons</BLink>
           <BLink :href="docsUrl" target="_blank">Documentation</BLink>

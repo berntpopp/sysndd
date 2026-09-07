@@ -57,7 +57,8 @@ const componentStubs = {
   ...bootstrapStubs,
   TablesEntities: {
     props: ['filterInput', 'headerLabel'],
-    template: '<div data-testid="tables-entities-stub" :data-filter="filterInput">{{ headerLabel }}</div>',
+    template:
+      '<div data-testid="tables-entities-stub" :data-filter="filterInput">{{ headerLabel }}</div>',
   },
 };
 
@@ -102,7 +103,9 @@ describe('OntologyView', () => {
 
     const tableStub = wrapper.find('[data-testid="tables-entities-stub"]');
     expect(tableStub.exists()).toBe(true);
-    expect(tableStub.attributes('data-filter')).toBe('any(disease_ontology_id_version,MONDO:0001071)');
+    expect(tableStub.attributes('data-filter')).toBe(
+      'any(disease_ontology_id_version,MONDO:0001071)'
+    );
   });
 
   it('redirects to /PageNotFound when no ontology record is found', async () => {

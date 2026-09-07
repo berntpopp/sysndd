@@ -43,7 +43,8 @@
         <div v-if="crosswalk">
           <ul class="mb-2 ps-3 small">
             <li v-for="t in crosswalk.tiers" :key="t.tier">
-              <strong>{{ t.tier }}</strong>: {{ t.definition }}
+              <strong>{{ t.tier }}</strong
+              >: {{ t.definition }}
             </li>
           </ul>
           <ul class="mb-2 ps-3 small text-muted">
@@ -52,18 +53,11 @@
           <p class="mb-1 small">
             Mapping version: <code>{{ crosswalk.mapping_version }}</code>
           </p>
-          <a
-            class="crosswalk-link"
-            :href="crosswalkUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a class="crosswalk-link" :href="crosswalkUrl" target="_blank" rel="noopener noreferrer">
             View the complete mapping crosswalk
           </a>
         </div>
-        <div v-else-if="failed" class="small text-muted">
-          Mapping information is unavailable.
-        </div>
+        <div v-else-if="failed" class="small text-muted">Mapping information is unavailable.</div>
         <div v-else class="small text-muted">Loading&hellip;</div>
       </div>
     </BPopover>

@@ -96,8 +96,8 @@
               <div v-if="isPreparing" class="error-state text-center p-4">
                 <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
                 <p class="text-muted mb-3">
-                  This analysis is being prepared and will appear here shortly. This can take a couple
-                  of minutes after a deploy or data update.
+                  This analysis is being prepared and will appear here shortly. This can take a
+                  couple of minutes after a deploy or data update.
                 </p>
                 <BButton variant="primary" @click="retryLoad">
                   <i class="bi bi-arrow-clockwise me-1" />

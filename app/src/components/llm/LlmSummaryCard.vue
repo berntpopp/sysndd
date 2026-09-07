@@ -10,7 +10,8 @@
             <span class="ai-label">AI</span>
           </span>
           <span class="header-title">
-            {{ title }}<span v-if="clusterNumber" class="text-muted fw-normal">
+            {{ title
+            }}<span v-if="clusterNumber" class="text-muted fw-normal">
               — Cluster {{ clusterNumber }}</span
             >
           </span>

@@ -371,7 +371,9 @@ export default {
   border: 1px solid #d9e1ec;
   border-radius: 8px;
   background: #fff !important;
-  box-shadow: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.04);
+  box-shadow:
+    0 10px 15px -3px rgba(16, 24, 40, 0.08),
+    0 4px 6px -2px rgba(16, 24, 40, 0.04);
 }
 
 :deep(.dropdown-item) {
@@ -455,7 +457,9 @@ export default {
     border: 1px solid #d9e1ec;
     border-radius: 8px;
     background: #fff;
-    box-shadow: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.04);
+    box-shadow:
+      0 10px 15px -3px rgba(16, 24, 40, 0.08),
+      0 4px 6px -2px rgba(16, 24, 40, 0.04);
   }
 
   .app-navbar__menus,

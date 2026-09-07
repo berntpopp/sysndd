@@ -7,7 +7,7 @@
           <TableShell
             :title="headerLabel"
             :heading-level="headingLevel"
-            :meta="loading && !totalRows ? 'Loading...' : ('Genes: ' + totalRows)"
+            :meta="loading && !totalRows ? 'Loading...' : 'Genes: ' + totalRows"
             :description="
               loading && !totalRows
                 ? 'Loading genes...'

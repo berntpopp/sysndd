@@ -115,7 +115,11 @@
           </template>
 
           <template #cell(symbol)="data">
-            <div v-b-tooltip.hover.leftbottom :title="data.item.symbol" class="w-100 text-truncate fw-semibold">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.symbol"
+              class="w-100 text-truncate fw-semibold"
+            >
               {{ data.item.symbol }}
             </div>
           </template>

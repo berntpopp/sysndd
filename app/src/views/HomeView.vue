@@ -25,11 +25,7 @@
           :error="errors.statistics"
         />
 
-        <HomeNewsPanel
-          :news="news"
-          :loading="loadingStates.news"
-          :error="errors.news"
-        />
+        <HomeNewsPanel :news="news" :loading="loadingStates.news" :error="errors.news" />
       </div>
 
       <aside class="home-layout__secondary" aria-label="SysNDD concepts">

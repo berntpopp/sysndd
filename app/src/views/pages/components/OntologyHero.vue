@@ -58,7 +58,10 @@
                   :aria-label="`Copy ${model.primaryId} to clipboard`"
                   @click="copyId(model.primaryId)"
                 >
-                  <i :class="copied ? 'bi bi-check-lg text-success' : 'bi bi-clipboard'" aria-hidden="true" />
+                  <i
+                    :class="copied ? 'bi bi-check-lg text-success' : 'bi bi-clipboard'"
+                    aria-hidden="true"
+                  />
                 </button>
                 <a
                   v-if="model.primaryOutlink?.url"
@@ -231,7 +234,10 @@ onBeforeUnmount(() => {
 }
 .ontology-unit-grid {
   display: grid;
-  grid-template-columns: minmax(10rem, 1fr) minmax(11rem, 1.1fr) minmax(10rem, 1fr) minmax(13rem, 1.3fr);
+  grid-template-columns: minmax(10rem, 1fr) minmax(11rem, 1.1fr) minmax(10rem, 1fr) minmax(
+      13rem,
+      1.3fr
+    );
   gap: 0.5rem;
   width: 100%;
   margin-bottom: 0.55rem;

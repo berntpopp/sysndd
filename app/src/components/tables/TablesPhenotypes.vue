@@ -144,9 +144,7 @@
                     "
                   >
                     <template #first>
-                      <BFormSelectOption :value="null">
-                        Any {{ field.label }}
-                      </BFormSelectOption>
+                      <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
                     </template>
                   </BFormSelect>
                 </label>
@@ -170,9 +168,7 @@
                     "
                   >
                     <template #first>
-                      <BFormSelectOption :value="null">
-                        Any {{ field.label }}
-                      </BFormSelectOption>
+                      <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
                     </template>
                   </BFormSelect>
                 </label>

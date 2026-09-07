@@ -8,19 +8,27 @@ describe('parseCleanString', () => {
   });
 
   it('handles standard string inputs', () => {
-    expect(parseCleanString('progressive metabolic/degenerative')).toBe('progressive metabolic/degenerative');
+    expect(parseCleanString('progressive metabolic/degenerative')).toBe(
+      'progressive metabolic/degenerative'
+    );
     expect(parseCleanString('  clean text  ')).toBe('clean text');
   });
 
   it('unwraps array inputs from R Plumber character vectors', () => {
-    expect(parseCleanString(['progressive metabolic/degenerative'])).toBe('progressive metabolic/degenerative');
+    expect(parseCleanString(['progressive metabolic/degenerative'])).toBe(
+      'progressive metabolic/degenerative'
+    );
     expect(parseCleanString(['term1', 'term2'])).toBe('term1, term2');
     expect(parseCleanString([])).toBeUndefined();
   });
 
   it('parses JSON stringified arrays with brackets and quotes', () => {
-    expect(parseCleanString('[\n  "progressive metabolic/degenerative"\n]')).toBe('progressive metabolic/degenerative');
-    expect(parseCleanString('[ "progressive metabolic/degenerative" ]')).toBe('progressive metabolic/degenerative');
+    expect(parseCleanString('[\n  "progressive metabolic/degenerative"\n]')).toBe(
+      'progressive metabolic/degenerative'
+    );
+    expect(parseCleanString('[ "progressive metabolic/degenerative" ]')).toBe(
+      'progressive metabolic/degenerative'
+    );
     expect(parseCleanString('["syndromic", "metabolic"]')).toBe('syndromic, metabolic');
   });
 
@@ -87,7 +95,9 @@ describe('useLlmSummaryCard', () => {
 
     expect(composable.judgeVerdictLabel.value).toBe('AI evaluated');
     expect(composable.judgeVerdictVariant.value).toBe('secondary');
-    expect(composable.validatedTooltip.value).toContain('Consistency verified by automated AI evaluation');
+    expect(composable.validatedTooltip.value).toContain(
+      'Consistency verified by automated AI evaluation'
+    );
     expect(composable.validatedTooltip.value).toContain('not manual clinical curation');
     expect(composable.validatedTooltip.value).toContain('Grounded in enrichment data');
   });

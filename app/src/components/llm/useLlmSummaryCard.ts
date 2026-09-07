@@ -41,14 +41,7 @@ export interface SummaryJson {
 }
 
 export type LlmBadgeVariant =
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'danger'
-  | 'warning'
-  | 'info'
-  | 'light'
-  | 'dark';
+  'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
 
 export interface LlmSummaryCardProps {
   summary: SummaryJson | null;
@@ -97,17 +90,17 @@ export function parseCleanString(val: unknown): string | undefined {
     try {
       const parsed = JSON.parse(str);
       if (Array.isArray(parsed)) {
-        return parsed.map((item) => String(item).trim()).filter(Boolean).join(', ');
+        return parsed
+          .map((item) => String(item).trim())
+          .filter(Boolean)
+          .join(', ');
       }
     } catch {
       str = str.slice(1, -1).trim();
     }
   }
   // Strip surrounding quotes
-  while (
-    (str.startsWith('"') && str.endsWith('"')) ||
-    (str.startsWith("'") && str.endsWith("'"))
-  ) {
+  while ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
     str = str.slice(1, -1).trim();
   }
   return str || undefined;
@@ -191,9 +184,6 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
       props.summary.inheritance_patterns.length > 0
     );
   });
-
-
-
 
   /**
    * Get tooltip for inheritance pattern abbreviation
