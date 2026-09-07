@@ -4,8 +4,6 @@ import { computed, isRef, type ComputedRef, type Ref } from 'vue';
 import { useResource, type ResourceState } from './useResource';
 import type { AlphaFoldMetadata } from '@/types/alphafold';
 
-const apiBase = import.meta.env.VITE_API_URL ?? '';
-
 export function useGeneAlphaFold(
   symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<AlphaFoldMetadata | null> {
@@ -19,7 +17,7 @@ export function useGeneAlphaFold(
     key,
     async (signal) => {
       try {
-        const res = await axios.get(`${apiBase}/api/external/alphafold/structure/${symRef.value}`, {
+        const res = await axios.get(`/api/external/alphafold/structure/${symRef.value}`, {
           withCredentials: true,
           signal,
         });

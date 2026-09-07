@@ -77,6 +77,8 @@ services:
       - --authentication-policy=caching_sha2_password
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=768M
+      - --innodb-buffer-pool-instances=1
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -438,6 +440,11 @@ services:
       # provider APIs such as Gemini, PubMed, and PubTator.
       - proxy
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 3072M
+          cpus: '2.0'
     develop:
       watch:
         - action: sync
@@ -540,6 +547,11 @@ services:
       # for external provider APIs such as PubMed, OMIM, Zenodo, and MONDO.
       - proxy
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+          cpus: '1.5'
     develop:
       watch:
         - action: sync

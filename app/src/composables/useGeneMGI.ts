@@ -3,8 +3,6 @@ import axios from 'axios';
 import { computed, isRef, type ComputedRef, type Ref } from 'vue';
 import { useResource, type ResourceState } from './useResource';
 
-const apiBase = import.meta.env.VITE_API_URL ?? '';
-
 export interface MgiPayload {
   source: 'mgi';
   gene_symbol: string;
@@ -25,7 +23,7 @@ export function useGeneMGI(
     key,
     async (signal) => {
       try {
-        const res = await axios.get(`${apiBase}/api/external/mgi/phenotypes/${symRef.value}`, {
+        const res = await axios.get(`/api/external/mgi/phenotypes/${symRef.value}`, {
           withCredentials: true,
           signal,
         });

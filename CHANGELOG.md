@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-09-08
+
+### Added
+
+- **Covering index for entity review subquery (Migration 055).** Added `idx_entity_review_primary_approved_date` on `ndd_entity_review(is_primary, review_approved, entity_id, review_date)` to resolve `ndd_entity_view` primary review queries entirely in-index, eliminating full table scans and disk-based temp table sorting.
+
+### Fixed
+
+- **Resolve Plumber query parameter coercion on `/statistics/news`.** Defensively validate and coerce `n` to integer before passing to `dbplyr::head()`, fixing a 500 Internal Server Error when fetching recent entities.
+- **Enforce strict Content Security Policy (`connect-src 'self'`) on external gene hooks.** Replaced hardcoded origin prepends with standard relative URLs across `useGeneClinVar`, `useGeneClinVarCounts`, `useGeneAlphaFold`, `useGeneMGI`, and `useGeneRGD`.
+- **Eliminate duplicate MySQL container and port collision in development stack.** Removed conflicting compose override in `Makefile`, freeing ~1 GB of idle RAM and preventing port `7654` collisions.
+- **Bound background worker memory and CPU quotas.** Added explicit Docker resource limits (`3072M` / `2048M`) for `worker` and `worker-maintenance` containers.
+- **Streamline Vue reactivity and pre-bundling.** Consolidated redundant deep watchers and duplicate lifecycle effects in `GeneStructurePlot.vue` and `ProteinDomainLollipopPlot.vue`, and added heavy visualization libraries to Vite `optimizeDeps`.
+
 ## [0.35.0] - 2026-09-07
 
 ### Added

@@ -177,6 +177,6 @@ test_that("source version formula and derived-content allowlists are frozen", {
 })
 
 test_that("manifest advances contiguously to the latest migration", {
-  expect_identical(EXPECTED_LATEST_MIGRATION, "054_mcp_llm_summary_drop_syndromicity.sql")
-  expect_identical(EXPECTED_MIGRATION_COUNT, 52L)
+  expect_identical(EXPECTED_LATEST_MIGRATION, "055_add_ndd_entity_review_covering_idx.sql")
+  expect_identical(EXPECTED_MIGRATION_COUNT, 53L)
 })

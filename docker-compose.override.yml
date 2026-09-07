@@ -51,12 +51,22 @@ services:
     ports:
       # Bind to localhost only (not network-accessible for security)
       - "127.0.0.1:7654:3306"
+    healthcheck:
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # DEV-02: API development mode
   # Note: Compose Watch for API is configured in docker-compose.yml
   # because the API Dockerfile serves both dev and prod
   # Development mode uses sysndd_db_dev config with Mailpit for email testing
   api:
+    healthcheck:
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     # Note: Direct port exposure removed to allow scaling (--scale api=4)
     # Use Traefik at localhost:80/api instead of localhost:7778/api
     # For single-container dev, uncomment: ports: ["127.0.0.1:7778:7777"]

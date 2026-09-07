@@ -4,8 +4,6 @@ import { computed, isRef, type ComputedRef, type Ref } from 'vue';
 import { useResource, type ResourceState } from './useResource';
 import type { ClinVarVariant } from '@/types';
 
-const apiBase = import.meta.env.VITE_API_URL ?? '';
-
 export function useGeneClinVar(
   symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<ClinVarVariant[] | null> {
@@ -19,7 +17,7 @@ export function useGeneClinVar(
     key,
     async (signal) => {
       try {
-        const res = await axios.get(`${apiBase}/api/external/gnomad/variants/${symRef.value}`, {
+        const res = await axios.get(`/api/external/gnomad/variants/${symRef.value}`, {
           withCredentials: true,
           signal,
         });

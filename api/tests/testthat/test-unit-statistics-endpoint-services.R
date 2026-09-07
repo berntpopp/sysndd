@@ -176,10 +176,16 @@ test_that("svc_statistics_category_count delegates to generate_stat_tibble_mem",
   expect_equal(result$type_used, "gene")
 })
 
-test_that("svc_statistics_gene_news delegates to generate_gene_news_tibble_mem", {
+test_that("svc_statistics_gene_news delegates to generate_gene_news_tibble_mem and coerces string/default", {
   env <- public_env()
   result <- env$svc_statistics_gene_news(5)
-  expect_equal(result$n_used, 5)
+  expect_equal(result$n_used, 5L)
+
+  result_str <- env$svc_statistics_gene_news("5")
+  expect_equal(result_str$n_used, 5L)
+
+  result_default <- env$svc_statistics_gene_news()
+  expect_equal(result_default$n_used, 5L)
 })
 
 ## ---------------------------------------------------------------------##

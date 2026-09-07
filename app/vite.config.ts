@@ -236,7 +236,15 @@ export function createViteConfig(mode: string): UserConfig {
 
     // Optimization for dependencies that need pre-bundling
     optimizeDeps: {
-      include: ['exceljs', 'ngl'],
+      include: [
+        'exceljs',
+        'ngl',
+        'cytoscape',
+        'cytoscape-fcose',
+        'cytoscape-svg',
+        'd3',
+        'chart.js',
+      ],
     },
 
     build: {

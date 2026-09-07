@@ -89,6 +89,10 @@ services:
       - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie.samesite=lax"
 
   app:
+    build:
+      context: ./app/
+      args:
+        VUE_MODE: docker
     container_name: sysndd_playwright_app
     labels: !override
       - "sysndd.playwright=true"

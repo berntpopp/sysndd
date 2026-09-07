@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import { useD3GeneStructure } from '@/composables/useD3GeneStructure';
 import type { GeneStructureRenderData } from '@/types/ensembl';
 
@@ -25,7 +25,6 @@ const scrollContainer = ref<HTMLElement | null>(null);
 
 // Initialize D3 composable
 const {
-  isInitialized: _isInitialized,
   renderGeneStructure,
   cleanup,
 } = useD3GeneStructure({
@@ -33,22 +32,15 @@ const {
   scrollContainer: scrollContainer,
 });
 
-// Watch for data changes and re-render
-watchEffect(() => {
-  if (plotContainer.value && props.data) {
-    renderGeneStructure(props.data);
-  }
-});
-
-// Also watch props.data with deep option for gene-to-gene navigation
+// Watch for data and container readiness, and re-render on data prop changes
 watch(
-  () => props.data,
-  (newData) => {
-    if (newData && plotContainer.value) {
+  [() => props.data, plotContainer],
+  ([newData, container]) => {
+    if (newData && container) {
       renderGeneStructure(newData);
     }
   },
-  { deep: true }
+  { immediate: true }
 );
 
 // Cleanup on unmount (composable also does this, but explicit is good)

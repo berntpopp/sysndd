@@ -37,8 +37,12 @@ svc_statistics_category_count <- function(sort, type) {
 #' @param n Number of latest entries to retrieve.
 #' @return Tibble of latest "Definitive" category entries.
 #' @export
-svc_statistics_gene_news <- function(n) {
-  generate_gene_news_tibble_mem(n)
+svc_statistics_gene_news <- function(n = 5) {
+  n_int <- suppressWarnings(as.integer(n))
+  if (is.na(n_int) || length(n_int) != 1L || n_int <= 0L) {
+    n_int <- 5L
+  }
+  generate_gene_news_tibble_mem(n_int)
 }
 
 

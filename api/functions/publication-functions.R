@@ -109,6 +109,7 @@ pubmed_esearch_count <- function(pmid) {
 
   tryCatch(
     {
+      budget <- external_proxy_budget("pubmed", default_timeout = 10, default_max = 15, default_tries = 3L)
       response <- httr2::request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi") %>%
         httr2::req_url_query(!!!pubmed_eutils_query(list(
           db = "pubmed",
@@ -116,11 +117,11 @@ pubmed_esearch_count <- function(pmid) {
           retmode = "xml"
         ))) %>%
         httr2::req_retry(
-          max_tries = 3,
+          max_tries = budget$max_tries,
           backoff = ~ 2^.x,
           is_transient = ~ httr2::resp_status(.x) %in% c(429, 500, 502, 503, 504)
         ) %>%
-        httr2::req_timeout(30) %>%
+        httr2::req_timeout(budget$timeout_seconds) %>%
         httr2::req_perform()
 
       body <- httr2::resp_body_string(response)
@@ -148,6 +149,7 @@ pubmed_fetch_xml <- function(pmids) {
     return("<PubmedArticleSet/>")
   }
 
+  budget <- external_proxy_budget("pubmed", default_timeout = 10, default_max = 15, default_tries = 3L)
   response <- httr2::request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi") %>%
     httr2::req_url_query(!!!pubmed_eutils_query(list(
       db = "pubmed",
@@ -156,11 +158,11 @@ pubmed_fetch_xml <- function(pmids) {
       rettype = "xml"
     ))) %>%
     httr2::req_retry(
-      max_tries = 3,
+      max_tries = budget$max_tries,
       backoff = ~ 2^.x,
       is_transient = ~ httr2::resp_status(.x) %in% c(429, 500, 502, 503, 504)
     ) %>%
-    httr2::req_timeout(30) %>%
+    httr2::req_timeout(budget$timeout_seconds) %>%
     httr2::req_perform()
 
   httr2::resp_body_string(response)

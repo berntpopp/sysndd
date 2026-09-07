@@ -426,9 +426,8 @@ analysis-release-zenodo-upload-draft: check-r ## [quality] Upload the last-packa
 # =============================================================================
 # Compose file sets:
 #   Production:  docker-compose.yml
-#   Development: docker-compose.yml + docker-compose.override.yml (auto-loaded)
-#   Full dev:    docker-compose.yml + docker-compose.override.yml + docker-compose.dev.yml
-COMPOSE_DEV := docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml
+#   Development: docker-compose.yml + docker-compose.override.yml
+COMPOSE_DEV := docker compose -f docker-compose.yml -f docker-compose.override.yml
 COMPOSE_DB_DEV := docker compose -p sysndd -f docker-compose.dev.yml
 
 docker-build: check-docker ## [docker] Build API Docker image

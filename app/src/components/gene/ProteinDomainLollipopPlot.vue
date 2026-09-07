@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watchEffect, watch } from 'vue';
+import { ref, reactive, computed, watchEffect } from 'vue';
 import * as d3 from 'd3';
 import { useD3Lollipop } from '@/composables/d3-lollipop';
 import {
@@ -361,19 +361,6 @@ watchEffect(() => {
     renderPlot(props.data, filterState);
   }
 });
-
-/**
- * Watch for data prop changes (deep watch for nested object changes)
- */
-watch(
-  () => props.data,
-  (newData) => {
-    if (isInitialized.value && newData) {
-      renderPlot(newData, filterState);
-    }
-  },
-  { deep: true }
-);
 </script>
 
 <style scoped>

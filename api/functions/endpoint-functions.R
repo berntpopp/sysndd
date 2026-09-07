@@ -196,15 +196,18 @@ generate_stat_tibble <- function(
 #' and 'desc' for more information on the functions used.
 #' @examples
 #' generate_gene_news_tibble(10)
-generate_gene_news_tibble <- function(n) {
-  # get data from database and filter
+generate_gene_news_tibble <- function(n = 5) {
+  n_int <- suppressWarnings(as.integer(n))
+  if (is.na(n_int) || length(n_int) != 1L || n_int <= 0L) {
+    n_int <- 5L
+  }
+  # get data from database and filter in SQL before collect
   sysndd_db_disease_genes_news <- pool %>%
     tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
     dplyr::filter(ndd_phenotype == 1 & category == "Definitive") %>%
-    collect() %>%
     arrange(desc(entry_date)) %>%
-    slice(1:n)
+    head(n_int) %>%
+    collect()
 
   return(sysndd_db_disease_genes_news)
 }

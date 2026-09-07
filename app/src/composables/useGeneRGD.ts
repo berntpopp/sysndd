@@ -3,8 +3,6 @@ import axios from 'axios';
 import { computed, isRef, type ComputedRef, type Ref } from 'vue';
 import { useResource, type ResourceState } from './useResource';
 
-const apiBase = import.meta.env.VITE_API_URL ?? '';
-
 export interface RgdPayload {
   source: 'rgd';
   gene_symbol: string;
@@ -24,7 +22,7 @@ export function useGeneRGD(
     key,
     async (signal) => {
       try {
-        const res = await axios.get(`${apiBase}/api/external/rgd/phenotypes/${symRef.value}`, {
+        const res = await axios.get(`/api/external/rgd/phenotypes/${symRef.value}`, {
           withCredentials: true,
           signal,
         });

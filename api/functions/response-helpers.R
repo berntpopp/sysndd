@@ -237,7 +237,7 @@ generate_filter_expressions <- function(
   open_parens <- str_count(filter_string, "\\(")
   close_parens <- str_count(filter_string, "\\)")
   if (open_parens != close_parens) {
-    stop("Malformed filter expression: mismatched parentheses")
+    stop_for_bad_request("Malformed filter expression: mismatched parentheses")
   }
 
   logical_operator <- stringr::str_extract(
@@ -271,7 +271,7 @@ generate_filter_expressions <- function(
             mutate(filter_value = str_remove_all(filter_value, "'|\\)|\\\\"))
         },
         error = function(e) {
-          stop(paste("Failed to parse filter expression:", e$message))
+          stop_for_bad_request(paste("Failed to parse filter expression:", e$message))
         }
       )
 
@@ -329,7 +329,7 @@ generate_filter_expressions <- function(
           "')"
         )
       } else if (filter_string_has_hash && !hash_found) {
-        stop("Hash not found.")
+        stop_for_not_found("Hash not found.")
       } else {
         # compute filter expressions if hash keyword NOT found
         filter_tibble <- filter_string_tibble %>%

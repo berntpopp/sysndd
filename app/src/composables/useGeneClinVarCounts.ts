@@ -11,8 +11,6 @@ import axios from 'axios';
 import { computed, isRef, type ComputedRef, type Ref } from 'vue';
 import { useResource, type ResourceState } from './useResource';
 
-const apiBase = import.meta.env.VITE_API_URL ?? '';
-
 export interface ClinVarClassificationCounts {
   pathogenic: number;
   likely_pathogenic: number;
@@ -73,7 +71,7 @@ export function useGeneClinVarCounts(
     async (signal) => {
       try {
         const res = await axios.get<ClinVarSummary>(
-          `${apiBase}/api/external/gnomad/variants/${symRef.value}`,
+          `/api/external/gnomad/variants/${symRef.value}`,
           { withCredentials: true, signal, params: { summary: 'true' } }
         );
         return res.data ?? null;

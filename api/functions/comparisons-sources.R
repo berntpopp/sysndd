@@ -59,7 +59,7 @@ get_active_sources <- function(conn) {
 update_source_last_updated <- function(conn, source_name) {
   query <- "UPDATE comparisons_config SET last_updated = NOW() WHERE source_name = ?"
   stmt <- DBI::dbSendStatement(conn, query)
-  DBI::dbBind(stmt, list(source_name))
+  DBI::dbBind(stmt, unname(list(source_name)))
   DBI::dbClearResult(stmt)
   invisible(NULL)
 }
@@ -126,7 +126,7 @@ update_comparisons_metadata <- function(conn,
       WHERE id = 1
     "
     stmt <- DBI::dbSendStatement(conn, query)
-    DBI::dbBind(stmt, list(status, err_bind, sources_count, rows_imported))
+    DBI::dbBind(stmt, unname(list(status, err_bind, sources_count, rows_imported)))
     DBI::dbClearResult(stmt)
   } else {
     # Update with failure or other status
@@ -139,7 +139,7 @@ update_comparisons_metadata <- function(conn,
       WHERE id = 1
     "
     stmt <- DBI::dbSendStatement(conn, query)
-    DBI::dbBind(stmt, list(status, error_message, sources_count, rows_imported))
+    DBI::dbBind(stmt, unname(list(status, error_message, sources_count, rows_imported)))
     DBI::dbClearResult(stmt)
   }
 

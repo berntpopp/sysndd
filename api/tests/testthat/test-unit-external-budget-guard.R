@@ -15,7 +15,8 @@ external_fetcher_files <- function() {
   files <- c(files,
     file.path(fdir, "genereviews-lookup.R"),
     file.path(fdir, "disease-ontology-mapping-refresh.R"),
-    file.path(fdir, "mondo-functions.R")
+    file.path(fdir, "mondo-functions.R"),
+    file.path(fdir, "publication-functions.R")
   )
   files <- files[file.exists(files)]
   # external-proxy-functions.R legitimately DEFINES the numeric budget defaults.

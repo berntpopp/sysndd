@@ -102,10 +102,15 @@ const MOCK_CLINVAR_VARIANTS = {
 test.describe('ClinVar Condition Filtering & Visual Design', () => {
   test.beforeEach(async ({ page }) => {
     // Intercept ClinVar variants endpoint to provide rich multi-condition fixture
-    await page.route('**/api/external/gnomad/variants/CHD8*', async (route) => {
+    await page.route(/\/api\/external\/gnomad\/variants\/CHD8/, async (route) => {
+      const origin = route.request().headers()['origin'] || 'http://localhost:8088';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: {
+          'access-control-allow-origin': origin,
+          'access-control-allow-credentials': 'true',
+        },
         body: JSON.stringify(MOCK_CLINVAR_VARIANTS),
       });
     });

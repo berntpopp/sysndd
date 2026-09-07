@@ -217,7 +217,7 @@ resolve_hgnc_symbols <- function(symbols, conn) {
     ", placeholders)
 
     stmt <- DBI::dbSendQuery(conn, query)
-    DBI::dbBind(stmt, as.list(unique_symbols))
+    DBI::dbBind(stmt, unname(as.list(unique_symbols)))
     matches <- DBI::dbFetch(stmt)
     DBI::dbClearResult(stmt)
   }

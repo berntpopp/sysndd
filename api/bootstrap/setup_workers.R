@@ -35,8 +35,19 @@ bootstrap_setup_workers <- function() {
   # Handle NA from invalid input (e.g., "abc")
   if (is.na(worker_count)) worker_count <- 2L
 
-  # Validate bounds (minimum 1, maximum 8)
-  worker_count <- max(1L, min(worker_count, 8L))
+  # Validate bounds (minimum 0, maximum 8)
+  worker_count <- max(0L, min(worker_count, 8L))
+
+  if (worker_count == 0L) {
+    message(sprintf(
+      "[%s] Mirai daemon pool disabled (MIRAI_WORKERS=0)",
+      Sys.time()
+    ))
+    return(list(
+      count = 0L,
+      dispatcher = FALSE
+    ))
+  }
 
   mirai::daemons(
     n = worker_count,
