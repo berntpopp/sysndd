@@ -276,7 +276,7 @@ export default {
 }
 
 .home-hero__summary {
-  max-width: 44rem;
+  max-width: 65ch;
   margin: 0.25rem 0 0;
   color: var(--neutral-700);
   font-size: 0.875rem;

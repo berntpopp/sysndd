@@ -80,15 +80,12 @@ export default {
 .entity-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full, 9999px);
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   font-weight: 600;
   color: white;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
   cursor: pointer;
   transition:
     transform 0.15s ease,
@@ -97,14 +94,11 @@ export default {
 
 .entity-badge:hover {
   transform: translateY(-1px);
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  box-shadow: 0 3px 6px rgba(16, 24, 40, 0.12);
 }
 
 .entity-badge__prefix {
   opacity: 0.85;
-  font-size: 0.85em;
 }
 
 .entity-badge__id {
@@ -113,8 +107,8 @@ export default {
 
 /* Size variants */
 .entity-badge--sm {
-  padding: 0.125rem 0.35rem;
-  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
 }
 
 .entity-badge--md {
@@ -129,26 +123,26 @@ export default {
 
 /* Primary variant - Blue (entities) */
 .entity-badge--primary {
-  background: linear-gradient(145deg, #0d6efd 0%, #0a58ca 100%);
-  border: 1.5px solid #084298;
+  background-color: var(--medical-blue-700, #0d47a1);
+  border: 1px solid #0a3880;
 }
 
 /* Success variant - Green (genes) */
 .entity-badge--success {
-  background: linear-gradient(145deg, #198754 0%, #146c43 100%);
-  border: 1.5px solid #0f5132;
+  background-color: var(--status-success, #2e7d32);
+  border: 1px solid #1b5e20;
 }
 
 /* Secondary variant - Gray (diseases/ontology) */
 .entity-badge--secondary {
-  background: linear-gradient(145deg, #6c757d 0%, #565e64 100%);
-  border: 1.5px solid #41464b;
+  background-color: var(--neutral-700, #616161);
+  border: 1px solid #424242;
 }
 
-/* Info variant - Cyan (inheritance) */
+/* Info variant - Teal (inheritance) */
 .entity-badge--info {
-  background: linear-gradient(145deg, #0dcaf0 0%, #0aa2c0 100%);
-  border: 1.5px solid #087990;
+  background-color: var(--medical-teal-700, #00796b);
+  border: 1px solid #004d40;
 }
 
 /* Accessibility - respect reduced motion */

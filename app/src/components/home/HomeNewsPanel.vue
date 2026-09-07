@@ -154,7 +154,6 @@ defineProps<{
 
 <style scoped>
 .home-panel {
-  overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
@@ -168,6 +167,8 @@ defineProps<{
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
   border-bottom: 1px solid #e6ebf2;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
   background: #fbfcfe;
 }
 
@@ -219,13 +220,13 @@ defineProps<{
   background: var(--medical-teal-700, #00796b);
   color: #fff;
   outline: none;
-  box-shadow: 0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+  box-shadow: 0 2px 4px rgba(16, 24, 40, 0.12);
 }
 
 .home-panel__link--accent:focus-visible {
   box-shadow:
     0 0 0 0.16rem rgba(0, 121, 107, 0.3),
-    0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+    0 2px 4px rgba(16, 24, 40, 0.12);
 }
 
 /* Loading / error / empty panel states */

@@ -23,6 +23,27 @@ function manualChunkForModule(id: string): string | undefined {
   return undefined;
 }
 
+function sanitizeVendorTransitionsPlugin(): PluginOption {
+  return {
+    name: 'sanitize-vendor-transitions',
+    enforce: 'pre',
+    transform(code: string, id: string) {
+      if (id.includes('bootstrap') && id.includes('.css')) {
+        return {
+          code: code
+            .replace(/transition:\s*height\s*0\.35s\s*ease;/g, 'transition: opacity 0.35s ease;')
+            .replace(/transition:\s*width\s*0\.35s\s*ease;/g, 'transition: opacity 0.35s ease;')
+            .replace(
+              /--bs-progress-bar-transition:\s*width\s*0\.6s\s*ease;/g,
+              '--bs-progress-bar-transition: none;',
+            ),
+          map: null,
+        };
+      }
+    },
+  };
+}
+
 export function createViteConfig(mode: string): UserConfig {
   const env = loadEnv(mode, process.cwd(), '');
   const configuredApiUrl = process.env.VITE_API_URL || env.VITE_API_URL;
@@ -43,6 +64,7 @@ export function createViteConfig(mode: string): UserConfig {
 
   return {
     plugins: [
+      sanitizeVendorTransitionsPlugin(),
       vue(),
       ...(isBundleBudgetBuild ? [routeBundleModulesPlugin()] : []),
       VitePWA({

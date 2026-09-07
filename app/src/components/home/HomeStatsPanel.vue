@@ -217,7 +217,6 @@ function entityDetailLink(detail: StatDetail) {
 
 <style scoped>
 .home-panel {
-  overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
@@ -231,6 +230,8 @@ function entityDetailLink(detail: StatDetail) {
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
   border-bottom: 1px solid #e6ebf2;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
   background: #fbfcfe;
 }
 

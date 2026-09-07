@@ -107,17 +107,14 @@ export default {
 .inheritance-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 1rem;
+  gap: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full, 9999px);
   font-weight: 600;
   color: white;
-  background: linear-gradient(145deg, #0dcaf0 0%, #0aa2c0 100%);
-  border: 1.5px solid #087990;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  background-color: var(--medical-teal-700, #00796b);
+  border: 1px solid #004d40;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
   cursor: default;
 }
 
@@ -133,25 +130,25 @@ export default {
 
 /* Size variants */
 .inheritance-badge--sm {
-  padding: 0.125rem 0.35rem;
-  font-size: 0.7rem;
-  border-width: 1.5px;
-  gap: 0.1rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.72rem;
+  border-width: 1px;
+  gap: 0.15rem;
 }
 
 .inheritance-badge--sm .inheritance-badge__icon {
-  font-size: 0.65em;
+  font-size: 0.75em;
 }
 
 .inheritance-badge--md {
-  padding: 0.2rem 0.45rem;
+  padding: 0.18rem 0.45rem;
   font-size: 0.75rem;
-  border-width: 2px;
+  border-width: 1px;
 }
 
 .inheritance-badge--lg {
-  padding: 0.3rem 0.55rem;
+  padding: 0.25rem 0.55rem;
   font-size: 0.875rem;
-  border-width: 2px;
+  border-width: 1px;
 }
 </style>

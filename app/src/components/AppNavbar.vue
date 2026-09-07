@@ -322,7 +322,7 @@ export default {
 .version-display {
   margin-top: 0.12rem;
   color: #667085;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -361,7 +361,7 @@ export default {
   border: 1px solid #d9e1ec;
   border-radius: 8px;
   background: #fff !important;
-  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.14);
+  box-shadow: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.04);
 }
 
 :deep(.dropdown-item) {
@@ -445,7 +445,7 @@ export default {
     border: 1px solid #d9e1ec;
     border-radius: 8px;
     background: #fff;
-    box-shadow: 0 16px 40px rgba(16, 24, 40, 0.14);
+    box-shadow: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.04);
   }
 
   .app-navbar__menus,
@@ -481,7 +481,7 @@ export default {
   }
 
   .version-display {
-    font-size: 0.62rem;
+    font-size: 0.72rem;
   }
 }
 
