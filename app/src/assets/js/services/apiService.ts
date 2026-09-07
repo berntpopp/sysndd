@@ -56,10 +56,12 @@ class ApiService {
    * @param searchInput - The input to use for the search.
    * @returns A promise resolving to the search results.
    */
-  async fetchSearchInfo(searchInput: string): Promise<SearchResponse> {
-    const url = `${URLS.API_URL}/api/search/${searchInput}?helper=true`;
+  async fetchSearchInfo(searchInput: string, signal?: AbortSignal): Promise<SearchResponse> {
+    const encoded = encodeURIComponent(searchInput.trim());
+    const url = `${URLS.API_URL}/api/search/${encoded}?helper=true`;
     const response: AxiosResponse<SearchResponse> = await axios.get(url, {
       withCredentials: true,
+      signal,
     });
     return response.data;
   }

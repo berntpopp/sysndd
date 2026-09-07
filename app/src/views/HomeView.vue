@@ -210,7 +210,6 @@ export default {
               n: after[i].n,
               onUpdate: () => {
                 after[i].n = Math.round(after[i].n);
-                this.$forceUpdate();
               },
             }
           );
@@ -224,9 +223,13 @@ export default {
       this.loadingStates.statistics = true;
       this.errors.statistics = null;
       try {
-        // use the functions from apiService asset to make calls to the API
-        this.entity_statistics = await apiService.fetchStatistics('entity');
-        this.gene_statistics = await apiService.fetchStatistics('gene');
+        // Fetch entity and gene statistics concurrently to minimize loading latency
+        const [entityStats, geneStats] = await Promise.all([
+          apiService.fetchStatistics('entity'),
+          apiService.fetchStatistics('gene'),
+        ]);
+        this.entity_statistics = entityStats;
+        this.gene_statistics = geneStats;
       } catch (e) {
         this.errors.statistics = 'Statistics could not be loaded. Please try again later.';
         this.makeToast(e, 'Error', 'danger');

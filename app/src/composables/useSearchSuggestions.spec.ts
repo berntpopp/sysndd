@@ -62,4 +62,23 @@ describe('useSearchSuggestions request ownership (#535 P2-3)', () => {
     expect(s.suggestions.value).toEqual([]);
     expect(s.isLoading.value).toBe(false); // clear must not leave a stuck spinner
   });
+
+  it('aborts previous in-flight request signal when new search starts', async () => {
+    let firstSignal: AbortSignal | undefined;
+    fetchSearchInfo.mockImplementationOnce((_query: string, signal?: AbortSignal) => {
+      firstSignal = signal;
+      return new Promise(() => {});
+    });
+
+    const s = useSearchSuggestions();
+    s.query.value = 'a';
+    void s.fetchSuggestions();
+
+    expect(firstSignal?.aborted).toBe(false);
+
+    s.query.value = 'ab';
+    void s.fetchSuggestions();
+
+    expect(firstSignal?.aborted).toBe(true);
+  });
 });

@@ -103,6 +103,13 @@ describe('AppNavbar', () => {
     expect(wrapper.find('.app-navbar__mobile-search .search-combobox-stub').exists()).toBe(true);
   });
 
+  it('does not show navbar search on home route load', async () => {
+    const wrapper = await mountNavbar('/');
+
+    expect(wrapper.find('.app-navbar__search .search-combobox-stub').exists()).toBe(false);
+    expect(wrapper.find('.app-navbar__mobile-search .search-combobox-stub').exists()).toBe(false);
+  });
+
   it('shows admin menus from the persisted auth payload while JWT validation is still pending', async () => {
     localStorage.setItem('token', 'admin-token');
     localStorage.setItem(

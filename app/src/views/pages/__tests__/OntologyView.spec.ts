@@ -61,14 +61,6 @@ const componentStubs = {
   },
 };
 
-const mountOptions = {
-  global: {
-    directives: {
-      'b-tooltip': {},
-    },
-  },
-};
-
 describe('OntologyView', () => {
   beforeEach(() => {
     setActivePinia(createPinia());

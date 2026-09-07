@@ -119,13 +119,29 @@ export default {
         admin: false,
       },
       user_from_jwt: [],
-      show_search: false,
       appVersion: packageInfo.version,
       fetchError: false,
       navbarCollapsed: false,
     };
   },
   computed: {
+    show_search() {
+      // Never render the navbar search combobox on the home view
+      if (this.$route?.name === 'Home' || this.$route?.path === '/') {
+        return false;
+      }
+      if (
+        typeof window !== 'undefined' &&
+        (window.location.pathname === '/' || window.location.pathname === '')
+      ) {
+        return false;
+      }
+      // If the initial route has not resolved its match yet, do not flash the search bar
+      if (!this.$route?.name && (!this.$route?.matched || this.$route.matched.length === 0)) {
+        return false;
+      }
+      return true;
+    },
     authIsAuthenticated() {
       return this.auth.isAuthenticated.value;
     },
@@ -166,26 +182,20 @@ export default {
     },
     $route(to, from) {
       if (to !== from) {
-        this.isUserLoggedIn();
+        if (this.auth.isAuthenticated.value) {
+          this.setUserFromAuthPayload();
+        } else {
+          this.clearUserDisplayData();
+        }
         // Close mobile navbar on route change (fixes #94)
         this.navbarCollapsed = false;
       }
-      this.updateSearchVisibility();
     },
   },
   mounted() {
     this.isUserLoggedIn();
-    this.updateSearchVisibility();
   },
   methods: {
-    updateSearchVisibility() {
-      // Vue Router 4: onReady replaced with isReady(). Run this on mount too
-      // so direct non-home loads show the navbar search before any route change.
-      this.show_search = this.$route.name !== 'Home';
-      this.$router.isReady().then(() => {
-        this.show_search = this.$route.name !== 'Home';
-      });
-    },
     isUserLoggedIn() {
       // Phase E.E7: `isAuthenticated` covers both "token present" and
       // "user payload parsed cleanly" — the composable already refused a

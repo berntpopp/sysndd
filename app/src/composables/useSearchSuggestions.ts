@@ -33,6 +33,7 @@ export function useSearchSuggestions(debounceMs = 300): UseSearchSuggestionsRetu
   // Internal cache of the raw search object for direct link lookup
   let searchObject: Record<string, Array<{ link: string }>> = {};
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let abortController: AbortController | null = null;
   // Request-ownership guard (#535 P2-3): only the latest query's response may
   // apply. A fast-typing / A-B-A sequence would otherwise let an out-of-order
   // stale response overwrite the current suggestions.
@@ -44,11 +45,15 @@ export function useSearchSuggestions(debounceMs = 300): UseSearchSuggestionsRetu
       return;
     }
 
+    abortController?.abort();
+    abortController = new AbortController();
+    const currentSignal = abortController.signal;
+
     const myGen = ++requestGeneration;
     const requestedQuery = query.value;
     isLoading.value = true;
     try {
-      const response = await apiService.fetchSearchInfo(requestedQuery);
+      const response = await apiService.fetchSearchInfo(requestedQuery, currentSignal);
       // Ignore a response the current input has moved past.
       if (myGen !== requestGeneration || requestedQuery !== query.value) return;
       [searchObject] = response as unknown as [Record<string, Array<{ link: string }>>];
@@ -56,7 +61,10 @@ export function useSearchSuggestions(debounceMs = 300): UseSearchSuggestionsRetu
         label: key,
         link: searchObject[key][0].link,
       }));
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) {
+        return;
+      }
       if (myGen !== requestGeneration || requestedQuery !== query.value) return;
       suggestions.value = [];
       searchObject = {};
@@ -67,6 +75,8 @@ export function useSearchSuggestions(debounceMs = 300): UseSearchSuggestionsRetu
   }
 
   function clearSuggestions(): void {
+    abortController?.abort();
+    abortController = null;
     // Invalidate any pending request so its late response cannot apply.
     // Clearing bumps the generation, so the in-flight request's `finally` guard
     // will no longer own the loading flag — reset it here to avoid a stuck spinner.

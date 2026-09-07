@@ -6,7 +6,7 @@
         <AppNavbar />
       </div>
       <main id="main" ref="scroll" class="content-style scrollable-content" tabindex="-1">
-        <router-view :key="$route.fullPath" />
+        <router-view :key="$route.path" />
       </main>
       <div id="footer">
         <AppFooter @show-disclaimer="disclaimerDialogVisible = true" />
