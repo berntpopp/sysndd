@@ -79,7 +79,7 @@
                       )
                     "
                   >
-                    {{ /hpo mode of inheritance/i.test(data.label) ? 'Inheritance' : truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                    {{ formatHeaderLabel(data.label) }}
                   </div>
                 </template>
 
@@ -341,7 +341,16 @@ export default {
     skeletonRows: { type: Number, default: 8 },
   },
   setup(props) {
-    return useEntitiesTable(props);
+    const table = useEntitiesTable(props);
+    const formatHeaderLabel = (label) => {
+      if (!label) return '';
+      if (/hpo mode of inheritance/i.test(label)) return 'Inheritance';
+      return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
+    };
+    return {
+      ...table,
+      formatHeaderLabel,
+    };
   },
 };
 </script>

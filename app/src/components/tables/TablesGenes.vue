@@ -87,7 +87,7 @@
                       )
                     "
                   >
-                    {{ /hpo mode of inheritance/i.test(data.label) ? 'Inheritance' : truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                    {{ formatHeaderLabel(data.label) }}
                   </div>
                 </template>
 
@@ -384,10 +384,17 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const table = useGenesTable(props);
+    const formatHeaderLabel = (label) => {
+      if (!label) return '';
+      if (/hpo mode of inheritance/i.test(label)) return 'Inheritance';
+      return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
+    };
     return {
-      ...useGenesTable(props),
+      ...table,
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,
+      formatHeaderLabel,
     };
   },
 });

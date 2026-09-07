@@ -220,11 +220,12 @@ export default {
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('background-color', 'var(--surface-raised)')
+        .style('border', '1px solid var(--border-subtle)')
+        .style('border-radius', 'var(--radius-sm, 4px)')
+        .style('padding', '4px 8px')
+        .style('color', 'var(--neutral-900)')
+        .style('font-size', '12px');
 
       // Three function that change the tooltip when user hover / move / leave a cell
       const mouseover = function mouseover(_event, _d) {
