@@ -1,7 +1,7 @@
 <template>
   <div class="protein-structure-3d" role="region" aria-label="3D protein structure viewer">
     <!-- Loading State (before structure loads) -->
-    <div v-if="isLoading" class="state-overlay">
+    <div v-if="loading || isLoading" class="state-overlay">
       <BSpinner label="Loading 3D structure..." />
       <p class="text-muted mt-2 small">Loading 3D structure...</p>
     </div>
@@ -20,7 +20,7 @@
     </div>
 
     <!-- Active Viewer Layout (70% viewer + 30% variant panel) -->
-    <div v-show="isInitialized && !isLoading && structureUrl" class="viewer-layout">
+    <div v-show="isInitialized && !isLoading && !loading && structureUrl" class="viewer-layout">
       <!-- Left: NGL Viewer (70%) -->
       <div class="viewer-section">
         <!-- Controls Toolbar (STRUCT3D-02, STRUCT3D-06, A11Y-04) -->
@@ -121,6 +121,7 @@ interface Props {
   structureUrl: string | null; // AlphaFold PDB/CIF URL (null = no structure)
   variants: ClinVarVariant[]; // ClinVar variants for variant panel
   metadata?: AlphaFoldMetadata | null; // AlphaFold metadata for model indicator
+  loading?: boolean; // AlphaFold API request in-flight
 }
 
 const props = defineProps<Props>();
@@ -393,5 +394,49 @@ async function retryLoad(): Promise<void> {
 
 .model-info .separator {
   color: #adb5bd;
+}
+
+@media (max-width: 768px) {
+  .viewer-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .viewer-section {
+    flex: none;
+    height: 380px;
+  }
+
+  .ngl-viewport {
+    min-height: 280px;
+  }
+
+  .variant-section {
+    flex: none;
+    height: 280px;
+    border-left: none;
+    border-top: 1px solid #dee2e6;
+  }
+
+  .controls-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .controls-toolbar :deep(.btn-group) {
+    display: inline-flex;
+    flex-direction: row;
+    flex: 1 1 auto;
+  }
+
+  .controls-toolbar :deep(.btn-group .btn) {
+    flex: 1;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
 }
 </style>

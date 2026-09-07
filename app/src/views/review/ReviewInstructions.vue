@@ -95,9 +95,9 @@ useHead({
 
 .instruction-row:hover,
 .instruction-row:focus {
-  border-color: #9fc1f6;
-  color: #0b5ed7;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  border-color: var(--border-focus, #9fc1f6);
+  color: var(--medical-blue-700, #0b5ed7);
+  box-shadow: var(--shadow-sm, 0 2px 4px rgba(15, 23, 42, 0.06));
   transform: translateY(-1px);
 }
 

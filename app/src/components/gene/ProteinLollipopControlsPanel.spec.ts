@@ -121,4 +121,85 @@ describe('ProteinLollipopControlsPanel', () => {
     await wrapper.find('button[title="Download as PNG"]').trigger('click');
     expect(wrapper.emitted('download-png')).toHaveLength(1);
   });
+
+  describe('condition filter chips', () => {
+    const conditionLegendItems = [
+      { condition: 'Noonan syndrome 1', visible: true, count: 12 },
+      { condition: 'Metachondromatosis', visible: false, count: 5 },
+      { condition: 'LEOPARD syndrome 1', visible: true, count: 3 },
+    ];
+
+    it('hides the condition filter row when conditionLegendItems is empty or omitted', () => {
+      const wrapper = mountPanel();
+      expect(wrapper.find('.condition-filter-row').exists()).toBe(false);
+
+      const wrapperEmpty = mountPanel({ conditionLegendItems: [] });
+      expect(wrapperEmpty.find('.condition-filter-row').exists()).toBe(false);
+    });
+
+    it('renders condition chips and emits toggle-condition, select-only-condition, select-all-conditions', async () => {
+      const wrapper = mountPanel({ conditionLegendItems });
+      const conditionRow = wrapper.find('.condition-filter-row');
+      expect(conditionRow.exists()).toBe(true);
+
+      const groups = conditionRow.findAll('.filter-group');
+      expect(groups).toHaveLength(3);
+
+      // First chip: Noonan syndrome 1 (count: 12, visible: true)
+      expect(groups[0].text()).toContain('Noonan syndrome 1');
+      expect(groups[0].find('.filter-count').text()).toBe('12');
+
+      // Second chip: Metachondromatosis (visible: false)
+      expect(groups[1].find('.filter-chip').classes()).toContain('filter-chip--hidden');
+
+      // Click first chip -> toggle-condition
+      await groups[0].find('.filter-chip').trigger('click');
+      expect(wrapper.emitted('toggle-condition')).toEqual([['Noonan syndrome 1']]);
+
+      // Click "only" button on second chip -> select-only-condition
+      await groups[1].find('.only-btn').trigger('click');
+      expect(wrapper.emitted('select-only-condition')).toEqual([['Metachondromatosis']]);
+
+      // Click "all" button on condition row -> select-all-conditions
+      await conditionRow.find('.all-btn').trigger('click');
+      expect(wrapper.emitted('select-all-conditions')).toHaveLength(1);
+    });
+
+    it('shows more/fewer button when there are more than 8 conditions', async () => {
+      const manyConditions = Array.from({ length: 12 }, (_, i) => ({
+        condition: `Condition ${i + 1}`,
+        visible: true,
+        count: i + 1,
+      }));
+
+      const wrapper = mountPanel({ conditionLegendItems: manyConditions });
+      const toggleBtn = wrapper.find('.toggle-all-conditions-btn');
+      expect(toggleBtn.exists()).toBe(true);
+      expect(toggleBtn.text()).toContain('+7 more');
+
+      // Initially only 5 groups rendered (MAX_VISIBLE_CONDITIONS = 5)
+      expect(wrapper.find('.condition-filter-row').findAll('.filter-group')).toHaveLength(5);
+
+      // Click show all
+      await toggleBtn.trigger('click');
+      expect(wrapper.find('.condition-filter-row').findAll('.filter-group')).toHaveLength(12);
+      expect(toggleBtn.text()).toContain('less');
+    });
+
+    it('renders "Not provided" as a distinct pinned trailing chip with unspecified styling', () => {
+      const items = [
+        { condition: 'Coffin-Siris syndrome 1', visible: true, count: 127 },
+        { condition: 'ARID1B-Related Disorder', visible: true, count: 47 },
+        { condition: 'Not provided', visible: true, count: 820 },
+      ];
+
+      const wrapper = mountPanel({ conditionLegendItems: items });
+      const unspecifiedChip = wrapper.find('.filter-chip--unspecified');
+      expect(unspecifiedChip.exists()).toBe(true);
+      expect(unspecifiedChip.text()).toContain('Not provided');
+      expect(unspecifiedChip.find('.filter-count').text()).toBe('820');
+      expect(wrapper.find('.filter-separator').exists()).toBe(true);
+    });
+  });
 });
+

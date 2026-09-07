@@ -11,7 +11,7 @@
             :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
             :loading="loading"
           >
-            <template v-if="!loading" #actions>
+            <template #actions>
               <div v-if="showFilterControls" class="mb-1 text-end">
                 <TableDownloadLinkCopyButtons
                   :downloading="downloading"
@@ -24,7 +24,7 @@
               </div>
             </template>
 
-            <template v-if="!loading" #toolbar>
+            <template #toolbar>
               <!-- User Interface controls -->
               <BRow>
                 <BCol class="my-1" sm="8">
@@ -400,23 +400,5 @@ export default defineComponent({
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
-}
-.input-group > .input-group-prepend {
-  flex: 0 0 35%;
-}
-.input-group .input-group-text {
-  width: 100%;
-}
-.badge-container .badge {
-  width: 170px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:deep(.vue-treeselect__placeholder) {
-  color: #6c757d !important;
-}
-:deep(.vue-treeselect__control) {
-  color: #6c757d !important;
 }
 </style>

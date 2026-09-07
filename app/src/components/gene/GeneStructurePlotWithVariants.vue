@@ -412,8 +412,8 @@ const { zoomDomain, render, resetZoom, downloadSVG, downloadPNG, cleanup } = use
   container: plotContainer,
   layout: {
     width: 800,
-    height: 140,
-    margin: { top: 15, right: 20, bottom: 28, left: 40 },
+    height: 180,
+    margin: { top: 24, right: 20, bottom: 28, left: 40 },
     // Exon/intron styling
     codingHeight: 12,
     utrHeight: 7,

@@ -182,34 +182,33 @@ body {
   text-align: left;
   background: rgba(255, 255, 255, 0.98) !important;
   border: 1px solid #d8e0ea;
-  border-left: 4px solid #607d8b;
   border-radius: 8px;
   box-shadow:
-    0 16px 40px rgba(15, 23, 42, 0.16),
-    0 2px 8px rgba(15, 23, 42, 0.08);
+    0 16px 40px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.06);
   pointer-events: auto;
   backdrop-filter: blur(12px);
 }
 
 .toast-container .app-toast--success {
-  border-left-color: #2e7d32;
+  border-color: rgba(46, 125, 50, 0.3);
 }
 
 .toast-container .app-toast--danger {
-  border-left-color: #c62828;
+  border-color: rgba(198, 40, 40, 0.3);
 }
 
 .toast-container .app-toast--warning {
-  border-left-color: #b7791f;
+  border-color: rgba(183, 121, 31, 0.3);
 }
 
 .toast-container .app-toast--info,
 .toast-container .app-toast--primary {
-  border-left-color: #0d47a1;
+  border-color: rgba(13, 71, 161, 0.3);
 }
 
 .toast-container .app-toast--secondary {
-  border-left-color: #5f6b7a;
+  border-color: #d8e0ea;
 }
 
 .toast-container .app-toast__header {

@@ -147,10 +147,112 @@
         all
       </button>
     </div>
+
+    <!-- Row 3: Condition / disease association filters (when available) -->
+    <div
+      v-if="conditionLegendItems && conditionLegendItems.length > 0"
+      class="filter-row filter-row--condition condition-filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1 pt-1 border-top"
+    >
+      <span class="condition-prefix small text-muted me-1">
+        <i class="bi bi-tag small" aria-hidden="true" /> Condition:
+      </span>
+
+      <!-- Specific clinical syndrome / disease chips -->
+      <span
+        v-for="item in visibleSpecificConditions"
+        :key="item.condition"
+        class="filter-group"
+      >
+        <button
+          type="button"
+          class="filter-chip filter-chip--condition"
+          :class="{ 'filter-chip--hidden': !item.visible }"
+          :aria-label="`Toggle ${item.condition} variants`"
+          :aria-pressed="item.visible"
+          :title="item.condition"
+          @click="$emit('toggle-condition', item.condition)"
+        >
+          <span
+            class="filter-dot"
+            :style="{ backgroundColor: item.visible ? '#0288d1' : '#ccc' }"
+          />
+          <span class="filter-label text-truncate" style="max-width: 180px;">
+            {{ item.condition }}
+          </span>
+          <span class="filter-count">{{ item.count }}</span>
+        </button>
+        <button
+          type="button"
+          class="only-btn"
+          :title="`Show only ${item.condition}`"
+          @click="$emit('select-only-condition', item.condition)"
+        >
+          only
+        </button>
+      </span>
+
+      <!-- Show more / less specific conditions toggle button -->
+      <button
+        v-if="hasMoreSpecificConditions"
+        type="button"
+        class="btn btn-outline-secondary btn-xs ms-1 toggle-all-conditions-btn"
+        :title="showAllConditionsExpanded ? 'Collapse condition list' : 'Show more conditions'"
+        @click="showAllConditionsExpanded = !showAllConditionsExpanded"
+      >
+        {{ showAllConditionsExpanded ? 'less' : `+${specificConditionItems.length - MAX_VISIBLE_CONDITIONS} more` }}
+      </button>
+
+      <!-- Visual separator before Not provided chip if specific conditions exist -->
+      <span v-if="specificConditionItems.length > 0 && notProvidedItem" class="filter-separator">|</span>
+
+      <!-- Consolidated 'Not provided' chip pinned at the end -->
+      <span
+        v-if="notProvidedItem"
+        class="filter-group"
+      >
+        <button
+          type="button"
+          class="filter-chip filter-chip--condition filter-chip--unspecified"
+          :class="{ 'filter-chip--hidden': !notProvidedItem.visible }"
+          :aria-label="`Toggle ${notProvidedItem.condition} variants`"
+          :aria-pressed="notProvidedItem.visible"
+          :title="`${notProvidedItem.condition} (no specific clinical condition reported)`"
+          @click="$emit('toggle-condition', notProvidedItem.condition)"
+        >
+          <span
+            class="filter-dot filter-dot--unspecified"
+            :style="{ backgroundColor: notProvidedItem.visible ? '#78909c' : '#ccc' }"
+          />
+          <span class="filter-label text-muted font-italic">
+            {{ notProvidedItem.condition }}
+          </span>
+          <span class="filter-count">{{ notProvidedItem.count }}</span>
+        </button>
+        <button
+          type="button"
+          class="only-btn"
+          :title="`Show only ${notProvidedItem.condition}`"
+          @click="$emit('select-only-condition', notProvidedItem.condition)"
+        >
+          only
+        </button>
+      </span>
+
+      <!-- Show all conditions button -->
+      <button
+        type="button"
+        class="all-btn"
+        title="Show all conditions"
+        @click="$emit('select-all-conditions')"
+      >
+        all
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue';
 import type { ColoringMode, EffectType } from '@/types';
 import type { PathogenicityFilterKey } from './proteinLollipopControls';
 
@@ -179,6 +281,13 @@ interface DomainLegendItem {
   color: string;
 }
 
+/** A single condition filter legend entry. */
+export interface ConditionLegendItem {
+  condition: string;
+  count: number;
+  visible: boolean;
+}
+
 interface Props {
   /** Current coloring mode (acmg or effect); read-only, changes flow up via emit. */
   coloringMode: ColoringMode;
@@ -188,9 +297,13 @@ interface Props {
   legendItems: PathogenicityLegendItem[];
   /** Effect-type filter legend items (visibility + counts). */
   effectLegendItems: EffectLegendItem[];
+  /** Condition filter legend items (visibility + counts). */
+  conditionLegendItems?: ConditionLegendItem[];
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  conditionLegendItems: () => [],
+});
 
 defineEmits<{
   /** Coloring mode toggle clicked. */
@@ -207,11 +320,37 @@ defineEmits<{
   (e: 'select-only-effect', effectType: EffectType): void;
   /** "all" clicked for effect types (show every type). */
   (e: 'select-all-effects'): void;
+  /** A condition filter chip was clicked (toggle visibility). */
+  (e: 'toggle-condition', condition: string): void;
+  /** "only" clicked for a condition (isolate it). */
+  (e: 'select-only-condition', condition: string): void;
+  /** "all" clicked for conditions (show every condition). */
+  (e: 'select-all-conditions'): void;
   /** SVG export button clicked. */
   (e: 'download-svg'): void;
   /** PNG export button clicked. */
   (e: 'download-png'): void;
 }>();
+
+const MAX_VISIBLE_CONDITIONS = 5;
+const showAllConditionsExpanded = ref(false);
+
+const notProvidedItem = computed(() => {
+  return props.conditionLegendItems?.find((item) => item.condition === 'Not provided') || null;
+});
+
+const specificConditionItems = computed(() => {
+  return (props.conditionLegendItems || []).filter((item) => item.condition !== 'Not provided');
+});
+
+const visibleSpecificConditions = computed(() => {
+  if (showAllConditionsExpanded.value) return specificConditionItems.value;
+  return specificConditionItems.value.slice(0, MAX_VISIBLE_CONDITIONS);
+});
+
+const hasMoreSpecificConditions = computed(() => {
+  return specificConditionItems.value.length > MAX_VISIBLE_CONDITIONS;
+});
 </script>
 
 <style scoped>
@@ -253,12 +392,25 @@ defineEmits<{
   background: #f5f5f5;
 }
 
+.filter-chip--unspecified {
+  border-style: dashed;
+  background-color: #fafbfc;
+}
+
+.filter-chip--unspecified:hover {
+  background-color: #f1f3f5;
+}
+
 .filter-dot {
   display: inline-block;
   width: 9px;
   height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.filter-dot--unspecified {
+  border-radius: 2px;
 }
 
 .filter-label {
@@ -334,5 +486,36 @@ defineEmits<{
   display: inline-flex;
   align-items: center;
   gap: 2px;
+}
+
+@media (max-width: 768px) {
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+  }
+  .controls-row .btn-group {
+    width: 100%;
+  }
+  .controls-row .btn-group .btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  .export-buttons {
+    justify-content: flex-end;
+  }
+  .export-buttons .btn {
+    padding: 5px 10px;
+  }
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  .only-btn,
+  .all-btn {
+    padding: 3px 6px;
+    font-size: 0.72rem;
+  }
 }
 </style>

@@ -11,7 +11,7 @@
             :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
             :loading="loading"
           >
-            <template v-if="!loading" #actions>
+            <template #actions>
               <div v-if="showFilterControls" class="mb-1 text-end">
                 <TableDownloadLinkCopyButtons
                   :downloading="downloading"
@@ -24,7 +24,7 @@
               </div>
             </template>
 
-            <template v-if="!loading" #toolbar>
+            <template #toolbar>
               <!-- User Interface controls -->
               <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
                 <BCol v-if="showSearchInput" class="my-1" sm="8">
@@ -53,7 +53,7 @@
             </template>
 
             <template #loading>
-              <TableLoadingState data-testid="entities-skeleton" />
+              <TableLoadingState :rows="skeletonRows" data-testid="entities-skeleton" />
             </template>
 
             <!-- Main table element -->
@@ -336,6 +336,9 @@ export default {
     // embedded usages (e.g. the gene-detail "Associated" table) keep the default 2
     // so the page keeps exactly one route-level <h1>.
     headingLevel: { type: Number, default: 2 },
+    // Number of skeleton rows to display while loading. Default is 8 (for full /Entities table),
+    // embedded usage passes smaller values (e.g. 2 on gene detail) to match expected row count and prevent CLS.
+    skeletonRows: { type: Number, default: 8 },
   },
   setup(props) {
     return useEntitiesTable(props);
@@ -356,74 +359,14 @@ export default {
   letter-spacing: 0;
 }
 
-.input-group > .input-group-prepend {
-  flex: 0 0 35%;
-}
-.input-group .input-group-text {
-  width: 100%;
-}
-.badge-container .badge {
-  width: 170px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:deep(.vue-treeselect__placeholder) {
-  color: #6c757d !important;
-}
-:deep(.vue-treeselect__control) {
-  color: #6c757d !important;
-}
-
 /* Card styling improvements */
 :deep(.card) {
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
 }
 
 :deep(.card-header) {
   background-color: #f8f9fa;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-/* Skeleton table rows shown while the entity API request is in flight.
-   Mirrors the eventual BTable's row shape to avoid CLS. */
-.entities-skeleton-line {
-  height: 0.85rem;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
-  background-size: 400% 100%;
-  animation: entities-skeleton-shimmer 1.4s ease infinite;
-}
-.entities-skeleton-w-8 {
-  width: 8%;
-}
-.entities-skeleton-w-10 {
-  width: 10%;
-}
-.entities-skeleton-w-12 {
-  width: 12%;
-}
-.entities-skeleton-w-15 {
-  width: 15%;
-}
-.entities-skeleton-w-30 {
-  width: 30%;
-}
-.entities-skeleton-row + .entities-skeleton-row {
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-}
-@keyframes entities-skeleton-shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .entities-skeleton-line {
-    animation: none;
-  }
 }
 </style>

@@ -73,6 +73,25 @@ export function isEffectTypeVisible(
 }
 
 /**
+ * Check if variant conditions are visible based on filter state
+ */
+export function isConditionVisible(
+  conditions: string[] | undefined,
+  filterState: LollipopFilterState
+): boolean {
+  if (!filterState.selectedConditions || filterState.selectedConditions.length === 0) {
+    return true;
+  }
+
+  const variantConds = conditions && conditions.length > 0
+    ? conditions.map((c) => c.trim() || 'Not specified')
+    : ['Not specified'];
+
+  return variantConds.some((c) => filterState.selectedConditions!.includes(c));
+}
+
+
+/**
  * Calculate dynamic opacity based on zoom level and variant density
  *
  * @param visibleCount - Number of variants currently visible

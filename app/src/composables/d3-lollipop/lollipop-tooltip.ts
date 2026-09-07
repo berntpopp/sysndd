@@ -61,6 +61,13 @@ export function showTooltip(
     <div style="${colorStyle} margin-top: 4px;">${variant.classification}</div>
     <div style="margin-top: 4px;">Review: ${starsDisplay}</div>
     <div style="color: #aaa; font-size: 11px;">${variant.reviewStatus}</div>
+    ${
+      variant.conditions && variant.conditions.length > 0
+        ? `<div style="margin-top: 4px; color: #90caf9; font-size: 11px; max-width: 280px; word-break: break-word;">
+             <span style="color: #aaa;">Condition:</span> ${variant.conditions.slice(0, 2).join(', ')}${variant.conditions.length > 2 ? ` (+${variant.conditions.length - 2})` : ''}
+           </div>`
+        : ''
+    }
     <div style="margin-top: 4px; color: #aaa; font-size: 11px;">
       ${variant.majorConsequence.replace(/_/g, ' ')}
       ${variant.inGnomad ? '| in gnomAD' : ''}

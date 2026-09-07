@@ -87,6 +87,15 @@ export interface ClinVarVariant {
 
   /** Variant ID (chr-pos-ref-alt format) */
   variant_id: string;
+
+  /** ClinVar reported disease conditions / traits */
+  conditions?: string[];
+
+  /** Cross-referenced MONDO disease ontology CURIEs */
+  mondo_ids?: string[];
+
+  /** Cross-referenced OMIM disease phenotype numbers */
+  omim_ids?: string[];
 }
 
 /**

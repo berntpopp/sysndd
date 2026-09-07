@@ -95,7 +95,7 @@
 
 <style scoped>
   .syndromicity-card {
-    border-left: 3px solid var(--bs-secondary, #6c757d);
+    border: 1px solid var(--bs-border-color);
   }
 
   .call-badge {

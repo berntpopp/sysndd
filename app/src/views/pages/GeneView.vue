@@ -74,6 +74,7 @@
       header-label="Associated "
       :filter-input="entityFilter"
       :disable-url-sync="true"
+      :skeleton-rows="2"
     />
 
     <!-- 3. External cards: 3-up grid at md+, each SectionCard renders skeleton during load
@@ -161,6 +162,7 @@
               :alphafold-metadata="alphafold.data.value ?? null"
               :alphafold-loading="alphafold.loading.value"
               :alphafold-error="alphafold.error.value ? alphafold.error.value.message : null"
+              @request-3d="needAlphaFold = true"
               @retry="retryAllExternalData"
             />
           </BCol>
@@ -257,7 +259,12 @@ const symbolForExternal = computed<string | null>(() =>
 // visualization tabs below the entities table — see useGeneClinVar usage.
 const clinvarCounts = useGeneClinVarCounts(symbolForExternal);
 const clinvar = useGeneClinVar(symbolForExternal);
-const alphafold = useGeneAlphaFold(symbolForExternal);
+// AlphaFold structure is heavy and only needed when Tab 3 is activated/hovered.
+const needAlphaFold = ref(false);
+const symbolForAlphaFold = computed<string | null>(() =>
+  needAlphaFold.value && symbolForExternal.value ? symbolForExternal.value : null
+);
+const alphafold = useGeneAlphaFold(symbolForAlphaFold);
 const uniprot = useGeneUniProt(symbolForExternal);
 const mgi = useGeneMGI(symbolForExternal);
 const rgd = useGeneRGD(symbolForExternal);
@@ -280,13 +287,16 @@ const modelOrgError = computed(() =>
 );
 
 async function retryAllExternalData(): Promise<void> {
-  await Promise.all([
+  const promises: Promise<unknown>[] = [
     clinvar.refresh(),
-    alphafold.refresh(),
     uniprot.refresh(),
     mgi.refresh(),
     rgd.refresh(),
-  ]);
+  ];
+  if (needAlphaFold.value) {
+    promises.push(alphafold.refresh());
+  }
+  await Promise.all(promises);
 }
 
 // 404 redirect: watch [loading, data] so it fires both on the cold loading→resolved

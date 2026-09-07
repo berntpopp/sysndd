@@ -138,7 +138,7 @@ async function handleCopy() {
 }
 
 .identifier-row__value {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8rem;
 }
 
@@ -182,7 +182,7 @@ async function handleCopy() {
 }
 
 .identifier-badge__value {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
   color: #333;
 }
 

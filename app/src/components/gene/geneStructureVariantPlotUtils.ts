@@ -1,10 +1,12 @@
 import type { EffectType } from '@/types/protein';
 import { normalizeEffectType } from '@/types/protein';
+import { normalizeConditionList } from './proteinLollipopControls';
 
 export interface GeneStructureVariantLike {
   genomicPosition: number;
   classification: string;
   majorConsequence?: string | null;
+  conditions?: string[];
 }
 
 export interface AggregatedGeneStructureVariant<T extends GeneStructureVariantLike> {
@@ -18,6 +20,7 @@ export interface AggregatedGeneStructureVariant<T extends GeneStructureVariantLi
 export interface GeneStructureVariantFilterState {
   pathogenicity: Record<string, boolean>;
   effectFilters: Record<EffectType, boolean>;
+  selectedConditions?: string[] | null;
 }
 
 const AGGREGATION_THRESHOLD = 500;
@@ -93,5 +96,47 @@ export function isGeneStructureVariantVisible(
   const effectType = normalizeEffectType(variant.majorConsequence ?? '');
   const effectVisible = filterState.effectFilters[effectType];
 
-  return pathogenicityVisible && effectVisible;
+  let conditionVisible = true;
+  if (filterState.selectedConditions && filterState.selectedConditions.length > 0) {
+    const conds = normalizeConditionList(variant.conditions);
+    conditionVisible = conds.some((c) => filterState.selectedConditions!.includes(c));
+  }
+
+  return pathogenicityVisible && effectVisible && conditionVisible;
+}
+
+/**
+ * Calculates adaptive vertical step size between stacked variant lollipops
+ * ensuring that dense clusters never exceed the available headroom.
+ */
+export function calculateDynamicStemStep(
+  maxAllowedStemHeight: number,
+  baseStemHeight: number,
+  stackCount: number,
+  maxStep: number = 8
+): number {
+  if (stackCount <= 1) return 0;
+  return Math.min(maxStep, Math.max(0, (maxAllowedStemHeight - baseStemHeight) / (stackCount - 1)));
+}
+
+/**
+ * Calculates safe stem height for an individual variant marker at a given stack index,
+ * strictly bounded by the maximum allowed headroom.
+ */
+export function calculateSafeStemHeight(
+  stackIndex: number,
+  stackCount: number,
+  baseStemHeight: number,
+  maxAllowedStemHeight: number,
+  maxStep: number = 8
+): number {
+  const effectiveCount = Math.max(1, stackCount);
+  const clampedIndex = Math.min(Math.max(0, stackIndex), effectiveCount - 1);
+  const step = calculateDynamicStemStep(
+    maxAllowedStemHeight,
+    baseStemHeight,
+    effectiveCount,
+    maxStep
+  );
+  return baseStemHeight + clampedIndex * step;
 }

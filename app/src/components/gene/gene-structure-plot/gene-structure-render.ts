@@ -10,10 +10,12 @@ import * as d3 from 'd3';
 import type { ClassifiedExon } from '@/types/ensembl';
 import { formatGenomicCoordinate } from '@/types/ensembl';
 import type { GenomicVariant } from '../GenomicVisualizationTabs.vue';
+import { pathogenicitySeverityRank } from '@/types/protein';
 import {
   aggregateVariantsByGenomicPosition,
   calculateAggregatedRadius,
   calculateDynamicOpacity,
+  calculateSafeStemHeight,
   determineRenderingMode,
 } from '../geneStructureVariantPlotUtils';
 import type { GeneStructureContext } from './gene-structure-context';
@@ -171,8 +173,8 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
   const xScale = ctx.xScale;
 
   // Y positions
-  const exonY = innerHeight - 30;
-  const variantBaseY = exonY - CODING_HEIGHT / 2 - 5;
+  const exonY = innerHeight - 25;
+  const variantBaseY = exonY - CODING_HEIGHT / 2 - 4;
 
   // Create strand arrow marker
   const defs = ctx.svg.append('defs');
@@ -193,7 +195,8 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
 
   // Render intron lines (back layer)
   geneData.introns.forEach((intron) => {
-    ctx.mainGroup!.append('line')
+    ctx
+      .mainGroup!.append('line')
       .attr('class', 'intron')
       .attr('x1', xScale(intron.start))
       .attr('y1', exonY)
@@ -211,7 +214,8 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
     const exonHeight = exon.type === 'coding' ? CODING_HEIGHT : UTR_HEIGHT;
     const fillColor = exon.type === 'coding' ? CODING_COLOR : UTR_COLOR;
 
-    ctx.mainGroup!.append('rect')
+    ctx
+      .mainGroup!.append('rect')
       .attr('class', 'exon')
       .attr('x', xScale(exon.start))
       .attr('y', exonY - exonHeight / 2)
@@ -220,6 +224,8 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
       .attr('fill', fillColor)
       .attr('stroke', EXON_STROKE)
       .attr('stroke-width', 0.5)
+      .attr('rx', 3)
+      .attr('ry', 3)
       .attr('cursor', 'pointer')
       .attr('aria-hidden', 'true')
       .on('mouseover', (event: MouseEvent) => {
@@ -304,11 +310,33 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
         (v) => Math.round(v.genomicPosition / 100) * 100
       );
 
-      // Render stems and markers
+      // Safe headroom calculation:
+      // Minimum safe global SVG Y is 10px (leaving comfortable margin from the top edge).
+      // Since mainGroup is translated by margin.top, safe minimum Y in mainGroup coordinates is:
+      const safeMinY = 10 - margin.top + MARKER_RADIUS + MARKER_STROKE_WIDTH;
+      const maxAllowedStemHeight = Math.max(STEM_BASE_HEIGHT, variantBaseY - safeMinY);
+
+      // Render stems and markers with guaranteed vertical containment
       variantGroups.forEach((group) => {
-        group.forEach((variant, index) => {
+        // Sort by severity (less severe first, so more severe renders on top)
+        const sortedGroup = [...group].sort(
+          (a, b) =>
+            pathogenicitySeverityRank(a.classification) -
+            pathogenicitySeverityRank(b.classification)
+        );
+
+        // Calculate stack count capped at 8 levels
+        const stackCount = Math.min(sortedGroup.length, 8);
+
+        sortedGroup.forEach((variant, index) => {
           const x = xScale(variant.genomicPosition);
-          const stemHeight = STEM_BASE_HEIGHT + Math.min(index, 8) * 10;
+          const stemHeight = calculateSafeStemHeight(
+            index,
+            stackCount,
+            STEM_BASE_HEIGHT,
+            maxAllowedStemHeight,
+            8
+          );
           const markerY = variantBaseY - stemHeight;
 
           // Stem line
@@ -319,29 +347,37 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
             .attr('y1', variantBaseY)
             .attr('x2', x)
             .attr('y2', markerY)
-            .attr('stroke', '#999')
+            .attr('stroke', '#94a3b8')
             .attr('stroke-width', 1)
-            .attr('opacity', 0.6)
+            .attr('opacity', opacity * 0.7)
             .attr('aria-hidden', 'true');
 
-          // Marker circle
+          // Marker shape: diamond for splice variants, circle for others (matching protein lollipop)
+          const isSplice = Boolean(variant.isSpliceVariant);
+          const symbolType = isSplice ? d3.symbolDiamond : d3.symbolCircle;
+          const symbolGenerator = d3
+            .symbol()
+            .type(symbolType)
+            .size(
+              isSplice
+                ? MARKER_RADIUS * MARKER_RADIUS * 2.5
+                : MARKER_RADIUS * MARKER_RADIUS * Math.PI
+            );
+
           const color = ctx.inputs.getVariantColor(variant);
 
           variantGroup
-            .append('circle')
+            .append('path')
             .attr('class', 'variant-marker')
-            // Decorative inside role="img" SVG — aria naming and role="button" are
-            // prohibited on SVG child elements of role="img". Mark hidden from AT;
-            // the SVG title/desc carry the accessible figure description.
-            .attr('aria-hidden', 'true')
-            .attr('cx', x)
-            .attr('cy', markerY)
-            .attr('r', MARKER_RADIUS)
+            .attr('d', symbolGenerator() ?? '')
+            .attr('transform', `translate(${x}, ${markerY})`)
             .attr('fill', color)
             .attr('stroke', '#fff')
             .attr('stroke-width', MARKER_STROKE_WIDTH)
             .attr('opacity', opacity)
             .attr('cursor', 'pointer')
+            .style('pointer-events', 'all')
+            .attr('aria-hidden', 'true')
             .on('mouseover', (event: MouseEvent) => {
               if (!ctx.isTooltipLocked) {
                 showVariantTooltip(ctx, event, variant);

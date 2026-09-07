@@ -97,7 +97,11 @@
             :aria-label="`Highlight ${item.variant.hgvsp || item.variant.variant_id} on 3D structure`"
             @change="toggleVariant(item)"
           />
-          <span class="acmg-dot" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
+          <span
+            class="acmg-dot"
+            :style="{ backgroundColor: item.color }"
+            :aria-hidden="true"
+          ></span>
           <span class="variant-info">
             <span class="variant-row-top">
               <span class="variant-notation small">
@@ -118,9 +122,26 @@
               <span class="variant-class small text-muted">
                 {{ item.label }}
               </span>
-              <span class="review-stars" :title="`ClinVar review: ${item.variant.gold_stars} stars`">
-                {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
+              <span
+                class="review-stars"
+                :title="`ClinVar review: ${item.variant.gold_stars} stars`"
+              >
+                {{ '★'.repeat(item.variant.gold_stars)
+                }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
               </span>
+            </span>
+            <span
+              v-if="item.variant.conditions && item.variant.conditions.length > 0"
+              class="variant-row-condition small text-muted text-truncate"
+              :title="item.variant.conditions.join(', ')"
+            >
+              <i class="bi bi-activity text-secondary me-1" aria-hidden="true"></i
+              >{{ item.variant.conditions[0]
+              }}{{
+                item.variant.conditions.length > 1
+                  ? ` (+${item.variant.conditions.length - 1})`
+                  : ''
+              }}
             </span>
           </span>
         </label>
@@ -140,7 +161,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
 import { BButton } from 'bootstrap-vue-next';
-import VariantTooltip from './VariantTooltip.vue';
+import VariantTooltip, { type VariantTooltipData } from './VariantTooltip.vue';
 import type { ClinVarVariant } from '@/types/external';
 import { ACMG_COLORS, type AcmgClassification } from '@/types/alphafold';
 import {
@@ -187,74 +208,34 @@ const listContainer = ref<HTMLElement | null>(null);
 const tooltipEl = ref<InstanceType<typeof VariantTooltip> | null>(null);
 
 // Tooltip state (structured data for VariantTooltip component)
-interface TooltipData {
-  hgvsp: string | null;
-  hgvsc: string | null;
-  variantId: string;
-  label: string;
-  color: string;
-  goldStars: number;
-}
-const tooltipData = ref<TooltipData | null>(null);
+const tooltipData = ref<VariantTooltipData | null>(null);
 const tooltipVisible = ref(false);
 const tooltipPosition = ref({ top: 0, left: 0 });
 
 // Filter variants to only those with parseable protein positions (missense/inframe only)
 // parseResidueNumber returns null for frameshift, stop, and splice variants
 // Sorted by residue number for spatial ordering
-const mappableVariants = computed<MappableVariant[]>(() =>
-  buildMappableVariants(props.variants)
-);
+const mappableVariants = computed<MappableVariant[]>(() => buildMappableVariants(props.variants));
+
+const ACMG_LEGEND_CONFIG = [
+  { key: 'pathogenic' as const, label: 'Path', color: ACMG_COLORS.pathogenic },
+  { key: 'likelyPathogenic' as const, label: 'LP', color: ACMG_COLORS.likely_pathogenic },
+  { key: 'vus' as const, label: 'VUS', color: ACMG_COLORS.vus },
+  { key: 'likelyBenign' as const, label: 'LB', color: ACMG_COLORS.likely_benign },
+  { key: 'benign' as const, label: 'Ben', color: ACMG_COLORS.benign },
+  { key: 'conflicting' as const, label: 'Conf', color: ACMG_COLORS.conflicting },
+];
 
 /**
  * Legend items for ACMG filter chips with counts
  */
 const legendItems = computed(() => {
   const counts = countByClassification(mappableVariants.value);
-  return [
-    {
-      key: 'pathogenic' as const,
-      label: 'Path',
-      color: ACMG_COLORS.pathogenic,
-      visible: filterState.pathogenic,
-      count: counts.pathogenic,
-    },
-    {
-      key: 'likelyPathogenic' as const,
-      label: 'LP',
-      color: ACMG_COLORS.likely_pathogenic,
-      visible: filterState.likelyPathogenic,
-      count: counts.likelyPathogenic,
-    },
-    {
-      key: 'vus' as const,
-      label: 'VUS',
-      color: ACMG_COLORS.vus,
-      visible: filterState.vus,
-      count: counts.vus,
-    },
-    {
-      key: 'likelyBenign' as const,
-      label: 'LB',
-      color: ACMG_COLORS.likely_benign,
-      visible: filterState.likelyBenign,
-      count: counts.likelyBenign,
-    },
-    {
-      key: 'benign' as const,
-      label: 'Ben',
-      color: ACMG_COLORS.benign,
-      visible: filterState.benign,
-      count: counts.benign,
-    },
-    {
-      key: 'conflicting' as const,
-      label: 'Conf',
-      color: ACMG_COLORS.conflicting,
-      visible: filterState.conflicting,
-      count: counts.conflicting,
-    },
-  ];
+  return ACMG_LEGEND_CONFIG.map((item) => ({
+    ...item,
+    visible: filterState[item.key],
+    count: counts[item.key],
+  }));
 });
 
 /**
@@ -353,6 +334,7 @@ function showTooltip(event: MouseEvent, item: MappableVariant): void {
     label: item.label,
     color: item.color,
     goldStars: item.variant.gold_stars,
+    conditions: item.variant.conditions,
   };
 
   // Position to the left of the item in viewport coordinates (for position:fixed)
@@ -390,34 +372,31 @@ function hideTooltip(): void {
   position: relative;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
+.panel-header,
+.search-box,
+.filter-row {
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   flex-shrink: 0;
 }
 
-/* Search box */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+}
+
 .search-box {
   padding: 6px 10px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  flex-shrink: 0;
 }
 
 .search-box input {
   font-size: 0.8rem;
 }
 
-/* Filter row */
 .filter-row {
   padding: 6px 8px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  flex-shrink: 0;
 }
 
 /* Filter chips - compact toggle buttons (matching lollipop plot) */
@@ -550,7 +529,7 @@ function hideTooltip(): void {
 }
 
 .variant-notation {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -580,5 +559,16 @@ function hideTooltip(): void {
   font-size: 0.65rem;
   flex-shrink: 0;
   letter-spacing: -1px;
+}
+
+.variant-row-condition {
+  display: block;
+  font-size: 0.68rem;
+  color: #6c757d;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 </style>

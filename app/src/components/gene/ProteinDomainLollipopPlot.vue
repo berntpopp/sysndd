@@ -36,6 +36,7 @@
       :domain-legend-items="domainLegendItems"
       :legend-items="legendItems"
       :effect-legend-items="effectLegendItems"
+      :condition-legend-items="conditionLegendItems"
       @update:coloring-mode="setColoringMode"
       @toggle-pathogenicity="toggleFilter"
       @select-only-pathogenicity="selectOnlyPathogenicity"
@@ -43,6 +44,9 @@
       @toggle-effect="toggleEffectFilter"
       @select-only-effect="selectOnlyEffectType"
       @select-all-effects="selectAllEffectTypes"
+      @toggle-condition="toggleConditionFilter"
+      @select-only-condition="selectOnlyConditionFilter"
+      @select-all-conditions="selectAllConditionsFilter"
       @download-svg="downloadSVG"
       @download-png="downloadPNG"
     />
@@ -53,15 +57,18 @@
 import { ref, reactive, computed, watchEffect, watch } from 'vue';
 import * as d3 from 'd3';
 import { useD3Lollipop } from '@/composables/d3-lollipop';
-import type {
-  ProteinPlotData,
-  ProcessedVariant,
-  LollipopFilterState,
-  EffectType,
-  ColoringMode,
+import {
+  PATHOGENICITY_COLORS,
+  EFFECT_TYPE_COLORS,
+  type ProteinPlotData,
+  type ProcessedVariant,
+  type LollipopFilterState,
+  type EffectType,
+  type ColoringMode,
 } from '@/types';
-import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS } from '@/types/protein';
-import ProteinLollipopControlsPanel from './ProteinLollipopControlsPanel.vue';
+import ProteinLollipopControlsPanel, {
+  type ConditionLegendItem,
+} from './ProteinLollipopControlsPanel.vue';
 import { useProteinLollipopExport } from './useProteinLollipopExport';
 import {
   EFFECT_TYPE_ORDER,
@@ -69,6 +76,10 @@ import {
   formatDomainType,
   countByClassification,
   countByEffectType,
+  countByCondition,
+  toggleCondition,
+  selectOnlyCondition,
+  selectAllConditions,
   selectOnlyPathogenicity as selectOnlyPathogenicityFor,
   selectAllPathogenicity as selectAllPathogenicityFor,
   selectOnlyEffectType as selectOnlyEffectTypeFor,
@@ -128,8 +139,8 @@ const filterState = reactive<LollipopFilterState>({
 const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
   container: plotContainer,
   width: 800,
-  height: 140,
-  margin: { top: 15, right: 20, bottom: 28, left: 40 },
+  height: 150,
+  margin: { top: 22, right: 20, bottom: 28, left: 40 },
   onVariantClick: (variant) => emit('variant-click', variant),
   onVariantHover: (variant) => emit('variant-hover', variant),
 });
@@ -259,6 +270,46 @@ const domainLegendItems = computed(() => {
     color: colorScale(type) as string,
   }));
 });
+
+/**
+ * Computed condition legend items with variant counts
+ */
+const conditionLegendItems = computed<ConditionLegendItem[]>(() => {
+  if (!props.data?.variants || props.data.variants.length === 0) {
+    return [];
+  }
+
+  const counts = countByCondition(props.data.variants);
+  const selected = filterState.selectedConditions;
+
+  return counts.map((item) => ({
+    condition: item.condition,
+    count: item.count,
+    visible: !selected || selected.includes(item.condition),
+  }));
+});
+
+/**
+ * Toggle filter visibility for a reported condition
+ */
+function toggleConditionFilter(condition: string): void {
+  const allConditions = conditionLegendItems.value.map((c) => c.condition);
+  toggleCondition(filterState, condition, allConditions);
+}
+
+/**
+ * Select only one reported condition (deselect all others)
+ */
+function selectOnlyConditionFilter(condition: string): void {
+  selectOnlyCondition(filterState, condition);
+}
+
+/**
+ * Select all reported conditions
+ */
+function selectAllConditionsFilter(): void {
+  selectAllConditions(filterState);
+}
 
 /**
  * Toggle filter visibility for a pathogenicity class

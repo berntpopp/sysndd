@@ -126,13 +126,21 @@ export function filterMappableVariants(
     // chip and are always listed, labelled with their raw significance string.
     // Intentional: this panel is a manual pick-list, not a density plot.
 
-    // Check search query (case-insensitive across hgvsp, hgvsc, variant_id)
+    // Check search query (case-insensitive across hgvsp, hgvsc, variant_id, conditions)
     if (query) {
       const hgvsp = (item.variant.hgvsp || '').toLowerCase();
       const hgvsc = (item.variant.hgvsc || '').toLowerCase();
       const variantId = (item.variant.variant_id || '').toLowerCase();
+      const conditionsMatch = (item.variant.conditions || []).some((c) =>
+        c.toLowerCase().includes(query)
+      );
 
-      if (!hgvsp.includes(query) && !hgvsc.includes(query) && !variantId.includes(query)) {
+      if (
+        !hgvsp.includes(query) &&
+        !hgvsc.includes(query) &&
+        !variantId.includes(query) &&
+        !conditionsMatch
+      ) {
         return false;
       }
     }

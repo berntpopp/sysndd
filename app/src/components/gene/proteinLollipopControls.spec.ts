@@ -3,13 +3,23 @@ import { describe, expect, it } from 'vitest';
 import type { LollipopFilterState, ProcessedVariant } from '@/types/protein';
 import {
   EFFECT_TYPE_ORDER,
+  NOT_PROVIDED_CONDITION,
+  NOT_SPECIFIED_CONDITION,
   countByClassification,
+  countByCondition,
   countByEffectType,
   formatDomainType,
+  isConditionVisible,
+  isUnspecifiedCondition,
+  normalizeCondition,
+  normalizeConditionList,
+  selectAllConditions,
   selectAllEffectTypes,
   selectAllPathogenicity,
+  selectOnlyCondition,
   selectOnlyEffectType,
   selectOnlyPathogenicity,
+  toggleCondition,
 } from './proteinLollipopControls';
 import { isClassificationVisible } from '@/composables/d3-lollipop/lollipop-helpers';
 
@@ -30,13 +40,17 @@ function makeVariant(overrides: Partial<ProcessedVariant>): ProcessedVariant {
   } as ProcessedVariant;
 }
 
-function makeFilterState(): LollipopFilterState {
+function makeFilterState(
+  overrides: Partial<LollipopFilterState> = {}
+): LollipopFilterState {
   return {
     pathogenic: true,
     likelyPathogenic: true,
     vus: true,
     likelyBenign: true,
     benign: true,
+    conflicting: true,
+    other: true,
     effectFilters: {
       missense: true,
       frameshift: true,
@@ -47,7 +61,8 @@ function makeFilterState(): LollipopFilterState {
       other: true,
     },
     coloringMode: 'acmg',
-  } as LollipopFilterState;
+    ...overrides,
+  };
 }
 
 describe('proteinLollipopControls', () => {
@@ -176,3 +191,130 @@ describe('conflicting and other pathogenicity filters (#607)', () => {
     expect(state.benign).toBe(true);
   });
 });
+
+describe('condition filtering (ClinVar disease phenotypes)', () => {
+  it('isUnspecifiedCondition recognizes various ClinVar placeholder strings', () => {
+    const placeholders = [
+      'not provided',
+      'Not provided',
+      'NOT PROVIDED',
+      'not specified',
+      'Not specified',
+      'See cases',
+      'see cases',
+      'not reported',
+      'unknown',
+      'unspecified',
+      'none',
+      '-',
+      '.',
+      '',
+      '   ',
+      'NA',
+      null,
+      undefined,
+    ];
+    for (const p of placeholders) {
+      expect(isUnspecifiedCondition(p)).toBe(true);
+    }
+
+    expect(isUnspecifiedCondition('Noonan syndrome 1')).toBe(false);
+    expect(isUnspecifiedCondition('Coffin-Siris syndrome 1')).toBe(false);
+    expect(isUnspecifiedCondition('Ataxia, not otherwise specified')).toBe(false);
+  });
+
+  it('normalizeCondition normalizes placeholders to Not provided and trims valid conditions', () => {
+    expect(normalizeCondition('not provided')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('not specified')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('See cases')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('')).toBe(NOT_PROVIDED_CONDITION);
+    expect(normalizeCondition('  Noonan syndrome 1  ')).toBe('Noonan syndrome 1');
+  });
+
+  it('normalizeConditionList deduplicates placeholders and orders specific conditions before Not provided', () => {
+    expect(normalizeConditionList([])).toEqual([NOT_PROVIDED_CONDITION]);
+    expect(normalizeConditionList(null)).toEqual([NOT_PROVIDED_CONDITION]);
+    expect(normalizeConditionList(['not provided', 'not specified'])).toEqual([NOT_PROVIDED_CONDITION]);
+
+    const mixed = normalizeConditionList(['not provided', 'Coffin-Siris syndrome 1', 'ARID1B-Related Disorder']);
+    expect(mixed).toEqual(['ARID1B-Related Disorder', 'Coffin-Siris syndrome 1', NOT_PROVIDED_CONDITION]);
+  });
+
+  it('countByCondition consolidates placeholders, avoids double counting, and puts Not provided at end', () => {
+    const variants = [
+      makeVariant({ conditions: ['Noonan syndrome 1', 'not provided'] }),
+      makeVariant({ conditions: ['Noonan syndrome 1'] }),
+      makeVariant({ conditions: ['Metachondromatosis'] }),
+      makeVariant({ conditions: ['not provided', 'not specified'] }), // Multiple placeholders on one variant
+      makeVariant({ conditions: ['See cases'] }),
+      makeVariant({ conditions: [] }), // Empty conditions fallback to Not provided
+    ];
+
+    const counts = countByCondition(variants);
+    expect(counts).toEqual([
+      { condition: 'Noonan syndrome 1', count: 2 },
+      { condition: 'Metachondromatosis', count: 1 },
+      // 4 variants have Not provided: variant 0, variant 3 (deduplicated), variant 4, variant 5
+      { condition: NOT_PROVIDED_CONDITION, count: 4 },
+    ]);
+  });
+
+  it('isConditionVisible returns true when selectedConditions is null, undefined, or empty', () => {
+    const state = makeFilterState({ selectedConditions: null });
+
+    expect(isConditionVisible(['Noonan syndrome 1'], state)).toBe(true);
+    expect(isConditionVisible([], state)).toBe(true);
+    expect(isConditionVisible(undefined, state)).toBe(true);
+
+    state.selectedConditions = [];
+    expect(isConditionVisible(['Noonan syndrome 1'], state)).toBe(true);
+  });
+
+  it('isConditionVisible filters variants according to selectedConditions with normalization', () => {
+    const state = makeFilterState({ selectedConditions: ['Noonan syndrome 1'] });
+
+    // Variant with matching condition -> visible
+    expect(isConditionVisible(['Noonan syndrome 1', 'LEOPARD syndrome 1'], state)).toBe(true);
+
+    // Variant without matching condition -> hidden
+    expect(isConditionVisible(['Metachondromatosis'], state)).toBe(false);
+
+    // Variant with no condition matches NOT_PROVIDED_CONDITION
+    expect(isConditionVisible([], state)).toBe(false);
+    expect(isConditionVisible(undefined, state)).toBe(false);
+    expect(isConditionVisible(['not specified'], state)).toBe(false);
+
+    state.selectedConditions = [NOT_PROVIDED_CONDITION];
+    expect(isConditionVisible([], state)).toBe(true);
+    expect(isConditionVisible(undefined, state)).toBe(true);
+    expect(isConditionVisible(['not provided'], state)).toBe(true);
+    expect(isConditionVisible(['not specified'], state)).toBe(true);
+    expect(isConditionVisible(['See cases'], state)).toBe(true);
+    expect(isConditionVisible(['Noonan syndrome 1'], state)).toBe(false);
+  });
+
+  it('toggleCondition handles selecting and deselecting conditions', () => {
+    const allConds = ['Noonan syndrome 1', 'LEOPARD syndrome 1', 'Metachondromatosis'];
+    const state = makeFilterState();
+
+    // Initial state: selectedConditions is undefined (all active)
+    // Toggling 'Metachondromatosis' turns off Metachondromatosis, leaving other two selected
+    toggleCondition(state, 'Metachondromatosis', allConds);
+    expect(state.selectedConditions).toEqual(['Noonan syndrome 1', 'LEOPARD syndrome 1']);
+
+    // Toggling 'Metachondromatosis' again re-adds it, reaching allConds length -> resets to null
+    toggleCondition(state, 'Metachondromatosis', allConds);
+    expect(state.selectedConditions).toBeNull();
+  });
+
+  it('selectOnlyCondition and selectAllConditions manage single and all selection', () => {
+    const state = makeFilterState();
+
+    selectOnlyCondition(state, 'Noonan syndrome 1');
+    expect(state.selectedConditions).toEqual(['Noonan syndrome 1']);
+
+    selectAllConditions(state);
+    expect(state.selectedConditions).toBeNull();
+  });
+});
+

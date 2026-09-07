@@ -166,23 +166,10 @@ export default {
         term_enrichment: [],
       },
 
-      /*
-       * If you color badges by category, define clusterCategoryStyle object here
-       * with fallback "default" color (renamed to avoid conflict with mixin's category_style)
-       */
-      clusterCategoryStyle: {
-        GO: '#AA00AA',
-        KEGG: '#AA5500',
-        MONDO: '#0088AA',
-        default: '#666666', // fallback if row.category not in object
-      },
-
       /* --------------------------------------
        * Clustering logic
        * ------------------------------------ */
-      selectOptions: [
-        { value: 'clusters', text: 'Clusters' },
-      ],
+      selectOptions: [{ value: 'clusters', text: 'Clusters' }],
       selectType: 'clusters',
       activeParentCluster: 1,
       activeSubCluster: 1,
@@ -196,9 +183,7 @@ export default {
       estimatedSeconds: 15,
       jobId: null,
       algorithm: 'leiden',
-      algorithmOptions: [
-        { value: 'leiden', text: 'Leiden' },
-      ],
+      algorithmOptions: [{ value: 'leiden', text: 'Leiden' }],
 
       // Resizable pane size (percentage)
       leftPaneSize: 42,

@@ -7,7 +7,7 @@
       :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
       :loading="loading"
     >
-      <template v-if="!loading && showFilterControls" #actions>
+      <template v-if="showFilterControls" #actions>
         <BButton
           v-b-tooltip.hover.bottom
           class="me-1"
@@ -59,7 +59,7 @@
         </BButton>
       </template>
 
-      <template v-if="!loading" #toolbar>
+      <template #toolbar>
         <BRow class="align-items-center gx-2">
           <BCol class="my-1" sm="6">
             <PhenotypeFilterToolbar
@@ -373,12 +373,6 @@ export default defineComponent({
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
-}
-.input-group > .input-group-prepend {
-  flex: 0 0 35%;
-}
-.input-group .input-group-text {
-  width: 100%;
 }
 
 /* AND/OR Toggle - Pill Button Group */

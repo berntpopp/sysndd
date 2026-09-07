@@ -47,20 +47,20 @@ const chromosomeLocationDisplay = computed(() => {
 
 <style scoped>
 .gene-hero {
-  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
-  border-bottom: 1px solid #e9ecef;
+  background: var(--surface-canvas, #ffffff);
+  border-bottom: 1px solid var(--border-subtle, #e9ecef);
 }
 
 .gene-hero__name {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--neutral-900, #1e293b);
   line-height: 1.3;
 }
 
 .gene-hero__location {
   font-size: 0.9375rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
 }
 
 /* Responsive adjustments */

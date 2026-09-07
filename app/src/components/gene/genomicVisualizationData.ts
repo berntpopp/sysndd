@@ -13,10 +13,12 @@ import type {
   ProteinPlotData,
   ProcessedVariant,
   ProteinDomain,
+  PathogenicityClass,
 } from '@/types/protein';
 import { normalizeClassification, parseProteinPosition } from '@/types/protein';
 import type { EnsemblGeneStructure } from '@/types/ensembl';
 import type { ClinVarVariant } from '@/types/external';
+import { normalizeConditionList } from './proteinLollipopControls';
 
 /**
  * UniProt domain feature from the API response
@@ -48,12 +50,16 @@ export interface GenomicVariant {
   proteinPosition: number;
   proteinHGVS: string;
   codingHGVS: string;
-  classification: string;
+  classification: PathogenicityClass;
   goldStars: number;
   reviewStatus: string;
   clinvarId: string;
   variantId: string;
   majorConsequence: string;
+  isSpliceVariant?: boolean;
+  conditions: string[];
+  mondoIds: string[];
+  omimIds: string[];
 }
 
 /**
@@ -111,6 +117,9 @@ export function buildProteinPlotData(args: {
             majorConsequence: v.major_consequence,
             isSpliceVariant: parsed.isSplice,
             inGnomad: v.in_gnomad,
+            conditions: normalizeConditionList(v.conditions),
+            mondoIds: v.mondo_ids ?? [],
+            omimIds: v.omim_ids ?? [],
           } as ProcessedVariant;
         })
         .filter((v): v is ProcessedVariant => v !== null)
@@ -239,7 +248,12 @@ export function buildGenomicVariants(
       if (!parsed) return null;
 
       // Map protein position to genomic coordinate using exon-aware mapping
-      const genomicPosition = proteinToGenomic(parsed.position, exonMap, isReverse, totalExonLength);
+      const genomicPosition = proteinToGenomic(
+        parsed.position,
+        exonMap,
+        isReverse,
+        totalExonLength
+      );
       if (genomicPosition === null) return null;
 
       return {
@@ -253,6 +267,10 @@ export function buildGenomicVariants(
         clinvarId: String(v.clinvar_variation_id),
         variantId: v.variant_id,
         majorConsequence: v.major_consequence,
+        isSpliceVariant: parsed.isSplice,
+        conditions: normalizeConditionList(v.conditions),
+        mondoIds: v.mondo_ids ?? [],
+        omimIds: v.omim_ids ?? [],
       } as GenomicVariant;
     })
     .filter((v): v is GenomicVariant => v !== null);
