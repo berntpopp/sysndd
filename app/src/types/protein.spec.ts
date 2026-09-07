@@ -39,6 +39,9 @@ function variant(overrides: Partial<ProcessedVariant> = {}): ProcessedVariant {
     majorConsequence: 'missense_variant',
     isSpliceVariant: false,
     inGnomad: false,
+    conditions: overrides.conditions ?? [],
+    mondoIds: overrides.mondoIds ?? [],
+    omimIds: overrides.omimIds ?? [],
     ...overrides,
   };
 }

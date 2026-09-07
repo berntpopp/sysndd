@@ -166,3 +166,94 @@ export function selectAllEffectTypes(filterState: LollipopFilterState): void {
     filterState.effectFilters[et] = true;
   }
 }
+
+/** Fallback condition label for variants with missing or empty condition list */
+export const NOT_SPECIFIED_CONDITION = 'Not specified';
+
+/**
+ * Count variants per distinct reported condition, sorted by count descending.
+ */
+export function countByCondition(
+  variants: ProcessedVariant[]
+): Array<{ condition: string; count: number }> {
+  const counts = new Map<string, number>();
+
+  for (const variant of variants) {
+    const conds = variant.conditions && variant.conditions.length > 0
+      ? variant.conditions
+      : [NOT_SPECIFIED_CONDITION];
+
+    for (const rawCond of conds) {
+      const cond = rawCond.trim() || NOT_SPECIFIED_CONDITION;
+      counts.set(cond, (counts.get(cond) || 0) + 1);
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([condition, count]) => ({ condition, count }))
+    .sort((a, b) => b.count - a.count || a.condition.localeCompare(b.condition));
+}
+
+/**
+ * Check whether a variant's reported conditions are visible under the active filter state.
+ */
+export function isConditionVisible(
+  conditions: string[] | undefined,
+  filterState: LollipopFilterState
+): boolean {
+  if (!filterState.selectedConditions || filterState.selectedConditions.length === 0) {
+    return true;
+  }
+
+  const variantConds = conditions && conditions.length > 0
+    ? conditions.map((c) => c.trim() || NOT_SPECIFIED_CONDITION)
+    : [NOT_SPECIFIED_CONDITION];
+
+  return variantConds.some((c) => filterState.selectedConditions!.includes(c));
+}
+
+/**
+ * Toggle a condition in the filter state.
+ */
+export function toggleCondition(
+  filterState: LollipopFilterState,
+  condition: string,
+  allConditions: string[]
+): void {
+  if (!filterState.selectedConditions) {
+    // Currently all conditions are shown; deselecting one means all except this one are selected
+    filterState.selectedConditions = allConditions.filter((c) => c !== condition);
+    return;
+  }
+
+  if (filterState.selectedConditions.includes(condition)) {
+    filterState.selectedConditions = filterState.selectedConditions.filter((c) => c !== condition);
+    if (filterState.selectedConditions.length === 0) {
+      // If none selected, reset to all
+      filterState.selectedConditions = null;
+    }
+  } else {
+    filterState.selectedConditions.push(condition);
+    if (filterState.selectedConditions.length >= allConditions.length) {
+      filterState.selectedConditions = null;
+    }
+  }
+}
+
+/**
+ * Select only one condition in the filter state.
+ */
+export function selectOnlyCondition(
+  filterState: LollipopFilterState,
+  condition: string
+): void {
+  filterState.selectedConditions = [condition];
+}
+
+/**
+ * Reset condition filter state to show all conditions.
+ */
+export function selectAllConditions(filterState: LollipopFilterState): void {
+  filterState.selectedConditions = null;
+}
+

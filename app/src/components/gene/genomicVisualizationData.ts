@@ -54,6 +54,9 @@ export interface GenomicVariant {
   clinvarId: string;
   variantId: string;
   majorConsequence: string;
+  conditions: string[];
+  mondoIds: string[];
+  omimIds: string[];
 }
 
 /**
@@ -111,6 +114,9 @@ export function buildProteinPlotData(args: {
             majorConsequence: v.major_consequence,
             isSpliceVariant: parsed.isSplice,
             inGnomad: v.in_gnomad,
+            conditions: v.conditions ?? [],
+            mondoIds: v.mondo_ids ?? [],
+            omimIds: v.omim_ids ?? [],
           } as ProcessedVariant;
         })
         .filter((v): v is ProcessedVariant => v !== null)
@@ -253,6 +259,9 @@ export function buildGenomicVariants(
         clinvarId: String(v.clinvar_variation_id),
         variantId: v.variant_id,
         majorConsequence: v.major_consequence,
+        conditions: v.conditions ?? [],
+        mondoIds: v.mondo_ids ?? [],
+        omimIds: v.omim_ids ?? [],
       } as GenomicVariant;
     })
     .filter((v): v is GenomicVariant => v !== null);

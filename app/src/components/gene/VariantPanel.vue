@@ -122,6 +122,13 @@
                 {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
               </span>
             </span>
+            <span
+              v-if="item.variant.conditions && item.variant.conditions.length > 0"
+              class="variant-row-condition small text-muted text-truncate"
+              :title="item.variant.conditions.join(', ')"
+            >
+              <i class="bi bi-activity text-secondary me-1" aria-hidden="true"></i>{{ item.variant.conditions[0] }}{{ item.variant.conditions.length > 1 ? ` (+${item.variant.conditions.length - 1})` : '' }}
+            </span>
           </span>
         </label>
       </li>
@@ -140,7 +147,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
 import { BButton } from 'bootstrap-vue-next';
-import VariantTooltip from './VariantTooltip.vue';
+import VariantTooltip, { type VariantTooltipData } from './VariantTooltip.vue';
 import type { ClinVarVariant } from '@/types/external';
 import { ACMG_COLORS, type AcmgClassification } from '@/types/alphafold';
 import {
@@ -187,15 +194,7 @@ const listContainer = ref<HTMLElement | null>(null);
 const tooltipEl = ref<InstanceType<typeof VariantTooltip> | null>(null);
 
 // Tooltip state (structured data for VariantTooltip component)
-interface TooltipData {
-  hgvsp: string | null;
-  hgvsc: string | null;
-  variantId: string;
-  label: string;
-  color: string;
-  goldStars: number;
-}
-const tooltipData = ref<TooltipData | null>(null);
+const tooltipData = ref<VariantTooltipData | null>(null);
 const tooltipVisible = ref(false);
 const tooltipPosition = ref({ top: 0, left: 0 });
 
@@ -353,6 +352,7 @@ function showTooltip(event: MouseEvent, item: MappableVariant): void {
     label: item.label,
     color: item.color,
     goldStars: item.variant.gold_stars,
+    conditions: item.variant.conditions,
   };
 
   // Position to the left of the item in viewport coordinates (for position:fixed)
@@ -580,5 +580,16 @@ function hideTooltip(): void {
   font-size: 0.65rem;
   flex-shrink: 0;
   letter-spacing: -1px;
+}
+
+.variant-row-condition {
+  display: block;
+  font-size: 0.68rem;
+  color: #6c757d;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 </style>

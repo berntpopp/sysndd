@@ -32,6 +32,14 @@
         <span class="review-stars">{{ reviewStars }}</span>
         <span class="review-text">ClinVar review</span>
       </div>
+
+      <!-- ClinVar reported condition(s) -->
+      <div v-if="data.conditions && data.conditions.length > 0" class="tooltip-row condition-row">
+        <span class="condition-label">Condition:</span>
+        <span class="condition-text" :title="data.conditions.join(', ')">
+          {{ formattedConditions }}
+        </span>
+      </div>
     </div>
   </Teleport>
 </template>
@@ -42,7 +50,7 @@ import { computed, type CSSProperties } from 'vue';
 /**
  * Tooltip data structure for variant display
  */
-interface VariantTooltipData {
+export interface VariantTooltipData {
   /** HGVS protein notation (e.g., "p.Arg123Trp") */
   hgvsp: string | null;
   /** HGVS coding notation (e.g., "c.456A>G") */
@@ -55,6 +63,8 @@ interface VariantTooltipData {
   color: string;
   /** ClinVar gold stars (0-4) */
   goldStars: number;
+  /** ClinVar reported disease conditions */
+  conditions?: string[];
 }
 
 interface Props {
@@ -84,6 +94,16 @@ const tooltipStyle = computed<CSSProperties>(() => ({
 const reviewStars = computed(() => {
   const stars = props.data?.goldStars ?? 0;
   return '★'.repeat(stars) + '☆'.repeat(4 - stars);
+});
+
+/**
+ * Format conditions for compact tooltip display
+ */
+const formattedConditions = computed(() => {
+  const list = props.data?.conditions;
+  if (!list || list.length === 0) return '';
+  if (list.length <= 2) return list.join(', ');
+  return `${list.slice(0, 2).join(', ')} (+${list.length - 2} more)`;
 });
 </script>
 
@@ -159,5 +179,26 @@ const reviewStars = computed(() => {
 .variant-tooltip .review-text {
   color: #adb5bd;
   font-size: 11px;
+}
+
+.variant-tooltip .condition-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 320px;
+}
+
+.variant-tooltip .condition-label {
+  color: #adb5bd;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.variant-tooltip .condition-text {
+  color: #90caf9;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

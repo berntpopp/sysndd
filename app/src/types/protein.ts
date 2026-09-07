@@ -113,6 +113,12 @@ export interface ProcessedVariant {
   isSpliceVariant: boolean;
   /** Whether variant is observed in gnomAD population data */
   inGnomad: boolean;
+  /** ClinVar reported disease conditions / traits */
+  conditions: string[];
+  /** Cross-referenced MONDO disease ontology CURIEs */
+  mondoIds: string[];
+  /** Cross-referenced OMIM disease phenotype numbers */
+  omimIds: string[];
 }
 
 /**
@@ -155,6 +161,8 @@ export interface LollipopFilterState {
   effectFilters: Record<EffectType, boolean>;
   /** Current coloring mode (acmg or effect) */
   coloringMode: ColoringMode;
+  /** Selected condition names to display (null or empty = show all) */
+  selectedConditions?: string[] | null;
 }
 
 /**

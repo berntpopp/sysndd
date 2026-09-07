@@ -195,6 +195,7 @@ bootstrap_load_modules <- function() {
     "functions/external-proxy-functions.R",
     "functions/external-proxy-gnomad.R",
     "functions/external-proxy-gnomad-clinvar.R",
+    "functions/external-proxy-clinvar-traits.R",
     "functions/external-proxy-gnomad-batch.R",
     "functions/external-proxy-uniprot.R",
     "functions/external-proxy-ensembl.R",

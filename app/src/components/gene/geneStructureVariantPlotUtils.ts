@@ -5,6 +5,7 @@ export interface GeneStructureVariantLike {
   genomicPosition: number;
   classification: string;
   majorConsequence?: string | null;
+  conditions?: string[];
 }
 
 export interface AggregatedGeneStructureVariant<T extends GeneStructureVariantLike> {
@@ -18,6 +19,7 @@ export interface AggregatedGeneStructureVariant<T extends GeneStructureVariantLi
 export interface GeneStructureVariantFilterState {
   pathogenicity: Record<string, boolean>;
   effectFilters: Record<EffectType, boolean>;
+  selectedConditions?: string[] | null;
 }
 
 const AGGREGATION_THRESHOLD = 500;
@@ -93,5 +95,13 @@ export function isGeneStructureVariantVisible(
   const effectType = normalizeEffectType(variant.majorConsequence ?? '');
   const effectVisible = filterState.effectFilters[effectType];
 
-  return pathogenicityVisible && effectVisible;
+  let conditionVisible = true;
+  if (filterState.selectedConditions && filterState.selectedConditions.length > 0) {
+    const conds = variant.conditions && variant.conditions.length > 0
+      ? variant.conditions
+      : ['Not specified'];
+    conditionVisible = conds.some((c) => filterState.selectedConditions!.includes(c));
+  }
+
+  return pathogenicityVisible && effectVisible && conditionVisible;
 }

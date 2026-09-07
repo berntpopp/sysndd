@@ -147,10 +147,70 @@
         all
       </button>
     </div>
+
+    <!-- Row 3: Condition / disease association filters (when available) -->
+    <div
+      v-if="conditionLegendItems && conditionLegendItems.length > 0"
+      class="filter-row filter-row--condition condition-filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1 pt-1 border-top"
+    >
+      <span class="condition-prefix small text-muted me-1">
+        <i class="bi bi-tag small" aria-hidden="true" /> Condition:
+      </span>
+      <span
+        v-for="item in visibleConditionItems"
+        :key="item.condition"
+        class="filter-group"
+      >
+        <button
+          type="button"
+          class="filter-chip filter-chip--condition"
+          :class="{ 'filter-chip--hidden': !item.visible }"
+          :aria-label="`Toggle ${item.condition} variants`"
+          :aria-pressed="item.visible"
+          :title="item.condition"
+          @click="$emit('toggle-condition', item.condition)"
+        >
+          <span
+            class="filter-dot"
+            :style="{ backgroundColor: item.visible ? '#0288d1' : '#ccc' }"
+          />
+          <span class="filter-label text-truncate" style="max-width: 180px;">
+            {{ item.condition }}
+          </span>
+          <span class="filter-count">{{ item.count }}</span>
+        </button>
+        <button
+          type="button"
+          class="only-btn"
+          :title="`Show only ${item.condition}`"
+          @click="$emit('select-only-condition', item.condition)"
+        >
+          only
+        </button>
+      </span>
+      <button
+        v-if="hasMoreConditions"
+        type="button"
+        class="btn btn-outline-secondary btn-xs ms-1 toggle-all-conditions-btn"
+        :title="showAllConditionsExpanded ? 'Collapse condition list' : 'Show more conditions'"
+        @click="showAllConditionsExpanded = !showAllConditionsExpanded"
+      >
+        {{ showAllConditionsExpanded ? 'less' : `+${conditionLegendItems.length - MAX_VISIBLE_CONDITIONS} more` }}
+      </button>
+      <button
+        type="button"
+        class="all-btn"
+        title="Show all conditions"
+        @click="$emit('select-all-conditions')"
+      >
+        all
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue';
 import type { ColoringMode, EffectType } from '@/types';
 import type { PathogenicityFilterKey } from './proteinLollipopControls';
 
@@ -179,6 +239,13 @@ interface DomainLegendItem {
   color: string;
 }
 
+/** A single condition filter legend entry. */
+export interface ConditionLegendItem {
+  condition: string;
+  count: number;
+  visible: boolean;
+}
+
 interface Props {
   /** Current coloring mode (acmg or effect); read-only, changes flow up via emit. */
   coloringMode: ColoringMode;
@@ -188,9 +255,13 @@ interface Props {
   legendItems: PathogenicityLegendItem[];
   /** Effect-type filter legend items (visibility + counts). */
   effectLegendItems: EffectLegendItem[];
+  /** Condition filter legend items (visibility + counts). */
+  conditionLegendItems?: ConditionLegendItem[];
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  conditionLegendItems: () => [],
+});
 
 defineEmits<{
   /** Coloring mode toggle clicked. */
@@ -207,11 +278,30 @@ defineEmits<{
   (e: 'select-only-effect', effectType: EffectType): void;
   /** "all" clicked for effect types (show every type). */
   (e: 'select-all-effects'): void;
+  /** A condition filter chip was clicked (toggle visibility). */
+  (e: 'toggle-condition', condition: string): void;
+  /** "only" clicked for a condition (isolate it). */
+  (e: 'select-only-condition', condition: string): void;
+  /** "all" clicked for conditions (show every condition). */
+  (e: 'select-all-conditions'): void;
   /** SVG export button clicked. */
   (e: 'download-svg'): void;
   /** PNG export button clicked. */
   (e: 'download-png'): void;
 }>();
+
+const MAX_VISIBLE_CONDITIONS = 5;
+const showAllConditionsExpanded = ref(false);
+
+const visibleConditionItems = computed(() => {
+  const items = props.conditionLegendItems || [];
+  if (showAllConditionsExpanded.value) return items;
+  return items.slice(0, MAX_VISIBLE_CONDITIONS);
+});
+
+const hasMoreConditions = computed(() => {
+  return (props.conditionLegendItems?.length || 0) > MAX_VISIBLE_CONDITIONS;
+});
 </script>
 
 <style scoped>

@@ -276,6 +276,11 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
       gene_data <- response_data$data$gene
       variants <- gene_data$clinvar_variants
 
+      # Enrich with disease traits from NCBI ClinVar E-utilities (fail-open)
+      if (exists("enrich_variants_with_clinvar_traits", mode = "function")) {
+        variants <- enrich_variants_with_clinvar_traits(variants)
+      }
+
       # Return structured result
       return(list(
         source = "gnomad_clinvar",

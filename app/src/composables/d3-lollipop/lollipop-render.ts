@@ -29,6 +29,7 @@ import {
   MAX_STACK_DEPTH,
   isClassificationVisible,
   isEffectTypeVisible,
+  isConditionVisible,
   calculateDynamicOpacity,
   calculateAggregatedRadius,
   determineRenderingMode,
@@ -150,6 +151,7 @@ export function renderVariants(
     (v) =>
       isClassificationVisible(v.classification, filterState) &&
       isEffectTypeVisible(v.majorConsequence, filterState) &&
+      isConditionVisible(v.conditions, filterState) &&
       v.proteinPosition >= domain[0] &&
       v.proteinPosition <= domain[1]
   );
