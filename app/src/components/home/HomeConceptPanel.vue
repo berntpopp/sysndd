@@ -9,15 +9,29 @@
 
     <div class="home-concept-body">
       <div class="home-concept-callout">
-        <span class="home-concept-kicker">Entity</span>
-        <div class="entity-concept__container">
+        <span class="home-concept-kicker">Core Entity Concept</span>
+        <div
+          class="entity-concept__formula"
+          role="group"
+          aria-label="Entity equals Gene plus Inheritance plus Disease"
+        >
+          <EntityBadge
+            entity-id="Entity"
+            prefix=""
+            :show-icon="true"
+            :show-title="false"
+            size="sm"
+          />
+          <span class="entity-concept__operator" aria-hidden="true">=</span>
           <GeneBadge symbol="Gene" :show-title="false" size="sm" />
+          <span class="entity-concept__operator" aria-hidden="true">+</span>
           <InheritanceBadge
             full-name="Inheritance"
             :show-title="false"
             :use-abbreviation="false"
             size="sm"
           />
+          <span class="entity-concept__operator" aria-hidden="true">+</span>
           <DiseaseBadge name="Disease" :show-title="false" :max-length="0" size="sm" />
         </div>
         <p>
@@ -67,6 +81,7 @@
 
 <script setup lang="ts">
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
@@ -130,7 +145,26 @@ defineProps<{
   text-transform: uppercase;
 }
 
-.entity-concept__container,
+.entity-concept__formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+}
+
+.entity-concept__operator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+  padding: 0 0.1rem;
+}
+
 .home-category-strip,
 .home-action-links {
   display: flex;
@@ -217,6 +251,7 @@ defineProps<{
   box-shadow: 0 2px 4px rgba(16, 24, 40, 0.12) !important;
 }
 
+.home-concept-panel :deep(.entity-badge-link),
 .home-concept-panel :deep(.gene-badge-link),
 .home-concept-panel :deep(.disease-badge-link),
 .home-concept-panel :deep(.inheritance-badge-link) {
@@ -226,6 +261,8 @@ defineProps<{
     filter 0.14s ease;
 }
 
+.home-concept-panel :deep(.entity-badge-link:hover),
+.home-concept-panel :deep(.entity-badge-link:focus),
 .home-concept-panel :deep(.gene-badge-link:hover),
 .home-concept-panel :deep(.gene-badge-link:focus),
 .home-concept-panel :deep(.disease-badge-link:hover),
@@ -240,6 +277,7 @@ defineProps<{
 @media (prefers-reduced-motion: reduce) {
   .home-action-links a,
   .home-action-links__primary,
+  .home-concept-panel :deep(.entity-badge-link),
   .home-concept-panel :deep(.gene-badge-link),
   .home-concept-panel :deep(.disease-badge-link),
   .home-concept-panel :deep(.inheritance-badge-link) {
@@ -248,6 +286,8 @@ defineProps<{
 
   .home-action-links a:hover,
   .home-action-links a:focus,
+  .home-concept-panel :deep(.entity-badge-link:hover),
+  .home-concept-panel :deep(.entity-badge-link:focus),
   .home-concept-panel :deep(.gene-badge-link:hover),
   .home-concept-panel :deep(.gene-badge-link:focus),
   .home-concept-panel :deep(.disease-badge-link:hover),

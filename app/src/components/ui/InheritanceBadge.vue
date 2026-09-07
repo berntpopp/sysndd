@@ -1,17 +1,19 @@
 <!-- components/ui/InheritanceBadge.vue -->
 <!-- Professional 3D-styled inheritance mode badge -->
 <template>
-  <span
-    v-b-tooltip.hover.bottom
-    class="inheritance-badge"
-    :class="`inheritance-badge--${size}`"
-    :title="showTitle ? tooltipTitle : ''"
-    role="img"
-    :aria-label="`Inheritance: ${fullName}`"
-  >
-    <i class="bi bi-diagram-3 inheritance-badge__icon" aria-hidden="true" />
-    <span class="inheritance-badge__abbrev">{{ abbreviation }}</span>
-  </span>
+  <component :is="linkTo ? 'BLink' : 'span'" :to="linkTo" class="inheritance-badge-link">
+    <span
+      v-b-tooltip.hover.bottom
+      class="inheritance-badge"
+      :class="`inheritance-badge--${size}`"
+      :title="showTitle ? tooltipTitle : ''"
+      role="img"
+      :aria-label="`Inheritance: ${fullName}`"
+    >
+      <i class="bi bi-diagram-3 inheritance-badge__icon" aria-hidden="true" />
+      <span class="inheritance-badge__abbrev">{{ abbreviation }}</span>
+    </span>
+  </component>
 </template>
 
 <script>
@@ -72,6 +74,13 @@ export default {
       validator: (value) => ['sm', 'md', 'lg'].includes(value),
     },
     /**
+     * Optional link destination
+     */
+    linkTo: {
+      type: String,
+      default: null,
+    },
+    /**
      * Show tooltip
      */
     showTitle: {
@@ -104,51 +113,90 @@ export default {
 </script>
 
 <style scoped>
+.inheritance-badge-link {
+  display: inline-flex;
+  text-decoration: none !important;
+  vertical-align: middle;
+}
+
 .inheritance-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.2rem;
-  padding: 0.15rem 0.45rem;
   border-radius: var(--radius-full, 9999px);
-  font-weight: 600;
-  color: white;
-  background-color: var(--medical-teal-700, #00796b);
-  border: 1px solid #004d40;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: linear-gradient(145deg, #7c3aed 0%, #6d28d9 100%);
+  border: 1px solid #5b21b6;
+  box-sizing: border-box;
+  vertical-align: middle;
+  white-space: nowrap;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   cursor: default;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.inheritance-badge:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 3px 6px rgba(16, 24, 40, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .inheritance-badge__icon {
   font-size: 0.8em;
   opacity: 0.9;
+  flex-shrink: 0;
 }
 
 .inheritance-badge__abbrev {
   font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
-/* Size variants */
+/* Size variants - unified height and typography across all badges */
 .inheritance-badge--sm {
-  padding: 0.1rem 0.35rem;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 0.45rem;
   font-size: 0.72rem;
-  border-width: 1px;
-  gap: 0.15rem;
-}
-
-.inheritance-badge--sm .inheritance-badge__icon {
-  font-size: 0.75em;
+  line-height: 22px;
+  gap: 0.18rem;
 }
 
 .inheritance-badge--md {
-  padding: 0.18rem 0.45rem;
-  font-size: 0.75rem;
-  border-width: 1px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 0.55rem;
+  font-size: 0.78rem;
+  line-height: 26px;
+  gap: 0.22rem;
 }
 
 .inheritance-badge--lg {
-  padding: 0.25rem 0.55rem;
-  font-size: 0.875rem;
-  border-width: 1px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 32px;
+  gap: 0.28rem;
+}
+
+/* Accessibility - respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .inheritance-badge {
+    transition: none;
+  }
+  .inheritance-badge:hover {
+    transform: none;
+  }
 }
 </style>
