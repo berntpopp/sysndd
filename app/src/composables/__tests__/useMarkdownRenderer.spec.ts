@@ -50,7 +50,7 @@ describe('renderMarkdown', () => {
   });
 
   it('drops tags outside the DOMPurify allowlist', () => {
-    // markdown-it emits <img> happily; `img` is not in ALLOWED_TAGS.
+    // markdown-it emits image tags happily; `img` is not in ALLOWED_TAGS.
     expect(renderMarkdown('![x](https://example.com/x.png)')).not.toContain('<img');
   });
 

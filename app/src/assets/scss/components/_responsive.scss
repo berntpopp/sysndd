@@ -121,10 +121,8 @@
       display: none;
     }
 
-    // Alternating card tints + left accent border for row differentiation
+    // Alternating card tints for row differentiation
     &.table-striped > tbody > tr {
-      border-left: 3px solid var(--medical-blue-200, #90caf9);
-
       &:nth-of-type(odd) {
         background: var(--bs-body-bg);
       }

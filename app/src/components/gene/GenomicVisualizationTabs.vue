@@ -14,7 +14,7 @@
 <template>
   <BCard class="shadow-sm border-0 mb-3" body-class="p-0" header-class="py-2 px-3">
     <template #header>
-      <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h2 class="genomic-visualization-title mb-0 fw-bold">
           <i class="bi bi-graph-up" aria-hidden="true" /> Genomic Visualizations
         </h2>
@@ -24,13 +24,8 @@
       </div>
     </template>
 
-    <!-- Loading state for all data -->
-    <div v-if="isLoading" class="d-flex justify-content-center py-5">
-      <BSpinner label="Loading visualization data..." />
-    </div>
-
     <!-- Tabs container -->
-    <div v-else class="visualization-tabs">
+    <div class="visualization-tabs">
       <BTabs
         v-model:index="activeTabIndex"
         pills
@@ -61,12 +56,15 @@
             <KeepAlive>
               <div v-if="activeTab === 'protein'">
                 <ProteinDomainLollipopPlot
-                  v-if="hasProteinData"
+                  v-if="hasProteinData && !isProteinLoading"
                   ref="proteinPlotRef"
                   :data="proteinPlotData!"
                   :gene-symbol="geneSymbol"
                   @variant-click="handleVariantClick"
                   @variant-hover="handleVariantHover"
+                />
+                <ProteinLollipopSkeleton
+                  v-else-if="isProteinLoading"
                 />
                 <div v-else class="empty-state">
                   <i class="bi bi-diagram-3" />
@@ -117,7 +115,12 @@
         </BTab>
 
         <!-- Tab 3: 3D Structure (lazy loaded on activate) -->
-        <BTab title-item-class="visualization-tab-item" lazy>
+        <BTab
+          title-item-class="visualization-tab-item"
+          lazy
+          @click="onRequest3D"
+          @mouseenter="onRequest3D"
+        >
           <template #title>
             <span class="tab-title">
               <i class="bi bi-box" aria-hidden="true" />
@@ -138,6 +141,7 @@
                 :structure-url="alphafoldPdbUrl"
                 :variants="clinvarVariants || []"
                 :metadata="alphafoldMetadata"
+                :loading="alphafoldLoading"
               />
             </KeepAlive>
           </div>
@@ -153,6 +157,7 @@ import { BCard, BTabs, BTab, BBadge, BSpinner } from 'bootstrap-vue-next';
 import { isApiError } from '@/api/client';
 import { getEnsemblStructure } from '@/api/external';
 import ProteinDomainLollipopPlot from './ProteinDomainLollipopPlot.vue';
+import ProteinLollipopSkeleton from './ProteinLollipopSkeleton.vue';
 import GeneStructurePlotWithVariants from './GeneStructurePlotWithVariants.vue';
 import ProteinStructure3D from './ProteinStructure3D.vue';
 import type { ProteinPlotData, ProcessedVariant } from '@/types/protein';
@@ -197,6 +202,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: 'variant-click', variant: ProcessedVariant | GenomicVariant): void;
   (e: 'retry'): void;
+  (e: 'request-3d'): void;
 }>();
 
 // Active tab state - drives lazy-mount gates for inactive panels (v11.3 W2.4).
@@ -218,10 +224,10 @@ const ensemblRawData = ref<EnsemblGeneStructure | null>(null);
 const geneStructureFetched = ref(false); // Track if we've fetched gene structure
 
 /**
- * Computed: Is any data loading?
+ * Computed: Is protein tab data loading?
  */
-const isLoading = computed(
-  () => props.clinvarLoading && props.uniprotLoading && geneStructureLoading.value
+const isProteinLoading = computed(
+  () => props.clinvarLoading || props.uniprotLoading
 );
 
 /**
@@ -379,9 +385,16 @@ function handleGenomicVariantClick(variant: GenomicVariant): void {
   emit('variant-click', variant);
 }
 
-// Lifecycle - NO automatic fetch on mount (lazy loading)
-onMounted(() => {
-  // Don't fetch gene structure on mount - wait for tab activation
+function onRequest3D(): void {
+  emit('request-3d');
+}
+
+watch(activeTabIndex, (newIndex) => {
+  if (newIndex === 1 && !geneStructureFetched.value && props.geneSymbol) {
+    fetchGeneStructureData();
+  } else if (newIndex === 2) {
+    emit('request-3d');
+  }
 });
 
 // Watch for gene symbol changes - reset fetch state
@@ -542,6 +555,30 @@ watch(
 
   .tab-title .badge {
     display: none;
+  }
+
+  .visualization-tabs :deep(.nav-pills) {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding-bottom: 4px;
+  }
+
+  .visualization-tabs :deep(.nav-pills)::-webkit-scrollbar {
+    display: none;
+  }
+
+  .visualization-tabs :deep(.visualization-tab-item) {
+    flex-shrink: 0;
+  }
+
+  .visualization-panel-3d {
+    height: auto;
+    min-height: 520px;
+    overflow: visible;
   }
 }
 </style>

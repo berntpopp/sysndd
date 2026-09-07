@@ -53,7 +53,7 @@
             </template>
 
             <template #loading>
-              <TableLoadingState data-testid="entities-skeleton" />
+              <TableLoadingState :rows="skeletonRows" data-testid="entities-skeleton" />
             </template>
 
             <!-- Main table element -->
@@ -336,6 +336,9 @@ export default {
     // embedded usages (e.g. the gene-detail "Associated" table) keep the default 2
     // so the page keeps exactly one route-level <h1>.
     headingLevel: { type: Number, default: 2 },
+    // Number of skeleton rows to display while loading. Default is 8 (for full /Entities table),
+    // embedded usage passes smaller values (e.g. 2 on gene detail) to match expected row count and prevent CLS.
+    skeletonRows: { type: Number, default: 8 },
   },
   setup(props) {
     return useEntitiesTable(props);

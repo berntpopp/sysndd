@@ -175,7 +175,7 @@ export const NOT_SPECIFIED_CONDITION = NOT_PROVIDED_CONDITION;
 
 /** Regular expression identifying non-informative ClinVar condition strings */
 const PLACEHOLDER_CONDITION_REGEX =
-  /^(not\s*(provided|specified|reported)|see\s*cases|unknown|unspecified|none|[.\-])$/i;
+  /^(not\s*(provided|specified|reported)|see\s*cases|unknown|unspecified|none|[.-])$/i;
 
 /**
  * Check whether a raw condition string is an uninformative placeholder.

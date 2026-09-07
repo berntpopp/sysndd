@@ -197,10 +197,9 @@ export default defineComponent({
 <style scoped>
 .llm-summary-card {
   border: 1px solid var(--bs-border-color);
-  border-left: 4px solid var(--bs-warning);
   border-radius: 8px;
-  background: linear-gradient(to bottom, #fffbf0 0%, #ffffff 100%);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--bs-body-bg, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .llm-summary-card :deep(.card-header) {

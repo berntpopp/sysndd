@@ -86,7 +86,7 @@ onMounted(() => {
 }
 
 .markdown-content :deep(blockquote) {
-  border-left: 4px solid var(--bs-primary);
+  border-left: 2px solid var(--bs-border-color, #dee2e6);
   padding-left: 1rem;
   margin-left: 0;
   color: var(--bs-secondary);

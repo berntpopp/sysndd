@@ -213,6 +213,25 @@ const hgncUrl = computed(() => {
   row-gap: 0.1rem;
 }
 
+@media (max-width: 767.98px) {
+  .compact-badges-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .compact-badges-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .identifiers-label {
+    flex-shrink: 0;
+  }
+  :deep(.identifier-badge) {
+    flex-shrink: 0;
+  }
+}
+
 .identifiers-label {
   font-size: 0.7rem;
   font-weight: 700;

@@ -487,4 +487,35 @@ const hasMoreSpecificConditions = computed(() => {
   align-items: center;
   gap: 2px;
 }
+
+@media (max-width: 768px) {
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+  }
+  .controls-row .btn-group {
+    width: 100%;
+  }
+  .controls-row .btn-group .btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  .export-buttons {
+    justify-content: flex-end;
+  }
+  .export-buttons .btn {
+    padding: 5px 10px;
+  }
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  .only-btn,
+  .all-btn {
+    padding: 3px 6px;
+    font-size: 0.72rem;
+  }
+}
 </style>
