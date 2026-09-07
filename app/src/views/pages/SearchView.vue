@@ -233,8 +233,8 @@ export default {
 /* ── Header ──────────────────────────────────────────────────── */
 .search-results-header {
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 1px solid var(--neutral-200, #e0e0e0);
+  background: var(--surface-canvas, #f8f9fa);
+  border-bottom: 1px solid var(--border-subtle, #e0e0e0);
 }
 
 .search-results-header__content {

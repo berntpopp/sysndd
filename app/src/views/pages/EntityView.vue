@@ -19,7 +19,7 @@
   emit routed back to `copySynopsis`.
 -->
 <template>
-  <div class="container-fluid bg-gradient entity-detail-page">
+  <div class="container-fluid entity-detail-page">
     <BContainer fluid>
       <EntityViewHero :model="heroModel" />
 

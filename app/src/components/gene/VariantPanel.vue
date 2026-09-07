@@ -97,7 +97,11 @@
             :aria-label="`Highlight ${item.variant.hgvsp || item.variant.variant_id} on 3D structure`"
             @change="toggleVariant(item)"
           />
-          <span class="acmg-dot" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
+          <span
+            class="acmg-dot"
+            :style="{ backgroundColor: item.color }"
+            :aria-hidden="true"
+          ></span>
           <span class="variant-info">
             <span class="variant-row-top">
               <span class="variant-notation small">
@@ -118,8 +122,12 @@
               <span class="variant-class small text-muted">
                 {{ item.label }}
               </span>
-              <span class="review-stars" :title="`ClinVar review: ${item.variant.gold_stars} stars`">
-                {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
+              <span
+                class="review-stars"
+                :title="`ClinVar review: ${item.variant.gold_stars} stars`"
+              >
+                {{ '★'.repeat(item.variant.gold_stars)
+                }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
               </span>
             </span>
             <span
@@ -127,7 +135,13 @@
               class="variant-row-condition small text-muted text-truncate"
               :title="item.variant.conditions.join(', ')"
             >
-              <i class="bi bi-activity text-secondary me-1" aria-hidden="true"></i>{{ item.variant.conditions[0] }}{{ item.variant.conditions.length > 1 ? ` (+${item.variant.conditions.length - 1})` : '' }}
+              <i class="bi bi-activity text-secondary me-1" aria-hidden="true"></i
+              >{{ item.variant.conditions[0]
+              }}{{
+                item.variant.conditions.length > 1
+                  ? ` (+${item.variant.conditions.length - 1})`
+                  : ''
+              }}
             </span>
           </span>
         </label>
@@ -201,59 +215,27 @@ const tooltipPosition = ref({ top: 0, left: 0 });
 // Filter variants to only those with parseable protein positions (missense/inframe only)
 // parseResidueNumber returns null for frameshift, stop, and splice variants
 // Sorted by residue number for spatial ordering
-const mappableVariants = computed<MappableVariant[]>(() =>
-  buildMappableVariants(props.variants)
-);
+const mappableVariants = computed<MappableVariant[]>(() => buildMappableVariants(props.variants));
+
+const ACMG_LEGEND_CONFIG = [
+  { key: 'pathogenic' as const, label: 'Path', color: ACMG_COLORS.pathogenic },
+  { key: 'likelyPathogenic' as const, label: 'LP', color: ACMG_COLORS.likely_pathogenic },
+  { key: 'vus' as const, label: 'VUS', color: ACMG_COLORS.vus },
+  { key: 'likelyBenign' as const, label: 'LB', color: ACMG_COLORS.likely_benign },
+  { key: 'benign' as const, label: 'Ben', color: ACMG_COLORS.benign },
+  { key: 'conflicting' as const, label: 'Conf', color: ACMG_COLORS.conflicting },
+];
 
 /**
  * Legend items for ACMG filter chips with counts
  */
 const legendItems = computed(() => {
   const counts = countByClassification(mappableVariants.value);
-  return [
-    {
-      key: 'pathogenic' as const,
-      label: 'Path',
-      color: ACMG_COLORS.pathogenic,
-      visible: filterState.pathogenic,
-      count: counts.pathogenic,
-    },
-    {
-      key: 'likelyPathogenic' as const,
-      label: 'LP',
-      color: ACMG_COLORS.likely_pathogenic,
-      visible: filterState.likelyPathogenic,
-      count: counts.likelyPathogenic,
-    },
-    {
-      key: 'vus' as const,
-      label: 'VUS',
-      color: ACMG_COLORS.vus,
-      visible: filterState.vus,
-      count: counts.vus,
-    },
-    {
-      key: 'likelyBenign' as const,
-      label: 'LB',
-      color: ACMG_COLORS.likely_benign,
-      visible: filterState.likelyBenign,
-      count: counts.likelyBenign,
-    },
-    {
-      key: 'benign' as const,
-      label: 'Ben',
-      color: ACMG_COLORS.benign,
-      visible: filterState.benign,
-      count: counts.benign,
-    },
-    {
-      key: 'conflicting' as const,
-      label: 'Conf',
-      color: ACMG_COLORS.conflicting,
-      visible: filterState.conflicting,
-      count: counts.conflicting,
-    },
-  ];
+  return ACMG_LEGEND_CONFIG.map((item) => ({
+    ...item,
+    visible: filterState[item.key],
+    count: counts[item.key],
+  }));
 });
 
 /**
@@ -390,34 +372,31 @@ function hideTooltip(): void {
   position: relative;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
+.panel-header,
+.search-box,
+.filter-row {
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   flex-shrink: 0;
 }
 
-/* Search box */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+}
+
 .search-box {
   padding: 6px 10px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  flex-shrink: 0;
 }
 
 .search-box input {
   font-size: 0.8rem;
 }
 
-/* Filter row */
 .filter-row {
   padding: 6px 8px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  flex-shrink: 0;
 }
 
 /* Filter chips - compact toggle buttons (matching lollipop plot) */
@@ -550,7 +529,7 @@ function hideTooltip(): void {
 }
 
 .variant-notation {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

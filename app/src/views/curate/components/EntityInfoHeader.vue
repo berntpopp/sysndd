@@ -153,18 +153,6 @@ export default defineComponent({
   background: #f8fafc;
 }
 
-.entity-info-header__unit--gene {
-  border-left: 0.25rem solid #0f8f51;
-}
-
-.entity-info-header__unit--inheritance {
-  border-left: 0.25rem solid #09a9c9;
-}
-
-.entity-info-header__unit--disease {
-  border-left: 0.25rem solid #65717d;
-}
-
 .entity-info-header__label,
 .entity-info-header__classification-label {
   color: #667085;

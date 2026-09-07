@@ -4,6 +4,8 @@ import {
   aggregateVariantsByGenomicPosition,
   calculateAggregatedRadius,
   calculateDynamicOpacity,
+  calculateDynamicStemStep,
+  calculateSafeStemHeight,
   determineRenderingMode,
   isGeneStructureVariantVisible,
 } from './geneStructureVariantPlotUtils';
@@ -179,5 +181,43 @@ describe('conflicting visibility and aggregation (#607)', () => {
     );
     expect(result[0].classifications.Conflicting).toBe(2);
     expect(result[0].dominantClassification).toBe('Conflicting');
+  });
+});
+
+describe('adaptive vertical headroom and stem height bounds', () => {
+  const BASE_STEM = 18;
+  const MAX_HEADROOM = 60;
+
+  it('returns 0 dynamic step for a single variant or empty stack', () => {
+    expect(calculateDynamicStemStep(MAX_HEADROOM, BASE_STEM, 0)).toBe(0);
+    expect(calculateDynamicStemStep(MAX_HEADROOM, BASE_STEM, 1)).toBe(0);
+  });
+
+  it('caps dynamic step at maxStep when abundant headroom is available', () => {
+    // With maxAllowed = 200 and base = 18, (200 - 18) / 3 = 60.67, should cap at 8
+    expect(calculateDynamicStemStep(200, BASE_STEM, 4, 8)).toBe(8);
+  });
+
+  it('shrinks dynamic step proportionally under tight headroom constraints', () => {
+    // Headroom = 32, base = 18 => 14 available. For 8 items (7 intervals), step = 14 / 7 = 2
+    const step = calculateDynamicStemStep(32, BASE_STEM, 8, 8);
+    expect(step).toBe(2);
+  });
+
+  it('never exceeds maxAllowedStemHeight even at maximum stack index', () => {
+    const tightHeadroom = 46;
+    for (let count = 1; count <= 20; count++) {
+      for (let index = 0; index < count; index++) {
+        const height = calculateSafeStemHeight(index, count, BASE_STEM, tightHeadroom, 8);
+        expect(height).toBeGreaterThanOrEqual(BASE_STEM);
+        expect(height).toBeLessThanOrEqual(tightHeadroom);
+      }
+    }
+  });
+
+  it('clamps out-of-range stack indices safely', () => {
+    expect(calculateSafeStemHeight(-1, 5, BASE_STEM, MAX_HEADROOM)).toBe(BASE_STEM);
+    const maxIdxHeight = calculateSafeStemHeight(100, 5, BASE_STEM, MAX_HEADROOM);
+    expect(maxIdxHeight).toBeLessThanOrEqual(MAX_HEADROOM);
   });
 });

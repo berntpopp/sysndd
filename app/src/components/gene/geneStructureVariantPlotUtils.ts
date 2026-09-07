@@ -104,3 +104,39 @@ export function isGeneStructureVariantVisible(
 
   return pathogenicityVisible && effectVisible && conditionVisible;
 }
+
+/**
+ * Calculates adaptive vertical step size between stacked variant lollipops
+ * ensuring that dense clusters never exceed the available headroom.
+ */
+export function calculateDynamicStemStep(
+  maxAllowedStemHeight: number,
+  baseStemHeight: number,
+  stackCount: number,
+  maxStep: number = 8
+): number {
+  if (stackCount <= 1) return 0;
+  return Math.min(maxStep, Math.max(0, (maxAllowedStemHeight - baseStemHeight) / (stackCount - 1)));
+}
+
+/**
+ * Calculates safe stem height for an individual variant marker at a given stack index,
+ * strictly bounded by the maximum allowed headroom.
+ */
+export function calculateSafeStemHeight(
+  stackIndex: number,
+  stackCount: number,
+  baseStemHeight: number,
+  maxAllowedStemHeight: number,
+  maxStep: number = 8
+): number {
+  const effectiveCount = Math.max(1, stackCount);
+  const clampedIndex = Math.min(Math.max(0, stackIndex), effectiveCount - 1);
+  const step = calculateDynamicStemStep(
+    maxAllowedStemHeight,
+    baseStemHeight,
+    effectiveCount,
+    maxStep
+  );
+  return baseStemHeight + clampedIndex * step;
+}

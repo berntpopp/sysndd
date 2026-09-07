@@ -63,9 +63,7 @@
                   @variant-click="handleVariantClick"
                   @variant-hover="handleVariantHover"
                 />
-                <ProteinLollipopSkeleton
-                  v-else-if="isProteinLoading"
-                />
+                <ProteinLollipopSkeleton v-else-if="isProteinLoading" />
                 <div v-else class="empty-state">
                   <i class="bi bi-diagram-3" />
                   <p>No protein domain or variant data available</p>
@@ -92,7 +90,7 @@
             activation of this tab; `KeepAlive` caches the instance for
             instant revisits.
           -->
-          <div class="visualization-panel">
+          <div class="visualization-panel visualization-panel--structure">
             <KeepAlive>
               <div v-if="activeTab === 'structure'">
                 <GeneStructurePlotWithVariants
@@ -226,9 +224,7 @@ const geneStructureFetched = ref(false); // Track if we've fetched gene structur
 /**
  * Computed: Is protein tab data loading?
  */
-const isProteinLoading = computed(
-  () => props.clinvarLoading || props.uniprotLoading
-);
+const isProteinLoading = computed(() => props.clinvarLoading || props.uniprotLoading);
 
 /**
  * Computed: Has protein data available
@@ -485,7 +481,8 @@ watch(
   padding: 6px 12px;
 }
 
-.visualization-panel--protein {
+.visualization-panel--protein,
+.visualization-panel--structure {
   max-height: none;
   overflow-y: visible;
 }
@@ -543,7 +540,8 @@ watch(
     max-height: 320px;
   }
 
-  .visualization-panel--protein {
+  .visualization-panel--protein,
+  .visualization-panel--structure {
     max-height: none;
     overflow-y: visible;
   }

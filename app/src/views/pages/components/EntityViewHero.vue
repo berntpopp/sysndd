@@ -168,15 +168,6 @@ const heroTitle = computed(() =>
   border-radius: var(--radius-md, 0.45rem);
   background: #f8fafc;
 }
-.entity-unit-gene {
-  border-left: 0.25rem solid #0f8f51;
-}
-.entity-unit-inheritance {
-  border-left: 0.25rem solid #09a9c9;
-}
-.entity-unit-disease {
-  border-left: 0.25rem solid #65717d;
-}
 .entity-unit-label {
   color: var(--neutral-600, #667085);
   font-size: 0.7rem;

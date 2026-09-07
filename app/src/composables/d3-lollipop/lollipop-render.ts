@@ -256,8 +256,7 @@ export function renderVariants(
       // mode can never disagree — this used to be a second hand-maintained map.
       const sorted = [...group].sort(
         (a, b) =>
-          pathogenicitySeverityRank(a.classification) -
-          pathogenicitySeverityRank(b.classification)
+          pathogenicitySeverityRank(a.classification) - pathogenicitySeverityRank(b.classification)
       );
       sorted.forEach((variant, index) => {
         // Limit stack depth to avoid towers
@@ -265,6 +264,20 @@ export function renderVariants(
         stackedVariants.push({ ...variant, stackIndex });
       });
     });
+
+    // Safe headroom calculation:
+    // Ensure the highest stacked marker never clips past the top margin.
+    const safeMinY = 10 - ctx.margin.top + MARKER_RADIUS + MARKER_STROKE_WIDTH;
+    const maxAllowedStem = Math.max(
+      STEM_BASE_HEIGHT,
+      yBase - BACKBONE_HEIGHT / 2 - 2 - safeMinY - 15
+    );
+    const effectiveStackOffset = Math.min(
+      STEM_STACK_OFFSET,
+      maxAllowedStem > STEM_BASE_HEIGHT
+        ? (maxAllowedStem - STEM_BASE_HEIGHT) / Math.max(1, MAX_STACK_DEPTH - 1)
+        : STEM_STACK_OFFSET
+    );
 
     // Render stems
     variantGroup
@@ -278,8 +291,8 @@ export function renderVariants(
             .attr('x1', (d) => ctx.xScale!(d.proteinPosition))
             .attr('x2', (d) => ctx.xScale!(d.proteinPosition))
             .attr('y1', yBase - BACKBONE_HEIGHT / 2 - 2)
-            .attr('y2', (d) => yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15)
-            .attr('stroke', '#999')
+            .attr('y2', (d) => yBase - STEM_BASE_HEIGHT - d.stackIndex * effectiveStackOffset - 15)
+            .attr('stroke', '#94a3b8')
             .attr('stroke-width', 1)
             .attr('opacity', dynamicOpacity * 0.7),
         (update) => update,
@@ -308,7 +321,7 @@ export function renderVariants(
               return symbolGenerator() ?? '';
             })
             .attr('transform', (d) => {
-              const markerY = yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15;
+              const markerY = yBase - STEM_BASE_HEIGHT - d.stackIndex * effectiveStackOffset - 15;
               const markerX = ctx.xScale!(d.proteinPosition);
               return `translate(${markerX}, ${markerY})`;
             })

@@ -136,8 +136,8 @@ export default {
   align-items: center;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border-bottom: 2px solid #f57c00;
+  background: var(--warning-subtle, #fff8e1);
+  border-bottom: 1px solid rgba(245, 124, 0, 0.2);
 }
 
 .disclaimer-header__icon {

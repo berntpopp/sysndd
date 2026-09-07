@@ -7,7 +7,7 @@
       :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
       :loading="loading"
     >
-      <template v-if="!loading" #actions>
+      <template #actions>
         <InlineHelpBadge
           id="panel-table-help"
           v-b-tooltip.hover.bottom
@@ -29,7 +29,7 @@
         </BButton>
       </template>
 
-      <template v-if="!loading" #toolbar>
+      <template #toolbar>
         <div class="panels-table__toolbar-row">
           <PanelsTableControls
             :categories="categories_list"
@@ -39,7 +39,7 @@
             :selected-inheritance="selected_inheritance"
             :selected-columns="selected_columns"
             :sort-by="sortBy"
-            :busy="isBusy"
+            :busy="isBusy || loading"
             @update:category="handleCategoryChange"
             @update:inheritance="handleInheritanceChange"
             @update:columns="handleColumnsChange"

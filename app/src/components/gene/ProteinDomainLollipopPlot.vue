@@ -139,8 +139,8 @@ const filterState = reactive<LollipopFilterState>({
 const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
   container: plotContainer,
   width: 800,
-  height: 140,
-  margin: { top: 15, right: 20, bottom: 28, left: 40 },
+  height: 150,
+  margin: { top: 22, right: 20, bottom: 28, left: 40 },
   onVariantClick: (variant) => emit('variant-click', variant),
   onVariantHover: (variant) => emit('variant-hover', variant),
 });
