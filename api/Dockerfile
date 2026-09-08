@@ -59,8 +59,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmysqlclient21 \
     # MySQL client binaries for backup/restore operations (mysqldump, mysql)
     default-mysql-client \
-    # Java for rJava, xlsx
-    default-jdk \
     # Sodium for secure hashing
     libsodium-dev \
     # PCRE for stringr regex
@@ -73,8 +71,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     # Git for devtools (if needed for any GitHub packages)
     git \
-    # libsecret for keyring package
-    libsecret-1-dev \
     # Fortran compiler for some numerical packages
     gfortran \
     # GLPK for igraph
@@ -99,8 +95,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgit2-dev \
     # Poppler for pdftools (PDF parsing)
     libpoppler-cpp-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && R CMD javareconf
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Node for headless Cytoscape/fCoSE layout artifact generation.
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \

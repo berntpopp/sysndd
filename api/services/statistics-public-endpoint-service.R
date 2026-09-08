@@ -15,6 +15,26 @@
 # in statistics_endpoints.R) rather than dependency-injecting pool, since
 # these functions are only ever called from the statistics endpoint shells.
 
+#' Internal helper to bucket and summarize dates without requiring timetk (#666)
+#'
+#' @param .data Tibble or data frame.
+#' @param .date_var Column symbol/expression representing the date.
+#' @param .by Time period string ("year", "month", "week", "day", etc.) or symbol.
+#' @param .type Aggregation boundary ("floor" supported).
+#' @param ... Summarization expressions passed to dplyr::summarise.
+#' @keywords internal
+summarize_by_time <- function(.data, .date_var, .by, .type = "floor", ...) {
+  date_sym <- rlang::ensym(.date_var)
+  date_name <- rlang::as_string(date_sym)
+  by_val <- if (rlang::is_symbol(.by)) rlang::as_string(.by) else as.character(.by)
+
+  .data %>%
+    dplyr::mutate(!!date_name := as.Date(lubridate::floor_date(as.Date(!!date_sym), unit = by_val))) %>%
+    dplyr::group_by(!!date_sym, .add = TRUE) %>%
+    dplyr::arrange(!!date_sym, .by_group = TRUE) %>%
+    dplyr::summarise(..., .groups = "drop_last")
+}
+
 #' Category count statistics (service layer)
 #'
 #' Thin wrapper around the memoised `generate_stat_tibble_mem()` cache used

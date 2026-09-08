@@ -8019,27 +8019,6 @@
       "Author": "Roger Koenker [cre, aut], Stephen Portnoy [ctb] (Contributions to Censored QR code), Pin Tian Ng [ctb] (Contributions to Sparse QR code), Blaise Melly [ctb] (Contributions to preprocessing code), Achim Zeileis [ctb] (Contributions to dynrq code essentially identical to his dynlm code), Philip Grosjean [ctb] (Contributions to nlrq code), Cleve Moler [ctb] (author of several linpack routines), Yousef Saad [ctb] (author of sparskit2), Victor Chernozhukov [ctb] (contributions to extreme value inference code), Ivan Fernandez-Val [ctb] (contributions to extreme value inference code), Martin Maechler [ctb] (tweaks (src/chlfct.f, 'tiny','Large'), <https://orcid.org/0000-0002-8685-9910>), Brian D Ripley [trl, ctb] (Initial (2001) R port from S (to my everlasting shame -- how could I have been so slow to adopt R!) and for numerous other suggestions and useful advice)",
       "Encoding": "UTF-8"
     },
-    "rJava": {
-      "Package": "rJava",
-      "Version": "1.0-18",
-      "Source": "Repository",
-      "Title": "Low-Level R to Java Interface",
-      "Author": "Simon Urbanek [aut, cre, cph] (https://urbanek.nz, ORCID: <https://orcid.org/0000-0003-2297-1732>)",
-      "Maintainer": "Simon Urbanek <Simon.Urbanek@r-project.org>",
-      "Authors@R": "person(\"Simon\", \"Urbanek\", role=c(\"aut\",\"cre\",\"cph\"), email=\"Simon.Urbanek@r-project.org\", comment=c(\"https://urbanek.nz\", ORCID=\"0000-0003-2297-1732\"))",
-      "Depends": [
-        "R (>= 3.6.0)",
-        "methods"
-      ],
-      "Description": "Low-level interface to Java VM very much like .C/.Call and friends. Allows creation of objects, calling methods and accessing fields.",
-      "License": "LGPL-2.1",
-      "URL": "https://www.rforge.net/rJava/",
-      "SystemRequirements": "Java JDK 1.2 or higher (for JRI/REngine JDK 1.4 or higher), GNU make",
-      "BugReports": "https://github.com/s-u/rJava/issues",
-      "NeedsCompilation": "yes",
-      "Repository": "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08",
-      "Encoding": "UTF-8"
-    },
     "ragg": {
       "Package": "ragg",
       "Version": "1.5.0",
@@ -10573,65 +10552,11 @@
       "Maintainer": "Yihui Xie <xie@yihui.name>",
       "Repository": "RSPM"
     },
-    "xlsx": {
-      "Package": "xlsx",
-      "Version": "0.6.5",
+    "writexl": {
+      "Package": "writexl",
+      "Version": "2.0.1",
       "Source": "Repository",
-      "Type": "Package",
-      "Title": "Read, Write, Format Excel 2007 and Excel 97/2000/XP/2003 Files",
-      "Imports": [
-        "rJava",
-        "xlsxjars",
-        "grDevices",
-        "utils"
-      ],
-      "LazyLoad": "yes",
-      "Authors@R": "c(person(given = \"Adrian\", family = \"Dragulescu\", role = c(\"aut\"), email = \"adrian.dragulescu@gmail.com\"), person(given = \"Cole\", family = \"Arendt\", role = c(\"aut\", \"cre\"), email = \"cole.arendt@outlook.com\") )",
-      "Description": "Provide R functions to read/write/format Excel 2007 and Excel 97/2000/XP/2003 file formats.",
-      "License": "GPL-3",
-      "URL": "https://github.com/colearendt/xlsx",
-      "BugReports": "https://github.com/colearendt/xlsx/issues",
-      "SystemRequirements": "java (>= 1.6)",
-      "Suggests": [
-        "rprojroot",
-        "testthat",
-        "covr",
-        "tibble",
-        "knitr",
-        "rmarkdown"
-      ],
-      "RoxygenNote": "7.1.0",
-      "VignetteBuilder": "knitr",
-      "NeedsCompilation": "no",
-      "Author": "Adrian Dragulescu [aut], Cole Arendt [aut, cre]",
-      "Maintainer": "Cole Arendt <cole.arendt@outlook.com>",
-      "Repository": "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08",
-      "Encoding": "UTF-8"
-    },
-    "xlsxjars": {
-      "Package": "xlsxjars",
-      "Version": "0.9.0",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Package Required POI Jars for the xlsx Package",
-      "Date": "2025-07-02",
-      "Depends": [
-        "rJava"
-      ],
-      "LazyLoad": "yes",
-      "Authors@R": "c(person(\"Cole\", \"Arendt\",  role = c(\"aut\", \"cre\"), email = \"cole.arendt@outlook.com\"), person(c(\"Adrian\", \"A.\"), \"Dragulescu\",  role = \"aut\", email = \"adrian.dragulescu@gmail.com\"),  person(\"The Apache Software Foundation\",  role = c(\"ctb\", \"cph\"),  comment = \"Apache POI, Apache XMLBeans, Apache Commons Codec\"))",
-      "Description": "The xlsxjars package collects all the external jars required for the xlxs package. This release corresponds to POI 3.13.",
-      "License": "GPL-3",
-      "Copyright": "See file COPYRIGHTS",
-      "NeedsCompilation": "no",
-      "SystemRequirements": "java (>= 1.6)",
-      "Suggests": [
-        "testthat (>= 3.0.0)"
-      ],
-      "Author": "Cole Arendt [aut, cre], Adrian A. Dragulescu [aut], The Apache Software Foundation [ctb, cph] (Apache POI, Apache XMLBeans, Apache Commons Codec)",
-      "Maintainer": "Cole Arendt <cole.arendt@outlook.com>",
-      "Repository": "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08",
-      "Encoding": "UTF-8"
+      "Repository": "RSPM"
     },
     "xml2": {
       "Package": "xml2",

@@ -579,10 +579,7 @@ test_that("generate_phenotype_entities_list: approved views, empty/meta/xlsx sha
   # --- meta shape ---
   expect_true(all(c("sort", "filter", "fields", "fspec", "executionTime") %in% names(result$meta)))
   # --- xlsx-compatible shape: generate_xlsx_bin() must not error on this ---
-  # (bare write.xlsx() from the `xlsx` package, normally attached globally by
-  # bootstrap/init_libraries.R at API startup — attach it explicitly here.)
-  skip_if_not_installed("xlsx")
-  library(xlsx)
+  skip_if_not_installed("writexl")
   xlsx_bin <- generate_xlsx_bin(result, "phenotype_split_test")
   expect_true(is.raw(xlsx_bin))
   expect_gt(length(xlsx_bin), 0L)

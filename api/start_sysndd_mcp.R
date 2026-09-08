@@ -14,8 +14,8 @@ source("functions/mcp-readonly-attestation.R", local = FALSE)
 source("functions/mcp-readonly-contract.R", local = FALSE)
 source("bootstrap/init_globals.R", local = FALSE)
 
-bootstrap_init_libraries()
 Sys.setenv(SYSNDD_RUNTIME = "mcp")
+bootstrap_init_libraries(lane = "mcp")
 
 config_fn <- base::get("mcp_readonly_config", envir = .GlobalEnv, mode = "function")
 dw <- config_fn()
