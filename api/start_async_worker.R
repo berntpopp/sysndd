@@ -14,6 +14,7 @@ source("functions/async-job-provider-handlers.R", local = FALSE)
 source("functions/async-job-maintenance-handlers.R", local = FALSE)
 source("functions/async-job-handlers.R", local = FALSE)
 source("functions/async-job-worker.R", local = FALSE)
+source("functions/async-job-worker-loop.R", local = FALSE)
 
 # Initialize the `version_json` global so snapshot generator provenance
 # (resolve_app_version(), #585) records a real application version in the worker,
@@ -60,4 +61,12 @@ message(sprintf(
   paste(worker_config$queues, collapse = ",")
 ))
 
-async_job_worker_main(worker_config = worker_config)
+tryCatch(
+  async_job_worker_main(worker_config = worker_config),
+  finally = {
+    if (exists("pool") && inherits(pool, "Pool") && pool::dbIsValid(pool)) {
+      message("[async-worker] shutting down, closing database pool")
+      try(pool::poolClose(pool), silent = TRUE)
+    }
+  }
+)

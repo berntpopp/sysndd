@@ -19,6 +19,7 @@ async_job_worker_runtime_paths <- function() {
     file.path(api_dir, "functions", "clustering-gene-universe.R"),
     file.path(api_dir, "functions", "async-job-handlers.R"),
     file.path(api_dir, "functions", "async-job-worker.R"),
+    file.path(api_dir, "functions", "async-job-worker-loop.R"),
     file.path(api_dir, "functions", "job-progress.R")
   )
 }
