@@ -126,7 +126,10 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
   if (!is.null(data_object$data) && nrow(data_object$data) > max_rows) {
     rlang::abort(
       message = sprintf(
-        "Export row limit exceeded: requested %d rows, maximum allowed is %d. Please apply filters to narrow your export.",
+        paste0(
+          "Export row limit exceeded: requested %d rows, maximum allowed is %d. ",
+          "Please apply filters to narrow your export."
+        ),
         nrow(data_object$data), max_rows
       ),
       class = "export_row_limit_exceeded"

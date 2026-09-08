@@ -138,7 +138,10 @@ external_proxy_cb_record_failure <- function(source, status = 503L, message = NU
     old_state <- cb$state
     cb$state <- "OPEN"
     message(sprintf(
-      "[external-proxy] source=%s event=circuit_breaker_tripped state=OPEN previous_state=%s consecutive_failures=%d threshold=%d cooldown_s=%g",
+      paste0(
+        "[external-proxy] source=%s event=circuit_breaker_tripped state=OPEN ",
+        "previous_state=%s consecutive_failures=%d threshold=%d cooldown_s=%g"
+      ),
       src_key, old_state, cb$failure_count, cfg$threshold, cfg$cooldown_seconds
     ))
   }
@@ -161,8 +164,16 @@ external_proxy_cb_status <- function() {
       consecutive_failures = cb$failure_count,
       threshold = cfg$threshold,
       cooldown_seconds = cfg$cooldown_seconds,
-      last_failure_time = if (!is.null(cb$last_failure_time)) format(cb$last_failure_time, "%Y-%m-%dT%H:%M:%SZ") else NULL,
-      last_success_time = if (!is.null(cb$last_success_time)) format(cb$last_success_time, "%Y-%m-%dT%H:%M:%SZ") else NULL
+      last_failure_time = if (!is.null(cb$last_failure_time)) {
+        format(cb$last_failure_time, "%Y-%m-%dT%H:%M:%SZ")
+      } else {
+        NULL
+      },
+      last_success_time = if (!is.null(cb$last_success_time)) {
+        format(cb$last_success_time, "%Y-%m-%dT%H:%M:%SZ")
+      } else {
+        NULL
+      }
     )
   }
   res

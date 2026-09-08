@@ -404,4 +404,3 @@ if (!exists("async_job_worker_main", mode = "function")) {
     }
   }
 }
-

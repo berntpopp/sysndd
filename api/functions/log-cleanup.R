@@ -380,4 +380,3 @@ run_data_directory_cleanup <- function(data_dir = "data/",
 
   invisible(pruned_count)
 }
-

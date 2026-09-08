@@ -211,9 +211,10 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
       return(tibble::as_tibble(data))
     },
     error = function(e) {
-      log_error("Query execution failed: {e$message} | SQL: {sql} | params: {paste(sanitized_params, collapse = ', ')}",
-        sql = sql,
-        params = paste(sanitized_params, collapse = ", ")
+      log_error(
+        "Query execution failed: {e$message} | SQL: {sql} | params: {params_str}",
+        params_str = paste(sanitized_params, collapse = ", "),
+        sql = sql
       )
 
       rlang::abort(
@@ -330,9 +331,10 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
       return(affected)
     },
     error = function(e) {
-      log_error("Statement execution failed: {e$message} | SQL: {sql} | params: {paste(sanitized_params, collapse = ', ')}",
-        sql = sql,
-        params = paste(sanitized_params, collapse = ", ")
+      log_error(
+        "Statement execution failed: {e$message} | SQL: {sql} | params: {params_str}",
+        params_str = paste(sanitized_params, collapse = ", "),
+        sql = sql
       )
 
       rlang::abort(

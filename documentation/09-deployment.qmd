@@ -97,13 +97,15 @@ deploying is prudent regardless.
 
 ### `MIRAI_WORKERS`
 
-Controls background worker count for long-running jobs.
+Controls legacy mirai daemon worker count. Background asynchronous jobs are drained by durable MySQL-backed workers (`worker` and `worker-maintenance` containers) rather than the mirai daemon pool.
 
-- small server: `1`
-- medium server: `2`
-- large server: `4`
+- Default: `0` (disabled, saving ~630 MB RAM per daemon on API containers)
+- If enabled:
+  - small server: `1`
+  - medium server: `2`
+  - large server: `4`
 
-Rule of thumb:
+Rule of thumb when non-zero:
 
 ```text
 Peak memory ~= 500 MB base + workers x 2 GB
@@ -111,10 +113,11 @@ Peak memory ~= 500 MB base + workers x 2 GB
 
 ### `DB_POOL_SIZE`
 
-Controls the database connection pool.
+Controls the database connection pool in the API container.
 
 Recommended baseline:
 
+- `MIRAI_WORKERS=0` -> `DB_POOL_SIZE=3-5`
 - `MIRAI_WORKERS=1` -> `DB_POOL_SIZE=3-5`
 - `MIRAI_WORKERS=2` -> `DB_POOL_SIZE=5-7`
 - `MIRAI_WORKERS=4` -> `DB_POOL_SIZE=10-12`

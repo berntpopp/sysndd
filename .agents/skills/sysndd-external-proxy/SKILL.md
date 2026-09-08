@@ -28,6 +28,18 @@ Wrap fetchers in `memoise_external_success_only(f, cache, source = "<provider>")
 - **Batch jobs** that make many independent provider calls must additionally reset the accumulator **per call** (see `.pubtatornidd_reset_external_budget()` in `pubtator-enrichment-collector.R`), or the ceiling — designed for public request paths — caps the back half of the batch.
 - The `postroute` hook emits `[request-timing] method=… path=… status=… duration_ms=… external_ms=… slow=…` (`slow` over `API_SLOW_REQUEST_MS`, default 2000), so a slow request can be attributed to external time.
 
+## Circuit Breaker & Resilient Outages
+
+External calls are protected by an in-memory circuit breaker (`api/functions/external-proxy-circuit-breaker.R`):
+- **States:** `CLOSED` (normal operation), `OPEN` (upstream failing, requests short-circuit immediately with `circuit_breaker_open = TRUE`), and `HALF-OPEN` (canary test request after cooldown).
+- **Thresholds:** 5 consecutive failures trigger `OPEN`; cooldown is 60 seconds before probing `HALF-OPEN`.
+- **Status:** Circuit breaker state is monitored via `GET /health/performance` under `circuit_breakers`.
+- **Cache Eviction:** On transient failures, use `memoise::drop_cache(fn)(...)` with the specific call arguments to invalidate only the failing key; never `memoise::forget(fn)`, which wipes the entire provider cache.
+
+## Outbound Client Identification
+
+All external HTTP requests must specify an identifiable User-Agent: `SysNDD/1.0 (https://sysndd.dbmr.unibe.ch)`, configured in `make_external_request` and specialized fetchers (RGD, NCBI, etc.).
+
 ## Cheap Routes Stay External-Free
 
 `/health`, `/auth`, `/statistics` must never call an external fetcher — enforced by `test-unit-cheap-route-isolation.R`.
