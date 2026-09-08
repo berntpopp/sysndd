@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "055_add_ndd_entity_review_covering_idx.sql"
-EXPECTED_MIGRATION_COUNT <- 53L
+EXPECTED_LATEST_MIGRATION <- "056_table_hash_last_used.sql"
+EXPECTED_MIGRATION_COUNT <- 54L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

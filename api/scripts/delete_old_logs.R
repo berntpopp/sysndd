@@ -74,7 +74,22 @@ main <- function() {
     logger = function(msg) message(sprintf("[%s] %s", format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"), msg))
   )
 
-  invisible(summary)
+  hash_summary <- run_table_hash_cleanup(
+    retention_days = suppressWarnings(as.integer(Sys.getenv("HASH_RETENTION_DAYS", "180"))),
+    dry_run = isTRUE(config$dry_run),
+    count_fn = count_fn,
+    execute_fn = execute_fn,
+    logger = function(msg) message(sprintf("[%s] %s", format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"), msg))
+  )
+
+  data_summary <- run_data_directory_cleanup(
+    data_dir = "data/",
+    results_dir = "results/",
+    keep = 2L,
+    logger = function(msg) message(sprintf("[%s] %s", format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"), msg))
+  )
+
+  invisible(list(log = summary, hash = hash_summary, data = data_summary))
 }
 
 result <- tryCatch(

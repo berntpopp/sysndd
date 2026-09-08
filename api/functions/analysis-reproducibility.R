@@ -443,7 +443,7 @@ analysis_snapshot_insert_reproducibility <- function(snapshot_id, bundle, conn =
     DBI::dbBind(stmt, unname(list(
       as.numeric(snapshot_id),
       as.character(bundle$kind %||% NA_character_),
-      list(gz), # bind the raw gzip vector as a single BLOB value
+      blob::blob(gz), # bind the raw gzip vector as a DBI BLOB value
       as.character(bundle$reproducibility_hash %||% NA_character_),
       as.integer(bundle$byte_size %||% length(gz))
     )))

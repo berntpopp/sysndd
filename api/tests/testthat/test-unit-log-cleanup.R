@@ -160,3 +160,69 @@ test_that("non-integer count/delete results degrade safely to zero", {
   expect_identical(res$candidate_rows, 0L)
   expect_identical(res$deleted_rows, 0L)
 })
+
+test_that("run_table_hash_cleanup handles dry-run and execution correctly", {
+  seen_sql <- list()
+  res_dry <- run_table_hash_cleanup(
+    retention_days = 90L,
+    dry_run = TRUE,
+    count_fn = function(sql) {
+      seen_sql <<- c(seen_sql, sql)
+      42L
+    },
+    execute_fn = function(sql) {
+      seen_sql <<- c(seen_sql, sql)
+      42L
+    },
+    logger = function(msg) invisible(NULL)
+  )
+
+  expect_true(res_dry$dry_run)
+  expect_identical(res_dry$candidate_rows, 42L)
+  expect_identical(res_dry$deleted_rows, 0L)
+  expect_length(seen_sql, 1L)
+  expect_match(seen_sql[[1]], "table_hash")
+  expect_match(seen_sql[[1]], "INTERVAL 90 DAY")
+
+  seen_sql <- list()
+  res_exec <- run_table_hash_cleanup(
+    retention_days = 180L,
+    dry_run = FALSE,
+    count_fn = function(sql) {
+      seen_sql <<- c(seen_sql, sql)
+      15L
+    },
+    execute_fn = function(sql) {
+      seen_sql <<- c(seen_sql, sql)
+      15L
+    },
+    logger = function(msg) invisible(NULL)
+  )
+
+  expect_false(res_exec$dry_run)
+  expect_identical(res_exec$candidate_rows, 15L)
+  expect_identical(res_exec$deleted_rows, 15L)
+  expect_length(seen_sql, 2L)
+  expect_match(seen_sql[[2]], "^DELETE FROM table_hash")
+})
+
+test_that("prune_dated_files retains N newest files and removes older ones", {
+  temp_dir <- tempfile("prune_test_")
+  dir.create(temp_dir)
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
+
+  # Create test files with different dates
+  file.create(file.path(temp_dir, "genemap2.2025-01-01.txt"))
+  file.create(file.path(temp_dir, "genemap2.2025-02-01.txt"))
+  file.create(file.path(temp_dir, "genemap2.2025-03-01.txt"))
+  file.create(file.path(temp_dir, "other_file.txt"))
+
+  pruned <- prune_dated_files("genemap2", folder = temp_dir, keep = 2L, logger = function(msg) invisible(NULL))
+
+  expect_length(pruned, 1L)
+  expect_match(pruned[[1]], "genemap2\\.2025-01-01\\.txt")
+  expect_false(file.exists(file.path(temp_dir, "genemap2.2025-01-01.txt")))
+  expect_true(file.exists(file.path(temp_dir, "genemap2.2025-02-01.txt")))
+  expect_true(file.exists(file.path(temp_dir, "genemap2.2025-03-01.txt")))
+  expect_true(file.exists(file.path(temp_dir, "other_file.txt")))
+})

@@ -32,7 +32,17 @@ library(logger)
 #' @export
 hash_find_by_value <- function(hash_value) {
   sql <- "SELECT hash_id, hash_256, json_text, target_endpoint FROM table_hash WHERE hash_256 = ?"
-  db_execute_query(sql, list(hash_value))
+  res <- db_execute_query(sql, list(hash_value))
+  if (is.data.frame(res) && nrow(res) > 0) {
+    tryCatch(
+      db_execute_statement(
+        "UPDATE table_hash SET last_used_at = CURRENT_TIMESTAMP WHERE hash_256 = ?",
+        list(hash_value)
+      ),
+      error = function(e) NULL
+    )
+  }
+  res
 }
 
 #' Check if hash exists

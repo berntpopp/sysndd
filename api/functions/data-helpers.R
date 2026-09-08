@@ -122,6 +122,17 @@ generate_function_hash <- function(function_input) {
 #' @return The binary content of the generated xlsx file as a raw vector
 #' @export
 generate_xlsx_bin <- function(data_object, file_base_name) {
+  max_rows <- if (exists("EXPORT_MAX_ROWS")) EXPORT_MAX_ROWS else 10000L
+  if (!is.null(data_object$data) && nrow(data_object$data) > max_rows) {
+    rlang::abort(
+      message = sprintf(
+        "Export row limit exceeded: requested %d rows, maximum allowed is %d. Please apply filters to narrow your export.",
+        nrow(data_object$data), max_rows
+      ),
+      class = "export_row_limit_exceeded"
+    )
+  }
+
   # generate excel file output
   xlsx_file <- file.path(
     tempdir(),

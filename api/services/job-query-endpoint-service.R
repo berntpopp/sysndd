@@ -104,7 +104,7 @@ svc_job_get_status <- function(job_id, result_mode = "summary", req, res) {
 
   status <- get_job_status(job_id, result_mode = result_mode)
 
-  if (identical(status$error, "JOB_NOT_FOUND")) {
+  if (identical(status[["error"]], "JOB_NOT_FOUND")) {
     res$status <- 404
     return(list(
       error = "JOB_NOT_FOUND",

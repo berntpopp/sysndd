@@ -126,8 +126,9 @@ generate_cursor_pag_inf <- function(
   # a valid integer and convert or assign values accordingly
   if (page_size == "all") {
     page_after <- 0
-    page_size <- pagination_tibble_rows
-    page_count <- ceiling(pagination_tibble_rows / page_size)
+    max_export <- if (exists("EXPORT_MAX_ROWS")) EXPORT_MAX_ROWS else 10000L
+    page_size <- min(pagination_tibble_rows, max_export)
+    page_count <- if (page_size > 0) ceiling(pagination_tibble_rows / page_size) else 0
   } else if (is.numeric(as.integer(page_size))) {
     page_size <- as.integer(page_size)
     page_count <- ceiling(pagination_tibble_rows / page_size)

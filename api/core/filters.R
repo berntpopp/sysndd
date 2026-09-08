@@ -236,11 +236,13 @@ errorHandler <- function(req, res, err) {
     error = function(e) "An error occurred"
   )
 
-  # Log all errors with sanitized request info (internal - full details)
   tryCatch({
+    req_method <- if (!is.null(req$REQUEST_METHOD)) req$REQUEST_METHOD else "UNKNOWN"
+    req_path <- if (!is.null(req$PATH_INFO)) req$PATH_INFO else "unknown"
+    err_class <- class(err)[1]
     log_error(
-      "API error",
-      error_class = class(err)[1],
+      "API error [{req_method} {req_path}]: {err_class} - {err_msg}",
+      error_class = err_class,
       error_message = err_msg,
       endpoint = req$PATH_INFO,
       request = sanitize_request(req)

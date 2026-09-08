@@ -11,8 +11,8 @@
 #   - validate_page_size: Validates and sanitizes page_size parameter
 #   - generate_cursor_pag_inf_safe: Safe wrapper with max limit enforcement
 
-# Global configuration constant
 PAGINATION_MAX_SIZE <- 500 # PAG-02 requirement
+EXPORT_MAX_ROWS <- 10000L # Maximum rows for full export / page_size=all
 
 #' Validate Page Size
 #'
