@@ -5764,46 +5764,6 @@
       "Author": "Jeroen Ooms [aut, cre] (<https://orcid.org/0000-0002-4035-0289>), Duncan Temple Lang [ctb], Lloyd Hilaiel [cph] (author of bundled libyajl)",
       "Repository": "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08"
     },
-    "keyring": {
-      "Package": "keyring",
-      "Version": "1.4.1",
-      "Source": "Repository",
-      "Title": "Access the System Credential Store from R",
-      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = c(\"aut\", \"cre\")), person(\"Alec\", \"Wong\", role = \"ctb\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
-      "Description": "Platform independent 'API' to access the operating system's credential store. Currently supports: 'Keychain' on 'macOS', Credential Store on 'Windows', the Secret Service 'API' on 'Linux', and simple, platform independent stores implemented with environment variables or encrypted files.  Additional storage back-ends can be added easily.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://keyring.r-lib.org/, https://github.com/r-lib/keyring",
-      "BugReports": "https://github.com/r-lib/keyring/issues",
-      "Depends": [
-        "R (>= 3.5)"
-      ],
-      "Imports": [
-        "askpass",
-        "filelock",
-        "R6",
-        "tools",
-        "utils",
-        "yaml"
-      ],
-      "Suggests": [
-        "callr",
-        "covr",
-        "openssl",
-        "testthat (>= 3.0.0)",
-        "withr"
-      ],
-      "Biarch": "true",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Config/usethis/last-upkeep": "2025-04-30",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.2.9000",
-      "SystemRequirements": "Optional: libsecret on Linux (libsecret-1-dev on Debian/Ubuntu, libsecret-devel on Fedora/CentOS)",
-      "NeedsCompilation": "yes",
-      "Author": "Gábor Csárdi [aut, cre], Alec Wong [ctb], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
-      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
-      "Repository": "RSPM"
-    },
     "knitr": {
       "Package": "knitr",
       "Version": "1.51",
@@ -10554,7 +10514,7 @@
     },
     "writexl": {
       "Package": "writexl",
-      "Version": "2.0.1",
+      "Version": "1.5.4",
       "Source": "Repository",
       "Repository": "RSPM"
     },

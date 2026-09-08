@@ -127,6 +127,9 @@ RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
 # =============================================================================
 FROM base AS packages
 
+ARG CACHEBUST=1
+RUN echo "Building packages layer: ${CACHEBUST}"
+
 WORKDIR /app
 
 # Copy renv infrastructure first (for layer caching)
@@ -148,7 +151,10 @@ ENV RENV_CONFIG_RSPM_ENABLED=FALSE
 # No manual install.packages() calls needed - everything is in the lockfile
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
-    R -e 'deps <- c("tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
+    R -e 'deps <- c("writexl", "tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
+
+# Ensure writexl is present in site-library
+RUN R -e 'if (!requireNamespace("writexl", quietly = TRUE)) install.packages("writexl", lib = "/usr/local/lib/R/site-library", repos = "https://cloud.r-project.org")'
 
 # diptest: optional CRAN dependency for the cluster-validation dip-of-unimodality
 # metric (#511). Installed explicitly (kept out of renv.lock so the cached restore
