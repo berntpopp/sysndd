@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-09-08
+
+### Added
+
+- **Unified design system and visual tokens across public surfaces.** Overhauled typography scale, subtle border tokens, and cohesive card elevation across Home, Gene, Entity, Ontology, and Analysis views. (#660)
+- **Comprehensive Disease Ontology view overhaul.** Rebuilt the Disease Ontology page (`/Ontology/:id`) with a dedicated `OntologyHero`, unified metadata badges, and responsive entity table matching the Gene and Entity detail interfaces. (#660)
+- **AI transparency and provenance marking.** Restored clear AI provenance badges on machine-assisted summaries across `PhenotypeClusters` and `GeneNetworks`, distinguishing AI synthesis from peer-reviewed curation verdicts. (#660)
+- **Standardized Table Actions Toolbar.** Standardized download (.xlsx), link copying, and filter clearing across `TablesPhenotypes`, `TablesEntities`, `TablesGenes`, and `PanelsTable` using `TableDownloadLinkCopyButtons`. (#660)
+
+### Fixed
+
+- **Eliminate Cumulative Layout Shift (CLS) and table loading flicker.** Stabilized pagination button dimensions by anchoring `TablePaginationControls` (`align="end"`), eliminating a 73–81% CLS shift caused by flex-fill resizing; standardized loading skeleton geometries across all data tables. (#660)
+- **Navbar search bar flicker and navigation latency.** Converted search visibility to a pure computed property to eliminate unmounted route flashing; parallelized Home statistics resolution, and equipped autocomplete search with abort controllers. (#660)
+- **Colorblind-accessible palette and badge alignment.** Upgraded entity, gene, inheritance, and disease badge palettes for high contrast and colorblind distinctiveness, ensuring pixel-perfect chip alignment. (#660)
+- **Phenotype correlogram and cluster formatting.** Fixed sliced X-axis text labels in correlogram SVG rendering, formatted multi-word cluster category strings, and added a continuous color scale legend to the curation matrix plot. (#660)
+- **Navigation cleanup.** Consolidated redundant curation matrix navigation item into the unified curation comparisons interface. (#660)
+
 ## [0.35.1] - 2026-09-08
 
 ### Added
