@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-09-08
+
+### Added
+
+- **External Proxy Circuit Breaker and Client Identification.** Implemented an in-memory circuit breaker (`sysndd_circuit_breaker`) with configurable failure thresholds, cooldown intervals, and half-open state testing for all outbound HTTP providers (Ensembl, gnomAD, HGNC, PubTator, UniProt, AlphaFold, MGI, RGD); injected custom `User-Agent` (`SysNDD-External-Proxy/1.0`) and contact headers. (#663)
+- **Table Hash LRU and File Retention Policies (Migration 056).** Added `last_used_at` timestamp column to `table_hash` with index `idx_table_hash_last_used` for automatic LRU pruning; added scheduled cleanup routines for dated snapshots, temporary export results, and log files. (#671)
+- **Memory Safety Guardrails and Export Limits.** Enforced maximum pagination limit (`MAX_PAGE_SIZE = 10,000`) and export ceiling (`MAX_EXPORT_ROWS = 10,000`) with clear metadata warnings, preventing memory exhaustion from unbounded requests. (#672)
+
+### Changed
+
+- **Native Excel Generation via `writexl`.** Replaced Java-based `xlsx`/`rJava` dependency completely with native C/R `writexl`, eliminating JVM startup overhead, JNI memory leaks, and headless Java runtime dependencies from Docker images. (#666, #667)
+- **Zero-Daemon Default for Mirai Pool.** Set `MIRAI_WORKERS=0` by default to avoid ~630 MB idle memory overhead per daemon in production environments without heavy concurrent tasks; adapted `/health/performance` to accurately report zero-worker status. (#674)
+- **Database and Docker Compose Sizing for MySQL 8.4.** Calibrated MySQL memory limits (`innodb_buffer_pool_size=512M` in a 1024M container limit), optimized temptable and performance_schema defaults, configured local syslog/json-file log rotation, and strengthened container healthchecks across API, worker, and cron services. (#661, #662, #668)
+- **Upgraded Testing Stack to Vitest 5.** Upgraded Vitest, `@vitest/coverage-v8`, and `@vitest/ui` from 4.1.11 to 5.0.0; updated frontend dependencies and resolved deprecations across 316 test suites. (#655, #656, #657, #658)
+
+### Fixed
+
+- **Async Worker Connection Leak and Exponential Retry Backoff.** Resolved database connection pool exhaustion on worker job failures; implemented jittered exponential backoff for retryable jobs and pruned oversized LLM prompts/payloads from durable MySQL history. (#664, #665, #670)
+- **API Log Hygiene and Request Context.** Eliminated noisy startup stdout logging (~230 lines) from core helpers, silenced uninitialized column warnings in PubTator nightly runs, and ensured structured request context is attached to API logs. (#673)
+- **Patched Front-end Security Advisories.** Resolved open security advisories across nested dependencies (`qs`, `fast-uri`, `@humanfs/node`) via package overrides, achieving 0 vulnerabilities in `npm audit`.
+
 ## [0.36.0] - 2026-09-08
 
 ### Added

@@ -192,6 +192,7 @@ bootstrap_load_modules <- function() {
     "functions/email-templates.R",
     "functions/pagination-helpers.R",
     "functions/external-proxy-request-state.R",
+    "functions/external-proxy-circuit-breaker.R",
     "functions/external-proxy-functions.R",
     "functions/external-proxy-gnomad.R",
     "functions/external-proxy-gnomad-clinvar.R",

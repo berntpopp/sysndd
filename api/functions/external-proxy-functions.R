@@ -23,6 +23,18 @@ if (!exists("external_proxy_request_reset", mode = "function")) {
   rm(.eprs_path)
 }
 
+if (!exists("external_proxy_cb_is_open", mode = "function")) {
+  .epcb_path <- if (exists("get_api_dir", mode = "function")) {
+    file.path(get_api_dir(), "functions", "external-proxy-circuit-breaker.R")
+  } else {
+    "functions/external-proxy-circuit-breaker.R"
+  }
+  if (file.exists(.epcb_path)) {
+    source(.epcb_path, local = TRUE)
+  }
+  rm(.epcb_path)
+}
+
 #### Per-source cache backends with different TTLs
 
 #' Resolve a writable external proxy cache directory
@@ -155,6 +167,10 @@ memoise_external_success_only <- function(f, cache, source = NULL) {
       )
     }
 
+    if (!is.null(source) && !identical(cache_status, "hit") && external_proxy_cb_is_open(source)) {
+      return(external_proxy_cb_error(source))
+    }
+
     start <- proc.time()[["elapsed"]]
     result <- memoised(...)
     elapsed_ms <- as.numeric((proc.time()[["elapsed"]] - start) * 1000)
@@ -162,15 +178,22 @@ memoise_external_success_only <- function(f, cache, source = NULL) {
 
     if (external_proxy_is_error(result)) {
       tryCatch(
-        memoise::forget(memoised),
+        memoise::drop_cache(memoised)(...),
         error = function(e) FALSE
       )
+      if (!is.null(source)) {
+        external_proxy_cb_record_failure(source, status = result$status %||% 503L, message = result$message)
+      }
       external_proxy_log_event(
         source = result$source %||% source %||% "unknown",
         event = "error_not_cached",
         status = result$status %||% 503L,
         detail = result$message %||% NULL
       )
+    } else {
+      if (!is.null(source)) {
+        external_proxy_cb_record_success(source)
+      }
     }
 
     if (!is.null(source)) {
@@ -247,6 +270,9 @@ external_proxy_with_timing <- function(source, expr_fn) {
   if (external_proxy_request_ceiling_exceeded()) {
     return(external_proxy_request_budget_error(source))
   }
+  if (!is.null(source) && external_proxy_cb_is_open(source)) {
+    return(external_proxy_cb_error(source))
+  }
   start <- proc.time()[["elapsed"]]
   result <- tryCatch(
     expr_fn(),
@@ -268,6 +294,12 @@ external_proxy_with_timing <- function(source, expr_fn) {
   result$elapsed_ms <- elapsed_ms
   if (is.null(result$source)) {
     result$source <- source
+  }
+
+  if (isTRUE(result$error)) {
+    external_proxy_cb_record_failure(source, status = result$status %||% 503L, message = result$message)
+  } else {
+    external_proxy_cb_record_success(source)
   }
 
   status <- external_proxy_result_status(result)
@@ -342,11 +374,15 @@ external_proxy_aggregate_budget <- function() {
 #'
 #' @export
 make_external_request <- function(url, api_name, throttle_config, method = "GET", body = NULL) {
+  if (external_proxy_cb_is_open(api_name)) {
+    return(external_proxy_cb_error(api_name))
+  }
   tryCatch(
     {
       budget <- external_proxy_budget(api_name)
       # Build httr2 request with retry, throttle, and timeout
       req <- request(url) %>%
+        req_user_agent("SysNDD/1.0 (https://sysndd.dbmr.unibe.ch)") %>%
         req_throttle(
           rate = throttle_config$capacity / throttle_config$fill_time_s
         ) %>%
@@ -371,11 +407,13 @@ make_external_request <- function(url, api_name, throttle_config, method = "GET"
 
       # Handle 404 - not found (expected for some queries)
       if (resp_status(response) == 404) {
+        external_proxy_cb_record_success(api_name)
         return(list(found = FALSE, source = api_name))
       }
 
       # Handle other non-200 responses
       if (resp_status(response) != 200) {
+        external_proxy_cb_record_failure(api_name, status = resp_status(response))
         return(list(
           error = TRUE,
           status = resp_status(response),
@@ -385,9 +423,11 @@ make_external_request <- function(url, api_name, throttle_config, method = "GET"
       }
 
       # Success - return parsed JSON
+      external_proxy_cb_record_success(api_name)
       return(resp_body_json(response))
     },
     error = function(e) {
+      external_proxy_cb_record_failure(api_name, status = 503L, message = conditionMessage(e))
       # Catch network errors, timeouts, JSON parsing failures
       return(list(
         error = TRUE,

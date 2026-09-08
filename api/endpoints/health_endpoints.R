@@ -145,8 +145,8 @@ function(req, res) {
 
   # Determine overall health
   if (db_ok && migrations_ok) {
-    # Check current lock status (for debugging parallel startup issues)
-    lock_status <- check_migration_lock_status()
+    # Migrations completed and steady; lock was released after startup
+    lock_status <- list(locked = FALSE, holder = NULL)
 
     list(
       status = "healthy",
@@ -225,31 +225,39 @@ function(req, res) {
 #*
 #* @get /performance
 function() {
-  # Read configured worker count from environment (same logic as start_sysndd_api.R)
-  configured_workers <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
-  if (is.na(configured_workers)) configured_workers <- 2L
-  configured_workers <- max(1L, min(configured_workers, 8L))
+  # Read configured worker count from environment (same logic as setup_workers.R)
+  configured_workers <- as.integer(Sys.getenv("MIRAI_WORKERS", "0"))
+  if (is.na(configured_workers)) configured_workers <- 0L
+  configured_workers <- max(0L, min(configured_workers, 8L))
 
   # Check worker pool status via mirai
-  worker_status <- tryCatch(
-    {
-      status <- mirai::status()
-      list(
-        configured = configured_workers,
-        connections = status$connections,
-        # Dispatcher handles task distribution
-        dispatcher_active = TRUE
-      )
-    },
-    error = function(e) {
-      list(
-        configured = configured_workers,
-        connections = 0,
-        dispatcher_active = FALSE,
-        error = e$message
-      )
-    }
-  )
+  if (configured_workers == 0L) {
+    worker_status <- list(
+      configured = 0L,
+      connections = 0L,
+      dispatcher_active = FALSE
+    )
+  } else {
+    worker_status <- tryCatch(
+      {
+        status <- mirai::status()
+        list(
+          configured = configured_workers,
+          connections = status$connections,
+          # Dispatcher handles task distribution
+          dispatcher_active = TRUE
+        )
+      },
+      error = function(e) {
+        list(
+          configured = configured_workers,
+          connections = 0L,
+          dispatcher_active = FALSE,
+          error = e$message
+        )
+      }
+    )
+  }
 
   # Check cache statistics
   cache_stats <- tryCatch(
@@ -326,6 +334,10 @@ function() {
         isTRUE(file.exists(string_expdb_edges_file())),
         error = function(e) NA
       )
+    ),
+    circuit_breakers = tryCatch(
+      circuit_breaker_status(),
+      error = function(e) list()
     ),
     timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
   )

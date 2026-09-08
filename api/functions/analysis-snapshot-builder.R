@@ -115,6 +115,23 @@ analysis_snapshot_trigger_llm_generation <- function(analysis_type, payload, par
     return(list(skipped = TRUE, reason = "empty_clusters"))
   }
 
+  if (is.data.frame(clusters)) {
+    if (!("hash_filter" %in% names(clusters)) &&
+        is.data.frame(payload$clusters) && "hash_filter" %in% names(payload$clusters)) {
+      clusters$hash_filter <- payload$clusters$hash_filter
+    }
+    keep_cols <- c("cluster", "cluster_number", "hash_filter", "cluster_hash", "identifiers", "symbols", "entity_ids")
+    if (cluster_type == "functional") {
+      keep_cols <- c(keep_cols, "term_enrichment")
+    } else if (cluster_type == "phenotype") {
+      keep_cols <- c(keep_cols, "quali_inp_var", "quali_sup_var", "quanti_sup_var")
+    }
+    present_cols <- intersect(names(clusters), keep_cols)
+    if (length(present_cols) > 0L) {
+      clusters <- clusters[, present_cols, drop = FALSE]
+    }
+  }
+
   tryCatch(
     trigger_llm_batch_generation(
       clusters,

@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.7.3
+    image: traefik:v3.7.13
     container_name: sysndd_traefik
     restart: unless-stopped
     security_opt:
@@ -10,6 +10,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
     command:
       # Enable API for healthcheck CLI but disable dashboard (security)
       # Internal API uses 'traefik' entrypoint, our routes use 'web' - no conflict
@@ -29,6 +30,7 @@ services:
       - "--entryPoints.web.transport.respondingTimeouts.readTimeout=60s"
       - "--accesslog=true"
       - "--accesslog.format=json"
+      - "--accesslog.bufferingSize=100"
       - "--accesslog.fields.headers.defaultmode=drop"
       - "--accesslog.fields.queryparameters.defaultmode=drop"
       - "--accesslog.fields.names.ClientAddr=drop"
@@ -66,6 +68,7 @@ services:
     image: mysql:8.4.11
     container_name: sysndd_mysql
     restart: unless-stopped
+    oom_score_adj: -500
     security_opt:
       - no-new-privileges:true
     logging:
@@ -73,12 +76,19 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
     command:
       - --authentication-policy=caching_sha2_password
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      - --innodb-buffer-pool-size=768M
+      - --innodb-buffer-pool-size=512M
       - --innodb-buffer-pool-instances=1
+      - --performance-schema=OFF
+      - --temptable-max-ram=128M
+      - --innodb-log-buffer-size=16M
+      - --binlog-row-image=MINIMAL
+      - --binlog-expire-logs-seconds=604800
+      - --max-connections=60
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -98,8 +108,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 1536M
           cpus: '1.0'
+        reservations:
+          memory: 512M
 
   mysql-cron-backup:
     image: fradelg/mysql-cron-backup
@@ -112,6 +124,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
     depends_on:
       - mysql
     volumes:
@@ -144,6 +157,8 @@ services:
         UID: ${HOST_UID:-1000}
         GID: ${HOST_GID:-1000}
     restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
     security_opt:
       - no-new-privileges:true
     logging:
@@ -151,6 +166,7 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+        compress: "true"
     depends_on:
       mysql:
         condition: service_healthy
@@ -179,7 +195,7 @@ services:
       PASSWORD: ${PASSWORD}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
-      MIRAI_WORKERS: ${MIRAI_WORKERS:-2}
+      MIRAI_WORKERS: ${MIRAI_WORKERS:-0}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # NCBI E-utilities identity/rate-limit (#494/#499): raises the per-IP EUtils
       # cap from the anonymous 3 req/s to 10 req/s so publication ingestion and the
@@ -292,6 +308,8 @@ services:
         GID: ${HOST_GID:-1000}
     command: ["Rscript", "start_sysndd_api.R"]
     restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
     security_opt:
       - no-new-privileges:true
     logging:
@@ -299,6 +317,7 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+        compress: "true"
     depends_on:
       api:
         condition: service_healthy   # migrations + startup bootstraps done by core first
@@ -323,7 +342,7 @@ services:
       PASSWORD: ${PASSWORD}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       DB_POOL_SIZE: ${API_ENRICHMENT_DB_POOL_SIZE:-3}
-      MIRAI_WORKERS: 1                # I/O-bound proxy calls, no heavy compute here
+      MIRAI_WORKERS: ${API_ENRICHMENT_MIRAI_WORKERS:-0}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       NCBI_API_KEY: ${NCBI_API_KEY:-}
       NCBI_EUTILS_EMAIL: ${NCBI_EUTILS_EMAIL:-}
@@ -377,6 +396,7 @@ services:
           child=$$!;
           wait "$$child"
     restart: unless-stopped
+    init: true
     stop_grace_period: 60s
     security_opt:
       - no-new-privileges:true
@@ -385,6 +405,7 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+        compress: "true"
     depends_on:
       api:
         condition: service_healthy
@@ -488,6 +509,7 @@ services:
           child=$$!;
           wait "$$child"
     restart: unless-stopped
+    init: true
     stop_grace_period: 60s
     security_opt:
       - no-new-privileges:true
@@ -496,6 +518,7 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+        compress: "true"
     depends_on:
       api:
         condition: service_healthy
@@ -579,6 +602,8 @@ services:
         GID: ${HOST_GID:-1000}
     command: ["Rscript", "start_sysndd_mcp.R"]
     restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
     security_opt:
       - no-new-privileges:true
     logging:
@@ -586,6 +611,7 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+        compress: "true"
     depends_on:
       mysql:
         condition: service_healthy
@@ -737,6 +763,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
     depends_on:
       mysql:
         condition: service_healthy
@@ -921,6 +948,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
     depends_on:
       mysql:
         condition: service_healthy
@@ -945,7 +973,7 @@ services:
             now=$$(date +%s);
             target=0;
             for i in 0 1 2 3 4 5 6 7; do
-              cand=$$(date -d "$$at +$$i day" +%s 2>/dev/null || echo 0);
+              cand=$$(date -d "today +$$i days $$at" +%s 2>/dev/null || echo 0);
               cand_dow=$$(date -d "@$$cand" +%w 2>/dev/null || echo -1);
               if [ "$$cand" -gt "$$now" ] && [ "$$cand_dow" = "$$dow" ]; then target=$$cand; break; fi;
             done;

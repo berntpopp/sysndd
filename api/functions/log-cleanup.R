@@ -229,3 +229,154 @@ run_log_cleanup <- function(config,
     deleted_rows = deleted_rows
   ))
 }
+
+#' Prune stale hash records from table_hash based on last_used_at / entry_date
+#'
+#' @param retention_days Integer retention days (default 180).
+#' @param dry_run Logical; when TRUE, count only without deleting.
+#' @param count_fn Function executing SQL returning row count.
+#' @param execute_fn Function executing SQL statement returning affected row count.
+#' @param logger Logging function (default message).
+#'
+#' @return Invisibly returns list of cleanup statistics.
+#' @export
+run_table_hash_cleanup <- function(retention_days = 180L,
+                                   dry_run = FALSE,
+                                   count_fn,
+                                   execute_fn,
+                                   logger = message) {
+  retention_days <- validate_retention_days(retention_days, default = 180L)
+
+  count_sql <- sprintf(
+    "SELECT COUNT(*) AS n FROM table_hash WHERE COALESCE(last_used_at, entry_date) < (NOW() - INTERVAL %d DAY)",
+    retention_days
+  )
+  candidate_rows <- as.integer(count_fn(count_sql))
+  if (length(candidate_rows) != 1L || is.na(candidate_rows)) {
+    candidate_rows <- 0L
+  }
+
+  logger(sprintf(
+    "[hash-cleanup] table=table_hash retention_days=%d candidates=%d dry_run=%s",
+    retention_days, candidate_rows, tolower(as.character(dry_run))
+  ))
+
+  if (isTRUE(dry_run)) {
+    return(invisible(list(
+      table = "table_hash",
+      retention_days = retention_days,
+      dry_run = TRUE,
+      candidate_rows = candidate_rows,
+      deleted_rows = 0L
+    )))
+  }
+
+  delete_sql <- sprintf(
+    "DELETE FROM table_hash WHERE COALESCE(last_used_at, entry_date) < (NOW() - INTERVAL %d DAY)",
+    retention_days
+  )
+  deleted_rows <- as.integer(execute_fn(delete_sql))
+  if (length(deleted_rows) != 1L || is.na(deleted_rows)) {
+    deleted_rows <- 0L
+  }
+
+  logger(sprintf(
+    "[hash-cleanup] deleted %d row(s) from table_hash (retention %d day(s))",
+    deleted_rows, retention_days
+  ))
+
+  invisible(list(
+    table = "table_hash",
+    retention_days = retention_days,
+    dry_run = FALSE,
+    candidate_rows = candidate_rows,
+    deleted_rows = deleted_rows
+  ))
+}
+
+#' Prune dated snapshot files in a directory, keeping the N newest
+#'
+#' @param file_basename String prefix before .YYYY-MM-DD (e.g., "genemap2").
+#' @param folder Directory path (e.g., "data/").
+#' @param keep Integer number of newest files to retain (default 2).
+#' @param logger Logging function.
+#'
+#' @return Invisibly returns vector of deleted file paths.
+#' @export
+prune_dated_files <- function(file_basename, folder = "data/", keep = 2L, logger = message) {
+  if (!dir.exists(folder)) {
+    return(character(0))
+  }
+
+  pattern <- paste0("^", file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
+  matching_files <- list.files(folder, pattern = pattern, full.names = TRUE)
+
+  if (length(matching_files) <= keep) {
+    return(character(0))
+  }
+
+  sorted_files <- sort(matching_files, decreasing = TRUE)
+  files_to_remove <- sorted_files[(keep + 1L):length(sorted_files)]
+
+  deleted <- character(0)
+  for (f in files_to_remove) {
+    ok <- unlink(f, force = TRUE)
+    if (ok == 0) {
+      deleted <- c(deleted, f)
+    }
+  }
+
+  if (length(deleted) > 0) {
+    logger(sprintf("[data-cleanup] pruned %d stale files for %s in %s", length(deleted), file_basename, folder))
+  }
+  invisible(deleted)
+}
+
+#' Run automated data and results directory cleanup
+#'
+#' @param data_dir Path to data directory (default "data/").
+#' @param results_dir Path to results directory (default "results/").
+#' @param keep Integer snapshots to keep per type (default 2).
+#' @param logger Logging function.
+#'
+#' @return Invisibly returns total pruned file count.
+#' @export
+run_data_directory_cleanup <- function(data_dir = "data/",
+                                       results_dir = "results/",
+                                       keep = 2L,
+                                       logger = message) {
+  pruned_count <- 0L
+
+  prefixes <- c(
+    "hgnc_complete_set",
+    "genemap2",
+    "mim2gene",
+    "disease_ontology_set",
+    "mondo-omim",
+    "mondo-omim-full"
+  )
+
+  for (prefix in prefixes) {
+    del <- prune_dated_files(prefix, folder = data_dir, keep = keep, logger = logger)
+    pruned_count <- pruned_count + length(del)
+  }
+
+  if (dir.exists(results_dir)) {
+    res_files <- list.files(results_dir, pattern = "\\.json$", full.names = TRUE)
+    if (length(res_files) > 0) {
+      finfo <- file.info(res_files)
+      cutoff <- Sys.time() - (30 * 86400)
+      stale <- rownames(finfo)[finfo$mtime < cutoff & !is.na(finfo$mtime)]
+      for (sf in stale) {
+        if (unlink(sf, force = TRUE) == 0) {
+          pruned_count <- pruned_count + 1L
+        }
+      }
+      if (length(stale) > 0) {
+        logger(sprintf("[results-cleanup] pruned %d stale result cache files in %s", length(stale), results_dir))
+      }
+    }
+  }
+
+  invisible(pruned_count)
+}

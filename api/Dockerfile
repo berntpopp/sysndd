@@ -59,8 +59,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmysqlclient21 \
     # MySQL client binaries for backup/restore operations (mysqldump, mysql)
     default-mysql-client \
-    # Java for rJava, xlsx
-    default-jdk \
     # Sodium for secure hashing
     libsodium-dev \
     # PCRE for stringr regex
@@ -73,8 +71,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     # Git for devtools (if needed for any GitHub packages)
     git \
-    # libsecret for keyring package
-    libsecret-1-dev \
     # Fortran compiler for some numerical packages
     gfortran \
     # GLPK for igraph
@@ -99,8 +95,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgit2-dev \
     # Poppler for pdftools (PDF parsing)
     libpoppler-cpp-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && R CMD javareconf
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Node for headless Cytoscape/fCoSE layout artifact generation.
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
@@ -132,6 +127,9 @@ RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
 # =============================================================================
 FROM base AS packages
 
+ARG CACHEBUST=1
+RUN echo "Building packages layer: ${CACHEBUST}"
+
 WORKDIR /app
 
 # Copy renv infrastructure first (for layer caching)
@@ -153,7 +151,10 @@ ENV RENV_CONFIG_RSPM_ENABLED=FALSE
 # No manual install.packages() calls needed - everything is in the lockfile
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
-    R -e 'deps <- c("tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
+    R -e 'deps <- c("writexl", "tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
+
+# Ensure writexl is present in site-library
+RUN R -e 'if (!requireNamespace("writexl", quietly = TRUE)) install.packages("writexl", lib = "/usr/local/lib/R/site-library", repos = "https://cloud.r-project.org")'
 
 # diptest: optional CRAN dependency for the cluster-validation dip-of-unimodality
 # metric (#511). Installed explicitly (kept out of renv.lock so the cached restore

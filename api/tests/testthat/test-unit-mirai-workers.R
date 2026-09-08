@@ -2,30 +2,29 @@
 # Unit tests for MIRAI_WORKERS environment variable parsing
 #
 # Tests verify that the worker count configuration:
-# - Defaults to 2 when not set
-# - Handles invalid (non-numeric) values by falling back to default
-# - Bounds values to 1-8 range
+# - Defaults to 0 when not set (mirai pool disabled)
+# - Handles invalid (non-numeric) values by falling back to default (0)
+# - Bounds values to 0-8 range
 #
 # Note: These tests verify the parsing PATTERN since the actual logic
-# is inline in start_sysndd_api.R. The tests document expected behavior.
+# is in setup_workers.R and health_endpoints.R. The tests document expected behavior.
 
 library(testthat)
 library(withr)
 
 # ============================================================================
-# Helper: Parse MIRAI_WORKERS as implemented in start_sysndd_api.R
+# Helper: Parse MIRAI_WORKERS as implemented in setup_workers.R
 # ============================================================================
 
 #' Parse MIRAI_WORKERS environment variable
 #'
-#' This function replicates the logic from start_sysndd_api.R for testing.
-#' The actual implementation is inline in the API startup script.
+#' This function replicates the logic from setup_workers.R for testing.
 #'
-#' @return Integer worker count (1-8)
+#' @return Integer worker count (0-8)
 parse_mirai_workers <- function() {
-  worker_count <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
-  if (is.na(worker_count)) worker_count <- 2L
-  max(1L, min(worker_count, 8L))
+  worker_count <- as.integer(Sys.getenv("MIRAI_WORKERS", "0"))
+  if (is.na(worker_count)) worker_count <- 0L
+  max(0L, min(worker_count, 8L))
 }
 
 # ============================================================================
@@ -34,21 +33,24 @@ parse_mirai_workers <- function() {
 
 describe("MIRAI_WORKERS parsing", {
 
-  it("defaults to 2 when not set", {
+  it("defaults to 0 when not set", {
     withr::local_envvar(MIRAI_WORKERS = NA)  # Unset
 
     result <- parse_mirai_workers()
-    expect_equal(result, 2L)
+    expect_equal(result, 0L)
   })
 
-  it("defaults to 2 when set to empty string", {
+  it("defaults to 0 when set to empty string", {
     withr::local_envvar(MIRAI_WORKERS = "")
 
     result <- parse_mirai_workers()
-    expect_equal(result, 2L)
+    expect_equal(result, 0L)
   })
 
   it("parses valid integer values", {
+    withr::local_envvar(MIRAI_WORKERS = "0")
+    expect_equal(parse_mirai_workers(), 0L)
+
     withr::local_envvar(MIRAI_WORKERS = "4")
     expect_equal(parse_mirai_workers(), 4L)
 
@@ -59,26 +61,23 @@ describe("MIRAI_WORKERS parsing", {
     expect_equal(parse_mirai_workers(), 8L)
   })
 
-  it("handles non-numeric values by defaulting to 2", {
+  it("handles non-numeric values by defaulting to 0", {
     withr::local_envvar(MIRAI_WORKERS = "abc")
-    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 0L)
 
     withr::local_envvar(MIRAI_WORKERS = "two")
-    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 0L)
 
     withr::local_envvar(MIRAI_WORKERS = "4.5")  # Float strings
     expect_equal(parse_mirai_workers(), 4L)  # as.integer truncates
   })
 
-  it("bounds value to minimum of 1", {
-    withr::local_envvar(MIRAI_WORKERS = "0")
-    expect_equal(parse_mirai_workers(), 1L)
-
+  it("bounds value to minimum of 0", {
     withr::local_envvar(MIRAI_WORKERS = "-1")
-    expect_equal(parse_mirai_workers(), 1L)
+    expect_equal(parse_mirai_workers(), 0L)
 
     withr::local_envvar(MIRAI_WORKERS = "-99")
-    expect_equal(parse_mirai_workers(), 1L)
+    expect_equal(parse_mirai_workers(), 0L)
   })
 
   it("bounds value to maximum of 8", {
@@ -94,16 +93,16 @@ describe("MIRAI_WORKERS parsing", {
 
   it("handles edge cases at boundaries", {
     # Exactly at minimum
-    withr::local_envvar(MIRAI_WORKERS = "1")
-    expect_equal(parse_mirai_workers(), 1L)
+    withr::local_envvar(MIRAI_WORKERS = "0")
+    expect_equal(parse_mirai_workers(), 0L)
 
     # Exactly at maximum
     withr::local_envvar(MIRAI_WORKERS = "8")
     expect_equal(parse_mirai_workers(), 8L)
 
     # One below minimum (should bound)
-    withr::local_envvar(MIRAI_WORKERS = "0")
-    expect_equal(parse_mirai_workers(), 1L)
+    withr::local_envvar(MIRAI_WORKERS = "-1")
+    expect_equal(parse_mirai_workers(), 0L)
 
     # One above maximum (should bound)
     withr::local_envvar(MIRAI_WORKERS = "9")
@@ -119,11 +118,11 @@ describe("MIRAI_WORKERS parsing", {
   })
 
   it("handles mixed valid and invalid characters", {
-    # as.integer will fail on these, so should default to 2
+    # as.integer will fail on these, so should default to 0
     withr::local_envvar(MIRAI_WORKERS = "4workers")
-    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 0L)
 
     withr::local_envvar(MIRAI_WORKERS = "workers4")
-    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 0L)
   })
 })

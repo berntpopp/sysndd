@@ -182,12 +182,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
         sep = ";",
         collapse = ""
       )
-      log_info(skip_formatter(log_entry))
-
-      # #344: structured, greppable per-request timing with external-time
-      # attribution. external_ms is the wall time this request spent in external
-      # provider calls (0 for cheap routes); slow=true flags requests over the
-      # SLO threshold (API_SLOW_REQUEST_MS, default 2000).
+      # #344: structured, greppable per-request timing with external-time attribution
       duration_ms <- (end$toc - end$tic) * 1000
       external_ms <- external_proxy_request_total_ms()
       slow_threshold_ms <- suppressWarnings(as.numeric(Sys.getenv("API_SLOW_REQUEST_MS", "2000")))
@@ -202,21 +197,34 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
         " external_ms=", as.integer(round(external_ms)),
         " slow=", tolower(as.character(duration_ms >= slow_threshold_ms))
       )
-      log_info(skip_formatter(structured_timing))
 
-      # Write log entry to DB with sanitized data
-      log_message_to_db(
-        address         = convert_empty(req$REMOTE_ADDR),
-        agent           = convert_empty(req$HTTP_USER_AGENT),
-        host            = convert_empty(req$HTTP_HOST),
-        request_method  = convert_empty(req$REQUEST_METHOD),
-        path            = convert_empty(req$PATH_INFO),
-        query           = "[redacted]",
-        post            = safe_post_body,
-        status          = convert_empty(res$status),
-        duration        = round(end$toc - end$tic, digits = getOption("digits", 5)),
-        file            = logging_temp_file,
-        modified        = Sys.time()
-      )
+      # Detect health checks, metrics, and OPTIONS probes to bypass DB logging (#668)
+      raw_path <- convert_empty(req$PATH_INFO)
+      is_probe <- grepl("^/(api/)?health", raw_path) ||
+        raw_path %in% c("/metrics", "/api/metrics") ||
+        identical(req$REQUEST_METHOD, "OPTIONS")
+
+      if (is_probe) {
+        log_debug(skip_formatter(log_entry))
+        log_debug(skip_formatter(structured_timing))
+      } else {
+        log_info(skip_formatter(log_entry))
+        log_info(skip_formatter(structured_timing))
+
+        # Write log entry to DB with sanitized data
+        log_message_to_db(
+          address         = convert_empty(req$REMOTE_ADDR),
+          agent           = convert_empty(req$HTTP_USER_AGENT),
+          host            = convert_empty(req$HTTP_HOST),
+          request_method  = convert_empty(req$REQUEST_METHOD),
+          path            = raw_path,
+          query           = "[redacted]",
+          post            = safe_post_body,
+          status          = convert_empty(res$status),
+          duration        = round(end$toc - end$tic, digits = getOption("digits", 5)),
+          file            = logging_temp_file,
+          modified        = Sys.time()
+        )
+      }
     })
 }

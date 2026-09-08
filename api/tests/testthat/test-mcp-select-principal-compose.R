@@ -154,7 +154,7 @@ test_that("MCP profile exposes a bounded credential-free transport without egres
   traefik <- model$services$traefik
   labels <- .mcp_compose_label_map(mcp)
 
-  expect_identical(traefik$image, "traefik:v3.7.3")
+  expect_identical(traefik$image, "traefik:v3.7.13")
   expect_identical(
     mcp$environment$MCP_ALLOWED_ORIGINS,
     "${MCP_ALLOWED_ORIGINS:-https://sysndd.dbmr.unibe.ch}"

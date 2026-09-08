@@ -122,6 +122,20 @@ generate_function_hash <- function(function_input) {
 #' @return The binary content of the generated xlsx file as a raw vector
 #' @export
 generate_xlsx_bin <- function(data_object, file_base_name) {
+  max_rows <- if (exists("EXPORT_MAX_ROWS")) EXPORT_MAX_ROWS else 10000L
+  if (!is.null(data_object$data) && nrow(data_object$data) > max_rows) {
+    rlang::abort(
+      message = sprintf(
+        paste0(
+          "Export row limit exceeded: requested %d rows, maximum allowed is %d. ",
+          "Please apply filters to narrow your export."
+        ),
+        nrow(data_object$data), max_rows
+      ),
+      class = "export_row_limit_exceeded"
+    )
+  }
+
   # generate excel file output
   xlsx_file <- file.path(
     tempdir(),
@@ -130,24 +144,18 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
 
   # Convert nested data columns to JSON strings for Excel compatibility
   data_export <- data_object$data %>%
-    mutate(across(where(is.list), ~ sapply(., function(x) {
+    dplyr::mutate(dplyr::across(tidyselect::where(is.list), ~ sapply(., function(x) {
       if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
         as.character(x)
       } else {
         jsonlite::toJSON(x, auto_unbox = TRUE)
       }
     })))
-
-  write.xlsx(data_export,
-    xlsx_file,
-    sheetName = "data",
-    append = FALSE
-  )
 
   # Convert nested fspec column to JSON string for Excel export
   # This preserves all metadata - requires JSON parsing on import
   meta_export <- data_object$meta %>%
-    mutate(across(where(is.list), ~ sapply(., function(x) {
+    dplyr::mutate(dplyr::across(tidyselect::where(is.list), ~ sapply(., function(x) {
       if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
         as.character(x)
       } else {
@@ -155,18 +163,32 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
       }
     })))
 
-  write.xlsx(
-    meta_export,
-    xlsx_file,
-    sheetName = "meta",
-    append = TRUE
+  # Format links if present, converting to a single-row data frame if it is a list
+  links_raw <- data_object$links
+  if (is.null(links_raw)) {
+    links_export <- tibble::tibble()
+  } else if (is.data.frame(links_raw)) {
+    links_export <- links_raw %>%
+      dplyr::mutate(dplyr::across(tidyselect::where(is.list), ~ sapply(., function(x) {
+        if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
+          as.character(x)
+        } else {
+          jsonlite::toJSON(x, auto_unbox = TRUE)
+        }
+      })))
+  } else if (is.list(links_raw)) {
+    links_export <- as.data.frame(lapply(links_raw, as.character), stringsAsFactors = FALSE)
+  } else {
+    links_export <- tibble::tibble(link = as.character(links_raw))
+  }
+
+  sheets <- list(
+    data = as.data.frame(data_export),
+    meta = as.data.frame(meta_export),
+    links = as.data.frame(links_export)
   )
 
-  write.xlsx(data_object$links,
-    xlsx_file,
-    sheetName = "links",
-    append = TRUE
-  )
+  writexl::write_xlsx(sheets, path = xlsx_file)
 
   # Read in the raw contents of the binary file
   bin <- readBin(xlsx_file, "raw", n = file.info(xlsx_file)$size)

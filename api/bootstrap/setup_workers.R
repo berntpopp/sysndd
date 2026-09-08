@@ -22,7 +22,7 @@
 
 #' Start the mirai daemon pool and pre-source worker dependencies.
 #'
-#' `MIRAI_WORKERS` governs daemon count (default 2, clamped 1–8).
+#' `MIRAI_WORKERS` governs daemon count (default 0, clamped 0–8).
 #' Tune for host RAM — see CLAUDE.md "Memory / Worker Tuning".
 #'
 #' @return A list describing the worker configuration (for
@@ -30,10 +30,10 @@
 #'   `dispatcher` (TRUE when dispatcher mode is enabled).
 #' @export
 bootstrap_setup_workers <- function() {
-  worker_count <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
+  worker_count <- as.integer(Sys.getenv("MIRAI_WORKERS", "0"))
 
   # Handle NA from invalid input (e.g., "abc")
-  if (is.na(worker_count)) worker_count <- 2L
+  if (is.na(worker_count)) worker_count <- 0L
 
   # Validate bounds (minimum 0, maximum 8)
   worker_count <- max(0L, min(worker_count, 8L))

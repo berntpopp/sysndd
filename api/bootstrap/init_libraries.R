@@ -19,55 +19,63 @@
 #' the bootstrap starts. This must run BEFORE any code that reads
 #' `Sys.getenv()`.
 #'
+#' @param lane Optional runtime lane string ("mcp", "api", "enrichment", "worker").
+#'   Defaults to SYSNDD_RUNTIME or API_LANE env vars.
 #' @return invisible(TRUE) — called for side effects only.
 #' @export
-bootstrap_init_libraries <- function() {
-  library(dotenv)
+bootstrap_init_libraries <- function(lane = NULL) {
   if (file.exists(".env")) {
     dotenv::load_dot_env(file = ".env")
   }
 
-  library(plumber)
-  library(logger)
-  library(tictoc)
-  library(fs)
-  library(jsonlite)
-  library(DBI)
-  library(RMariaDB)
-  library(config)
-  library(pool)
+  if (is.null(lane) || !nzchar(lane)) {
+    lane <- Sys.getenv("SYSNDD_RUNTIME", Sys.getenv("API_LANE", "api"))
+  }
 
-  library(biomaRt)
-  library(tidyverse)
-  library(stringr)
-  library(jose)
-  library(RCurl)
-  library(stringdist)
-  library(xlsx)
-  library(xml2)
-  library(rvest)
-  library(lubridate)
-  library(memoise)
-  library(coop)
-  library(reshape2)
-  library(blastula)
-  library(keyring)
-  library(future)
-  library(knitr)
-  library(rlang)
-  library(timetk)
-  library(STRINGdb)
-  library(factoextra)
-  library(FactoMineR)
-  library(vctrs)
-  library(httr)
-  library(httr2)
-  library(ellipsis)
-  library(ontologyIndex)
-  library(httpproblems)
-  library(mirai)
-  library(promises)
-  library(uuid)
+  suppressPackageStartupMessages({
+    library(dotenv)
+    library(logger)
+    library(jsonlite)
+    library(DBI)
+    library(RMariaDB)
+    library(pool)
+    library(rlang)
+
+    # MCP lane only needs DB, pool, logging, jsonlite, and rlang
+    if (identical(lane, "mcp")) {
+      return(invisible(TRUE))
+    }
+
+    library(plumber)
+    library(tictoc)
+    library(fs)
+    library(config)
+
+    # Order matters: STRINGdb / biomaRt first, tidyverse last
+    library(STRINGdb)
+    library(biomaRt)
+    library(tidyverse)
+    library(stringr)
+    library(jose)
+    library(stringdist)
+    library(writexl)
+    library(xml2)
+    library(rvest)
+    library(lubridate)
+    library(memoise)
+    library(coop)
+    library(reshape2)
+    library(blastula)
+    library(FactoMineR)
+    library(vctrs)
+    library(httr)
+    library(httr2)
+    library(ontologyIndex)
+    library(httpproblems)
+    library(mirai)
+    library(promises)
+    library(uuid)
+  })
 
   options_plumber(trailingSlash = TRUE)
 
