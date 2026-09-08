@@ -67,24 +67,28 @@ export default {
 
 <style scoped>
 .gene-badge-link {
+  display: inline-flex;
   text-decoration: none !important;
+  vertical-align: middle;
 }
 
 .gene-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.2rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: 1rem;
+  border-radius: var(--radius-full, 9999px);
   font-weight: 600;
   font-style: italic;
-  color: white;
-  background: linear-gradient(145deg, #198754 0%, #146c43 100%);
-  border: 1.5px solid #0f5132;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+  border: 1px solid #14532d;
+  box-sizing: border-box;
+  vertical-align: middle;
+  white-space: nowrap;
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    0 1px 2px rgba(16, 24, 40, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   cursor: pointer;
   transition:
     transform 0.15s ease,
@@ -94,41 +98,49 @@ export default {
 .gene-badge:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+    0 3px 6px rgba(16, 24, 40, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .gene-badge__icon {
-  font-size: 0.85em;
+  font-size: 0.8em;
   opacity: 0.9;
+  flex-shrink: 0;
 }
 
 .gene-badge__symbol {
   font-weight: 700;
 }
 
-/* Size variants */
+/* Size variants - unified height and typography across all badges */
 .gene-badge--sm {
-  padding: 0.125rem 0.35rem;
-  font-size: 0.7rem;
-  border-width: 1.5px;
-  gap: 0.1rem;
-}
-
-.gene-badge--sm .gene-badge__icon {
-  font-size: 0.7em;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  line-height: 22px;
+  gap: 0.18rem;
 }
 
 .gene-badge--md {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8125rem;
-  border-width: 2px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 0.55rem;
+  font-size: 0.78rem;
+  line-height: 26px;
+  gap: 0.22rem;
 }
 
 .gene-badge--lg {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.9375rem;
-  border-width: 2px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 32px;
+  gap: 0.28rem;
 }
 
 /* Accessibility - respect reduced motion */

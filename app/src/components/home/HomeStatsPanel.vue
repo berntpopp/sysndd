@@ -5,12 +5,48 @@
         <h2 id="home-stats-title" class="home-panel__title">Database statistics</h2>
         <p class="home-panel__description">Current curated entity and gene coverage.</p>
       </div>
-      <span v-if="!loading && !error" class="home-panel__meta">Updated {{ lastUpdate }}</span>
+      <span v-if="loading" class="home-panel__meta home-skeleton-meta" aria-hidden="true" />
+      <span v-else-if="!error" class="home-panel__meta">Updated {{ lastUpdate }}</span>
     </header>
 
-    <!-- Loading skeleton -->
-    <div v-if="loading" class="home-stats-loading" aria-busy="true" aria-label="Loading statistics">
-      <TableLoadingState :rows="4" label="Loading database statistics" />
+    <!-- Loading skeleton matching loaded 2-column grid geometry -->
+    <div
+      v-if="loading"
+      class="home-stats-grid home-stats-grid--skeleton"
+      aria-busy="true"
+      aria-label="Loading database statistics"
+    >
+      <div v-for="block in 2" :key="`skeleton-block-${block}`" class="home-stats-block">
+        <div class="home-stats-block__header">
+          <h3><span class="home-skeleton-text home-skeleton-text--title" /></h3>
+          <span><span class="home-skeleton-text home-skeleton-text--subtitle" /></span>
+        </div>
+        <table class="home-stats-table">
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col" class="text-end">Count</th>
+              <th scope="col" class="text-end">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in 3" :key="`skeleton-row-${row}`">
+              <td>
+                <div class="home-category">
+                  <div class="home-skeleton-dot" />
+                  <div class="home-skeleton-text home-skeleton-text--label" />
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="home-skeleton-text home-skeleton-text--count ms-auto" />
+              </td>
+              <td class="text-end">
+                <div class="home-skeleton-circle ms-auto" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Inline error state -->
@@ -158,7 +194,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
-import TableLoadingState from '@/components/table/TableLoadingState.vue';
 
 interface StatDetail {
   category: string;
@@ -217,7 +252,6 @@ function entityDetailLink(detail: StatDetail) {
 
 <style scoped>
 .home-panel {
-  overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
@@ -231,6 +265,8 @@ function entityDetailLink(detail: StatDetail) {
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
   border-bottom: 1px solid #e6ebf2;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
   background: #fbfcfe;
 }
 
@@ -297,8 +333,27 @@ function entityDetailLink(detail: StatDetail) {
 
 .home-stats-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+.home-stats-table th:nth-child(1),
+.home-stats-table td:nth-child(1) {
+  width: 52%;
+}
+
+.home-stats-table th:nth-child(2),
+.home-stats-table td:nth-child(2) {
+  width: 32%;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.home-stats-table th:nth-child(3),
+.home-stats-table td:nth-child(3) {
+  width: 16%;
+  text-align: right;
 }
 
 .home-stats-table th {
@@ -380,9 +435,66 @@ function entityDetailLink(detail: StatDetail) {
     0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
 }
 
-/* Loading / error / empty panel states */
-.home-stats-loading {
-  padding: 1rem;
+/* Loading skeleton styles */
+@keyframes home-stats-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.home-skeleton-meta,
+.home-skeleton-text,
+.home-skeleton-dot,
+.home-skeleton-circle {
+  background: linear-gradient(90deg, #edf2f7 25%, #f8fafc 37%, #edf2f7 63%);
+  background-size: 400% 100%;
+  animation: home-stats-shimmer 1.4s ease infinite;
+}
+
+.home-skeleton-meta {
+  display: inline-block;
+  width: 6.5rem;
+  height: 0.85rem;
+  border-radius: 4px;
+}
+
+.home-skeleton-text {
+  display: inline-block;
+  height: 0.85rem;
+  border-radius: 4px;
+}
+
+.home-skeleton-text--title {
+  width: 4rem;
+}
+
+.home-skeleton-text--subtitle {
+  width: 7.5rem;
+  height: 0.75rem;
+}
+
+.home-skeleton-text--label {
+  width: 4.5rem;
+}
+
+.home-skeleton-text--count {
+  width: 2.75rem;
+}
+
+.home-skeleton-dot {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.home-skeleton-circle {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
 }
 
 .home-panel-state {
@@ -421,6 +533,14 @@ function entityDetailLink(detail: StatDetail) {
   .home-detail-chip:hover,
   .home-detail-chip:focus {
     transform: none;
+  }
+
+  .home-skeleton-meta,
+  .home-skeleton-text,
+  .home-skeleton-dot,
+  .home-skeleton-circle {
+    animation: none;
+    background: #edf2f7;
   }
 }
 

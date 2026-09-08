@@ -22,7 +22,7 @@
       :model-value="localCurrentPage"
       :total-rows="totalRows"
       :per-page="localPerPage"
-      align="fill"
+      :align="align"
       size="sm"
       class="my-0"
       limit="2"
@@ -52,6 +52,7 @@ interface Props {
   currentPage?: number;
   label?: string;
   perPageLabel?: string;
+  align?: 'start' | 'center' | 'end' | 'fill';
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -61,6 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
   currentPage: 1,
   label: 'Table pagination',
   perPageLabel: 'Items per page',
+  align: 'end',
 });
 
 // Emits

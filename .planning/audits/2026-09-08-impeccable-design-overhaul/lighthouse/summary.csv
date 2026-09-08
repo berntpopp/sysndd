@@ -1,0 +1,13 @@
+name,performance,accessibility,best_practices,seo,url
+home,100,100,100,100,https://sysndd.dbmr.unibe.ch/
+entities,84,100,100,92,https://sysndd.dbmr.unibe.ch/Entities?sort=%2Bentity_id&page_size=10
+genes,83,100,100,92,https://sysndd.dbmr.unibe.ch/Genes?sort=%2Bsymbol&page_after=0&page_size=10
+phenotypes,85,100,100,92,https://sysndd.dbmr.unibe.ch/Phenotypes?sort=entity_id&filter=all(modifier_phenotype_id,HP:0001249)&page_size=10
+panels,85,100,100,92,https://sysndd.dbmr.unibe.ch/Panels/All/All
+curationcomparisons,96,100,100,92,https://sysndd.dbmr.unibe.ch/CurationComparisons
+curationcomparisons-similarity,100,100,100,92,https://sysndd.dbmr.unibe.ch/CurationComparisons/Similarity
+curationcomparisons-table,100,100,100,92,https://sysndd.dbmr.unibe.ch/CurationComparisons/Table
+phenotypecorrelations,100,100,100,92,https://sysndd.dbmr.unibe.ch/PhenotypeCorrelations
+phenotypecounts,100,100,100,92,https://sysndd.dbmr.unibe.ch/PhenotypeCorrelations/PhenotypeCounts
+phenotypeclusters,94,96,100,92,https://sysndd.dbmr.unibe.ch/PhenotypeCorrelations/PhenotypeClusters
+nddscore,100,100,100,92,https://sysndd.dbmr.unibe.ch/NDDScore

@@ -3,7 +3,7 @@
   box-sizing: border-box;
   min-height: 100%;
   padding: 1rem;
-  background: #f6f8fb;
+  background: var(--surface-canvas, #f6f8fb);
   text-align: left;
 }
 
@@ -23,10 +23,10 @@
 .login-panel,
 .public-panel,
 .public-action-card {
-  border: 1px solid #d9e1ec;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.06);
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--surface-raised, #ffffff);
+  box-shadow: var(--shadow-sm);
 }
 
 .public-hero {
@@ -40,7 +40,7 @@
 .public-kicker,
 .login-kicker {
   margin: 0 0 0.25rem;
-  color: #0d47a1;
+  color: var(--medical-blue-700, #0d47a1);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -50,7 +50,7 @@
 .public-title,
 .login-title {
   margin: 0;
-  color: #102033;
+  color: var(--neutral-900, #212121);
   font-size: clamp(1.35rem, 2vw, 1.85rem);
   font-weight: 800;
   letter-spacing: 0;
@@ -60,7 +60,7 @@
 .login-description {
   max-width: 62rem;
   margin: 0.25rem 0 0;
-  color: #667085;
+  color: var(--neutral-700, #616161);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -81,7 +81,7 @@
   gap: 0.65rem;
   min-height: 74px;
   padding: 0.75rem;
-  color: #1d2939;
+  color: var(--neutral-900, #212121);
   text-decoration: none;
   transition:
     border-color 0.15s ease,
@@ -91,9 +91,9 @@
 
 .public-action-card:hover,
 .public-action-card:focus-visible {
-  border-color: #9fb3c8;
-  color: #0d47a1;
-  box-shadow: 0 10px 26px rgba(30, 41, 59, 0.1);
+  border-color: var(--border-strong, #bdbdbd);
+  color: var(--medical-blue-700, #0d47a1);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -104,15 +104,15 @@
   justify-content: center;
   width: 2.35rem;
   height: 2.35rem;
-  border-radius: 8px;
-  background: #eef4ff;
-  color: #0d47a1;
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
   font-size: 1.2rem;
 }
 
 .public-action-card__label {
   display: block;
-  color: #102033;
+  color: var(--neutral-900, #212121);
   font-size: 0.92rem;
   font-weight: 800;
 }
@@ -120,7 +120,7 @@
 .public-action-card__meta {
   display: block;
   margin-top: 0.12rem;
-  color: #667085;
+  color: var(--neutral-700, #616161);
   font-size: 0.76rem;
   font-weight: 650;
 }
@@ -134,28 +134,28 @@
 .public-page .accordion-item,
 .public-panel .accordion-item {
   overflow: hidden;
-  border: 1px solid #d9e1ec;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--surface-raised, #ffffff);
 }
 
 .public-page .accordion-button,
 .public-panel .accordion-button {
   padding: 0.8rem 0.95rem;
-  color: #102033;
+  color: var(--neutral-900, #212121);
   font-weight: 800;
   box-shadow: none;
 }
 
 .public-page .accordion-button:not(.collapsed),
 .public-panel .accordion-button:not(.collapsed) {
-  background: #eef4ff;
-  color: #0d47a1;
+  background: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
 }
 
 .public-page .accordion-body,
 .public-panel .accordion-body {
-  color: #344054;
+  color: var(--neutral-800, #424242);
   font-size: 0.95rem;
   line-height: 1.55;
 }
@@ -191,9 +191,9 @@
   width: 52px;
   height: 52px;
   padding: 0.2rem;
-  border: 1px solid #d9e1ec;
-  border-radius: 8px;
-  background: #f6f8fb;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--surface-canvas, #f6f8fb);
   object-fit: contain;
 }
 
@@ -209,12 +209,12 @@
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
-  color: #344054;
+  color: var(--neutral-800, #424242);
   font-size: 0.92rem;
 }
 
 .login-feature-list i {
-  color: #0d47a1;
+  color: var(--medical-blue-700, #0d47a1);
 }
 
 .login-panel {
@@ -232,8 +232,8 @@
 
 .login-form :is(input, .form-control) {
   min-height: 40px;
-  border-color: #cfd8e3;
-  border-radius: 6px;
+  border-color: var(--border-subtle, #d9e0ea);
+  border-radius: var(--radius-md, 0.375rem);
 }
 
 .login-actions {
@@ -248,14 +248,14 @@
   gap: 0.45rem;
   margin-top: 1rem;
   padding-top: 0.85rem;
-  border-top: 1px solid #edf1f7;
-  color: #667085;
+  border-top: 1px solid var(--border-subtle, #d9e0ea);
+  color: var(--neutral-700, #616161);
   font-size: 0.88rem;
 }
 
 .login-links a,
 .public-page a {
-  color: #0d47a1;
+  color: var(--medical-blue-700, #0d47a1);
   font-weight: 700;
 }
 

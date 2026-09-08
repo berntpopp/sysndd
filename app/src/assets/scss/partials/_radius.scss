@@ -11,6 +11,9 @@
   --radius-xl: 0.75rem; // 12px - large rounding
   --radius-2xl: 1rem; // 16px - maximum rounding
   --radius-full: 9999px; // Pill shape (for badges, buttons)
+
+  // Alias for base container radius
+  --border-radius-base: var(--radius-md);
 }
 
 // Utility classes for radius application

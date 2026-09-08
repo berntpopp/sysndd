@@ -245,7 +245,8 @@
 
   // Badge links should also not stretch (but disease can shrink to fit)
   .gene-badge-link,
-  .entity-badge-link {
+  .entity-badge-link,
+  .inheritance-badge-link {
     flex: 0 0 auto !important;
     width: auto !important;
   }

@@ -63,7 +63,7 @@ withDefaults(
   box-sizing: border-box;
   min-height: 100%;
   padding: 0.75rem 1rem 1.5rem;
-  background: #f6f8fb;
+  background: var(--surface-canvas, #f6f8fb);
 }
 
 .analysis-frame {
@@ -72,7 +72,7 @@ withDefaults(
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--surface-raised, #ffffff);
   box-shadow: var(--shadow-sm);
 }
 
@@ -157,7 +157,7 @@ withDefaults(
 .analysis-tab.active {
   border-bottom-color: var(--medical-blue-700);
   color: var(--neutral-900);
-  background: #fff;
+  background: var(--surface-raised, #ffffff);
 }
 
 .analysis-tab__badge {

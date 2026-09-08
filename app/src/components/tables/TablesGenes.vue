@@ -7,8 +7,12 @@
           <TableShell
             :title="headerLabel"
             :heading-level="headingLevel"
-            :meta="'Genes: ' + totalRows"
-            :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+            :meta="loading && !totalRows ? 'Loading...' : 'Genes: ' + totalRows"
+            :description="
+              loading && !totalRows
+                ? 'Loading genes...'
+                : 'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
+            "
             :loading="loading"
           >
             <template #actions>
@@ -53,7 +57,7 @@
             </template>
 
             <template #loading>
-              <TableLoadingState mode="cards" />
+              <TableLoadingState :rows="10" label="Loading genes" data-testid="genes-skeleton" />
             </template>
 
             <!-- Main table element -->
@@ -87,7 +91,7 @@
                       )
                     "
                   >
-                    {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                    {{ formatHeaderLabel(data.label) }}
                   </div>
                 </template>
 
@@ -101,7 +105,7 @@
                       <BFormInput
                         v-if="field.filterable"
                         v-model="filter[field.key].content"
-                        :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                        :placeholder="'Filter ' + field.label + '...'"
                         :aria-label="'Filter by ' + field.label"
                         debounce="500"
                         type="search"
@@ -127,7 +131,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              .. {{ truncate(field.label, 20) }} ..
+                              Any {{ field.label }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>
@@ -155,7 +159,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              .. {{ truncate(field.label, 20) }} ..
+                              Any {{ field.label }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>
@@ -384,10 +388,17 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const table = useGenesTable(props);
+    const formatHeaderLabel = (label) => {
+      if (!label) return '';
+      if (/hpo mode of inheritance/i.test(label)) return 'Inheritance';
+      return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
+    };
     return {
-      ...useGenesTable(props),
+      ...table,
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,
+      formatHeaderLabel,
     };
   },
 });

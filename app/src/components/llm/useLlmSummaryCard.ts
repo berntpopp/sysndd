@@ -31,24 +31,17 @@ export interface SummaryJson {
   // #630: `syndromicity` was REMOVED from the LLM contract and is stripped from
   // historical cached rows on read. It is computed from curated HPO annotations
   // and rendered by SyndromicityCard.vue instead. Do not reintroduce it here.
-  clinical_pattern?: string;
+  clinical_pattern?: string | string[];
   // Judge metadata (if present)
-  llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject';
-  llm_judge_reasoning?: string;
-  llm_judge_points?: number;
-  corrections_applied?: boolean;
+  llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject' | string[];
+  llm_judge_reasoning?: string | string[];
+  llm_judge_points?: number | number[];
+  corrections_applied?: boolean | boolean[];
   corrections_made?: string[];
 }
 
 export type LlmBadgeVariant =
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'danger'
-  | 'warning'
-  | 'info'
-  | 'light'
-  | 'dark';
+  'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
 
 export interface LlmSummaryCardProps {
   summary: SummaryJson | null;
@@ -80,6 +73,39 @@ function normalize<T>(val: T | T[] | undefined): T | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
 
+/**
+ * Cleanly extract a scalar string from values that may arrive as single-element
+ * arrays from R Plumber, JSON-stringified arrays like '[ "..." ]', or quoted strings.
+ */
+export function parseCleanString(val: unknown): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  let s = val;
+  if (Array.isArray(s)) {
+    if (s.length === 0) return undefined;
+    s = s.map((item) => (typeof item === 'string' ? item.trim() : String(item))).join(', ');
+  }
+  if (typeof s !== 'string') return String(s);
+  let str = s.trim();
+  if (str.startsWith('[') && str.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => String(item).trim())
+          .filter(Boolean)
+          .join(', ');
+      }
+    } catch {
+      str = str.slice(1, -1).trim();
+    }
+  }
+  // Strip surrounding quotes
+  while ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    str = str.slice(1, -1).trim();
+  }
+  return str || undefined;
+}
+
 export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard {
   /**
    * Normalized summary with scalar fields extracted from R's array format
@@ -88,8 +114,9 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
     if (!props.summary) return null;
     return {
       ...props.summary,
-      summary: normalize(props.summary.summary) ?? '',
-      clinical_relevance: normalize(props.summary.clinical_relevance),
+      summary: parseCleanString(props.summary.summary) ?? '',
+      clinical_relevance: parseCleanString(props.summary.clinical_relevance),
+      clinical_pattern: parseCleanString(props.summary.clinical_pattern),
     };
   });
 
@@ -158,9 +185,6 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
     );
   });
 
-
-
-
   /**
    * Get tooltip for inheritance pattern abbreviation
    */
@@ -208,7 +232,7 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Judge verdict label for display
+   * Judge verdict label for display (explicitly notes automated AI evaluation)
    */
   const judgeVerdictLabel = computed<string>(() => {
     const verdict = judgeVerdict.value;
@@ -216,11 +240,11 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
 
     switch (verdict) {
       case 'accept':
-        return 'Verified';
+        return 'AI evaluated';
       case 'accept_with_corrections':
-        return 'Verified';
+        return 'AI evaluated (corrected)';
       case 'low_confidence':
-        return 'Review';
+        return 'Needs review';
       case 'reject':
         return 'Rejected';
       default:
@@ -229,15 +253,15 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Bootstrap variant for judge verdict badge
+   * Bootstrap variant for judge verdict badge (calm secondary/neutral instead of clinical success)
    */
   const judgeVerdictVariant = computed<LlmBadgeVariant>(() => {
     const verdict = judgeVerdict.value;
     switch (verdict) {
       case 'accept':
-        return 'success';
+        return 'secondary';
       case 'accept_with_corrections':
-        return 'success';
+        return 'secondary';
       case 'low_confidence':
         return 'warning';
       case 'reject':
@@ -248,7 +272,7 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
   });
 
   /**
-   * Tooltip for validation badge
+   * Tooltip for validation badge with explicit automated provenance disclosure
    */
   const validatedTooltip = computed<string>(() => {
     const verdict = judgeVerdict.value;
@@ -258,23 +282,25 @@ export function useLlmSummaryCard(props: LlmSummaryCardProps): UseLlmSummaryCard
 
     switch (verdict) {
       case 'accept':
-        tooltip = 'Content verified by AI judge';
+        tooltip =
+          'Consistency verified by automated AI evaluation. Note: this text is model-generated and automated-evaluated, not manual clinical curation.';
         break;
       case 'accept_with_corrections':
-        tooltip = 'Verified with minor corrections applied';
+        tooltip =
+          'Consistency verified by automated AI evaluation with minor corrections applied. Note: not manual clinical curation.';
         break;
       case 'low_confidence':
-        tooltip = 'Low confidence - manual review recommended';
+        tooltip = 'Low confidence from automated evaluation - manual review recommended';
         break;
       case 'reject':
-        tooltip = 'Content rejected by AI judge';
+        tooltip = 'Content rejected by automated evaluation model';
         break;
       default:
         tooltip = 'Validation status';
     }
 
     if (reasoning) {
-      tooltip += `\n\n${reasoning}`;
+      tooltip += `\n\nEvaluator notes: ${reasoning}`;
     }
 
     return tooltip;

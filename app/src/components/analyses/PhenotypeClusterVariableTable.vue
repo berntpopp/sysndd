@@ -42,16 +42,17 @@
               <BButton
                 v-b-tooltip.hover.bottom
                 size="sm"
+                class="table-export-btn"
                 variant="outline-secondary"
-                title="Download table data as Excel file"
-                aria-label="Download table data as Excel file"
+                title="Download table data as .xlsx Excel file"
+                aria-label="Download table data as .xlsx Excel file"
                 :disabled="loading || isExporting"
                 @click="downloadExcel"
               >
                 <i class="bi bi-table me-1" aria-hidden="true" />
                 <i v-if="!isExporting" class="bi bi-download" aria-hidden="true" />
                 <BSpinner v-else small />
-                .xlsx
+                <span>.xlsx</span>
               </BButton>
             </div>
           </BCol>
@@ -144,11 +145,29 @@ export default {
 </script>
 
 <style scoped>
+.table-export-btn {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--neutral-700);
+  border-color: var(--border-subtle);
+  background: var(--surface-raised);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.table-export-btn:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  color: var(--neutral-900);
+  border-color: var(--border-medium);
+}
+
 mark {
   display: inline-block;
   line-height: 0em;
   padding-bottom: 0.5em;
   font-weight: bold;
-  background-color: #eaadba;
+  background-color: rgba(234, 173, 186, 0.4);
 }
 </style>

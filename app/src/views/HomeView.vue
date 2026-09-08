@@ -25,11 +25,7 @@
           :error="errors.statistics"
         />
 
-        <HomeNewsPanel
-          :news="news"
-          :loading="loadingStates.news"
-          :error="errors.news"
-        />
+        <HomeNewsPanel :news="news" :loading="loadingStates.news" :error="errors.news" />
       </div>
 
       <aside class="home-layout__secondary" aria-label="SysNDD concepts">
@@ -127,9 +123,11 @@ export default {
       gene_statistics: INIT_OBJ.GENE_STAT_INIT,
       news: INIT_OBJ.NEWS_INIT,
       loadingStates: {
-        statistics: false,
-        news: false,
+        statistics: true,
+        news: true,
       },
+      initialStatsLoaded: false,
+      initialGenesLoaded: false,
       errors: {
         statistics: null,
         news: null,
@@ -150,12 +148,20 @@ export default {
   watch: {
     'entity_statistics.data': {
       handler(after, before) {
+        if (!this.initialStatsLoaded) {
+          this.initialStatsLoaded = true;
+          return;
+        }
         this.animateOnChange(after, before);
       },
       deep: true,
     },
     'gene_statistics.data': {
       handler(after, before) {
+        if (!this.initialGenesLoaded) {
+          this.initialGenesLoaded = true;
+          return;
+        }
         this.animateOnChange(after, before);
       },
       deep: true,
@@ -200,7 +206,6 @@ export default {
               n: after[i].n,
               onUpdate: () => {
                 after[i].n = Math.round(after[i].n);
-                this.$forceUpdate();
               },
             }
           );
@@ -214,9 +219,13 @@ export default {
       this.loadingStates.statistics = true;
       this.errors.statistics = null;
       try {
-        // use the functions from apiService asset to make calls to the API
-        this.entity_statistics = await apiService.fetchStatistics('entity');
-        this.gene_statistics = await apiService.fetchStatistics('gene');
+        // Fetch entity and gene statistics concurrently to minimize loading latency
+        const [entityStats, geneStats] = await Promise.all([
+          apiService.fetchStatistics('entity'),
+          apiService.fetchStatistics('gene'),
+        ]);
+        this.entity_statistics = entityStats;
+        this.gene_statistics = geneStats;
       } catch (e) {
         this.errors.statistics = 'Statistics could not be loaded. Please try again later.';
         this.makeToast(e, 'Error', 'danger');
@@ -249,7 +258,7 @@ export default {
   box-sizing: border-box;
   min-height: 100%;
   padding: 0.75rem 1rem 1.5rem;
-  background: #f6f8fb;
+  background: var(--surface-canvas, #f6f8fb);
   text-align: left;
 }
 
@@ -262,23 +271,23 @@ export default {
   margin: 0 auto 1rem;
   padding: 1.1rem 1rem;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--surface-raised, #ffffff);
+  box-shadow: var(--shadow-sm);
 }
 
 .home-hero__title {
   margin: 0;
-  color: var(--neutral-900, #172033);
+  color: var(--neutral-900);
   font-size: var(--font-size-xl, 1.25rem);
   font-weight: var(--font-weight-semibold, 600);
   line-height: 1.2;
 }
 
 .home-hero__summary {
-  max-width: 44rem;
+  max-width: 65ch;
   margin: 0.25rem 0 0;
-  color: var(--neutral-600, #526070);
+  color: var(--neutral-700);
   font-size: 0.875rem;
   line-height: 1.45;
 }

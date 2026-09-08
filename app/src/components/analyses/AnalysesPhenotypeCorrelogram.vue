@@ -71,6 +71,17 @@ import * as d3 from 'd3';
 import { getPhenotypeCorrelation } from '@/api/phenotype';
 
 /**
+ * Truncate label with ellipsis if it exceeds maximum length
+ * @param {string} str - Label text
+ * @param {number} maxLen - Maximum allowed length
+ * @returns {string} Truncated string
+ */
+function truncateLabel(str, maxLen = 28) {
+  if (!str) return '';
+  return str.length > maxLen ? `${str.slice(0, maxLen - 1)}…` : str;
+}
+
+/**
  * Get human-readable interpretation of a correlation coefficient
  * @param {number} r - Correlation coefficient (-1 to 1)
  * @returns {string} Human-readable interpretation
@@ -142,15 +153,17 @@ export default {
       this.loadMatrixData();
     },
     generateMatrixGraph() {
-      // Graph dimension
+      // Graph dimension - square matrix with ample margin for rotated clinical HPO labels
       const margin = {
-        top: 20,
-        right: 50,
-        bottom: 150,
-        left: 220,
+        top: 24,
+        right: 40,
+        bottom: 250,
+        left: 240,
       };
-      const width = 650 - margin.left - margin.right;
-      const height = 620 - margin.top - margin.bottom;
+      const width = 400;
+      const height = 400;
+      const svgWidth = width + margin.left + margin.right;
+      const svgHeight = height + margin.top + margin.bottom;
 
       // Remove any existing SVG
       d3.select('#matrix_dataviz').select('svg').remove();
@@ -159,8 +172,8 @@ export default {
       const svg = d3
         .select('#matrix_dataviz')
         .append('svg')
-        .attr('id', 'matrix-svg') // Added id for easier selection
-        .attr('viewBox', '0 0 700 700')
+        .attr('id', 'matrix-svg')
+        .attr('viewBox', `0 0 ${svgWidth} ${svgHeight}`)
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -177,17 +190,26 @@ export default {
       svg
         .append('g')
         .attr('transform', `translate(0, ${height})`)
-        .call(d3.axisBottom(x))
+        .call(d3.axisBottom(x).tickFormat((d) => truncateLabel(d, 28)))
         .selectAll('text')
         .style('text-anchor', 'end')
+        .style('font-size', '10px')
         .attr('dx', '-.8em')
         .attr('dy', '.15em')
-        .attr('transform', 'rotate(-90)');
+        .attr('transform', 'rotate(-90)')
+        .append('title')
+        .text((d) => d);
 
       // Build Y scales and axis:
       const y = d3.scaleBand().range([height, 0]).domain(domain).padding(0.01);
 
-      svg.append('g').call(d3.axisLeft(y));
+      svg
+        .append('g')
+        .call(d3.axisLeft(y).tickFormat((d) => truncateLabel(d, 28)))
+        .selectAll('text')
+        .style('font-size', '10px')
+        .append('title')
+        .text((d) => d);
 
       // Build color scale
       const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
@@ -198,11 +220,12 @@ export default {
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('background-color', 'var(--surface-raised)')
+        .style('border', '1px solid var(--border-subtle)')
+        .style('border-radius', 'var(--radius-sm, 4px)')
+        .style('padding', '4px 8px')
+        .style('color', 'var(--neutral-900)')
+        .style('font-size', '12px');
 
       // Three function that change the tooltip when user hover / move / leave a cell
       const mouseover = function mouseover(_event, _d) {

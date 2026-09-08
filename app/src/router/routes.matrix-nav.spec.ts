@@ -41,12 +41,17 @@ import PhenotypeCorrelations from '@/views/analyses/PhenotypeCorrelations.vue';
 import PhenotypeFunctionalCorrelation from '@/views/analyses/PhenotypeFunctionalCorrelation.vue';
 
 describe('Curation/Correlation matrix navigation (#89)', () => {
-  it('adds direct Curation matrix and Correlation matrix entries to the Analyses dropdown', () => {
+  it('covers Curation matrix under Compare curations tabs and exposes Correlation matrix in Analyses dropdown', () => {
     const analyses = DROPDOWN_ITEMS_LEFT.find((d) => d.id === 'analyses_dropdown');
     expect(analyses).toBeDefined();
 
+    // Curation matrix is covered inside Compare curations tabs (/CurationComparisons/Similarity),
+    // not duplicated as its own top-level menu item.
     const curationMatrix = analyses?.items.find((i) => i.text === 'Curation matrix');
-    expect(curationMatrix?.path).toBe('/CurationComparisons/Similarity');
+    expect(curationMatrix).toBeUndefined();
+
+    const compareCurations = analyses?.items.find((i) => i.text === 'Compare curations');
+    expect(compareCurations?.path).toBe('/CurationComparisons');
 
     const correlationMatrix = analyses?.items.find(
       (i) => i.text === 'Phenotype–function correlation'
@@ -61,11 +66,10 @@ describe('Curation/Correlation matrix navigation (#89)', () => {
     expect(paths).toContain('/PhenotypeCorrelations');
   });
 
-  it('groups the curation matrix after its parent and keeps the phenotype–function correlation last', () => {
+  it('keeps the phenotype–function correlation last in the Analyses menu', () => {
     const analyses = DROPDOWN_ITEMS_LEFT.find((d) => d.id === 'analyses_dropdown');
     const texts = analyses?.items.map((i) => i.text) ?? [];
 
-    expect(texts.indexOf('Curation matrix')).toBe(texts.indexOf('Compare curations') + 1);
     // Phenotype–function correlation is a distinct analysis (functional vs phenotype
     // clusters), so it sits last in the Analyses menu rather than beside a parent.
     expect(texts.indexOf('Phenotype–function correlation')).toBe(texts.length - 1);

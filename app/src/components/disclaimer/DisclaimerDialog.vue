@@ -169,12 +169,14 @@ export default {
   color: var(--neutral-800, #424242);
   line-height: 1.6;
   margin-bottom: 0.75rem;
+  max-width: 65ch;
 }
 
 .disclaimer-section__list {
   color: var(--neutral-800, #424242);
   line-height: 1.6;
   padding-left: 1.25rem;
+  max-width: 65ch;
 }
 
 .disclaimer-section__list li {

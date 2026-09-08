@@ -1,328 +1,277 @@
-<!-- views/pages/OntologyView.vue -->
+<!-- app/src/views/pages/OntologyView.vue -->
+<!--
+  Disease Ontology view — clinical hero with primary identifier, scope,
+  inheritance, cross-ontology mappings & external references card, and
+  associated entities table. Unified with GeneView and EntityView design standards.
+-->
 <template>
-  <div class="container-fluid bg-gradient">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- Ontology overview card -->
-          <BCard
-            header-tag="header"
-            class="my-3 text-start border-subtle"
-            body-class="p-0"
-            header-class="p-1"
-          >
+  <div class="container-fluid bg-gradient ontology-page">
+    <BContainer fluid>
+      <!-- 1. Disease Hero Section -->
+      <OntologyHero :model="heroModel" />
+
+      <!-- 2. Cross-Ontology Mappings & External References -->
+      <BRow v-if="!loading && hasCrossMappings" class="justify-content-md-center py-2">
+        <BCol cols="12">
+          <BCard class="border-subtle" body-class="p-2" header-class="p-2 bg-light">
             <template #header>
-              <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2">
-                Disease:
-                <DiseaseBadge
-                  :name="$route.params.disease_term"
-                  :link-to="'/Ontology/' + $route.params.disease_term"
-                  :max-length="0"
-                  size="lg"
-                  :show-title="false"
-                />
-              </h3>
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span class="fw-semibold text-secondary small text-uppercase tracking-wider">
+                  <i class="bi bi-diagram-2 me-1" aria-hidden="true" />
+                  Cross-Ontology Mappings & External Databases
+                </span>
+                <span v-if="heroModel.mappingRelease" class="badge text-bg-light border text-muted">
+                  Release {{ heroModel.mappingRelease }}
+                </span>
+              </div>
             </template>
-
-            <BTable
-              :items="ontology"
-              :fields="ontology_fields"
-              stacked
-              small
-              fixed
-              style="width: 100%; white-space: nowrap"
-            >
-              <template #cell(disease_ontology_id_version)="data">
-                <BRow>
-                  <BRow v-for="id in data.item.disease_ontology_id_version" :key="id">
-                    <BCol class="d-flex align-items-center flex-wrap gap-2 mb-1">
-                      <DiseaseBadge
-                        :name="id"
-                        :link-to="'/Ontology/' + id.replace(/_.+/g, '')"
-                        :max-length="0"
-                        :show-title="false"
-                      />
-
-                      <BButton
-                        class="btn-xs"
-                        variant="outline-primary"
-                        :src="data.item.disease_ontology_id_version"
-                        :href="
-                          'https://www.omim.org/entry/' +
-                          id.replace(/OMIM:/g, '').replace(/_.+/g, '')
-                        "
-                        target="_blank"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-
-              <template #cell(disease_ontology_name)="data">
-                <BRow>
-                  <BRow v-for="id in data.item.disease_ontology_name" :key="id">
-                    <BCol>
-                      <DiseaseBadge :name="id" :link-to="'/Ontology/' + id" :max-length="50" />
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <BRow>
-                  <BRow
-                    v-for="(id, index) in data.item.hpo_mode_of_inheritance_term_name"
-                    :key="id"
-                  >
-                    <BCol>
-                      <InheritanceBadge
-                        v-if="id"
-                        :full-name="id"
-                        :hpo-term="
-                          Array.isArray(data.item.hpo_mode_of_inheritance_term)
-                            ? data.item.hpo_mode_of_inheritance_term[index]
-                            : data.item.hpo_mode_of_inheritance_term
-                        "
-                        :use-abbreviation="false"
-                        class="mb-1"
-                      />
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-
-              <template #cell(DOID)="data">
-                <BRow>
-                  <BRow v-for="id in data.item.DOID" :key="id">
-                    <BCol>
-                      <BButton
-                        v-if="id"
-                        class="btn-xs mx-2"
-                        variant="outline-primary"
-                        :src="id"
-                        :href="'https://disease-ontology.org/term/' + id"
-                        target="_blank"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-
-              <template #cell(MONDO)="data">
-                <BRow>
-                  <BRow v-for="id in data.item.MONDO" :key="id">
-                    <BCol>
-                      <BButton
-                        v-if="id"
-                        class="btn-xs mx-2"
-                        variant="outline-primary"
-                        :src="id"
-                        :href="'http://purl.obolibrary.org/obo/' + id.replace(':', '_')"
-                        target="_blank"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-
-              <template #cell(Orphanet)="data">
-                <BRow>
-                  <BRow v-for="id in data.item.Orphanet" :key="id">
-                    <BCol>
-                      <BButton
-                        v-if="id"
-                        class="btn-xs mx-2"
-                        variant="outline-primary"
-                        :src="data.item.Orphanet"
-                        :href="
-                          'https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert=' +
-                          id.replace('Orphanet:', '') +
-                          '&lng=EN'
-                        "
-                        target="_blank"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-            </BTable>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <IdentifierRow
+                v-for="mapping in crossMappings"
+                :key="`${mapping.prefix}-${mapping.id}`"
+                compact
+                label=""
+                :value="mapping.id"
+                :external-url="mapping.url"
+                :external-label="mapping.prefix"
+                :show-copy="true"
+              />
+            </div>
           </BCard>
-          <!-- Ontology overview card -->
-
-          <!-- Associated entities card -->
-
-          <TablesEntities
-            v-if="ontology.length !== 0 && ontology[0].disease_ontology_id_version"
-            :show-filter-controls="false"
-            :show-pagination-controls="false"
-            header-label="Associated "
-            :filter-input="
-              'any(disease_ontology_id_version,' +
-              (Array.isArray(ontology[0].disease_ontology_id_version)
-                ? ontology[0].disease_ontology_id_version.join(',')
-                : ontology[0].disease_ontology_id_version) +
-              ')'
-            "
-          />
-
-          <!-- Associated entities card -->
         </BCol>
       </BRow>
+
+      <!-- 3. Associated Entities Table -->
+      <div v-if="entityFilter" id="associated-entities-table" class="pt-2">
+        <TablesEntities
+          :show-filter-controls="true"
+          :show-search-input="true"
+          :show-pagination-controls="true"
+          header-label="Associated "
+          :filter-input="entityFilter"
+          :disable-url-sync="false"
+          :skeleton-rows="5"
+        />
+      </div>
     </BContainer>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
+import { BContainer, BRow, BCol, BCard } from 'bootstrap-vue-next';
+import { getOntology, type OntologyTerm } from '@/api/ontology';
+import { ontologyOutlink, type OntologyPrefix } from '@/assets/js/constants/ontology_links';
+import { returnToFromRoute } from '@/utils/returnNavigation';
 import useToast from '@/composables/useToast';
-import useColorAndSymbols from '@/composables/useColorAndSymbols';
-
-// Import the utilities file
-import Utils from '@/assets/js/utils';
-
 import TablesEntities from '@/components/tables/TablesEntities.vue';
-import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
-import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
-import { getOntology } from '@/api/ontology';
+import IdentifierRow from '@/components/gene/IdentifierRow.vue';
+import OntologyHero, { type OntologyHeroModel } from './components/OntologyHero.vue';
 
-export default {
-  name: 'OntologyView',
-  components: {
-    TablesEntities,
-    DiseaseBadge,
-    InheritanceBadge,
+const route = useRoute();
+const router = useRouter();
+const { makeToast } = useToast();
+
+const backToResults = computed(() => returnToFromRoute(route, ''));
+const diseaseTermParam = computed(() => String(route.params.disease_term || '').trim());
+
+const loading = ref(true);
+const error = ref<string | null>(null);
+const ontologyRecord = ref<OntologyTerm | null>(null);
+
+const asString = (val: unknown): string => (val == null ? '' : String(val).trim());
+const asArray = (val: unknown): string[] =>
+  Array.isArray(val)
+    ? val.map(asString).filter((s) => s && s !== 'null')
+    : typeof val === 'string' && val && val !== 'null'
+      ? [val.trim()]
+      : [];
+
+const primaryId = computed(() => {
+  const rec = ontologyRecord.value;
+  const ids = asArray(rec?.disease_ontology_id);
+  if (ids.length > 0) return ids[0];
+  const versions = asArray(rec?.disease_ontology_id_version);
+  if (versions.length > 0) return versions[0].replace(/_.+/g, '');
+  return diseaseTermParam.value;
+});
+
+const primaryPrefix = computed(() => {
+  const id = primaryId.value;
+  const match = id.match(/^([A-Za-z]+):/);
+  return match ? match[1] : 'MONDO';
+});
+
+const primaryOutlink = computed(() => {
+  return ontologyOutlink(primaryPrefix.value, primaryId.value);
+});
+
+const displayName = computed(() => {
+  const names = asArray(ontologyRecord.value?.disease_ontology_name);
+  if (names.length > 0) return names[0];
+  return primaryId.value;
+});
+
+const synonyms = computed(() => {
+  return asArray(ontologyRecord.value?.disease_ontology_name);
+});
+
+const versions = computed(() => {
+  return asArray(ontologyRecord.value?.disease_ontology_id_version);
+});
+
+const source = computed(() => {
+  const sources = asArray(ontologyRecord.value?.disease_ontology_source);
+  return sources.length > 0 ? sources[0] : '';
+});
+
+const isSpecific = computed(() => {
+  const specs = asArray(ontologyRecord.value?.disease_ontology_is_specific);
+  return specs.length > 0 ? specs[0] : '0';
+});
+
+const inheritanceName = computed(() => {
+  const inhs = asArray(ontologyRecord.value?.hpo_mode_of_inheritance_term_name);
+  return inhs.length > 0 ? inhs[0] : '';
+});
+
+const inheritanceTerm = computed(() => {
+  const terms = asArray(ontologyRecord.value?.hpo_mode_of_inheritance_term);
+  return terms.length > 0 ? terms[0] : '';
+});
+
+const mappingRelease = computed(() => {
+  const rels = asArray(ontologyRecord.value?.ontology_mapping_release);
+  return rels.length > 0 ? rels[0] : '';
+});
+
+const heroModel = computed<OntologyHeroModel>(() => ({
+  diseaseTerm: diseaseTermParam.value,
+  primaryId: primaryId.value,
+  primaryPrefix: primaryPrefix.value,
+  displayName: displayName.value,
+  primaryOutlink: primaryOutlink.value,
+  source: source.value,
+  isSpecific: isSpecific.value,
+  inheritanceName: inheritanceName.value,
+  inheritanceTerm: inheritanceTerm.value,
+  mappingRelease: mappingRelease.value,
+  versions: versions.value,
+  synonyms: synonyms.value,
+  backToResults: backToResults.value,
+  loading: loading.value,
+  empty: !loading.value && ontologyRecord.value === null && !error.value,
+  error: error.value,
+  hasRecord: ontologyRecord.value !== null,
+}));
+
+const ALLOWED_CROSS_PREFIXES: OntologyPrefix[] = [
+  'MONDO',
+  'OMIM',
+  'Orphanet',
+  'DOID',
+  'UMLS',
+  'MedGen',
+  'NCIT',
+  'GARD',
+  'EFO',
+];
+
+interface CrossMappingEntry {
+  prefix: string;
+  id: string;
+  url?: string;
+}
+
+const crossMappings = computed<CrossMappingEntry[]>(() => {
+  if (!ontologyRecord.value) return [];
+  const rec = ontologyRecord.value;
+  const list: CrossMappingEntry[] = [];
+  const primary = primaryId.value;
+
+  for (const prefix of ALLOWED_CROSS_PREFIXES) {
+    const raw = rec[prefix as keyof OntologyTerm];
+    const ids = asArray(raw);
+    for (const id of ids) {
+      if (id === primary || id.replace(/_.+/g, '') === primary.replace(/_.+/g, '')) continue;
+      const outlink = ontologyOutlink(prefix, id);
+      list.push({
+        prefix,
+        id,
+        url: outlink.url ?? undefined,
+      });
+    }
+  }
+  return list;
+});
+
+const hasCrossMappings = computed(() => crossMappings.value.length > 0);
+
+const entityFilter = computed(() => {
+  const vers = versions.value;
+  if (vers.length > 0) {
+    return `any(disease_ontology_id_version,${vers.join(',')})`;
+  }
+  const term = diseaseTermParam.value;
+  return term ? `any(disease_ontology_id_version,${term})` : '';
+});
+
+async function fetchOntologyData(term: string) {
+  if (!term) return;
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const [ontologyData, nameData] = await Promise.all([
+      getOntology(term, { input_type: 'ontology_id' }).catch(() => [] as OntologyTerm[]),
+      getOntology(term, { input_type: 'ontology_name' }).catch(() => [] as OntologyTerm[]),
+    ]);
+
+    if (ontologyData.length === 0 && nameData.length === 0) {
+      router.push('/PageNotFound');
+      return;
+    }
+
+    ontologyRecord.value = ontologyData.length > 0 ? ontologyData[0] : nameData[0];
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error loading disease ontology';
+    error.value = message;
+    makeToast(message, 'Error', 'danger');
+  } finally {
+    loading.value = false;
+  }
+}
+
+watch(
+  diseaseTermParam,
+  (term) => {
+    fetchOntologyData(term);
   },
-  setup() {
-    const { makeToast } = useToast();
-    const colorAndSymbols = useColorAndSymbols();
+  { immediate: true }
+);
 
-    useHead({
-      title: 'Ontology',
-      meta: [
-        {
-          name: 'description',
-          content: 'This Ontology view shows specific information for a disease.',
-        },
-      ],
-    });
-
-    return {
-      makeToast,
-      ...colorAndSymbols,
-    };
-  },
-  data() {
-    return {
-      ontology: [],
-      ontology_fields: [
-        {
-          key: 'disease_ontology_id_version',
-          label: 'Versions',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'disease_ontology_name',
-          label: 'Disease',
-          sortable: true,
-          class: 'text-start',
-          sortByFormatted: true,
-          filterByFormatted: true,
-        },
-        {
-          key: 'hpo_mode_of_inheritance_term_name',
-          label: 'Inheritance',
-          sortable: true,
-          class: 'text-start',
-          sortByFormatted: true,
-          filterByFormatted: true,
-        },
-        {
-          key: 'DOID',
-          label: 'DOID',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'MONDO',
-          label: 'MONDO',
-          sortable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'Orphanet',
-          label: 'Orphanet',
-          sortable: true,
-          class: 'text-start',
-        },
-      ],
-      totalRows: 0,
-      currentPage: 1,
-      perPage: 10,
-      pageOptions: [10, 25, 50, 200],
-      sortBy: '',
-      sortDesc: false,
-      sortDirection: 'asc',
-      loading: true,
-    };
-  },
-  mounted() {
-    this.loadOntologyInfo();
-  },
-  methods: {
-    async loadOntologyInfo() {
-      this.loading = true;
-
-      try {
-        const ontologyData = await getOntology(this.$route.params.disease_term, {
-          input_type: 'ontology_id',
-        });
-        const nameData = await getOntology(this.$route.params.disease_term, {
-          input_type: 'ontology_name',
-        });
-
-        if (ontologyData.length === 0 && nameData.length === 0) {
-          this.$router.push('/PageNotFound');
-        } else if (ontologyData === 0) {
-          this.ontology = nameData;
-        } else {
-          this.ontology = ontologyData;
-        }
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-      this.loading = false;
+useHead({
+  title: computed(() => (displayName.value ? `${displayName.value} - Ontology` : 'Ontology')),
+  meta: [
+    {
+      name: 'description',
+      content: computed(() =>
+        displayName.value
+          ? `SysNDD disease ontology details and associated curated entities for ${displayName.value}.`
+          : 'SysNDD disease ontology details.'
+      ),
     },
-    // Function to truncate a string to a specified length.
-    // If the string is longer than the specified length, it adds '...' to the end.
-    // imported from utils.js
-    truncate(str, n) {
-      // Use the utility function here
-      return Utils.truncate(str, n);
-    },
-  },
-};
+  ],
+});
 </script>
 
 <style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
+.ontology-page {
+  padding-bottom: 2rem;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
 }
 </style>

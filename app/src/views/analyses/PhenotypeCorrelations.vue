@@ -36,7 +36,11 @@ export default {
     const tabs = [
       { label: 'Phenotype correlogram', to: '/PhenotypeCorrelations' },
       { label: 'Phenotype counts', to: '/PhenotypeCorrelations/PhenotypeCounts' },
-      { label: 'Phenotype clustering', to: '/PhenotypeCorrelations/PhenotypeClusters' },
+      {
+        label: 'Phenotype clustering',
+        to: '/PhenotypeCorrelations/PhenotypeClusters',
+        badge: 'AI',
+      },
       { label: 'Correlation matrix', to: { name: 'PhenotypeFunctionalCorrelation' } },
     ];
 

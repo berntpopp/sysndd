@@ -49,6 +49,9 @@ const globalStubs = {
   AnalysisPanel: {
     template: '<section><slot name="actions" /><slot /></section>',
   },
+  AccessibleSplitter: {
+    template: '<div><slot name="first" /><slot name="second" /></div>',
+  },
   InlineHelpBadge: { template: '<button />' },
   BPopover: { template: '<div />' },
   BRow: { template: '<div><slot /></div>' },

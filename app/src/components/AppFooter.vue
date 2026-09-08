@@ -50,10 +50,8 @@ partner logos and a disclaimer status indicator. */
 
 <script>
 import FOOTER_NAV_CONSTANTS from '@/assets/js/constants/footer_nav_constants';
-import { defineAsyncComponent } from 'vue';
+import FooterNavItem from '@/components/small/FooterNavItem.vue';
 import { useDisclaimerStore } from '@/stores/disclaimer';
-
-const FooterNavItem = defineAsyncComponent(() => import('@/components/small/FooterNavItem.vue'));
 
 export default {
   name: 'AppFooter',

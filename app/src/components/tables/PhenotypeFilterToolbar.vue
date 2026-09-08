@@ -239,7 +239,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
+  margin-left: auto;
 }
 
 .control-icon {

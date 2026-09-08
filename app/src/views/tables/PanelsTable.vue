@@ -3,8 +3,12 @@
     <TableShell
       title="Panel compilation"
       :heading-level="1"
-      :meta="`Genes: ${totalRows}`"
-      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :meta="loading && !totalRows ? 'Loading...' : `Genes: ${totalRows}`"
+      :description="
+        loading && !totalRows
+          ? 'Loading panel genes...'
+          : `Loaded ${perPage}/${totalRows} in ${executionTime}`
+      "
       :loading="loading"
     >
       <template #actions>
@@ -21,11 +25,20 @@
           respectively, the gene is assigned to the Definitive panel.
         </BPopover>
 
-        <BButton size="sm" @click="requestExcel">
-          <i class="bi bi-table mx-1" />
-          <i v-if="!downloading" class="bi bi-download" />
-          <BSpinner v-if="downloading" small />
-          .xlsx
+        <BButton
+          v-b-tooltip.hover.bottom
+          size="sm"
+          class="table-export-btn"
+          variant="outline-secondary"
+          title="Download table data as .xlsx Excel file"
+          aria-label="Download table data as .xlsx Excel file"
+          :disabled="downloading || loading"
+          @click="requestExcel"
+        >
+          <i class="bi bi-table me-1" aria-hidden="true" />
+          <i v-if="!downloading" class="bi bi-download" aria-hidden="true" />
+          <BSpinner v-else small />
+          <span>.xlsx</span>
         </BButton>
       </template>
 
@@ -60,7 +73,7 @@
       </template>
 
       <template #loading>
-        <TableLoadingState label="Loading panel genes" />
+        <TableLoadingState :rows="10" label="Loading panel genes" />
       </template>
 
       <div class="d-none d-md-block">
@@ -84,9 +97,10 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.category"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate d-flex align-items-center gap-1"
             >
-              {{ data.item.category }}
+              <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+              <span>{{ data.item.category }}</span>
             </div>
           </template>
 
@@ -96,12 +110,16 @@
               :title="data.item.inheritance"
               class="w-100 text-truncate"
             >
-              {{ data.item.inheritance }}
+              <span class="sysndd-chip sysndd-chip--neutral">{{ data.item.inheritance }}</span>
             </div>
           </template>
 
           <template #cell(symbol)="data">
-            <div v-b-tooltip.hover.leftbottom :title="data.item.symbol" class="w-100 text-truncate">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.symbol"
+              class="w-100 text-truncate fw-semibold"
+            >
               {{ data.item.symbol }}
             </div>
           </template>
@@ -110,7 +128,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.hgnc_id"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.hgnc_id }}
             </div>
@@ -120,7 +138,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.entrez_id"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.entrez_id }}
             </div>
@@ -130,7 +148,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.ensembl_gene_id"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.ensembl_gene_id }}
             </div>
@@ -140,7 +158,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.ucsc_id"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.ucsc_id }}
             </div>
@@ -150,7 +168,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.bed_hg19"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.bed_hg19 }}
             </div>
@@ -160,7 +178,7 @@
             <div
               v-b-tooltip.hover.leftbottom
               :title="data.item.bed_hg38"
-              class="w-100 text-truncate"
+              class="w-100 text-truncate font-monospace small"
             >
               {{ data.item.bed_hg38 }}
             </div>
@@ -179,6 +197,7 @@
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -193,6 +212,7 @@ import { getPanelOptions, browsePanels, browsePanelsXlsx } from '@/api/panels';
 export default {
   name: 'PanelsTable',
   components: {
+    CategoryIcon,
     TableShell,
     TableLoadingState,
     PanelsMobileRows,
@@ -467,6 +487,24 @@ export default {
 </style>
 
 <style scoped>
+.table-export-btn {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--neutral-700);
+  border-color: var(--border-subtle);
+  background: var(--surface-raised);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.table-export-btn:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  color: var(--neutral-900);
+  border-color: var(--border-medium);
+}
+
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;

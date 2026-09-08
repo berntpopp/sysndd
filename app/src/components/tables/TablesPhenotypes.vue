@@ -3,60 +3,23 @@
     <TableShell
       title="Phenotype search"
       :heading-level="headingLevel"
-      :meta="`Associated entities: ${totalRows}`"
-      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :meta="loading && !totalRows ? 'Loading...' : `Associated entities: ${totalRows}`"
+      :description="
+        loading && !totalRows
+          ? 'Loading phenotype entities...'
+          : `Loaded ${perPage}/${totalRows} in ${executionTime}`
+      "
       :loading="loading"
     >
       <template v-if="showFilterControls" #actions>
-        <BButton
-          v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          title="Download data as Excel file."
-          @click="requestSelectedExcel()"
-        >
-          <i class="bi bi-table mx-1" />
-          <i v-if="!downloading" class="bi bi-download" />
-          <BSpinner v-if="downloading" small />
-          .xlsx
-        </BButton>
-
-        <BButton
-          v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          title="Copy link to this page."
-          aria-label="Copy link to this page"
-          variant="success"
-          @click="copyLinkToClipboard()"
-        >
-          <i class="bi bi-link" />
-        </BButton>
-
-        <BButton
-          v-b-tooltip.hover.bottom
-          size="sm"
-          class="me-1"
-          aria-label="Remove all filters"
-          :title="
-            'The table is ' +
-            (filter_string === '' || filter_string === null || filter_string === 'null'
-              ? 'not'
-              : '') +
-            ' filtered.' +
-            (filter_string === '' || filter_string === null || filter_string === 'null'
-              ? ''
-              : ' Click to remove all filters.')
-          "
-          :variant="
-            filter_string === '' || filter_string === null || filter_string === 'null'
-              ? 'info'
-              : 'warning'
-          "
-          @click="removeFilters()"
-        >
-          <i class="bi bi-filter" />
-        </BButton>
+        <TableDownloadLinkCopyButtons
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          @request-excel="requestSelectedExcel"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
       </template>
 
       <template #toolbar>
@@ -108,7 +71,7 @@
       </template>
 
       <template #loading>
-        <TableLoadingState label="Loading phenotype-associated entities" />
+        <TableLoadingState :rows="10" label="Loading phenotype-associated entities" />
       </template>
 
       <div class="d-none d-md-block">
@@ -141,7 +104,7 @@
                 )
               "
             >
-              {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+              {{ formatHeaderLabel(data.label) }}
             </div>
           </template>
 
@@ -155,7 +118,7 @@
                 <BFormInput
                   v-if="field.filterable"
                   v-model="filter[field.key].content"
-                  :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                  :placeholder="'Filter ' + field.label + '...'"
                   :aria-label="'Filter by ' + field.label"
                   debounce="500"
                   type="search"
@@ -181,9 +144,7 @@
                     "
                   >
                     <template #first>
-                      <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </BFormSelectOption>
+                      <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
                     </template>
                   </BFormSelect>
                 </label>
@@ -207,9 +168,7 @@
                     "
                   >
                     <template #first>
-                      <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </BFormSelectOption>
+                      <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
                     </template>
                   </BFormSelect>
                 </label>
@@ -311,6 +270,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import table components
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import PhenotypesMobileRows from '@/components/tables/PhenotypesMobileRows.vue';
@@ -330,6 +290,7 @@ export default defineComponent({
     DiseaseBadge,
     InheritanceBadge,
     TablePaginationControls,
+    TableDownloadLinkCopyButtons,
     TableShell,
     TableLoadingState,
     PhenotypesMobileRows,
@@ -353,10 +314,17 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const table = usePhenotypeEntitiesTable(props);
+    const formatHeaderLabel = (label) => {
+      if (!label) return '';
+      if (/hpo mode of inheritance/i.test(label)) return 'Inheritance';
+      return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
+    };
     return {
-      ...usePhenotypeEntitiesTable(props),
+      ...table,
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,
+      formatHeaderLabel,
     };
   },
 });
@@ -378,10 +346,10 @@ export default defineComponent({
 /* AND/OR Toggle - Pill Button Group */
 .logic-toggle {
   display: inline-flex;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--surface-subtle);
 }
 
 .logic-btn {

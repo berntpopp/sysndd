@@ -7,9 +7,10 @@
       :class="[`entity-badge--${variant}`, `entity-badge--${size}`]"
       :title="showTitle ? fullTitle : ''"
       role="link"
-      :aria-label="`sysndd:${entityId}`"
+      :aria-label="ariaLabel"
     >
-      <span class="entity-badge__prefix">sysndd:</span>
+      <i v-if="showIcon" class="bi bi-collection entity-badge__icon" aria-hidden="true" />
+      <span v-if="prefix" class="entity-badge__prefix">{{ prefix }}</span>
       <span class="entity-badge__id">{{ entityId }}</span>
     </span>
   </component>
@@ -20,14 +21,28 @@ export default {
   name: 'EntityBadge',
   props: {
     /**
-     * Entity ID number
+     * Entity ID number or label
      */
     entityId: {
       type: [String, Number],
       required: true,
     },
     /**
-     * Color variant: primary (blue), success (green for genes), secondary (gray for diseases)
+     * Prefix before ID (defaults to 'sysndd:'). Set to '' for bare label.
+     */
+    prefix: {
+      type: String,
+      default: 'sysndd:',
+    },
+    /**
+     * Show collection/folder icon
+     */
+    showIcon: {
+      type: Boolean,
+      default: false,
+    },
+    /**
+     * Color variant: primary (blue), success (green for genes), secondary (terracotta for diseases), info (purple for inheritance)
      */
     variant: {
       type: String,
@@ -66,7 +81,11 @@ export default {
   },
   computed: {
     fullTitle() {
-      return this.title || `Entity sysndd:${this.entityId}`;
+      if (this.title) return this.title;
+      return this.prefix ? `Entity ${this.prefix}${this.entityId}` : `Entity ${this.entityId}`;
+    },
+    ariaLabel() {
+      return this.prefix ? `${this.prefix}${this.entityId}` : `Entity ${this.entityId}`;
     },
   },
 };
@@ -74,21 +93,35 @@ export default {
 
 <style scoped>
 .entity-badge-link {
+  display: inline-flex;
   text-decoration: none !important;
+  vertical-align: middle;
 }
 
 .entity-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  justify-content: center;
+  gap: 0.2rem;
+  border-radius: var(--radius-full, 9999px);
+  font-family: var(
+    --font-family-mono,
+    'SF Mono',
+    'Monaco',
+    'Inconsolata',
+    'Roboto Mono',
+    monospace
+  );
   font-weight: 600;
-  color: white;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  border-style: solid;
+  border-width: 1px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  white-space: nowrap;
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    0 1px 2px rgba(16, 24, 40, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   cursor: pointer;
   transition:
     transform 0.15s ease,
@@ -98,57 +131,77 @@ export default {
 .entity-badge:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+    0 3px 6px rgba(16, 24, 40, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.entity-badge__icon {
+  font-size: 0.8em;
+  opacity: 0.9;
+  flex-shrink: 0;
 }
 
 .entity-badge__prefix {
   opacity: 0.85;
-  font-size: 0.85em;
 }
 
 .entity-badge__id {
   font-weight: 700;
 }
 
-/* Size variants */
+/* Size variants - unified height and typography across all badges */
 .entity-badge--sm {
-  padding: 0.125rem 0.35rem;
-  font-size: 0.7rem;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  line-height: 22px;
+  gap: 0.18rem;
 }
 
 .entity-badge--md {
-  padding: 0.2rem 0.45rem;
-  font-size: 0.75rem;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 0.55rem;
+  font-size: 0.78rem;
+  line-height: 26px;
+  gap: 0.22rem;
 }
 
 .entity-badge--lg {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.875rem;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 32px;
+  gap: 0.28rem;
 }
 
-/* Primary variant - Blue (entities) */
+/* Primary variant - Deep Navy Blue (entities) */
 .entity-badge--primary {
-  background: linear-gradient(145deg, #0d6efd 0%, #0a58ca 100%);
-  border: 1.5px solid #084298;
+  background: linear-gradient(145deg, #1e40af 0%, #0d47a1 100%);
+  border-color: #1e3a8a;
 }
 
-/* Success variant - Green (genes) */
+/* Success variant - Forest Green (genes) */
 .entity-badge--success {
-  background: linear-gradient(145deg, #198754 0%, #146c43 100%);
-  border: 1.5px solid #0f5132;
+  background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+  border-color: #14532d;
 }
 
-/* Secondary variant - Gray (diseases/ontology) */
+/* Secondary variant - Warm Terracotta (diseases/ontology) */
 .entity-badge--secondary {
-  background: linear-gradient(145deg, #6c757d 0%, #565e64 100%);
-  border: 1.5px solid #41464b;
+  background: linear-gradient(145deg, #c2410c 0%, #9a3412 100%);
+  border-color: #7c2d12;
 }
 
-/* Info variant - Cyan (inheritance) */
+/* Info variant - Royal Purple (inheritance) */
 .entity-badge--info {
-  background: linear-gradient(145deg, #0dcaf0 0%, #0aa2c0 100%);
-  border: 1.5px solid #087990;
+  background: linear-gradient(145deg, #7c3aed 0%, #6d28d9 100%);
+  border-color: #5b21b6;
 }
 
 /* Accessibility - respect reduced motion */

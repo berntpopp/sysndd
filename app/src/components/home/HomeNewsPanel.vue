@@ -5,15 +5,59 @@
         <h2 id="home-news-title" class="home-panel__title">New entities</h2>
         <p class="home-panel__description">Recently added curated gene-disease relationships.</p>
       </div>
-      <BLink to="/Entities?sort=-entry_date&page_size=10" class="home-panel__link home-panel__link--accent">
+      <BLink
+        to="/Entities?sort=-entry_date&page_size=10"
+        class="home-panel__link home-panel__link--accent"
+      >
         Browse all
       </BLink>
     </header>
 
-    <!-- Loading skeleton -->
-    <div v-if="loading" class="home-news-loading" aria-busy="true" aria-label="Loading recent entities">
-      <TableLoadingState :rows="5" label="Loading recent entities" />
-    </div>
+    <!-- Loading skeleton matching loaded table & mobile list geometry -->
+    <template v-if="loading">
+      <div
+        class="home-news-table-wrap d-none d-md-block"
+        aria-busy="true"
+        aria-label="Loading recent entities"
+      >
+        <table class="home-news-table home-news-table--skeleton">
+          <thead>
+            <tr>
+              <th scope="col">Entity</th>
+              <th scope="col">Gene</th>
+              <th scope="col">Disease</th>
+              <th scope="col">Inh.</th>
+              <th scope="col" class="text-center">Class</th>
+              <th scope="col" class="text-center">NDD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in 5" :key="`news-skeleton-${r}`">
+              <td><div class="home-skeleton-pill home-skeleton-pill--entity" /></td>
+              <td><div class="home-skeleton-pill home-skeleton-pill--gene" /></td>
+              <td><div class="home-skeleton-text home-skeleton-text--disease" /></td>
+              <td><div class="home-skeleton-pill home-skeleton-pill--inh" /></td>
+              <td class="text-center"><div class="home-skeleton-dot" /></td>
+              <td class="text-center"><div class="home-skeleton-dot" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="home-news-list d-md-none" aria-busy="true" aria-label="Loading recent entities">
+        <article v-for="r in 5" :key="`news-skeleton-m-${r}`" class="home-news-item">
+          <div class="home-news-item__main">
+            <div class="home-skeleton-pill home-skeleton-pill--entity" />
+            <div class="home-skeleton-pill home-skeleton-pill--gene" />
+          </div>
+          <div class="home-skeleton-text home-skeleton-text--disease" />
+          <div class="home-news-item__meta">
+            <div class="home-skeleton-pill home-skeleton-pill--inh" />
+            <div class="home-skeleton-dot" />
+            <div class="home-skeleton-dot" />
+          </div>
+        </article>
+      </div>
+    </template>
 
     <!-- Inline error state -->
     <div v-else-if="error" class="home-panel-state home-panel-state--error" role="alert">
@@ -22,7 +66,11 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!news || news.length === 0" class="home-panel-state home-panel-state--empty" role="status">
+    <div
+      v-else-if="!news || news.length === 0"
+      class="home-panel-state home-panel-state--empty"
+      role="status"
+    >
       <i class="bi bi-inbox home-panel-state__icon" aria-hidden="true" />
       <span>No recent entities found.</span>
     </div>
@@ -130,7 +178,6 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
-import TableLoadingState from '@/components/table/TableLoadingState.vue';
 
 interface NewsItem {
   entity_id: string | number;
@@ -154,7 +201,6 @@ defineProps<{
 
 <style scoped>
 .home-panel {
-  overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
@@ -168,6 +214,8 @@ defineProps<{
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
   border-bottom: 1px solid #e6ebf2;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
   background: #fbfcfe;
 }
 
@@ -219,13 +267,13 @@ defineProps<{
   background: var(--medical-teal-700, #00796b);
   color: #fff;
   outline: none;
-  box-shadow: 0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+  box-shadow: 0 2px 4px rgba(16, 24, 40, 0.12);
 }
 
 .home-panel__link--accent:focus-visible {
   box-shadow:
     0 0 0 0.16rem rgba(0, 121, 107, 0.3),
-    0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+    0 2px 4px rgba(16, 24, 40, 0.12);
 }
 
 /* Loading / error / empty panel states */
@@ -261,8 +309,41 @@ defineProps<{
 
 .home-news-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+.home-news-table th:nth-child(1),
+.home-news-table td:nth-child(1) {
+  width: 7.25rem;
+}
+
+.home-news-table th:nth-child(2),
+.home-news-table td:nth-child(2) {
+  width: 7.5rem;
+}
+
+.home-news-table th:nth-child(3),
+.home-news-table td:nth-child(3) {
+  width: auto;
+}
+
+.home-news-table th:nth-child(4),
+.home-news-table td:nth-child(4) {
+  width: 5.5rem;
+}
+
+.home-news-table th:nth-child(5),
+.home-news-table td:nth-child(5) {
+  width: 3.5rem;
+  text-align: center;
+}
+
+.home-news-table th:nth-child(6),
+.home-news-table td:nth-child(6) {
+  width: 3.5rem;
+  text-align: center;
 }
 
 .home-news-table th {
@@ -277,6 +358,62 @@ defineProps<{
   padding: 0.45rem 0.35rem;
   border-bottom: 1px solid #edf1f5;
   vertical-align: middle;
+}
+
+.home-news-table tbody tr {
+  height: 2.625rem;
+}
+
+/* Loading skeleton shimmer */
+@keyframes home-news-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.home-skeleton-pill,
+.home-skeleton-text,
+.home-skeleton-dot {
+  background: linear-gradient(90deg, #edf2f7 25%, #f8fafc 37%, #edf2f7 63%);
+  background-size: 400% 100%;
+  animation: home-news-shimmer 1.4s ease infinite;
+}
+
+.home-skeleton-pill {
+  height: 1.5rem;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.home-skeleton-pill--entity {
+  width: 5.5rem;
+}
+
+.home-skeleton-pill--gene {
+  width: 5.25rem;
+}
+
+.home-skeleton-pill--inh {
+  width: 4rem;
+}
+
+.home-skeleton-text {
+  height: 0.85rem;
+  border-radius: 4px;
+}
+
+.home-skeleton-text--disease {
+  width: 70%;
+  max-width: 14rem;
+}
+
+.home-skeleton-dot {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  margin: 0 auto;
 }
 
 .home-news-list {
@@ -328,6 +465,13 @@ defineProps<{
 @media (prefers-reduced-motion: reduce) {
   .home-panel__link--accent {
     transition: none;
+  }
+
+  .home-skeleton-pill,
+  .home-skeleton-text,
+  .home-skeleton-dot {
+    animation: none;
+    background: #edf2f7;
   }
 
   .home-news-panel :deep(.entity-badge-link),
