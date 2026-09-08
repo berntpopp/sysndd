@@ -108,7 +108,7 @@ pubtator_fetch_total_count <- function(query,
 #' @export
 pubtator_total_count_mem <- if (exists("cache_dynamic") &&
                                 exists("memoise_external_success_only")) {
-  memoise_external_success_only(pubtator_fetch_total_count, cache = cache_dynamic)
+  memoise_external_success_only(pubtator_fetch_total_count, cache = cache_dynamic, source = "pubtator")
 } else {
   pubtator_fetch_total_count
 }

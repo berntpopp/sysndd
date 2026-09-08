@@ -58,6 +58,7 @@ fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
         )
 
         phenotype_response <- httr2::request(phenotype_url) |>
+          httr2::req_user_agent("SysNDD/1.0 (https://sysndd.dbmr.unibe.ch)") |>
           httr2::req_retry(
             max_tries = budget$max_tries,
             max_seconds = budget$max_seconds,

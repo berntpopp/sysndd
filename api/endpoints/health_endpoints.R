@@ -335,6 +335,10 @@ function() {
         error = function(e) NA
       )
     ),
+    circuit_breakers = tryCatch(
+      circuit_breaker_status(),
+      error = function(e) list()
+    ),
     timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
   )
 }
