@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Patched `js-yaml` prototype-pollution advisory (GHSA-2883-xcg3-v3hh, high).** The single runtime copy (pulled in by `swagger-ui` / `swagger-client`) moves 4.3.1 → 4.3.2 as part of the `swagger-ui` 5.33.0 bump; `npm audit` reports 0 vulnerabilities. No override was needed.
+
+### Changed
+
+- **Folded frontend dependency updates (Dependabot #680 + #681).** Production: `vue` 3.5.42 → 3.5.43, `bootstrap-vue-next` 1.1.0 → 1.2.1 (adds `useToast().hide/hideAll`, fixes an orchestrator destroy deadlock and forwards exposed items from `BFormSelect` / checkbox / radio groups), `swagger-ui` + `swagger-ui-dist` 5.32.15 → 5.33.0, `@unhead/vue` 3.4.0 → 3.4.1, `cytoscape` 3.34.2 → 3.34.3, `dompurify` 3.4.14 → 3.4.15, `markdown-it` 15.0.1 → 15.0.2. Development: `vitest` / `@vitest/ui` / `@vitest/coverage-v8` 5.0.0 → 5.0.1, `@playwright/test` 1.62.1 → 1.63.0, `jsdom` 30.0.1 → 30.1.0, `eslint-plugin-vue` 10.10.0 → 10.11.0, `cssnano` 9.0.2 → 9.0.5, `lint-staged` 17.4.1 → 17.5.1, `prettier` 3.9.6 → 3.9.8, `sass` 1.104.0 → 1.104.1, `@vitejs/plugin-vue` 6.0.8 → 6.0.9, `@vue/compiler-sfc` 3.5.42 → 3.5.43, `@vue/test-utils` 2.5.0 → 2.5.1, `@testing-library/dom` 10.4.1 → 10.4.2, `@types/node` 26.5.0 → 26.6.2.
+  The lockfile was resolved with `npm install --package-lock-only` (minimal churn) rather than regenerated, and compared as data against both Dependabot lockfiles: every **production**-tree version is identical to Dependabot's, including `@swagger-api/apidom-*` moving 1.12.0 → 1.11.6 (an exact pin inside `swagger-client` 3.38.2, not a regression introduced here). Disclosed differences, all development-only and patch/minor: `@types/node` 26.6.2 (Dependabot: 26.6.1), `@asamuzakjp/css-color` 7.0.1 (7.0.0), `@asamuzakjp/dom-selector` 9.2.1 (9.2.0), `@colordx/core` 6.6.0 (6.5.0), `postcss-calc` 11.2.1 (11.2.0), `whatwg-url` 17.1.2 (17.1.1), `electron-to-chromium` 1.5.433 (1.5.431), plus `@csstools/css-tokenizer` 4.0.1 and `lru-cache` 11.5.3, which neither PR touched. The `vitest` and `@vitest/ui` manifest ranges were raised to `^5.0.1` alongside `@vitest/coverage-v8` (Dependabot bumped those two in the lockfile only) so the three stay in lockstep. (#680, #681)
+
 ## [0.37.0] - 2026-09-08
 
 ### Added
