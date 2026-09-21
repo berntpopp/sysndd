@@ -109,6 +109,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/syndromicity-registry.R", local = FALSE)
     source("/app/functions/syndromicity-classify.R", local = FALSE)
     source("/app/functions/analysis-phenotype-mca-prep.R", local = FALSE)
+    source("/app/functions/analysis-phenotype-consolidation.R", local = FALSE)
     source("/app/functions/analysis-phenotype-functions.R", local = FALSE)
     source("/app/functions/analysis-null-models.R", local = FALSE)
     source("/app/functions/analysis-phenotype-missingness.R", local = FALSE)

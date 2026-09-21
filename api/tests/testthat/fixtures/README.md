@@ -159,3 +159,14 @@ These are not HTTP response captures and are not gated by
 create a new subdirectory (e.g. `fixtures/hgnc/`) and wire a new
 `skip_if_no_fixtures("hgnc")` call into the relevant test file — the helper
 takes any namespace string without a hardcoded allowlist.
+
+## Analysis regression fixtures
+
+- `phenotype-snapshot196-coords.csv.gz` — the public phenotype reproducibility
+  bundle of analysis snapshot 196 (`GET /api/analysis/phenotype_clustering/reproducibility`,
+  reproducibility hash `1f75f075d618b72049c49120a1f0eafd3311c56f2da4a2d773d91facda716a86`):
+  2,017 entities x 8 MCA coordinates (4 decimals) plus the cluster that was served.
+  It is the real input on which the single-start consolidation landed in the
+  higher-inertia of two k-means optima (#679), and it is not replayed through
+  `httptest2`. Do not regenerate it from a newer snapshot: the assertions in
+  `test-unit-phenotype-consolidation-snapshot196.R` are tied to this exact input.
