@@ -652,7 +652,11 @@ jobs:
           load: true
           tags: sysndd-api:preflight
           cache-from: type=gha,scope=sysndd-api
-          cache-to: type=gha,mode=max,scope=sysndd-api
+          # ignore-error: the cache is an optimisation. The GitHub Actions cache backend
+          # intermittently rejects large layer uploads ("error writing layer blob:
+          # not_found"), typically right after a renv.lock change produces new big
+          # layers; without this flag that failed a job whose image had built fine.
+          cache-to: type=gha,mode=max,scope=sysndd-api,ignore-error=true
 
       - name: Run ci-smoke.sh
         env:
