@@ -14,6 +14,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Every assertion below is a bare `[[ ... ]]` / `jq -e` under `set -e`, so a failure used
+# to end the run with exit 1 and NO output. Name the failing line and dump what Traefik
+# knows before cleanup removes the evidence.
+API_PORT=""
+on_error() {
+  local line="$1"
+  echo "[mcp-edge] FAIL at line ${line}: $(sed -n "${line}p" "${BASH_SOURCE[0]}" | sed 's/^[[:space:]]*//')" >&2
+  if [[ -n "${API_PORT}" ]]; then
+    echo "[mcp-edge] routers known to Traefik:" >&2
+    curl -fsS "http://127.0.0.1:${API_PORT}/api/http/routers" 2>/dev/null |
+      jq -r '.[] | "  \(.name)\t\(.status)"' >&2 || echo "  (Traefik API unreachable)" >&2
+  fi
+  echo "[mcp-edge] last Traefik log lines:" >&2
+  docker logs --tail 20 "${TRAEFIK}" >&2 2>&1 || true
+}
+trap 'on_error "${LINENO}"' ERR
+
 for required_command in docker jq curl; do
   command -v "${required_command}" >/dev/null || {
     echo "[mcp-edge] missing required command: ${required_command}" >&2
@@ -115,8 +132,15 @@ WEB_PORT="$(docker port "${TRAEFIK}" 80/tcp | awk -F: 'NR == 1 { print $NF }')"
 API_PORT="$(docker port "${TRAEFIK}" 8080/tcp | awk -F: 'NR == 1 { print $NF }')"
 BASE="http://127.0.0.1:${WEB_PORT}"
 
-for _ in $(seq 1 40); do
-  if curl -fsS "http://127.0.0.1:${API_PORT}/api/http/routers" >/dev/null 2>&1; then
+# Wait until the Docker provider has DISCOVERED the routers, not merely until the Traefik
+# API answers. The API comes up first; on a cold runner (images just pulled) the provider
+# needs a moment longer, and asserting on the router list in that window failed the run.
+ROUTERS_READY='[.[] | select((.name == "mcp-post@docker" or .name == "mcp-get@docker"
+  or .name == "mcp-delete@docker" or .name == "app@docker") and .status == "enabled")]
+  | length == 4'
+for _ in $(seq 1 240); do
+  if curl -fsS "http://127.0.0.1:${API_PORT}/api/http/routers" 2>/dev/null |
+    jq -e "${ROUTERS_READY}" >/dev/null 2>&1; then
     break
   fi
   sleep 0.25
