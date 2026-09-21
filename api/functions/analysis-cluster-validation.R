@@ -241,12 +241,29 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   # 1/Q recommendation and adjusted inertia are reported for transparency.
   mca_prov <- attr(wide_phenotypes_df, "mca_provenance")
   q_active <- ncol(wide_phenotypes_df) - length(quali_sup_var) - length(quanti_sup_var)
+  # The diagnostic needs EVERY eigenvalue above 1/Q. Newer FactoMineR releases use a
+  # truncated SVD when ncp is small and then return only `ncp` eigenvalues, so take
+  # the spectrum from a dedicated full-rank MCA (ncp = Inf -> full SVD on every
+  # version; ~2 x Q indicator columns, negligible cost) rather than from `mca$eig`.
   ncp_diag <- if (exists("phenotype_mca_ncp", mode = "function")) {
-    tryCatch(phenotype_mca_ncp(mca$eig[, "eigenvalue"], q_active),
-             error = function(e) NULL)
+    tryCatch({
+      full <- FactoMineR::MCA(wide_phenotypes_df, ncp = Inf, quali.sup = quali_sup_var,
+                              quanti.sup = quanti_sup_var, graph = FALSE)
+      phenotype_mca_ncp(full$eig[, "eigenvalue"], q_active)
+    }, error = function(e) NULL)
   } else {
     NULL
   }
+
+  # #679: optimisation landscape + selector curve of the reference partition (carried
+  # as an attribute by gen_mca_clust_obj; NULL for a cache entry that predates it).
+  cons <- attr(ref, "consolidation")
+  k_ward_curve <- if (!is.null(cons$k_ward_ratio_curve)) {
+    as.list(round(cons$k_ward_ratio_curve, 4))
+  } else {
+    NULL
+  }
+  landscape <- if (is.null(cons)) NULL else cons[setdiff(names(cons), "k_ward_ratio_curve")]
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
@@ -276,18 +293,16 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     agg <- tapply(sil[, "sil_width"], sil[, "cluster"], mean)
     per_sil <- stats::setNames(as.numeric(agg)[order(as.integer(names(agg)))], names(ref_members))
 
-    # #509: k-selection curves computed on the SAME HCPC procedure that produced
-    # the reported labels (not a plain Ward cut). Re-run HCPC(nb.clust = k) on the
-    # same MCA object with the production kk/consol config, restrict each partition
+    # #509: k-selection curves computed on the SAME procedure that produced the
+    # reported labels (not a plain Ward cut). Re-run gen_mca_clust_obj forcing each k
+    # (identical Ward tree + multi-start consolidation, #679), restrict each partition
     # to the assigned entities, and score silhouette on the MCA-coord distance -> by
     # construction k_selection_curve[k] at the reported k equals mean_silhouette.
-    # A separate k_decision_curve reports the relative within-cluster inertia loss
-    # of the per-k re-runs -- an inertia-based diagnostic (NOT HCPC's own selector,
-    # which maximizes the Ward tree's between-cluster inertia-gain ratio) that makes
-    # explicit k was chosen by inertia, not by the silhouette curve. Because each k
-    # is an independent consolidated k-means (not a nested cut), the loss is not
-    # guaranteed monotone. (Wave 1 uses kk = 50; Task 10 flips kk to Inf in both
-    # gen_mca_clust_obj and here so the curve keeps matching the served partition.)
+    # k_decision_curve reports the relative within-cluster inertia loss of those
+    # per-k CONSOLIDATED re-runs -- a post-hoc diagnostic, not the selector: each k is
+    # an independent consolidated k-means (not a nested cut), so it is not guaranteed
+    # monotone. The quantity k is actually chosen by is W(k)/W(k-1) on the Ward tree,
+    # served separately as k_ward_ratio_curve.
     within_inertia <- function(cm, lab) {
       sum(vapply(split(seq_len(nrow(cm)), lab), function(idx) {
         if (length(idx) < 2L) return(0)
@@ -421,11 +436,21 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
     # snapshot coherence gate (same-partition proof, not just same labels).
     reference_members = lapply(ref_members, as.character),
     partition = list(
-      validation_schema_version = "2.0",
+      validation_schema_version = "2.1",
       algorithm = "mca_hcpc", k = n_clusters, k_selected = as.integer(data_driven_k),
       hcpc_nb_clust = as.integer(data_driven_k),
-      # kk = Inf -> full Ward tree + real k-means consolidation actually runs (#509).
+      # Full Ward tree + k-means consolidation (#509). `hcpc_kk` is a frozen
+      # compatibility value: the application-owned procedure has no pre-partitioning.
       hcpc_kk = "Inf", consolidation = TRUE,
+      # #679: application-owned k rule + multi-start consolidation. The selector curve
+      # is the quantity k was actually chosen by (W(k)/W(k-1) on the Ward tree); the
+      # landscape says how contested the released optimum was. Additive diagnostics.
+      procedure_version = if (exists("PHENOTYPE_PROCEDURE_VERSION")) PHENOTYPE_PROCEDURE_VERSION else NA_character_,
+      k_rule = "ward_within_inertia_ratio_min",
+      k_ward_ratio_curve = k_ward_curve,
+      consolidation_landscape = landscape,
+      factominer_version = tryCatch(as.character(utils::packageVersion("FactoMineR")),
+                                    error = function(e) NA_character_),
       active_feature_set = mca_prov,
       ncp_used = 8L,
       ncp_recommended_1overq = if (!is.null(ncp_diag)) ncp_diag$ncp else NA_integer_,
