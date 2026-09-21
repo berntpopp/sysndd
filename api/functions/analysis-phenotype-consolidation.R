@@ -63,12 +63,14 @@ phenotype_procedure_params <- function(config = phenotype_consolidation_config()
 # Run `code` without disturbing the caller's RNG stream.
 .phenotype_with_preserved_rng <- function(code) {
   genv <- globalenv()
-  had <- exists(".Random.seed", envir = genv, inherits = FALSE)
+  # base:: on purpose: the live runtime attaches packages that mask exists()/get() with
+  # S4 generics rejecting `inherits =` (test-unit-base-exists-get-guard.R).
+  had <- base::exists(".Random.seed", envir = genv, inherits = FALSE)
   old <- if (had) base::get(".Random.seed", envir = genv, inherits = FALSE) else NULL
   on.exit({
     if (had) {
       assign(".Random.seed", old, envir = genv)
-    } else if (exists(".Random.seed", envir = genv, inherits = FALSE)) {
+    } else if (base::exists(".Random.seed", envir = genv, inherits = FALSE)) {
       rm(".Random.seed", envir = genv)
     }
   }, add = TRUE)
