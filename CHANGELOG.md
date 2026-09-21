@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-09-21
+
 ### Security
 
 - **Patched `js-yaml` prototype-pollution advisory (GHSA-2883-xcg3-v3hh, high).** The single runtime copy (pulled in by `swagger-ui` / `swagger-client`) moves 4.3.1 → 4.3.2 as part of the `swagger-ui` 5.33.0 bump; `npm audit` reports 0 vulnerabilities. No override was needed.
