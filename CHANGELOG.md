@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Phenotype clustering no longer releases the worse of two k-means optima.** The MCA/HCPC consolidation ran k-means once, from the Ward-cut centroids. On the public phenotype snapshot 196 that start converged to the higher-inertia of two local optima (within-cluster inertia 0.3603 vs 0.3530, mean silhouette 0.145 vs 0.183), and removing a single entity could flip the released partition between them — which is why the partition re-split between two snapshots on near-identical input. The consolidation now runs from the Ward-cut centroids **and** from 100 seeded random starts and releases the lowest within-cluster inertia, deterministically (ties: Ward-cut start, then seed order). Under random deletions of 1–20 entities the partition now stays at ARI ≥ 0.95. `iter.max` was raised from 10 to 100 and convergence is recorded. **Membership changes**: `CLUSTER_LOGIC_VERSION` is bumped, so deploy with the membership-change runbook (restart workers, force-refresh `phenotype_clusters` then `phenotype_functional_correlations`, force-regenerate phenotype LLM summaries). Existing snapshots are not rewritten. (#679)
+- **The k rule is robust on degenerate input.** Numerically-null within-cluster inertia is treated as zero and k is capped at the number of distinct coordinate rows; the legacy rule chose k from ~1e-33 SVD-noise ratios on crisp, duplicated profiles (a two-block input came back as seven clusters). (#679)
+
+### Changed
+
+- **The number of phenotype clusters is computed by SysNDD, not by FactoMineR.** `gen_mca_clust_obj()` no longer calls `FactoMineR::HCPC`; the new pure module `api/functions/analysis-phenotype-consolidation.R` owns the Ward tree, the documented k rule (k in 3..25 minimising W(k)/W(k-1)) and the consolidation, and FactoMineR supplies only `MCA` and `catdes`. HCPC's automatic cut changed between releases (2.13 selects k = 3 and 2.17 selects k = 8 from identical coordinates), so the version pin was the only thing holding the released k in place. With the random starts switched off the new procedure reproduces HCPC 2.13 label-for-label. (#679)
+- **FactoMineR 2.13 → 2.17** (adds `irlba`, `showtext`, `sysfonts`, `showtextdb`). The cluster descriptions go through a version-proof `catdes` wrapper (2.17 adds an `n` column and an `html.table` argument), and the 1/Q `ncp` diagnostic reads its spectrum from a full-rank MCA because 2.17 truncates `eig` to `ncp` rows. `test-unit-phenotype-package-drift-guard.R` pins coordinates, k, the partition and the served shapes across package updates. (#679)
+
+### Added
+
+- **Optimisation landscape, selector curve and continuity in the phenotype validation block** (`validation_schema_version` 2.1): `consolidation_landscape` (number of starts, basins vs micro-variants, chosen and runner-up inertia, share of starts reaching each, whether the Ward-cut start reached the chosen basin), `k_ward_ratio_curve` (the quantity k is actually chosen by), `continuity` (adjusted Rand index and per-cluster Jaccard against the public snapshot being superseded), `procedure_version`, `k_rule` and `factominer_version`. All additive and excluded from `payload_hash`. The snapshot's applied-params block and the reproducibility bundle record the procedure version, k rule, multi-start configuration, k-means algorithm, and the FactoMineR and R versions. New env `ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS` (default 100; part of the phenotype cache fingerprint). (#679)
+
 ## [0.37.0] - 2026-09-08
 
 ### Added
