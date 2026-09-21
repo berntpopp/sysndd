@@ -230,8 +230,8 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   }
 
   set.seed(42)
-  mca <- FactoMineR::MCA(wide_phenotypes_df, ncp = 8, quali.sup = quali_sup_var,
-                         quanti.sup = quanti_sup_var, graph = FALSE)
+  mca <- phenotype_mca_fit(wide_phenotypes_df, quali_sup_var = quali_sup_var,
+                           quanti_sup_var = quanti_sup_var, ncp = 8L)
   coords <- mca$ind$coord
   rownames(coords) <- entity_ids
 
@@ -241,29 +241,29 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
   # 1/Q recommendation and adjusted inertia are reported for transparency.
   mca_prov <- attr(wide_phenotypes_df, "mca_provenance")
   q_active <- ncol(wide_phenotypes_df) - length(quali_sup_var) - length(quanti_sup_var)
-  # The diagnostic needs EVERY eigenvalue above 1/Q. Newer FactoMineR releases use a
-  # truncated SVD when ncp is small and then return only `ncp` eigenvalues, so take
-  # the spectrum from a dedicated full-rank MCA (ncp = Inf -> full SVD on every
-  # version; ~2 x Q indicator columns, negligible cost) rather than from `mca$eig`.
+  # The diagnostic needs EVERY eigenvalue above 1/Q; phenotype_mca_fit() always returns
+  # the complete spectrum (newer FactoMineR releases truncate `eig` when asked for a
+  # small ncp directly).
   ncp_diag <- if (exists("phenotype_mca_ncp", mode = "function")) {
-    tryCatch({
-      full <- FactoMineR::MCA(wide_phenotypes_df, ncp = Inf, quali.sup = quali_sup_var,
-                              quanti.sup = quanti_sup_var, graph = FALSE)
-      phenotype_mca_ncp(full$eig[, "eigenvalue"], q_active)
-    }, error = function(e) NULL)
+    tryCatch(phenotype_mca_ncp(mca$eig[, "eigenvalue"], q_active),
+             error = function(e) NULL)
   } else {
     NULL
   }
 
   # #679: optimisation landscape + selector curve of the reference partition (carried
-  # as an attribute by gen_mca_clust_obj; NULL for a cache entry that predates it).
+  # as an attribute by gen_mca_clust_obj).
   cons <- attr(ref, "consolidation")
   k_ward_curve <- if (!is.null(cons$k_ward_ratio_curve)) {
     as.list(round(cons$k_ward_ratio_curve, 4))
   } else {
     NULL
   }
-  landscape <- if (is.null(cons)) NULL else cons[setdiff(names(cons), "k_ward_ratio_curve")]
+  landscape <- if (is.null(cons)) {
+    NULL
+  } else {
+    cons[setdiff(names(cons), c("k_ward_ratio_curve", "k_selection"))]
+  }
 
   ent_to_cluster <- stats::setNames(rep(names(ref_members), lengths(ref_members)), unlist(ref_members))
   keep       <- rownames(coords) %in% names(ent_to_cluster)                 # retained (assigned) entities only
@@ -448,6 +448,10 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
       procedure_version = if (exists("PHENOTYPE_PROCEDURE_VERSION")) PHENOTYPE_PROCEDURE_VERSION else NA_character_,
       k_rule = "ward_within_inertia_ratio_min",
       k_ward_ratio_curve = k_ward_curve,
+      # How contested k itself was: the runner-up k and the ratio margin. Multi-start
+      # stabilises the partition AT a given k; a near-zero margin is the remaining way a
+      # small input change can re-split the entities.
+      k_selection = cons$k_selection,
       consolidation_landscape = landscape,
       factominer_version = tryCatch(as.character(utils::packageVersion("FactoMineR")),
                                     error = function(e) NA_character_),
@@ -455,6 +459,7 @@ validate_phenotype_clusters <- function(wide_phenotypes_df, quali_sup_var = 1:1,
       ncp_used = 8L,
       ncp_recommended_1overq = if (!is.null(ncp_diag)) ncp_diag$ncp else NA_integer_,
       adjusted_inertia = if (!is.null(ncp_diag)) ncp_diag$adjusted_inertia else NA_real_,
+      # Legacy label kept for existing consumers; `k_rule` above is the precise name.
       k_selection_metric = "hcpc_relative_inertia_loss",
       k_selection_curve = k_curve, k_decision_curve = k_decision,
       mean_silhouette = sil_mean, silhouette_status = sil_status,

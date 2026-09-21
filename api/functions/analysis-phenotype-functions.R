@@ -25,6 +25,31 @@ phenotype_catdes <- function(data_clust, row_w = NULL) {
   list(category = desc$category, quanti = quanti)
 }
 
+#' One catdes table as a tibble with a `variable` column and syntactic names.
+#'
+#' catdes returns NULL for a cluster with nothing significant at `proba`. A NULL used
+#' to become a zero-column tibble and crash `arrange(p.value)`, failing the whole
+#' clustering call; it now yields an empty table of the right shape.
+#' @param tbl a catdes matrix, or NULL.
+#' @param kind "category" or "quanti" (selects the empty shape).
+#' @export
+phenotype_desc_tibble <- function(tbl, kind = c("category", "quanti")) {
+  kind <- match.arg(kind)
+  if (is.null(tbl) || NROW(tbl) == 0L) {
+    cols <- if (kind == "category") {
+      c("Cla.Mod", "Mod.Cla", "Global", "p.value", "v.test")
+    } else {
+      c("v.test", "Mean.in.category", "Overall.mean", "sd.in.category", "Overall.sd", "p.value")
+    }
+    empty <- stats::setNames(rep(list(numeric()), length(cols)), cols)
+    return(tibble::as_tibble(c(list(variable = character()), empty)))
+  }
+  tibble::as_tibble(
+    tbl, rownames = "variable",
+    .name_repair = ~ vctrs::vec_as_names(..., repair = "universal", quiet = TRUE)
+  )
+}
+
 #' A function clustering entities based on their phenotype annotations
 #'
 #' @param wide_phenotypes_df data frame of variables to be used for MCA
@@ -62,19 +87,12 @@ gen_mca_clust_obj <- function(
   # which is critical for LLM summary cache matching.
   set.seed(42)
 
-  # Compute Multiple Correspondence Analysis (MCA)
-  # ncp=8 captures >70% of variance for typical phenotype data
-  # Reduced from ncp=15 for 20-30% MCA speedup
-  # Empirically validated: cluster assignments stable between ncp=8 and ncp=15
-  # For adaptive ncp selection, generate scree plot and identify elbow point:
-  #   factoextra::fviz_screeplot(mca_result)
-  # See: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
-  mca_phenotypes <- FactoMineR::MCA(wide_phenotypes_df,
-    ncp = 8, # Reduced from 15 for 20-30% speedup (validated stable clustering)
-    quali.sup = quali_sup_var,
-    quanti.sup = quanti_sup_var,
-    graph = FALSE
-  )
+  # Multiple Correspondence Analysis, 8 retained dimensions (captures >70% of the
+  # variance for typical phenotype data; cluster assignments are stable between 8 and
+  # 15). phenotype_mca_fit() computes the exact full-spectrum SVD and keeps the leading
+  # 8 columns -- see its docs for why `ncp = 8` must not be passed to FactoMineR directly.
+  mca_phenotypes <- phenotype_mca_fit(wide_phenotypes_df, quali_sup_var = quali_sup_var,
+                                      quanti_sup_var = quanti_sup_var, ncp = 8L)
 
   # Ward tree -> data-driven k -> MULTI-START k-means consolidation, owned by the
   # application (functions/analysis-phenotype-consolidation.R, #679). FactoMineR::HCPC
@@ -126,36 +144,24 @@ gen_mca_clust_obj <- function(
         rowwise(.) %>%
           mutate(cluster_size = nrow(identifiers)) %>%
           dplyr::filter(cluster_size >= min_size) %>%
-          mutate(quali_inp_var = list(tibble::as_tibble(
-            cluster_desc$category[[as.character(cluster)]],
-            rownames = "variable",
-            .name_repair = ~ vctrs::vec_as_names(...,
-              repair = "universal", quiet = TRUE
-            )
-          ) %>%
-            dplyr::filter(!str_detect(variable, "NA")) %>%
-            dplyr::filter(!str_detect(variable, "hpo")) %>%
-            mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-            arrange(p.value))) %>%
-          mutate(quali_sup_var = list(tibble::as_tibble(
-            cluster_desc$category[[as.character(cluster)]],
-            rownames = "variable",
-            .name_repair = ~ vctrs::vec_as_names(...,
-              repair = "universal", quiet = TRUE
-            )
-          ) %>%
-            dplyr::filter(!str_detect(variable, "NA")) %>%
-            dplyr::filter(str_detect(variable, "hpo")) %>%
-            mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-            arrange(p.value))) %>%
-          mutate(quanti_sup_var = list(tibble::as_tibble(
-            cluster_desc$quanti[[as.character(cluster)]],
-            rownames = "variable",
-            .name_repair = ~ vctrs::vec_as_names(...,
-              repair = "universal", quiet = TRUE
-            )
-          ) %>%
-            arrange(p.value))) %>%
+          mutate(quali_inp_var = list(
+            phenotype_desc_tibble(cluster_desc$category[[as.character(cluster)]], "category") %>%
+              dplyr::filter(!str_detect(variable, "NA")) %>%
+              dplyr::filter(!str_detect(variable, "hpo")) %>%
+              mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+              arrange(p.value)
+          )) %>%
+          mutate(quali_sup_var = list(
+            phenotype_desc_tibble(cluster_desc$category[[as.character(cluster)]], "category") %>%
+              dplyr::filter(!str_detect(variable, "NA")) %>%
+              dplyr::filter(str_detect(variable, "hpo")) %>%
+              mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+              arrange(p.value)
+          )) %>%
+          mutate(quanti_sup_var = list(
+            phenotype_desc_tibble(cluster_desc$quanti[[as.character(cluster)]], "quanti") %>%
+              arrange(p.value)
+          )) %>%
           ungroup()
       } else {
         mutate(., cluster_size = integer(), quali_inp_var = list(), quali_sup_var = list(), quanti_sup_var = list())
@@ -186,7 +192,8 @@ gen_mca_clust_obj <- function(
   # #679: the optimisation landscape + the selector curve, for the validation block.
   attr(clusters_tibble, "consolidation") <- c(
     fit$landscape,
-    list(k_ward_ratio_curve = fit$ratio_curve, k_selected_by = fit$k_selected_by,
+    list(k_ward_ratio_curve = fit$ratio_curve, k_selection = fit$k_selection,
+         k_selected_by = fit$k_selected_by,
          within_inertia = fit$within_inertia, converged = fit$converged)
   )
 

@@ -18,7 +18,7 @@
 - `partition_validation` and `reproducibility` are excluded from `payload_hash`: new diagnostics go there, never into cluster rows.
 - Defaults: `n_starts = 100` (env `ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS`), `seed = 42L`, `iter_max = 100L`, `k_min = 3L`, `k_max = 25L`, `basin_ari = 0.90`, inertia tie tolerance `1e-10` relative.
 - `PHENOTYPE_PROCEDURE_VERSION = "2.0-multistart"`; `CLUSTER_LOGIC_VERSION = "2026-09-21.679-multistart"`; `validation_schema_version = "2.1"`.
-- No file in this repository may mention any manuscript, journal, figure or supplement.
+- Repository files describe SysNDD itself only: no references to external write-ups of the analysis.
 - Host R has no FactoMineR/cluster/RMariaDB: FactoMineR-dependent tests run in the `sysndd-api:latest` image with the worktree `api/` bind-mounted:
   `docker run --rm -v "$PWD/api":/app -w /app --entrypoint Rscript sysndd-api:latest -e "testthat::test_file('tests/testthat/<file>')"`.
 - Host single-file run: `cd api && Rscript --no-init-file -e "testthat::test_file('tests/testthat/<file>')"`.

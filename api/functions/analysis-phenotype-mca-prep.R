@@ -219,6 +219,31 @@ phenotype_mca_prep_matrix <- function(matrix, hpo_lookup = NULL) {
   active
 }
 
+#' The phenotype MCA, computed exactly and identically on every FactoMineR release (#679).
+#'
+#' Always requests the FULL spectrum (`ncp = Inf`) and keeps the leading `ncp`
+#' coordinate columns. Asking FactoMineR for `ncp = 8` directly is not equivalent on
+#' newer releases: when ncp is small relative to the indicator-column count they switch
+#' to a truncated, randomly-started SVD (irlba) that is only approximate (~3e-4 on
+#' production-shaped input), depends on the RNG seed, and truncates `eig` to `ncp` rows.
+#' The full SVD is exact, seed-free, bit-identical to what FactoMineR 2.13 returned for
+#' `ncp = 8`, and costs nothing at this size (~2 x Q indicator columns).
+#'
+#' Single entry point for the served partition, the validator and the reproducibility
+#' bundle, so all three cluster on the same coordinates.
+#'
+#' @return the FactoMineR MCA object with `ind$coord` restricted to the leading `ncp`
+#'   columns and the complete `eig` table.
+#' @export
+phenotype_mca_fit <- function(wide_phenotypes_df, quali_sup_var = 1:1,
+                              quanti_sup_var = 2:4, ncp = 8L) {
+  mca <- FactoMineR::MCA(wide_phenotypes_df, ncp = Inf, quali.sup = quali_sup_var,
+                         quanti.sup = quanti_sup_var, graph = FALSE)
+  keep <- seq_len(min(as.integer(ncp), ncol(mca$ind$coord)))
+  mca$ind$coord <- mca$ind$coord[, keep, drop = FALSE]
+  mca
+}
+
 #' Greenacre 1/Q dimension-retention rule + adjusted inertia.
 #'
 #' Retain axes whose eigenvalue exceeds the average inertia 1/Q (Q = number of

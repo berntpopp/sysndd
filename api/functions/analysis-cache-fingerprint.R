@@ -82,7 +82,13 @@ analysis_phenotype_cache_fingerprint <- function() {
   # here (same default as phenotype_consolidation_config) so this file stays
   # self-contained for minimal environments.
   starts <- paste0("starts=", Sys.getenv("ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS", "100"))
-  paste("phenotype", CLUSTER_LOGIC_VERSION, band, starts, sep = "|")
+  # The MCA coordinates come from FactoMineR. The disk cache survives redeploys and the
+  # coherence gate compares cached membership with a fresh validator run, so a package
+  # update must start from a clean cache entry rather than fail every refresh closed.
+  factominer <- paste0("FactoMineR=", tryCatch(
+    as.character(utils::packageVersion("FactoMineR")), error = function(e) "NA"
+  ))
+  paste("phenotype", CLUSTER_LOGIC_VERSION, band, starts, factominer, sep = "|")
 }
 
 #' Resolve a fingerprint helper defensively (call-time default helper).

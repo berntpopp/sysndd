@@ -301,22 +301,33 @@ analysis_snapshot_join_validated_clusters <- function(membership, val, kind) {
 #' @param clusters the builder's cluster tibble (`cluster` + nested `identifiers` with
 #'   `entity_id`).
 #' @param conn optional DBI connection forwarded to `query_fn`.
+#' @param parameter_hash the preset's parameter hash; NULL compares against the latest
+#'   public-ready phenotype snapshot of any preset.
 #' @param query_fn `function(sql, params, conn)` returning a data frame; injectable so
 #'   the unit tests need no database.
 #' @return list(status = "ok" | "no_previous_snapshot" | "unavailable", ...)
 #' @export
 analysis_snapshot_phenotype_continuity <- function(clusters, conn = NULL,
+                                                   parameter_hash = NULL,
                                                    query_fn = db_execute_query) {
   tryCatch({
+    # Same public-ready predicate as analysis_snapshot_get_public(). Scoped to the
+    # preset's parameter_hash when the caller knows it, so a second preset could never be
+    # compared against the wrong partition.
+    scoped <- !is.null(parameter_hash) && nzchar(parameter_hash)
     manifest <- query_fn(
-      "SELECT snapshot_id
-         FROM analysis_snapshot_manifest
-        WHERE analysis_type = ?
-          AND public_ready = 1
-          AND status = 'public_ready'
-        ORDER BY activated_at DESC, snapshot_id DESC
-        LIMIT 1",
-      unname(list("phenotype_clusters")),
+      paste0(
+        "SELECT snapshot_id
+           FROM analysis_snapshot_manifest
+          WHERE analysis_type = ?",
+        if (scoped) "\n            AND parameter_hash = ?" else "",
+        "
+            AND public_ready = 1
+            AND status = 'public_ready'
+          ORDER BY activated_at DESC, snapshot_id DESC
+          LIMIT 1"
+      ),
+      unname(c(list("phenotype_clusters"), if (scoped) list(parameter_hash))),
       conn = conn
     )
     if (is.null(manifest) || nrow(manifest) == 0L) {

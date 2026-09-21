@@ -58,6 +58,28 @@ test_that("a re-split partition is reported as such", {
   expect_true(all(unlist(res$per_cluster_best_jaccard) < 0.6))
 })
 
+test_that("the preset's parameter_hash scopes the manifest lookup", {
+  seen <- list()
+  spy <- function(sql, params = list(), conn = NULL) {
+    seen[[length(seen) + 1L]] <<- list(sql = sql, params = params)
+    continuity_query(7L, labels)(sql, params, conn)
+  }
+  analysis_snapshot_phenotype_continuity(continuity_clusters(labels),
+                                         parameter_hash = strrep("c", 64), query_fn = spy)
+  expect_match(seen[[1]]$sql, "parameter_hash = ?", fixed = TRUE)
+  expect_identical(seen[[1]]$params, list("phenotype_clusters", strrep("c", 64)))
+  # the number of placeholders always equals the number of bound parameters
+  for (call in seen) {
+    expect_identical(lengths(regmatches(call$sql, gregexpr("?", call$sql, fixed = TRUE))),
+                     length(call$params))
+  }
+
+  seen <- list()
+  analysis_snapshot_phenotype_continuity(continuity_clusters(labels), query_fn = spy)
+  expect_false(grepl("parameter_hash", seen[[1]]$sql, fixed = TRUE))
+  expect_identical(seen[[1]]$params, list("phenotype_clusters"))
+})
+
 test_that("no previous snapshot and query failures degrade to a status, never an error", {
   none <- analysis_snapshot_phenotype_continuity(
     continuity_clusters(labels), query_fn = continuity_query(NULL, labels)

@@ -244,7 +244,7 @@ analysis_reproducibility_phenotype_membership <- function(clusters) {
 #' Build the phenotype reproducibility payload from the input matrix + clusters.
 #'
 #' Recomputes the MCA coordinates with the SAME seeded configuration
-#' `validate_phenotype_clusters` uses (set.seed(seed); MCA(ncp = 8, quali.sup,
+#' `validate_phenotype_clusters` uses (set.seed(seed); phenotype_mca_fit(ncp = 8, quali.sup,
 #' quanti.sup)), takes membership from the served cluster tibble, and records the
 #' served mean silhouette so a recomputation on the bundle's coords reproduces it.
 #' @noRd
@@ -255,13 +255,9 @@ analysis_reproducibility_phenotype_payload <- function(input_matrix, clusters, v
 
   entity_ids <- as.character(rownames(input_matrix))
   set.seed(seed)
-  mca <- FactoMineR::MCA(
-    input_matrix,
-    ncp = ncp,
-    quali.sup = quali_sup_var,
-    quanti.sup = quanti_sup_var,
-    graph = FALSE
-  )
+  # Same exact, seed-free fit as the served partition and the validator (#679).
+  mca <- phenotype_mca_fit(input_matrix, quali_sup_var = quali_sup_var,
+                           quanti_sup_var = quanti_sup_var, ncp = ncp)
   coord <- mca$ind$coord
   rownames(coord) <- entity_ids
   colnames(coord) <- paste0("Dim.", seq_len(ncol(coord)))
@@ -284,11 +280,16 @@ analysis_reproducibility_phenotype_payload <- function(input_matrix, clusters, v
       prevalence_band = provenance$prevalence_band %||% NULL,
       silhouette_z = analysis_reproducibility_scalar_num(partition$silhouette_z),
       n_clusters = partition$n_clusters %||% NA_integer_,
-      # #679: the optimum the membership sits at, so a consumer can re-run the
-      # multi-start consolidation on `coords` and check it found nothing better.
+      # #679: the optimum the membership sits at. It is W/n over ALL clustered input
+      # rows; `coords` holds only the ASSIGNED entities, so re-running the consolidation
+      # on `coords` reproduces it exactly only when no sub-min_size cluster was dropped
+      # (n_entities_dropped = 0, the production case).
       within_inertia = analysis_reproducibility_scalar_num(
         partition$consolidation_landscape$chosen$within_inertia
-      )
+      ),
+      within_inertia_scope = "all_input_rows",
+      n_input_rows = nrow(input_matrix),
+      n_entities_dropped = partition$n_entities_dropped %||% NA_integer_
     ),
     # k rule + multi-start config + FactoMineR/R versions (no key overlaps the above).
     if (exists("phenotype_procedure_params", mode = "function")) {

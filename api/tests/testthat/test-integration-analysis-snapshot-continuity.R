@@ -71,12 +71,18 @@ test_that("continuity reads the latest public-ready phenotype snapshot from the 
         tibble::tibble(entity_id = 9000001:9000010)
       )
     )
-    res <- analysis_snapshot_phenotype_continuity(current, conn = conn)
+    res <- analysis_snapshot_phenotype_continuity(current, conn = conn,
+                                                  parameter_hash = strrep("c", 64))
 
     expect_identical(res$status, "ok", info = res$message)
     expect_identical(res$previous_snapshot_id, snapshot_id)
     expect_identical(res$n_common_entities, 20L)
     expect_identical(res$n_entities_previous, 20L)
     expect_equal(res$ari, 1)
+
+    # a preset with another parameter_hash has no previous snapshot
+    other <- analysis_snapshot_phenotype_continuity(current, conn = conn,
+                                                    parameter_hash = strrep("d", 64))
+    expect_identical(other$status, "no_previous_snapshot")
   })
 })

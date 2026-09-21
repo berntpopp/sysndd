@@ -43,3 +43,36 @@ test_that("MCA coordinates, k, the consolidated partition and the served shapes 
     "HP term 5_present|HP term 5_absent|HP term 2_absent|HP term 2_present|HP term 4_absent"
   )
 })
+
+test_that("the clustering MCA is exact and independent of the RNG seed", {
+  testthat::skip_if_not_installed("FactoMineR")
+  local_phenotype_clustering_runtime()
+  # Production-shaped on purpose (25 active terms -> 50 indicator columns): newer
+  # FactoMineR releases switch to a truncated, randomly-started SVD (irlba) when ncp is
+  # small relative to the column count. That is only approximate (~3e-4 on this shape)
+  # and seed-dependent, so the application always requests the full spectrum.
+  set.seed(5)
+  n <- 600L
+  q <- 25L
+  z <- sample(1:3, n, replace = TRUE)
+  p <- matrix(stats::runif(3 * q, 0.06, 0.5), 3, q)
+  hpo <- as.data.frame(lapply(seq_len(q), function(j) {
+    factor(ifelse(stats::runif(n) < p[z, j], "present", "absent"), levels = c("absent", "present"))
+  }))
+  names(hpo) <- paste0("T", seq_len(q))
+  df <- data.frame(moi = factor(sample(c("AD", "AR"), n, replace = TRUE)),
+                   a = stats::rnorm(n), b = stats::rnorm(n), c = stats::rnorm(n), hpo)
+  rownames(df) <- as.character(seq_len(n))
+
+  set.seed(42)
+  fit_a <- phenotype_mca_fit(df, quali_sup_var = 1:1, quanti_sup_var = 2:4, ncp = 8L)
+  set.seed(7)
+  fit_b <- phenotype_mca_fit(df, quali_sup_var = 1:1, quanti_sup_var = 2:4, ncp = 8L)
+  expect_identical(dim(fit_a$ind$coord), c(n, 8L))
+  expect_identical(fit_a$ind$coord, fit_b$ind$coord)
+  # the full spectrum is available for the 1/Q diagnostic
+  expect_gt(nrow(fit_a$eig), 8L)
+  # and the coordinates ARE the leading columns of the exact decomposition
+  exact <- FactoMineR::MCA(df, ncp = Inf, quali.sup = 1, quanti.sup = 2:4, graph = FALSE)
+  expect_equal(unname(fit_a$ind$coord), unname(exact$ind$coord[, 1:8]), tolerance = 1e-12)
+})

@@ -76,15 +76,55 @@ test_that("multi-start returns the lower-inertia optimum and reports the landsca
   expect_lt(adjusted_rand_index(fit$cluster, fx$served[names(fit$cluster)]), 0.5)
 })
 
-test_that("the multi-start partition is stable under small entity deletions", {
+test_that("the multi-start partition is stable under entity deletions while k holds", {
   fx <- read_snapshot196()
   full <- phenotype_cluster_coords(fx$x, config = multistart_config())
-  for (s in 1001:1005) {
+  aris <- numeric(0)
+  ks <- integer(0)
+  for (s in 1:40) {
     set.seed(s)
-    drop <- sample.int(nrow(fx$x), 5L)
+    drop <- sample.int(nrow(fx$x), 20L) # ~1% of the entities
     part <- phenotype_cluster_coords(fx$x[-drop, , drop = FALSE], config = multistart_config())
-    ids <- names(part$cluster)
-    expect_identical(part$k, 3L)
-    expect_gte(adjusted_rand_index(part$cluster, full$cluster[ids]), 0.95)
+    ks <- c(ks, part$k)
+    aris <- c(aris, adjusted_rand_index(part$cluster, full$cluster[names(part$cluster)]))
   }
+  # Given the same k the consolidation no longer flips basin: the legacy single-start
+  # procedure fell to ARI ~0.35 in most such trials.
+  expect_true(all(aris[ks == 3L] >= 0.9))
+  expect_gte(mean(aris[ks == 3L] >= 0.95), 0.9)
+  # What multi-start does NOT fix: the k rule itself is nearly tied on this input
+  # (W(3)/W(2) = 0.901 vs W(4)/W(3) = 0.914), so a 1% perturbation can occasionally tip
+  # it to k = 4. That is rare, and it is why the margin is served.
+  expect_gte(mean(ks == 3L), 0.9)
+})
+
+test_that("the k margin exposes the near-tie between k = 3 and k = 4", {
+  fx <- read_snapshot196()
+  fit <- phenotype_cluster_coords(fx$x, config = multistart_config())
+  expect_identical(fit$k_selection$k, 3L)
+  expect_identical(fit$k_selection$runner_up_k, 4L)
+  expect_equal(fit$k_selection$ratio, 0.9012, tolerance = 1e-3)
+  expect_equal(fit$k_selection$runner_up_ratio, 0.9140, tolerance = 1e-3)
+  expect_equal(fit$k_selection$margin, 0.0128, tolerance = 5e-2)
+})
+
+test_that("the k rule equals the FactoMineR 2.13 automatic cut, reimplemented independently", {
+  # FactoMineR >= 2.14 changed HCPC's automatic cut, so it cannot serve as the oracle
+  # under the locked version. This is the 2.13 `auto.cut.tree` verbatim, on the tree
+  # implementation HCPC itself uses.
+  testthat::skip_if_not_installed("flashClust")
+  fx <- read_snapshot196()
+  x <- fx$x[order(fx$x[, 1]), , drop = FALSE]
+  n <- nrow(x)
+  weight <- rep(1, n)
+  eff <- outer(weight, weight, FUN = function(a, b, m) a * b / m / (a + b), m = sum(weight))
+  hc <- flashClust::hclust(stats::dist(x)^2 * eff[lower.tri(eff)], method = "ward",
+                           members = weight)
+  inert_gain <- rev(hc$height)
+  intra <- rev(cumsum(rev(inert_gain)))
+  quot <- intra[3:25] / intra[2:24]
+  wt <- phenotype_ward_tree(fx$x)
+  ours <- phenotype_select_k(wt$within, 3L, 25L)
+  expect_identical(ours$k, as.integer(which.min(quot) + 2L))
+  expect_equal(unname(ours$ratio_curve), quot, tolerance = 1e-10)
 })

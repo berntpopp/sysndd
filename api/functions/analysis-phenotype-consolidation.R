@@ -79,11 +79,11 @@ phenotype_procedure_params <- function(config = phenotype_consolidation_config()
 
 # Rows that are distinct up to float noise. Identical phenotype profiles share an MCA
 # coordinate, but the SVD leaves noise at ~1e-33 on null dimensions; comparing on a
-# scale-relative 10-decimal grid keeps such rows from counting as different points.
+# scale-relative 8-decimal grid keeps such rows from counting as different points.
 .phenotype_distinct_rows <- function(x) {
   scale <- max(abs(x))
   if (!is.finite(scale) || scale == 0) scale <- 1
-  !duplicated(round(x / scale, 10))
+  !duplicated(round(x / scale, 8))
 }
 
 #' Ward tree on the coordinates, with the within-cluster inertia of every cut.
@@ -104,6 +104,9 @@ phenotype_ward_tree <- function(coords) {
     stop("phenotype clustering needs at least 2 distinct rows", call. = FALSE)
   }
   if (is.null(rownames(x))) rownames(x) <- as.character(seq_len(n))
+  if (anyDuplicated(rownames(x))) {
+    stop("phenotype clustering needs unique row names (entity ids)", call. = FALSE)
+  }
   x <- x[order(x[, 1], decreasing = FALSE), , drop = FALSE]
   # Ward on squared distances scaled by 1/(2n): merge heights are inertia gains, so
   # the sum of the (n - k) smallest heights is the within-cluster inertia of the k-cut.
@@ -118,7 +121,8 @@ phenotype_ward_tree <- function(coords) {
 #' on heavily duplicated data (W(k) ~ 1e-33 once every distinct profile is its own
 #' cluster) can never produce a spurious minimum; 0/0 ratios are NA and ignored. k is
 #' also capped at the number of distinct rows, beyond which k-means has empty clusters.
-#' @return list(k, ratio_curve = named numeric keyed by k)
+#' @return list(k, ratio_curve = named numeric keyed by k, ratio, runner_up_k,
+#'   runner_up_ratio, margin)
 #' @export
 phenotype_select_k <- function(within, k_min = 3L, k_max = 25L, n_distinct = Inf) {
   k_max <- as.integer(min(k_max, length(within), n_distinct))
@@ -134,7 +138,19 @@ phenotype_select_k <- function(within, k_min = 3L, k_max = 25L, n_distinct = Inf
   if (length(best) == 0L) {
     stop("phenotype clustering: k rule is undefined on this tree", call. = FALSE)
   }
-  list(k = ks[[best]], ratio_curve = stats::setNames(ratio, as.character(ks)))
+  # How contested the decision was: the second-lowest ratio and its distance to the
+  # winner. A small margin means a small change of the input can tip k.
+  others <- ratio
+  others[best] <- NA_real_
+  second <- which.min(others)
+  has_second <- length(second) == 1L
+  list(
+    k = ks[[best]], ratio_curve = stats::setNames(ratio, as.character(ks)),
+    ratio = ratio[[best]],
+    runner_up_k = if (has_second) ks[[second]] else NA_integer_,
+    runner_up_ratio = if (has_second) ratio[[second]] else NA_real_,
+    margin = if (has_second) ratio[[second]] - ratio[[best]] else NA_real_
+  )
 }
 
 # One Hartigan-Wong run; a list with only `error` when k-means itself errors (e.g. an
@@ -247,7 +263,9 @@ phenotype_consolidation_landscape <- function(solutions, chosen, n, config) {
     members <- which(basin_of == b)
     rep_sol <- solutions[[reps[[b]]]]
     list(
-      rank = b, best_within_inertia = min(w[members]) / n,
+      # The representative is the basin's best solution in selection order (converged
+      # first), so a non-converged member can never undercut it.
+      rank = b, best_within_inertia = w[[reps[[b]]]] / n, converged = conv[[reps[[b]]]],
       n_starts = length(members), share_of_starts = length(members) / n_total,
       ari_vs_chosen = if (b == 1L) 1 else ari_to(reps[[b]], chosen),
       sizes = as.integer(sort(table(rep_sol$cluster), decreasing = TRUE))
@@ -256,7 +274,7 @@ phenotype_consolidation_landscape <- function(solutions, chosen, n, config) {
   runner_up <- if (length(basins) >= 2L) {
     list(within_inertia = basins[[2]]$best_within_inertia,
          share_of_starts = basins[[2]]$share_of_starts,
-         ari_vs_chosen = basins[[2]]$ari_vs_chosen)
+         ari_vs_chosen = basins[[2]]$ari_vs_chosen, converged = basins[[2]]$converged)
   } else {
     NULL
   }
@@ -276,7 +294,8 @@ phenotype_consolidation_landscape <- function(solutions, chosen, n, config) {
     ),
     n_distinct_partitions = length(unique(keys)), n_basins = length(basins),
     basins = utils::head(basins, 5L), runner_up = runner_up,
-    inertia_gap_relative = if (is.null(runner_up)) {
+    # No gap is claimed against a runner-up that did not converge.
+    inertia_gap_relative = if (is.null(runner_up) || !isTRUE(runner_up$converged)) {
       NULL
     } else {
       (runner_up$within_inertia - w[[chosen]] / n) / (w[[chosen]] / n)
@@ -289,7 +308,7 @@ phenotype_consolidation_landscape <- function(solutions, chosen, n, config) {
 #' @param coords numeric matrix (rows = entities; rownames = ids, else 1..n).
 #' @param k NULL (or <= 0) selects k by the rule; a positive k imposes it.
 #' @return list(cluster = named integer in INPUT row order, labelled 1..k by ascending
-#'   first-coordinate centroid; k; k_selected_by; ratio_curve; centers;
+#'   first-coordinate centroid; k; k_selected_by; ratio_curve; k_selection; centers;
 #'   within_inertia (W/n); converged; landscape; config)
 #' @export
 phenotype_cluster_coords <- function(coords, k = NULL, config = phenotype_consolidation_config()) {
@@ -323,7 +342,10 @@ phenotype_cluster_coords <- function(coords, k = NULL, config = phenotype_consol
   list(
     cluster = cluster, k = k_use,
     k_selected_by = if (imposed) "imposed" else "ward_within_inertia_ratio_min",
-    ratio_curve = rule$ratio_curve, centers = centers,
+    ratio_curve = rule$ratio_curve,
+    # The RULE's decision and how contested it was (also reported when k is imposed).
+    k_selection = rule[c("k", "ratio", "runner_up_k", "runner_up_ratio", "margin")],
+    centers = centers,
     within_inertia = best$tot_withinss / n, converged = isTRUE(best$converged),
     landscape = phenotype_consolidation_landscape(ms$solutions, ms$chosen, n, config),
     config = config

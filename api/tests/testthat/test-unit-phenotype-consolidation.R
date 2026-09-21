@@ -5,9 +5,11 @@
 source_api_file("functions/analysis-phenotype-missingness.R", local = FALSE, envir = globalenv())
 source_api_file("functions/analysis-phenotype-consolidation.R", local = FALSE, envir = globalenv())
 
-# Pin the start count so an ambient override cannot change what these tests assert.
-withr::local_envvar(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "100",
-                    .local_envir = testthat::teardown_env())
+# Pin the start count inside each test that relies on the default, so an ambient
+# override cannot change what is asserted and nothing leaks into later test files.
+pin_default_starts <- function(env = parent.frame()) {
+  withr::local_envvar(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "100", .local_envir = env)
+}
 
 three_blobs <- function(n_per = 40L, seed = 1L) {
   set.seed(seed)
@@ -50,6 +52,7 @@ test_that("phenotype_ward_tree within-inertia equals the direct computation", {
 })
 
 test_that("phenotype_cluster_coords recovers separated blobs deterministically", {
+  pin_default_starts()
   x <- three_blobs()
   fit <- phenotype_cluster_coords(x)
   expect_identical(fit$k, 3L)
@@ -65,6 +68,7 @@ test_that("phenotype_cluster_coords recovers separated blobs deterministically",
 })
 
 test_that("clustering does not depend on or disturb the caller's RNG stream", {
+  pin_default_starts()
   x <- three_blobs()
   set.seed(99)
   a <- phenotype_cluster_coords(x)
@@ -81,6 +85,7 @@ test_that("clustering does not depend on or disturb the caller's RNG stream", {
 })
 
 test_that("duplicate rows do not break the random starts", {
+  pin_default_starts()
   x <- three_blobs(n_per = 15L)
   dup <- rbind(x, x)
   rownames(dup) <- paste0("d", seq_len(nrow(dup)))
@@ -185,7 +190,43 @@ test_that("the landscape separates basins from micro-variants", {
   expect_equal(ls$basins[[1]]$ari_vs_chosen, 1)
 })
 
+test_that("a basin is summarised by its representative, never by a non-converged member", {
+  a <- rep(1:2, each = 50L)
+  a_micro <- a
+  a_micro[50] <- 2L
+  b <- rep(1:2, times = 50L)
+  mk <- function(cl, w, conv, idx) {
+    list(start = "random", start_index = idx, cluster = cl, tot_withinss = w, converged = conv)
+  }
+  # a_micro has LOWER inertia but did not converge: it may not undercut the chosen one,
+  # and a non-converged runner-up may not produce a negative gap.
+  solutions <- list(mk(a, 10, TRUE, 0L), mk(a_micro, 9, FALSE, 1L), mk(b, 9.5, FALSE, 2L))
+  ls <- phenotype_consolidation_landscape(solutions, chosen = 1L, n = 100L,
+                                          config = phenotype_consolidation_config())
+  expect_equal(ls$basins[[1]]$best_within_inertia, ls$chosen$within_inertia)
+  expect_identical(ls$basins[[1]]$n_starts, 2L)
+  expect_false(ls$runner_up$converged)
+  expect_null(ls$inertia_gap_relative) # no gap is claimed against a non-converged run
+})
+
+test_that("the k decision reports how contested it was", {
+  sel <- phenotype_select_k(c(10, 6, 3, 2.7, 2.5, 2.4), k_min = 3L, k_max = 5L)
+  expect_identical(sel$runner_up_k, 4L)
+  expect_equal(sel$margin, 2.7 / 3 - 3 / 6)
+  # a single admissible k has no runner-up
+  one <- phenotype_select_k(c(10, 6, 3), k_min = 3L, k_max = 3L)
+  expect_true(is.na(one$runner_up_k))
+  expect_true(is.na(one$margin))
+})
+
+test_that("duplicated row names are rejected instead of silently mislabelled", {
+  x <- three_blobs()
+  rownames(x)[5] <- rownames(x)[1]
+  expect_error(phenotype_cluster_coords(x), "unique")
+})
+
 test_that("phenotype_procedure_params records everything needed to re-run the procedure", {
+  pin_default_starts()
   pp <- phenotype_procedure_params()
   expect_identical(pp$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
   expect_identical(pp$k_rule, "ward_within_inertia_ratio_min")

@@ -39,24 +39,8 @@ test_that("n_starts = 0 reproduces HCPC labels and descriptions at a fixed k", {
   }
 })
 
-test_that("the application k rule equals the HCPC 2.13 automatic cut", {
-  testthat::skip_if_not_installed("FactoMineR")
-  # Later FactoMineR releases changed HCPC's automatic cut; the application rule is
-  # pinned to the documented one, so only compare where HCPC still implements it.
-  testthat::skip_if(utils::packageVersion("FactoMineR") >= "2.14",
-                    "HCPC auto-cut differs from the documented rule in this FactoMineR")
-  local_phenotype_clustering_runtime()
-  withr::local_envvar(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "0")
-
-  df <- phenotype_synthetic_matrix()
-  set.seed(42)
-  mca <- FactoMineR::MCA(df, ncp = 8, quali.sup = 1, quanti.sup = 2:4, graph = FALSE)
-  hc <- FactoMineR::HCPC(mca, nb.clust = -1, kk = Inf, min = 3, max = 25,
-                         consol = TRUE, graph = FALSE)
-  res <- gen_mca_clust_obj(df, min_size = 1, quali_sup_var = 1:1, quanti_sup_var = 2:4,
-                           cutpoint = -1)
-  expect_identical(attr(res, "data_driven_k"), nlevels(hc$data.clust$clust))
-  ours <- phenotype_membership_from_clusters(res)
-  expect_identical(unname(ours[rownames(hc$data.clust)]),
-                   as.integer(as.character(hc$data.clust$clust)))
-})
+# The AUTOMATIC cut is deliberately not compared against HCPC here: FactoMineR >= 2.14
+# changed it, so under the locked version such a test could only ever skip. The rule is
+# checked against an independent reimplementation of the 2.13 `auto.cut.tree` instead
+# (test-unit-phenotype-consolidation-snapshot196.R), and the selected k on a fixed input
+# is pinned by test-unit-phenotype-package-drift-guard.R.

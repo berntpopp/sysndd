@@ -163,8 +163,16 @@ export interface ClusterValidation {
   // #679). Additive + optional; absent on snapshots generated before the change.
   procedure_version?: string | string[];
   k_rule?: string | string[];
-  /** W(k)/W(k-1) on the Ward tree — the quantity k is actually chosen by. */
-  k_ward_ratio_curve?: Record<string, number | number[]>;
+  /** W(k)/W(k-1) on the Ward tree — the quantity k is actually chosen by (0/0 → null). */
+  k_ward_ratio_curve?: Record<string, number | number[] | null>;
+  /** How contested k was: the runner-up k and the ratio margin to it. */
+  k_selection?: {
+    k?: number | number[];
+    ratio?: number | number[];
+    runner_up_k?: number | number[] | null;
+    runner_up_ratio?: number | number[] | null;
+    margin?: number | number[] | null;
+  };
   consolidation_landscape?: ConsolidationLandscape;
   continuity?: PartitionContinuity;
   factominer_version?: string | string[];
@@ -178,6 +186,7 @@ export interface ConsolidationBasin {
   n_starts?: number | number[];
   share_of_starts?: number | number[];
   ari_vs_chosen?: number | number[];
+  converged?: boolean | boolean[];
   sizes?: number[];
 }
 
@@ -213,6 +222,7 @@ export interface ConsolidationLandscape {
     within_inertia?: number | number[];
     share_of_starts?: number | number[];
     ari_vs_chosen?: number | number[];
+    converged?: boolean | boolean[];
   } | null;
   inertia_gap_relative?: number | number[] | null;
   k_selected_by?: string | string[];

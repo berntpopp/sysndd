@@ -349,5 +349,23 @@ any touched file crosses the ceiling.
    MCA coordinates, k, membership, inertia, per-cluster Jaccard, the curve anchor and the
    1/Q ncp diagnostic are identical under 2.13 and 2.17 on a 2,000 x 30 synthetic matrix.
    Multi-start clustering costs ~0.2-0.6 s versus ~0.1 s single-start at that size.
-5. **An external plan review could not be run** (the reviewing service was over its usage
+5. **Independent review of the diff (no P0, five P1, all addressed).**
+   - *k is the remaining unstable step.* Extending the deletion experiment to 40 trials
+     of 20 entities: k holds at 3 in 39, ARI >= 0.93 whenever k holds, and one trial tips
+     to k = 4 because the rule is nearly tied (0.901 vs 0.914). The "20 of 20" figure in
+     the Problem section is a smaller sample of the same experiment. The k rule is out of
+     scope to change; `k_selection` (runner-up k + margin) is now served, and the
+     regression test asserts the honest statement.
+   - *FactoMineR 2.17's irlba SVD is approximate on production-shaped input* (~3e-4,
+     seed-dependent); the small guard matrix did not exercise it. All three MCA call
+     sites now go through `phenotype_mca_fit()` (`ncp = Inf`, leading 8 columns): exact,
+     seed-free, bit-identical to 2.13. This also removed the second MCA from the
+     validator. The guard gained a 50-indicator-column test.
+   - FactoMineR version added to the phenotype cache fingerprint; the permanently
+     skipping HCPC auto-k test replaced by an independent reimplementation of the 2.13
+     `auto.cut.tree` on flashClust; the bundle states the scope of `within_inertia`.
+   - Also: basins summarised by their representative (a non-converged member can no
+     longer undercut the chosen inertia), duplicate row names rejected, continuity scoped
+     to the preset's `parameter_hash`, empty `catdes` tables no longer crash the call.
+6. **An external plan review could not be run** (the reviewing service was over its usage
    limit); the diff was reviewed by an independent agent instead.

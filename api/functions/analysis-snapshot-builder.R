@@ -208,7 +208,9 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
       # #679: did this refresh re-split the entities or refine the previous public
       # partition? Additive + best-effort (never fails the refresh); read BEFORE the new
       # snapshot is activated, so "previous" is the one being superseded.
-      val$partition$continuity <- analysis_snapshot_phenotype_continuity(clusters, conn = conn)
+      val$partition$continuity <- analysis_snapshot_phenotype_continuity(
+        clusters, conn = conn, parameter_hash = normalized$parameter_hash
+      )
 
       # #630: computed, registry-backed syndromicity per cluster. Loads the
       # annotation evidence once for the whole snapshot; see

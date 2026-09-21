@@ -50,6 +50,10 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
   expect_identical(p$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
   expect_identical(p$k_rule, "ward_within_inertia_ratio_min")
   expect_true(is.list(p$k_ward_ratio_curve) && length(p$k_ward_ratio_curve) >= 1L)
+  # how contested k itself was travels with the partition
+  expect_true(all(c("k", "ratio", "runner_up_k", "runner_up_ratio", "margin") %in%
+                    names(p$k_selection)))
+  expect_false("k_selection" %in% names(p$consolidation_landscape))
   ls <- p$consolidation_landscape
   expect_gte(ls$n_starts_total, 1L)
   expect_lte(ls$chosen$within_inertia, ls$ward_start$within_inertia + 1e-12)

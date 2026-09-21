@@ -65,6 +65,16 @@ test_that("phenotype fingerprint changes with the consolidation start count (#67
   expect_identical(a, unset) # the default is 100
 })
 
+test_that("phenotype fingerprint carries the FactoMineR version (#679)", {
+  # The MCA coordinates come from FactoMineR and the disk cache survives redeploys: a
+  # package update must not leave a cached membership for the coherence gate to reject.
+  fp <- analysis_phenotype_cache_fingerprint()
+  expected <- tryCatch(as.character(utils::packageVersion("FactoMineR")),
+                       error = function(e) "NA")
+  expect_match(fp, paste0("FactoMineR=", expected), fixed = TRUE)
+  expect_false(grepl("FactoMineR", analysis_string_cache_fingerprint(), fixed = TRUE))
+})
+
 test_that("phenotype fingerprint changes with the MCA prevalence band", {
   withr::with_envvar(c(PHENOTYPE_MCA_PREVALENCE_MIN = "0.05", PHENOTYPE_MCA_PREVALENCE_MAX = "0.95"), {
     a <- analysis_phenotype_cache_fingerprint()

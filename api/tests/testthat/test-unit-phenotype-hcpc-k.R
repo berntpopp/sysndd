@@ -49,5 +49,19 @@ test_that("gen_mca_clust_obj returns a data-driven k and drops tiny clusters", {
   expect_identical(cons$n_starts_total, 101L)
   expect_lte(cons$chosen$within_inertia, cons$ward_start$within_inertia + 1e-12)
   expect_true(length(cons$k_ward_ratio_curve) >= 1L)
-  expect_identical(attr(res, "data_driven_k"), as.integer(attr(res, "data_driven_k")))
+  expect_true(is.integer(attr(res, "data_driven_k")) && attr(res, "data_driven_k") >= 2L)
+})
+
+test_that("a cluster with no significant description yields an empty table, not a crash", {
+  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
+  for (kind in c("category", "quanti")) {
+    empty <- phenotype_desc_tibble(NULL, kind)
+    expect_identical(nrow(empty), 0L)
+    expect_true(all(c("variable", "p.value", "v.test") %in% names(empty)))
+    expect_identical(nrow(dplyr::arrange(empty, p.value)), 0L) # the call that used to throw
+  }
+  m <- matrix(c(1, 2, 0.01, 3), 1, 4, dimnames = list("HP x=HP x_present",
+                                                       c("Cla/Mod", "Mod/Cla", "p.value", "v.test")))
+  full <- phenotype_desc_tibble(m, "category")
+  expect_identical(names(full), c("variable", "Cla.Mod", "Mod.Cla", "p.value", "v.test"))
 })

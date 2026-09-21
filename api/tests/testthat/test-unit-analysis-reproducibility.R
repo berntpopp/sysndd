@@ -256,9 +256,9 @@ test_that("phenotype bundle params record the procedure and the optimum it sits 
   clusters <- gen_mca_clust_obj(df, min_size = 10, quali_sup_var = 1:1, quanti_sup_var = 2:4)
   cons <- attr(clusters, "consolidation")
   val <- list(partition = list(
-    hcpc_kk = "Inf", consolidation = TRUE, n_clusters = nrow(clusters),
+    hcpc_kk = "Inf", consolidation = TRUE, n_clusters = nrow(clusters), n_entities_dropped = 0L,
     mean_silhouette = 0.2, silhouette_z = 10,
-    consolidation_landscape = cons[setdiff(names(cons), "k_ward_ratio_curve")]
+    consolidation_landscape = cons[setdiff(names(cons), c("k_ward_ratio_curve", "k_selection"))]
   ))
   payload <- analysis_reproducibility_phenotype_payload(df, clusters, val = val)
   p <- payload$params
@@ -273,6 +273,10 @@ test_that("phenotype bundle params record the procedure and the optimum it sits 
   expect_identical(p$consolidation_n_starts, 20L)
   expect_identical(p$factominer_version, as.character(utils::packageVersion("FactoMineR")))
   expect_equal(p$within_inertia, cons$chosen$within_inertia, tolerance = 1e-4)
+  # ...and says what that inertia is measured over, because `coords` holds only the
+  # assigned entities.
+  expect_identical(p$within_inertia_scope, "all_input_rows")
+  expect_identical(p$n_input_rows, nrow(df))
 
   # A consumer can verify the optimum from the bundle alone: re-running the procedure
   # on the bundle coordinates reproduces the bundle membership.
