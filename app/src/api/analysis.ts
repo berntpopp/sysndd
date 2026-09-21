@@ -159,7 +159,77 @@ export interface ClusterValidation {
   k_selected?: number | number[];
   silhouette_interpretation?: string | string[];
   consolidation?: boolean | boolean[];
+  // Application-owned k rule + multi-start consolidation (validation schema >= 2.1,
+  // #679). Additive + optional; absent on snapshots generated before the change.
+  procedure_version?: string | string[];
+  k_rule?: string | string[];
+  /** W(k)/W(k-1) on the Ward tree — the quantity k is actually chosen by. */
+  k_ward_ratio_curve?: Record<string, number | number[]>;
+  consolidation_landscape?: ConsolidationLandscape;
+  continuity?: PartitionContinuity;
+  factominer_version?: string | string[];
   [key: string]: unknown;
+}
+
+/** One group of k-means starts that converged to (micro-variants of) the same optimum. */
+export interface ConsolidationBasin {
+  rank?: number | number[];
+  best_within_inertia?: number | number[];
+  n_starts?: number | number[];
+  share_of_starts?: number | number[];
+  ari_vs_chosen?: number | number[];
+  sizes?: number[];
+}
+
+/**
+ * How contested the released phenotype partition is (#679): the consolidation runs
+ * k-means from the Ward-cut centroids and from seeded random starts and releases the
+ * lowest within-cluster inertia. Inertias are W/n.
+ */
+export interface ConsolidationLandscape {
+  n_starts_total?: number | number[];
+  n_random_starts?: number | number[];
+  seed?: number | number[];
+  iter_max?: number | number[];
+  algorithm?: string | string[];
+  n_converged?: number | number[];
+  basin_ari_threshold?: number | number[];
+  chosen?: {
+    start?: string | string[];
+    start_index?: number | number[];
+    within_inertia?: number | number[];
+    n_starts_in_basin?: number | number[];
+    share_of_starts?: number | number[];
+  };
+  ward_start?: {
+    within_inertia?: number | number[];
+    ari_vs_chosen?: number | number[];
+    in_chosen_basin?: boolean | boolean[];
+  };
+  n_distinct_partitions?: number | number[];
+  n_basins?: number | number[];
+  basins?: ConsolidationBasin[];
+  runner_up?: {
+    within_inertia?: number | number[];
+    share_of_starts?: number | number[];
+    ari_vs_chosen?: number | number[];
+  } | null;
+  inertia_gap_relative?: number | number[] | null;
+  k_selected_by?: string | string[];
+  within_inertia?: number | number[];
+  converged?: boolean | boolean[];
+}
+
+/** Agreement of this partition with the public snapshot it superseded (#679). */
+export interface PartitionContinuity {
+  status?: string | string[];
+  previous_snapshot_id?: number | number[];
+  n_common_entities?: number | number[];
+  n_entities_current?: number | number[];
+  n_entities_previous?: number | number[];
+  ari?: number | number[];
+  per_cluster_best_jaccard?: Record<string, number | number[]>;
+  message?: string | string[];
 }
 
 export interface AnalysisSnapshotMeta {
