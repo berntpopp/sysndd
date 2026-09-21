@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **MCP edge smoke no longer races Traefik's Docker provider.** `scripts/tests/test-mcp-traefik-edge.sh` waited only until the Traefik API answered and then asserted on the router list; on a cold CI runner the API comes up before the provider has discovered the containers, so the `mcp-*@docker` routers were briefly absent and the "Smoke Test (prod stack)" job failed on `master` with exit 1 and no output. The script now waits until the four routers are enabled (up to 60 s), and any failed assertion names its line and prints Traefik's router list and last log lines before cleanup. Reproduced locally by starting the MCP backend 4 s late: silent exit 1 before, PASS after.
+
 ## [0.38.0] - 2026-09-21
 
 ### Security
