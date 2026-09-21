@@ -1,6 +1,6 @@
 # Phenotype clustering: multi-start consolidation, application-owned k (#679)
 
-Status: design
+Status: implemented (see "Findings during implementation")
 Issue: berntpopp/sysndd#679
 Date: 2026-09-21
 
@@ -325,3 +325,29 @@ confirm identical k, membership and curve anchor.
 `documentation/08-development.qmd` / `09-deployment.qmd` where the phenotype procedure
 and the refresh runbook are described, `CHANGELOG.md`, and the file-size baseline if
 any touched file crosses the ceiling.
+
+## Findings during implementation
+
+1. **The legacy k rule was numerically fragile on duplicated profiles.** When the input
+   has few distinct phenotype profiles (the existing test fixtures: two or three crisp
+   blocks), W(k) beyond the number of distinct rows is SVD noise at ~1e-33, and
+   `W(k)/W(k-1)` on that noise picked an arbitrary k: FactoMineR 2.13 `HCPC` returned
+   **seven** clusters (60/1/1/1/19/37/1) for a two-block input, masked only by the
+   `min_size` drop. `phenotype_select_k()` therefore zeroes within-inertia below 1e-12 of
+   the total (0/0 ratios are `NA` and ignored) and caps k at the number of rows that are
+   distinct on a scale-relative 10-decimal grid; random starts draw from those rows. On
+   real data (no zero W in 3..25) the rule is unchanged, which the HCPC parity test and
+   the snapshot-196 regression both confirm.
+2. **`consolidation_method`, not `consolidation`.** The reproducibility bundle already has
+   a boolean `consolidation` key; the procedure params use `consolidation_method =
+   "multistart_kmeans"` so no existing key changes type.
+3. **`base::exists()` in the RNG guard.** The live runtime masks `exists()`/`get()` with S4
+   generics that reject `inherits =`; the repository's static guard caught the bare call.
+   The end-to-end check was then repeated with the full worker library set attached
+   (51 packages, `get` masked by `config`) under FactoMineR 2.17.
+4. **FactoMineR 2.17 verified end to end.** The image builds with the URL-remote record;
+   MCA coordinates, k, membership, inertia, per-cluster Jaccard, the curve anchor and the
+   1/Q ncp diagnostic are identical under 2.13 and 2.17 on a 2,000 x 30 synthetic matrix.
+   Multi-start clustering costs ~0.2-0.6 s versus ~0.1 s single-start at that size.
+5. **An external plan review could not be run** (the reviewing service was over its usage
+   limit); the diff was reviewed by an independent agent instead.
