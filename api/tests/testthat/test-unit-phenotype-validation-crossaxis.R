@@ -1,21 +1,6 @@
 test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing (#509,#511)", {
   testthat::skip_if_not_installed("FactoMineR")
-  suppressWarnings(suppressMessages({
-    library(dplyr); library(tibble); library(tidyr); library(purrr); library(stringr)
-  }))
-  source_api_file("functions/analysis-null-models.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-mca-prep.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-cluster-validation.R", local = FALSE, envir = globalenv())
-
-  # Stub the identifier-hash helper (unrelated to validation metrics).
-  had_hash <- exists("post_db_hash", envir = globalenv())
-  old_hash <- if (had_hash) get("post_db_hash", envir = globalenv())
-  assign("post_db_hash", function(...) list(links = list(hash = "test-stub")), envir = globalenv())
-  withr::defer({
-    if (had_hash) assign("post_db_hash", old_hash, envir = globalenv())
-    else if (exists("post_db_hash", envir = globalenv())) rm("post_db_hash", envir = globalenv())
-  })
+  local_phenotype_clustering_runtime(validation = TRUE)
   # keep the null loops small + fast for the test
   withr::local_envvar(ANALYSIS_SILHOUETTE_NULL_N = "60", ANALYSIS_MODULARITY_NULL_N = "40",
                       ANALYSIS_PHENOTYPE_KNN_K = "8")

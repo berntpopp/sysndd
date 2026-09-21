@@ -57,6 +57,15 @@ phenotype_consolidation_config <- function() {
   force(code)
 }
 
+# Rows that are distinct up to float noise. Identical phenotype profiles share an MCA
+# coordinate, but the SVD leaves noise at ~1e-33 on null dimensions; comparing on a
+# scale-relative 10-decimal grid keeps such rows from counting as different points.
+.phenotype_distinct_rows <- function(x) {
+  scale <- max(abs(x))
+  if (!is.finite(scale) || scale == 0) scale <- 1
+  !duplicated(round(x / scale, 10))
+}
+
 #' Ward tree on the coordinates, with the within-cluster inertia of every cut.
 #'
 #' Rows are ordered by the first coordinate (as HCPC does) so tie handling and the
@@ -71,7 +80,7 @@ phenotype_ward_tree <- function(coords) {
     stop("phenotype clustering needs at least 4 rows", call. = FALSE)
   }
   if (anyNA(x)) stop("phenotype clustering coordinates contain NA", call. = FALSE)
-  if (nrow(unique(x)) < 2L) {
+  if (sum(.phenotype_distinct_rows(x)) < 2L) {
     stop("phenotype clustering needs at least 2 distinct rows", call. = FALSE)
   }
   if (is.null(rownames(x))) rownames(x) <- as.character(seq_len(n))
@@ -79,20 +88,28 @@ phenotype_ward_tree <- function(coords) {
   # Ward on squared distances scaled by 1/(2n): merge heights are inertia gains, so
   # the sum of the (n - k) smallest heights is the within-cluster inertia of the k-cut.
   tree <- stats::hclust(stats::dist(x)^2 / (2 * n), method = "ward.D")
-  list(X = x, tree = tree, within = rev(cumsum(tree$height)))
+  list(X = x, tree = tree, within = rev(cumsum(tree$height)),
+       n_distinct = sum(.phenotype_distinct_rows(x)))
 }
 
 #' Data-driven k: the k in k_min..k_max minimising W(k) / W(k-1).
+#'
+#' Within-inertia below 1e-12 of the total is treated as exactly zero, so float noise
+#' on heavily duplicated data (W(k) ~ 1e-33 once every distinct profile is its own
+#' cluster) can never produce a spurious minimum; 0/0 ratios are NA and ignored. k is
+#' also capped at the number of distinct rows, beyond which k-means has empty clusters.
 #' @return list(k, ratio_curve = named numeric keyed by k)
 #' @export
-phenotype_select_k <- function(within, k_min = 3L, k_max = 25L) {
-  k_min <- as.integer(k_min)
-  k_max <- min(as.integer(k_max), length(within))
-  if (k_min < 2L || k_max < k_min) {
+phenotype_select_k <- function(within, k_min = 3L, k_max = 25L, n_distinct = Inf) {
+  k_max <- as.integer(min(k_max, length(within), n_distinct))
+  k_min <- min(as.integer(k_min), k_max)
+  if (k_min < 2L) {
     stop("phenotype clustering: no admissible k in the requested range", call. = FALSE)
   }
+  within[within < within[[1]] * 1e-12] <- 0
   ks <- k_min:k_max
   ratio <- within[ks] / within[ks - 1L]
+  ratio[is.nan(ratio)] <- NA_real_
   best <- which.min(ratio)
   if (length(best) == 0L) {
     stop("phenotype clustering: k rule is undefined on this tree", call. = FALSE)
@@ -100,16 +117,17 @@ phenotype_select_k <- function(within, k_min = 3L, k_max = 25L) {
   list(k = ks[[best]], ratio_curve = stats::setNames(ratio, as.character(ks)))
 }
 
-# One Hartigan-Wong run; NULL when k-means itself errors (e.g. an empty cluster).
+# One Hartigan-Wong run; a list with only `error` when k-means itself errors (e.g. an
+# empty cluster from an unlucky random start).
 .phenotype_kmeans_run <- function(x, centers, iter_max) {
   km <- tryCatch(
     withCallingHandlers(
       stats::kmeans(x, centers = centers, iter.max = iter_max, algorithm = "Hartigan-Wong"),
       warning = function(w) invokeRestart("muffleWarning")
     ),
-    error = function(e) NULL
+    error = function(e) list(error = conditionMessage(e))
   )
-  if (is.null(km)) return(NULL)
+  if (!is.null(km$error)) return(km)
   list(
     cluster = as.integer(km$cluster), centers = km$centers,
     tot_withinss = km$tot.withinss, iter = as.integer(km$iter),
@@ -131,7 +149,7 @@ phenotype_select_k <- function(within, k_min = 3L, k_max = 25L) {
 
 #' Consolidate a Ward cut with k-means from the Ward centroids AND seeded random starts.
 #'
-#' Random start i draws k distinct rows of `unique(x)` under `set.seed(seed + i)`.
+#' Random start i draws k distinct rows (up to float noise) under `set.seed(seed + i)`.
 #' Duplicate phenotype profiles are common, and duplicate centres make kmeans error.
 #' @return list(solutions = list of runs, chosen = index into solutions)
 #' @export
@@ -139,19 +157,20 @@ phenotype_consolidate_multistart <- function(x, ward_cut, k, n_starts = 100L,
                                              seed = 42L, iter_max = 100L) {
   ward_centers <- rowsum(x, ward_cut) / as.vector(table(ward_cut))
   ward_run <- .phenotype_kmeans_run(x, ward_centers, iter_max)
-  if (is.null(ward_run)) {
-    stop("phenotype clustering: k-means failed from the Ward-cut start", call. = FALSE)
+  if (!is.null(ward_run$error)) {
+    stop("phenotype clustering: k-means failed from the Ward-cut start: ", ward_run$error,
+         call. = FALSE)
   }
   solutions <- list(c(list(start = "ward_cut", start_index = 0L), ward_run))
 
-  distinct_rows <- unique(x)
+  distinct_rows <- x[.phenotype_distinct_rows(x), , drop = FALSE]
   if (n_starts > 0L && nrow(distinct_rows) >= k) {
     .phenotype_with_preserved_rng({
       for (i in seq_len(n_starts)) {
         set.seed(seed + i)
         centers <- distinct_rows[sample.int(nrow(distinct_rows), k), , drop = FALSE]
         run <- .phenotype_kmeans_run(x, centers, iter_max)
-        if (!is.null(run)) {
+        if (is.null(run$error)) {
           solutions[[length(solutions) + 1L]] <- c(list(start = "random", start_index = i), run)
         }
       }
@@ -259,11 +278,12 @@ phenotype_cluster_coords <- function(coords, k = NULL, config = phenotype_consol
   input_ids <- rownames(as.matrix(coords))
   if (is.null(input_ids)) input_ids <- as.character(seq_len(n))
 
-  rule <- phenotype_select_k(wt$within, config$k_min, config$k_max)
+  rule <- phenotype_select_k(wt$within, config$k_min, config$k_max, wt$n_distinct)
   imposed <- !is.null(k) && is.finite(k) && k > 0
   k_use <- if (imposed) as.integer(k) else rule$k
-  if (k_use < 2L || k_use > n - 1L) {
-    stop("phenotype clustering: k must be between 2 and n - 1", call. = FALSE)
+  if (k_use < 2L || k_use > min(n - 1L, wt$n_distinct)) {
+    stop("phenotype clustering: k must be between 2 and the number of distinct rows",
+         call. = FALSE)
   }
 
   ward_cut <- stats::cutree(wt$tree, k = k_use)

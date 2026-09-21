@@ -1,6 +1,30 @@
 # functions/analysis-phenotype-functions.R
 #### Phenotype and MCA analysis helpers
 
+#' Describe clusters by the variables that characterise them (FactoMineR::catdes).
+#'
+#' Version-proof wrapper (#679): newer FactoMineR releases added an `html.table`
+#' argument and an `n` column to the quantitative tables. The served
+#' `quanti_sup_var` shape must not depend on the installed package version, so the
+#' quantitative tables are restricted to the six long-standing columns.
+#'
+#' @param data_clust data frame whose LAST column is the cluster factor.
+#' @param row_w row weights of the MCA (`mca$call$row.w.init`).
+#' @return list(category = named list of matrices, quanti = named list of matrices)
+#' @export
+phenotype_catdes <- function(data_clust, row_w = NULL) {
+  args <- list(data_clust, ncol(data_clust), proba = 0.05, row.w = row_w)
+  if ("html.table" %in% names(formals(FactoMineR::catdes))) args$html.table <- FALSE
+  desc <- do.call(FactoMineR::catdes, args)
+  quanti_cols <- c("v.test", "Mean in category", "Overall mean", "sd in category",
+                   "Overall sd", "p.value")
+  quanti <- lapply(desc$quanti, function(tbl) {
+    if (is.null(tbl)) return(NULL)
+    tbl[, intersect(quanti_cols, colnames(tbl)), drop = FALSE]
+  })
+  list(category = desc$category, quanti = quanti)
+}
+
 #' A function clustering entities based on their phenotype annotations
 #'
 #' @param wide_phenotypes_df data frame of variables to be used for MCA
@@ -9,9 +33,9 @@
 #'   they are not merged, to avoid manufacturing a non-data-driven cluster).
 #' @param quali_sup_var vector of qualitative supplementary variables
 #' @param quanti_sup_var vector of quantitative supplementary variables
-#' @param cutpoint number of clusters for HCPC. Default `-1` selects k from the
-#'   data (the largest relative loss of within-cluster inertia). A positive value
-#'   imposes exactly that many clusters.
+#' @param cutpoint number of clusters. Default `-1` selects k from the
+#'   data (the k in 3..25 minimising W(k)/W(k-1), the relative within-cluster
+#'   inertia). A positive value imposes exactly that many clusters.
 #'
 #' @return The clusters tibble (with a deterministic `cluster_signature` column)
 #' @export
@@ -52,42 +76,40 @@ gen_mca_clust_obj <- function(
     graph = FALSE
   )
 
-  # Hierarchical Clustering on Principal Components.
-  # kk = Inf: NO k-means pre-partitioning, so FactoMineR runs the full Ward tree on
-  # the MCA coordinates AND actually performs k-means consolidation (#509). With a
-  # finite kk (e.g. 50) FactoMineR >= 2.13 SILENTLY disables consolidation
-  # (`if ((kk != Inf) & (consol == TRUE)) { warning(...); consol <- FALSE }`), so the
-  # previous kk = 50 produced an unconsolidated, k-means-preclustered partition while
-  # the code claimed consolidation ran. At N ~ 1932 the full O(n^2) Ward tree is cheap
-  # (seconds), so kk = Inf is the correct textbook HCPC and makes HCPC deterministic
-  # (Ward + seeded consolidation) -> the k-selection curve exactly reproduces the
-  # reported partition.
-  # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
-  mca_hcpc <- FactoMineR::HCPC(mca_phenotypes,
-    # nb.clust = -1 (the cutpoint default) makes HCPC select k from the data via
-    # the largest relative within-cluster-inertia loss; a positive cutpoint
-    # imposes exactly that many clusters.
-    nb.clust = cutpoint,
-    kk = Inf, # no pre-partitioning -> consolidation actually runs (#509)
-    min = 3,
-    max = 25,
-    consol = TRUE,
-    graph = FALSE
+  # Ward tree -> data-driven k -> MULTI-START k-means consolidation, owned by the
+  # application (functions/analysis-phenotype-consolidation.R, #679). FactoMineR::HCPC
+  # is deliberately NOT used: its consolidation is a single k-means run from the
+  # Ward-cut centroids, which on real data converged to the higher-inertia of two
+  # optima, and its automatic k rule changed between package releases. The module
+  # reproduces HCPC(nb.clust, kk = Inf, consol = TRUE) exactly when the random starts
+  # are switched off (test-unit-phenotype-hcpc-parity.R). A positive cutpoint imposes
+  # exactly that many clusters; otherwise k minimises W(k)/W(k-1) over 3..25.
+  fit <- phenotype_cluster_coords(
+    mca_phenotypes$ind$coord,
+    k = if (is.numeric(cutpoint) && cutpoint > 0) as.integer(cutpoint) else NULL
   )
 
-  # Log the emergent (data-driven) k. Not part of the tibble return shape so
-  # existing callers (which pipe/unnest the tibble directly) are unaffected.
+  # Log the emergent (data-driven) k and how contested the optimum was. Not part of
+  # the tibble return shape so existing callers are unaffected.
   message(sprintf(
-    "[phenotype-hcpc] data-driven k = %d",
-    nlevels(mca_hcpc$data.clust$clust)
+    "[phenotype-clustering] k = %d (%s); W/n = %.4f; %d of %d starts in the chosen basin",
+    fit$k, fit$k_selected_by, fit$within_inertia,
+    fit$landscape$chosen$n_starts_in_basin, fit$landscape$n_starts_total
   ))
 
+  # Cluster descriptions on the consolidated partition (what HCPC's desc.var holds).
+  data_clust <- cbind.data.frame(
+    mca_phenotypes$call$X,
+    clust = factor(fit$cluster[rownames(mca_phenotypes$call$X)], levels = seq_len(fit$k))
+  )
+  cluster_desc <- phenotype_catdes(data_clust, row_w = mca_phenotypes$call$row.w.init)
+
   # add entity_id back as column
-  mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
+  data_clust$entity_id <- row.names(data_clust)
 
   # generate cluster tibble
   # Sort all variable tables by p.value ascending so most significant appear first
-  clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
+  clusters_tibble <- tibble(data_clust) %>%
     # Namespaced: biomaRt's S4 `select` masks dplyr's in the loaded API/worker
     # search path, and a bare call fails with "unable to find an inherited
     # method for function 'select' for signature 'x = \"tbl_df\"'".
@@ -105,7 +127,7 @@ gen_mca_clust_obj <- function(
           mutate(cluster_size = nrow(identifiers)) %>%
           dplyr::filter(cluster_size >= min_size) %>%
           mutate(quali_inp_var = list(tibble::as_tibble(
-            mca_hcpc$desc.var$category[[cluster]],
+            cluster_desc$category[[as.character(cluster)]],
             rownames = "variable",
             .name_repair = ~ vctrs::vec_as_names(...,
               repair = "universal", quiet = TRUE
@@ -116,7 +138,7 @@ gen_mca_clust_obj <- function(
             mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
             arrange(p.value))) %>%
           mutate(quali_sup_var = list(tibble::as_tibble(
-            mca_hcpc$desc.var$category[[cluster]],
+            cluster_desc$category[[as.character(cluster)]],
             rownames = "variable",
             .name_repair = ~ vctrs::vec_as_names(...,
               repair = "universal", quiet = TRUE
@@ -127,7 +149,7 @@ gen_mca_clust_obj <- function(
             mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
             arrange(p.value))) %>%
           mutate(quanti_sup_var = list(tibble::as_tibble(
-            mca_hcpc$desc.var$quanti[[cluster]],
+            cluster_desc$quanti[[as.character(cluster)]],
             rownames = "variable",
             .name_repair = ~ vctrs::vec_as_names(...,
               repair = "universal", quiet = TRUE
@@ -156,11 +178,17 @@ gen_mca_clust_obj <- function(
       if (is.na(s)) NA_character_ else digest::digest(s, algo = "sha256")
     }, character(1)))
 
-  # Expose the actual HCPC nb.clust (data-driven k, BEFORE min_size dropping) as an
-  # attribute so the validator can re-run the exact procedure at that k for the
-  # k-selection curve anchor. Kept off the tibble columns so unnest consumers are
-  # unaffected. Differs from nrow(clusters_tibble) whenever small clusters are dropped.
-  attr(clusters_tibble, "data_driven_k") <- nlevels(mca_hcpc$data.clust$clust)
+  # Expose the actual k (data-driven, BEFORE min_size dropping) as an attribute so the
+  # validator can re-run the exact procedure at that k for the k-selection curve
+  # anchor. Kept off the tibble columns so unnest consumers are unaffected. Differs
+  # from nrow(clusters_tibble) whenever small clusters are dropped.
+  attr(clusters_tibble, "data_driven_k") <- fit$k
+  # #679: the optimisation landscape + the selector curve, for the validation block.
+  attr(clusters_tibble, "consolidation") <- c(
+    fit$landscape,
+    list(k_ward_ratio_curve = fit$ratio_curve, k_selected_by = fit$k_selected_by,
+         within_inertia = fit$within_inertia, converged = fit$converged)
+  )
 
   # return result
   return(clusters_tibble)

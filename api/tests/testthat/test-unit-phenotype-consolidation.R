@@ -90,6 +90,39 @@ test_that("duplicate rows do not break the random starts", {
   expect_gt(fit$landscape$n_random_starts, 0L)
 })
 
+test_that("numerically-zero within-inertia cannot drive the k rule", {
+  # Float noise below the tolerance is zero: W(3) = 0 wins, and the 0/0 ratios after it
+  # are undefined rather than a spurious minimum.
+  sel <- phenotype_select_k(c(1, 0.4, 3e-33, 1e-33, 0), k_min = 3L, k_max = 5L)
+  expect_identical(sel$k, 3L)
+  expect_equal(unname(sel$ratio_curve[["3"]]), 0)
+  expect_true(all(is.na(sel$ratio_curve[c("4", "5")])))
+  # k can never exceed the number of distinct rows
+  capped <- phenotype_select_k(c(10, 6, 3, 2.7, 2.5, 2.4), k_min = 3L, k_max = 6L, n_distinct = 4L)
+  expect_identical(names(capped$ratio_curve), c("3", "4"))
+})
+
+test_that("three distinct profiles, heavily duplicated, cluster into exactly three", {
+  set.seed(3)
+  p <- rbind(c(-1, 0.2), c(1, 0.1), c(0.1, -2))
+  x <- p[c(rep(1, 28), rep(2, 29), rep(3, 5)), ] + stats::rnorm(124, 0, 1e-16)
+  rownames(x) <- as.character(seq_len(nrow(x)))
+  fit <- phenotype_cluster_coords(x)
+  expect_identical(fit$k, 3L)
+  expect_identical(sort(as.integer(table(fit$cluster))), c(5L, 28L, 29L))
+})
+
+test_that("two profiles plus SVD noise on null dimensions give two clusters, not seven", {
+  # The shape MCA returns for two crisp phenotype blocks: +/-1 on the first dimension
+  # and ~1e-33 noise elsewhere. The legacy procedure split this noise into 7 clusters.
+  set.seed(4)
+  x <- cbind(rep(c(1, -1), each = 60L), stats::rnorm(120, 0, 1e-33), stats::rnorm(120, 0, 1e-64))
+  rownames(x) <- as.character(seq_len(nrow(x)))
+  fit <- phenotype_cluster_coords(x)
+  expect_identical(fit$k, 2L)
+  expect_identical(as.integer(table(fit$cluster)), c(60L, 60L))
+})
+
 test_that("an imposed k overrides the rule and is reported as imposed", {
   x <- three_blobs()
   fit <- phenotype_cluster_coords(x, k = 2L)
