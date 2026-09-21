@@ -103,14 +103,22 @@ analysis_snapshot_functional_applied_params <- function(params, weight_channel =
 
 #' Applied phenotype MCA/HCPC params (hash-safe; attached as an attribute).
 #'
-#' Frozen defaults from gen_mca_clust_obj: `ncp = 8`, `kk = Inf` (consolidation
-#' runs), `consol = TRUE` (#509); the prevalence band is env-driven
+#' Frozen defaults from gen_mca_clust_obj: `ncp = 8`, `kk = Inf` (full Ward tree,
+#' consolidation runs), `consol = TRUE` (#509); the prevalence band is env-driven
 #' (analysis-phenotype-mca-prep.R). `hcpc_nb_clust` records the served (visible)
 #' cluster count -- the data-driven-k attribute is dropped by the dplyr nest
 #' pipeline in generate_phenotype_clusters(), so the served k is what is available.
 #' @export
 analysis_snapshot_phenotype_applied_params <- function(hcpc_nb_clust) {
-  list(
+  # #679: k rule, multi-start consolidation config, and the FactoMineR / R versions
+  # that produced the partition -- recorded next to ncp/kk so a partition can always
+  # be tied to the procedure. Guarded for minimal envs that source this file alone.
+  procedure <- if (exists("phenotype_procedure_params", mode = "function")) {
+    phenotype_procedure_params()
+  } else {
+    list()
+  }
+  c(list(
     ncp = 8L,
     prevalence_min = suppressWarnings(as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MIN", "0.05"))),
     prevalence_max = suppressWarnings(as.numeric(Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"))),
@@ -119,7 +127,7 @@ analysis_snapshot_phenotype_applied_params <- function(hcpc_nb_clust) {
     # quali.sup = 1, quanti.sup = 2:4), recorded for reproducibility.
     quali_sup = 1L, quanti_sup = c(2L, 3L, 4L),
     hcpc_nb_clust = hcpc_nb_clust
-  )
+  ), procedure)
 }
 
 #' Assemble the immutable generator provenance block.

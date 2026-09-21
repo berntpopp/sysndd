@@ -184,3 +184,21 @@ test_that("the landscape separates basins from micro-variants", {
   expect_identical(ls$basins[[1]]$rank, 1L)
   expect_equal(ls$basins[[1]]$ari_vs_chosen, 1)
 })
+
+test_that("phenotype_procedure_params records everything needed to re-run the procedure", {
+  pp <- phenotype_procedure_params()
+  expect_identical(pp$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
+  expect_identical(pp$k_rule, "ward_within_inertia_ratio_min")
+  expect_identical(pp$k_min, 3L)
+  expect_identical(pp$k_max, 25L)
+  expect_identical(pp$consolidation_method, "multistart_kmeans")
+  expect_identical(pp$consolidation_n_starts, 100L)
+  expect_identical(pp$consolidation_seed, 42L)
+  expect_identical(pp$consolidation_iter_max, 100L)
+  expect_identical(pp$kmeans_algorithm, "Hartigan-Wong")
+  expect_identical(pp$r_version, R.version.string)
+  expect_true("factominer_version" %in% names(pp)) # NA on a host without FactoMineR
+  withr::with_envvar(c(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "0"), {
+    expect_identical(phenotype_procedure_params()$consolidation_n_starts, 0L)
+  })
+})

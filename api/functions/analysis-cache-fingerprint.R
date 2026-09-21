@@ -30,7 +30,7 @@
 
 # Bump on ANY change to clustering inputs/algorithm. The token is opaque; only its
 # equality across calls matters. Current value reflects the #510 exp+db methodology.
-CLUSTER_LOGIC_VERSION <- "2026-07-06.510-expdb"
+CLUSTER_LOGIC_VERSION <- "2026-09-21.679-multistart"
 
 #' Fingerprint for the functional (STRING) clustering cache.
 #'
@@ -64,9 +64,10 @@ analysis_string_cache_fingerprint <- function() {
 
 #' Fingerprint for the phenotype (MCA/HCPC) clustering cache.
 #'
-#' Composite of CLUSTER_LOGIC_VERSION and the MCA prevalence band envs
-#' (PHENOTYPE_MCA_PREVALENCE_MIN/MAX), so a band change self-invalidates the
-#' phenotype cache without a code change. The STRING file identity is deliberately
+#' Composite of CLUSTER_LOGIC_VERSION, the MCA prevalence band envs
+#' (PHENOTYPE_MCA_PREVALENCE_MIN/MAX) and the consolidation start count
+#' (ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS), so a change to either self-invalidates
+#' the phenotype cache without a code change. The STRING file identity is deliberately
 #' excluded so a STRING-only change does not needlessly invalidate phenotype entries.
 #'
 #' @return character(1) fingerprint token.
@@ -77,7 +78,11 @@ analysis_phenotype_cache_fingerprint <- function() {
     Sys.getenv("PHENOTYPE_MCA_PREVALENCE_MAX", "0.95"),
     sep = ","
   )
-  paste("phenotype", CLUSTER_LOGIC_VERSION, band, sep = "|")
+  # #679: the number of random consolidation starts changes membership. Read the env
+  # here (same default as phenotype_consolidation_config) so this file stays
+  # self-contained for minimal environments.
+  starts <- paste0("starts=", Sys.getenv("ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS", "100"))
+  paste("phenotype", CLUSTER_LOGIC_VERSION, band, starts, sep = "|")
 }
 
 #' Resolve a fingerprint helper defensively (call-time default helper).

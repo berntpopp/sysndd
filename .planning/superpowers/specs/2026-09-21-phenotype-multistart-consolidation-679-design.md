@@ -245,7 +245,7 @@ into `partition_validation$continuity`. Best-effort: any failure yields
 ### Provenance
 
 - `analysis_snapshot_phenotype_applied_params()` gains `procedure_version`, `k_rule`,
-  `k_min`, `k_max`, `consolidation = "multistart_kmeans"`, `consolidation_n_starts`,
+  `k_min`, `k_max`, `consolidation_method = "multistart_kmeans"`, `consolidation_n_starts`,
   `consolidation_seed`, `consolidation_iter_max`, `kmeans_algorithm`,
   `factominer_version`, `r_version`. (`library_versions` in the generator block already
   records FactoMineR and R; the issue asks for them *next to* ncp/kk/seed.)

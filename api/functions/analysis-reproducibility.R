@@ -283,10 +283,21 @@ analysis_reproducibility_phenotype_payload <- function(input_matrix, clusters, v
       seed = seed,
       prevalence_band = provenance$prevalence_band %||% NULL,
       silhouette_z = analysis_reproducibility_scalar_num(partition$silhouette_z),
-      n_clusters = partition$n_clusters %||% NA_integer_
+      n_clusters = partition$n_clusters %||% NA_integer_,
+      # #679: the optimum the membership sits at, so a consumer can re-run the
+      # multi-start consolidation on `coords` and check it found nothing better.
+      within_inertia = analysis_reproducibility_scalar_num(
+        partition$consolidation_landscape$chosen$within_inertia
+      )
     ),
-    params %||% list()
+    # k rule + multi-start config + FactoMineR/R versions (no key overlaps the above).
+    if (exists("phenotype_procedure_params", mode = "function")) {
+      phenotype_procedure_params()
+    } else {
+      list()
+    }
   )
+  bundle_params <- utils::modifyList(bundle_params, params %||% list())
 
   list(
     coords = coords,

@@ -120,7 +120,7 @@
 - Modify: `api/functions/analysis-cache-fingerprint.R` (`CLUSTER_LOGIC_VERSION`, phenotype fingerprint folds in the starts env)
 - Modify tests: `test-unit-analysis-snapshot-provenance.R`, `test-unit-analysis-reproducibility.R`, the cache-fingerprint test file (find with `grep -ln analysis_phenotype_cache_fingerprint api/tests/testthat`)
 
-- [ ] **Step 1: Failing tests**: applied params contain `procedure_version`, `k_rule`, `k_min = 3L`, `k_max = 25L`, `consolidation = "multistart_kmeans"`, `consolidation_n_starts`, `consolidation_seed = 42L`, `consolidation_iter_max = 100L`, `kmeans_algorithm = "Hartigan-Wong"`, `factominer_version`, `r_version`; bundle params contain `procedure_version`, `consolidation_n_starts`, `consolidation_seed`, `within_inertia`; fingerprint changes when `ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS` changes.
+- [ ] **Step 1: Failing tests**: applied params contain `procedure_version`, `k_rule`, `k_min = 3L`, `k_max = 25L`, `consolidation_method = "multistart_kmeans"`, `consolidation_n_starts`, `consolidation_seed = 42L`, `consolidation_iter_max = 100L`, `kmeans_algorithm = "Hartigan-Wong"`, `factominer_version`, `r_version`; bundle params contain `procedure_version`, `consolidation_n_starts`, `consolidation_seed`, `within_inertia`; fingerprint changes when `ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS` changes.
 - [ ] **Step 2: Run, expect FAIL. Step 3: Implement** (config values read from `phenotype_consolidation_config()` guarded by `exists(..., mode = "function")` so minimal test envs degrade to `NA`). **Step 4: PASS. Step 5: Commit** `feat(analysis): record phenotype procedure provenance and key the cache on it (#679)`.
 
 ### Task 5: Continuity against the previous public snapshot

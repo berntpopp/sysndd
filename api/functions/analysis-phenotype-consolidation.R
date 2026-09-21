@@ -42,6 +42,24 @@ phenotype_consolidation_config <- function() {
   )
 }
 
+#' Everything needed to re-run the clustering procedure, for snapshot provenance.
+#'
+#' Single source for the applied-params block and the reproducibility bundle, so the
+#' two can never describe different procedures.
+#' @export
+phenotype_procedure_params <- function(config = phenotype_consolidation_config()) {
+  list(
+    procedure_version = PHENOTYPE_PROCEDURE_VERSION,
+    k_rule = "ward_within_inertia_ratio_min", k_min = config$k_min, k_max = config$k_max,
+    consolidation_method = "multistart_kmeans",
+    consolidation_n_starts = config$n_starts, consolidation_seed = config$seed,
+    consolidation_iter_max = config$iter_max, kmeans_algorithm = "Hartigan-Wong",
+    factominer_version = tryCatch(as.character(utils::packageVersion("FactoMineR")),
+                                  error = function(e) NA_character_),
+    r_version = R.version.string
+  )
+}
+
 # Run `code` without disturbing the caller's RNG stream.
 .phenotype_with_preserved_rng <- function(code) {
   genv <- globalenv()
