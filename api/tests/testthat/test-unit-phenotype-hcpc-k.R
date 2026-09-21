@@ -1,7 +1,8 @@
 test_that("gen_mca_clust_obj selects k from data and enforces min_size", {
   src <- readLines(file.path(get_api_dir(), "functions", "analysis-phenotype-functions.R"))
   body <- paste(src, collapse = "\n")
-  expect_match(body, "nb\\.clust\\s*=\\s*-1", fixed = FALSE)            # data-driven k path reachable
+  expect_match(body, "phenotype_cluster_coords\\(")                    # app-owned k + multi-start (#679)
+  expect_false(grepl("FactoMineR::HCPC(", body, fixed = TRUE))         # k is never delegated to HCPC
   expect_match(body, "cutpoint\\s*=\\s*-1", fixed = FALSE)             # default is data-driven
   expect_match(body, "filter\\(cluster_size\\s*>=\\s*min_size\\)")     # min_size now enforced
   expect_match(body, "cluster_signature")                              # stable identity present
@@ -9,32 +10,10 @@ test_that("gen_mca_clust_obj selects k from data and enforces min_size", {
 
 test_that("gen_mca_clust_obj returns a data-driven k and drops tiny clusters", {
   testthat::skip_if_not_installed("FactoMineR")
-  # gen_mca_clust_obj uses unqualified tidyverse verbs; attach them so this test
-  # (the first to actually execute it) does not depend on the harness's ambient
-  # attachments. No-ops when already attached.
-  suppressWarnings(suppressMessages({
-    library(dplyr)
-    library(tibble)
-    library(tidyr)
-    library(purrr)
-    library(stringr)
-  }))
-  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
-
-  # Stub the identifier-hash helper: it is unrelated to this test (which asserts
-  # clustering behavior — data-driven k, min_size enforcement, cluster_signature)
-  # and pulling in its full runtime is unnecessary.
-  had_hash <- exists("post_db_hash", envir = globalenv())
-  old_hash <- if (had_hash) get("post_db_hash", envir = globalenv())
-  assign("post_db_hash", function(...) list(links = list(hash = "test-stub")),
-         envir = globalenv())
-  withr::defer({
-    if (had_hash) {
-      assign("post_db_hash", old_hash, envir = globalenv())
-    } else if (exists("post_db_hash", envir = globalenv())) {
-      rm("post_db_hash", envir = globalenv())
-    }
-  })
+  # Sources the clustering modules, attaches the tidyverse verbs gen_mca_clust_obj
+  # uses unqualified, and stubs the unrelated identifier-hash helper.
+  local_phenotype_clustering_runtime()
+  withr::local_envvar(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "100")
 
   set.seed(1)
   # Production-shaped MCA input: entity_id lives in the ROWNAMES (never a
@@ -64,4 +43,25 @@ test_that("gen_mca_clust_obj returns a data-driven k and drops tiny clusters", {
   expect_true(is.data.frame(res) && "cluster" %in% names(res))
   expect_true(all(res$cluster_size >= 10)) # tiny clusters dropped
   expect_true("cluster_signature" %in% names(res))
+  # #679: the landscape travels as an attribute (Ward-cut start + 100 random starts),
+  # and the released solution is never worse than the legacy Ward-cut start.
+  cons <- attr(res, "consolidation")
+  expect_identical(cons$n_starts_total, 101L)
+  expect_lte(cons$chosen$within_inertia, cons$ward_start$within_inertia + 1e-12)
+  expect_true(length(cons$k_ward_ratio_curve) >= 1L)
+  expect_true(is.integer(attr(res, "data_driven_k")) && attr(res, "data_driven_k") >= 2L)
+})
+
+test_that("a cluster with no significant description yields an empty table, not a crash", {
+  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
+  for (kind in c("category", "quanti")) {
+    empty <- phenotype_desc_tibble(NULL, kind)
+    expect_identical(nrow(empty), 0L)
+    expect_true(all(c("variable", "p.value", "v.test") %in% names(empty)))
+    expect_identical(nrow(dplyr::arrange(empty, p.value)), 0L) # the call that used to throw
+  }
+  m <- matrix(c(1, 2, 0.01, 3), 1, 4, dimnames = list("HP x=HP x_present",
+                                                       c("Cla/Mod", "Mod/Cla", "p.value", "v.test")))
+  full <- phenotype_desc_tibble(m, "category")
+  expect_identical(names(full), c("variable", "Cla.Mod", "Mod.Cla", "p.value", "v.test"))
 })

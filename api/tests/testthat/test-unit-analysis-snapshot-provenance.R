@@ -13,6 +13,7 @@ withr::defer(setwd(analysis_snapshot_provenance_test_wd), testthat::teardown_env
 # comes from the cache-fingerprint module. Guarded so a missing file is a no-op.
 analysis_snapshot_provenance_api_dir <- getwd()
 for (f in c("functions/analysis-cache-fingerprint.R",
+            "functions/analysis-phenotype-consolidation.R",
             "functions/analysis-snapshot-provenance-generator.R",
             "functions/analysis-snapshot-builder.R",
             "functions/analysis-snapshot-release-manifest.R",
@@ -190,6 +191,13 @@ test_that("applied-params builders record the full clustering config (#585 repro
   expect_identical(pp$quanti_sup, c(2L, 3L, 4L))
   expect_identical(pp$kk, "Inf")
   expect_identical(pp$hcpc_nb_clust, 3L)
+  # #679: the procedure that produced the partition sits next to ncp/kk/seed.
+  expect_identical(pp$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
+  expect_identical(pp$k_rule, "ward_within_inertia_ratio_min")
+  expect_identical(pp$consolidation_method, "multistart_kmeans")
+  expect_identical(pp$consolidation_seed, 42L)
+  expect_true(all(c("consolidation_n_starts", "consolidation_iter_max", "kmeans_algorithm",
+                    "factominer_version", "r_version") %in% names(pp)))
 })
 
 test_that("completeness gate rejects a missing required field", {

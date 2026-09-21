@@ -1,21 +1,6 @@
 test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing (#509,#511)", {
   testthat::skip_if_not_installed("FactoMineR")
-  suppressWarnings(suppressMessages({
-    library(dplyr); library(tibble); library(tidyr); library(purrr); library(stringr)
-  }))
-  source_api_file("functions/analysis-null-models.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-mca-prep.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-phenotype-functions.R", local = FALSE, envir = globalenv())
-  source_api_file("functions/analysis-cluster-validation.R", local = FALSE, envir = globalenv())
-
-  # Stub the identifier-hash helper (unrelated to validation metrics).
-  had_hash <- exists("post_db_hash", envir = globalenv())
-  old_hash <- if (had_hash) get("post_db_hash", envir = globalenv())
-  assign("post_db_hash", function(...) list(links = list(hash = "test-stub")), envir = globalenv())
-  withr::defer({
-    if (had_hash) assign("post_db_hash", old_hash, envir = globalenv())
-    else if (exists("post_db_hash", envir = globalenv())) rm("post_db_hash", envir = globalenv())
-  })
+  local_phenotype_clustering_runtime(validation = TRUE)
   # keep the null loops small + fast for the test
   withr::local_envvar(ANALYSIS_SILHOUETTE_NULL_N = "60", ANALYSIS_MODULARITY_NULL_N = "40",
                       ANALYSIS_PHENOTYPE_KNN_K = "8")
@@ -44,7 +29,7 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
                                    min_size = 10, n_resamples = 3L)
   p <- v$partition
 
-  expect_identical(p$validation_schema_version, "2.0")
+  expect_identical(p$validation_schema_version, "2.1")
   expect_true(all(c("k_decision_curve", "silhouette_z", "silhouette_p_empirical",
                     "shared_modularity_z", "separation_z", "dip_statistic", "dip_p",
                     "silhouette_interpretation", "consolidation", "hcpc_nb_clust") %in% names(p)))
@@ -58,6 +43,25 @@ test_that("validate_phenotype_clusters: consistent k-curve + cross-axis footing 
   # #511: separation footing on the phenotype axis = silhouette-z (not raw silhouette)
   expect_identical(p$separation_z, p$silhouette_z)
   expect_identical(p$null_model, "label_permutation")
+  # #679: the procedure, the ACTUAL k selector curve and the optimisation landscape
+  # are served, and the released solution is never worse than the Ward-cut start.
+  expect_true(all(c("procedure_version", "k_rule", "k_ward_ratio_curve",
+                    "consolidation_landscape", "factominer_version") %in% names(p)))
+  expect_identical(p$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
+  expect_identical(p$k_rule, "ward_within_inertia_ratio_min")
+  expect_true(is.list(p$k_ward_ratio_curve) && length(p$k_ward_ratio_curve) >= 1L)
+  # how contested k itself was travels with the partition
+  expect_true(all(c("k", "ratio", "runner_up_k", "runner_up_ratio", "margin") %in%
+                    names(p$k_selection)))
+  expect_false("k_selection" %in% names(p$consolidation_landscape))
+  ls <- p$consolidation_landscape
+  expect_gte(ls$n_starts_total, 1L)
+  expect_lte(ls$chosen$within_inertia, ls$ward_start$within_inertia + 1e-12)
+  expect_identical(p$factominer_version, as.character(utils::packageVersion("FactoMineR")))
+  # The 1/Q ncp diagnostic comes from a full-spectrum MCA, so it does not depend on
+  # how many eigenvalues the clustering MCA happens to return.
+  expect_true(is.finite(p$ncp_recommended_1overq))
+  expect_true(is.finite(p$adjusted_inertia))
   # kk = Inf -> real consolidation runs and is honestly reported.
   expect_true(isTRUE(p$consolidation))
   expect_identical(p$hcpc_kk, "Inf")

@@ -13,6 +13,10 @@ Use this skill before touching clustering, the snapshot builder/validator, the c
 - Heavy clustering (`gen_string_clust_obj`, `gen_mca_clust_obj`, `gen_network_edges`) is **memoised to a disk cache on a named volume that SURVIVES redeploys** (`bootstrap/init_cache.R`).
 - The builder reads **membership** from the memoised function; the **validator** (`validate_functional_clusters`, not memoised) recomputes fresh. They are coherent only when both clustered the identical graph with the identical seed.
 
+## Phenotype Clustering Is Application-Owned (#679)
+
+`gen_mca_clust_obj` does **not** call `FactoMineR::HCPC`. `analysis-phenotype-consolidation.R` owns the Ward tree, the k rule (argmin W(k)/W(k-1), k in 3..25) and a **multi-start** k-means consolidation that releases the lowest within-cluster inertia; FactoMineR supplies only `MCA` + `catdes`. A single Ward-cut start converged to the worse of two optima on production data, and HCPC's k rule differs between package releases. Never reintroduce an HCPC call or delegate k to a package; keep `test-unit-phenotype-hcpc-parity.R` and `test-unit-phenotype-package-drift-guard.R` green. Detail: `references/cluster-soundness-508-512.md`.
+
 ## The Additivity Lever
 
 `analysis_snapshot_payload_hash` **excludes** `partition_validation` and `reproducibility` (`analysis-snapshot-builder.R`). So new validation metrics are **additive** — they never change `cluster_hash` and never invalidate LLM summaries. Only changes to cluster **membership** (graph construction, STRING channel, MCA hygiene, Leiden/HCPC params) change `cluster_hash`.
@@ -53,6 +57,6 @@ Keyed by per-cluster `cluster_hash` **plus `LLM_SUMMARY_PROMPT_VERSION`** (`llm-
 Authoritative detail, extracted from `AGENTS.md`:
 
 - `references/cache-coherence-514.md` — the memoise fingerprint, the snapshot integrity gate, channel observability, deploy runbook.
-- `references/cluster-soundness-508-512.md` — null models, MCA hygiene, reproducibility bundles, missingness sensitivity, generator provenance.
+- `references/cluster-soundness-508-512.md` — null models, MCA hygiene, the application-owned phenotype k rule + multi-start consolidation (#679), reproducibility bundles, missingness sensitivity, generator provenance.
 - `references/analysis-releases-573.md` — immutable content-addressed releases, the fail-closed build gate, Zenodo operator scripts.
 - `references/computed-syndromicity-630.md` — the syndromicity registry, why no value is called `isolated`, the LLM prompt-version pin.

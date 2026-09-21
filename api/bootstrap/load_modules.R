@@ -178,6 +178,7 @@ bootstrap_load_modules <- function() {
     "functions/syndromicity-repository.R",
     "functions/syndromicity-snapshot.R",
     "functions/analysis-phenotype-mca-prep.R",
+    "functions/analysis-phenotype-consolidation.R",
     "functions/analysis-phenotype-functions.R",
     "functions/analysis-null-models.R",
     "functions/analysis-phenotype-missingness.R",

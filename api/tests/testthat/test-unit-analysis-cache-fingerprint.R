@@ -50,6 +50,31 @@ test_that("string fingerprint distinguishes present vs absent exp+db file, and f
   expect_false(identical(present, grown))
 })
 
+test_that("phenotype fingerprint changes with the consolidation start count (#679)", {
+  # The number of random starts changes cluster membership, so a cache entry computed
+  # under another value must not be served.
+  withr::with_envvar(c(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "100"), {
+    a <- analysis_phenotype_cache_fingerprint()
+  })
+  withr::with_envvar(c(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "0"), {
+    b <- analysis_phenotype_cache_fingerprint()
+  })
+  unset <- withr::with_envvar(c(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = NA),
+                              analysis_phenotype_cache_fingerprint())
+  expect_false(identical(a, b))
+  expect_identical(a, unset) # the default is 100
+})
+
+test_that("phenotype fingerprint carries the FactoMineR version (#679)", {
+  # The MCA coordinates come from FactoMineR and the disk cache survives redeploys: a
+  # package update must not leave a cached membership for the coherence gate to reject.
+  fp <- analysis_phenotype_cache_fingerprint()
+  expected <- tryCatch(as.character(utils::packageVersion("FactoMineR")),
+                       error = function(e) "NA")
+  expect_match(fp, paste0("FactoMineR=", expected), fixed = TRUE)
+  expect_false(grepl("FactoMineR", analysis_string_cache_fingerprint(), fixed = TRUE))
+})
+
 test_that("phenotype fingerprint changes with the MCA prevalence band", {
   withr::with_envvar(c(PHENOTYPE_MCA_PREVALENCE_MIN = "0.05", PHENOTYPE_MCA_PREVALENCE_MAX = "0.95"), {
     a <- analysis_phenotype_cache_fingerprint()

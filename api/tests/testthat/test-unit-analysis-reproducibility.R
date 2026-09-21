@@ -246,3 +246,43 @@ test_that("decode_raw rejects a non-raw blob (same guard as decode)", {
     "not a raw gzip blob"
   )
 })
+
+test_that("phenotype bundle params record the procedure and the optimum it sits at (#679)", {
+  testthat::skip_if_not_installed("FactoMineR")
+  local_phenotype_clustering_runtime()
+  withr::local_envvar(ANALYSIS_PHENOTYPE_CONSOLIDATION_STARTS = "20")
+
+  df <- phenotype_synthetic_matrix(n = 200L)
+  clusters <- gen_mca_clust_obj(df, min_size = 10, quali_sup_var = 1:1, quanti_sup_var = 2:4)
+  cons <- attr(clusters, "consolidation")
+  val <- list(partition = list(
+    hcpc_kk = "Inf", consolidation = TRUE, n_clusters = nrow(clusters), n_entities_dropped = 0L,
+    mean_silhouette = 0.2, silhouette_z = 10,
+    consolidation_landscape = cons[setdiff(names(cons), c("k_ward_ratio_curve", "k_selection"))]
+  ))
+  payload <- analysis_reproducibility_phenotype_payload(df, clusters, val = val)
+  p <- payload$params
+
+  # pre-existing keys keep their types
+  expect_identical(p$consolidation, TRUE)
+  expect_identical(p$kk, "Inf")
+  expect_identical(p$seed, 42L)
+  # new: procedure + optimum
+  expect_identical(p$procedure_version, PHENOTYPE_PROCEDURE_VERSION)
+  expect_identical(p$consolidation_method, "multistart_kmeans")
+  expect_identical(p$consolidation_n_starts, 20L)
+  expect_identical(p$factominer_version, as.character(utils::packageVersion("FactoMineR")))
+  expect_equal(p$within_inertia, cons$chosen$within_inertia, tolerance = 1e-4)
+  # ...and says what that inertia is measured over, because `coords` holds only the
+  # assigned entities.
+  expect_identical(p$within_inertia_scope, "all_input_rows")
+  expect_identical(p$n_input_rows, nrow(df))
+
+  # A consumer can verify the optimum from the bundle alone: re-running the procedure
+  # on the bundle coordinates reproduces the bundle membership.
+  x <- as.matrix(payload$coords[, -1])
+  rownames(x) <- payload$coords$entity_id
+  refit <- phenotype_cluster_coords(x, k = nrow(clusters))
+  served <- stats::setNames(payload$membership$cluster, payload$membership$entity_id)
+  expect_equal(adjusted_rand_index(refit$cluster, served[names(refit$cluster)]), 1)
+})

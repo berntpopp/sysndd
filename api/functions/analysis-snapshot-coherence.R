@@ -286,3 +286,90 @@ analysis_snapshot_join_validated_clusters <- function(membership, val, kind) {
   )
   joined
 }
+
+#' Continuity of the phenotype partition against the previous public snapshot (#679).
+#'
+#' The partition is an optimum of a non-convex objective, so a consumer needs to know
+#' whether a new snapshot re-split the entities or merely refined the previous one.
+#' Reads the current public-ready `phenotype_clusters` snapshot (the one this refresh is
+#' about to supersede) and reports the adjusted Rand index over the entities common to
+#' both, plus each new cluster's best Jaccard recovery. Label-invariant.
+#'
+#' Additive diagnostics inside `partition_validation` (excluded from `payload_hash`):
+#' every failure degrades to a status field and never fails the refresh.
+#'
+#' @param clusters the builder's cluster tibble (`cluster` + nested `identifiers` with
+#'   `entity_id`).
+#' @param conn optional DBI connection forwarded to `query_fn`.
+#' @param parameter_hash the preset's parameter hash; NULL compares against the latest
+#'   public-ready phenotype snapshot of any preset.
+#' @param query_fn `function(sql, params, conn)` returning a data frame; injectable so
+#'   the unit tests need no database.
+#' @return list(status = "ok" | "no_previous_snapshot" | "unavailable", ...)
+#' @export
+analysis_snapshot_phenotype_continuity <- function(clusters, conn = NULL,
+                                                   parameter_hash = NULL,
+                                                   query_fn = db_execute_query) {
+  tryCatch({
+    # Same public-ready predicate as analysis_snapshot_get_public(). Scoped to the
+    # preset's parameter_hash when the caller knows it, so a second preset could never be
+    # compared against the wrong partition.
+    scoped <- !is.null(parameter_hash) && nzchar(parameter_hash)
+    manifest <- query_fn(
+      paste0(
+        "SELECT snapshot_id
+           FROM analysis_snapshot_manifest
+          WHERE analysis_type = ?",
+        if (scoped) "\n            AND parameter_hash = ?" else "",
+        "
+            AND public_ready = 1
+            AND status = 'public_ready'
+          ORDER BY activated_at DESC, snapshot_id DESC
+          LIMIT 1"
+      ),
+      unname(c(list("phenotype_clusters"), if (scoped) list(parameter_hash))),
+      conn = conn
+    )
+    if (is.null(manifest) || nrow(manifest) == 0L) {
+      return(list(status = "no_previous_snapshot"))
+    }
+    previous_id <- as.integer(manifest$snapshot_id[[1]])
+    members <- query_fn(
+      "SELECT cluster_id, entity_id
+         FROM analysis_snapshot_cluster_member
+        WHERE snapshot_id = ?
+          AND cluster_kind = ?
+          AND entity_id IS NOT NULL",
+      unname(list(previous_id, "phenotype")),
+      conn = conn
+    )
+    previous <- stats::setNames(as.character(members$cluster_id), as.character(members$entity_id))
+    previous <- previous[!duplicated(names(previous))]
+
+    ids <- lapply(clusters$identifiers, function(d) unique(as.character(d$entity_id)))
+    current <- stats::setNames(rep(as.character(clusters$cluster), lengths(ids)), unlist(ids))
+    current <- current[!duplicated(names(current))]
+
+    common <- intersect(names(current), names(previous))
+    if (length(common) < 2L) {
+      return(list(status = "unavailable", previous_snapshot_id = previous_id,
+                  n_common_entities = length(common),
+                  message = "fewer than two entities in common with the previous snapshot"))
+    }
+    previous_sets <- split(common, previous[common])
+    best_jaccard <- lapply(split(common, current[common]), function(members_now) {
+      max(vapply(previous_sets, function(members_then) {
+        length(intersect(members_now, members_then)) / length(union(members_now, members_then))
+      }, numeric(1)))
+    })
+    list(
+      status = "ok", previous_snapshot_id = previous_id,
+      n_common_entities = length(common),
+      n_entities_current = length(current), n_entities_previous = length(previous),
+      ari = adjusted_rand_index(current[common], previous[common]),
+      per_cluster_best_jaccard = best_jaccard
+    )
+  }, error = function(e) {
+    list(status = "unavailable", message = conditionMessage(e))
+  })
+}
