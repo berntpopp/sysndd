@@ -1,5 +1,7 @@
 <template>
   <div class="home-page">
+    <HomePreprintBanner />
+
     <section class="home-hero" aria-labelledby="home-title">
       <div class="home-hero__content">
         <h1 id="home-title" class="home-hero__title">SysNDD</h1>
@@ -58,6 +60,7 @@ import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import HomeStatsPanel from '@/components/home/HomeStatsPanel.vue';
 import HomeNewsPanel from '@/components/home/HomeNewsPanel.vue';
 import HomeConceptPanel from '@/components/home/HomeConceptPanel.vue';
+import HomePreprintBanner from '@/components/home/HomePreprintBanner.vue';
 
 // gsap is loaded lazily so the dataviz bundle (d3/upsetjs/gsap) stays off the
 // home page's critical render path. It is only needed for the count-up
@@ -86,6 +89,7 @@ export default {
     HomeStatsPanel,
     HomeNewsPanel,
     HomeConceptPanel,
+    HomePreprintBanner,
   },
   setup() {
     const { makeToast } = useToast();

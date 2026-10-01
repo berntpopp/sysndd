@@ -1,0 +1,53 @@
+cff-version: 1.2.0
+message: "If you use SysNDD, please cite the preprint below."
+type: software
+title: "SysNDD"
+abstract: "Expert-curated database of gene-disease relationships in neurodevelopmental disorders: R/Plumber API, Vue web application, and MySQL schema."
+authors:
+  - family-names: Popp
+    given-names: Bernt
+    orcid: "https://orcid.org/0000-0002-3679-1081"
+repository-code: "https://github.com/berntpopp/sysndd"
+url: "https://sysndd.dbmr.unibe.ch/"
+license: MIT-0
+keywords:
+  - SysNDD
+  - neurodevelopmental disorders
+  - gene-disease relationships
+  - curation
+preferred-citation:
+  type: article
+  title: "SysNDD: A Systematic Database for Neurodevelopmental Disorders"
+  authors:
+    - family-names: "Popp"
+      given-names: "B."
+    - family-names: "Frueh"
+      given-names: "S."
+    - family-names: "Altay"
+      given-names: "M. F."
+    - family-names: "Van Esch"
+      given-names: "H."
+    - family-names: "Caliebe"
+      given-names: "A."
+    - family-names: "Bramswig"
+      given-names: "N. C."
+    - family-names: "Hummel"
+      given-names: "F."
+    - family-names: "Gverdtsiteli"
+      given-names: "S."
+    - family-names: "Kleefstra"
+      given-names: "T."
+    - family-names: "Schenck"
+      given-names: "A."
+    - family-names: "Tuemer"
+      given-names: "Z."
+    - family-names: "Verloes"
+      given-names: "A."
+    - family-names: "Zweier"
+      given-names: "C."
+  journal: "bioRxiv"
+  status: preprint
+  year: 2026
+  month: 10
+  doi: "10.64898/2026.09.29.755401"
+  url: "https://www.biorxiv.org/content/10.64898/2026.09.29.755401"

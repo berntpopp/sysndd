@@ -178,6 +178,18 @@ curators.
 
 </details>
 
+## Citation
+
+If you use SysNDD — the database, the website, the API, or this code — please cite the preprint:
+
+> Popp B, Frueh S, Altay MF, Van Esch H, Caliebe A, Bramswig NC, Hummel F, Gverdtsiteli S, Kleefstra T, Schenck A, Tuemer Z, Verloes A, Zweier C. SysNDD: A Systematic Database for Neurodevelopmental Disorders. bioRxiv [Preprint]. 2026 Oct 1:2026.09.29.755401. doi: 10.64898/2026.09.29.755401
+>
+> <https://www.biorxiv.org/content/10.64898/2026.09.29.755401>
+
+GitHub's "Cite this repository" button reads the same reference from [`CITATION.cff`](CITATION.cff).
+When you refer to the predecessor database SysID, cite in addition
+[Kochinke et al., Am J Hum Genet 2016](https://pubmed.ncbi.nlm.nih.gov/26748517/).
+
 ## License
 
 - **Code** — [MIT No Attribution (MIT-0)](LICENSE.md).

@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "056_table_hash_last_used.sql"
-EXPECTED_MIGRATION_COUNT <- 54L
+EXPECTED_LATEST_MIGRATION <- "057_about_citation_preprint.sql"
+EXPECTED_MIGRATION_COUNT <- 55L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

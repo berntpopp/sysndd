@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.2] - 2026-10-01
+
+### Added
+
+- **Preprint announcement on the home page.** A slim, dismissible strip above the home hero links to the SysNDD preprint on bioRxiv (doi: 10.64898/2026.09.29.755401) and offers a one-click "Copy citation". It is a labelled complementary landmark (not an alert), is built from existing design tokens, and remembers its dismissal per DOI in `localStorage` — so a later publication with a new DOI is announced again. The publication record lives in one place, `app/src/constants/publication.ts`.
+- **`CITATION.cff` and a README "Citation" section.** GitHub's "Cite this repository" now returns the preprint as the preferred citation.
+
+### Changed
+
+- **The citation policy recommends the SysNDD preprint.** The About page's "Citation Policy" names the preprint as the primary citation and keeps the 2016 SysID publication as the reference for the predecessor database; the "manuscript in preparation" note is gone. Migration `057_about_citation_preprint.sql` publishes this as a **new** version of the About content — a copy of the latest published sections with only the citation section replaced, so the earlier version stays in the CMS history and every other section is untouched. It is a no-op if the published citation section already names the preprint DOI. Unpublished administrator drafts are not rewritten and still hold the old citation text: update the citation section in a draft before publishing it. The frontend fallback content, the admin editor's default template, and the documentation preface ("How to cite") carry the same recommendation.
+
 ## [0.38.1] - 2026-09-21
 
 ### Fixed
