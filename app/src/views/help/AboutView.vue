@@ -142,6 +142,11 @@
               -->
               <ol class="about-citation-list">
                 <li>
+                  <BLink :href="SYSNDD_PREPRINT.url" target="_blank" rel="noopener noreferrer">
+                    {{ preprintCitation }}
+                  </BLink>
+                </li>
+                <li>
                   <BLink href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank">
                     Kochinke K, Zweier C, Nijhof B, Fenckova M, Cizek P, Honti F, Keerthikumar S,
                     Oortveld MA, Kleefstra T, Kramer JM, Webber C, Huynen MA, Schenck A. Systematic
@@ -152,9 +157,8 @@
                 </li>
               </ol>
               <p class="text-muted">
-                Please cite the above publication. We are currently working on a new manuscript
-                reporting SysNDD and the development of the NDD landscape over the past years. A
-                link will be provided here upon publication.
+                Please cite the preprint when you use SysNDD. Cite the 2016 publication in addition
+                when you refer to the predecessor database SysID.
               </p>
             </div>
           </BAccordionItem>
@@ -397,6 +401,9 @@ import { renderMarkdown } from '@/composables/useMarkdownRenderer';
 import type { AboutSection } from '@/types';
 import { getPublishedAbout } from '@/api/about';
 import AppVersionInfo from '@/components/AppVersionInfo.vue';
+import { SYSNDD_PREPRINT, formatPreprintCitation } from '@/constants/publication';
+
+const preprintCitation = formatPreprintCitation(SYSNDD_PREPRINT);
 
 useHead({
   title: 'About',

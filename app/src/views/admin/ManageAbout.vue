@@ -159,6 +159,7 @@ import { useHead } from '@unhead/vue';
 import { useCmsContent } from '@/composables';
 import type { AboutSection } from '@/types';
 import SectionList from '@/components/cms/SectionList.vue';
+import { SYSNDD_PREPRINT, formatPreprintCitation } from '@/constants/publication';
 
 useHead({ title: 'Manage About Page' });
 
@@ -213,11 +214,13 @@ In 2009, they established SysID with a manually curated catalog of published gen
     section_id: 'citation',
     title: 'Citation Policy',
     icon: 'bi-journal-text',
-    content: `Please cite the following publication:
+    content: `Please cite the SysNDD preprint when you use SysNDD:
 
-> Kochinke K, Zweier C, Nijhof B, et al. Systematic Phenomics Analysis Deconvolutes Genes Mutated in Intellectual Disability into Biologically Coherent Modules. Am J Hum Genet. 2016;98(1):149-64.
+> ${formatPreprintCitation(SYSNDD_PREPRINT)}
 
-We are currently working on a new manuscript reporting SysNDD.`,
+When you refer to the predecessor database SysID, cite in addition:
+
+> Kochinke K, Zweier C, Nijhof B, et al. Systematic Phenomics Analysis Deconvolutes Genes Mutated in Intellectual Disability into Biologically Coherent Modules. Am J Hum Genet. 2016;98(1):149-64.`,
     sort_order: 1,
   },
   {

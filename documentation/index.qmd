@@ -10,6 +10,10 @@ This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unib
 
 
 
+## How to cite {.unnumbered}
+
+If you use SysNDD, please cite the preprint [@popp_sysndd_2026]. When you refer to the predecessor database SysID, cite in addition the original publication [@kochinke_systematic_2016].
+
 ## History of SysID and SysNDD {.unnumbered}
 
 SysNDD is based on its predecessor SysID, conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in establishing and updating SysID from its start. She has since performed and coordinated curation and regular updates.
