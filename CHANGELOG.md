@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.2] - 2026-10-01
+
 ### Added
 
 - **Preprint announcement on the home page.** A slim, dismissible strip above the home hero links to the SysNDD preprint on bioRxiv (doi: 10.64898/2026.09.29.755401) and offers a one-click "Copy citation". It is a labelled complementary landmark (not an alert), is built from existing design tokens, and remembers its dismissal per DOI in `localStorage` — so a later publication with a new DOI is announced again. The publication record lives in one place, `app/src/constants/publication.ts`.
