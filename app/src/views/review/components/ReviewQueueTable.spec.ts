@@ -41,32 +41,43 @@ describe('ReviewQueueTable', () => {
     expect(newBatchShown({ activeQuickFilters: ['pending'] })).toBe(false);
   });
 
-  it('disables Submit until the entity review is saved (#708)', () => {
-    const submitButton = (saved: number) =>
-      shallowMount(ReviewQueueTable, {
-        props: {
-          filteredItems: [{ entity_id: 1, re_review_review_saved: saved }],
-          fields: [],
-          totalRows: 1,
-          legendItems: [],
-          user: {},
-          dateYearAge: () => '',
-        },
-        global: {
-          directives: { bTooltip: {} },
-          stubs: {
-            TableShell: { template: '<div><slot /></div>' },
-            BTable: {
-              props: ['items'],
-              template:
-                '<div><template v-for="(item, index) in items" :key="index">' +
-                '<slot name="cell(actions)" :item="item" :index="index" /></template></div>',
-            },
-            BButton: { template: '<button><slot /></button>' },
+  it('disables Submit until the entity review is saved, and its tooltip follows (#708)', async () => {
+    const tooltips: unknown[] = [];
+    // Only the Submit wrapper is a <span>; the other tooltips sit on buttons.
+    const record = (el: Element, binding: { value: unknown }) =>
+      el.tagName === 'SPAN' && tooltips.push(binding.value);
+    const props = (saved: number) => ({
+      filteredItems: [{ entity_id: 1, re_review_review_saved: saved }],
+      fields: [],
+      totalRows: 1,
+      legendItems: [],
+      user: {},
+      dateYearAge: () => '',
+    });
+    const wrapper = shallowMount(ReviewQueueTable, {
+      props: props(0),
+      global: {
+        directives: { bTooltip: { mounted: record, updated: record } },
+        stubs: {
+          TableShell: { template: '<div><slot /></div>' },
+          BTable: {
+            props: ['items'],
+            template:
+              '<div><template v-for="(item, index) in items" :key="index">' +
+              '<slot name="cell(actions)" :item="item" :index="index" /></template></div>',
           },
+          BButton: { template: '<button><slot /></button>' },
         },
-      }).find('[aria-label="Submit review for sysndd:1"]');
-    expect(submitButton(0).attributes('disabled')).toBeDefined();
-    expect(submitButton(1).attributes('disabled')).toBeUndefined();
+      },
+    });
+    const submitButton = () => wrapper.find('[aria-label="Submit review for sysndd:1"]');
+
+    expect(submitButton().attributes('disabled')).toBeDefined();
+    expect(tooltips).toContain('Save the entity review first (unchanged is fine), then submit');
+
+    // The row is reused when the table reloads after a save: tooltip text must update too.
+    await wrapper.setProps(props(1));
+    expect(submitButton().attributes('disabled')).toBeUndefined();
+    expect(tooltips.at(-1)).toBe('Submit entity review');
   });
 });

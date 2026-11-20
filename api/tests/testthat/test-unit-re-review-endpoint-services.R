@@ -179,7 +179,10 @@ test_that("svc_re_review_assignment_table_combine returns a bare, user-sorted da
 test_that("svc_re_review_submit builds an allowlisted, unnamed-param UPDATE", {
   rec <- make_statement_recorder(return_value = 1L)
 
-  with_global_bindings(list(db_execute_statement = rec$fn), {
+  with_global_bindings(list(
+    db_execute_statement = rec$fn,
+    db_execute_query = function(...) data.frame(re_review_review_saved = 1L)
+  ), {
     result <- svc_re_review_submit(list(re_review_entity_id = 42L, re_review_submitted = 1L))
   })
 
@@ -190,6 +193,22 @@ test_that("svc_re_review_submit builds an allowlisted, unnamed-param UPDATE", {
   # Params must be unnamed for the anonymous `?` placeholders (DBI::dbBind contract).
   expect_null(names(call$params))
   expect_equal(call$params, list(1L, 42L))
+})
+
+test_that("svc_re_review_submit rejects an entity whose review was never saved (#708)", {
+  rec <- make_statement_recorder()
+
+  with_global_bindings(list(
+    db_execute_statement = rec$fn,
+    db_execute_query = function(...) data.frame(re_review_review_saved = 0L)
+  ), {
+    expect_error(
+      svc_re_review_submit(list(re_review_entity_id = 42L, re_review_submitted = 1L)),
+      class = "error_400"
+    )
+  })
+
+  expect_length(rec$calls$log, 0L) # no UPDATE executed
 })
 
 test_that("svc_re_review_submit rejects a mass-assignment field before touching the DB", {
