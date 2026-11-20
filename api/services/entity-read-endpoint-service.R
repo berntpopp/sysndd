@@ -102,26 +102,10 @@ svc_entity_shape_entity_page <- function(sysndd_db_disease_table, ndd_entity_vie
       ))
     )
 
-  links <- disease_table_pagination_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          api_base_url,
-          "?sort=",
-          sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        link == "null" ~ "null"
-      )
-    ) %>%
-    pivot_wider(
-      id_cols = everything(),
-      names_from = "type",
-      values_from = "link"
-    )
+  links <- build_cursor_links(
+    disease_table_pagination_info$links, "/entity/", sort, filter, fields,
+    api_base_url = api_base_url
+  )
 
   list(
     links = links,

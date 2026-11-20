@@ -29,6 +29,7 @@ source_api_file("functions/entity-repository.R", local = FALSE)
 source_api_file("functions/review-repository.R", local = FALSE)
 source_api_file("services/entity-service.R", local = FALSE)
 source_api_file("services/entity-read-endpoint-service.R", local = FALSE)
+source_api_file("functions/publication-endpoint-helpers.R", local = FALSE)
 source_api_file("services/entity-submission-endpoint-service.R", local = FALSE)
 
 # generate_tibble_fspec_mem is normally bound at API startup from
@@ -147,11 +148,12 @@ test_that("svc_entity_shape_entity_page builds links with the api_base_url and q
     page_after = 0, page_size = "1",
     fspec = "entity_id,symbol",
     is_compact = TRUE,
-    api_base_url = "http://test.local/api/entity"
+    api_base_url = "http://test.local/api"
   )
 
   self_link <- result$links$self[[1]]
-  expect_true(grepl("^http://test\\.local/api/entity", self_link))
+  expect_true(grepl("^http://test\\.local/api/entity/\\?sort=symbol", self_link))
+  expect_false(grepl("/api/api", self_link, fixed = TRUE))
   expect_true(grepl("sort=symbol", self_link, fixed = TRUE))
   expect_true(grepl("filter=any%28category%2CDefinitive%29|filter=any\\(category,Definitive\\)", self_link))
 })
