@@ -172,18 +172,9 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
 
     moi_list_return_helper
   } else {
-    moi_list_return_helper <- moi_list_collected %>%
-      tidyr::nest(.by = c(hpo_mode_of_inheritance_term), .key = "values") %>%
-      ungroup() %>%
-      pivot_wider(
-        id_cols = everything(),
-        names_from = "hpo_mode_of_inheritance_term",
-        values_from = "values"
-      )
-
     # Apply pagination
     pagination_info <- generate_cursor_pag_inf_safe(
-      moi_list_return_helper,
+      moi_list_collected,
       page_size,
       page_after,
       "hpo_mode_of_inheritance_term"
