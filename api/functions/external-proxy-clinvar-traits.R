@@ -85,7 +85,7 @@ enrich_variants_with_clinvar_traits <- function(variants) {
       chunks <- split(unique_vids, ceiling(seq_along(unique_vids) / chunk_size))
 
       trait_map <- list()
-      budget <- external_proxy_budget("ncbi_clinvar", default_timeout = 6, default_max = 10, default_tries = 2L)
+      budget <- external_proxy_budget("ncbi_clinvar")
 
       for (chunk in chunks) {
         chunk_str <- paste(chunk, collapse = ",")
