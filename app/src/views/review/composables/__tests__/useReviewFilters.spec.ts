@@ -31,7 +31,7 @@ interface Row {
   // composable so the typed `useReviewFilters<Row>(source)` call doesn't
   // narrow `Row` away.
   [key: string]: unknown;
-  approved?: number;
+  re_review_approved?: number;
 }
 
 function makeRows(): Row[] {
@@ -59,7 +59,7 @@ function makeRows(): Row[] {
       re_review_review_saved: 1,
       re_review_status_saved: 0,
       status_id: 102,
-      approved: 0,
+      re_review_approved: 0,
     },
     {
       entity_id: 4,
@@ -128,13 +128,22 @@ describe('useReviewFilters', () => {
     const f = useReviewFilters(source);
 
     f.addQuickFilter('submitted');
-    // Rows 2 (saved=1, approved=undef) and 3 (saved=1, approved=0). Row 1+4
+    // Rows 2 (saved=1, re_review_approved=undef) and 3 (saved=1, re_review_approved=0). Row 1+4
     // are unsaved (filtered out).
     const ids = f.filteredItems.value.map((r) => r.entity_id);
     expect(ids).toContain(2);
     expect(ids).toContain(3);
     expect(ids).not.toContain(1);
     expect(ids).not.toContain(4);
+  });
+
+  it('submitted quick filter drops approved rows (API field re_review_approved)', () => {
+    const rows = makeRows();
+    rows[1].re_review_approved = 1;
+    const f = useReviewFilters(ref(rows));
+
+    f.addQuickFilter('submitted');
+    expect(f.filteredItems.value.map((r) => r.entity_id)).toEqual([3]);
   });
 
   it('needsStatus quick filter keeps rows missing status_id or re_review_status_saved', () => {
