@@ -3,7 +3,7 @@
   <AuthenticatedPageShell
     title="Re-review"
     description="Review assigned entities, update curation status, and submit completed re-review work."
-    :meta="`${totalRows} entities`"
+    :meta="`${totalRows} ${totalRows === 1 ? 'entity' : 'entities'}`"
     content-class="review-page"
   >
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
@@ -272,6 +272,8 @@ export default {
     const curator_mode = ref(0);
     const user = ref({ ...EMPTY_USER });
     const modalLoadGeneration = ref(0);
+    // The edit modals stay open while saving (B13); this blocks a double-click resubmit.
+    const submitting = ref(false);
 
     // Re-fetch the table when the curator-mode toggle flips. This watch
     // intentionally lives in `setup()` (not `watch:`) so it composes
@@ -369,6 +371,7 @@ export default {
       curator_mode,
       user,
       modalLoadGeneration,
+      submitting,
 
       // Static config
       fields: TABLE_FIELDS,
@@ -446,19 +449,26 @@ export default {
     // ---- Wizard form submissions (BModal @ok wiring) -----------------------
 
     async submitStatusChange() {
+      if (this.submitting) return;
+      this.submitting = true;
       try {
         const isUpdate = this.statusFormData.status_id != null;
         await this.statusForm.submitForm(isUpdate, true);
         this.makeToast('Status submitted successfully', 'Success', 'success');
         this.announce('Status submitted successfully');
         this.statusForm.resetForm();
+        this.$refs.statusModalRef?.hide();
         await this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.announce('Failed to submit status', 'assertive');
+      } finally {
+        this.submitting = false;
       }
     },
     async submitReviewChange() {
+      if (this.submitting) return;
+      this.submitting = true;
       try {
         // Decide create-vs-update from the review the FORM loaded, not from
         // `review_info` — `loadReviewInfo()` swallows its errors and the modal
@@ -471,10 +481,13 @@ export default {
         this.makeToast('Review submitted successfully', 'Success', 'success');
         this.announce('Review submitted successfully');
         this.reviewForm.resetForm();
+        this.$refs.reviewModalRef?.hide();
         await this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.announce('Failed to submit review', 'assertive');
+      } finally {
+        this.submitting = false;
       }
     },
 

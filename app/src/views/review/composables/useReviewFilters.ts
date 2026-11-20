@@ -30,7 +30,7 @@ export interface FilterableRow {
   re_review_review_saved?: number | null;
   re_review_status_saved?: number | null;
   status_id?: number | null;
-  approved?: number | null;
+  re_review_approved?: number | null;
   [key: string]: unknown;
 }
 
@@ -148,7 +148,7 @@ export function useReviewFilters<T extends FilterableRow>(source: Ref<T[]>): Use
       result = result.filter((item) => !item.re_review_review_saved);
     }
     if (quickFilters.submitted) {
-      result = result.filter((item) => item.re_review_review_saved && !item.approved);
+      result = result.filter((item) => item.re_review_review_saved && !item.re_review_approved);
     }
     if (quickFilters.needsStatus) {
       result = result.filter((item) => !item.status_id || !item.re_review_status_saved);

@@ -154,3 +154,51 @@ describe('Review.vue modal request ownership', () => {
     expect(vm.$refs.statusModalRef.show).toHaveBeenCalledOnce();
   });
 });
+
+describe('Review.vue edit-modal submit (B13)', () => {
+  type SubmitCtx = Record<string, unknown> & {
+    $refs: { reviewModalRef: { hide: () => void }; statusModalRef: { hide: () => void } };
+  };
+  const submit = methods as unknown as Record<
+    'submitReviewChange' | 'submitStatusChange',
+    (this: SubmitCtx) => Promise<void>
+  >;
+
+  function submitCtx(submitForm: () => Promise<void>): SubmitCtx {
+    const form = { submitForm, resetForm: vi.fn(), reviewId: { value: 1 } };
+    return {
+      submitting: false,
+      reviewForm: form,
+      statusForm: form,
+      statusFormData: { status_id: 1 },
+      makeToast: vi.fn(),
+      announce: vi.fn(),
+      loadReReviewData: vi.fn().mockResolvedValue(undefined),
+      $refs: { reviewModalRef: { hide: vi.fn() }, statusModalRef: { hide: vi.fn() } },
+    };
+  }
+
+  it.each([
+    ['submitReviewChange', 'reviewModalRef'],
+    ['submitStatusChange', 'statusModalRef'],
+  ] as const)('%s keeps the modal open on failure and hides it on success', async (fn, ref) => {
+    const failed = submitCtx(vi.fn().mockRejectedValue(new Error('500')));
+    await submit[fn].call(failed);
+    expect(failed.$refs[ref].hide).not.toHaveBeenCalled();
+
+    const saved = submitCtx(vi.fn().mockResolvedValue(undefined));
+    await submit[fn].call(saved);
+    expect(saved.$refs[ref].hide).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a second click while the first save is in flight', async () => {
+    const pending = deferred<void>();
+    const submitForm = vi.fn().mockReturnValue(pending.promise);
+    const vm = submitCtx(submitForm);
+    const first = submit.submitReviewChange.call(vm);
+    await submit.submitReviewChange.call(vm);
+    pending.resolve();
+    await first;
+    expect(submitForm).toHaveBeenCalledOnce();
+  });
+});
