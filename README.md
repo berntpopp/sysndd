@@ -79,9 +79,11 @@ After `make dev` the stack is reachable at:
 | Service           | URL / port                |
 | ----------------- | ------------------------- |
 | App (Vite)        | http://localhost:5173     |
-| API (direct)      | http://localhost:7778     |
+| API (via Traefik) | http://localhost/api      |
 | Traefik dashboard | http://localhost:8090     |
-| MySQL dev / test  | `localhost:7654` / `7655` |
+| MySQL dev         | `localhost:7654`          |
+
+The test database (`localhost:7655`) starts only with `make docker-dev-db`.
 
 See [Development](https://berntpopp.github.io/sysndd/08-development.html) for the full
 onboarding guide.
