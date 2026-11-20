@@ -166,7 +166,7 @@
       <!-- publications tag form with links out -->
 
       <!-- genereviews tag form with links out -->
-      <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">GeneReviews</label>
 
       <BBadge id="popover-badge-help-genereviews" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />

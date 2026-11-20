@@ -79,12 +79,14 @@ import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max, email } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
 import { requestPasswordReset, resetPasswordWithToken } from '@/api/user';
+import { passwordComplexity } from '@/utils/passwordRules';
 
 // Define validation rules
 defineRule('required', required);
 defineRule('min', min);
 defineRule('max', max);
 defineRule('email', email);
+defineRule('password_complexity', passwordComplexity);
 
 export default {
   name: 'PasswordResetView',
@@ -111,7 +113,7 @@ export default {
       value: newPasswordEntry,
       errorMessage: passwordError,
       meta: passwordMeta,
-    } = useField('password', 'required|min:7|max:50');
+    } = useField('password', 'required|min:8|max:50|password_complexity');
 
     const {
       value: newPasswordRepeat,

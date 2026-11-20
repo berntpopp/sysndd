@@ -36,7 +36,9 @@ function makeRelease(): ReleaseDetail {
       source: {
         source_data_version: '2026-07-01',
         db_release: { version: '11.4.0', commit: 'deadbeef' },
-        snapshots: [{ analysis_type: 'functional_clusters', snapshot_id: 101, parameter_hash: 'fp' }],
+        snapshots: [
+          { analysis_type: 'functional_clusters', snapshot_id: 101, parameter_hash: 'fp' },
+        ],
       },
       layers: [],
       files: [
@@ -57,10 +59,15 @@ describe('ReleaseDeskSummary', () => {
     expect(wrapper.text()).toContain('2 files');
     expect(wrapper.text()).toContain('1.2 MB');
     expect(wrapper.text()).toContain('CC-BY-4.0');
+    expect(wrapper.text()).toContain('July 1, 2026');
+    expect(wrapper.text()).not.toContain('2026-07-01T00:05:00Z');
+    expect(wrapper.text()).toContain('License');
 
     await wrapper.get('[data-testid="download-bundle-button"]').trigger('click');
     await wrapper.get('[data-testid="download-manifest-button"]').trigger('click');
-    await wrapper.get('[data-testid="download-file-functional_clusters-payload-json"]').trigger('click');
+    await wrapper
+      .get('[data-testid="download-file-functional_clusters-payload-json"]')
+      .trigger('click');
 
     expect(wrapper.emitted('download-bundle')).toHaveLength(1);
     expect(wrapper.emitted('download-manifest')).toHaveLength(1);
