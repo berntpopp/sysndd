@@ -282,6 +282,35 @@ test_that("svc_entity_deactivate_decision normalizes a string 'NULL' replaced_by
 })
 
 # =============================================================================
+# svc_entity_reactivate_decision() — undo a deactivation (#711)
+# =============================================================================
+
+inactive_original <- tibble::tibble(
+  entity_id = 42L, hgnc_id = "HGNC:1234", is_active = 0L, replaced_by = 99L
+)
+
+test_that("svc_entity_reactivate_decision approves an inactive entity with no active duplicate", {
+  decision <- svc_entity_reactivate_decision(inactive_original, active_conflicts = tibble::tibble())
+  expect_equal(decision$action, "reactivate")
+  expect_equal(decision$entity_id, 42L)
+})
+
+test_that("svc_entity_reactivate_decision refuses missing, already active and conflicting entities", {
+  expect_equal(svc_entity_reactivate_decision(inactive_original[0, ], tibble::tibble())$http_status, 404)
+
+  active <- dplyr::mutate(inactive_original, is_active = 1L)
+  expect_equal(svc_entity_reactivate_decision(active, tibble::tibble())$http_status, 409)
+
+  conflict <- svc_entity_reactivate_decision(
+    inactive_original,
+    active_conflicts = tibble::tibble(entity_id = c(99L, 120L))
+  )
+  expect_equal(conflict$action, "reject")
+  expect_equal(conflict$http_status, 409)
+  expect_match(conflict$error, "sysndd:99, sysndd:120")
+})
+
+# =============================================================================
 # svc_entity_create_finalize() — normalization, server attribution, direct
 # approval, 201/cache invalidation (svc_entity_create_full is mocked)
 # =============================================================================

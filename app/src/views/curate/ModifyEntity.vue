@@ -237,6 +237,8 @@
           </section>
         </div>
 
+        <ReactivateEntityPanel />
+
         <!-- AriaLiveRegion for screen reader announcements -->
         <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
 
@@ -268,6 +270,7 @@ import { useModifyEntityWorkflows } from './composables/useModifyEntityWorkflows
 import EntityInfoHeader from './components/EntityInfoHeader.vue';
 import EntitySearchPanel from './components/EntitySearchPanel.vue';
 import InlineEntityWorkflow from './components/InlineEntityWorkflow.vue';
+import ReactivateEntityPanel from './components/ReactivateEntityPanel.vue';
 import CombinedStatusReviewWorkflow from './components/CombinedStatusReviewWorkflow.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
@@ -279,6 +282,7 @@ export default defineComponent({
     EntityInfoHeader,
     EntitySearchPanel,
     InlineEntityWorkflow,
+    ReactivateEntityPanel,
     CombinedStatusReviewWorkflow,
     AriaLiveRegion,
     ConfirmDiscardDialog,

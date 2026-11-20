@@ -234,3 +234,102 @@ svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, p
     body = list(status = response_new_entity$status, message = response_new_entity$message)
   )
 }
+
+
+#' Decide whether a `POST /entity/reactivate` request may proceed (#711)
+#'
+#' Pure logic. Reactivation is refused when the entity is missing, already
+#' active, or when an active entity already covers it (its recorded
+#' replacement, or an active entity with the same gene, inheritance, disease
+#' and NDD quadruple), because two active entries for one association would
+#' duplicate it in every public table.
+#'
+#' @param ndd_entity_original Tibble with 0 or 1 `ndd_entity` row.
+#' @param active_conflicts Tibble of active entities (column `entity_id`)
+#'   that the reactivated entity would duplicate.
+#' @return `list(action = "reactivate", entity_id)` or
+#'   `list(action = "reject", http_status, error)`.
+#' @export
+svc_entity_reactivate_decision <- function(ndd_entity_original, active_conflicts) {
+  reject <- function(http_status, error) list(action = "reject", http_status = http_status, error = error)
+
+  if (nrow(ndd_entity_original) != 1) {
+    return(reject(404, "Entity not found."))
+  }
+  if (as.integer(ndd_entity_original$is_active) == 1L) {
+    return(reject(409, "Entity is already active."))
+  }
+  if (nrow(active_conflicts) > 0) {
+    return(reject(409, paste0(
+      "Entity cannot be reactivated: active entity ",
+      paste0("sysndd:", active_conflicts$entity_id, collapse = ", "),
+      " already covers this gene-disease association (its replacement or an identical entry). ",
+      "Deactivate that entity first if this one should become current again."
+    )))
+  }
+
+  list(action = "reactivate", entity_id = ndd_entity_original$entity_id)
+}
+
+
+#' `POST /entity/reactivate` — DB-touching orchestrator (#711)
+#'
+#' Undoes a deactivation: is_active 0 -> 1 and replaced_by cleared. Reviews
+#' and statuses are not touched, so the curation history is kept as is.
+#'
+#' @param reactivate_data Parsed `reactivate_json` body (`list(entity = list(entity_id))`).
+#' @param reactivate_user_id Integer, the authenticated curator (logged).
+#' @param pool Database connection pool.
+#' @return `list(http_status, body)` like `svc_entity_deactivate_request()`.
+#' @export
+svc_entity_reactivate_request <- function(reactivate_data, reactivate_user_id, pool) {
+  entity_id <- suppressWarnings(as.integer(reactivate_data$entity$entity_id))
+  if (length(entity_id) != 1 || is.na(entity_id)) {
+    return(list(http_status = 400, body = list(error = "reactivate_json$entity$entity_id must be an integer.")))
+  }
+
+  original <- pool %>%
+    tbl("ndd_entity") %>%
+    dplyr::filter(entity_id == !!entity_id) %>%
+    collect()
+
+  active_conflicts <- tibble::tibble(entity_id = integer())
+  if (nrow(original) == 1) {
+    replaced_by <- original$replaced_by
+    active_conflicts <- pool %>%
+      tbl("ndd_entity") %>%
+      dplyr::filter(
+        is_active == 1,
+        entity_id != !!entity_id,
+        entity_id %in% !!replaced_by[!is.na(replaced_by)] |
+          (hgnc_id == !!original$hgnc_id &
+            hpo_mode_of_inheritance_term == !!original$hpo_mode_of_inheritance_term &
+            disease_ontology_id_version == !!original$disease_ontology_id_version &
+            ndd_phenotype == !!original$ndd_phenotype)
+      ) %>%
+      dplyr::select(entity_id) %>%
+      collect()
+  }
+
+  decision <- svc_entity_reactivate_decision(original, active_conflicts)
+  if (identical(decision$action, "reject")) {
+    return(list(http_status = decision$http_status, body = list(error = decision$error)))
+  }
+
+  rows <- tryCatch(entity_reactivate(decision$entity_id), error = function(e) {
+    logger::log_error("Entity reactivation failed", error = e$message, entity_id = entity_id)
+    NA_integer_
+  })
+  if (is.na(rows) || rows != 1L) {
+    return(list(http_status = 500, body = list(error = "Internal Server Error. Entity not reactivated.")))
+  }
+
+  logger::log_info("Entity reactivated", entity_id = entity_id, user_id = reactivate_user_id)
+  if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
+  if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
+
+  list(
+    http_status = 200,
+    body = list(status = 200, message = "OK. Entity reactivated.", entity_id = entity_id)
+  )
+}

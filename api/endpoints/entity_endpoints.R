@@ -212,6 +212,38 @@ function(req, res) {
   result$body
 }
 
+#* Reactivate Entity
+#*
+#* Undoes a deactivation (Curator+): sets is_active back to 1 and clears
+#* replaced_by. Reviews and statuses are kept unchanged. Refused with 409 when
+#* the entity is already active or when an active entity (its replacement or
+#* an identical gene/inheritance/disease/NDD entry) already covers it.
+#* reactivate_json is `list(entity = list(entity_id))`.
+#*
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. A list with status, message and entity_id.
+#* @response 400 Bad Request. entity_id missing or not an integer.
+#* @response 403 Forbidden. User does not have the required role.
+#* @response 404 Not Found. No entity with this entity_id.
+#* @response 409 Conflict. Already active, or an active entity covers it.
+#* @response 500 Internal server error.
+#*
+#* @post /reactivate
+function(req, res) {
+  require_role(req, res, "Curator")
+
+  result <- svc_entity_reactivate_request(
+    reactivate_data = req$argsBody$reactivate_json,
+    reactivate_user_id = req$user_id,
+    pool = pool
+  )
+
+  res$status <- result$http_status
+  result$body
+}
+
 
 #* Get Phenotypes for Entity
 #*
