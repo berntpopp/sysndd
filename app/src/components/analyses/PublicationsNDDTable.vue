@@ -11,7 +11,7 @@
         'Publications: ' +
         totalRows +
         ' · Loaded ' +
-        perPage +
+        items.length +
         '/' +
         totalRows +
         ' in ' +

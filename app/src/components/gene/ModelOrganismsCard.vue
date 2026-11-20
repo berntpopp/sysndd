@@ -82,8 +82,8 @@
           </div>
 
           <!-- MGI Error -->
-          <span v-if="mgiError && !mgiData" class="text-muted small">
-            <i class="bi bi-exclamation-circle"></i> Error
+          <span v-if="mgiError && !mgiData" class="text-muted small" :title="mgiError">
+            <i class="bi bi-exclamation-circle"></i> Temporarily unavailable
           </span>
 
           <!-- MGI No data -->
@@ -181,8 +181,8 @@
           </div>
 
           <!-- RGD Error -->
-          <span v-if="rgdError && !rgdData" class="text-muted small">
-            <i class="bi bi-exclamation-circle"></i> Error
+          <span v-if="rgdError && !rgdData" class="text-muted small" :title="rgdError">
+            <i class="bi bi-exclamation-circle"></i> Temporarily unavailable
           </span>
 
           <!-- RGD No data -->

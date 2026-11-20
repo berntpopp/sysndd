@@ -64,6 +64,17 @@ function mountCard(props: {
 }
 
 describe('ModelOrganismsCard', () => {
+  it('labels a failed source as temporarily unavailable and keeps the error as its title', () => {
+    const wrapper = mountCard({
+      mgiData: emptyMgiData,
+      rgdError: 'Circuit breaker open for rgd',
+    });
+
+    const rat = wrapper.find('span[title="Circuit breaker open for rgd"]');
+    expect(rat.text()).toBe('Temporarily unavailable');
+    expect(wrapper.text()).not.toMatch(/\bError\b/);
+  });
+
   it('renders the combined empty copy when both model organism sources return no phenotypes', () => {
     const wrapper = mountCard({
       mgiData: emptyMgiData,
