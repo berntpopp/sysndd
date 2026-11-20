@@ -116,20 +116,9 @@ generate_phenotype_entities_list <- function(
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pag_inf function return
-  links <- entity_phenotype_table_pag_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0(
-        dw$api_base_url,
-        "/api/phenotype/entities/browse?sort=",
-        sort,
-        ifelse(filter != "", paste0("&filter=", filter), ""),
-        ifelse(fields != "", paste0("&fields=", fields), ""),
-        link
-      ),
-      link == "null" ~ "null"
-    )) %>%
-    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+  links <- build_cursor_links(
+    entity_phenotype_table_pag_info$links, "/phenotype/entities/browse", sort, filter, fields
+  )
 
   # generate object to return
   return_list <- list(

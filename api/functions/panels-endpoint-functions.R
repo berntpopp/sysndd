@@ -135,9 +135,16 @@ generate_panels_list <- function(
     ungroup() %>%
     left_join(status_categories_list, by = c("category_id")) %>%
     dplyr::select(-category_id) %>%
-    # When max_category=FALSE, remove the max_category column (not needed)
+    # max_category=TRUE: keep only the gene's top-category entities, so the
+    # entity-level inheritance filter cannot match a lower-category entity
+    # (e.g. a Refuted AR entity of a gene that is Definitive only for AD).
+    # max_category=FALSE: the max_category column is not needed.
     {
-      if (!max_category) dplyr::select(., -max_category) else .
+      if (max_category) {
+        dplyr::filter(., .data$category == .data$max_category)
+      } else {
+        dplyr::select(., -max_category)
+      }
     }
 
   sysndd_db_non_alt_loci_set <- pool %>%
@@ -206,26 +213,9 @@ generate_panels_list <- function(
 
   # add host, port and other information to links from the
   # link information from generate_cursor_pag_inf function return
-  links <- disease_genes_panel_pag_inf$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0(
-        dw$api_base_url,
-        "/api/panels/browse?sort=",
-        sort,
-        ifelse(filter != "",
-          paste0("&filter=", filter),
-          ""
-        ),
-        ifelse(fields != "",
-          paste0("&fields=", fields),
-          ""
-        ),
-        link
-      ),
-      link == "null" ~ "null"
-    )) %>%
-    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+  links <- build_cursor_links(
+    disease_genes_panel_pag_inf$links, "/panels/browse", sort, filter, fields
+  )
 
   # generate object to return
   return_list <- list(

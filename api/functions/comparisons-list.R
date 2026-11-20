@@ -157,22 +157,9 @@ generate_comparisons_list <- function(
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pag_inf function return
-  links <- ndd_database_comp_table_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0(
-        dw$api_base_url,
-        "/api/comparisons/table?sort=",
-        sort, ifelse(filter != "",
-          paste0("&filter=", filter),
-          ""
-        ),
-        ifelse(fields != "", paste0("&fields=", fields), ""),
-        link
-      ),
-      link == "null" ~ "null"
-    )) %>%
-    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+  links <- build_cursor_links(
+    ndd_database_comp_table_info$links, "/comparisons/browse", sort, filter, fields
+  )
 
   # generate object to return
   return_list <- list(
