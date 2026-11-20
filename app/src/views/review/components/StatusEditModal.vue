@@ -24,7 +24,10 @@
     footer-class="border-top-0 pt-0"
     :busy="loading"
     @show="$emit('show')"
-    @ok="$emit('ok')"
+    @ok="
+      $event.preventDefault();
+      $emit('ok');
+    "
   >
     <template #title>
       <div class="d-flex align-items-center">
