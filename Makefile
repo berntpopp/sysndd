@@ -537,7 +537,7 @@ docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/
 		(printf "$(RED)✗ docker-dev-db failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Database ports:$(RESET)\n"
 	@printf "  MySQL dev:  localhost:7654\n"
-	@printf "  MySQL test: localhost:7655  (only after make docker-dev-db)\n"
+	@printf "  MySQL test: localhost:7655\n"
 	@printf "\n$(CYAN)Next steps:$(RESET)\n"
 	@printf "  Start API:      cd api && Rscript start_sysndd_api.R\n"
 	@printf "  Start frontend: make serve-app\n"
