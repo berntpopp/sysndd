@@ -218,14 +218,14 @@ describe('TablesPhenotypes', () => {
     expect(wrapper.text()).toContain('MECP2');
   });
 
-  it('caps the loaded count at the row total and shortens raw API filter labels', async () => {
+  it('reports the rows actually loaded and shortens raw API filter labels', async () => {
     server.use(
       http.get('/api/list/phenotype', () =>
         HttpResponse.json({ data: [{ HPO_term: 'Seizure', phenotype_id: 'HP:0001250' }] })
       ),
       http.get('/api/phenotype/entities/browse', () =>
         HttpResponse.json({
-          meta: [{ fspec: [], totalItems: 2, currentPage: 1, totalPages: 1, executionTime: 1 }],
+          meta: [{ fspec: [], totalItems: 12, currentPage: 2, totalPages: 2, executionTime: 1 }],
           data: [{ entity_id: 'E1' }, { entity_id: 'E2' }],
         })
       )
@@ -234,7 +234,7 @@ describe('TablesPhenotypes', () => {
     const wrapper = await mountSubject();
     const vm = wrapper.vm as unknown as { formatHeaderLabel: (label: string) => string };
 
-    expect(wrapper.text()).toContain('Loaded 2/2');
+    expect(wrapper.text()).toContain('Loaded 2/12');
     expect(vm.formatHeaderLabel('Ndd phenotype word')).toBe('NDD');
     expect(vm.formatHeaderLabel('Hpo mode of inheritance term name')).toBe('Inheritance');
   });
