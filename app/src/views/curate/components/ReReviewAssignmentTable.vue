@@ -99,8 +99,8 @@
         </BButton>
         <i id="help-legacy-batch" class="bi bi-question-circle text-muted" aria-hidden="true" />
         <BTooltip target="help-legacy-batch" placement="right" triggers="hover">
-          Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic
-          batches.
+          Assign next available pre-computed batch. Use 'Create Batch' under Criteria batch above
+          for dynamic batches.
         </BTooltip>
       </div>
       <span class="re-review-range">
