@@ -98,25 +98,24 @@
       <template #label>
         <span class="fw-bold">NDD Phenotype <span class="text-danger">*</span></span>
       </template>
-      <div class="ndd-switch">
-        <BFormCheckbox
-          :model-value="formData.nddPhenotype === true"
-          switch
-          size="sm"
-          @update:model-value="setNddPhenotype(Boolean($event))"
-        >
-          <span class="ndd-switch__value">
-            {{ formData.nddPhenotype === true ? 'Yes' : 'No' }}
-          </span>
-        </BFormCheckbox>
-      </div>
+      <!-- Radio buttons, not a switch: null must show no answer, not a misleading 'No' -->
+      <BFormRadioGroup
+        :model-value="formData.nddPhenotype"
+        :options="nddPhenotypeOptions"
+        :state="getFieldState('nddPhenotype')"
+        name="ndd-phenotype"
+        buttons
+        button-variant="outline-primary"
+        size="sm"
+        @update:model-value="setNddPhenotype($event as boolean)"
+      />
     </BFormGroup>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, inject } from 'vue';
-import { BFormGroup, BFormSelect, BFormSelectOption, BFormCheckbox } from 'bootstrap-vue-next';
+import { BFormGroup, BFormSelect, BFormSelectOption, BFormRadioGroup } from 'bootstrap-vue-next';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 import type { EntityFormData, SelectOption } from '@/composables/useEntityForm';
 
@@ -127,7 +126,7 @@ export default defineComponent({
     BFormGroup,
     BFormSelect,
     BFormSelectOption,
-    BFormCheckbox,
+    BFormRadioGroup,
     AutocompleteInput,
   },
 
@@ -175,7 +174,13 @@ export default defineComponent({
       touchField('nddPhenotype');
     };
 
+    const nddPhenotypeOptions = [
+      { text: 'Yes', value: true },
+      { text: 'No', value: false },
+    ];
+
     return {
+      nddPhenotypeOptions,
       formData,
       getFieldError,
       getFieldState,
@@ -212,33 +217,5 @@ export default defineComponent({
   display: block;
   margin-top: 0.3rem;
   text-align: left;
-}
-
-.ndd-switch {
-  display: flex;
-  align-items: center;
-  min-height: 2.35rem;
-  padding: 0 0.15rem;
-}
-
-.ndd-switch :deep(.form-check) {
-  display: flex;
-  align-items: center;
-  min-height: 2rem;
-  margin: 0;
-  padding-left: 2.45rem;
-}
-
-.ndd-switch :deep(.form-check-input) {
-  width: 2.05rem;
-  height: 1.08rem;
-  margin-left: -2.45rem;
-}
-
-.ndd-switch__value {
-  color: #172033;
-  font-size: 0.82rem;
-  font-weight: 750;
-  line-height: 1.2;
 }
 </style>
