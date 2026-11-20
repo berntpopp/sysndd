@@ -3,7 +3,7 @@
   <AuthenticatedPageShell
     title="Re-review"
     description="Review assigned entities, update curation status, and submit completed re-review work."
-    :meta="`${totalRows} entities`"
+    :meta="`${totalRows} ${totalRows === 1 ? 'entity' : 'entities'}`"
     content-class="review-page"
   >
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />

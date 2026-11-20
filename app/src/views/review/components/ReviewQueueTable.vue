@@ -18,7 +18,7 @@
 <template>
   <TableShell
     title="Re-review table"
-    :meta="`${totalRows} entities`"
+    :meta="`${totalRows} ${totalRows === 1 ? 'entity' : 'entities'}`"
     description="Assigned entities and review/status updates for the re-review workflow."
   >
     <template #actions>
@@ -115,7 +115,14 @@
           </BDropdown>
 
           <BBadge
-            v-if="totalRows === 0 && (filter === null || filter === '') && !curationSelected"
+            v-if="
+              totalRows === 0 &&
+              (filter === null || filter === '') &&
+              !categoryFilter &&
+              !userFilter &&
+              activeQuickFilters.length === 0 &&
+              !curationSelected
+            "
             variant="warning"
             pill
             style="cursor: pointer"
