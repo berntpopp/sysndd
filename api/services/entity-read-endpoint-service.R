@@ -189,8 +189,12 @@ svc_entity_list_query <- function(sort = "entity_id", filter = "", fields = "",
   } else {
     ndd_entity_view <- ndd_entity_view_lazy %>% collect()
 
-    if (has_vario_filter) {
-      matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
+    # Each variant clause narrows the set, like every other filter clause (AND)
+    for (clause in vario_filter_result$vario_clauses) {
+      matching_entity_ids <- get_entity_ids_by_vario(
+        clause$vario_ids, pool,
+        match_all = clause$operator == "all"
+      )
       ndd_entity_view <- ndd_entity_view %>%
         dplyr::filter(entity_id %in% matching_entity_ids)
     }

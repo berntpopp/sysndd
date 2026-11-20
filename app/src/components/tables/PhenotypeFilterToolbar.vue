@@ -136,8 +136,12 @@ export default {
       if (!Array.isArray(this.phenotypeOptions) || this.phenotypeOptions.length === 0) {
         return phenotypeId;
       }
-      const phenotype = this.phenotypeOptions.find((opt) => opt.phenotype_id === phenotypeId);
-      return phenotype ? phenotype.HPO_term : phenotypeId;
+      // Correlogram links select "1-HP:..." (present only); label it like /api/list/phenotype?tree
+      const [, modifier, hpoId] = phenotypeId.match(/^(?:([1-5])-)?(.*)$/);
+      const phenotype = this.phenotypeOptions.find((opt) => opt.phenotype_id === hpoId);
+      if (!phenotype) return phenotypeId;
+      const modifierLabel = ['present', 'uncertain', 'variable', 'rare', 'absent'][modifier - 1];
+      return modifierLabel ? `${modifierLabel}: ${phenotype.HPO_term}` : phenotype.HPO_term;
     },
     /**
      * Open the phenotype dropdown programmatically.

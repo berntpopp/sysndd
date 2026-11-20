@@ -59,6 +59,8 @@ describe('PhenotypeFilterToolbar', () => {
     expect(vm.getPhenotypeName('HP:0001249')).toBe('Intellectual disability');
     // Unknown ids fall back to the raw id.
     expect(vm.getPhenotypeName('HP:9999999')).toBe('HP:9999999');
+    // Modifier-prefixed ids (correlogram drill-down, #709) keep their modifier.
+    expect(vm.getPhenotypeName('1-HP:0001249')).toBe('present: Intellectual disability');
   });
 
   it('emits semantic events to the parent', async () => {
