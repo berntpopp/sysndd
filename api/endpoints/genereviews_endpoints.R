@@ -59,7 +59,7 @@ function(req, res, symbol = "") {
 #* (`needs_attention = true`, the #46 gap signal).
 #*
 #* @tag genereviews
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @param include_live:bool When true, include live (cached) NCBI availability
 #*   and the needs_attention flag. Defaults to false (cheap, no external calls).

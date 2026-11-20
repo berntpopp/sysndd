@@ -75,8 +75,11 @@ function(searchterm, helper = TRUE, limit = 50, offset = 0) {
     10
   }
 
+  # An exact hit collapses to one row so the UI can open it directly; a bare
+  # number only counts when it is an entity id.
   if (sysndd_db_entity_search$searchdist[1] == 0 &&
-    is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
+    (is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1]))) ||
+      sysndd_db_entity_search$search[1] == "entity_id")) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search %>%
       slice_head(n = 1)
   } else {
