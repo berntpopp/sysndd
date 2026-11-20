@@ -105,7 +105,7 @@ run_upload_analysis_release_zenodo_cli <- function() {
   confirm_publish <- FALSE
   record_doi <- FALSE
   release_id <- NULL
-  api_base_url <- Sys.getenv("SYSNDD_API_BASE_URL", "http://localhost:7778")
+  api_base_url <- Sys.getenv("SYSNDD_API_BASE_URL", "http://localhost")
 
   if (length(args) > 0) {
     for (i in seq_along(args)) {

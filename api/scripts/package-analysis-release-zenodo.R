@@ -16,7 +16,7 @@
 #
 # Usage (from the repo root, or from api/ -- CWD-independent, see below):
 #   Rscript api/scripts/package-analysis-release-zenodo.R \
-#     [--api-base-url http://localhost:7778] [--release-id latest] \
+#     [--api-base-url http://localhost] [--release-id latest] \
 #     [--staging-dir outputs/analysis-release-zenodo/staging] \
 #     [--archive-dir outputs/analysis-release-zenodo/archive] \
 #     [--version <override>]
@@ -98,7 +98,7 @@ source(
 run_package_analysis_release_zenodo_cli <- function() {
   args <- commandArgs(trailingOnly = TRUE)
 
-  api_base_url <- Sys.getenv("SYSNDD_API_BASE_URL", "http://localhost:7778")
+  api_base_url <- Sys.getenv("SYSNDD_API_BASE_URL", "http://localhost")
   release_id <- "latest"
   staging_dir <- "outputs/analysis-release-zenodo/staging"
   archive_dir <- "outputs/analysis-release-zenodo/archive"
