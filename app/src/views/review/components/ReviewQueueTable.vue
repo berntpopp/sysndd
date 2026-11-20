@@ -207,18 +207,30 @@
           <i class="bi bi-stoplights" aria-hidden="true" />
         </BButton>
 
-        <BButton
+        <!-- #708: a re-review is only submittable once the review was saved
+             (saving unchanged records "checked, nothing to change"). The tooltip
+             sits on a wrapper because a disabled button fires no hover events. -->
+        <span
           v-if="!curationSelected"
           v-b-tooltip.hover.top
-          size="sm"
-          class="me-1 btn-xs"
-          :variant="row.item.re_review_review_saved ? 'success' : 'outline-success'"
-          title="Submit entity review"
-          :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
-          @click="$emit('info-submit', row.item, row.index, $event.target)"
+          class="d-inline-block me-1"
+          :title="
+            row.item.re_review_review_saved
+              ? 'Submit entity review'
+              : 'Save the entity review first (unchanged is fine), then submit'
+          "
         >
-          <i class="bi bi-send-check" aria-hidden="true" />
-        </BButton>
+          <BButton
+            size="sm"
+            class="btn-xs"
+            variant="success"
+            :disabled="!row.item.re_review_review_saved"
+            :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
+            @click="$emit('info-submit', row.item, row.index, $event.target)"
+          >
+            <i class="bi bi-send-check" aria-hidden="true" />
+          </BButton>
+        </span>
 
         <!-- Refuse / decline (needs specialist) — issue #54. Visually separated
              from the success Submit action; warning, not destructive. -->

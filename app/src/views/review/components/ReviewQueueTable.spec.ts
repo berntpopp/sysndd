@@ -40,4 +40,33 @@ describe('ReviewQueueTable', () => {
     expect(newBatchShown({ userFilter: 'alice' })).toBe(false);
     expect(newBatchShown({ activeQuickFilters: ['pending'] })).toBe(false);
   });
+
+  it('disables Submit until the entity review is saved (#708)', () => {
+    const submitButton = (saved: number) =>
+      shallowMount(ReviewQueueTable, {
+        props: {
+          filteredItems: [{ entity_id: 1, re_review_review_saved: saved }],
+          fields: [],
+          totalRows: 1,
+          legendItems: [],
+          user: {},
+          dateYearAge: () => '',
+        },
+        global: {
+          directives: { bTooltip: {} },
+          stubs: {
+            TableShell: { template: '<div><slot /></div>' },
+            BTable: {
+              props: ['items'],
+              template:
+                '<div><template v-for="(item, index) in items" :key="index">' +
+                '<slot name="cell(actions)" :item="item" :index="index" /></template></div>',
+            },
+            BButton: { template: '<button><slot /></button>' },
+          },
+        },
+      }).find('[aria-label="Submit review for sysndd:1"]');
+    expect(submitButton(0).attributes('disabled')).toBeDefined();
+    expect(submitButton(1).attributes('disabled')).toBeUndefined();
+  });
 });

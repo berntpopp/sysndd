@@ -579,6 +579,17 @@ export const actionHelpers: Record<
   async openFirstSubmitReviewModal(page) {
     const submitButton = page.getByRole('button', { name: /submit review for/i }).first();
     await submitButton.waitFor({ timeout: 20_000 });
+    // Submit stays disabled until the review is saved (#708): save it unchanged first.
+    if (await submitButton.isDisabled()) {
+      await actionHelpers.openFirstReviewEditModal(page);
+      const modal = page.locator('.modal.show').first();
+      await modal.getByRole('button', { name: /Save Review/i }).click();
+      await modal.waitFor({ state: 'hidden', timeout: 20_000 });
+      await page
+        .getByRole('button', { name: /submit review for/i, disabled: false })
+        .first()
+        .waitFor({ timeout: 20_000 });
+    }
     await submitButton.click();
     await page.waitForSelector('.modal.show', { timeout: 10_000 });
     await page.getByRole('heading', { name: /Submit Review/i }).waitFor({ timeout: 10_000 });
