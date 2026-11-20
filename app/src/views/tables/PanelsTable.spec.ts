@@ -1,7 +1,7 @@
 import { shallowMount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { describe, expect, it, vi } from 'vitest';
-import { browsePanels } from '@/api/panels';
+import { browsePanels, browsePanelsXlsx } from '@/api/panels';
 import PanelsTable from './PanelsTable.vue';
 
 vi.mock('@unhead/vue', () => ({
@@ -95,5 +95,17 @@ describe('PanelsTable', () => {
     await firstRequest;
 
     expect(wrapper.vm.items).toEqual([{ symbol: 'SECOND' }]);
+  });
+
+  it('sends the chosen columns with the Excel export', async () => {
+    vi.mocked(browsePanelsXlsx).mockRejectedValueOnce(new Error('stop before download'));
+    const wrapper = mountPanelsTable();
+    Object.assign(wrapper.vm, { selected_columns: ['symbol', 'category'] });
+
+    await wrapper.vm.requestExcel();
+
+    expect(vi.mocked(browsePanelsXlsx).mock.calls[0][0]).toMatchObject({
+      fields: 'symbol,category',
+    });
   });
 });
