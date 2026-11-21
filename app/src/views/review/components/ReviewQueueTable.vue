@@ -179,7 +179,7 @@
       show-empty
       small
       fixed
-      :table-attrs="tableMinWidth ? { style: `--table-min-width: ${tableMinWidth}` } : undefined"
+      :style="tableMinWidth ? { '--table-min-width': tableMinWidth } : undefined"
       striped
       hover
       sort-icon-left

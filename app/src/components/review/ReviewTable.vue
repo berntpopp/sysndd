@@ -433,7 +433,7 @@ function truncateHeader(label: string): string {
   margin-top: 0.5rem;
 }
 
-.review-table__desktop {
+.review-table__desktop-scroll {
   overflow-x: auto;
 }
 

@@ -16,7 +16,7 @@
     :sort-by="localSortBy"
     :stacked="stackedMode"
     :fixed="fixedLayout"
-    :table-attrs="tableMinWidth ? { style: `--table-min-width: ${tableMinWidth}` } : undefined"
+    :style="tableMinWidth ? { '--table-min-width': tableMinWidth } : undefined"
     head-variant="light"
     show-empty
     hover

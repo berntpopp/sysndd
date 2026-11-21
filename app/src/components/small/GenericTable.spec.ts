@@ -275,3 +275,18 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
+
+describe('GenericTable fixed-layout minimum width', () => {
+  it('puts the minimum width on the real <table> so narrow windows scroll, not collapse', () => {
+    const wrapper = mount(GenericTable, {
+      props: {
+        items,
+        fields: [{ key: 'name' }, { key: 'role', thStyle: { width: '10rem' } }],
+        sortBy: 'name',
+        sortDesc: false,
+        isBusy: false,
+      },
+    });
+    expect(wrapper.get('table').attributes('style')).toContain('--table-min-width: 17.00rem');
+  });
+});
