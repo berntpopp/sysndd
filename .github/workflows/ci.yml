@@ -98,7 +98,7 @@ jobs:
   # ============================================================================
   lint-api:
     name: Lint R API
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     defaults:
@@ -154,7 +154,7 @@ jobs:
 
   test-api-fast:
     name: Test R API (fast PR gate)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
     needs: changes
     if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.api == 'true' }}
     defaults:
@@ -243,7 +243,7 @@ jobs:
 
   test-api-full:
     name: Test R API (full)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
     if: ${{ github.event_name != 'pull_request' }}
     defaults:
       run:
@@ -350,7 +350,7 @@ jobs:
   # =========================================================================
   slow-tests-nightly:
     name: Slow Tests (nightly)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:
@@ -553,8 +553,8 @@ jobs:
   # When that todo lands, re-evaluate adding macos-latest back to the matrix.
   # ============================================================================
   make-doctor:
-    name: make doctor (ubuntu-latest)
-    runs-on: ubuntu-latest
+    name: make doctor (ubuntu-24.04)
+    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
