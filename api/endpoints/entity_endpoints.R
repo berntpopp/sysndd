@@ -214,17 +214,17 @@ function(req, res) {
 
 #* Reactivate Entity
 #*
-#* Undoes a deactivation (Curator+): sets is_active back to 1 and clears
-#* replaced_by. Reviews and statuses are kept unchanged. Refused with 409 when
-#* the entity is already active or when an active entity (its replacement or
-#* an identical gene/inheritance/disease/NDD entry) already covers it.
+#* Undoes a deactivation (Administrator only): sets is_active back to 1 and
+#* clears replaced_by. Reviews and statuses are kept unchanged. Refused with
+#* 409 when the entity is already active or when an active entity (the end of
+#* its replacement chain, or the same gene, inheritance and disease) covers it.
 #* reactivate_json is `list(entity = list(entity_id))`.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
 #* @response 200 OK. A list with status, message and entity_id.
-#* @response 400 Bad Request. entity_id missing or not an integer.
+#* @response 400 Bad Request. entity_id missing or not a positive integer.
 #* @response 403 Forbidden. User does not have the required role.
 #* @response 404 Not Found. No entity with this entity_id.
 #* @response 409 Conflict. Already active, or an active entity covers it.
@@ -232,7 +232,7 @@ function(req, res) {
 #*
 #* @post /reactivate
 function(req, res) {
-  require_role(req, res, "Curator")
+  require_role(req, res, "Administrator")
 
   result <- svc_entity_reactivate_request(
     reactivate_data = req$argsBody$reactivate_json,

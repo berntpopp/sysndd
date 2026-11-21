@@ -237,7 +237,8 @@
           </section>
         </div>
 
-        <ReactivateEntityPanel />
+        <!-- Undoing a deactivation is Administrator-only (#711); re-checked server-side. -->
+        <ReactivateEntityPanel v-if="isAdministrator" />
 
         <!-- AriaLiveRegion for screen reader announcements -->
         <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
@@ -310,6 +311,7 @@ export default defineComponent({
     // /approve endpoints). The toggle is hidden for non-permitted roles and
     // re-checked server-side, so this is visibility only — never trust it.
     const isCurator = computed(() => hasMinRole('Curator'));
+    const isAdministrator = computed(() => hasMinRole('Administrator'));
 
     // Local modal-specific state not owned by composables
     const deactivate_check = ref(false);
@@ -367,6 +369,7 @@ export default defineComponent({
       hasStatusChanges: statusForm.hasChanges,
       // combined status & review workflow (#36/#37)
       isCurator,
+      isAdministrator,
       // local state
       deactivate_check,
       replace_check,

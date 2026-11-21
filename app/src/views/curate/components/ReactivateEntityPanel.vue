@@ -29,7 +29,7 @@
       :model-value="true"
       :variant="result.variant"
       class="mt-2 mb-0"
-      role="status"
+      :role="result.variant === 'danger' ? 'alert' : 'status'"
     >
       {{ result.text }}
     </BAlert>

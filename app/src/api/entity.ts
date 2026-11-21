@@ -398,9 +398,10 @@ export async function deactivateEntity(
  * POST /api/entity/reactivate
  * Mirrors the `@post /reactivate` handler in api/endpoints/entity_endpoints.R.
  *
- * Curator-only. Undoes a deactivation (`is_active` back to 1, `replaced_by`
- * cleared). 404 when unknown; 409 when already active or when an active
- * entity (its replacement or an identical entry) already covers it.
+ * Administrator-only. Undoes a deactivation (`is_active` back to 1,
+ * `replaced_by` cleared). 404 when unknown; 409 when already active or when
+ * an active entity (end of its replacement chain, or the same gene,
+ * inheritance and disease) already covers it.
  */
 export async function reactivateEntity(
   entityId: number,
