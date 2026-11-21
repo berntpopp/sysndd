@@ -540,4 +540,12 @@ test_that("generate_panels_list matches inheritance only on the gene's top-categ
 
   expect_match(ad$links$self, "^https://sysndd\\.test/api/panels/browse\\?sort=symbol")
   expect_false(grepl("/api/api", ad$links$self, fixed = TRUE))
+
+  # The links carry the rewritten max_category filter; following one must not
+  # rewrite it again into max_max_category (500 on every next/self link).
+  expect_match(ad$links$self, "filter=equals(max_category,", fixed = TRUE)
+  followed <- generate_panels_list(
+    filter = "equals(max_category,'Definitive'),any(inheritance_filter,'Autosomal dominant')"
+  )
+  expect_equal(followed$data$symbol, "FBXO11")
 })

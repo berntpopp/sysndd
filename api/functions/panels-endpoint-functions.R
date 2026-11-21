@@ -47,10 +47,11 @@ generate_panels_list <- function(
     unique()
 
   # if max_category is true replace category in filter
+  # (skipping an existing max_category, so the filter echoed in links can be followed)
   if (max_category) {
     filter <- str_replace(
       filter,
-      "category",
+      "(?<!max_)category",
       "max_category"
     )
   }
