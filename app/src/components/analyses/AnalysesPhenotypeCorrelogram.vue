@@ -69,6 +69,7 @@ import * as d3 from 'd3';
 
 // Typed API client (W5)
 import { getPhenotypeCorrelation } from '@/api/phenotype';
+import { phenotypeCorrelationLink } from './correlogramLinks';
 
 /**
  * Truncate label with ellipsis if it exceeds maximum length
@@ -273,16 +274,13 @@ export default {
         .attr('role', 'button')
         .attr(
           'aria-label',
-          (d) => `View phenotypes for ${d.x} and ${d.y} (correlation: ${d.value})`
+          (d) => `View entities with both ${d.x} and ${d.y} (correlation: ${d.value})`
         )
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
         .on('click', (event, d) => {
-          // Navigate to Phenotypes page filtered by both phenotypes
-          const filterQuery = `all(modifier_phenotype_id,${d.x_id},${d.y_id})`;
-          const url = `/Phenotypes/?sort=entity_id&filter=${filterQuery}&page_after=0&page_size=10`;
-          this.$router.push(url);
+          this.$router.push(phenotypeCorrelationLink(d.x_id, d.y_id));
         });
     },
   },

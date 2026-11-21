@@ -188,14 +188,21 @@ svc_entity_list_query <- function(sort = "entity_id", filter = "", fields = "",
       arrange(!!!rlang::parse_exprs(sort_exprs))
   } else {
     ndd_entity_view <- ndd_entity_view_lazy %>% collect()
+    sysndd_db_disease_table <- ndd_entity_view
 
-    if (has_vario_filter) {
-      matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
-      ndd_entity_view <- ndd_entity_view %>%
+    # Each variant clause narrows the result, like every other filter clause
+    # (AND). ndd_entity_view stays global: the column specs are built from it,
+    # and an empty all() match must not empty the table header (#709).
+    for (clause in vario_filter_result$vario_clauses) {
+      matching_entity_ids <- get_entity_ids_by_vario(
+        clause$vario_ids, pool,
+        match_all = clause$operator == "all"
+      )
+      sysndd_db_disease_table <- sysndd_db_disease_table %>%
         dplyr::filter(entity_id %in% matching_entity_ids)
     }
 
-    sysndd_db_disease_table <- ndd_entity_view %>%
+    sysndd_db_disease_table <- sysndd_db_disease_table %>%
       arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
       dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
   }

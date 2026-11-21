@@ -35,3 +35,12 @@ export function createDefaultPhenotypeFilter(): PhenotypeTableFilter {
 export function phenotypeLogicOperator(isOrMode: boolean): 'any' | 'all' {
   return isOrMode ? 'any' : 'all';
 }
+
+/**
+ * True when a selected filter id stands for the HPO term `hpoId`, either bare
+ * (`HP:x`, any modifier) or modifier-scoped (`1-HP:x`, from the correlogram
+ * drill-down, #709), so the dropdown can show and clear it.
+ */
+export function selectsPhenotype(selectedId: string, hpoId: string): boolean {
+  return selectedId === hpoId || selectedId.endsWith(`-${hpoId}`);
+}
