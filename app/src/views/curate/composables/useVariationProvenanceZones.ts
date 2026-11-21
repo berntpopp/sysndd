@@ -370,7 +370,7 @@ export default function useVariationProvenanceZones(
    *
    * Best-effort and NON-THROWING by design: the provenance layer is additive
    * decoration on a form that must keep working when the route is unavailable
-   * (a pre-#608 API build). Either failure degrades to "no zones", never to a
+   * (a pre-#608 API build). A failure degrades to "no zones", never to a
    * broken review form.
    *
    * The suggestions route is Curator-gated (machine-derived candidates are a

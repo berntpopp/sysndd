@@ -254,8 +254,14 @@ describe('partitionVariationZones', () => {
 describe('useVariationProvenanceZones', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    primeAuth(); // Administrator: the suggestions route is Curator-gated
+    loginAs('Curator'); // the lowest role the suggestions route admits
   });
+
+  function loginAs(role: string | null) {
+    const { user } = primeAuth();
+    if (role === null) useAuth().logout();
+    else useAuth().login('test-token', { ...user, user_role: [role] });
+  }
 
   function setup(selected: string[] = []) {
     const selectedTags = ref<string[]>(selected);
@@ -343,21 +349,23 @@ describe('useVariationProvenanceZones', () => {
     expect(zones.suggestions.value).toEqual([]);
   });
 
-  it('loadForEntity does not request the Curator-gated suggestions route for a Reviewer', async () => {
-    const { user } = primeAuth();
-    useAuth().login('test-token', { ...user, user_role: ['Reviewer'] });
-    entityApiMocks.getEntityVariation.mockResolvedValue([
-      row('VariO:0017', 1, 'active_unconfirmed'),
-    ]);
+  it.each(['Reviewer', 'Viewer', null])(
+    'loadForEntity does not request the Curator-gated suggestions route as %s',
+    async (role) => {
+      loginAs(role);
+      entityApiMocks.getEntityVariation.mockResolvedValue([
+        row('VariO:0017', 1, 'active_unconfirmed'),
+      ]);
 
-    const { zones } = setup(['1-VariO:0017']);
-    await zones.loadForEntity(7);
+      const { zones } = setup(['1-VariO:0017']);
+      await zones.loadForEntity(7);
 
-    expect(entityApiMocks.getEntityVariationSuggestions).not.toHaveBeenCalled();
-    expect(entityApiMocks.getEntityVariation).toHaveBeenCalledWith(7, {}, undefined);
-    expect(zones.needsConfirmation.value).toHaveLength(1);
-    expect(zones.suggestions.value).toEqual([]);
-  });
+      expect(entityApiMocks.getEntityVariationSuggestions).not.toHaveBeenCalled();
+      expect(entityApiMocks.getEntityVariation).toHaveBeenCalledWith(7, {}, undefined);
+      expect(zones.needsConfirmation.value).toHaveLength(1);
+      expect(zones.suggestions.value).toEqual([]);
+    }
+  );
 
   it('reset clears fetched state and dismissals but leaves the selection alone', async () => {
     entityApiMocks.getEntityVariation.mockResolvedValue([
