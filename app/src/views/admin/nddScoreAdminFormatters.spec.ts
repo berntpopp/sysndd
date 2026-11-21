@@ -40,6 +40,9 @@ describe('nddScoreAdminFormatters', () => {
     expect(displayValue(false)).toBe('No');
     expect(displayValue(['only'])).toBe('only');
     expect(displayValue(['a', 'b'])).toBe('a, b');
+    // A tiny non-zero metric (a p-value, an ECE) must not read as an exact 0.
+    expect(displayValue(2e-5)).toBe('2.00e-5');
+    expect(displayValue(0)).toBe('0');
     expect(displayValue('NA')).toBe('Not recorded');
     expect(displayValue(0.903366886497744)).toBe('0.903');
     expect(displayValue({ auc_roc: 0.903366886497744, brier: 0.119 })).toBe(

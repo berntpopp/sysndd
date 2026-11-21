@@ -1,3 +1,5 @@
+import { parseApiDate } from '@/utils/dateUtils';
+
 type LogTime = string | number | Date | null | undefined;
 
 /**
@@ -5,11 +7,7 @@ type LogTime = string | number | Date | null | undefined;
  * local time. Returns null for a missing or unparsable value.
  */
 export function parseLogTime(value: LogTime): Date | null {
-  if (value === null || value === undefined || value === '') return null;
-  const naive =
-    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(value);
-  const date = new Date(naive ? `${(value as string).replace(' ', 'T')}Z` : value);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return typeof value === 'number' ? parseApiDate(new Date(value)) : parseApiDate(value);
 }
 
 export function formatLogDate(date: LogTime): string {
@@ -87,8 +85,9 @@ export function formatLogDuration(seconds: number | string | null | undefined): 
   return `${value.toFixed(2)} s`;
 }
 
-export function getLogDurationClass(seconds: number | string): string {
+export function getLogDurationClass(seconds: number | string | null | undefined): string {
   const ms = parseFloat(String(seconds)) * 1000;
+  if (!Number.isFinite(ms)) return 'text-muted';
   if (ms < 100) return 'text-success';
   if (ms < 500) return 'text-warning-emphasis';
   return 'text-danger fw-bold';

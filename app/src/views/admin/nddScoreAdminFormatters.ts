@@ -41,7 +41,10 @@ export function displayValue(value: unknown): string {
   }
   // Model metrics arrive with 15 decimals; three are what a reader compares.
   if (typeof value === 'number') {
-    return Number.isFinite(value) ? String(Number(value.toFixed(3))) : 'Not recorded';
+    if (!Number.isFinite(value)) return 'Not recorded';
+    return value !== 0 && Math.abs(value) < 0.001
+      ? value.toExponential(2)
+      : String(Number(value.toFixed(3)));
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'object') {

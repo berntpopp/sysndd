@@ -151,9 +151,7 @@ function networkDataError(err: unknown): Error {
   if (isApiError<{ code?: string; message?: string }>(err)) {
     const problem = err.response?.data;
     if (problem?.code) {
-      return new Error(
-        problem.message ? `${problem.code}: ${problem.message}` : problem.code
-      );
+      return new Error(problem.message ? `${problem.code}: ${problem.message}` : problem.code);
     }
   }
 
@@ -253,7 +251,8 @@ export function useNetworkData(): NetworkDataState {
         data.metadata?.display_layout_status === 'available'
           ? null
           : await computeLayoutInWorker(
-              buildCytoscapeElements(data, { initialDefaultEdgesOnly: true })
+              buildCytoscapeElements(data, { initialDefaultEdgesOnly: true }),
+              controller.signal
             );
       if (!isCurrentRequest()) return;
       layoutPositions.value = positions;

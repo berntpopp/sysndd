@@ -179,6 +179,7 @@
       show-empty
       small
       fixed
+      :table-attrs="tableMinWidth ? { style: `--table-min-width: ${tableMinWidth}` } : undefined"
       striped
       hover
       sort-icon-left
@@ -356,6 +357,7 @@
 
 <script>
 import TableShell from '@/components/table/TableShell.vue';
+import { fixedTableMinWidth } from '@/components/small/fixedTableMinWidth';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
@@ -435,6 +437,11 @@ export default {
     'update:perPage',
     'update:curationSelected',
   ],
+  computed: {
+    tableMinWidth() {
+      return fixedTableMinWidth(this.fields);
+    },
+  },
 };
 </script>
 

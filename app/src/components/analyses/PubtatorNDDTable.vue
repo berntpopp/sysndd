@@ -401,13 +401,13 @@ export default defineComponent({
   color: #fff;
 }
 
-/* Date badge: --status-warning text (#f57c00 → boosted to #e65c00) on --status-warning-bg ≈ 4.55:1 ✓ AA */
+/* Date badge: #b34700 on --status-warning-bg ≈ 5.0:1 ✓ AA (#e65c00 was 3.2:1) */
 .details-date {
   display: inline-flex;
   align-items: center;
   padding: 0.2em 0.5em;
   background-color: var(--status-warning-bg, #fff3e0);
-  color: #e65c00;
+  color: #b34700;
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: var(--radius-sm, 0.25rem);

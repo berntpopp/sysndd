@@ -1,5 +1,6 @@
 <template>
   <div class="public-page mcp-page">
+    <span class="visually-hidden" role="status">{{ copied ? 'Copied to clipboard' : '' }}</span>
     <div class="public-shell">
       <header class="public-hero">
         <div>
@@ -103,9 +104,9 @@
                   type="button"
                   class="btn btn-sm btn-outline-secondary mcp-copy"
                   aria-label="Copy Claude Desktop MCP configuration"
-                  @click="copy('claude', jsonSnippet)"
+                  @click="copy('claude-desktop', jsonSnippet)"
                 >
-                  {{ copied === 'claude' ? 'Copied' : 'Copy' }}
+                  {{ copied === 'claude-desktop' ? 'Copied' : 'Copy' }}
                 </button>
               </div>
             </div>
@@ -282,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 import { useHead } from '@unhead/vue';
 
 const resolveMcpUrl = () => `${window.location.origin.replace(/\/$/, '')}/mcp`;
@@ -300,13 +301,14 @@ const jsonSnippet = `{
 
 // Which block was just copied (shows "Copied" for 1.6 s).
 const copied = ref('');
+let copiedTimer: number | undefined;
+onBeforeUnmount(() => window.clearTimeout(copiedTimer));
 async function copy(key: string, text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
     copied.value = key;
-    window.setTimeout(() => {
-      if (copied.value === key) copied.value = '';
-    }, 1600);
+    window.clearTimeout(copiedTimer);
+    copiedTimer = window.setTimeout(() => (copied.value = ''), 1600);
   } catch {
     copied.value = '';
   }

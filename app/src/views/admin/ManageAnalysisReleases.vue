@@ -173,138 +173,145 @@
           {{ admin.actionMessage.value }}
         </BAlert>
 
-        <GenericTable :items="releaseRows" :fields="RELEASE_ADMIN_TABLE_FIELDS" :is-busy="loading">
-          <template #cell-id="{ row }">
-            <div class="release-id">
-              <span class="release-mono text-truncate" :title="row.release_id">
-                {{ row.release_id }}
-              </span>
-              <span class="release-digest" :data-testid="`digest-${row.release_id}`">
-                <span class="release-digest__label">Data</span>
-                <span class="release-mono" :title="row.source_data_version">
-                  {{ shortDigest(row.source_data_version) }}
+        <!-- Scrolls sideways on narrow windows instead of collapsing the date columns. -->
+        <div class="table-responsive">
+          <GenericTable
+            :items="releaseRows"
+            :fields="RELEASE_ADMIN_TABLE_FIELDS"
+            :is-busy="loading"
+          >
+            <template #cell-id="{ row }">
+              <div class="release-id">
+                <span class="release-mono text-truncate" :title="row.release_id">
+                  {{ row.release_id }}
                 </span>
-                <BButton
-                  v-if="row.source_data_version"
-                  size="sm"
-                  variant="link"
-                  class="release-digest__copy"
-                  :title="copiedId === row.release_id ? 'Copied' : 'Copy data version'"
-                  :aria-label="`Copy data version of ${row.release_id}`"
-                  :data-testid="`copy-digest-${row.release_id}`"
-                  @click="copyDigest(row)"
-                >
-                  <i
-                    :class="copiedId === row.release_id ? 'bi bi-check2' : 'bi bi-clipboard'"
-                    aria-hidden="true"
-                  />
-                </BButton>
-              </span>
-            </div>
-          </template>
-          <template #cell-status="{ row }">
-            <BBadge :variant="row.status === 'published' ? 'success' : 'secondary'">
-              {{ row.status }}
-            </BBadge>
-          </template>
-          <template #cell-actions="{ row, expansionShowing, toggleExpansion }">
-            <div class="release-actions">
-              <BButton
-                v-if="row.status === 'draft'"
-                size="sm"
-                variant="outline-primary"
-                :data-testid="`publish-${row.release_id}`"
-                @click="admin.publish(row.release_id)"
-              >
-                Publish
-              </BButton>
-              <BButton
-                size="sm"
-                variant="outline-secondary"
-                :data-testid="`toggle-doi-${row.release_id}`"
-                @click="toggleExpansion?.()"
-              >
-                {{ expansionShowing ? 'Hide DOI form' : 'Record DOI' }}
-              </BButton>
-              <template v-if="row.status === 'draft'">
-                <BButton
-                  v-if="pendingDeleteId !== row.release_id"
-                  size="sm"
-                  variant="outline-danger"
-                  :data-testid="`delete-${row.release_id}`"
-                  @click="pendingDeleteId = row.release_id"
-                >
-                  Delete draft
-                </BButton>
-                <template v-else>
+                <span class="release-digest" :data-testid="`digest-${row.release_id}`">
+                  <span class="release-digest__label">Data</span>
+                  <span class="release-mono" :title="row.source_data_version">
+                    {{ shortDigest(row.source_data_version) }}
+                  </span>
                   <BButton
+                    v-if="row.source_data_version"
                     size="sm"
-                    variant="danger"
-                    :data-testid="`confirm-delete-${row.release_id}`"
-                    @click="handleConfirmDelete(row.release_id)"
+                    variant="link"
+                    class="release-digest__copy"
+                    :title="copiedId === row.release_id ? 'Copied' : 'Copy data version'"
+                    :aria-label="`Copy data version of ${row.release_id}`"
+                    :data-testid="`copy-digest-${row.release_id}`"
+                    @click="copyDigest(row)"
                   >
-                    Confirm delete
+                    <i
+                      :class="copiedId === row.release_id ? 'bi bi-check2' : 'bi bi-clipboard'"
+                      aria-hidden="true"
+                    />
                   </BButton>
-                  <BButton size="sm" variant="outline-secondary" @click="pendingDeleteId = null">
-                    Cancel
-                  </BButton>
-                </template>
-              </template>
-            </div>
-          </template>
-          <template #row-expansion="{ row, toggle }">
-            <div class="doi-form" :data-testid="`doi-form-${row.release_id}`">
-              <div class="doi-form__grid">
-                <div class="doi-form__field">
-                  <label :for="`doi-version-${row.release_id}`" class="form-label fw-semibold">
-                    Version DOI
-                  </label>
-                  <BFormInput
-                    :id="`doi-version-${row.release_id}`"
-                    v-model="doiFormFor(row.release_id).version_doi"
-                    :data-testid="`doi-version-input-${row.release_id}`"
-                  />
-                </div>
-                <div class="doi-form__field">
-                  <label :for="`doi-concept-${row.release_id}`" class="form-label fw-semibold">
-                    Concept DOI
-                  </label>
-                  <BFormInput
-                    :id="`doi-concept-${row.release_id}`"
-                    v-model="doiFormFor(row.release_id).concept_doi"
-                  />
-                </div>
-                <div class="doi-form__field">
-                  <label :for="`doi-zenodo-id-${row.release_id}`" class="form-label fw-semibold">
-                    Zenodo record ID
-                  </label>
-                  <BFormInput
-                    :id="`doi-zenodo-id-${row.release_id}`"
-                    v-model="doiFormFor(row.release_id).zenodo_record_id"
-                  />
-                </div>
-                <div class="doi-form__field">
-                  <label :for="`doi-zenodo-url-${row.release_id}`" class="form-label fw-semibold">
-                    Zenodo record URL
-                  </label>
-                  <BFormInput
-                    :id="`doi-zenodo-url-${row.release_id}`"
-                    v-model="doiFormFor(row.release_id).zenodo_record_url"
-                  />
-                </div>
+                </span>
               </div>
-              <BButton
-                size="sm"
-                variant="primary"
-                class="mt-2"
-                :data-testid="`save-doi-${row.release_id}`"
-                @click="handleSaveDoi(row.release_id, toggle)"
-              >
-                Save DOI
-              </BButton>
-            </div>
-          </template>
-        </GenericTable>
+            </template>
+            <template #cell-status="{ row }">
+              <BBadge :variant="row.status === 'published' ? 'success' : 'secondary'">
+                {{ row.status }}
+              </BBadge>
+            </template>
+            <template #cell-actions="{ row, expansionShowing, toggleExpansion }">
+              <div class="release-actions">
+                <BButton
+                  v-if="row.status === 'draft'"
+                  size="sm"
+                  variant="outline-primary"
+                  :data-testid="`publish-${row.release_id}`"
+                  @click="admin.publish(row.release_id)"
+                >
+                  Publish
+                </BButton>
+                <BButton
+                  size="sm"
+                  variant="outline-secondary"
+                  :data-testid="`toggle-doi-${row.release_id}`"
+                  @click="toggleExpansion?.()"
+                >
+                  {{ expansionShowing ? 'Hide DOI form' : 'Record DOI' }}
+                </BButton>
+                <template v-if="row.status === 'draft'">
+                  <BButton
+                    v-if="pendingDeleteId !== row.release_id"
+                    size="sm"
+                    variant="outline-danger"
+                    :data-testid="`delete-${row.release_id}`"
+                    @click="pendingDeleteId = row.release_id"
+                  >
+                    Delete draft
+                  </BButton>
+                  <template v-else>
+                    <BButton
+                      size="sm"
+                      variant="danger"
+                      :data-testid="`confirm-delete-${row.release_id}`"
+                      @click="handleConfirmDelete(row.release_id)"
+                    >
+                      Confirm delete
+                    </BButton>
+                    <BButton size="sm" variant="outline-secondary" @click="pendingDeleteId = null">
+                      Cancel
+                    </BButton>
+                  </template>
+                </template>
+              </div>
+            </template>
+            <template #row-expansion="{ row, toggle }">
+              <div class="doi-form" :data-testid="`doi-form-${row.release_id}`">
+                <div class="doi-form__grid">
+                  <div class="doi-form__field">
+                    <label :for="`doi-version-${row.release_id}`" class="form-label fw-semibold">
+                      Version DOI
+                    </label>
+                    <BFormInput
+                      :id="`doi-version-${row.release_id}`"
+                      v-model="doiFormFor(row.release_id).version_doi"
+                      :data-testid="`doi-version-input-${row.release_id}`"
+                    />
+                  </div>
+                  <div class="doi-form__field">
+                    <label :for="`doi-concept-${row.release_id}`" class="form-label fw-semibold">
+                      Concept DOI
+                    </label>
+                    <BFormInput
+                      :id="`doi-concept-${row.release_id}`"
+                      v-model="doiFormFor(row.release_id).concept_doi"
+                    />
+                  </div>
+                  <div class="doi-form__field">
+                    <label :for="`doi-zenodo-id-${row.release_id}`" class="form-label fw-semibold">
+                      Zenodo record ID
+                    </label>
+                    <BFormInput
+                      :id="`doi-zenodo-id-${row.release_id}`"
+                      v-model="doiFormFor(row.release_id).zenodo_record_id"
+                    />
+                  </div>
+                  <div class="doi-form__field">
+                    <label :for="`doi-zenodo-url-${row.release_id}`" class="form-label fw-semibold">
+                      Zenodo record URL
+                    </label>
+                    <BFormInput
+                      :id="`doi-zenodo-url-${row.release_id}`"
+                      v-model="doiFormFor(row.release_id).zenodo_record_url"
+                    />
+                  </div>
+                </div>
+                <BButton
+                  size="sm"
+                  variant="primary"
+                  class="mt-2"
+                  :data-testid="`save-doi-${row.release_id}`"
+                  @click="handleSaveDoi(row.release_id, toggle)"
+                >
+                  Save DOI
+                </BButton>
+              </div>
+            </template>
+          </GenericTable>
+        </div>
 
         <p v-if="showLoading" class="text-muted small mb-0 mt-2" role="status">Loading releases…</p>
         <p

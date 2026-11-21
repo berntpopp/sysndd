@@ -220,7 +220,7 @@
         </div>
 
         <BackupMobileRows
-          v-if="!loading && paginatedBackups.length > 0"
+          v-if="!loading && !showLoading && paginatedBackups.length > 0"
           class="d-md-none"
           :items="paginatedBackups"
           @download="(backup) => downloadBackup(backup.filename)"
@@ -228,7 +228,10 @@
           @delete="promptDelete"
         />
 
-        <div v-if="!loading && filteredBackups.length === 0" class="text-center text-muted py-3">
+        <div
+          v-if="!loading && !showLoading && filteredBackups.length === 0"
+          class="text-center text-muted py-3"
+        >
           <template v-if="backups.length === 0">
             No backups available. Use "Backup now" to create one.
           </template>

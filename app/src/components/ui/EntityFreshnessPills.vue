@@ -37,8 +37,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { formatLongDate } from '@/utils/dateUtils';
-import { isMissing } from '@/utils/displayFormat';
+import { formatLongDate, parseApiDate } from '@/utils/dateUtils';
 
 // Values come from a loosely-typed entity record map, so accept anything and
 // coerce defensively.
@@ -49,7 +48,7 @@ const props = defineProps<{
 
 // "2014-03-04 00:00:00" -> datetime "2014-03-04", shown as "March 4, 2014";
 // a missing value hides its pill.
-const isoDate = (value: unknown): string => (isMissing(value) ? '' : String(value).slice(0, 10));
+const isoDate = (value: unknown): string => parseApiDate(value)?.toISOString().slice(0, 10) ?? ''; // '' hides the pill
 const entryIso = computed(() => isoDate(props.entryDate));
 const updatedIso = computed(() => isoDate(props.lastUpdate));
 const entry = computed(() => (entryIso.value ? formatLongDate(entryIso.value) : ''));

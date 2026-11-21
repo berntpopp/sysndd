@@ -146,4 +146,10 @@ withDefaults(
     padding-left: 1rem;
   }
 }
+
+/* A fixed-layout table with a minimum width (see fixedTableMinWidth) scrolls
+   sideways here instead of collapsing its unsized columns. */
+.table-shell__body:has(table[style*='--table-min-width']) {
+  overflow-x: auto;
+}
 </style>

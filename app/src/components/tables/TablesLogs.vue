@@ -4,8 +4,12 @@
     <!-- User Interface controls -->
     <TableShell
       :title="headerLabel"
-      :meta="`${formatCount(totalRows)} log entries`"
-      :description="formatPageRange(currentPage, perPage, items.length, totalRows)"
+      :meta="isBusy && !totalRows ? 'Loading...' : `${formatCount(totalRows)} log entries`"
+      :description="
+        isBusy && !totalRows
+          ? 'Loading logs...'
+          : formatPageRange(currentPage, perPage, items.length, totalRows)
+      "
       :aria-busy="isBusy ? 'true' : 'false'"
     >
       <template #actions>

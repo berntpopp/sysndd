@@ -244,6 +244,7 @@ export default {
       })();
     },
     async loadJWT() {
+      this.authError = ''; // a repeat failure re-mounts the alert, so it is announced again
       // OWASP: credentials MUST go in the JSON body, never in URL query params
       // (query strings leak into access logs, Traefik logs, and browser history).
       // See api/endpoints/authentication_endpoints.R `@post authenticate`.

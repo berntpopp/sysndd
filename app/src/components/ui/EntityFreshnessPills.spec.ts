@@ -23,6 +23,11 @@ describe('EntityFreshnessPills', () => {
     const wrapper = mount(EntityFreshnessPills, {
       props: { entryDate: '2020-01-01', lastUpdate: 'NA' },
     });
+    // An unparsable date hides its pill rather than reading "Last updated —".
+    const bad = mount(EntityFreshnessPills, {
+      props: { entryDate: '2020-01-01', lastUpdate: '0000-00-00' },
+    });
+    expect(bad.find('[data-testid="entity-last-update"]').exists()).toBe(false);
 
     expect(wrapper.find('[data-testid="entity-entry-date"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="entity-last-update"]').exists()).toBe(false);

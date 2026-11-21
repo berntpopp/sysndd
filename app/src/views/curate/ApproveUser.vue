@@ -63,7 +63,7 @@
                     </BInputGroup>
 
                     <BPagination
-                      v-if="totalRows > perPage"
+                      v-if="totalRows > perPage || currentPage > 1"
                       v-model="currentPage"
                       :total-rows="totalRows"
                       :per-page="perPage"

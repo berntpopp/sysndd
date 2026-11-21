@@ -237,3 +237,10 @@
 // WCAG 2.2 NFR-03.6: Respect reduced motion preferences
 // Transitions already use var(--transition-fast) which becomes 0.01ms with prefers-reduced-motion
 // No additional overrides needed
+
+// Set by fixedTableMinWidth on fixed-layout tables; stacked phone tables are exempt.
+@media (min-width: 768px) {
+  table.b-table-fixed[style*='--table-min-width'] {
+    min-width: var(--table-min-width);
+  }
+}

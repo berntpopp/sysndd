@@ -2,7 +2,7 @@
 <template>
   <div class="app-navbar">
     <BNavbar
-      toggleable="lg"
+      toggleable="xl"
       type="light"
       variant="light"
       fixed="top"
@@ -48,7 +48,7 @@
         <!-- Left aligned nav items -->
 
         <!-- Center aligned search bar -->
-        <ul v-if="show_search" class="navbar-nav app-navbar__search mx-auto d-none d-lg-flex">
+        <ul v-if="show_search" class="navbar-nav app-navbar__search mx-auto d-none d-xl-flex">
           <li class="nav-item navbar-search-item">
             <SearchCombobox placeholder-string="Search genes, diseases, IDs" :in-navbar="true" />
           </li>
@@ -73,7 +73,7 @@
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
-        <ul v-if="show_search" class="navbar-nav app-navbar__mobile-search d-lg-none ms-auto">
+        <ul v-if="show_search" class="navbar-nav app-navbar__mobile-search d-xl-none ms-auto">
           <li class="nav-item navbar-search-item">
             <SearchCombobox placeholder-string="Search genes, diseases, IDs" :in-navbar="true" />
           </li>
@@ -441,7 +441,7 @@ export default {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23344054' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.25' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
   .app-navbar__bar {
     padding-right: 0.75rem;
     padding-left: 0.75rem;

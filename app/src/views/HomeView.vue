@@ -150,6 +150,10 @@ export default {
     },
   },
   watch: {
+    // A role redirect from Home reuses this instance, so mounted() does not run again.
+    '$route.query.denied'() {
+      this.notifyDeniedAccess();
+    },
     'entity_statistics.data': {
       handler(after, before) {
         if (!this.initialStatsLoaded) {

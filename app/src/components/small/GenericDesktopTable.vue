@@ -16,6 +16,7 @@
     :sort-by="localSortBy"
     :stacked="stackedMode"
     :fixed="fixedLayout"
+    :table-attrs="tableMinWidth ? { style: `--table-min-width: ${tableMinWidth}` } : undefined"
     head-variant="light"
     show-empty
     hover
@@ -86,9 +87,10 @@
 // GenericTable.vue JS component: row items are intentionally loosely typed so
 // every consumer's cell/row-expansion slot keeps its original untyped contract.
 // Sort logic is delegated to the typed useGenericTableSorting composable.
-import { useSlots } from 'vue';
+import { computed, useSlots } from 'vue';
 import { BTable, BButton } from 'bootstrap-vue-next';
 import { useGenericTableSorting } from './useGenericTableSorting';
+import { fixedTableMinWidth } from './fixedTableMinWidth';
 
 const slots = useSlots();
 // Rendered by their own templates (tooltip fallback, details toggle button).
@@ -134,6 +136,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update-sort', 'update:sort-by']);
+
+const tableMinWidth = computed(() =>
+  props.fixedLayout ? fixedTableMinWidth(props.fields) : undefined
+);
 
 const { localSortBy, handleSortByUpdate, handleHeadClicked, handleSorted } = useGenericTableSorting(
   props,

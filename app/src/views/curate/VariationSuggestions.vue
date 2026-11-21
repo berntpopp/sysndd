@@ -127,7 +127,7 @@
           @dismiss="(row) => onRow(row, 'dismiss')"
         />
 
-        <div v-if="queue.totalPages.value > 1" class="vsq-pager">
+        <div v-if="queue.totalPages.value > 1 || queue.page.value > 1" class="vsq-pager">
           <BButton
             size="sm"
             variant="outline-secondary"

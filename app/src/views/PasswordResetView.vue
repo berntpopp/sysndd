@@ -52,7 +52,12 @@
           </div>
         </form>
 
-        <form v-if="showRequestContainer" class="login-form" @submit.prevent="onPasswordRequest">
+        <form
+          v-if="showRequestContainer"
+          class="login-form"
+          novalidate
+          @submit.prevent="onPasswordRequest"
+        >
           <BFormGroup label="Email address" label-for="reset-email">
             <BFormInput
               id="reset-email"

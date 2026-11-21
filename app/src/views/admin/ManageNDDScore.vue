@@ -17,7 +17,7 @@
           <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
           {{ loadError }}
         </BAlert>
-
+        <span v-if="firstLoad" class="visually-hidden" role="status">Loading status…</span>
         <!-- First load: this layout is the skeleton, so the panels below never move. -->
         <div
           v-if="firstLoad || activeRelease"

@@ -23,7 +23,7 @@
     <BContainer fluid>
       <BAlert v-if="lookupErrorCount" :model-value="true" variant="warning" class="mb-3">
         NCBI lookup failed for {{ lookupErrorCount.toLocaleString('en-US') }} of
-        {{ rows.length.toLocaleString('en-US') }} genes, so their availability is unknown.
+        {{ rows.length.toLocaleString('en-US') }} entities, so their availability is unknown.
         <BButton variant="link" size="sm" class="p-0 align-baseline" @click="reload">
           Try again
         </BButton>

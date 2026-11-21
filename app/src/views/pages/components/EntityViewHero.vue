@@ -243,9 +243,20 @@ const heroTitle = computed(() =>
 .entity-unit-disease :deep(.disease-badge__name) {
   white-space: normal;
 }
+/* Measured loaded heights per breakpoint (the unit grid stacks below 768 px). */
+@media (max-width: 991.98px) {
+  .entity-hero-row {
+    --entity-hero-reserve: 12.7rem;
+  }
+}
+@media (max-width: 767.98px) {
+  .entity-hero-row {
+    --entity-hero-reserve: 20.5rem;
+  }
+}
 @media (max-width: 575.98px) {
   .entity-hero-row {
-    --entity-hero-reserve: 25rem;
+    --entity-hero-reserve: 25.6rem;
   }
   .entity-page-title {
     font-size: 1.1rem;

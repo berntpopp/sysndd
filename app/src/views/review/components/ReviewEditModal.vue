@@ -17,7 +17,7 @@
     size="xl"
     centered
     ok-title="Submit"
-    :no-close-on-esc="dirty"
+    :no-close-on-esc="dirty || isSaving"
     no-close-on-backdrop
     header-class="border-bottom-0 pb-0"
     footer-class="border-top-0 pt-0"

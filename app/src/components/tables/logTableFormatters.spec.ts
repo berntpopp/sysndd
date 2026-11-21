@@ -20,6 +20,8 @@ describe('logTableFormatters', () => {
     expect(getLogDurationClass(0.04)).toBe('text-success');
     expect(getLogDurationClass(0.25)).toBe('text-warning-emphasis'); // amber text is 1.6:1 on white
     expect(getLogDurationClass(0.8)).toBe('text-danger fw-bold');
+    // A missing duration is not a slow request.
+    expect(getLogDurationClass(null)).toBe('text-muted');
   });
 
   it('parses naive API timestamps as UTC (ADM-06)', () => {
@@ -29,6 +31,8 @@ describe('logTableFormatters', () => {
     expect(formatRelativeLogTime('2026-11-21 13:19:00')).toBe('1 minute ago');
     expect(formatAbsoluteLogTime('2026-11-21 13:19:00')).toBe('Nov 21, 2026, 13:19:00 UTC');
     expect(parseLogTime('NA')).toBeNull();
+    // Fractional seconds are still naive UTC, not browser-local time.
+    expect(parseLogTime('2026-11-21 13:19:00.123')?.toISOString()).toBe('2026-11-21T13:19:00.123Z');
 
     vi.useRealTimers();
   });

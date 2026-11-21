@@ -8,9 +8,10 @@ import type { ElementDefinition } from 'cytoscape';
 import type { LayoutPosition } from './geneNetworkLayoutOptions';
 
 export function computeLayoutInWorker(
-  elements: ElementDefinition[]
+  elements: ElementDefinition[],
+  signal?: AbortSignal
 ): Promise<Map<string, LayoutPosition> | null> {
-  if (typeof Worker === 'undefined') return Promise.resolve(null);
+  if (typeof Worker === 'undefined' || signal?.aborted) return Promise.resolve(null);
   return new Promise((resolve) => {
     let worker: Worker;
     try {
@@ -32,6 +33,13 @@ export function computeLayoutInWorker(
       );
     };
     worker.onerror = () => finish(null);
-    worker.postMessage(elements);
+    worker.onmessageerror = () => finish(null);
+    // Leaving the page stops the layout instead of letting it run to completion.
+    signal?.addEventListener('abort', () => finish(null), { once: true });
+    try {
+      worker.postMessage(elements);
+    } catch {
+      finish(null);
+    }
   });
 }
