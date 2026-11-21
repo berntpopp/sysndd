@@ -69,7 +69,7 @@ Entities are grouped by the similarity of their phenotype annotations. Each bubb
 :::
 
 ::: {.doc-screenshot}
-![The Phenotype clustering tab with cluster 1 selected.](static/img/generated/phenotype-correlations-clusters.png){#fig-analyses-phenotype-clusters fig-alt="Phenotype clustering tab. On the left, a network of colored cluster bubbles with one selected. On the right, the cluster summary and a table of variables with p-values and v-test values."}
+![The Phenotype clustering tab with cluster 1 selected.](static/img/generated/phenotype-correlations-clusters.png){#fig-analyses-phenotype-clusters fig-alt="Phenotype clustering tab. On the left, a network of three colored cluster bubbles with cluster 1 selected. On the right, the Organ-system involvement card and the AI summary of cluster 1; the table of variables follows below them."}
 :::
 
 The three table types are:

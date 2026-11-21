@@ -411,3 +411,46 @@ Evidence in `sysndd-worktrees/fixdev-stack/evidence/`.
 
 Open for maintainers: update the production Traefik override (#710); the toast "Review
 submitted successfully" on a plain save; the submit route's missing assignment check.
+
+## Refresh to SysNDD 0.38.4 (2026-11-21)
+
+`docs/refresh-2026-11` rebased onto `master` at v0.38.4 (`51417d1f`; 0.38.4 is a dependency
+and security release with no behaviour change, so the 0.38.3 review below applies). No
+rebase conflicts.
+
+**Screenshots.** All 82 manifest entries were recaptured with `make docs-screenshots` on a
+fresh Playwright stack built from the rebased checkout (app and API 0.38.4), and every PNG
+was inspected. Public pages keep the live origin and its data but are now served by the
+checkout's app build (`DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL`), so all captures show v0.38.4
+although the live site still runs 0.38.2. Changes:
+
+- added `curator-modify-entity-reactivate.png` (Administrator, Reactivate panel with the
+  deactivated overlay entity 9105), referenced in `curator-modify-entity.qmd`;
+- removed the masks that hid B07/B08 (`curation-research-gene-page`) and B17 (the two
+  re-review tables): the captions now read "Loaded 2/2" and Rat "Temporarily unavailable";
+- `phenotype-correlations-clusters` was an empty fixture page whose caption described
+  clusters; it now shows live clusters;
+- `api-swagger-auth` waits for Swagger instead of capturing the loading state;
+  `curator-modify-entity-combined` waits for the review to load;
+- `reviewer-login-link` and `nav-authenticated-admin` lost their legacy labelled pills;
+- helpers follow the 0.38.3 UI (NDD Phenotype Yes/No buttons, "GeneReviews" label); the
+  two captures that save the CHD8 review run last, and the overlay is idempotent after them.
+
+**Text (0.38.3 changes).** Panels inheritance filter now matches only top-category
+entities (FBXO11 callout replaced) and the export honours **Columns**; an exact entity
+number opens the entity; Model Organisms "Temporarily unavailable"; NDD Phenotype Yes/No;
+GeneReviews "Not checked" row restored; New batch badge only without search or filters;
+`links.next` can be followed; "GeneReviews" and "License" labels; profile marker order
+fixed; version stamps 0.38.4.
+
+**Verification.** `quarto render --to html`: exit 0, no warnings. Local link, image and
+anchor check over `_book/*.html`: all resolve except the PDF/EPUB downloads (not built in an
+HTML-only render). `make verify-doc-screenshots`: passed, 82 assets (same 5 orphaned legacy
+files). `api/config.yml` byte-identical after teardown.
+
+**App bugs seen in captures (not fixed here; the affected captures are not referenced by
+any chapter except where noted):** the Curation comparisons table header reads
+"Genes: undefined"; the Panels page reads "Loaded 10/5" on a 5-gene panel (B07 left
+`PanelsTable`); Modify Entity's combined form shows the literal "NA" for empty status and
+review comments (`curator-modify-entity-combined`, referenced); the Data releases archive
+card shows a raw ISO timestamp.
