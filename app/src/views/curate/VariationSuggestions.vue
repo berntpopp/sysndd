@@ -22,16 +22,11 @@
 <template>
   <AuthenticatedPageShell
     title="Variation suggestions"
+    description="Machine-derived variation-ontology annotations that no curator has confirmed. Confirming one records that a curator read its evidence and agrees; it does not change what the entity publishes. Terms that need adding or removing are edited on the entity itself."
     content-class="authenticated-route-content"
     full-width
   >
     <BContainer fluid>
-      <p class="vsq-intro">
-        Machine-derived variation-ontology annotations that no curator has confirmed. Confirming
-        one records that a curator read its evidence and agrees; it does not change what the
-        entity publishes. Terms that need adding or removing are edited on the entity itself.
-      </p>
-
       <TableShell
         title="Unconfirmed annotations"
         :description="tableDescription"
@@ -73,50 +68,52 @@
           </div>
         </template>
 
-        <div class="vsq-filters">
-          <BFormInput
-            v-model="queue.filters.value.q"
-            size="sm"
-            class="vsq-filters__search"
-            placeholder="Gene symbol or entity id"
-            aria-label="Search by gene symbol or entity id"
-            data-testid="variation-suggestions-search"
-            @keyup.enter="queue.applyFilters()"
-          />
-          <BFormSelect
-            v-model="queue.filters.value.state"
-            size="sm"
-            :options="stateOptions"
-            aria-label="Filter by state"
-            data-testid="variation-suggestions-state"
-            @change="queue.applyFilters()"
-          />
-          <BFormSelect
-            v-model="queue.filters.value.max_strength"
-            size="sm"
-            :options="strengthOptions"
-            aria-label="Filter by evidence strength"
-            @change="queue.applyFilters()"
-          />
-          <BFormSelect
-            v-model="queue.sort.value"
-            size="sm"
-            :options="sortOptions"
-            aria-label="Sort order"
-            @change="queue.applyFilters()"
-          />
-          <BFormCheckbox
-            v-model="queue.filters.value.moved"
-            switch
-            data-testid="variation-suggestions-moved"
-            @change="queue.applyFilters()"
-          >
-            Superseded imports only
-          </BFormCheckbox>
-          <BButton size="sm" variant="outline-secondary" @click="queue.resetFilters()">
-            Reset
-          </BButton>
-        </div>
+        <template #toolbar>
+          <div class="vsq-filters">
+            <BFormInput
+              v-model="queue.filters.value.q"
+              size="sm"
+              class="vsq-filters__search"
+              placeholder="Gene symbol or entity id"
+              aria-label="Search by gene symbol or entity id"
+              data-testid="variation-suggestions-search"
+              @keyup.enter="queue.applyFilters()"
+            />
+            <BFormSelect
+              v-model="queue.filters.value.state"
+              size="sm"
+              :options="stateOptions"
+              aria-label="Filter by state"
+              data-testid="variation-suggestions-state"
+              @change="queue.applyFilters()"
+            />
+            <BFormSelect
+              v-model="queue.filters.value.max_strength"
+              size="sm"
+              :options="strengthOptions"
+              aria-label="Filter by evidence strength"
+              @change="queue.applyFilters()"
+            />
+            <BFormSelect
+              v-model="queue.sort.value"
+              size="sm"
+              :options="sortOptions"
+              aria-label="Sort order"
+              @change="queue.applyFilters()"
+            />
+            <BFormCheckbox
+              v-model="queue.filters.value.moved"
+              switch
+              data-testid="variation-suggestions-moved"
+              @change="queue.applyFilters()"
+            >
+              Superseded imports only
+            </BFormCheckbox>
+            <BButton size="sm" variant="outline-secondary" @click="queue.resetFilters()">
+              Reset
+            </BButton>
+          </div>
+        </template>
 
         <VariationSuggestionsTable
           :rows="queue.rows.value"
@@ -130,29 +127,27 @@
           @dismiss="(row) => onRow(row, 'dismiss')"
         />
 
-        <template #footer>
-          <div class="vsq-pager">
-            <BButton
-              size="sm"
-              variant="outline-secondary"
-              :disabled="queue.page.value <= 1 || queue.loading.value"
-              @click="queue.goToPage(queue.page.value - 1)"
-            >
-              Previous
-            </BButton>
-            <span class="vsq-pager__label">
-              Page {{ queue.page.value }} of {{ queue.totalPages.value }}
-            </span>
-            <BButton
-              size="sm"
-              variant="outline-secondary"
-              :disabled="queue.page.value >= queue.totalPages.value || queue.loading.value"
-              @click="queue.goToPage(queue.page.value + 1)"
-            >
-              Next
-            </BButton>
-          </div>
-        </template>
+        <div v-if="queue.totalPages.value > 1" class="vsq-pager">
+          <BButton
+            size="sm"
+            variant="outline-secondary"
+            :disabled="queue.page.value <= 1 || queue.loading.value"
+            @click="queue.goToPage(queue.page.value - 1)"
+          >
+            Previous
+          </BButton>
+          <span class="vsq-pager__label">
+            Page {{ queue.page.value }} of {{ queue.totalPages.value }}
+          </span>
+          <BButton
+            size="sm"
+            variant="outline-secondary"
+            :disabled="queue.page.value >= queue.totalPages.value || queue.loading.value"
+            @click="queue.goToPage(queue.page.value + 1)"
+          >
+            Next
+          </BButton>
+        </div>
       </TableShell>
     </BContainer>
   </AuthenticatedPageShell>
@@ -223,22 +218,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.vsq-intro {
-  max-width: 68ch;
-  margin-bottom: 1rem;
-}
-
 .vsq-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-subtle, #dee2e6);
+}
+
+/* Grey outline text on the subtle toolbar fill is 4.4:1; use the darker secondary tone. */
+.vsq-filters :deep(.btn-outline-secondary) {
+  --bs-btn-color: var(--bs-secondary-text-emphasis);
 }
 
 .vsq-filters__search {
+  flex: 1 1 14rem;
   max-width: 18rem;
+}
+
+/* Selects size to their options so the four filters share one row from md up. */
+.vsq-filters :deep(.form-select) {
+  flex: 0 1 12rem;
+  width: auto;
 }
 
 .vsq-bulk {

@@ -6,6 +6,8 @@
  * phenotype/variation tree-shape transform).
  */
 
+import { categoryLegendItems } from '@/composables/approval/useStatusHelpers';
+
 export interface TreeNode {
   id: string;
   label: string;
@@ -71,64 +73,71 @@ export const reviewTableFields = [
     label: 'Entity',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '90px' },
+    thStyle: { width: '7.25rem' },
   },
-  { key: 'symbol', label: 'Gene', sortable: true, class: 'text-start', thStyle: { width: '95px' } },
+  {
+    key: 'symbol',
+    label: 'Gene',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '6.5rem' },
+  },
   {
     key: 'disease_ontology_name',
     label: 'Disease',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '180px' },
+    thStyle: { width: '10rem' },
   },
   {
     key: 'hpo_mode_of_inheritance_term_name',
     label: 'Inheritance',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '145px' },
+    thStyle: { width: '8rem' },
   },
   {
     key: 'synopsis',
     label: 'Synopsis',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '105px' },
   },
   {
     key: 'comment',
     label: 'Comment',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '95px' },
+    thStyle: { width: '7.5rem' },
   },
   {
     key: 'review_date',
     label: 'Date',
     sortable: true,
-    class: 'text-start',
-    thStyle: { width: '120px' },
+    class: 'text-start text-nowrap',
+    thStyle: { width: '7.25rem' },
   },
   {
     key: 'review_user_name',
     label: 'User',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '120px' },
+    thStyle: { width: '8rem' },
   },
-  { key: 'actions', label: 'Actions', class: 'text-start', thStyle: { width: '180px' } },
+  {
+    key: 'actions',
+    label: 'Actions',
+    class: 'text-start text-nowrap',
+    thStyle: { width: '11rem' },
+  },
 ];
 
 /** Legend-item rows shared across the review approval UI. */
 export const reviewLegendItems = [
-  { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-  { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-  { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-  { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+  ...categoryLegendItems,
   { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Status change pending' },
   { icon: 'bi bi-exclamation-triangle-fill', color: '#ffc107', label: 'Multiple pending reviews' },
   { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
   { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit review' },
-  { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve review' },
+  { icon: 'bi bi-check2-circle', color: '#198754', label: 'Approve review' },
   { icon: 'bi bi-x-circle', color: '#dc3545', label: 'Dismiss review' },
 ];

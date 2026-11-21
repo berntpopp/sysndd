@@ -28,12 +28,13 @@ const mocks = vi.hoisted(() => ({
   selectEntity: vi.fn(),
   addGene: vi.fn(),
   removeGene: vi.fn(),
+  dateRange: { start: null as string | null, end: null as string | null },
 }));
 
 function makeFormData() {
   return reactive({
     batch_name: '',
-    date_range: { start: null as string | null, end: null as string | null },
+    date_range: { ...mocks.dateRange },
     entity_list: [] as { entity_id: number; symbol: string; disease_ontology_name: string }[],
     gene_list: [] as number[],
     status_filter: null as number | null,
@@ -163,5 +164,13 @@ describe('BatchCriteriaForm — entity picker wiring', () => {
 
     expect(wrapper.find('form').exists()).toBe(true);
     expect(wrapper.text()).toContain('Batch summary');
+  });
+
+  // S-33: the summary printed ISO dates while the date inputs show locale dates.
+  it('writes the summary date range in long form', () => {
+    mocks.dateRange = { start: '2020-01-01', end: '2026-06-30' };
+    const wrapper = mountForm();
+    mocks.dateRange = { start: null, end: null };
+    expect(wrapper.text()).toContain('Reviews: January 1, 2020 – June 30, 2026');
   });
 });

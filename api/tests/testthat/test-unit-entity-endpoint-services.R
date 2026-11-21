@@ -437,6 +437,23 @@ test_that("POST /entity/reactivate is Administrator-only", {
   expect_match(src[route + 2], 'require_role\\(req, res, "Administrator"\\)')
 })
 
+test_that("GET /entity/<id>/status and /review send a missing comment as JSON null", {
+  # na="string" sent "NA"; the curation forms showed it and saved it back as text.
+  src <- readLines(file.path(get_api_dir(), "endpoints", "entity_endpoints.R"), warn = FALSE)
+  for (path in c("/<sysndd_id>/status", "/<sysndd_id>/review")) {
+    route <- grep(paste0("^#\\*\\s*@get ", path, "$"), src)
+    expect_length(route, 1)
+    block <- src[max(1, route - 10):route]
+    serializer <- block[grepl("@serializer", block)]
+    expect_length(serializer, 1)
+    expect_match(serializer, 'na="null"', fixed = TRUE)
+  }
+  expect_identical(
+    as.character(jsonlite::toJSON(data.frame(comment = NA_character_), na = "null")),
+    '[{"comment":null}]'
+  )
+})
+
 # =============================================================================
 # svc_entity_create_finalize() — normalization, server attribution, direct
 # approval, 201/cache invalidation (svc_entity_create_full is mocked)

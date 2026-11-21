@@ -5,13 +5,13 @@
       <div class="avatar-wrapper">
         <div
           class="avatar-circle d-flex align-items-center justify-content-center"
-          :class="`bg-${roleVariant} text-white`"
+          :class="`text-bg-${roleVariant}`"
         >
           <span class="avatar-initials">{{ user.abbreviation?.[0] || '?' }}</span>
         </div>
         <span
           class="avatar-badge d-flex align-items-center justify-content-center"
-          :class="`bg-${roleVariant}`"
+          :class="`text-bg-${roleVariant}`"
         >
           <i :class="`bi bi-${roleIcon}`" aria-hidden="true" />
         </span>
@@ -49,14 +49,7 @@ interface UserProfileSummary {
 }
 
 type BootstrapVariant =
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'danger'
-  | 'warning'
-  | 'info'
-  | 'light'
-  | 'dark';
+  'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
 
 defineProps<{
   user: UserProfileSummary;
@@ -117,7 +110,6 @@ defineProps<{
   height: 28px;
   border: 2px solid #fff;
   border-radius: 50%;
-  color: #fff;
   font-size: 0.75rem;
 }
 
@@ -160,6 +152,19 @@ defineProps<{
 
 .session-pill .bi {
   font-size: 0.5rem;
+}
+
+/* text-success/-warning/-danger on their -subtle fill measure 3.5:1; use the emphasis tones. */
+.session-pill.text-success {
+  color: var(--bs-success-text-emphasis) !important;
+}
+
+.session-pill.text-warning {
+  color: var(--bs-warning-text-emphasis) !important;
+}
+
+.session-pill.text-danger {
+  color: var(--bs-danger-text-emphasis) !important;
 }
 
 @media (max-width: 575.98px) {

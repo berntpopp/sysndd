@@ -233,7 +233,8 @@
               {{ formData.entity_list.length }} specific entities
             </li>
             <li v-if="formData.date_range.start && formData.date_range.end">
-              Reviews: {{ formData.date_range.start }} → {{ formData.date_range.end }}
+              Reviews: {{ longDate(formData.date_range.start) }} –
+              {{ longDate(formData.date_range.end) }}
             </li>
             <li v-if="formData.gene_list.length > 0">
               {{ formData.gene_list.length }} gene(s) selected
@@ -330,6 +331,9 @@ import { useBatchForm } from '@/composables/useBatchForm';
 import BatchCriteriaEntityPicker from './BatchCriteriaEntityPicker.vue';
 import useBatchCriteriaOptions from './useBatchCriteriaOptions';
 
+// "2020-01-01" -> "January 1, 2020" in UTC. ponytail: swap for the shared dateUtils helper.
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', dateStyle: 'long' });
 const emit = defineEmits<{
   (e: 'batch-created'): void;
 }>();
@@ -403,6 +407,7 @@ const onReset = () => {
 <style scoped>
 .batch-criteria-form {
   display: grid;
+  text-align: start; /* #app centres text; headings and the summary sat centred over fields */
   gap: 0.8rem;
   min-width: 0;
 }

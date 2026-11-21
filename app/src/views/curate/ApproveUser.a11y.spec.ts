@@ -196,4 +196,12 @@ describe('ApproveUser accessibility', () => {
     // Should have at least some labeled inputs
     expect(labeledInputs).toBeGreaterThan(0);
   });
+
+  // CUR-08/S-09: the 70 px per-page select clipped "10" to "1(" and had no name.
+  it('names the per-page select and leaves its width to the content', async () => {
+    const wrapper = await mountComponent();
+    const select = wrapper.get('#user-approval-per-page-select');
+    expect(select.attributes('aria-label')).toBe('Rows per page');
+    expect(select.attributes('style') ?? '').not.toContain('width');
+  });
 });

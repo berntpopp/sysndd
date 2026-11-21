@@ -10,6 +10,7 @@
 <template>
   <AuthenticatedPageShell
     title="Approve Statuses"
+    description="Pending status changes. Approve a status to publish it, edit it first, or dismiss it."
     content-class="authenticated-route-content"
     full-width
   >

@@ -16,6 +16,10 @@ import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
 import { getStatusById, createStatus, updateStatus } from '@/api/status';
 import { getEntityStatus } from '@/api/entity';
 
+/** Free text from an R endpoint that may send a missing value as null or the string "NA". */
+export const formText = (value: string | null | undefined): string =>
+  value == null || value === 'NA' ? '' : value;
+
 // Types
 export interface StatusFormData {
   category_id: number | null;
@@ -168,7 +172,7 @@ export default function useStatusForm(entityId?: string | number) {
 
       // Update form data
       formData.category_id = statusData.category_id;
-      formData.comment = statusData.comment || '';
+      formData.comment = formText(statusData.comment);
       formData.problematic = Boolean(statusData.problematic);
 
       // Set metadata (not editable)
@@ -216,7 +220,7 @@ export default function useStatusForm(entityId?: string | number) {
 
       // Update form data
       formData.category_id = statusData.category_id;
-      formData.comment = statusData.comment || '';
+      formData.comment = formText(statusData.comment);
       formData.problematic = Boolean(statusData.problematic);
 
       // Set metadata

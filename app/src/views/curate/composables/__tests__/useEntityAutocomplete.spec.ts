@@ -28,7 +28,7 @@ describe('useEntityAutocomplete', () => {
     expect(a.entity_search_results.value.length).toBe(10);
   });
 
-  describe('exact entity_id match comes first', () => {
+  describe('an exact entity_id match wins', () => {
     // The list endpoint returns 10 rows sorted by entity_id; contains(any,...) also matches
     // OMIM ids, so the exact id can rank below lower ids or fall off the page entirely.
     const handler = (containsIds: number[]) =>
@@ -39,26 +39,39 @@ describe('useEntityAutocomplete', () => {
         return HttpResponse.json({ data: ids.map((entity_id) => ({ entity_id })) });
       });
 
-    test('searchEntity ranks the exact id above an earlier contains match', async () => {
+    // CUR-30: an exact id used to come back with unrelated contains(any,...) matches under it.
+    test('searchEntity shows an exact id match alone', async () => {
       server.use(handler([172, 1502, 2970]));
       const a = useEntityAutocomplete();
       await a.searchEntity('1502');
-      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([1502, 172, 2970]);
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([1502]);
     });
 
     test('searchEntity keeps the exact id when it is off the contains page', async () => {
       server.use(handler([3, 4, 5, 7, 8, 10, 14, 17, 19, 25]));
       const a = useEntityAutocomplete();
       await a.searchEntity('61');
-      expect(a.entity_search_results.value.map((e) => e.entity_id).slice(0, 2)).toEqual([61, 3]);
-      expect(a.entity_search_results.value.length).toBe(10);
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([61]);
     });
 
-    test('searchReplacementEntity ranks the exact id first too', async () => {
+    test('searchReplacementEntity shows the exact id alone too', async () => {
       server.use(handler([172, 1502]));
       const a = useEntityAutocomplete({ getCurrentEntityId: () => 99 });
       await a.searchReplacementEntity('1502');
-      expect(a.replace_entity_search_results.value.map((e) => e.entity_id)).toEqual([1502, 172]);
+      expect(a.replace_entity_search_results.value.map((e) => e.entity_id)).toEqual([1502]);
+    });
+
+    test('a numeric query with no exact entity keeps the contains results', async () => {
+      server.use(
+        http.get('*/api/entity/*', ({ request }) =>
+          new URL(request.url).searchParams.get('filter')?.startsWith('equals(')
+            ? HttpResponse.json({ data: [] })
+            : HttpResponse.json({ data: [{ entity_id: 172 }, { entity_id: 1502 }] })
+        )
+      );
+      const a = useEntityAutocomplete();
+      await a.searchEntity('99999');
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([172, 1502]);
     });
 
     test('a failed exact-id lookup keeps the contains results', async () => {

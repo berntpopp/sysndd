@@ -3,7 +3,7 @@
 <template>
   <BCard body-class="p-2" class="mb-3">
     <div class="d-flex flex-wrap gap-3 align-items-center">
-      <strong class="me-2">Icon Legend:</strong>
+      <strong class="me-2">{{ title }}</strong>
       <div v-for="item in legendItems" :key="item.label" class="d-flex align-items-center gap-1">
         <!-- Dynamic component rendering (e.g., CategoryIcon) -->
         <component
@@ -51,6 +51,12 @@ defineProps({
   legendItems: {
     type: Array,
     required: true,
+  },
+  // Declared so a caller's `title` labels the legend instead of falling through
+  // to BCard, which rendered it as a card-title <h4>.
+  title: {
+    type: String,
+    default: 'Icon Legend:',
   },
 });
 </script>

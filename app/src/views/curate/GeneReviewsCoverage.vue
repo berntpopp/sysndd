@@ -16,15 +16,18 @@
 <template>
   <AuthenticatedPageShell
     title="GeneReviews coverage"
+    description="Review which SysNDD entities already have a GeneReviews reference, check live GeneReviews availability per gene from NCBI, and attach a GeneReviews chapter to an entity."
     content-class="authenticated-route-content"
     full-width
   >
     <BContainer fluid>
-      <p class="genereviews-coverage__intro">
-        Review which SysNDD entities already have a GeneReviews reference, check
-        live GeneReviews availability per gene from NCBI, and attach a
-        GeneReviews chapter to an entity.
-      </p>
+      <BAlert v-if="lookupErrorCount" :model-value="true" variant="warning" class="mb-3">
+        NCBI lookup failed for {{ lookupErrorCount.toLocaleString('en-US') }} of
+        {{ rows.length.toLocaleString('en-US') }} genes, so their availability is unknown.
+        <BButton variant="link" size="sm" class="p-0 align-baseline" @click="reload">
+          Try again
+        </BButton>
+      </BAlert>
 
       <TableShell
         title="Entity GeneReviews coverage"
@@ -58,30 +61,45 @@
         </template>
 
         <template #toolbar>
-          <BFormInput
-            v-model="searchText"
-            type="search"
-            size="sm"
-            placeholder="Filter by gene symbol or disease"
-            class="genereviews-coverage__search"
-            aria-label="Filter coverage rows"
-          />
-          <BFormSelect
-            v-model="statusFilter"
-            size="sm"
-            :options="statusFilterOptions"
-            class="genereviews-coverage__status-filter ms-2"
-            aria-label="Filter by link status"
-          />
+          <div class="genereviews-coverage__toolbar">
+            <BFormInput
+              v-model="searchText"
+              type="search"
+              debounce="300"
+              size="sm"
+              placeholder="Filter by gene symbol or disease"
+              class="genereviews-coverage__search"
+              aria-label="Filter coverage rows"
+            />
+            <BFormSelect
+              v-model="statusFilter"
+              size="sm"
+              :options="statusFilterOptions"
+              class="genereviews-coverage__status-filter"
+              aria-label="Filter by link status"
+            />
+            <TablePaginationControls
+              :total-rows="filteredRows.length"
+              :current-page="currentPage"
+              :initial-per-page="perPage"
+              :page-options="[25, 50, 100]"
+              label="GeneReviews coverage pagination"
+              per-page-label="Rows per page"
+              class="genereviews-coverage__pager ms-auto"
+              @page-change="currentPage = $event"
+              @per-page-change="onPerPage"
+            />
+          </div>
         </template>
 
         <BTable
           :items="filteredRows"
           :fields="fields"
-          :busy="loading"
+          :per-page="perPage"
+          :current-page="currentPage"
+          stacked="md"
           small
           hover
-          responsive
           show-empty
           empty-text="No entities match the current filter."
           class="genereviews-coverage__table"
@@ -111,15 +129,13 @@
 
           <template #cell(genereview_available)="data">
             <template v-if="data.item.lookup_error">
-              <BBadge variant="warning">
-                <i class="bi bi-exclamation-triangle" aria-hidden="true" /> Lookup failed
-              </BBadge>
+              <span class="genereviews-coverage__muted">Lookup failed</span>
             </template>
             <template v-else-if="data.item.genereview_available === null">
               <span class="genereviews-coverage__muted">Not checked</span>
             </template>
             <template v-else-if="data.item.genereview_available">
-              <BBadge :variant="data.item.needs_attention ? 'danger' : 'info'">
+              <BBadge :variant="data.item.needs_attention ? 'warning' : 'info'">
                 <i class="bi bi-journal-medical" aria-hidden="true" />
                 {{ data.item.needs_attention ? 'Available, not linked' : 'Available' }}
               </BBadge>
@@ -192,10 +208,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import useToast from '@/composables/useToast';
@@ -210,7 +227,10 @@ import {
 
 const { makeToast } = useToast();
 
-const rows = ref<GeneReviewCoverageRow[]>([]);
+// shallowRef: ~4,200 read-only rows; deep reactivity on each one cost seconds on load.
+const rows = shallowRef<GeneReviewCoverageRow[]>([]);
+const perPage = ref(25);
+const currentPage = ref(1);
 const loading = ref(false);
 const downloading = ref(false);
 const includeLive = ref(false);
@@ -233,7 +253,22 @@ const fields = [
   { key: 'actions', label: 'Action' },
 ];
 
-const metaText = computed(() => `${filteredRows.value.length} of ${rows.value.length} entities`);
+const metaText = computed(() =>
+  loading.value
+    ? includeLive.value
+      ? 'Checking NCBI…'
+      : 'Loading…'
+    : `${filteredRows.value.length.toLocaleString('en-US')} of ${rows.value.length.toLocaleString('en-US')} entities`
+);
+
+const lookupErrorCount = computed(() =>
+  loading.value ? 0 : rows.value.filter((row) => row.lookup_error).length
+);
+
+function onPerPage(size: number): void {
+  perPage.value = size;
+  currentPage.value = 1;
+}
 
 const tableDescription = computed(() =>
   includeLive.value
@@ -251,6 +286,10 @@ const filteredRows = computed<GeneReviewCoverageRow[]>(() => {
     const haystack = `${row.symbol ?? ''} ${row.disease_ontology_name ?? ''}`.toLowerCase();
     return haystack.includes(term);
   });
+});
+
+watch([searchText, statusFilter], () => {
+  currentPage.value = 1;
 });
 
 async function reload(): Promise<void> {
@@ -349,17 +388,20 @@ defineExpose({
 </script>
 
 <style scoped>
-.genereviews-coverage__intro {
-  margin-bottom: 1rem;
-  color: var(--text-secondary, #555);
+.genereviews-coverage__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
 }
 
 .genereviews-coverage__search {
+  flex: 1 1 14rem;
   max-width: 22rem;
 }
 
 .genereviews-coverage__status-filter {
-  max-width: 16rem;
+  flex: 0 1 12rem;
 }
 
 .genereviews-coverage__linked-id,
@@ -368,6 +410,15 @@ defineExpose({
   font-size: 0.8rem;
   font-family: var(--font-mono, monospace);
   margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.genereviews-coverage__pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .genereviews-coverage__muted {

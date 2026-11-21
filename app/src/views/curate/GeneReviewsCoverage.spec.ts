@@ -9,13 +9,21 @@ import type { GeneReviewCoverageResponse } from '@/api/genereviews';
 const passthrough = (tag = 'div') => ({ template: `<${tag}><slot /></${tag}>` });
 const bootstrapStubs = {
   BContainer: passthrough(),
-  BTable: passthrough(),
+  BTable: {
+    props: ['items', 'perPage', 'currentPage', 'stacked'],
+    template: '<div class="b-table-stub"><slot /></div>',
+  },
+  BAlert: { template: '<div role="alert"><slot /></div>' },
+  TablePaginationControls: {
+    props: ['totalRows', 'currentPage', 'initialPerPage'],
+    template: '<nav class="pager-stub" />',
+  },
   BModal: passthrough(),
   BButton: { template: '<button><slot /></button>' },
   BBadge: passthrough('span'),
   BLink: { props: ['to', 'href'], template: '<a :href="href"><slot /></a>' },
   BFormCheckbox: { template: '<label><slot /></label>' },
-  BFormInput: { template: '<input />' },
+  BFormInput: { props: ['debounce'], template: '<input />' },
   BFormSelect: { template: '<select><slot /></select>' },
   BFormGroup: passthrough(),
   GeneBadge: { props: ['symbol', 'hgncId'], template: '<span>{{ symbol }}</span>' },
@@ -161,5 +169,44 @@ describe('GeneReviewsCoverage', () => {
     expect(mocks.attachGeneReview).toHaveBeenCalledWith({ entity_id: 2, pmid: '20301494' });
     // Initial mount + reload after attach = 2 coverage calls.
     expect(mocks.getGeneReviewsCoverage).toHaveBeenCalledTimes(2);
+  });
+
+  // CUR-01: all 4,200 rows rendered and every keystroke re-rendered them (7 s).
+  it('pages the table 25 rows at a time and debounces the filter by 300 ms', async () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      ...sampleResponse.data[1],
+      entity_id: i + 1,
+      symbol: `G${i}`,
+    }));
+    mocks.getGeneReviewsCoverage.mockResolvedValue({ ...sampleResponse, data: many });
+    const wrapper = mountView();
+    await flushPromises();
+
+    const table = wrapper.findComponent(bootstrapStubs.BTable);
+    expect(table.props('perPage')).toBe(25);
+    expect(table.props('currentPage')).toBe(1);
+    expect(table.props('stacked')).toBe('md');
+    expect(wrapper.findComponent(bootstrapStubs.TablePaginationControls).props('totalRows')).toBe(60);
+    expect(Number(wrapper.findComponent(bootstrapStubs.BFormInput).props('debounce'))).toBe(300);
+  });
+
+  // CUR-15: a stale "8 of 4200" during the 19 s live check, and one warning per row.
+  it('says it is checking NCBI while loading and summarises lookup failures once', async () => {
+    let finish!: (v: GeneReviewCoverageResponse) => void;
+    const wrapper = mountView();
+    await flushPromises();
+    mocks.getGeneReviewsCoverage.mockReturnValue(new Promise((r) => (finish = r)));
+    wrapper.vm.includeLive = true;
+    const pending = wrapper.vm.reload();
+    await flushPromises();
+    expect(wrapper.text()).toContain('Checking NCBI');
+
+    const failed = sampleResponse.data.map((row) => ({ ...row, lookup_error: true }));
+    finish({ ...sampleResponse, data: failed });
+    await pending;
+    await flushPromises();
+    const alerts = wrapper.findAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].text()).toContain('2 of 2');
   });
 });

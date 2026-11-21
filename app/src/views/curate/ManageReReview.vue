@@ -24,7 +24,7 @@
             </div>
             <div class="re-review-metric">
               <span class="re-review-metric__label">Available entities</span>
-              <strong>{{ availableEntities.length }}</strong>
+              <strong>{{ availableEntityTotal.toLocaleString('en-US') }}</strong>
             </div>
           </div>
 

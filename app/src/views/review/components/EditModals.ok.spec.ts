@@ -21,3 +21,26 @@ describe.each([ReviewEditModal, StatusEditModal])('$name @ok', (component) => {
     expect(wrapper.emitted('ok')).toHaveLength(1);
   });
 });
+
+// CUR-25: Escape was always blocked, even on an untouched form.
+describe.each([ReviewEditModal, StatusEditModal])('$name Escape', (component) => {
+  it.each([
+    [false, false],
+    [true, true],
+  ])('dirty=%s blocks Escape: %s', (dirty, blocked) => {
+    const BModalStub = { props: ['noCloseOnEsc', 'noCloseOnBackdrop'], template: '<div />' };
+    const wrapper = shallowMount(component, {
+      props: {
+        modalDescriptor: { id: 'm' },
+        formData: {},
+        reviewInfo: {},
+        entityInfo: { disease_ontology_id_version: 'OMIM:1' },
+        dirty,
+      },
+      global: { stubs: { BModal: BModalStub } },
+    });
+    const modal = wrapper.findComponent(BModalStub);
+    expect(modal.props('noCloseOnEsc')).toBe(blocked);
+    expect(modal.props('noCloseOnBackdrop')).not.toBe(false);
+  });
+});

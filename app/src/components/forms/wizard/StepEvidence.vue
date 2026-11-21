@@ -33,7 +33,7 @@
               aria-describedby="publications-help"
               v-on="inputHandlers"
             />
-            <BButton variant="outline-secondary" size="sm" @click="addTag()"> Add </BButton>
+            <BButton variant="outline-secondary" @click="addTag()"> Add </BButton>
           </BInputGroup>
 
           <div v-if="tags.length > 0" class="d-flex flex-wrap gap-2">
@@ -90,7 +90,7 @@
               aria-describedby="genereviews-help"
               v-on="inputHandlers"
             />
-            <BButton variant="outline-secondary" size="sm" @click="addTag()"> Add </BButton>
+            <BButton variant="outline-secondary" @click="addTag()"> Add </BButton>
           </BInputGroup>
 
           <div v-if="tags.length > 0" class="d-flex flex-wrap gap-2">

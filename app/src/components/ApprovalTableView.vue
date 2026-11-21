@@ -41,7 +41,6 @@
       title="Status Queue"
       total-rows-label="statuses"
       approve-all-title="Approve all pending statuses"
-      approve-all-aria-label="Approve all statuses"
       :items="filteredItems"
       :fields="fields"
       :total-rows="totalRows"
@@ -117,34 +116,20 @@
         >
           <i
             :class="
-              data.item.problematic ? 'bi bi-exclamation-triangle-fill' : 'bi bi-check-circle-fill'
+              data.item.problematic ? 'bi bi-exclamation-triangle-fill' : 'bi bi-shield-check'
             "
           />
         </span>
       </template>
       <template #cell(comment)="data">
-        <div
-          v-if="data.item.comment"
-          :id="'comment-status-' + data.item.status_id"
-          class="text-truncate-multiline small text-popover-trigger"
-          style="max-width: 150px"
-        >
-          {{ data.item.comment }}
-        </div>
-        <BPopover
-          v-if="data.item.comment"
-          :target="'comment-status-' + data.item.status_id"
-          triggers="hover focus"
-          placement="top"
-          custom-class="wide-popover"
-        >
-          <template #title>
-            <i class="bi bi-chat-left-text me-1" />
-            Comment
-          </template>
-          <div class="popover-text-content">{{ data.item.comment }}</div>
-        </BPopover>
-        <span v-else class="text-muted small">—</span>
+        <ReviewRowCells
+          kind="text-popover"
+          :text="data.item.comment"
+          title="Comment"
+          icon-class="bi-chat-left-text"
+          :target-id="'comment-status-' + data.item.status_id"
+          :max-width="150"
+        />
       </template>
       <template #cell(status_date)="data">
         <div class="d-flex align-items-center gap-1">
@@ -188,7 +173,6 @@
           <i :class="'bi bi-' + (row.expansionShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
         </BButton>
         <BButton
-          v-b-tooltip.hover.left
           size="sm"
           class="me-1 btn-xs"
           variant="secondary"
@@ -207,10 +191,9 @@
           </span>
         </BButton>
         <BButton
-          v-b-tooltip.hover.right
           size="sm"
           class="me-1 btn-xs"
-          variant="danger"
+          variant="success"
           title="Approve status"
           :aria-label="`Approve status for entity ${row.item.entity_id}`"
           @click="$emit('approve-status', row.item)"
@@ -218,7 +201,6 @@
           <i class="bi bi-check2-circle" aria-hidden="true" />
         </BButton>
         <BButton
-          v-b-tooltip.hover.right
           size="sm"
           class="me-1 btn-xs"
           variant="outline-danger"
@@ -258,12 +240,8 @@
                   <BBadge
                     :variant="
                       (stoplightsStyle[row.item.category as string | number] as
-                        | 'secondary'
-                        | 'primary'
-                        | 'success'
-                        | 'warning'
-                        | 'danger'
-                        | 'info') || 'secondary'
+                        'secondary' | 'primary' | 'success' | 'warning' | 'danger' | 'info') ||
+                      'secondary'
                     "
                   >
                     {{ row.item.category }}
@@ -351,6 +329,7 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import ReviewRowCells from '@/components/review/ReviewRowCells.vue';
 import StatusApprovalModals from '@/components/review/StatusApprovalModals.vue';
 import type {
   StatusInfoShape,
@@ -540,25 +519,6 @@ defineExpose({
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
-}
-
-.text-truncate-multiline {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-
-.text-popover-trigger {
-  cursor: help;
-  border-bottom: 1px dotted #6c757d;
-}
-
-.text-popover-trigger:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 2px;
 }
 </style>
 

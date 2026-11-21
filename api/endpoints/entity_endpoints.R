@@ -422,7 +422,7 @@ function(sysndd_id, vario_id, modifier_id) {
 #* Retrieves the clinical synopsis (primary + approved review) for entity_id.
 #*
 #* @tag entity
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @param sysndd_id The entity_id for which the clinical synopsis is to be retrieved.
 #*
@@ -437,7 +437,7 @@ function(sysndd_id) {
 #* Retrieves the active + approved status for entity_id.
 #*
 #* @tag entity
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @param sysndd_id The entity_id for which the status is to be retrieved.
 #*

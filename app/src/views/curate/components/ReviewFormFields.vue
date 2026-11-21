@@ -3,13 +3,22 @@
   <BOverlay :show="loading" rounded="sm">
     <BForm @submit.stop.prevent>
       <!-- Synopsis textarea -->
-      <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
+      <div class="review-field__label">
+        <label class="form-label fw-semibold mb-0" for="review-textarea-synopsis">Synopsis</label>
+        <BBadge
+          id="popover-badge-help-synopsis"
+          pill
+          href="#"
+          variant="info"
+          role="button"
+          aria-label="Help: Synopsis"
+          @click.prevent
+        >
+          <i class="bi bi-question-circle-fill" aria-hidden="true" />
+        </BBadge>
+      </div>
 
-      <BBadge id="popover-badge-help-synopsis" pill href="#" variant="info">
-        <i class="bi bi-question-circle-fill" />
-      </BBadge>
-
-      <BPopover target="popover-badge-help-synopsis" variant="info" triggers="focus">
+      <BPopover target="popover-badge-help-synopsis" variant="info" triggers="hover focus">
         <template #title> Synopsis instructions </template>
         Short summary for this disease entity. Please include information on: <br />
         <strong>a)</strong> approximate number of patients described in literature, <br />
@@ -30,13 +39,22 @@
       <!-- Synopsis textarea -->
 
       <!-- Phenotype select -->
-      <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
+      <div class="review-field__label">
+        <label class="form-label fw-semibold mb-0" for="review-phenotype-select">Phenotypes</label>
+        <BBadge
+          id="popover-badge-help-phenotypes"
+          pill
+          href="#"
+          variant="info"
+          role="button"
+          aria-label="Help: Phenotypes"
+          @click.prevent
+        >
+          <i class="bi bi-question-circle-fill" aria-hidden="true" />
+        </BBadge>
+      </div>
 
-      <BBadge id="popover-badge-help-phenotypes" pill href="#" variant="info">
-        <i class="bi bi-question-circle-fill" />
-      </BBadge>
-
-      <BPopover target="popover-badge-help-phenotypes" variant="info" triggers="focus">
+      <BPopover target="popover-badge-help-phenotypes" variant="info" triggers="hover focus">
         <template #title> Phenotypes instructions </template>
         Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected
         individuals should be included. Please also include information on severity of ID.
@@ -54,15 +72,24 @@
       <!-- Phenotype select -->
 
       <!-- Variation ontology select -->
-      <label class="mr-sm-2 font-weight-bold" for="review-variation-select"
-        >Variation ontology</label
-      >
+      <div class="review-field__label">
+        <label class="form-label fw-semibold mb-0" for="review-variation-select"
+          >Variation ontology</label
+        >
+        <BBadge
+          id="popover-badge-help-variation"
+          pill
+          href="#"
+          variant="info"
+          role="button"
+          aria-label="Help: Variation ontology"
+          @click.prevent
+        >
+          <i class="bi bi-question-circle-fill" aria-hidden="true" />
+        </BBadge>
+      </div>
 
-      <BBadge id="popover-badge-help-variation" pill href="#" variant="info">
-        <i class="bi bi-question-circle-fill" />
-      </BBadge>
-
-      <BPopover target="popover-badge-help-variation" variant="info" triggers="focus">
+      <BPopover target="popover-badge-help-variation" variant="info" triggers="hover focus">
         <template #title> Variation instructions </template>
         Please select or deselect the types of variation associated with the disease entity.
         <br />
@@ -100,13 +127,24 @@
       <!-- Variation ontology select -->
 
       <!-- publications tag form with links out -->
-      <label class="mr-sm-2 font-weight-bold" for="review-publications-select">Publications</label>
+      <div class="review-field__label">
+        <label class="form-label fw-semibold mb-0" for="review-publications-select"
+          >Publications</label
+        >
+        <BBadge
+          id="popover-badge-help-publications"
+          pill
+          href="#"
+          variant="info"
+          role="button"
+          aria-label="Help: Publications"
+          @click.prevent
+        >
+          <i class="bi bi-question-circle-fill" aria-hidden="true" />
+        </BBadge>
+      </div>
 
-      <BBadge id="popover-badge-help-publications" pill href="#" variant="info">
-        <i class="bi bi-question-circle-fill" />
-      </BBadge>
-
-      <BPopover target="popover-badge-help-publications" variant="info" triggers="focus">
+      <BPopover target="popover-badge-help-publications" variant="info" triggers="hover focus">
         <template #title> Publications instructions </template>
         No complete catalog of entity-related literature required.
         <br />
@@ -166,13 +204,24 @@
       <!-- publications tag form with links out -->
 
       <!-- genereviews tag form with links out -->
-      <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">GeneReviews</label>
+      <div class="review-field__label">
+        <label class="form-label fw-semibold mb-0" for="review-genereviews-select"
+          >GeneReviews</label
+        >
+        <BBadge
+          id="popover-badge-help-genereviews"
+          pill
+          href="#"
+          variant="info"
+          role="button"
+          aria-label="Help: GeneReviews"
+          @click.prevent
+        >
+          <i class="bi bi-question-circle-fill" aria-hidden="true" />
+        </BBadge>
+      </div>
 
-      <BBadge id="popover-badge-help-genereviews" pill href="#" variant="info">
-        <i class="bi bi-question-circle-fill" />
-      </BBadge>
-
-      <BPopover target="popover-badge-help-genereviews" variant="info" triggers="focus">
+      <BPopover target="popover-badge-help-genereviews" variant="info" triggers="hover focus">
         <template #title> GeneReviews instructions </template>
         Please add PMID for GeneReview article if available for this entity. <br />
         - Input is only valid when starting with
@@ -229,7 +278,7 @@
       <!-- genereviews tag form with links out -->
 
       <!-- Review comment textarea -->
-      <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
+      <label class="form-label fw-semibold mb-1 mt-2" for="review-textarea-comment">Comment</label>
       <BFormTextarea
         id="review-textarea-comment"
         v-model="localFormData.comment"
@@ -346,6 +395,14 @@ const tagValidatorPMID = (tag: string): boolean => {
 </script>
 
 <style scoped>
+/* Label, then its help badge on the same line (BS4 mr-sm-2/font-weight-bold did nothing). */
+.review-field__label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
 /* #608 variation-ontology provenance zones.
    Quiet by design: one bounded surface, neutral tokens, no status hues. An
    unconfirmed annotation is un-reviewed, not broken — saturated colour is

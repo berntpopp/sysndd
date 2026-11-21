@@ -10,15 +10,18 @@
     <!-- synopsis / comment popover-capable truncated text -->
     <template v-if="kind === 'text-popover'">
       <div
-        v-if="text"
+        v-if="hasText"
         :id="targetId"
         class="text-truncate-multiline small text-popover-trigger"
         :style="`max-width: ${maxWidth}px`"
+        tabindex="0"
+        role="button"
+        :aria-label="`${title}: ${text}`"
       >
         {{ text }}
       </div>
       <BPopover
-        v-if="text"
+        v-if="hasText"
         :target="targetId"
         triggers="hover focus"
         placement="top"
@@ -67,9 +70,9 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue';
+import { computed, type PropType } from 'vue';
 
-defineProps({
+const props = defineProps({
   kind: {
     type: String as PropType<'text-popover' | 'review-date' | 'review-user'>,
     required: true,
@@ -89,4 +92,36 @@ defineProps({
     default: () => ({}),
   },
 });
+
+// R endpoints send a missing value as the string "NA".
+const hasText = computed(() => Boolean(props.text) && props.text !== 'NA');
 </script>
+
+<style scoped>
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.text-popover-trigger {
+  cursor: help;
+  border-bottom: 1px dotted var(--bs-secondary-color, #6c757d);
+}
+
+.text-popover-trigger:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 2px;
+}
+
+.text-popover-trigger:focus-visible {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+</style>

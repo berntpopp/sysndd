@@ -15,7 +15,10 @@ const formSelectStub = {
   props: ['modelValue', 'options', 'size'],
   template: '<select v-bind="$attrs" />',
 };
-const paginationStub = { template: '<nav v-bind="$attrs" />' };
+const paginationStub = {
+  props: ['limit'],
+  template: '<nav v-bind="$attrs" :data-limit="limit" />',
+};
 
 describe('ReviewTable', () => {
   it('passes filtered, sorted, paginated rows to mobile row slot', () => {
@@ -101,11 +104,46 @@ describe('ReviewTable', () => {
     });
 
     expect(wrapper.get('input[aria-label="Search reviews"]')).toBeTruthy();
-    expect(wrapper.get('select[aria-label="Reviews per page"]')).toBeTruthy();
+    expect(wrapper.get('select[aria-label="Rows per page"]')).toBeTruthy();
     expect(wrapper.get('nav[aria-label="Reviews pagination"]')).toBeTruthy();
     expect(wrapper.get('select[aria-label="Filter by category"]')).toBeTruthy();
     expect(wrapper.get('select[aria-label="Filter by user"]')).toBeTruthy();
     expect(wrapper.get('input[aria-label="Filter from date"]')).toBeTruthy();
     expect(wrapper.get('input[aria-label="Filter to date"]')).toBeTruthy();
+  });
+
+  // PUB-03: limit="2" hid the active page below sm; no page count anywhere.
+  it('keeps the active page visible and states the page count', () => {
+    const wrapper = mount(ReviewTable, {
+      props: {
+        title: 'Approve Reviews',
+        items: [],
+        fields: [{ key: 'symbol', label: 'Gene' }],
+        totalRows: 42,
+        currentPage: 2,
+        perPage: 10,
+        pageOptions: [10, 25],
+        sortBy: [],
+        categoryOptions: [{ value: null, text: 'All Categories' }],
+        userOptions: [{ value: null, text: 'All Users' }],
+        legendItems: [],
+      },
+      global: {
+        stubs: {
+          BButton: { template: '<button v-bind="$attrs"><slot /></button>' },
+          BFormInput: formInputStub,
+          BFormSelect: formSelectStub,
+          BInputGroup: passthrough,
+          BInputGroupText: passthrough,
+          BPagination: paginationStub,
+          BSpinner: passthrough,
+          IconLegend: passthrough,
+          GenericTable: passthrough,
+        },
+      },
+    });
+    expect(wrapper.get('nav[aria-label="Reviews pagination"]').attributes('data-limit')).toBe('5');
+    expect(wrapper.text()).toContain('Page 2 of 5');
+    expect(wrapper.text()).toContain('Approve all 42');
   });
 });

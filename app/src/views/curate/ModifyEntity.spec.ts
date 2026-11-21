@@ -115,20 +115,18 @@ type AxiosMock = {
 
 /** Happy-path axios double — returns empty list shapes for the mounted lookups. */
 const createAxiosMock = (): AxiosMock => ({
-  get: vi.fn(
-    (): Promise<AxiosResponse<{ data: unknown[] }>> =>
-      Promise.resolve({ data: { data: [] }, status: 200, statusText: 'OK' })
+  get: vi.fn((): Promise<AxiosResponse<{ data: unknown[] }>> =>
+    Promise.resolve({ data: { data: [] }, status: 200, statusText: 'OK' })
   ),
-  post: vi.fn(
-    (): Promise<AxiosResponse> =>
-      Promise.resolve({
-        data: { message: 'Entity successfully renamed.', entity_id: 501 },
-        status: 200,
-        statusText: 'OK',
-      })
+  post: vi.fn((): Promise<AxiosResponse> =>
+    Promise.resolve({
+      data: { message: 'Entity successfully renamed.', entity_id: 501 },
+      status: 200,
+      statusText: 'OK',
+    })
   ),
-  put: vi.fn(
-    (): Promise<AxiosResponse> => Promise.resolve({ data: {}, status: 200, statusText: 'OK' })
+  put: vi.fn((): Promise<AxiosResponse> =>
+    Promise.resolve({ data: {}, status: 200, statusText: 'OK' })
   ),
 });
 
@@ -246,6 +244,23 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
   afterEach(() => {
     useAuth().logout();
     vi.unstubAllEnvs();
+  });
+
+  // CUR-22/S-36: five messages said "nothing selected", and one match read "1 results".
+  describe('empty and result states', () => {
+    it('shows one empty-state line and a correctly pluralised result count', async () => {
+      const wrapper = await mountModifyEntity(createAxiosMock());
+      const text = wrapper.text();
+      expect(text).toContain('Select an entity to see its summary and edit options.');
+      for (const dup of ['Ready', 'Waiting for selection', 'Start typing', 'No entity selected']) {
+        expect(text).not.toContain(dup);
+      }
+      (wrapper.vm as unknown as { entity_search_results: unknown[] }).entity_search_results = [
+        { entity_id: 1848 },
+      ];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.get('.modify-entity-chip').text().replace(/\s+/g, ' ')).toBe('1 result');
+    });
   });
 
   describe('happy path — rename entity disease', () => {
