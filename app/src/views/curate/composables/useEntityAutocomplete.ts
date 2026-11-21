@@ -68,7 +68,10 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
     const id = query.trim();
     const [contains, exact]: any[] = await Promise.all([
       listEntities({ filter: `contains(any,${query})` }),
-      /^\d+$/.test(id) ? listEntities({ filter: `equals(entity_id,${id})` }) : null,
+      // Only a ranking boost: if it fails, keep the contains results.
+      /^\d+$/.test(id)
+        ? listEntities({ filter: `equals(entity_id,${id})` }).catch(() => null)
+        : null,
     ]);
     const rows: EntitySearchResult[] = [
       ...(Array.isArray(exact?.data) ? exact.data : []),

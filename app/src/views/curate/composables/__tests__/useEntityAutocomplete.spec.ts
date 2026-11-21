@@ -60,6 +60,19 @@ describe('useEntityAutocomplete', () => {
       await a.searchReplacementEntity('1502');
       expect(a.replace_entity_search_results.value.map((e) => e.entity_id)).toEqual([1502, 172]);
     });
+
+    test('a failed exact-id lookup keeps the contains results', async () => {
+      server.use(
+        http.get('*/api/entity/*', ({ request }) =>
+          new URL(request.url).searchParams.get('filter')?.startsWith('equals(')
+            ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+            : HttpResponse.json({ data: [{ entity_id: 172 }, { entity_id: 1502 }] })
+        )
+      );
+      const a = useEntityAutocomplete();
+      await a.searchEntity('1502');
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([172, 1502]);
+    });
   });
 
   test('searchOntology populates ontology_search_results capped at 10', async () => {
