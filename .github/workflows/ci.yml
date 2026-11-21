@@ -147,7 +147,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
@@ -218,7 +218,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -303,7 +303,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -420,7 +420,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -604,7 +604,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
 
       - name: make install-dev
         run: make install-dev
