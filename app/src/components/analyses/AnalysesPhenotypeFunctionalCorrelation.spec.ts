@@ -104,3 +104,27 @@ describe('AnalysesPhenotypeFunctionalCorrelation', () => {
     expect(wrapper.find('#phenotypeFunctionalCorrelationViz').exists()).toBe(true);
   });
 });
+
+describe('AnalysesPhenotypeFunctionalCorrelation axes', () => {
+  it('labels clusters "FC 1" / "PC 1" and sorts them numerically, without an in-chart title', async () => {
+    getCorrelationMock.mockReset();
+    const names = ['fc_10', 'fc_2', 'pc_1', 'fc_1', 'fc_296'];
+    getCorrelationMock.mockResolvedValue({
+      correlation_matrix: [],
+      correlation_melted: names.flatMap((x) => names.map((y) => ({ x, y, value: 0.1 }))),
+    });
+
+    const wrapper = mount(AnalysesPhenotypeFunctionalCorrelation, {
+      attachTo: document.body,
+      global: { stubs: globalStubs },
+    });
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const svg = document.querySelector('#pheno-func-corr-svg') as SVGElement;
+    const xTicks = [...svg.querySelectorAll('.x-axis .tick text')].map((t) => t.textContent);
+    expect(xTicks).toEqual(['FC 1', 'FC 2', 'FC 10', 'FC 296', 'PC 1']);
+    expect(svg.textContent).not.toContain('Pheno-Func Cluster Correlation');
+    wrapper.unmount();
+  });
+});

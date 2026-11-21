@@ -13,8 +13,8 @@
         <template #title> Correlation Heatmap Details </template>
         This heatmap displays the Pearson correlation between pairs of clusters:
         <ul>
-          <li><strong>pc_#</strong> = Phenotype-based clusters (MCA)</li>
-          <li><strong>fc_#</strong> = Functional clusters (STRING)</li>
+          <li><strong>PC #</strong> = Phenotype-based clusters (MCA)</li>
+          <li><strong>FC #</strong> = Functional clusters (STRING)</li>
         </ul>
         A correlation of <strong>+1</strong> indicates strong similarity, whereas
         <strong>-1</strong> implies opposite patterns. Hover over cells to see exact values.
@@ -143,7 +143,7 @@ export default {
 
       // Basic dimensions
       const margin = {
-        top: 50,
+        top: 10,
         right: 50,
         bottom: 80,
         left: 80,
@@ -166,7 +166,16 @@ export default {
 
       // Our melted data
       const data = this.correlationMelted;
-      const clusterNames = Array.from(new Set([...data.map((d) => d.x), ...data.map((d) => d.y)]));
+      // Functional clusters first, then phenotype clusters, each in numeric order.
+      const clusterKey = (name) => [name.startsWith('pc_') ? 1 : 0, Number(name.split('_')[1])];
+      const clusterNames = Array.from(
+        new Set([...data.map((d) => d.x), ...data.map((d) => d.y)])
+      ).sort((a, b) => {
+        const [ga, na] = clusterKey(a);
+        const [gb, nb] = clusterKey(b);
+        return ga - gb || na - nb;
+      });
+      const clusterLabel = (name) => name.replace(/^(fc|pc)_/, (_m, p) => `${p.toUpperCase()} `);
 
       // Build scales
       const x = d3.scaleBand().domain(clusterNames).range([0, width]).padding(0.01);
@@ -176,8 +185,9 @@ export default {
       // X-axis
       svg
         .append('g')
+        .attr('class', 'x-axis')
         .attr('transform', `translate(0, ${height})`)
-        .call(d3.axisBottom(x).tickSize(0))
+        .call(d3.axisBottom(x).tickSize(0).tickFormat(clusterLabel))
         .selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
@@ -185,7 +195,10 @@ export default {
         .attr('transform', 'rotate(-45)');
 
       // Y-axis
-      svg.append('g').call(d3.axisLeft(y).tickSize(0));
+      svg
+        .append('g')
+        .attr('class', 'y-axis')
+        .call(d3.axisLeft(y).tickSize(0).tickFormat(clusterLabel));
 
       // Color scale: -1..+1
       const colorScale = d3.scaleLinear().domain([-1, 0, 1]).range(['blue', 'white', 'red']);
@@ -220,7 +233,9 @@ export default {
       function handleMouseMove(event, d) {
         const [mx, my] = d3.pointer(event);
         tooltip
-          .html(`<strong>${d.x} vs. ${d.y}</strong><br>Corr: ${d.value}`)
+          .html(
+            `<strong>${clusterLabel(d.x)} vs. ${clusterLabel(d.y)}</strong><br>r = ${d3.format('.2f')(d.value)}`
+          )
           .style('left', `${mx + margin.left + 20}px`)
           .style('top', `${my + margin.top}px`);
       }
@@ -250,15 +265,6 @@ export default {
         .on('mouseover', handleMouseOver)
         .on('mousemove', handleMouseMove)
         .on('mouseleave', handleMouseLeave);
-
-      // Title in the chart area
-      svg
-        .append('text')
-        .attr('x', width / 2)
-        .attr('y', -10)
-        .attr('text-anchor', 'middle')
-        .style('font-weight', 'bold')
-        .text('Pheno-Func Cluster Correlation');
 
       const boundaryIndex = clusterNames.findIndex((d) => d.startsWith('pc_'));
       if (boundaryIndex !== -1) {

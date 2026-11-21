@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getPhenotypeClusterSummary: vi.fn(),
   makeToast: vi.fn(),
   cytoscapeUpdateElements: vi.fn(),
+  cytoscapeInitialize: vi.fn(),
   cytoscapeSelectCluster: vi.fn(),
 }));
 
@@ -28,7 +29,7 @@ vi.mock('@/composables/usePhenotypeCytoscape', () => ({
   usePhenotypeCytoscape: () => ({
     isInitialized: { value: false },
     destroy: vi.fn(),
-    initializeCytoscape: vi.fn(),
+    initializeCytoscape: mocks.cytoscapeInitialize,
     updateElements: mocks.cytoscapeUpdateElements,
     selectCluster: mocks.cytoscapeSelectCluster,
     exportPNG: vi.fn(() => ''),
@@ -239,5 +240,51 @@ describe('AnalysesPhenotypeClusters', () => {
     expect(row.v_test).toBe(19.7119);
     // Original dotted keys preserved for the Excel export.
     expect(row['p.value']).toBe(1.7047e-86);
+  });
+
+  it('reveals the cluster view together with its first AI summary, so the summary never pushes the table down', async () => {
+    let resolveSummary: (value: unknown) => void = () => {};
+    mocks.getPhenotypeClusterSummary.mockImplementation(
+      () => new Promise((resolve) => (resolveSummary = resolve))
+    );
+    getPhenotypeClusteringMock.mockResolvedValue({
+      clusters: [{ cluster: '1', cluster_size: 343, hash_filter: 'equals(hash,one)' }],
+    } as never);
+
+    const wrapper = mountComponent();
+    await flushPromises();
+    // clusters arrived but the summary is in flight: still one loading state
+    expect(wrapper.vm.loading).toBe(true);
+    expect(wrapper.find('[data-testid="phenotype-table-loading"]').exists()).toBe(true);
+
+    resolveSummary({ summary_json: { summary: 'Cluster 1' }, validation_status: 'approved' });
+    await flushPromises();
+    expect(wrapper.vm.loading).toBe(false);
+    expect(wrapper.text()).toContain('AI Summary');
+  });
+
+  it('holds the summary space with a quiet placeholder instead of a "Loading AI summary" line', async () => {
+    mocks.getPhenotypeClusterSummary.mockImplementation(() => new Promise(() => {}));
+    getPhenotypeClusteringMock.mockResolvedValue({ clusters: [] } as never);
+    const wrapper = mountComponent();
+    await flushPromises();
+    wrapper.vm.fetchClusterSummary('equals(hash,two)', 2);
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('Loading AI summary');
+    expect(wrapper.find('[data-testid="ai-summary-placeholder"]').exists()).toBe(true);
+  });
+
+  it('mounts the cluster graph into its container once the clusters have loaded', async () => {
+    mocks.getPhenotypeClusterSummary.mockResolvedValue({ summary_json: { summary: 'x' } });
+    getPhenotypeClusteringMock.mockResolvedValue({
+      clusters: [{ cluster: '1', cluster_size: 3, hash_filter: 'equals(hash,one)' }],
+    } as never);
+    const wrapper = mount(AnalysesPhenotypeClusters, {
+      attachTo: document.body,
+      global: { stubs: globalStubs, directives: { bTooltip: {} } },
+    });
+    await flushPromises();
+    expect(mocks.cytoscapeInitialize).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
   });
 });

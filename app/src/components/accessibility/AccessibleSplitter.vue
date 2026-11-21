@@ -121,3 +121,25 @@ watch(
   outline-offset: -3px;
 }
 </style>
+
+<style>
+/* Below the lg breakpoint two side-by-side panes are too narrow to read (per-character
+   wrapping at 390 px): stack them full width and drop the drag handle. CSS only, so the
+   pane content (Cytoscape canvases) is never remounted when the viewport crosses 992 px. */
+@media (max-width: 991.98px) {
+  .accessible-splitter.splitpanes--vertical {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .accessible-splitter.splitpanes--vertical > .splitpanes__pane {
+    width: 100% !important;
+    height: auto;
+    overflow: visible;
+  }
+
+  .accessible-splitter.splitpanes--vertical > .splitpanes__splitter {
+    display: none;
+  }
+}
+</style>
