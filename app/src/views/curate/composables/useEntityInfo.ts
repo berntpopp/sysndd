@@ -14,6 +14,7 @@ import Status from '@/assets/js/classes/submission/submissionStatus';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
+import { formText } from './useStatusForm';
 
 export interface UseEntityInfoOptions {
   onToast?: (...args: unknown[]) => void;
@@ -203,11 +204,11 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       );
 
       review_info.value = new Review(
-        review_data[0].synopsis,
+        formText(review_data[0].synopsis),
         new_literature,
         new_phenotype,
         new_variation,
-        review_data[0].comment
+        formText(review_data[0].comment)
       );
       review_info.value.review_id = review_data[0].review_id;
       review_info.value.entity_id = review_data[0].entity_id;
@@ -235,7 +236,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       if (!request.isCurrent()) return;
       status_info.value = new Status(
         status_data[0].category_id,
-        status_data[0].comment,
+        formText(status_data[0].comment),
         status_data[0].problematic
       );
       status_info.value.status_id = status_data[0].status_id;
