@@ -19,6 +19,7 @@
 <template>
   <AuthenticatedPageShell
     title="Approve Reviews"
+    description="Pending clinical reviews from curators and re-reviewers. Approve a review to publish it, edit it first, or dismiss it."
     content-class="authenticated-route-content"
     full-width
   >

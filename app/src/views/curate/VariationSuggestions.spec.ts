@@ -51,8 +51,9 @@ const router = createRouter({
 const stubs = {
   ...bootstrapStubs,
   AuthenticatedPageShell: { template: '<div><slot /></div>' },
+  // Mirror TableShell's real slots: it has no footer slot.
   TableShell: {
-    template: '<div><slot name="actions" /><slot /><slot name="footer" /></div>',
+    template: '<div><slot name="actions" /><slot name="toolbar" /><slot /></div>',
   },
 };
 
@@ -112,9 +113,7 @@ describe('row rendering', () => {
     expect(w.find('[data-testid="variation-suggestion-dismiss-42:VariO:0015:1"]').exists()).toBe(
       false
     );
-    expect(w.find('[data-testid="variation-suggestion-open-42:VariO:0015:1"]').exists()).toBe(
-      true
-    );
+    expect(w.find('[data-testid="variation-suggestion-open-42:VariO:0015:1"]').exists()).toBe(true);
     w.unmount();
   });
 
@@ -185,5 +184,18 @@ describe('actions', () => {
       { entity_id: 42, vario_id: 'VariO:0015', modifier_id: 1 },
     ]);
     w.unmount();
+  });
+});
+
+// The pager sat in a #footer slot TableShell does not have, so it never rendered.
+describe('pagination', () => {
+  it('renders the pager with the page count', async () => {
+    vi.mocked(api.listVariationSuggestions).mockResolvedValue({
+      meta: { page: 1, page_size: 25, total: 60 },
+      data: [row()],
+    });
+    const w = mount(VariationSuggestions, { global: { plugins: [router], stubs } });
+    await flushPromises();
+    expect(w.text()).toContain('Page 1 of 3');
   });
 });

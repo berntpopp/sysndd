@@ -425,6 +425,7 @@ export default defineComponent({
 <style scoped>
 .create-entity-page {
   min-width: 0;
+  text-align: start; /* #app centres text; step headings and help sat centred over fields */
 }
 
 .create-entity-page__inner {
