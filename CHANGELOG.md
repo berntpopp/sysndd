@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.3] - 2026-11-21
+
+### Added
+
+- **Administrators can reactivate a deactivated entity.** `POST /api/entity/reactivate` (Administrator only) sets `is_active` back to 1 and clears `replaced_by`; reviews and statuses are untouched, the change is logged with the administrator's user id, and the statistics caches are invalidated. It refuses with 404 for an unknown entity and 409 when the entity is already active or an active entity already covers it — its recorded replacement (followed through inactive hops) or an entity with the same gene, inheritance and disease in any ontology version — and names that entity. Modify Entity shows Administrators a "Reactivate a deactivated entity" panel with a confirmation step and the API's reason shown inline on refusal. (#711)
+
+### Fixed
+
+- **A re-review can no longer be submitted before its review is saved.** "Submit entity review" stays disabled until the review is saved (saving it unchanged records "checked, nothing to change"); the reason is shown in a tooltip that keyboard users can reach. `PUT /api/re_review/submit` rejects an unsaved entity with 400, so stale tabs and direct API calls follow the same rule. (#708)
+- **Correlogram cells drill down to the set the coefficient was computed on.** Both the phenotype and the variant correlogram now link to the NDD, Definitive entities that carry both terms (phenotype links select present annotations). The entity list previously treated `all(vario_id,A,B)` like `any()`; it now requires every term. The phenotype filter toolbar labels these filters "present: <term>". (#709)
+- **Deactivation errors.** Deactivating without a replacement entity failed with 500 for every entity; it now stores no replacement. A replacement id that does not exist returns 400 instead of 500, and the Submit button stays disabled until the confirmation is ticked.
+- **Malformed entity write bodies return 400, not 500.** Create, rename, deactivate and reactivate reject an empty, non-object or invalid-JSON body and invalid ids or fields with a problem+json 400, including invalid JSON sent without a Content-Type.
+- **Pagination links can be followed.** Entity and gene list links omitted the resource path, variant, phenotype and panels links doubled the `/api` prefix (404 on the live site), comparisons pointed at a non-existent route, and a followed panels self/next link failed with 500. All list endpoints now build their links in one place and percent-encode filter values, so links with spaces (for example "Autosomal dominant") also work from the panels `.xlsx` links sheet.
+- **Panels inheritance filter.** With the gene's top category applied, a gene could pass on the category of one entity and the inheritance of another (FBXO11 was listed under Definitive + autosomal recessive through a Refuted entity). Only entities in the gene's top category are now matched and listed.
+- **`GET /api/list/inheritance` no longer returns 500.**
+- **Search.** Searching an exact entity id (for example 1848) opens that entity, and Modify Entity lists the exact id match first (a short id such as "61" previously fell off the result page); if that extra lookup fails, the other results stay.
+- **Session-expiry warning.** Since the Vue 3 migration the Token countdown in the user menu never mounted and the "Session ending soon" toast never appeared; both work again.
+- **Gene page Model Organisms card.** When MGI or RGD is unavailable the card stays and the organism reads "Temporarily unavailable" (it printed "Error", or was replaced by the raw request error when both failed).
+- **Reviewers no longer trigger a 403 when opening a review form.** The Curator-only VariO suggestions are requested only for Curators and above.
+- **Review workflow.** The review and status edit modals stay open until the save succeeds, so a failed save no longer loses input; the "Submitted" quick filter now excludes approved rows; "New batch" respects every filter; counts are pluralised ("1 entity").
+- **Tables and exports.** The panels `.xlsx` export honours the Columns choice; the "Loaded n/total" caption reports rows actually loaded; filter labels no longer show raw API field names.
+- **Create Entity.** NDD Phenotype is an unanswered Yes/No choice instead of a switch that read "No" while blocking Next.
+- **Password reset** enforces the server's password complexity rules in the form.
+- **GeneReviews coverage** serialises missing values as `null`, so unchecked rows read "Not checked" instead of "Available, not linked".
+- **External proxy budgets.** Global `EXTERNAL_PROXY_*` settings no longer shorten the explicit per-call budgets of the MONDO SSSOM and gnomAD batch lookups.
+- **MCP reader provisioning.** The pinned MySQL 8.4 render hash of the migration 054 LLM-summary view was wrong, so the SELECT-only reader provisioner rejected a correctly migrated database with "MCP projection view attestation failed". It now attests.
+- **Wording.** "GeneReviews" label, the re-review batch tooltip, long-form release dates and "License" spelling.
+
+### Changed
+
+- **The MCP smoke test checks GET and DELETE `/mcp`.** The stateless streamable-HTTP server must answer both with 405; `make test-mcp-smoke` now asserts it and fails when they reach the website. Production currently routes only POST `/mcp` to the MCP sidecar; the routing fix is in the deployment configuration (berntpopp/sysndd-administration#22) and must be deployed separately. (Refs #710)
+- **Development tooling.** `make docker-dev` and the README no longer advertise the unpublished direct API port 7778, and the Zenodo release scripts default to the Traefik base URL.
+
 ## [0.38.2] - 2026-10-01
 
 ### Added
