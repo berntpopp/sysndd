@@ -38,6 +38,7 @@
             :step-labels="stepLabels"
             :current-step-index="currentStepIndex"
             :is-current-step-valid="isCurrentStepValid"
+            :blocked-reasons="currentStepErrors"
             :is-form-valid="isFormValid"
             :is-submitting="isSubmitting"
             :direct-approval="directApproval"
@@ -95,7 +96,7 @@
 
 <script lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
-import { defineComponent, ref, provide, onMounted, watch } from 'vue';
+import { defineComponent, ref, provide, onMounted, watch, computed } from 'vue';
 import { BOverlay, BAlert, BButton } from 'bootstrap-vue-next';
 
 // Composables
@@ -161,7 +162,7 @@ export default defineComponent({
       stepLabels,
       totalSteps,
       directApproval,
-      validateStep: _validateStep,
+      validateStep,
       getFieldError,
       getFieldState,
       touchField,
@@ -187,6 +188,9 @@ export default defineComponent({
       checkForDraft,
       scheduleSave,
     } = formDraft;
+
+    // Why Next is disabled, shown under the wizard buttons.
+    const currentStepErrors = computed(() => validateStep(currentStep.value).errors);
 
     // Local state
     const isSubmitting = ref(false);
@@ -388,6 +392,7 @@ export default defineComponent({
       totalSteps,
       directApproval,
       isCurrentStepValid,
+      currentStepErrors,
       isFormValid,
       isSubmitting,
 

@@ -76,6 +76,7 @@
           v-if="currentStepIndex < totalSteps - 1"
           variant="primary"
           :disabled="!canProceed"
+          :aria-describedby="showBlockedHint ? 'wizard-blocked-hint' : undefined"
           @click="onNext"
         >
           Next: {{ nextStepLabel }}
@@ -103,6 +104,10 @@
         </div>
       </div>
     </div>
+    <p v-if="showBlockedHint" id="wizard-blocked-hint" class="wizard-blocked-hint">
+      <i class="bi bi-info-circle me-1" aria-hidden="true" />
+      {{ blockedReasons.join(' · ') }}
+    </p>
   </div>
 </template>
 
@@ -136,6 +141,11 @@ export default defineComponent({
     currentStepIndex: {
       type: Number,
       required: true,
+    },
+    /** Why Next is disabled (the current step's validation messages). */
+    blockedReasons: {
+      type: Array as PropType<string[]>,
+      default: () => [],
     },
     isCurrentStepValid: {
       type: Boolean,
@@ -213,6 +223,12 @@ export default defineComponent({
     });
 
     const canProceed = computed(() => props.isCurrentStepValid);
+    const showBlockedHint = computed(
+      () =>
+        !canProceed.value &&
+        props.blockedReasons.length > 0 &&
+        props.currentStepIndex < props.steps.length - 1
+    );
 
     // Navigation handlers
     const onNext = () => {
@@ -245,6 +261,7 @@ export default defineComponent({
       nextStepLabel,
       progressWidth,
       canProceed,
+      showBlockedHint,
       onNext,
       onBack,
       onSubmit,
@@ -255,6 +272,13 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.wizard-blocked-hint {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary, #475569);
+  font-size: 0.8125rem;
+  text-align: end;
+}
+
 .form-wizard {
   max-width: 100%;
   margin: 0 auto;

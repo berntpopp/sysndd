@@ -15,7 +15,6 @@
         <h3>Status &amp; Review</h3>
         <p>Adjust the status category and the clinical review together in one step.</p>
       </div>
-      <BButton variant="outline-secondary" size="sm" @click="$emit('cancel')">Cancel</BButton>
     </header>
 
     <BOverlay :show="loading" rounded="sm">
@@ -226,7 +225,12 @@
 
           <div class="combined-workflow__footer-actions">
             <BButton variant="outline-secondary" size="sm" @click="$emit('cancel')">Cancel</BButton>
-            <BButton variant="primary" size="sm" type="submit" :disabled="submitting === 'combined'">
+            <BButton
+              variant="primary"
+              size="sm"
+              type="submit"
+              :disabled="submitting === 'combined'"
+            >
               <BSpinner v-if="submitting === 'combined'" small class="me-1" />
               {{ directApproval ? 'Submit &amp; approve' : 'Submit' }}
             </BButton>

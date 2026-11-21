@@ -9,7 +9,7 @@
         <div>
           <div class="session-label">
             <i class="bi bi-clock-history" aria-hidden="true" />
-            Auto-logout in
+            Signs out in
           </div>
           <span class="session-timer" :class="sessionTimerClass">{{ timeRemaining }}</span>
         </div>
@@ -197,6 +197,7 @@ defineEmits<{
 }
 
 .session-timer {
+  display: block;
   font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
   font-weight: 750;

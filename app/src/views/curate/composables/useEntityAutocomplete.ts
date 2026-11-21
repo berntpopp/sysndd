@@ -63,7 +63,8 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
   );
 
   // The list endpoint pages 10 rows sorted by entity_id, so an exact id match can sit below
-  // (or off) that page; fetch it separately and put it first.
+  // (or off) that page; fetch it separately. When it exists it is the answer: the contains
+  // rows only mention the number (OMIM ids, other fields) and read as noise under it.
   async function fetchEntityMatches(query: string): Promise<EntitySearchResult[]> {
     const id = query.trim();
     const [contains, exact]: any[] = await Promise.all([
@@ -73,10 +74,8 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
         ? listEntities({ filter: `equals(entity_id,${id})` }).catch(() => null)
         : null,
     ]);
-    const rows: EntitySearchResult[] = [
-      ...(Array.isArray(exact?.data) ? exact.data : []),
-      ...(Array.isArray(contains?.data) ? contains.data : []),
-    ];
+    if (Array.isArray(exact?.data) && exact.data.length) return exact.data;
+    const rows: EntitySearchResult[] = Array.isArray(contains?.data) ? contains.data : [];
     return rows.filter((e, i) => rows.findIndex((r) => r.entity_id === e.entity_id) === i);
   }
 

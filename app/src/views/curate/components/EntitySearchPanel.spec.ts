@@ -39,7 +39,8 @@ describe('EntitySearchPanel', () => {
     expect(wrapper.find('.entity-search-panel').exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'BCard' }).exists()).toBe(false);
     expect(wrapper.text()).toContain('Search by sysndd ID');
-    expect(wrapper.text()).toContain('No entity selected');
+    // CUR-22: the selection card owns the empty state; the panel no longer repeats it.
+    expect(wrapper.text()).not.toContain('No entity selected');
   });
 
   it('surfaces loading and selected states while preserving emitted search updates', async () => {
@@ -47,7 +48,6 @@ describe('EntitySearchPanel', () => {
     const input = wrapper.get('input');
 
     expect(wrapper.text()).toContain('Searching');
-    expect(wrapper.text()).toContain('Selected entity 501');
 
     await input.setValue('SCN2A');
     await input.trigger('change');

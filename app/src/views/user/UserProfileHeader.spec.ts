@@ -24,5 +24,8 @@ describe('UserProfileHeader', () => {
     expect(wrapper.text()).toContain('Reviewer');
     expect(wrapper.text()).toContain('Member since Jun 9, 2022');
     expect(wrapper.text()).toContain('Active');
+    // CUR-12: white initials on bg-info measured 2.0:1; text-bg-* picks the contrasting text.
+    expect(wrapper.get('.avatar-circle').classes()).toContain('text-bg-info');
+    expect(wrapper.get('.avatar-circle').classes()).not.toContain('text-white');
   });
 });
