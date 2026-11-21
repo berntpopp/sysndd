@@ -72,6 +72,7 @@
         :variation-options="variation_ontology_options"
         :loading="reviewFormLoading"
         :is-saving="reviewFormIsSaving"
+        :dirty="reviewFormHasChanges"
         :user-icon="user_icon"
         :variation-zones="reviewVariationZones"
         @show="onReviewModalShow"
@@ -86,6 +87,7 @@
         :status-options="status_options"
         :loading="statusFormLoading"
         :is-saving="statusFormIsSaving"
+        :dirty="statusFormHasChanges"
         :user-icon="user_icon"
         @show="onStatusModalShow"
         @ok="submitStatusChange"
@@ -192,12 +194,14 @@ export default {
       formData: statusFormData,
       loading: statusFormLoading,
       isSaving: statusFormIsSaving,
+      hasChanges: statusFormHasChanges,
     } = statusForm;
     const reviewForm = useReviewForm();
     const {
       formData: reviewFormData,
       loading: reviewFormLoading,
       isSaving: reviewFormIsSaving,
+      hasChanges: reviewFormHasChanges,
       // #608: the three-zone variation-ontology provenance state. Destructured
       // to a top-level setup key because a nested object's refs are not
       // unwrapped in an Options-API template.
@@ -246,10 +250,12 @@ export default {
       statusFormData,
       statusFormLoading,
       statusFormIsSaving,
+      statusFormHasChanges,
       reviewForm,
       reviewFormData,
       reviewFormLoading,
       reviewFormIsSaving,
+      reviewFormHasChanges,
       reviewVariationZones,
 
       // useReviewData state

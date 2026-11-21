@@ -29,10 +29,12 @@
     </template>
 
     <div class="position-relative refused-table-wrap">
-      <div v-if="!loading && rows.length === 0" class="text-center py-4">
-        <i class="bi bi-flag fs-1 text-muted" aria-hidden="true" />
-        <p class="text-muted mt-2 mb-0">No refused items.</p>
-      </div>
+      <!-- One line for both states, so the first load neither flashes a busy
+           table nor reserves a tall empty panel above the submissions. -->
+      <p v-if="rows.length === 0" class="refused-empty">
+        <i class="bi bi-flag me-1" aria-hidden="true" />
+        {{ loading ? 'Loading refused items…' : 'No refused items.' }}
+      </p>
 
       <GenericTable
         v-else
@@ -159,6 +161,12 @@ export default {
 
 .refused-table-wrap {
   padding: 0.75rem;
+}
+
+.refused-empty {
+  margin: 0;
+  color: var(--text-secondary, #475569);
+  font-size: 0.875rem;
 }
 
 .refused-reason {

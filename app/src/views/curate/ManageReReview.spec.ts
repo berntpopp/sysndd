@@ -207,6 +207,24 @@ describe('ManageReReview.vue — manual entity assignment panel', () => {
     expect(wrapper.text()).toContain('Showing 1 of 4 available entities.');
     expect(wrapper.text()).toContain('Assign 1 selected');
   });
+
+  // CUR-09: the tile counted one loaded page (100) instead of the API total (4,196).
+  it('shows the available-entity total, not the loaded page size', async () => {
+    primeAuth('re-review-total-token');
+    server.use(
+      http.get('*/api/re_review/entities/available', () =>
+        HttpResponse.json({
+          data: [{ entity_id: 11, gene_symbol: 'ARID1B' }],
+          meta: { total: 4196 },
+        })
+      )
+    );
+    const wrapper = await mountManageReReview();
+    const tile = wrapper
+      .findAll('.re-review-metric')
+      .find((m) => m.text().includes('Available entities'));
+    expect(tile?.get('strong').text()).toBe('4,196');
+  });
 });
 
 describe('ManageReReview.vue — gene-atomic boundary-gene alert (issue #29)', () => {

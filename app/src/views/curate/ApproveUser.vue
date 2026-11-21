@@ -53,15 +53,17 @@
                         <BInputGroupText>Per page</BInputGroupText>
                       </template>
                       <BFormSelect
-                        id="per-page-select"
+                        id="user-approval-per-page-select"
                         v-model="perPage"
                         :options="pageOptions"
                         size="sm"
-                        style="width: 70px"
+                        aria-label="Rows per page"
+                        class="approve-user__per-page"
                       />
                     </BInputGroup>
 
                     <BPagination
+                      v-if="totalRows > perPage"
                       v-model="currentPage"
                       :total-rows="totalRows"
                       :per-page="perPage"
@@ -542,7 +544,11 @@ export default {
 </script>
 
 <style scoped>
-/* Compact action buttons. */
+/* Compact action buttons; a per-page select sized to its value plus the chevron. */
+.approve-user__per-page {
+  width: auto;
+  min-width: 4.5rem;
+}
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;

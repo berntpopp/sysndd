@@ -58,6 +58,18 @@ function mountPanel() {
 }
 
 describe('RefusedReReviewPanel (issue #54)', () => {
+  // CUR-26: the first load flashed a busy table, then a ~280 px empty panel.
+  it('keeps the loading and empty states to one line and never mounts an empty table', async () => {
+    server.use(http.get('/api/re_review/table', () => HttpResponse.json({ data: [] })));
+    const wrapper = mountPanel();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent({ name: 'GenericTable' }).exists()).toBe(false);
+    expect(wrapper.get('.refused-empty').text()).toBe('Loading refused items…');
+    await flushPromises();
+    expect(wrapper.findComponent({ name: 'GenericTable' }).exists()).toBe(false);
+    expect(wrapper.get('.refused-empty').text()).toBe('No refused items.');
+  });
+
   it('loads refused items via GET /api/re_review/table?refused=true', async () => {
     let observedQuery: URLSearchParams | null = null;
     server.use(
