@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.4] - 2026-11-21
+
+Security and dependency release: every open Dependabot alert on master is fixed and the four open Dependabot pull requests (#690, #705, #706, #707) are rolled into one change. `npm audit` reports 0 vulnerabilities. No API, database or behaviour changes.
+
+### Security
+
+All advisories are in frontend (`app/`) dependencies; most affect only the development and build toolchain, not the shipped bundle.
+
+- **`proxy-addr`** 2.0.8 (critical): IP spoofing via an IPv4-mapped IPv6 trust subnet (GHSA-jqcg-44mw-7w3h).
+- **`undici`** 8.13.1: TLS certificate validation bypass via dropped Agent TLS options (GHSA-2m5v-pch6-74hx), cache poisoning and cross-user disclosure via cross-origin redirects (GHSA-4w7w-5xrc-9h26), DoS via TLS 1.2 renegotiation (GHSA-qrxm-fqhp-jwvm), excessive content-encodings (GHSA-xjj6-f33q-929c) and unbounded WebSocket PONG buffering (GHSA-9fm3-97px-rjf6).
+- **`follow-redirects`** 1.16.3: credential headers kept across redirects (GHSA-8r9p-f939-6h3c, GHSA-q3jh-wrc6-jgq8, GHSA-mrwp-f3q8-3g9p).
+- **`body-parser`** 2.4.0: DoS via trailing bytes after a compressed body (GHSA-27r3-jxmh-p828).
+- **`compression`** 1.8.2: memory leak on premature response close (GHSA-vc2v-76pw-4v95).
+- **`brace-expansion`** 1.1.22 / 2.1.8 / 5.0.13: stack exhaustion and quadratic-time expansion DoS (GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr).
+- **`source-map-js`** 1.2.4: event-loop DoS through indexed section offsets (GHSA-68fv-2mgg-jv7q).
+- **`markdown-it`** 15.0.3: quadratic-time link reference definitions and inline HTML parsing (GHSA-gfr2-rv44-r23c, GHSA-vfgh-jcmw-g37q).
+- **`dompurify`** 3.4.18: IN_PLACE, SMIL `attributeName` and SAFE_FOR_TEMPLATES bypasses (GHSA-p98j-92pf-mc4p, GHSA-mrv2-3pqr-j5jr, GHSA-6688-9rhm-gjv2, GHSA-c6gr-qvv4-5v3f, GHSA-cg2g-xh64-v4q7).
+- **`vite`** 7.3.8: files outside `server.fs.allow` served (GHSA-rq7h-c2jc-7f22), cross-origin script execution through custom middleware (GHSA-9jrq-w75r-8gcw), and the bundled `launch-editor` command-execution and Windows escaping issues (GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv).
+- **`@vitest/ui` / `@vitest/mocker`** 5.1.1: `server.fs.deny` misapplied (GHSA-p458-7748-mcp3), code injection via manual mock registration (GHSA-qxg6-89mg-rqv8) and backslash traversal of the redirect allowlist (GHSA-xp26-3454-mjgp).
+- **`fast-uri`** 3.1.9: scheme injection and spoofing, host confusion and path equivalence (GHSA-333x-w4r6-6crp, GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr, GHSA-xhq7-xmqj-769h).
+- **`qs`** 6.17.1: uncaught TypeError in `stringify` with `arrayFormat: 'comma'` (GHSA-6pq8-jhm2-2vcw).
+- **`serialize-javascript`** 7.1.4: XSS via an unescaped `</script` (GHSA-m5mm-p8h7-m29v).
+- **`minimatch`** 11.0.9: globparts amplification DoS (GHSA-g3hv-75wg-m249).
+- **`axllent/mailpit`** v1.33.0 (development compose only): includes the GHSA-379p-g4f4-hq5h fix.
+
+Override floors are raised to the first patched release for `fast-uri`, `qs`, `serialize-javascript` and `brace-expansion` 1.x / 2.x / 5.x. New overrides move `minimatch` 10 → 11 and `glob` 11 / 13 → 14, because the latest `js-beautify`, `workbox-build` and `@swagger-api/apidom-reference` still require the vulnerable majors; the calls they make behave the same.
+
+### Changed
+
+- **`@vueuse/core` 14 → 15** (#690). None of the v15 breaking changes reach SysNDD: the app uses `useClipboard`, `useDebounceFn`, `useIntervalFn`, `useLocalStorage` and `useUrlSearchParams`, none of which lost options (the removed timer options belong to `useNow`, `useTimestamp` and `useCountdown`; `useIntervalFn` keeps `immediate`). `bootstrap-vue-next` keeps its own nested 14.x copy, as before.
+- **`vue-tsc` is held at 3.3.11.** 3.3.12–3.3.14 mis-parse `//` inside template attribute values (vuejs/language-tools#6264, #6322, #6360); Dependabot skips exactly those releases.
+
+### Dependencies
+
+- Bumped the app production minor/patch group (#707, 15 updates, including `dompurify` and `markdown-it`) and the dev-dependencies group (#705, 23 updates, including `vite` 7.3.8 and `vitest` / `@vitest/ui` / `@vitest/coverage-v8` 5.1).
+- Bumped the Docker Compose images group (#706): `mysql` 8.4.11 → 8.4.13, `traefik` v3.7.13 → v3.7.17, `axllent/mailpit` v1.31.1 → v1.33.0.
+
 ## [0.38.3] - 2026-11-21
 
 ### Added
