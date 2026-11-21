@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: './tests/docs-screenshots',
   testMatch: ['**/*.spec.ts'],
   fullyParallel: false,
-  globalSetup: './tests/e2e/global-setup.ts',
+  globalSetup: './tests/docs-screenshots/global-setup.ts',
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
