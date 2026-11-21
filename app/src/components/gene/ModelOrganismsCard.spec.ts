@@ -64,6 +64,17 @@ function mountCard(props: {
 }
 
 describe('ModelOrganismsCard', () => {
+  it('labels both sources as temporarily unavailable when MGI and RGD both fail', () => {
+    const wrapper = mountCard({
+      mgiError: 'Request failed with status code 503',
+      rgdError: 'Request failed with status code 503',
+    });
+
+    expect(wrapper.findAll('span[title="Request failed with status code 503"]')).toHaveLength(2);
+    expect(wrapper.text()).toContain('Mouse');
+    expect(wrapper.text()).toContain('Rat');
+  });
+
   it('labels a failed source as temporarily unavailable and keeps the error as its title', () => {
     const wrapper = mountCard({
       mgiData: emptyMgiData,

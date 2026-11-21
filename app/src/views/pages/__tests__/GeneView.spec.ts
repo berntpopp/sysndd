@@ -313,4 +313,29 @@ describe('GeneView (v11.3 W2)', () => {
     }
     w.unmount();
   });
+
+  it('keeps the Model Organisms card mounted when both MGI and RGD lookups fail', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
+      ),
+      http.get('*/api/gene/KAT6A', () =>
+        HttpResponse.json([{ symbol: ['KAT6A'], hgnc_id: ['HGNC:13013'] }])
+      ),
+      http.get('*/api/external/mgi/phenotypes/KAT6A', () => HttpResponse.json({}, { status: 503 })),
+      http.get('*/api/external/rgd/phenotypes/KAT6A', () => HttpResponse.json({}, { status: 503 })),
+      http.get('*/api/external/*/*/KAT6A', () => HttpResponse.json({}))
+    );
+
+    const router = makeRouter('/Genes/KAT6A');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+
+    expect(w.text()).toContain('Model Organisms');
+    expect(w.text()).not.toContain('status code 503');
+    w.unmount();
+  });
 });

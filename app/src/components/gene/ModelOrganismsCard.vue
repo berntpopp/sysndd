@@ -52,17 +52,6 @@
         <BSpinner label="Loading phenotype data..." role="status" small />
       </div>
 
-      <!-- Error state (both failed) -->
-      <div
-        v-else-if="mgiError && rgdError && !mgiData && !rgdData"
-        class="text-center py-2"
-        role="alert"
-      >
-        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
-        <span class="text-muted small">Failed to load phenotype data</span>
-        <BButton variant="link" size="sm" class="p-0 ms-2" @click="$emit('retry')"> Retry </BButton>
-      </div>
-
       <!-- Combined no-data state -->
       <div v-else-if="hasNoModelOrganismData" class="model-org-empty-state">
         <i class="bi bi-info-circle model-org-empty-state__icon" aria-hidden="true" />
@@ -265,10 +254,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-defineEmits<{
-  retry: [];
-}>();
 
 // Popover state
 const showMgiPopover = ref(false);
