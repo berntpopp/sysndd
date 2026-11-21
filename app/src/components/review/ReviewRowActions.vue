@@ -18,7 +18,6 @@
       <i :class="'bi bi-' + (expansionShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
     </BButton>
     <BButton
-      v-b-tooltip.hover.left
       size="sm"
       class="review-row-actions__button"
       variant="secondary"
@@ -29,17 +28,11 @@
       <i class="bi bi-pen" aria-hidden="true" />
     </BButton>
     <BButton
-      v-b-tooltip.hover.top
       size="sm"
       class="review-row-actions__button"
       :variant="
         (stoplightsStyle[item.active_category ?? ''] as
-          | 'secondary'
-          | 'primary'
-          | 'success'
-          | 'warning'
-          | 'danger'
-          | 'info') || 'secondary'
+          'secondary' | 'primary' | 'success' | 'warning' | 'danger' | 'info') || 'secondary'
       "
       :title="item.status_change ? 'Edit new status' : 'Edit status'"
       :aria-label="`${item.status_change ? 'Edit new status' : 'Edit status'} for entity ${item.entity_id}`"
@@ -56,10 +49,9 @@
       </span>
     </BButton>
     <BButton
-      v-b-tooltip.hover.right
       size="sm"
       class="review-row-actions__button"
-      variant="danger"
+      variant="success"
       title="Approve review"
       :aria-label="`Approve review for entity ${item.entity_id}`"
       @click="$emit('approve', item)"
@@ -67,7 +59,6 @@
       <i class="bi bi-check2-circle" aria-hidden="true" />
     </BButton>
     <BButton
-      v-b-tooltip.hover.right
       size="sm"
       class="review-row-actions__button"
       variant="outline-danger"

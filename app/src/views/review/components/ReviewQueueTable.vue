@@ -65,6 +65,7 @@
               type="search"
               placeholder="Search any field..."
               debounce="500"
+              aria-label="Search the re-review queue"
               @update:model-value="$emit('update:filter', $event)"
             />
           </BInputGroup>
@@ -114,7 +115,7 @@
             </BDropdownItem>
           </BDropdown>
 
-          <BBadge
+          <BButton
             v-if="
               totalRows === 0 &&
               (filter === null || filter === '') &&
@@ -123,23 +124,23 @@
               activeQuickFilters.length === 0 &&
               !curationSelected
             "
-            variant="warning"
-            pill
-            style="cursor: pointer"
+            variant="outline-primary"
+            size="sm"
             @click="$emit('new-batch')"
           >
-            <i class="bi bi-plus-circle me-1" />
+            <i class="bi bi-plus-circle me-1" aria-hidden="true" />
             New batch
-          </BBadge>
+          </BButton>
         </div>
 
         <div class="review-toolbar__paging">
           <BInputGroup prepend="Per page" size="sm" class="review-toolbar__per-page">
             <BFormSelect
-              id="per-page-select"
+              id="review-queue-per-page-select"
               :model-value="perPage"
               :options="pageOptions"
               size="sm"
+              aria-label="Rows per page"
               @update:model-value="$emit('update:perPage', $event)"
             />
           </BInputGroup>
@@ -150,9 +151,12 @@
             :per-page="perPage"
             size="sm"
             class="mb-0"
-            limit="2"
+            limit="5"
             @update:model-value="$emit('update:currentPage', $event)"
           />
+          <span class="review-toolbar__page-count">
+            Page {{ currentPage }} of {{ Math.max(1, Math.ceil(totalRows / perPage)) }}
+          </span>
         </div>
       </div>
     </template>
@@ -167,7 +171,7 @@
       :busy="isBusy"
       :current-page="currentPage"
       :per-page="perPage"
-      :filter="filter"
+      :filter="filter || undefined"
       :filter-included-fields="filterOn"
       :sort-by="sortBy"
       stacked="md"
@@ -179,12 +183,12 @@
       hover
       sort-icon-left
       :empty-text="emptyText"
+      empty-filtered-text="No entities match the current filters."
       @update:sort-by="$emit('update:sortBy', $event)"
       @filtered="$emit('filtered', $event)"
     >
       <template #cell(actions)="row">
         <BButton
-          v-b-tooltip.hover.left
           size="sm"
           class="me-1 btn-xs"
           variant="outline-primary"
@@ -196,7 +200,6 @@
         </BButton>
 
         <BButton
-          v-b-tooltip.hover.top
           size="sm"
           class="me-1 btn-xs"
           variant="outline-secondary"
@@ -239,7 +242,6 @@
              from the success Submit action; warning, not destructive. -->
         <BButton
           v-if="!curationSelected"
-          v-b-tooltip.hover.top
           size="sm"
           class="ms-2 btn-xs"
           variant="outline-warning"
@@ -252,15 +254,14 @@
 
         <BButton
           v-if="curationSelected"
-          v-b-tooltip.hover.right
           size="sm"
           class="me-1 btn-xs"
-          variant="danger"
+          variant="success"
           title="Approve entity review/status"
           :aria-label="`Approve review/status for sysndd:${row.item.entity_id}`"
           @click="$emit('info-approve', row.item, row.index, $event.target)"
         >
-          <i class="bi bi-check-circle-fill" aria-hidden="true" />
+          <i class="bi bi-check2-circle" aria-hidden="true" />
         </BButton>
       </template>
 
@@ -471,7 +472,18 @@ export default {
 }
 
 .review-toolbar__per-page {
-  width: 10.5rem;
+  width: auto;
+}
+
+.review-toolbar__per-page :deep(.form-select) {
+  width: auto;
+  min-width: 4.5rem;
+}
+
+.review-toolbar__page-count {
+  color: var(--text-secondary, #475569);
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .review-legend {

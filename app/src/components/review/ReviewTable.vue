@@ -4,14 +4,15 @@
     <template #actions>
       <BButton
         v-b-tooltip.hover.bottom
-        variant="danger"
+        variant="outline-success"
         size="sm"
+        :disabled="totalRows === 0"
         :title="approveAllTitle"
         :aria-label="approveAllAriaLabel"
         @click="$emit('approve-all')"
       >
         <i class="bi bi-check2-all me-1" aria-hidden="true" />
-        Approve All
+        Approve all {{ totalRows.toLocaleString('en-US') }}
       </BButton>
       <BButton
         v-b-tooltip.hover.bottom
@@ -26,39 +27,72 @@
     </template>
 
     <template #toolbar>
-      <BRow class="g-2 align-items-center">
-        <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
-          <BInputGroup size="sm">
-            <template #prepend>
-              <BInputGroupText>
-                <i class="bi bi-search" />
-              </BInputGroupText>
-            </template>
-            <BFormInput
-              id="filter-input"
-              :model-value="filterText"
-              type="search"
-              placeholder="Search any field..."
-              debounce="500"
-              aria-label="Search reviews"
-              @update:model-value="$emit('update:filterText', String($event ?? ''))"
-            />
-          </BInputGroup>
-        </BCol>
-        <BCol cols="12" md="4" lg="4" class="mb-2 mb-md-0" />
-        <BCol
-          cols="12"
-          md="4"
-          lg="5"
-          class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
-        >
-          <BInputGroup prepend="Per page" size="sm">
+      <div class="review-table__toolbar">
+        <BInputGroup size="sm" class="review-table__search">
+          <template #prepend>
+            <BInputGroupText>
+              <i class="bi bi-search" aria-hidden="true" />
+            </BInputGroupText>
+          </template>
+          <BFormInput
+            id="filter-input"
+            :model-value="filterText"
+            type="search"
+            placeholder="Search any field..."
+            debounce="500"
+            aria-label="Search reviews"
+            @update:model-value="$emit('update:filterText', String($event ?? ''))"
+          />
+        </BInputGroup>
+        <BFormSelect
+          :model-value="categoryFilter"
+          size="sm"
+          class="review-table__select"
+          :options="categoryOptions"
+          aria-label="Filter by category"
+          @update:model-value="$emit('update:categoryFilter', ($event as string) ?? null)"
+        />
+        <BFormSelect
+          :model-value="userFilter"
+          size="sm"
+          class="review-table__select"
+          :options="userOptions"
+          aria-label="Filter by user"
+          @update:model-value="$emit('update:userFilter', ($event as string) ?? null)"
+        />
+        <BInputGroup size="sm" class="review-table__date">
+          <template #prepend>
+            <BInputGroupText>From</BInputGroupText>
+          </template>
+          <BFormInput
+            :model-value="dateStart"
+            type="date"
+            size="sm"
+            aria-label="Filter from date"
+            @update:model-value="$emit('update:dateStart', String($event ?? '') || null)"
+          />
+        </BInputGroup>
+        <BInputGroup size="sm" class="review-table__date">
+          <template #prepend>
+            <BInputGroupText>To</BInputGroupText>
+          </template>
+          <BFormInput
+            :model-value="dateEnd"
+            type="date"
+            size="sm"
+            aria-label="Filter to date"
+            @update:model-value="$emit('update:dateEnd', String($event ?? '') || null)"
+          />
+        </BInputGroup>
+
+        <div class="review-table__paging">
+          <BInputGroup prepend="Per page" size="sm" class="review-table__per-page">
             <BFormSelect
-              id="per-page-select"
+              :id="`${totalRowsLabel}-per-page-select`"
               :model-value="perPage"
               :options="pageOptions"
               size="sm"
-              aria-label="Reviews per page"
+              aria-label="Rows per page"
               @update:model-value="$emit('update:perPage', Number($event))"
             />
           </BInputGroup>
@@ -68,103 +102,56 @@
             :per-page="perPage"
             size="sm"
             class="mb-0"
-            limit="2"
-            aria-label="Reviews pagination"
+            limit="5"
+            :aria-label="paginationLabel"
             @update:model-value="$emit('update:currentPage', Number($event))"
           />
-        </BCol>
-      </BRow>
+          <span class="review-table__page-count">Page {{ currentPage }} of {{ pageCount }}</span>
+        </div>
+      </div>
 
-      <BRow class="g-2 align-items-center mt-1">
-        <BCol cols="6" md="2" class="mb-2 mb-md-0">
-          <BFormSelect
-            :model-value="categoryFilter"
-            size="sm"
-            :options="categoryOptions"
-            aria-label="Filter by category"
-            @update:model-value="$emit('update:categoryFilter', ($event as string) ?? null)"
-          />
-        </BCol>
-        <BCol cols="6" md="2" class="mb-2 mb-md-0">
-          <BFormSelect
-            :model-value="userFilter"
-            size="sm"
-            :options="userOptions"
-            aria-label="Filter by user"
-            @update:model-value="$emit('update:userFilter', ($event as string) ?? null)"
-          />
-        </BCol>
-        <BCol cols="6" md="2" class="mb-2 mb-md-0">
-          <BInputGroup size="sm">
-            <template #prepend>
-              <BInputGroupText class="small"> From </BInputGroupText>
-            </template>
-            <BFormInput
-              :model-value="dateStart"
-              type="date"
-              size="sm"
-              aria-label="Filter from date"
-              @update:model-value="$emit('update:dateStart', String($event ?? '') || null)"
-            />
-          </BInputGroup>
-        </BCol>
-        <BCol cols="6" md="2" class="mb-2 mb-md-0">
-          <BInputGroup size="sm">
-            <template #prepend>
-              <BInputGroupText class="small"> To </BInputGroupText>
-            </template>
-            <BFormInput
-              :model-value="dateEnd"
-              type="date"
-              size="sm"
-              aria-label="Filter to date"
-              @update:model-value="$emit('update:dateEnd', String($event ?? '') || null)"
-            />
-          </BInputGroup>
-        </BCol>
-        <BCol cols="12" md="4" class="d-flex align-items-center flex-wrap gap-1">
-          <BBadge
-            v-if="categoryFilter"
-            variant="secondary"
-            class="d-flex align-items-center gap-1"
-            style="cursor: pointer"
-            @click="$emit('update:categoryFilter', null)"
-          >
-            {{ categoryFilter }}
-            <i class="bi bi-x" />
-          </BBadge>
-          <BBadge
-            v-if="userFilter"
-            variant="secondary"
-            class="d-flex align-items-center gap-1"
-            style="cursor: pointer"
-            @click="$emit('update:userFilter', null)"
-          >
-            {{ userFilter }}
-            <i class="bi bi-x" />
-          </BBadge>
-          <BBadge
-            v-if="dateStart"
-            variant="secondary"
-            class="d-flex align-items-center gap-1"
-            style="cursor: pointer"
-            @click="$emit('update:dateStart', null)"
-          >
-            From: {{ dateStart }}
-            <i class="bi bi-x" />
-          </BBadge>
-          <BBadge
-            v-if="dateEnd"
-            variant="secondary"
-            class="d-flex align-items-center gap-1"
-            style="cursor: pointer"
-            @click="$emit('update:dateEnd', null)"
-          >
-            To: {{ dateEnd }}
-            <i class="bi bi-x" />
-          </BBadge>
-        </BCol>
-      </BRow>
+      <div v-if="categoryFilter || userFilter || dateStart || dateEnd" class="review-table__chips">
+        <BButton
+          v-if="categoryFilter"
+          size="sm"
+          variant="light"
+          class="review-table__chip"
+          :aria-label="`Remove filter ${categoryFilter}`"
+          @click="$emit('update:categoryFilter', null)"
+        >
+          {{ categoryFilter }} <i class="bi bi-x" aria-hidden="true" />
+        </BButton>
+        <BButton
+          v-if="userFilter"
+          size="sm"
+          variant="light"
+          class="review-table__chip"
+          :aria-label="`Remove filter ${userFilter}`"
+          @click="$emit('update:userFilter', null)"
+        >
+          {{ userFilter }} <i class="bi bi-x" aria-hidden="true" />
+        </BButton>
+        <BButton
+          v-if="dateStart"
+          size="sm"
+          variant="light"
+          class="review-table__chip"
+          :aria-label="`Remove filter from ${dateStart}`"
+          @click="$emit('update:dateStart', null)"
+        >
+          From: {{ dateStart }} <i class="bi bi-x" aria-hidden="true" />
+        </BButton>
+        <BButton
+          v-if="dateEnd"
+          size="sm"
+          variant="light"
+          class="review-table__chip"
+          :aria-label="`Remove filter to ${dateEnd}`"
+          @click="$emit('update:dateEnd', null)"
+        >
+          To: {{ dateEnd }} <i class="bi bi-x" aria-hidden="true" />
+        </BButton>
+      </div>
 
       <details class="review-table__legend">
         <summary>
@@ -184,6 +171,7 @@
         :is-busy="isBusy"
         :sort-by="sortBy"
         :stacked-mode="false"
+        :fixed-layout="false"
         @update:sort-by="$emit('update:sortBy', $event as SortBy[])"
         @update-sort="
           ({ sortBy: key, sortDesc }) =>
@@ -260,8 +248,10 @@ import TableShell from '@/components/table/TableShell.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 
 export interface LegendItem {
-  icon: string;
+  icon?: string;
   color?: string;
+  component?: unknown;
+  componentProps?: Record<string, unknown>;
   label: string;
 }
 
@@ -331,6 +321,11 @@ const pageItems = computed<unknown[]>(() => {
   return filteredSortedItems.value.slice(start, start + props.perPage);
 });
 
+const paginationLabel = computed(
+  () => `${props.totalRowsLabel.charAt(0).toUpperCase()}${props.totalRowsLabel.slice(1)} pagination`
+);
+const pageCount = computed(() => Math.max(1, Math.ceil(props.totalRows / props.perPage)));
+
 const emit = defineEmits<{
   (e: 'approve-all'): void;
   (e: 'refresh'): void;
@@ -359,6 +354,67 @@ function truncateHeader(label: string): string {
 </script>
 
 <style scoped>
+.review-table__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.review-table__search {
+  flex: 1 1 14rem;
+  max-width: 20rem;
+}
+
+.review-table__select {
+  flex: 0 1 11rem;
+  min-width: 9.5rem;
+  width: auto;
+}
+
+.review-table__date {
+  flex: 1 1 11.5rem;
+  max-width: 14rem;
+}
+
+.review-table__paging {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.review-table__per-page {
+  width: auto;
+}
+
+.review-table__per-page :deep(.form-select) {
+  width: auto;
+  min-width: 4.5rem;
+}
+
+.review-table__page-count {
+  color: var(--text-secondary, #475569);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.review-table__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.review-table__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
 .review-table__legend {
   margin-top: 0.625rem;
   color: #475569;

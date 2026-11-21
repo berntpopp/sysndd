@@ -61,22 +61,35 @@
         </template>
 
         <template #toolbar>
-          <BFormInput
-            v-model="searchText"
-            type="search"
-            debounce="300"
-            size="sm"
-            placeholder="Filter by gene symbol or disease"
-            class="genereviews-coverage__search"
-            aria-label="Filter coverage rows"
-          />
-          <BFormSelect
-            v-model="statusFilter"
-            size="sm"
-            :options="statusFilterOptions"
-            class="genereviews-coverage__status-filter ms-2"
-            aria-label="Filter by link status"
-          />
+          <div class="genereviews-coverage__toolbar">
+            <BFormInput
+              v-model="searchText"
+              type="search"
+              debounce="300"
+              size="sm"
+              placeholder="Filter by gene symbol or disease"
+              class="genereviews-coverage__search"
+              aria-label="Filter coverage rows"
+            />
+            <BFormSelect
+              v-model="statusFilter"
+              size="sm"
+              :options="statusFilterOptions"
+              class="genereviews-coverage__status-filter"
+              aria-label="Filter by link status"
+            />
+            <TablePaginationControls
+              :total-rows="filteredRows.length"
+              :current-page="currentPage"
+              :initial-per-page="perPage"
+              :page-options="[25, 50, 100]"
+              label="GeneReviews coverage pagination"
+              per-page-label="Rows per page"
+              class="genereviews-coverage__pager ms-auto"
+              @page-change="currentPage = $event"
+              @per-page-change="onPerPage"
+            />
+          </div>
         </template>
 
         <BTable
@@ -153,18 +166,6 @@
             </BButton>
           </template>
         </BTable>
-        <TablePaginationControls
-          v-if="filteredRows.length > perPage"
-          :total-rows="filteredRows.length"
-          :current-page="currentPage"
-          :initial-per-page="perPage"
-          :page-options="[25, 50, 100]"
-          label="GeneReviews coverage pagination"
-          per-page-label="Rows per page"
-          class="genereviews-coverage__pager"
-          @page-change="currentPage = $event"
-          @per-page-change="onPerPage"
-        />
       </TableShell>
     </BContainer>
 
@@ -387,12 +388,20 @@ defineExpose({
 </script>
 
 <style scoped>
+.genereviews-coverage__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
 .genereviews-coverage__search {
+  flex: 1 1 14rem;
   max-width: 22rem;
 }
 
 .genereviews-coverage__status-filter {
-  max-width: 16rem;
+  flex: 0 1 12rem;
 }
 
 .genereviews-coverage__linked-id,
@@ -401,15 +410,15 @@ defineExpose({
   font-size: 0.8rem;
   font-family: var(--font-mono, monospace);
   margin-top: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .genereviews-coverage__pager {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.25rem 0.75rem;
   align-items: center;
   justify-content: flex-end;
-  margin-top: 0.75rem;
 }
 
 .genereviews-coverage__muted {

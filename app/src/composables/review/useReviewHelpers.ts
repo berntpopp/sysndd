@@ -6,6 +6,8 @@
  * phenotype/variation tree-shape transform).
  */
 
+import { categoryLegendItems } from '@/composables/approval/useStatusHelpers';
+
 export interface TreeNode {
   id: string;
   label: string;
@@ -121,14 +123,11 @@ export const reviewTableFields = [
 
 /** Legend-item rows shared across the review approval UI. */
 export const reviewLegendItems = [
-  { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-  { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-  { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-  { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+  ...categoryLegendItems,
   { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Status change pending' },
   { icon: 'bi bi-exclamation-triangle-fill', color: '#ffc107', label: 'Multiple pending reviews' },
   { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
   { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit review' },
-  { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve review' },
+  { icon: 'bi bi-check2-circle', color: '#198754', label: 'Approve review' },
   { icon: 'bi bi-x-circle', color: '#dc3545', label: 'Dismiss review' },
 ];

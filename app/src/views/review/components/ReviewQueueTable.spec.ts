@@ -80,4 +80,36 @@ describe('ReviewQueueTable', () => {
     expect(submitButton().attributes('disabled')).toBeUndefined();
     expect(tooltips.at(-1)).toBe('Submit entity review');
   });
+
+  // S-12/S-13/CUR-10/CUR-24: unnamed per-page select, filtered-empty text with no
+  // filter, and a legend title that fell through to BCard as an <h4>.
+  it('names the per-page select, treats an empty search as no filter, and titles the legend', () => {
+    const TableStub = { props: ['filter', 'emptyFilteredText'], template: '<div />' };
+    const LegendStub = { props: ['title', 'legendItems'], template: '<div />' };
+    const wrapper = shallowMount(ReviewQueueTable, {
+      props: {
+        filteredItems: [],
+        fields: [],
+        totalRows: 0,
+        legendItems: [],
+        user: {},
+        dateYearAge: () => '',
+        filter: '',
+      },
+      global: {
+        stubs: {
+          TableShell: { template: '<div><slot name="toolbar" /><slot /></div>' },
+          BTable: TableStub,
+          IconLegend: LegendStub,
+          BFormSelect: { inheritAttrs: false, template: '<select v-bind="$attrs" />' },
+        },
+      },
+    });
+    const perPage = wrapper.get('#review-queue-per-page-select');
+    expect(perPage.attributes('aria-label')).toBe('Rows per page');
+    const table = wrapper.findComponent(TableStub);
+    expect(table.props('filter')).toBeUndefined();
+    expect(table.props('emptyFilteredText')).toBe('No entities match the current filters.');
+    expect(wrapper.findComponent(LegendStub).props('title')).toBe('Category and review status');
+  });
 });

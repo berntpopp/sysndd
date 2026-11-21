@@ -379,25 +379,6 @@ defineExpose({
 });
 </script>
 
-<style scoped>
-.text-truncate-multiline {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-.text-popover-trigger {
-  cursor: help;
-  border-bottom: 1px dotted #6c757d;
-}
-.text-popover-trigger:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 2px;
-}
-</style>
-
 <style>
 .wide-popover {
   max-width: 400px !important;
