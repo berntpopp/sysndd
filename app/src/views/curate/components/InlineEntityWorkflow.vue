@@ -254,7 +254,12 @@
 
         <footer class="inline-entity-workflow__footer">
           <BButton variant="outline-secondary" size="sm" @click="$emit('cancel')">Cancel</BButton>
-          <BButton variant="primary" size="sm" type="submit" :disabled="submitting === workflow">
+          <BButton
+            variant="primary"
+            size="sm"
+            type="submit"
+            :disabled="submitting === workflow || (workflow === 'deactivate' && !deactivateCheck)"
+          >
             <BSpinner v-if="submitting === workflow" small class="me-1" />
             Submit
           </BButton>

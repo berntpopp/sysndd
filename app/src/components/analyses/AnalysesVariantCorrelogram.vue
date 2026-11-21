@@ -8,7 +8,7 @@
       <BPopover target="popover-badge-help-variant" variant="info" triggers="focus">
         <template #title> Variant Correlations </template>
         This plot displays the Pearson correlation coefficients between different genetic variants.
-        Click on cells to view entities with either variant, or hover to see exact correlation
+        Click on cells to view entities with both variants, or hover to see exact correlation
         values.
       </BPopover>
       <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />
@@ -31,6 +31,7 @@ import * as d3 from 'd3';
 
 // Typed API client (W5)
 import { getVariantCorrelation } from '@/api/variant';
+import { variantCorrelationLink } from './correlogramLinks';
 
 export default {
   name: 'AnalysesVariantCorrelogram',
@@ -182,18 +183,14 @@ export default {
         d3.select(this).style('stroke', 'none');
       };
 
-      // Add the squares with links to entities filtered by vario_id
+      // Add the squares with links to the entities carrying both terms
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
         .enter()
         .append('a')
-        .attr(
-          'xlink:href',
-          (d) =>
-            `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
-        )
-        .attr('aria-label', (d) => `View entities with ${d.x} or ${d.y} variants`)
+        .attr('xlink:href', (d) => variantCorrelationLink(d.x_vario_id, d.y_vario_id))
+        .attr('aria-label', (d) => `View entities with both ${d.x} and ${d.y} variants`)
         .append('rect')
         .attr('x', (d) => x(d.x))
         .attr('y', (d) => y(d.y))

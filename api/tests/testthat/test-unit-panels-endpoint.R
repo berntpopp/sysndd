@@ -36,6 +36,8 @@ source(file.path(api_dir, "core", "errors.R"))
 # Direct-source the panels module (helper-functions.R above already provides
 # its response-helpers.R/data-helpers.R transitive dependencies).
 source(file.path(api_dir, "functions", "panels-endpoint-functions.R"))
+# build_cursor_links() builds the pagination links.
+source(file.path(api_dir, "functions", "publication-endpoint-helpers.R"))
 
 # =============================================================================
 # Test max_category column replacement logic
@@ -490,4 +492,60 @@ test_that("generate_panels_list: approved views, empty/meta shape, real DB", {
     generate_panels_list(sort = "symbol);DROP TABLE non_alt_loci_set;--"),
     regexp = "column|not allowed|invalid", ignore.case = TRUE
   )
+})
+
+# =============================================================================
+# max_category + inheritance filter, against in-memory tables (no DB)
+# =============================================================================
+
+test_that("generate_panels_list matches inheritance only on the gene's top-category entities", {
+  tables <- list(
+    ndd_entity_status_categories_list = tibble(
+      category_id = c(1L, 5L), category = c("Definitive", "Refuted")
+    ),
+    mode_of_inheritance_list = tibble(
+      is_active = TRUE, inheritance_filter = c("Autosomal dominant", "Autosomal recessive")
+    ),
+    # FBXO11: Definitive AD + Refuted AR; GENEB: Definitive AR
+    ndd_entity_view = tibble(
+      hgnc_id = c("HGNC:1", "HGNC:1", "HGNC:2"),
+      symbol = c("FBXO11", "FBXO11", "GENEB"),
+      hpo_mode_of_inheritance_term_name = c("AD", "AR", "AR"),
+      inheritance_filter = c("Autosomal dominant", "Autosomal recessive", "Autosomal recessive"),
+      category = c("Definitive", "Refuted", "Definitive"),
+      category_id = c(1L, 5L, 1L),
+      ndd_phenotype = 1L
+    ),
+    non_alt_loci_set = tibble(
+      hgnc_id = c("HGNC:1", "HGNC:2"), entrez_id = NA, ensembl_gene_id = NA,
+      ucsc_id = NA, bed_hg19 = NA, bed_hg38 = NA
+    )
+  )
+  # generate_panels_list() reads `pool %>% tbl(name)`; serve the tibbles instead.
+  local_mocked_bindings(tbl = function(src, name) tables[[name]], .package = "dplyr")
+  assign("pool", NULL, envir = .GlobalEnv)
+  assign("dw", list(api_base_url = "https://sysndd.test/api"), envir = .GlobalEnv)
+  withr::defer(rm(pool, dw, envir = .GlobalEnv))
+
+  ar <- generate_panels_list(
+    filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal recessive')"
+  )
+  expect_equal(ar$data$symbol, "GENEB")
+
+  ad <- generate_panels_list(
+    filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant')"
+  )
+  expect_equal(ad$data$symbol, "FBXO11")
+  expect_equal(ad$data$inheritance, "AD")
+
+  expect_match(ad$links$self, "^https://sysndd\\.test/api/panels/browse\\?sort=symbol")
+  expect_false(grepl("/api/api", ad$links$self, fixed = TRUE))
+
+  # The links carry the rewritten max_category filter; following one must not
+  # rewrite it again into max_max_category (500 on every next/self link).
+  expect_match(ad$links$self, "filter=equals(max_category,", fixed = TRUE)
+  followed <- generate_panels_list(
+    filter = "equals(max_category,'Definitive'),any(inheritance_filter,'Autosomal dominant')"
+  )
+  expect_equal(followed$data$symbol, "FBXO11")
 })

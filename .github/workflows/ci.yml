@@ -43,13 +43,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# R packages come from the same dated Posit Package Manager snapshot as api/Dockerfile,
+# so CI installs the binaries production runs (renv.lock was resolved against it).
+env:
+  RENV_CONFIG_REPOS_OVERRIDE: "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08"
+
 jobs:
   # ============================================================================
   # Detect Changes - determines which jobs to run
   # ============================================================================
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: read
     outputs:
@@ -98,7 +103,7 @@ jobs:
   # ============================================================================
   lint-api:
     name: Lint R API
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     defaults:
@@ -141,20 +146,22 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
 
   test-api-fast:
     name: Test R API (fast PR gate)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.api == 'true' }}
     defaults:
@@ -212,13 +219,15 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -243,7 +252,7 @@ jobs:
 
   test-api-full:
     name: Test R API (full)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     if: ${{ github.event_name != 'pull_request' }}
     defaults:
       run:
@@ -297,13 +306,15 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -350,7 +361,7 @@ jobs:
   # =========================================================================
   slow-tests-nightly:
     name: Slow Tests (nightly)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:
@@ -414,13 +425,15 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -456,7 +469,7 @@ jobs:
   # ============================================================================
   check-app:
     name: Check Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ needs.changes.outputs.app == 'true' }}
     defaults:
@@ -489,7 +502,7 @@ jobs:
 
   build-app:
     name: Build Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ needs.changes.outputs.app == 'true' }}
     defaults:
@@ -553,8 +566,8 @@ jobs:
   # When that todo lands, re-evaluate adding macos-latest back to the matrix.
   # ============================================================================
   make-doctor:
-    name: make doctor (ubuntu-latest)
-    runs-on: ubuntu-latest
+    name: make doctor (ubuntu-24.04)
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
@@ -597,14 +610,15 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
+      # Same ordering workaround as api/Dockerfile (see the R jobs above).
+      - name: Restore order-sensitive dependencies first
         working-directory: ./api
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 3
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       - name: make install-dev
         run: make install-dev
@@ -623,7 +637,7 @@ jobs:
   # conflict inside `jobs:`, keep both job blocks — never drop a job.
   smoke-test:
     name: Smoke Test (prod stack)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.smoke == 'true' }}
     timeout-minutes: 25
@@ -675,7 +689,7 @@ jobs:
   # ============================================================================
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       [
         changes,

@@ -25,6 +25,20 @@
 svc_re_review_submit <- function(submit_data) {
   fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
   fields_to_update <- re_review_filter_submit_fields(fields_to_update)
+
+  # #708: only a saved review is submittable (saving it unchanged records
+  # "checked, nothing to change"). The flag only ever goes 0 -> 1, so this
+  # check-then-write cannot race into a wrong submit.
+  if (isTRUE(as.integer(submit_data$re_review_submitted) == 1L)) {
+    saved <- db_execute_query(
+      "SELECT re_review_review_saved FROM re_review_entity_connect WHERE re_review_entity_id = ?",
+      list(submit_data$re_review_entity_id)
+    )
+    if (nrow(saved) > 0 && !isTRUE(as.integer(saved$re_review_review_saved[1]) == 1L)) {
+      stop_for_bad_request("Save the entity review before submitting it.")
+    }
+  }
+
   set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
   sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
 

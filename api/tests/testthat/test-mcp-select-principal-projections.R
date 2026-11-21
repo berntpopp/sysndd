@@ -128,6 +128,59 @@ test_that("canonical hashes preserve predicate grouping on MySQL 8.4", {
   ))
 })
 
+test_that("llm summary hash matches the MySQL 8.4 render of migration 054", {
+  source(contract_path, local = FALSE)
+  # VIEW_DEFINITION as MySQL 8.4.11 stores it after migration 054, captured from a
+  # restored production dump. A hand-derived pin rejected it at provisioning time.
+  stored <- paste0(
+    "select `c`.`cache_id` AS `cache_id`,`sysndd_db`.`a`.`snapshot_id` AS ",
+    "`snapshot_id`,`c`.`cluster_type` AS `cluster_type`,`c`.`cluster_number` AS ",
+    "`cluster_number`,`c`.`cluster_hash` AS `cluster_hash`,`c`.`model_name` AS ",
+    "`model_name`,`c`.`prompt_version` AS `prompt_version`,json_object('summary',",
+    "json_extract(`c`.`summary_json`,'$.summary'),'key_themes',",
+    "json_extract(`c`.`summary_json`,'$.key_themes'),'pathways',",
+    "json_extract(`c`.`summary_json`,'$.pathways'),'tags',",
+    "json_extract(`c`.`summary_json`,'$.tags'),'clinical_relevance',",
+    "json_extract(`c`.`summary_json`,'$.clinical_relevance'),'confidence',",
+    "json_extract(`c`.`summary_json`,'$.confidence'),'key_phenotype_themes',",
+    "json_extract(`c`.`summary_json`,'$.key_phenotype_themes'),'notably_absent',",
+    "json_extract(`c`.`summary_json`,'$.notably_absent'),'clinical_pattern',",
+    "json_extract(`c`.`summary_json`,'$.clinical_pattern'),'syndrome_hints',",
+    "json_extract(`c`.`summary_json`,'$.syndrome_hints'),'inheritance_patterns',",
+    "json_extract(`c`.`summary_json`,'$.inheritance_patterns'),'data_quality_note',",
+    "json_extract(`c`.`summary_json`,'$.data_quality_note')) AS `summary_json`,",
+    "`c`.`tags` AS `tags`,`c`.`created_at` AS `created_at`,`c`.`validated_at` AS ",
+    "`validated_at` from ((`sysndd_db`.`llm_cluster_summary_cache` `c` join ",
+    "`sysndd_db`.`mcp_public_analysis_cluster` `a` ",
+    "on(((`sysndd_db`.`a`.`cluster_kind` = `c`.`cluster_type`) and ",
+    "(`sysndd_db`.`a`.`cluster_id` = (cast(`c`.`cluster_number` as char charset ",
+    "utf8mb4) collate utf8mb4_unicode_ci)) and (`sysndd_db`.`a`.`cluster_hash` = ",
+    "`c`.`cluster_hash`)))) join `sysndd_db`.`mcp_public_analysis_manifest` `m` ",
+    "on(((`sysndd_db`.`m`.`snapshot_id` = `sysndd_db`.`a`.`snapshot_id`) and ",
+    "(`sysndd_db`.`m`.`analysis_type` = (case `c`.`cluster_type` when 'functional' ",
+    "then 'functional_clusters' when 'phenotype' then 'phenotype_clusters' end))))) ",
+    "where ((`c`.`validation_status` = 'validated') and (`c`.`is_current` = 1) and ",
+    "(`c`.`prompt_version` = '1.0'))"
+  )
+  keys <- regmatches(stored, gregexpr("json_object\\('([a-z_]+)'|,'([a-z_]+)',json_extract", stored))
+  keys <- gsub("^json_object\\(|^,|,json_extract$|'", "", keys[[1L]])
+  expect_identical(keys, mcp_readonly_llm_summary_json_keys())
+  # Tie the captured render to the migration that owns the view, so editing 054
+  # without re-capturing the render and re-pinning the hash fails here.
+  m054 <- paste(readLines(file.path(
+    get_api_dir(), "..", "db", "migrations", "054_mcp_llm_summary_drop_syndromicity.sql"
+  ), warn = FALSE), collapse = "\n")
+  m054 <- sub("(?s).*VIEW `mcp_public_llm_cluster_summary` AS\\s+(.*?);.*", "\\1", m054, perl = TRUE)
+  expect_identical(
+    mcp_readonly_normalize_view_sql(stored, schema = "sysndd_db"),
+    mcp_readonly_normalize_view_sql(m054)
+  )
+  expect_identical(
+    as.character(unclass(mcp_readonly_canonical_view_hash(stored, schema = "sysndd_db"))),
+    mcp_readonly_canonical_view_hashes()[["mcp_public_llm_cluster_summary"]]
+  )
+})
+
 test_that("migration enforces public lifecycle and confidentiality gates", {
   sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
 

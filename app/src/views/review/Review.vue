@@ -3,7 +3,7 @@
   <AuthenticatedPageShell
     title="Re-review"
     description="Review assigned entities, update curation status, and submit completed re-review work."
-    :meta="`${totalRows} entities`"
+    :meta="`${totalRows} ${totalRows === 1 ? 'entity' : 'entities'}`"
     content-class="review-page"
   >
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
@@ -145,6 +145,7 @@ import ApproveDecisionModal from './components/ApproveDecisionModal.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
+import { TABLE_FIELDS, LEGEND_ITEMS, EMPTY_USER } from './reviewTableConfig';
 
 // W6 of v11.1 finish-hardening — orchestration shell.
 //
@@ -156,65 +157,6 @@ import Utils from '@/assets/js/utils';
 // `$refs.show()`, `loadReReviewData` orchestration that calls into both
 // the data composable AND the filter pagination reset) or pure
 // formatting helpers (`truncate`, `dateYearAge`).
-
-const TABLE_FIELDS = Object.freeze([
-  { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-start' },
-  {
-    key: 'symbol',
-    label: 'Gene',
-    sortable: true,
-    filterable: true,
-    sortDirection: 'desc',
-    class: 'text-start',
-  },
-  {
-    key: 'disease_ontology_name',
-    label: 'Disease',
-    sortable: true,
-    class: 'text-start',
-    sortByFormatted: true,
-    filterByFormatted: true,
-  },
-  {
-    key: 'hpo_mode_of_inheritance_term_name',
-    label: 'Inheritance',
-    sortable: true,
-    class: 'text-start',
-    sortByFormatted: true,
-    filterByFormatted: true,
-  },
-  { key: 'category', label: 'Category', sortable: true, class: 'text-center' },
-  { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-center' },
-  {
-    key: 'review_date',
-    label: 'Review date',
-    sortable: true,
-    filterable: true,
-    class: 'text-start',
-  },
-  { key: 'review_user_name', label: 'User', sortable: true, filterable: true, class: 'text-start' },
-  { key: 'actions', label: 'Actions', class: 'text-center' },
-]);
-
-const LEGEND_ITEMS = Object.freeze([
-  { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-  { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-  { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-  { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
-  { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'Re-review approved' },
-  { icon: 'bi bi-hourglass-split', color: '#ffc107', label: 'Pending re-review' },
-]);
-
-const EMPTY_USER = Object.freeze({
-  user_id: [],
-  user_name: [],
-  email: [],
-  user_role: [],
-  user_created: [],
-  abbreviation: [],
-  orcid: [],
-  exp: [],
-});
 
 export default {
   name: 'ReviewView',
@@ -272,6 +214,8 @@ export default {
     const curator_mode = ref(0);
     const user = ref({ ...EMPTY_USER });
     const modalLoadGeneration = ref(0);
+    // The edit modals stay open while saving (B13); this blocks a double-click resubmit.
+    const submitting = ref(false);
 
     // Re-fetch the table when the curator-mode toggle flips. This watch
     // intentionally lives in `setup()` (not `watch:`) so it composes
@@ -369,6 +313,7 @@ export default {
       curator_mode,
       user,
       modalLoadGeneration,
+      submitting,
 
       // Static config
       fields: TABLE_FIELDS,
@@ -446,19 +391,26 @@ export default {
     // ---- Wizard form submissions (BModal @ok wiring) -----------------------
 
     async submitStatusChange() {
+      if (this.submitting) return;
+      this.submitting = true;
       try {
         const isUpdate = this.statusFormData.status_id != null;
         await this.statusForm.submitForm(isUpdate, true);
         this.makeToast('Status submitted successfully', 'Success', 'success');
         this.announce('Status submitted successfully');
         this.statusForm.resetForm();
+        this.$refs.statusModalRef?.hide();
         await this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.announce('Failed to submit status', 'assertive');
+      } finally {
+        this.submitting = false;
       }
     },
     async submitReviewChange() {
+      if (this.submitting) return;
+      this.submitting = true;
       try {
         // Decide create-vs-update from the review the FORM loaded, not from
         // `review_info` — `loadReviewInfo()` swallows its errors and the modal
@@ -471,10 +423,13 @@ export default {
         this.makeToast('Review submitted successfully', 'Success', 'success');
         this.announce('Review submitted successfully');
         this.reviewForm.resetForm();
+        this.$refs.reviewModalRef?.hide();
         await this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.announce('Failed to submit review', 'assertive');
+      } finally {
+        this.submitting = false;
       }
     },
 

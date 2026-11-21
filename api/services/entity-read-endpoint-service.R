@@ -102,26 +102,10 @@ svc_entity_shape_entity_page <- function(sysndd_db_disease_table, ndd_entity_vie
       ))
     )
 
-  links <- disease_table_pagination_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          api_base_url,
-          "?sort=",
-          sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        link == "null" ~ "null"
-      )
-    ) %>%
-    pivot_wider(
-      id_cols = everything(),
-      names_from = "type",
-      values_from = "link"
-    )
+  links <- build_cursor_links(
+    disease_table_pagination_info$links, "/entity/", sort, filter, fields,
+    api_base_url = api_base_url
+  )
 
   list(
     links = links,
@@ -204,14 +188,21 @@ svc_entity_list_query <- function(sort = "entity_id", filter = "", fields = "",
       arrange(!!!rlang::parse_exprs(sort_exprs))
   } else {
     ndd_entity_view <- ndd_entity_view_lazy %>% collect()
+    sysndd_db_disease_table <- ndd_entity_view
 
-    if (has_vario_filter) {
-      matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
-      ndd_entity_view <- ndd_entity_view %>%
+    # Each variant clause narrows the result, like every other filter clause
+    # (AND). ndd_entity_view stays global: the column specs are built from it,
+    # and an empty all() match must not empty the table header (#709).
+    for (clause in vario_filter_result$vario_clauses) {
+      matching_entity_ids <- get_entity_ids_by_vario(
+        clause$vario_ids, pool,
+        match_all = clause$operator == "all"
+      )
+      sysndd_db_disease_table <- sysndd_db_disease_table %>%
         dplyr::filter(entity_id %in% matching_entity_ids)
     }
 
-    sysndd_db_disease_table <- ndd_entity_view %>%
+    sysndd_db_disease_table <- sysndd_db_disease_table %>%
       arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
       dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
   }

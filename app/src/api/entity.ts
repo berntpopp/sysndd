@@ -395,6 +395,25 @@ export async function deactivateEntity(
 }
 
 /**
+ * POST /api/entity/reactivate
+ * Mirrors the `@post /reactivate` handler in api/endpoints/entity_endpoints.R.
+ *
+ * Administrator-only. Undoes a deactivation (`is_active` back to 1,
+ * `replaced_by` cleared). 404 when unknown; 409 when already active or when
+ * an active entity (end of its replacement chain, or the same gene,
+ * inheritance and disease) already covers it.
+ */
+export async function reactivateEntity(
+  entityId: number,
+  config?: AxiosRequestConfig
+): Promise<EntityMutationResponse> {
+  return apiClient.post<
+    EntityMutationResponse,
+    { reactivate_json: { entity: { entity_id: number } } }
+  >('/api/entity/reactivate', { reactivate_json: { entity: { entity_id: entityId } } }, config);
+}
+
+/**
  * Build a normalised query-param record for the nested-resource endpoints
  * which all accept `?current_review=TRUE|FALSE`.
  */

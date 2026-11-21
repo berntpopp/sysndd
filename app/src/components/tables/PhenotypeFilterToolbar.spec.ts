@@ -59,6 +59,14 @@ describe('PhenotypeFilterToolbar', () => {
     expect(vm.getPhenotypeName('HP:0001249')).toBe('Intellectual disability');
     // Unknown ids fall back to the raw id.
     expect(vm.getPhenotypeName('HP:9999999')).toBe('HP:9999999');
+    // Modifier-prefixed ids (correlogram drill-down, #709) keep their modifier.
+    expect(vm.getPhenotypeName('1-HP:0001249')).toBe('present: Intellectual disability');
+  });
+
+  it('marks a modifier-scoped selection as selected in the dropdown (#709)', () => {
+    const vm = mountToolbar({ selectedIds: ['1-HP:0001250'] }).vm as unknown as ToolbarVm;
+    expect(vm.isPhenotypeSelected('HP:0001250')).toBe(true);
+    expect(vm.isPhenotypeSelected('HP:0000252')).toBe(false);
   });
 
   it('emits semantic events to the parent', async () => {

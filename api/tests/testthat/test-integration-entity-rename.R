@@ -1019,6 +1019,8 @@ test_that("POST /api/entity/create returns endpoint 400 for unresolvable PMID an
     env$pool <- pool
     env$new_publication <- new_publication_fn
     env$genereviews_from_pmid <- function(...) FALSE
+    # Sourced into this file's env, which the globalenv-parented handler env cannot see.
+    env$svc_entity_require_body <- svc_entity_require_body
 
     handler <- extract_entity_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
     req <- list(

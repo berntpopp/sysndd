@@ -62,6 +62,24 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
       : 'No results found'
   );
 
+  // The list endpoint pages 10 rows sorted by entity_id, so an exact id match can sit below
+  // (or off) that page; fetch it separately and put it first.
+  async function fetchEntityMatches(query: string): Promise<EntitySearchResult[]> {
+    const id = query.trim();
+    const [contains, exact]: any[] = await Promise.all([
+      listEntities({ filter: `contains(any,${query})` }),
+      // Only a ranking boost: if it fails, keep the contains results.
+      /^\d+$/.test(id)
+        ? listEntities({ filter: `equals(entity_id,${id})` }).catch(() => null)
+        : null,
+    ]);
+    const rows: EntitySearchResult[] = [
+      ...(Array.isArray(exact?.data) ? exact.data : []),
+      ...(Array.isArray(contains?.data) ? contains.data : []),
+    ];
+    return rows.filter((e, i) => rows.findIndex((r) => r.entity_id === e.entity_id) === i);
+  }
+
   async function searchEntity(query: string): Promise<void> {
     if (!query || query.length < 2) {
       entity_search_results.value = [];
@@ -69,9 +87,8 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
     }
     entity_search_loading.value = true;
     try {
-      const response: any = await listEntities({ filter: `contains(any,${query})` });
-      const data = response?.data || [];
-      entity_search_results.value = Array.isArray(data) ? data.slice(0, 10) : [];
+      const data = await fetchEntityMatches(query);
+      entity_search_results.value = data.slice(0, 10);
     } catch (e) {
       onToast?.(e, 'Error', 'danger');
       entity_search_results.value = [];
@@ -105,12 +122,11 @@ export function useEntityAutocomplete(options: UseEntityAutocompleteOptions = {}
     }
     replace_entity_search_loading.value = true;
     try {
-      const response: any = await listEntities({ filter: `contains(any,${query})` });
-      const data = response?.data || [];
+      const data = await fetchEntityMatches(query);
       const currentId = getCurrentEntityId?.();
-      replace_entity_search_results.value = Array.isArray(data)
-        ? data.filter((e: EntitySearchResult) => e.entity_id !== currentId).slice(0, 10)
-        : [];
+      replace_entity_search_results.value = data
+        .filter((e) => e.entity_id !== currentId)
+        .slice(0, 10);
     } catch (e) {
       onToast?.(e, 'Error', 'danger');
       replace_entity_search_results.value = [];

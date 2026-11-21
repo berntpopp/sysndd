@@ -2,7 +2,9 @@
   <section class="release-desk-summary" aria-labelledby="release-desk-summary-title">
     <header class="release-desk-summary__header">
       <div>
-        <p class="release-desk-summary__eyebrow">{{ isLatest ? 'Current release' : 'Selected release' }}</p>
+        <p class="release-desk-summary__eyebrow">
+          {{ isLatest ? 'Current release' : 'Selected release' }}
+        </p>
         <h2 id="release-desk-summary-title">
           {{ isLatest ? 'Latest published release' : 'Selected published release' }}
         </h2>
@@ -14,7 +16,7 @@
     <dl class="release-desk-summary__facts">
       <div>
         <dt>Published</dt>
-        <dd>{{ release.published_at || release.created_at }}</dd>
+        <dd>{{ formatReleaseDate(release.published_at || release.created_at) }}</dd>
       </div>
       <div>
         <dt>Contents</dt>
@@ -25,7 +27,7 @@
         <dd>{{ formatReleaseBytes(release.total_bytes) }}</dd>
       </div>
       <div>
-        <dt>Licence</dt>
+        <dt>License</dt>
         <dd>{{ release.license }}</dd>
       </div>
     </dl>
@@ -51,7 +53,11 @@
       </BButton>
     </div>
 
-    <section v-if="release.manifest.files.length" class="release-desk-summary__files" aria-label="Individual release files">
+    <section
+      v-if="release.manifest.files.length"
+      class="release-desk-summary__files"
+      aria-label="Individual release files"
+    >
       <h3>Need one file?</h3>
       <ul>
         <li v-for="file in release.manifest.files" :key="file.path">
@@ -90,6 +96,19 @@ defineEmits<{
   'download-manifest': [];
   'download-file': [path: string];
 }>();
+
+// Release timestamps are UTC; pin the zone so the day never shifts with the viewer.
+function formatReleaseDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
 
 function fileTestId(path: string): string {
   return path.replaceAll(/[/.]+/g, '-').replace(/^-|-$/g, '');
@@ -156,7 +175,9 @@ function fileTestId(path: string): string {
   border-block: 1px solid var(--border-subtle);
 }
 
-.release-desk-summary__facts div { min-width: 0; }
+.release-desk-summary__facts div {
+  min-width: 0;
+}
 
 .release-desk-summary__facts dt {
   color: var(--text-muted);
@@ -223,11 +244,17 @@ function fileTestId(path: string): string {
 }
 
 @media (max-width: 767.98px) {
-  .release-desk-summary__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .release-desk-summary__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 575.98px) {
-  .release-desk-summary__actions > * { width: 100%; }
-  .release-desk-summary__files li { align-items: flex-start; }
+  .release-desk-summary__actions > * {
+    width: 100%;
+  }
+  .release-desk-summary__files li {
+    align-items: flex-start;
+  }
 }
 </style>

@@ -146,6 +146,31 @@ test_that("build_cursor_links carries filter and fields when present", {
   expect_equal(out$prev, "null")
 })
 
+test_that("build_cursor_links percent-encodes values so the links are valid URLs", {
+  links <- tibble::tibble(prev = "null", `next` = "&page_after=0")
+
+  out <- build_cursor_links(
+    links, "/panels/browse", "symbol",
+    "any(inheritance_filter,'Autosomal dominant'),contains(disease,'A&B+C#1 50%')",
+    "symbol",
+    api_base_url = "https://api.test"
+  )
+
+  # No raw space, and &, +, #, % inside a value cannot end or corrupt the query.
+  expect_false(grepl(" ", out$`next`, fixed = TRUE))
+  expect_match(out$`next`, "'Autosomal%20dominant'", fixed = TRUE)
+  expect_match(out$`next`, "'A%26B%2BC%231%2050%25'", fixed = TRUE)
+  # Filter syntax stays readable.
+  expect_match(out$`next`, "&filter=any(inheritance_filter,", fixed = TRUE)
+  expect_match(out$`next`, "&page_after=0$")
+  # Round trip: decoding gives back the original filter.
+  q <- sub("^.*&filter=([^&]*)&.*$", "\\1", out$`next`)
+  expect_equal(
+    utils::URLdecode(q),
+    "any(inheritance_filter,'Autosomal dominant'),contains(disease,'A&B+C#1 50%')"
+  )
+})
+
 test_that("pubtator_genes_enrichment_meta reports current snapshot", {
   query_fn <- function(sql, params = list()) {
     expect_match(sql, "pubtator_corpus_stats", fixed = TRUE)

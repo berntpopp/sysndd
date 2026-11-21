@@ -245,17 +245,22 @@ external_proxy_budget <- function(api_name,
                                   default_max = 10,
                                   default_tries = 2L) {
   api_name <- toupper(as.character(api_name %||% "default")[[1]])
+  # The global EXTERNAL_PROXY_* vars tune the short default class only; an
+  # explicit per-call default (e.g. MONDO 180 s batch) must not be capped by them.
+  fallback <- function(global_var, value, is_default) {
+    if (is_default) Sys.getenv(global_var, as.character(value)) else as.character(value)
+  }
   timeout <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_TIMEOUT_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", as.character(default_timeout))
+    fallback("EXTERNAL_PROXY_TIMEOUT_SECONDS", default_timeout, missing(default_timeout))
   ))
   max_seconds <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", as.character(default_max))
+    fallback("EXTERNAL_PROXY_MAX_SECONDS", default_max, missing(default_max))
   ))
   max_tries <- as.integer(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_TRIES"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", as.character(default_tries))
+    fallback("EXTERNAL_PROXY_MAX_TRIES", default_tries, missing(default_tries))
   ))
   list(
     timeout_seconds = if (is.na(timeout) || timeout <= 0) default_timeout else timeout,

@@ -9,7 +9,6 @@
 <script>
 import useToast from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
-import { signin } from '@/api/auth';
 
 export default {
   name: 'LogoutCountdownBadge',
@@ -56,27 +55,6 @@ export default {
         }
       }
     },
-    async refreshWithJWT() {
-      try {
-        await this.auth.refresh();
-        this.signinWithJWT();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async signinWithJWT() {
-      // `useAuth` already maintains the axios default Authorization header,
-      // so we no longer pass it per-request. The response body is the user
-      // payload that login() expects.
-      try {
-        const userPayload = await signin();
-        if (this.auth.token.value) {
-          this.auth.login(this.auth.token.value, userPayload);
-        }
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
     updateDiffs() {
       // TODO: remove magic numbers and put them in constants in a config file
       const secondToMinuteDivider = 60;
@@ -94,27 +72,13 @@ export default {
 
       if (expires > timestamp) {
         this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
+        // ponytail: exact-second match can miss a point if the 1 s tick drifts; use a range if users report missed warnings.
         if (warningTimePoints.includes(expires - timestamp)) {
-          // Use a shorter name for this.$createElement
-          const h = this.$createElement;
-
-          // compose the logout message
-          const vNodesMsg = h('p', { class: ['text-center', 'mb-0'] }, [
-            'Token ',
-            h(
-              'b-badge',
-              {
-                props: { variant: 'success', href: '#' },
-                on: { click: () => this.refreshWithJWT() },
-              },
-              'refresh now'
-            ),
-          ]);
-
+          const minutes = Math.round((expires - timestamp) / secondToMinuteDivider);
           this.makeToast(
-            [vNodesMsg],
-            `Warning: Logout in ${expires - timestamp} seconds`,
-            'danger'
+            `Your session ends in ${minutes} min. Click Token in the user menu to refresh it.`,
+            'Session ending soon',
+            'warning'
           );
         }
       } else {

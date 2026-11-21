@@ -78,6 +78,7 @@ import { required, min, max, confirmed } from '@vee-validate/rules';
 import { useToast, useColorAndSymbols } from '@/composables';
 import { useAuth } from '@/composables/useAuth';
 import { signin, changePassword } from '@/api/auth';
+import { passwordComplexity } from '@/utils/passwordRules';
 import { getUserContributions, updateProfile } from '@/api/user';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import UserContributionStats from '@/views/user/UserContributionStats.vue';
@@ -91,15 +92,7 @@ defineRule('min', min);
 defineRule('max', max);
 defineRule('confirmed', confirmed);
 
-// Custom password complexity rule
-defineRule('password_complexity', (value) => {
-  if (!value) return true;
-  const regex = /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/;
-  if (!regex.test(value)) {
-    return 'Password must contain at least one uppercase, one lowercase, one number, and one special character (!@#$%^&*)';
-  }
-  return true;
-});
+defineRule('password_complexity', passwordComplexity);
 
 export default {
   name: 'UserView',

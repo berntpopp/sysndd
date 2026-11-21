@@ -447,6 +447,7 @@ export default {
           filter: `any(category,${this.selected_category}),any(inheritance_filter,${this.selected_inheritance})`,
           page_after: 0,
           page_size: 'all',
+          fields: this.selected_columns.join(),
         });
 
         const fileURL = window.URL.createObjectURL(new Blob([blob]));

@@ -53,6 +53,7 @@ import {
   type VariationSuggestion,
 } from '@/api/entity';
 import useText from '@/composables/useText';
+import { useAuth } from '@/composables/useAuth';
 
 export type VariationZoneKind = 'confirmed' | 'needs_confirmation' | 'suggested';
 
@@ -369,9 +370,13 @@ export default function useVariationProvenanceZones(
    *
    * Best-effort and NON-THROWING by design: the provenance layer is additive
    * decoration on a form that must keep working when the route is unavailable
-   * (a pre-#608 API build) or forbidden (the suggestions route is Curator-gated
-   * and anonymous/Reviewer callers get a 403). Either failure degrades to "no
-   * zones", never to a broken review form.
+   * (a pre-#608 API build). A failure degrades to "no zones", never to a
+   * broken review form.
+   *
+   * The suggestions route is Curator-gated (machine-derived candidates are a
+   * curation decision; Reviewers propose terms from the source text), so it is
+   * only requested for Curator+. Requesting it as a Reviewer was a guaranteed
+   * 403 on every review-form open.
    */
   const loadForEntity = async (
     entityId: number | string,
@@ -381,7 +386,9 @@ export default function useVariationProvenanceZones(
     try {
       const [variationResult, suggestionResult] = await Promise.allSettled([
         getEntityVariation(entityId, {}, config),
-        getEntityVariationSuggestions(entityId, config),
+        useAuth().hasMinRole('Curator')
+          ? getEntityVariationSuggestions(entityId, config)
+          : Promise.resolve([]),
       ]);
       provenanceRows.value =
         variationResult.status === 'fulfilled' && Array.isArray(variationResult.value)

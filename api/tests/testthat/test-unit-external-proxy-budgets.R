@@ -159,6 +159,22 @@ test_that("external_proxy_budget env override beats the supplied default", {
   expect_equal(b$timeout_seconds, 8)
 })
 
+test_that("global EXTERNAL_PROXY_* env does not cap an explicit per-call budget", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(
+    EXTERNAL_PROXY_MONDO_TIMEOUT_SECONDS = NA, EXTERNAL_PROXY_TIMEOUT_SECONDS = "6",
+    EXTERNAL_PROXY_MONDO_MAX_SECONDS = NA, EXTERNAL_PROXY_MAX_SECONDS = "10",
+    EXTERNAL_PROXY_MONDO_MAX_TRIES = NA, EXTERNAL_PROXY_MAX_TRIES = "1",
+    EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS = NA
+  ))
+  b <- external_proxy_budget("mondo", default_timeout = 180, default_max = 360, default_tries = 3L)
+  expect_equal(b$timeout_seconds, 180)
+  expect_equal(b$max_seconds, 360)
+  expect_equal(b$max_tries, 3L)
+  # Callers relying on the short-class defaults still follow the global env.
+  expect_equal(external_proxy_budget("mgi")$max_tries, 1L)
+})
+
 test_that("external_proxy_budget defaults stay 6/10/2 for existing callers", {
   source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
   withr::local_envvar(c(

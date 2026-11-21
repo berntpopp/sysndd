@@ -84,7 +84,7 @@ function(req,
 function(req, res, direct_approval = FALSE) {
   require_role(req, res, "Curator")
 
-  create_data <- req$argsBody$create_json
+  create_data <- svc_entity_require_body(req$argsBody$create_json, "create_json")
 
   # Prepare publications (includes external GeneReviews API call). Insert
   # publications into the reference table BEFORE the atomic transaction so a
@@ -176,7 +176,7 @@ function(req, res) {
   require_role(req, res, "Curator")
 
   result <- svc_entity_rename_full(
-    rename_data = req$argsBody$rename_json,
+    rename_data = svc_entity_require_body(req$argsBody$rename_json, "rename_json"),
     user_id     = req$user_id,
     pool        = pool
   )
@@ -203,8 +203,40 @@ function(req, res) {
   require_role(req, res, "Curator")
 
   result <- svc_entity_deactivate_request(
-    deactivate_data = req$argsBody$deactivate_json,
+    deactivate_data = svc_entity_require_body(req$argsBody$deactivate_json, "deactivate_json"),
     deactivate_user_id = req$user_id,
+    pool = pool
+  )
+
+  res$status <- result$http_status
+  result$body
+}
+
+#* Reactivate Entity
+#*
+#* Undoes a deactivation (Administrator only): sets is_active back to 1 and
+#* clears replaced_by. Reviews and statuses are kept unchanged. Refused with
+#* 409 when the entity is already active or when an active entity (the end of
+#* its replacement chain, or the same gene, inheritance and disease) covers it.
+#* reactivate_json is `list(entity = list(entity_id))`.
+#*
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. A list with status, message and entity_id.
+#* @response 400 Bad Request. entity_id missing or not a positive integer.
+#* @response 403 Forbidden. User does not have the required role.
+#* @response 404 Not Found. No entity with this entity_id.
+#* @response 409 Conflict. Already active, or an active entity covers it.
+#* @response 500 Internal server error.
+#*
+#* @post /reactivate
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  result <- svc_entity_reactivate_request(
+    reactivate_data = svc_entity_require_body(req$argsBody$reactivate_json, "reactivate_json"),
+    reactivate_user_id = req$user_id,
     pool = pool
   )
 

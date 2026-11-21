@@ -288,4 +288,15 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
 
     loginSpy.mockRestore();
   });
+
+  it('rejects a new password the server would refuse for lacking complexity', async () => {
+    const wrapper = mountResetView();
+    vm(wrapper).newPasswordEntry = 'abcdefgh';
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flushPromises();
+
+    const { passwordError } = wrapper.vm as unknown as { passwordError?: string };
+    expect(passwordError).toMatch(/uppercase/);
+  });
 });

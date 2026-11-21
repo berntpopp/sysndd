@@ -29,6 +29,7 @@ source_api_file("functions/entity-repository.R", local = FALSE)
 source_api_file("functions/review-repository.R", local = FALSE)
 source_api_file("services/entity-service.R", local = FALSE)
 source_api_file("services/entity-read-endpoint-service.R", local = FALSE)
+source_api_file("functions/publication-endpoint-helpers.R", local = FALSE)
 source_api_file("services/entity-submission-endpoint-service.R", local = FALSE)
 
 # generate_tibble_fspec_mem is normally bound at API startup from
@@ -147,11 +148,12 @@ test_that("svc_entity_shape_entity_page builds links with the api_base_url and q
     page_after = 0, page_size = "1",
     fspec = "entity_id,symbol",
     is_compact = TRUE,
-    api_base_url = "http://test.local/api/entity"
+    api_base_url = "http://test.local/api"
   )
 
   self_link <- result$links$self[[1]]
-  expect_true(grepl("^http://test\\.local/api/entity", self_link))
+  expect_true(grepl("^http://test\\.local/api/entity/\\?sort=symbol", self_link))
+  expect_false(grepl("/api/api", self_link, fixed = TRUE))
   expect_true(grepl("sort=symbol", self_link, fixed = TRUE))
   expect_true(grepl("filter=any%28category%2CDefinitive%29|filter=any\\(category,Definitive\\)", self_link))
 })
@@ -215,6 +217,62 @@ base_deactivate_original <- tibble::tibble(
   replaced_by = NA_integer_
 )
 
+# Entity write bodies at the trust boundary: an empty or malformed body must be
+# a 400, not a 500 from deep inside the service.
+
+test_that("svc_entity_require_body rejects a body without an entity object as 400", {
+  for (body in list(NULL, "x", list(), list(entity = "x"), list(entity = NULL),
+                    list(entity = list(), review = "x"), list(entity = list(), status = 1))) {
+    expect_error(svc_entity_require_body(body, "deactivate_json"), class = "error_400")
+  }
+  ok <- list(entity = list(entity_id = 1L))
+  expect_identical(svc_entity_require_body(ok, "deactivate_json"), ok)
+})
+
+test_that("every entity write endpoint routes its body through svc_entity_require_body", {
+  src <- readLines(file.path(get_api_dir(), "endpoints", "entity_endpoints.R"), warn = FALSE)
+  body_reads <- grep("req\\$argsBody", src, value = TRUE)
+  expect_length(body_reads, 4L)
+  expect_true(
+    all(grepl("svc_entity_require_body\\(req\\$argsBody\\$", body_reads)),
+    info = paste(body_reads, collapse = "\n")
+  )
+})
+
+test_that("svc_entity_deactivate_request rejects a malformed entity_id with 400 before any DB read", {
+  for (body in list(
+    list(entity = list()),
+    list(entity = list(entity_id = "abc")),
+    list(entity = list(entity_id = 0)),
+    list(entity = list(entity_id = c(1, 2)))
+  )) {
+    expect_equal(svc_entity_deactivate_request(body, 1L, pool = NULL)$http_status, 400)
+  }
+})
+
+test_that("svc_entity_deactivate_decision rejects incomplete bodies and unknown entities instead of crashing", {
+  full <- list(
+    entity_id = 42L, hgnc_id = "HGNC:1234", hpo_mode_of_inheritance_term = "HP:0000006",
+    ndd_phenotype = 1L, is_active = 0L, replaced_by = 99L
+  )
+  for (field in c("hgnc_id", "hpo_mode_of_inheritance_term", "ndd_phenotype", "is_active")) {
+    partial <- full
+    partial[[field]] <- NULL
+    decision <- svc_entity_deactivate_decision(list(entity = partial), base_deactivate_original)
+    expect_equal(decision$action, "reject", info = field)
+  }
+  for (bad in list(c(1L, 2L), c("a", "b"), "abc", list(a = 1), 0L)) {
+    body <- list(entity = modifyList(full, list(replaced_by = bad)))
+    expect_equal(svc_entity_deactivate_decision(body, base_deactivate_original)$action, "reject",
+      info = deparse(bad))
+  }
+  bad_active <- list(entity = modifyList(full, list(is_active = list(a = c(1, 2)))))
+  expect_equal(svc_entity_deactivate_decision(bad_active, base_deactivate_original)$action, "reject")
+  as_string <- list(entity = modifyList(full, list(replaced_by = "99")))
+  expect_identical(svc_entity_deactivate_decision(as_string, base_deactivate_original)$replaced_by, 99L)
+  expect_equal(svc_entity_deactivate_decision(list(entity = full), base_deactivate_original[0, ])$action, "reject")
+})
+
 test_that("svc_entity_deactivate_decision approves a pure is_active flip", {
   deactivate_data <- list(entity = list(
     entity_id = 42L,
@@ -277,6 +335,106 @@ test_that("svc_entity_deactivate_decision normalizes a string 'NULL' replaced_by
 
   expect_equal(decision$action, "deactivate")
   expect_true(is.na(decision$replaced_by))
+})
+
+test_that("svc_entity_deactivate_decision normalizes a JSON null replaced_by to NA", {
+  # The app sends `replaced_by: null` when no replacement is linked; jsonlite
+  # parses that to NULL, which used to drop the column and fail the DB bind (500).
+  deactivate_data <- list(entity = list(
+    entity_id = 42L,
+    hgnc_id = "HGNC:1234",
+    hpo_mode_of_inheritance_term = "HP:0000006",
+    ndd_phenotype = 1L,
+    is_active = 0L,
+    replaced_by = NULL
+  ))
+
+  decision <- svc_entity_deactivate_decision(deactivate_data, base_deactivate_original)
+
+  expect_equal(decision$action, "deactivate")
+  expect_length(decision$replaced_by, 1L)
+  expect_true(is.na(decision$replaced_by))
+})
+
+# =============================================================================
+# svc_entity_reactivate_decision() — undo a deactivation (#711)
+# =============================================================================
+
+inactive_original <- tibble::tibble(
+  entity_id = 42L, hgnc_id = "HGNC:1234", is_active = 0L, replaced_by = 99L
+)
+
+test_that("svc_entity_reactivate_decision approves an inactive entity with no active duplicate", {
+  decision <- svc_entity_reactivate_decision(inactive_original, active_conflicts = tibble::tibble())
+  expect_equal(decision$action, "reactivate")
+  expect_equal(decision$entity_id, 42L)
+})
+
+test_that("svc_entity_reactivate_decision refuses missing, already active and conflicting entities", {
+  expect_equal(svc_entity_reactivate_decision(inactive_original[0, ], tibble::tibble())$http_status, 404)
+
+  active <- dplyr::mutate(inactive_original, is_active = 1L)
+  expect_equal(svc_entity_reactivate_decision(active, tibble::tibble())$http_status, 409)
+
+  conflict <- svc_entity_reactivate_decision(
+    inactive_original,
+    active_conflicts = tibble::tibble(entity_id = c(99L, 120L))
+  )
+  expect_equal(conflict$action, "reject")
+  expect_equal(conflict$http_status, 409)
+  expect_match(conflict$error, "sysndd:99, sysndd:120")
+})
+
+test_that("svc_entity_reactivate_decision refuses a NULL is_active instead of crashing", {
+  null_active <- dplyr::mutate(inactive_original, is_active = NA_integer_)
+  expect_equal(svc_entity_reactivate_decision(null_active, tibble::tibble())$http_status, 409)
+})
+
+test_that("svc_entity_reactivate_request rejects a malformed entity_id with 400 before any DB read", {
+  for (body in list(
+    list(entity = list(entity_id = 1.5)),
+    list(entity = list(entity_id = TRUE)),
+    list(entity = list(entity_id = 0)),
+    list(entity = list(entity_id = "abc")),
+    list(entity = "x"),
+    "x",
+    NULL
+  )) {
+    expect_equal(svc_entity_reactivate_request(body, 1L, pool = NULL)$http_status, 400)
+  }
+})
+
+test_that("svc_entity_reactivate_conflicts follows the replaced_by chain and matches other disease versions", {
+  skip_if_not_installed("RSQLite")
+  con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  on.exit(DBI::dbDisconnect(con))
+  DBI::dbWriteTable(con, "disease_ontology_set", data.frame(
+    disease_ontology_id_version = c("OMIM:100_1", "OMIM:100_2", "MONDO:1", "MONDO:2"),
+    disease_ontology_id = c("OMIM:100", "OMIM:100", "MONDO:1", "MONDO:2")
+  ))
+  DBI::dbWriteTable(con, "ndd_entity", data.frame(
+    entity_id = 1:6,
+    hgnc_id = c("HGNC:1", "HGNC:1", "HGNC:1", "HGNC:2", "HGNC:2", "HGNC:3"),
+    hpo_mode_of_inheritance_term = "HP:0000006",
+    disease_ontology_id_version = c("MONDO:1", "MONDO:2", "OMIM:100_1", "OMIM:100_1", "OMIM:100_2", "MONDO:1"),
+    ndd_phenotype = 1L,
+    is_active = c(0L, 0L, 1L, 0L, 1L, 0L),
+    replaced_by = c(2L, 3L, NA, NA, NA, NA)
+  ))
+  conflicts <- function(id) {
+    svc_entity_reactivate_conflicts(dplyr::collect(dplyr::filter(dplyr::tbl(con, "ndd_entity"), entity_id == !!id)), con)$entity_id
+  }
+
+  expect_equal(conflicts(1L), 3L) # 1 -> 2 (inactive) -> 3 (active)
+  expect_equal(conflicts(4L), 5L) # same gene, inheritance and OMIM:100, other version
+  expect_length(conflicts(6L), 0) # nothing active covers it
+})
+
+test_that("POST /entity/reactivate is Administrator-only", {
+  src <- readLines(file.path(get_api_dir(), "endpoints", "entity_endpoints.R"), warn = FALSE)
+  route <- grep("^#\\*\\s*@post /reactivate", src)
+  expect_length(route, 1)
+  expect_match(src[route + 2], 'require_role\\(req, res, "Administrator"\\)')
 })
 
 # =============================================================================
@@ -532,6 +690,17 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
     expect_equal(result$http_status, 400)
     expect_equal(result$body$error, "This endpoint only allows deactivating an entity.")
 
+    row <- DBI::dbGetQuery(con, "SELECT is_active FROM ndd_entity WHERE entity_id = ?", params = list(entity_id))
+    expect_equal(as.integer(row$is_active[[1]]), 1L) # untouched
+
+    # A valid deactivation naming a replacement that does not exist is a client
+    # error (400), not the 500 the replaced_by foreign key used to produce.
+    unknown_id <- as.integer(DBI::dbGetQuery(con, "SELECT COALESCE(MAX(entity_id), 0) + 1000 AS id FROM ndd_entity")$id)
+    deactivate_data$entity$hgnc_id <- hgnc_id
+    deactivate_data$entity$replaced_by <- unknown_id
+    result <- svc_entity_deactivate_request(deactivate_data, deactivate_user_id = 1L, pool = con)
+    expect_equal(result$http_status, 400)
+    expect_equal(result$body$error, paste0("Replacement entity sysndd:", unknown_id, " does not exist."))
     row <- DBI::dbGetQuery(con, "SELECT is_active FROM ndd_entity WHERE entity_id = ?", params = list(entity_id))
     expect_equal(as.integer(row$is_active[[1]]), 1L) # untouched
   })

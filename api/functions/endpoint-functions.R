@@ -295,21 +295,9 @@ generate_variant_entities_list <- function(sort = "entity_id",
       "executionTime" = execution_time
     )))
 
-  links <- entity_variant_table_pag_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "/api/variant/browse?sort=", sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        TRUE ~ "null"
-      )
-    ) %>%
-    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+  links <- build_cursor_links(
+    entity_variant_table_pag_info$links, "/variant/browse", sort, filter, fields
+  )
 
   # 9) Return final
   list(

@@ -11,7 +11,7 @@
             :description="
               loading && !totalRows
                 ? 'Loading genes...'
-                : 'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
+                : 'Loaded ' + items.length + '/' + totalRows + ' in ' + executionTime
             "
             :loading="loading"
           >
@@ -105,8 +105,8 @@
                       <BFormInput
                         v-if="field.filterable"
                         v-model="filter[field.key].content"
-                        :placeholder="'Filter ' + field.label + '...'"
-                        :aria-label="'Filter by ' + field.label"
+                        :placeholder="'Filter ' + formatHeaderLabel(field.label) + '...'"
+                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
                         debounce="500"
                         type="search"
                         autocomplete="off"
@@ -117,7 +117,7 @@
                       <label
                         v-if="field.selectable"
                         :for="'select_' + field.key"
-                        :aria-label="'Filter by ' + field.label"
+                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
                       >
                         <BFormSelect
                           :id="'select_' + field.key"
@@ -131,7 +131,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              Any {{ field.label }}
+                              Any {{ formatHeaderLabel(field.label) }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>
@@ -145,7 +145,7 @@
                           field.selectOptions.length > 0
                         "
                         :for="'multiselect_' + field.key"
-                        :aria-label="'Filter by ' + field.label"
+                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
                       >
                         <BFormSelect
                           :id="'multiselect_' + field.key"
@@ -159,7 +159,7 @@
                         >
                           <template #first>
                             <BFormSelectOption :value="null">
-                              Any {{ field.label }}
+                              Any {{ formatHeaderLabel(field.label) }}
                             </BFormSelectOption>
                           </template>
                         </BFormSelect>
@@ -392,6 +392,7 @@ export default defineComponent({
     const formatHeaderLabel = (label) => {
       if (!label) return '';
       if (/hpo mode of inheritance/i.test(label)) return 'Inheritance';
+      if (/^ndd phenotype/i.test(label)) return 'NDD';
       return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
     };
     return {

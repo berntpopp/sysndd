@@ -154,29 +154,33 @@ svc_entity_create_finalize <- function(create_data, publications, direct_approva
 #'   On rejection: `list(action = "reject", error = <message>)`.
 #' @export
 svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original) {
-  incoming_is_active <- as.integer(deactivate_data$entity$is_active)
-  incoming_replaced_by <- deactivate_data$entity$replaced_by
-  if (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL") {
-    incoming_replaced_by <- NA_integer_
+  incoming <- deactivate_data$entity
+  # A JSON object here would make as.integer() throw; a non-atomic value just fails the check below.
+  incoming_is_active <- if (is.atomic(incoming$is_active)) as.integer(incoming$is_active)
+  raw_replaced_by <- incoming$replaced_by
+  # JSON null parses to NULL; the DB bind needs NA. Anything else must be an entity id.
+  replaced_by_null <- is.null(raw_replaced_by) ||
+    (is.atomic(raw_replaced_by) && length(raw_replaced_by) == 1L &&
+      (is.na(raw_replaced_by) || toupper(trimws(raw_replaced_by)) == "NULL"))
+  incoming_replaced_by <- if (replaced_by_null) {
+    NA_integer_
+  } else {
+    svc_entity_body_entity_id(list(entity = list(entity_id = raw_replaced_by)))
   }
 
-  ndd_entity_replaced <- ndd_entity_original %>%
-    mutate(is_active = incoming_is_active) %>%
-    mutate(replaced_by = incoming_replaced_by)
+  # isTRUE() is FALSE for the length-0/2+ comparisons that missing fields, arrays
+  # or an unknown entity (0 rows) produce; a bare `&&` on those used to 500.
+  is_mutation_only <- (replaced_by_null || !is.na(incoming_replaced_by)) &&
+    isTRUE(incoming$hgnc_id == ndd_entity_original$hgnc_id) &&
+    isTRUE(incoming$hpo_mode_of_inheritance_term == ndd_entity_original$hpo_mode_of_inheritance_term) &&
+    isTRUE(incoming$ndd_phenotype == ndd_entity_original$ndd_phenotype) &&
+    isTRUE(incoming_is_active != ndd_entity_original$is_active)
 
-  is_mutation_only <-
-    deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-    deactivate_data$entity$hpo_mode_of_inheritance_term ==
-      ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-    deactivate_data$entity$ndd_phenotype ==
-      ndd_entity_replaced$ndd_phenotype &&
-    deactivate_data$entity$is_active != ndd_entity_original$is_active
-
-  if (isTRUE(is_mutation_only)) {
+  if (is_mutation_only) {
     return(list(
       action = "deactivate",
-      entity_id = deactivate_data$entity$entity_id,
-      replaced_by = ndd_entity_replaced$replaced_by
+      entity_id = incoming$entity_id,
+      replaced_by = incoming_replaced_by
     ))
   }
 
@@ -184,6 +188,22 @@ svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original)
     action = "reject",
     error = "This endpoint only allows deactivating an entity."
   )
+}
+
+
+#' Parse `<key>$entity$entity_id` from an entity write body
+#'
+#' @param data Parsed `<key>` body (`list(entity = list(entity_id, ...))`).
+#' @return The id as a positive integer, or `NA_integer_` when missing or invalid.
+#' @export
+svc_entity_body_entity_id <- function(data) {
+  raw_id <- if (is.list(data) && is.list(data$entity)) data$entity$entity_id
+  id_num <- if (is.numeric(raw_id) || is.character(raw_id)) suppressWarnings(as.numeric(raw_id)) else NA
+  if (length(id_num) != 1 || is.na(id_num) || id_num < 1 || id_num != trunc(id_num) ||
+    id_num > .Machine$integer.max) {
+    return(NA_integer_)
+  }
+  as.integer(id_num)
 }
 
 
@@ -204,10 +224,15 @@ svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original)
 #'   rejection returns only `error`, matching the pre-refactor handler).
 #' @export
 svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, pool) {
+  entity_id <- svc_entity_body_entity_id(deactivate_data)
+  if (is.na(entity_id)) {
+    return(list(http_status = 400, body = list(error = "deactivate_json$entity$entity_id must be a positive integer.")))
+  }
+
   ndd_entity_original <- pool %>%
     tbl("ndd_entity") %>%
-    collect() %>%
-    dplyr::filter(entity_id == deactivate_data$entity$entity_id)
+    dplyr::filter(entity_id == !!entity_id) %>%
+    collect()
 
   decision <- svc_entity_deactivate_decision(deactivate_data, ndd_entity_original)
 
@@ -216,6 +241,21 @@ svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, p
       http_status = 400,
       body = list(error = decision$error)
     ))
+  }
+
+  # An unknown replacement would trip the replaced_by foreign key and surface as a 500.
+  if (!is.na(decision$replaced_by)) {
+    replacement <- pool %>%
+      tbl("ndd_entity") %>%
+      dplyr::filter(entity_id == !!decision$replaced_by) %>%
+      dplyr::select(entity_id) %>%
+      collect()
+    if (nrow(replacement) == 0) {
+      return(list(
+        http_status = 400,
+        body = list(error = paste0("Replacement entity sysndd:", decision$replaced_by, " does not exist."))
+      ))
+    }
   }
 
   response_new_entity <- put_db_entity_deactivation(
@@ -232,5 +272,145 @@ svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, p
   list(
     http_status = response_new_entity$status,
     body = list(status = response_new_entity$status, message = response_new_entity$message)
+  )
+}
+
+
+#' Decide whether a `POST /entity/reactivate` request may proceed (#711)
+#'
+#' Pure logic. Reactivation is refused when the entity is missing, not
+#' inactive, or when an active entity already covers it (see
+#' `svc_entity_reactivate_conflicts()`), because two active entries for one
+#' association would duplicate it in every public table.
+#'
+#' @param ndd_entity_original Tibble with 0 or 1 `ndd_entity` row.
+#' @param active_conflicts Tibble of active entities (column `entity_id`)
+#'   that the reactivated entity would duplicate.
+#' @return `list(action = "reactivate", entity_id)` or
+#'   `list(action = "reject", http_status, error)`.
+#' @export
+svc_entity_reactivate_decision <- function(ndd_entity_original, active_conflicts) {
+  reject <- function(http_status, error) list(action = "reject", http_status = http_status, error = error)
+
+  if (nrow(ndd_entity_original) != 1) {
+    return(reject(404, "Entity not found."))
+  }
+  # is_active is nullable; only a row that is explicitly 0 can be reactivated.
+  if (!isTRUE(as.integer(ndd_entity_original$is_active) == 0L)) {
+    return(reject(409, "Entity is already active."))
+  }
+  if (nrow(active_conflicts) > 0) {
+    return(reject(409, paste0(
+      "Entity cannot be reactivated: active entity ",
+      paste0("sysndd:", active_conflicts$entity_id, collapse = ", "),
+      " already covers this gene-disease association (its replacement or the same ",
+      "gene, inheritance and disease). ",
+      "Deactivate that entity first if this one should become current again."
+    )))
+  }
+
+  list(action = "reactivate", entity_id = ndd_entity_original$entity_id)
+}
+
+
+#' Active entities that a reactivation would duplicate (#711)
+#'
+#' Two sources: (1) the end of the `replaced_by` chain, followed through
+#' inactive hops because renames and deduplications chain (A -> B -> C);
+#' (2) an active entity with the same gene and inheritance for the same disease
+#' in any ontology version. The exact quadruple cannot recur: `entity_quadruple`
+#' is unique over all rows.
+#'
+#' @param original Single-row `ndd_entity` tibble of the entity to reactivate.
+#' @param pool Database connection pool (or DBI connection).
+#' @return Tibble with column `entity_id` (0 rows when nothing conflicts).
+#' @export
+svc_entity_reactivate_conflicts <- function(original, pool) {
+  successors <- integer()
+  next_id <- original$replaced_by
+  while (length(next_id) == 1 && !is.na(next_id) &&
+    !(next_id %in% c(successors, original$entity_id))) {
+    successors <- c(successors, as.integer(next_id))
+    next_id <- pool %>%
+      dplyr::tbl("ndd_entity") %>%
+      dplyr::filter(entity_id == !!next_id) %>%
+      dplyr::pull(replaced_by)
+  }
+
+  disease_id <- pool %>%
+    dplyr::tbl("disease_ontology_set") %>%
+    dplyr::filter(disease_ontology_id_version == !!original$disease_ontology_id_version) %>%
+    dplyr::pull(disease_ontology_id)
+  disease_versions <- pool %>%
+    dplyr::tbl("disease_ontology_set") %>%
+    dplyr::filter(disease_ontology_id %in% !!unique(disease_id[!is.na(disease_id)])) %>%
+    dplyr::pull(disease_ontology_id_version)
+  disease_versions <- unique(c(disease_versions, original$disease_ontology_id_version))
+
+  pool %>%
+    dplyr::tbl("ndd_entity") %>%
+    dplyr::filter(
+      is_active == 1,
+      entity_id != !!original$entity_id,
+      entity_id %in% !!successors |
+        (hgnc_id == !!original$hgnc_id &
+          hpo_mode_of_inheritance_term == !!original$hpo_mode_of_inheritance_term &
+          disease_ontology_id_version %in% !!disease_versions)
+    ) %>%
+    dplyr::select(entity_id) %>%
+    dplyr::collect()
+}
+
+
+#' `POST /entity/reactivate` — DB-touching orchestrator (#711)
+#'
+#' Undoes a deactivation: is_active 0 -> 1 and replaced_by cleared. Reviews
+#' and statuses are not touched, so the curation history is kept as is.
+#'
+#' @param reactivate_data Parsed `reactivate_json` body (`list(entity = list(entity_id))`).
+#' @param reactivate_user_id Integer, the authenticated administrator (logged).
+#' @param pool Database connection pool.
+#' @return `list(http_status, body)` like `svc_entity_deactivate_request()`.
+#' @export
+svc_entity_reactivate_request <- function(reactivate_data, reactivate_user_id, pool) {
+  entity_id <- svc_entity_body_entity_id(reactivate_data)
+  if (is.na(entity_id)) {
+    return(list(http_status = 400, body = list(error = "reactivate_json$entity$entity_id must be a positive integer.")))
+  }
+
+  original <- pool %>%
+    dplyr::tbl("ndd_entity") %>%
+    dplyr::filter(entity_id == !!entity_id) %>%
+    dplyr::collect()
+
+  active_conflicts <- tibble::tibble(entity_id = integer())
+  if (nrow(original) == 1) {
+    active_conflicts <- svc_entity_reactivate_conflicts(original, pool)
+  }
+
+  decision <- svc_entity_reactivate_decision(original, active_conflicts)
+  if (identical(decision$action, "reject")) {
+    return(list(http_status = decision$http_status, body = list(error = decision$error)))
+  }
+
+  rows <- tryCatch(entity_reactivate(decision$entity_id), error = function(e) {
+    logger::log_error("Entity reactivation failed: entity_id={entity_id} error={e$message}")
+    NA_integer_
+  })
+  if (is.na(rows)) {
+    return(list(http_status = 500, body = list(error = "Internal Server Error. Entity not reactivated.")))
+  }
+  # 0 rows: a concurrent request reactivated it between the check and the update.
+  if (rows != 1L) {
+    return(list(http_status = 409, body = list(error = "Entity is already active.")))
+  }
+
+  logger::log_info("Entity reactivated: entity_id={entity_id} user_id={reactivate_user_id}")
+  if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
+  if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
+
+  list(
+    http_status = 200,
+    body = list(status = 200, message = "OK. Entity reactivated.", entity_id = entity_id)
   )
 }

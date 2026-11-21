@@ -18,7 +18,7 @@
 <template>
   <TableShell
     title="Re-review table"
-    :meta="`${totalRows} entities`"
+    :meta="`${totalRows} ${totalRows === 1 ? 'entity' : 'entities'}`"
     description="Assigned entities and review/status updates for the re-review workflow."
   >
     <template #actions>
@@ -115,7 +115,14 @@
           </BDropdown>
 
           <BBadge
-            v-if="totalRows === 0 && (filter === null || filter === '') && !curationSelected"
+            v-if="
+              totalRows === 0 &&
+              (filter === null || filter === '') &&
+              !categoryFilter &&
+              !userFilter &&
+              activeQuickFilters.length === 0 &&
+              !curationSelected
+            "
             variant="warning"
             pill
             style="cursor: pointer"
@@ -200,18 +207,33 @@
           <i class="bi bi-stoplights" aria-hidden="true" />
         </BButton>
 
-        <BButton
+        <!-- #708: a re-review is only submittable once the review was saved
+             (saving unchanged records "checked, nothing to change"). The tooltip
+             sits on a wrapper because a disabled button fires no hover or focus
+             events; the wrapper takes focus only while the button is disabled.
+             The text goes in the directive value, not :title, because the
+             directive only re-renders when its value changes. -->
+        <span
           v-if="!curationSelected"
-          v-b-tooltip.hover.top
-          size="sm"
-          class="me-1 btn-xs"
-          :variant="row.item.re_review_review_saved ? 'success' : 'outline-success'"
-          title="Submit entity review"
-          :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
-          @click="$emit('info-submit', row.item, row.index, $event.target)"
+          v-b-tooltip.hover.focus.top="
+            row.item.re_review_review_saved
+              ? 'Submit entity review'
+              : 'Save the entity review first (unchanged is fine), then submit'
+          "
+          class="d-inline-block me-1"
+          :tabindex="row.item.re_review_review_saved ? undefined : 0"
         >
-          <i class="bi bi-send-check" aria-hidden="true" />
-        </BButton>
+          <BButton
+            size="sm"
+            class="btn-xs"
+            variant="success"
+            :disabled="!row.item.re_review_review_saved"
+            :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
+            @click="$emit('info-submit', row.item, row.index, $event.target)"
+          >
+            <i class="bi bi-send-check" aria-hidden="true" />
+          </BButton>
+        </span>
 
         <!-- Refuse / decline (needs specialist) — issue #54. Visually separated
              from the success Submit action; warning, not destructive. -->

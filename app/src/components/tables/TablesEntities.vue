@@ -11,7 +11,7 @@
             :description="
               loading && !totalRows
                 ? 'Loading entities...'
-                : 'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
+                : 'Loaded ' + items.length + '/' + totalRows + ' in ' + executionTime
             "
             :loading="loading"
           >

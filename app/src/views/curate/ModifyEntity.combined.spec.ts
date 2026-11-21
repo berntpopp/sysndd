@@ -57,6 +57,17 @@ const CombinedWorkflowStub = {
   },
 };
 
+const CURATOR: UserPayload = {
+  user_id: [3],
+  user_name: ['cur'],
+  email: ['cur@sysndd.local'],
+  user_role: ['Curator'],
+  user_created: ['2024-01-01'],
+  abbreviation: ['CU'],
+  orcid: [''],
+  exp: [Math.floor(Date.now() / 1000) + 3600],
+};
+
 const REVIEWER: UserPayload = {
   user_id: [2],
   user_name: ['rev'],
@@ -84,6 +95,7 @@ const mountView = async (): Promise<VueWrapper> => {
         CombinedStatusReviewWorkflow: CombinedWorkflowStub,
         EntitySearchPanel: { template: '<div />' },
         EntityInfoHeader: { template: '<div />' },
+        ReactivateEntityPanel: { template: '<div class="reactivate-panel-stub" />' },
         BButton: {
           props: ['disabled'],
           template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
@@ -142,7 +154,9 @@ describe('ModifyEntity — combined Status & Review workflow (#36/#37)', () => {
     const wrapper = await mountView();
     await seedEntity(wrapper);
 
-    await (wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }).showCombinedModify();
+    await (
+      wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }
+    ).showCombinedModify();
     await flushPromises();
 
     expect((wrapper.vm as unknown as { activeWorkflow: string }).activeWorkflow).toBe('combined');
@@ -155,7 +169,9 @@ describe('ModifyEntity — combined Status & Review workflow (#36/#37)', () => {
     const wrapper = await mountView();
     await seedEntity(wrapper);
 
-    await (wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }).showCombinedModify();
+    await (
+      wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }
+    ).showCombinedModify();
     await flushPromises();
 
     expect(capturedCombinedProps?.canDirectApprove).toBe(true);
@@ -166,9 +182,20 @@ describe('ModifyEntity — combined Status & Review workflow (#36/#37)', () => {
     const wrapper = await mountView();
     await seedEntity(wrapper);
 
-    await (wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }).showCombinedModify();
+    await (
+      wrapper.vm as unknown as { showCombinedModify: () => Promise<void> }
+    ).showCombinedModify();
     await flushPromises();
 
     expect(capturedCombinedProps?.canDirectApprove).toBe(false);
+  });
+
+  it('shows the reactivate panel to an Administrator only, not to a Curator (#711)', async () => {
+    primeAuth('admin-token');
+    expect((await mountView()).find('.reactivate-panel-stub').exists()).toBe(true);
+    useAuth().logout();
+
+    primeAuth('curator-token', CURATOR);
+    expect((await mountView()).find('.reactivate-panel-stub').exists()).toBe(false);
   });
 });

@@ -118,7 +118,7 @@
         </BFormTags>
 
         <!-- Genereviews tag form with links out -->
-        <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
+        <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">GeneReviews</label>
         <BFormTags
           :model-value="selectGeneReviews"
           input-id="review-genereviews-select"

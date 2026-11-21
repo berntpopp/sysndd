@@ -41,6 +41,8 @@ source(file.path(api_dir, "core", "errors.R"))
 # generate_sort_expressions, generate_xlsx_bin, ...) as transitive dependencies.
 source(file.path(api_dir, "functions", "phenotype-endpoint-functions.R"))
 source(file.path(api_dir, "functions", "panels-endpoint-functions.R"))
+# build_cursor_links() builds the pagination links.
+source(file.path(api_dir, "functions", "publication-endpoint-helpers.R"))
 # Single mapping authority: category normalization defers to the real function
 # (no local case_when reimplementation), see test below (#583).
 source(file.path(api_dir, "functions", "category-normalization.R"))

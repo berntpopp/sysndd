@@ -149,7 +149,7 @@ mcp-transport-spike: check-r ## [test] Verify mcptools HTTP MCP initialize/list/
 		printf "$(GREEN)✓ mcp-transport-spike complete$(RESET)\n" || \
 		(printf "$(RED)✗ mcp-transport-spike failed$(RESET)\n" && exit 1)
 
-test-mcp-smoke: check-r ## [test] Probe a running MCP sidecar with initialize and tools/list
+test-mcp-smoke: check-r ## [test] Probe MCP at MCP_URL (default: sidecar; after deploy use the public https://<host>/mcp to check edge routing)
 	@printf "$(CYAN)==> Running MCP smoke probe...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && MCP_URL=$${MCP_URL:-http://127.0.0.1:8787} Rscript scripts/mcp-smoke.R && \
 		printf "$(GREEN)✓ test-mcp-smoke complete$(RESET)\n" || \
@@ -457,10 +457,9 @@ docker-dev: check-docker ## [docker] Start full dev stack (app + api + db + dev 
 	@printf "  App:       http://localhost       (Vite dev server via Traefik)\n"
 	@printf "  App direct: http://localhost:5173  (bypass Traefik)\n"
 	@printf "  API:       http://localhost/api    (R/Plumber via Traefik)\n"
-	@printf "  API direct: http://localhost:7778  (bypass Traefik)\n"
 	@printf "  Traefik:   http://localhost:8090   (dashboard)\n"
 	@printf "  MySQL dev: localhost:7654\n"
-	@printf "  MySQL test: localhost:7655\n"
+	@printf "  MySQL test: localhost:7655  (only after make docker-dev-db)\n"
 	@printf "\n$(CYAN)Useful commands:$(RESET)\n"
 	@printf "  make docker-logs       View container logs\n"
 	@printf "  make docker-status     Show container status\n"

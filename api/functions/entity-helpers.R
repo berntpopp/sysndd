@@ -119,6 +119,7 @@ nest_pubtator_gene_tibble <- function(df) {
 #'
 #' @return A list with:
 #'   - vario_ids: Character vector of extracted vario_id values (empty if none)
+#'   - vario_clauses: One list(operator = "any"|"all", vario_ids) per clause
 #'   - filter_without_vario: The filter string with variant filters removed
 #'   - has_vario_filter: Logical indicating if variant filter was found
 #'
@@ -134,6 +135,7 @@ extract_vario_filter <- function(filter_string) {
   if (is.null(filter_string) || filter_string == "" || filter_string == "null") {
     return(list(
       vario_ids = character(0),
+      vario_clauses = list(),
       filter_without_vario = filter_string,
       has_vario_filter = FALSE
     ))
@@ -153,18 +155,23 @@ extract_vario_filter <- function(filter_string) {
   if (nrow(vario_matches) == 0) {
     return(list(
       vario_ids = character(0),
+      vario_clauses = list(),
       filter_without_vario = filter_string,
       has_vario_filter = FALSE
     ))
   }
 
-  # Extract all vario_id values from all matches (column 4 contains the values)
+  # Extract the vario_id values of every match (column 4 contains the values),
+  # keeping each clause's operator so all() can require every term (#709)
   all_vario_ids <- character(0)
+  vario_clauses <- list()
   for (i in seq_len(nrow(vario_matches))) {
     values <- str_split(vario_matches[i, 4], ",")[[1]] %>%
       str_trim() %>%
       str_remove_all("'")
+    values <- values[nzchar(values)] # a stray comma must not make all() unmatchable
     all_vario_ids <- c(all_vario_ids, values)
+    vario_clauses[[i]] <- list(operator = vario_matches[i, 2], vario_ids = unique(values))
   }
   all_vario_ids <- unique(all_vario_ids)
 
@@ -178,6 +185,7 @@ extract_vario_filter <- function(filter_string) {
 
   return(list(
     vario_ids = all_vario_ids,
+    vario_clauses = vario_clauses,
     filter_without_vario = filter_without_vario,
     has_vario_filter = TRUE
   ))
@@ -188,12 +196,14 @@ extract_vario_filter <- function(filter_string) {
 #'
 #' @description
 #' Queries the database to find all entity_ids that have at least one of the
-#' specified vario_ids in their primary review's variation ontology connections.
+#' specified vario_ids (or, with `match_all = TRUE`, every one of them) in their
+#' primary review's variation ontology connections.
 #' Uses the ndd_review_variant_connect_view which already filters for is_primary=1
 #' and is_active=1, matching the variant count endpoint behavior.
 #'
 #' @param vario_ids Character vector of vario_id values to filter by.
 #' @param pool Database pool connection.
+#' @param match_all If TRUE, an entity must carry every vario_id (filter all()).
 #'
 #' @return Integer vector of entity_ids that match the variant filter.
 #'
@@ -203,20 +213,27 @@ extract_vario_filter <- function(filter_string) {
 #' }
 #'
 #' @export
-get_entity_ids_by_vario <- function(vario_ids, pool) {
+get_entity_ids_by_vario <- function(vario_ids, pool, match_all = FALSE) {
+  vario_ids <- unique(vario_ids)
   if (length(vario_ids) == 0) {
     return(integer(0))
   }
 
   # Use the same view as variant count endpoint for consistency
   # The view already filters for is_primary=1 and is_active=1
-  matching_entities <- pool %>%
+  entity_terms <- pool %>%
     tbl("ndd_review_variant_connect_view") %>%
     dplyr::filter(vario_id %in% !!vario_ids) %>%
-    dplyr::select(entity_id) %>%
+    dplyr::select(entity_id, vario_id) %>%
     distinct() %>%
-    collect() %>%
-    pull(entity_id)
+    collect()
 
-  return(matching_entities)
+  if (match_all) {
+    entity_terms <- entity_terms %>%
+      dplyr::group_by(entity_id) %>%
+      dplyr::filter(dplyr::n_distinct(vario_id) == length(vario_ids)) %>%
+      dplyr::ungroup()
+  }
+
+  unique(entity_terms$entity_id)
 }
