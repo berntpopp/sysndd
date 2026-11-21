@@ -1,10 +1,7 @@
 <template>
   <section class="release-archive-list" aria-labelledby="release-archive-list-title">
     <div class="release-archive-list__heading">
-      <div>
-        <p class="release-archive-list__eyebrow">Archive</p>
-        <h2 id="release-archive-list-title">Choose a published release</h2>
-      </div>
+      <h2 id="release-archive-list-title">Choose a published release</h2>
       <span class="release-archive-list__count">{{ releases.length }} available</span>
     </div>
 
@@ -13,14 +10,17 @@
         <button
           type="button"
           class="release-archive-list__item"
-          :class="{ 'release-archive-list__item--selected': release.release_id === selectedReleaseId }"
+          :class="{
+            'release-archive-list__item--selected': release.release_id === selectedReleaseId,
+          }"
           :aria-current="release.release_id === selectedReleaseId ? 'true' : undefined"
-          :aria-label="`Select release ${release.release_id}`"
           @click="$emit('select', release.release_id)"
         >
           <span class="release-archive-list__item-main">
             <span class="release-archive-list__release-id">{{ release.release_id }}</span>
-            <span class="release-archive-list__date">Published {{ release.published_at }}</span>
+            <span class="release-archive-list__date" :title="release.published_at"
+              >Published {{ formatLongDate(release.published_at) }}</span
+            >
           </span>
           <span class="release-archive-list__facts">
             {{ release.file_count }} {{ release.file_count === 1 ? 'file' : 'files' }}
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import type { ReleaseTableRow } from './dataReleaseTable';
+import { formatLongDate } from '@/utils/dateUtils';
 
 defineOptions({ name: 'ReleaseArchiveList' });
 
@@ -59,15 +60,6 @@ defineEmits<{
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
-}
-
-.release-archive-list__eyebrow {
-  margin: 0 0 0.125rem;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .release-archive-list h2 {

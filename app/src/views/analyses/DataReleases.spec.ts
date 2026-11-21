@@ -148,7 +148,10 @@ describe('DataReleases', () => {
     const wrapper = mount(DataReleases);
     await flushPromises();
 
-    await wrapper.get('button[aria-label="Select release asr_other"]').trigger('click');
+    await wrapper
+      .findAll('.release-archive-list__item')
+      .find((b) => b.text().includes('asr_other'))!
+      .trigger('click');
     await flushPromises();
 
     expect(getReleaseMock).toHaveBeenCalledWith('asr_other');
@@ -177,7 +180,10 @@ describe('DataReleases', () => {
     // The list resolves; the mount-time getLatestRelease() request is still pending.
     await flushPromises();
 
-    await wrapper.get('button[aria-label="Select release asr_other"]').trigger('click');
+    await wrapper
+      .findAll('.release-archive-list__item')
+      .find((b) => b.text().includes('asr_other'))!
+      .trigger('click');
     await flushPromises();
 
     // The later request (getRelease) resolved first and is now shown.

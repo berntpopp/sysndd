@@ -27,11 +27,35 @@ export function createPubtatorGeneFields(): PubtatorGeneFieldDefinition[] {
   return [
     { key: 'gene_symbol', label: 'Gene', sortable: true, class: 'text-start', filterable: true },
     { key: 'gene_name', label: 'Name', sortable: true, class: 'text-start', filterable: true },
-    { key: 'publication_count', label: 'NDD Pubs', sortable: true, class: 'text-center', filterable: false },
-    { key: 'background_count', label: 'Background Pubs', sortable: true, class: 'text-center', filterable: false },
-    { key: 'enrichment_ratio', label: 'Enrichment', sortable: true, class: 'text-center', filterable: false },
-    { key: 'fdr_bh', label: 'FDR', sortable: true, class: 'text-center', filterable: false },
-    { key: 'oldest_pub_date', label: 'Oldest Pub', sortable: true, class: 'text-center', filterable: false },
+    {
+      key: 'publication_count',
+      label: 'NDD Pubs',
+      sortable: true,
+      class: 'text-center',
+      filterable: false,
+    },
+    {
+      key: 'background_count',
+      label: 'Background Pubs',
+      sortable: true,
+      class: 'text-center',
+      filterable: false,
+    },
+    {
+      key: 'enrichment_ratio',
+      label: 'Enrichment',
+      sortable: true,
+      class: 'text-center',
+      filterable: false,
+    },
+    { key: 'fdr_bh', label: 'FDR (BH)', sortable: true, class: 'text-center', filterable: false },
+    {
+      key: 'oldest_pub_date',
+      label: 'Oldest Pub',
+      sortable: true,
+      class: 'text-center',
+      filterable: false,
+    },
     { key: 'is_novel', label: 'Source', sortable: true, class: 'text-center', filterable: false },
     { key: 'pmids', label: 'PMIDs', sortable: false, class: 'text-start', filterable: false },
     { key: 'actions', label: '', sortable: false, class: 'text-center', filterable: false },
@@ -76,7 +100,9 @@ export function enrichmentVariant(ratio: number | null | undefined): EnrichmentV
 export function enrichmentTooltip(item: EnrichmentRowLike): string {
   const parts: string[] = [];
   if (item.enrichment_ratio != null) {
-    parts.push(`Enrichment: ${item.enrichment_ratio.toFixed(2)}× more NDD co-mentions than expected`);
+    parts.push(
+      `Enrichment: ${item.enrichment_ratio.toFixed(2)}× more NDD co-mentions than expected`
+    );
   }
   if (item.npmi != null) parts.push(`NPMI: ${item.npmi.toFixed(3)} (range −1..1)`);
   if (item.observed != null && item.background_count != null) {

@@ -136,7 +136,7 @@ describe('PubtatorNDDTable', () => {
     expect((observed as unknown as URLSearchParams).get('format')).toBe('json');
   });
 
-  it('renders the publication data cells (title truncated, journal, date, score, doi, search_id) with the expected row props', async () => {
+  it('renders the publication data cells (title clamped, journal, date, score, doi, search_id) with the expected row props', async () => {
     const title = 'A very long publication title that certainly exceeds sixty characters in length';
     server.use(
       http.get('/api/publication/pubtator/table', () =>
@@ -163,8 +163,9 @@ describe('PubtatorNDDTable', () => {
     const row = wrapper.get('.pub-row');
 
     expect(row.get('.cell-search_id').text()).toBe('42');
-    // Utils.truncate(str, 60) -> first 57 chars + '...'
-    expect(row.get('.cell-title').text()).toBe(`${title.substr(0, 57)}...`);
+    // full title, clamped to two lines by CSS, with the whole title in a native title
+    expect(row.get('.cell-title').text()).toBe(title);
+    expect(row.get('.cell-title div').attributes('title')).toBe(title);
     expect(row.get('.cell-journal').text()).toBe('Journal of Testing');
     expect(row.get('.cell-date').text()).toBe('2020-01-01');
     // row.score.toFixed(3)
@@ -191,7 +192,7 @@ describe('PubtatorNDDTable', () => {
     expect(pmidLink.text()).toBe('987654');
   });
 
-  it('renders up to 3 gene chips plus an overflow indicator for the gene_symbols cell', async () => {
+  it('renders up to 2 gene chips plus an overflow indicator for the gene_symbols cell', async () => {
     server.use(
       http.get('/api/publication/pubtator/table', () =>
         HttpResponse.json({
@@ -212,9 +213,9 @@ describe('PubtatorNDDTable', () => {
     const cell = wrapper.get('.cell-gene_symbols');
     const chips = cell.findAll('a.gene-chip');
 
-    expect(chips.map((c) => c.text())).toEqual(['MECP2', 'SCN2A', 'ARID1B']);
+    expect(chips.map((c) => c.text())).toEqual(['MECP2', 'SCN2A']);
     expect(chips[0].attributes('href')).toBe('/Genes/MECP2');
-    expect(cell.get('.gene-chip-more').text()).toBe('+1');
+    expect(cell.get('.gene-chip-more').text()).toBe('+2');
   });
 
   it('shows a muted fallback when text_hl is absent', async () => {
@@ -274,5 +275,44 @@ describe('PubtatorNDDTable', () => {
 
     const wrapper = await mountSubject();
     expect(wrapper.get('.row-expansion').text()).toContain('No annotated text available.');
+  });
+
+  it('summarises the page as "Showing x–y of N" and keeps every row one line high', async () => {
+    server.use(
+      http.get('/api/publication/pubtator/table', () =>
+        HttpResponse.json({
+          meta: [
+            { totalItems: 4200, currentPage: 2, totalPages: 420, executionTime: 0.03, fspec: [] },
+          ],
+          data: [
+            {
+              search_id: 7,
+              pmid: 123,
+              title: 'T',
+              journal: 'American journal of human genetics',
+              gene_symbols: 'SCN2A,SCN8A,GRIN2B,STXBP1',
+              text_hl: 'Variants in @GENE_6326 @@@SCN2A@@@ cause epilepsy',
+            },
+          ],
+        })
+      )
+    );
+
+    const wrapper = await mountSubject();
+    await flushPromises();
+
+    const text = wrapper.text();
+    expect(text).toContain('Showing 11–11 of 4,200');
+    expect(text).not.toMatch(/Loaded \d+\/\d+/);
+    // at most two gene chips + "+N", the full list stays reachable in the title
+    const chips = wrapper.get('.cell-gene_symbols');
+    expect(chips.findAll('.gene-chip')).toHaveLength(2);
+    expect(chips.get('.gene-chip-more').text()).toBe('+2');
+    expect(chips.get('.gene-chips').attributes('title')).toBe('SCN2A, SCN8A, GRIN2B, STXBP1');
+    // truncated cells keep their full text in a title
+    expect(wrapper.get('.cell-journal div').attributes('title')).toBe(
+      'American journal of human genetics'
+    );
+    expect(wrapper.get('.cell-text_hl div').attributes('title')).toContain('cause epilepsy');
   });
 });

@@ -17,7 +17,7 @@
 // are the shared helpers from usePubtatorParser.ts (module-level bounded LRU
 // cache), and `createLruCache` is reused for the gene-symbols split cache.
 
-import { markRaw, nextTick, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, markRaw, nextTick, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   useToast,
@@ -29,6 +29,7 @@ import {
   getSegmentClass,
 } from '@/composables';
 import { normalizeSelectOptions } from '@/utils/selectOptions';
+import { formatShowingRange } from '@/utils/displayFormat';
 import { listPubtatorTable, listPubtatorTableXlsx } from '@/api/publication';
 import { createLruCache } from '@/utils/lruCache';
 import Utils from '@/assets/js/utils';
@@ -85,7 +86,14 @@ export function createEmptyPubtatorFilter(): PubtatorFilter {
 /** Default table columns (overridden by the server-supplied fspec on load). */
 export function defaultPubtatorTableFields(): PubtatorTableField[] {
   return [
-    { key: 'search_id', label: 'Search ID', sortable: true, sortDirection: 'asc', class: 'text-start', filterable: true },
+    {
+      key: 'search_id',
+      label: 'Search ID',
+      sortable: true,
+      sortDirection: 'asc',
+      class: 'text-start',
+      filterable: true,
+    },
     { key: 'pmid', label: 'PMID', sortable: true, class: 'text-start', filterable: true },
     { key: 'doi', label: 'DOI', sortable: true, class: 'text-start', filterable: true },
     { key: 'title', label: 'Title', sortable: true, class: 'text-start', filterable: true },
@@ -152,6 +160,12 @@ export function usePubtatorPublicationTable(props: UsePubtatorPublicationTablePr
     isBusy,
   } = tableData;
 
+  /** "Showing 11–20 of 4,200" for the header (the execution time is not user information). */
+  const tableSummary = computed(() => {
+    const first = (Math.max(currentPage.value, 1) - 1) * perPage.value + 1;
+    return formatShowingRange(first, first + items.value.length - 1, totalRows.value);
+  });
+
   const filter = ref<PubtatorFilter>(createEmptyPubtatorFilter());
   const fields = ref<PubtatorTableField[]>(defaultPubtatorTableFields());
   const fields_details = ref<unknown[]>([]);
@@ -168,14 +182,17 @@ export function usePubtatorPublicationTable(props: UsePubtatorPublicationTablePr
   /**
    * Merge a server-supplied fspec into the current field list, forcing
    * `filterable` on every inbound field while preserving locally-known
-   * `selectable`/`class`/`multi_selectable` overrides, and always keeping the
+   * `label`/`selectable`/`class`/`multi_selectable` overrides, and always keeping the
    * `details` row-expansion column pinned at the end.
    */
   function mergeFields(inboundFields: PubtatorTableField[]): PubtatorTableField[] {
+    const curated = defaultPubtatorTableFields();
     const merged = inboundFields.map((f) => {
       const existing = fields.value.find((x) => x.key === f.key);
       return {
         ...f,
+        // the server label is derived from the key ("Pmid", "Text hl"); keep the curated one
+        label: curated.find((c) => c.key === f.key)?.label ?? existing?.label ?? f.label,
         filterable: true,
         selectable: existing?.selectable ?? false,
         class: existing?.class ?? 'text-start',
@@ -445,6 +462,7 @@ export function usePubtatorPublicationTable(props: UsePubtatorPublicationTablePr
     fields,
     fields_details,
     totalPages,
+    tableSummary,
     geneSymbolCache,
     // methods
     loadTableData,

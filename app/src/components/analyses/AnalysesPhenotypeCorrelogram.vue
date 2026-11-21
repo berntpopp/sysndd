@@ -24,7 +24,12 @@
     </template>
 
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Phenotype correlation matrix"
+    >
       <!-- Error state with retry -->
       <div v-if="error" class="error-state text-center p-4">
         <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
@@ -161,29 +166,31 @@ export default {
         bottom: 250,
         left: 240,
       };
-      const width = 400;
-      const height = 400;
+      const data = this.itemsMatrix;
+
+      // List of all variables and number of them
+      const domain = Array.from(new Set(data.map((d) => d.x)));
+
+      // >= 14 units per row so 12 px labels never overlap, whatever the category count
+      const width = Math.max(400, domain.length * 14);
+      const height = width;
       const svgWidth = width + margin.left + margin.right;
       const svgHeight = height + margin.top + margin.bottom;
 
       // Remove any existing SVG
       d3.select('#matrix_dataviz').select('svg').remove();
 
+      // The chart never scales below 1:1; on narrow screens it scrolls inside the card
+      const chartBox = d3.select('#matrix_dataviz').style('min-width', `${svgWidth}px`);
+
       // Create the svg area
-      const svg = d3
-        .select('#matrix_dataviz')
+      const svg = chartBox
         .append('svg')
         .attr('id', 'matrix-svg')
         .attr('viewBox', `0 0 ${svgWidth} ${svgHeight}`)
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
-
-      //
-      const data = this.itemsMatrix;
-
-      // List of all variables and number of them
-      const domain = Array.from(new Set(data.map((d) => d.x)));
 
       // Build X scales and axis:
       const x = d3.scaleBand().range([0, width]).domain(domain).padding(0.01);
@@ -194,7 +201,7 @@ export default {
         .call(d3.axisBottom(x).tickFormat((d) => truncateLabel(d, 28)))
         .selectAll('text')
         .style('text-anchor', 'end')
-        .style('font-size', '10px')
+        .style('font-size', '12px')
         .attr('dx', '-.8em')
         .attr('dy', '.15em')
         .attr('transform', 'rotate(-90)')
@@ -208,7 +215,7 @@ export default {
         .append('g')
         .call(d3.axisLeft(y).tickFormat((d) => truncateLabel(d, 28)))
         .selectAll('text')
-        .style('font-size', '10px')
+        .style('font-size', '12px')
         .append('title')
         .text((d) => d);
 
@@ -288,6 +295,9 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  overflow-x: auto;
+}
 .svg-container {
   display: inline-block;
   position: relative;

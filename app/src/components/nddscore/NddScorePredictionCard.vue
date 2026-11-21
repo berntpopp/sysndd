@@ -1,6 +1,8 @@
 <template>
   <BCard
     class="ndd-score-card ndd-score-card--ml-disclosure"
+    :class="{ 'ndd-score-card--loading': loading }"
+    :aria-busy="loading ? 'true' : undefined"
     aria-label="Machine-learning prediction warning"
     no-body
     role="note"
@@ -12,8 +14,8 @@
           <span>ML prediction</span>
         </span>
         <span class="ndd-score-card__disclosure">Machine learning, not manual curation</span>
-        <BBadge v-if="releaseId" class="ndd-score-card__release" variant="light">
-          {{ releaseId }}
+        <BBadge v-if="shown.releaseId" class="ndd-score-card__release" variant="light">
+          {{ shown.releaseId }}
         </BBadge>
       </div>
     </template>
@@ -31,10 +33,12 @@
         </div>
       </dl>
 
-      <div v-if="releaseId || versionDoi" class="ndd-score-card__provenance">
-        <span v-if="releaseId" class="ndd-score-card__provenance-id">{{ releaseId }}</span>
-        <a v-if="versionDoi" :href="doiUrl" target="_blank" rel="noopener noreferrer">
-          {{ versionDoi }}
+      <div v-if="shown.releaseId || shown.versionDoi" class="ndd-score-card__provenance">
+        <span v-if="shown.releaseId" class="ndd-score-card__provenance-id">{{
+          shown.releaseId
+        }}</span>
+        <a v-if="shown.versionDoi" :href="doiUrl" target="_blank" rel="noopener noreferrer">
+          {{ shown.versionDoi }}
         </a>
       </div>
     </div>
@@ -50,28 +54,48 @@ const props = defineProps<{
   versionDoi?: string;
   testAucRoc?: number | null;
   brierSkillScore?: number | null;
+  /** While the release loads, render hidden stand-ins of the loaded size (no layout shift). */
+  loading?: boolean;
 }>();
+
+const shown = computed(() =>
+  props.loading
+    ? {
+        releaseId: 'nddscore_00000000_public',
+        versionDoi: '10.5281/zenodo.00000000',
+        testAucRoc: 0,
+        brierSkillScore: 0,
+      }
+    : props
+);
 
 const formatMetric = (value: number) => value.toFixed(3);
 
 const metrics = computed(() => {
   const items: Array<{ label: string; value: string }> = [];
 
-  if (props.testAucRoc != null) {
-    items.push({ label: 'Test AUC-ROC', value: formatMetric(props.testAucRoc) });
+  const { testAucRoc, brierSkillScore } = shown.value;
+  if (testAucRoc != null) {
+    items.push({ label: 'Test AUC-ROC', value: formatMetric(testAucRoc) });
   }
 
-  if (props.brierSkillScore != null) {
-    items.push({ label: 'Brier Skill Score', value: formatMetric(props.brierSkillScore) });
+  if (brierSkillScore != null) {
+    items.push({ label: 'Brier Skill Score', value: formatMetric(brierSkillScore) });
   }
 
   return items;
 });
 
-const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versionDoi}` : ''));
+const doiUrl = computed(() =>
+  props.versionDoi && !props.loading ? `https://doi.org/${props.versionDoi}` : undefined
+);
 </script>
 
 <style scoped>
+.ndd-score-card--loading :is(dd, .ndd-score-card__release, .ndd-score-card__provenance) {
+  visibility: hidden;
+}
+
 .ndd-score-card {
   border-color: var(--bs-border-color);
   border-radius: var(--radius-lg, 8px);

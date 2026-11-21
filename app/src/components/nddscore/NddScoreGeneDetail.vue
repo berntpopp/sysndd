@@ -98,7 +98,10 @@
         </BCol>
       </BRow>
 
-      <p v-if="!loaded" class="ndd-gene-detail__fallback">Loading gene prediction.</p>
+      <!-- min-height ≈ the loaded panels, so the page does not jump when they arrive -->
+      <p v-if="!loaded" class="ndd-gene-detail__fallback ndd-gene-detail__loading" aria-busy="true">
+        Loading gene prediction.
+      </p>
 
       <template v-else-if="gene">
         <BRow class="ndd-gene-detail__content-grid">
@@ -109,23 +112,29 @@
               </h2>
               <dl class="ndd-gene-detail__metrics">
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.nddScore">NDD score</dt>
+                  <dt><span v-b-tooltip.hover.top :title="metricHelp.nddScore">NDD score</span></dt>
                   <dd>{{ formatScore(readField(gene, 'ndd_score', 'score')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.rank">Rank</dt>
+                  <dt><span v-b-tooltip.hover.top :title="metricHelp.rank">Rank</span></dt>
                   <dd>{{ displayValue(readField(gene, 'rank', 'gene_rank')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.percentile">Percentile</dt>
+                  <dt>
+                    <span v-b-tooltip.hover.top :title="metricHelp.percentile">Percentile</span>
+                  </dt>
                   <dd>{{ formatPercentile(readField(gene, 'percentile')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.bagAgreement">Bag agreement</dt>
+                  <dt>
+                    <span v-b-tooltip.hover.top :title="metricHelp.bagAgreement"
+                      >Bag agreement</span
+                    >
+                  </dt>
                   <dd>{{ formatProbability(readField(gene, 'bag_agreement')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.riskTier">Risk tier</dt>
+                  <dt><span v-b-tooltip.hover.top :title="metricHelp.riskTier">Risk tier</span></dt>
                   <dd>
                     <BBadge
                       v-b-tooltip.hover.top
@@ -137,7 +146,9 @@
                   </dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt v-b-tooltip.hover.top :title="metricHelp.confidence">Confidence</dt>
+                  <dt>
+                    <span v-b-tooltip.hover.top :title="metricHelp.confidence">Confidence</span>
+                  </dt>
                   <dd>
                     <BBadge
                       v-b-tooltip.hover.top
@@ -161,7 +172,9 @@
                   :key="mode.key"
                   class="ndd-gene-detail__compact"
                 >
-                  <dt v-b-tooltip.hover.top :title="inheritanceHelp">{{ mode.label }}</dt>
+                  <dt>
+                    <span v-b-tooltip.hover.top :title="inheritanceHelp">{{ mode.label }}</span>
+                  </dt>
                   <dd>{{ formatProbability(mode.value) }}</dd>
                 </div>
               </dl>
@@ -177,7 +190,9 @@
                   :key="group.label"
                   class="ndd-gene-detail__compact"
                 >
-                  <dt v-b-tooltip.hover.top :title="shapHelp">{{ group.label }}</dt>
+                  <dt>
+                    <span v-b-tooltip.hover.top :title="shapHelp">{{ group.label }}</span>
+                  </dt>
                   <dd>{{ formatSigned(group.value) }}</dd>
                 </div>
               </dl>
@@ -194,11 +209,11 @@
                 <li
                   v-for="term in hpoPredictions"
                   :key="term.key"
-                  v-b-tooltip.hover.top
                   class="ndd-gene-detail__list-row"
-                  :title="hpoHelp"
                 >
-                  <span class="ndd-gene-detail__list-main">{{ term.name }}</span>
+                  <span v-b-tooltip.hover.top class="ndd-gene-detail__list-main" :title="hpoHelp">{{
+                    term.name
+                  }}</span>
                   <span class="ndd-gene-detail__list-meta">
                     {{ term.id }} &middot; {{ formatProbability(term.probability) }}
                   </span>
@@ -344,7 +359,7 @@ const hpoHelp =
 }
 
 .ndd-gene-detail__unit-label {
-  color: var(--neutral-600, #757575);
+  color: var(--neutral-700, #616161);
   font-size: 0.72rem;
   font-weight: 800;
   line-height: 1.2;
@@ -369,9 +384,13 @@ const hpoHelp =
 .ndd-gene-detail__eyebrow,
 .ndd-gene-detail__fallback {
   margin: 0;
-  color: var(--neutral-600, #757575);
+  color: var(--neutral-700, #616161);
   font-size: 0.875rem;
   line-height: 1.45;
+}
+
+.ndd-gene-detail__loading {
+  min-height: 100vh;
 }
 
 .ndd-gene-detail__meta-row {
@@ -479,10 +498,14 @@ const hpoHelp =
 
 .ndd-gene-detail__metric dt,
 .ndd-gene-detail__compact dt {
-  color: var(--neutral-600, #757575);
-  cursor: help;
+  color: var(--neutral-700, #616161);
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.ndd-gene-detail__metric dt span,
+.ndd-gene-detail__compact dt span {
+  cursor: help;
 }
 
 .ndd-gene-detail__metric dd,
@@ -511,15 +534,15 @@ const hpoHelp =
   border: 1px solid #e1e7ef;
   border-radius: var(--radius-md, 6px);
   background: #fff;
-  cursor: help;
 }
 
 .ndd-gene-detail__list-main {
+  cursor: help;
   font-weight: 600;
 }
 
 .ndd-gene-detail__list-meta {
-  color: var(--neutral-600, #757575);
+  color: var(--neutral-700, #616161);
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 0.8125rem;
 }

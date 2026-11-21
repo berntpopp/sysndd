@@ -65,6 +65,7 @@
           <BInputGroup prepend="Min Pubs" class="mb-1" size="sm">
             <BFormSelect
               v-model="minPublications"
+              aria-label="Minimum publications"
               :options="pubCountOptions"
               size="sm"
               @change="applyPrioritizationFilters"
@@ -77,6 +78,7 @@
           <BInputGroup prepend="Date Range" class="mb-1" size="sm">
             <BFormSelect
               v-model="dateRange"
+              aria-label="Date range"
               :options="dateRangeOptions"
               size="sm"
               @change="applyPrioritizationFilters"
@@ -151,6 +153,7 @@
                 }
               )
             "
+            class="text-wrap"
           >
             {{ truncateText(columnData.label, 20) }}
           </div>
@@ -162,7 +165,8 @@
             <BFormInput
               v-if="field.filterable"
               :model-value="getFilterContent(field.key)"
-              :placeholder="'.. ' + truncateText(field.label, 12) + ' ..'"
+              :placeholder="`Filter ${truncateText(field.label, 12)}`"
+              :aria-label="`Filter ${field.label}`"
               debounce="500"
               type="search"
               autocomplete="off"
@@ -423,11 +427,17 @@ const {
 
 <style scoped>
 .btn-group-xs > .btn,
+/* 24 px minimum target (WCAG 2.5.8) with AA text on the outline button */
 .btn-xs {
-  padding: 0.25rem 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.125rem 0.4rem;
   font-size: 0.875rem;
-  line-height: 0.5;
+  line-height: 1;
   border-radius: 0.2rem;
+  --bs-btn-color: var(--medical-blue-700, #0d47a1);
+  --bs-btn-border-color: var(--medical-blue-700, #0d47a1);
 }
 
 .input-group > .input-group-prepend {
