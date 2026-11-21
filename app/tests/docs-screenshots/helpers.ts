@@ -758,15 +758,11 @@ export const setupHelpers: Record<string, SetupHelper> = {
   },
 
   async swaggerAuthScreen({ page }) {
-    await page.waitForSelector('#swagger-ui', { timeout: 30_000 });
-    await page.waitForSelector('.swagger-ui', { timeout: 30_000 }).catch(() => undefined);
-    const authorizeButton = page.getByRole('button', { name: /authorize/i }).first();
-    if (await authorizeButton.isVisible().catch(() => false)) {
-      await authorizeButton.click();
-      await page
-        .waitForSelector('.modal-ux, .dialog-ux, .modal.show', { timeout: 10_000 })
-        .catch(() => undefined);
-    }
+    // Swagger loads its spec after the page: wait for the button instead of skipping it.
+    const authorizeButton = page.locator('.swagger-ui button.authorize').first();
+    await authorizeButton.waitFor({ timeout: 30_000 });
+    await authorizeButton.click();
+    await page.waitForSelector('.swagger-ui .dialog-ux', { timeout: 10_000 });
   },
 };
 
@@ -843,7 +839,7 @@ export const actionHelpers: Record<
     await page
       .locator('#inheritance-select')
       .selectOption({ label: String(args?.inheritance ?? 'Autosomal dominant inheritance') });
-    await page.locator('.step-core-entity input[type="checkbox"]').check();
+    await page.locator('.step-core-entity input[name="ndd-phenotype"][value="true"]').check({ force: true });
     await page.getByRole('button', { name: /Next: Evidence/ }).waitFor({ timeout: 10_000 });
     await page.mouse.click(5, 5);
   },

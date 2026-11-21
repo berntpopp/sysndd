@@ -31,6 +31,7 @@ UPDATE `variation_ontology_list` SET `definition` = 'A variation that affects RN
 INSERT INTO `publication` (`publication_id`, `publication_type`, `Title`, `Publication_date`, `Journal_abbreviation`, `Journal`, `Lastname`, `Firstname`)
 VALUES ('PMID:24998929', 'additional_references', 'Disruptive CHD8 mutations define a subtype of autism early in development.', '2014-07-17', 'Cell', 'Cell', 'Bernier', 'Raphael')
 ON DUPLICATE KEY UPDATE `Title` = VALUES(`Title`);
+DELETE FROM `ndd_review_publication_join` WHERE `review_id` = 123 AND `entity_id` = 123 AND `publication_id` = 'PMID:24998929';
 UPDATE `ndd_review_publication_join` SET `publication_id` = 'PMID:24998929' WHERE `entity_id` = 123 AND `publication_id` = 'PMID:12345678';
 
 INSERT INTO `phenotype_list` (`phenotype_id`, `HPO_term`, `HPO_term_definition`, `HPO_term_synonyms`) VALUES
@@ -100,7 +101,9 @@ INSERT INTO `ndd_entity` (`entity_id`, `hgnc_id`, `hpo_mode_of_inheritance_term`
   (9101, 'HGNC:18040', 'HP:0000006', 'OMIM:135900_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 1),
   (9102, 'HGNC:10588', 'HP:0000006', 'OMIM:613721_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 1),
   (9103, 'HGNC:18704', 'HP:0001417', 'OMIM:300855_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 1),
-  (9104, 'HGNC:29529', 'HP:0000006', 'OMIM:616944_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 1);
+  (9104, 'HGNC:29529', 'HP:0000006', 'OMIM:616944_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 1),
+  -- deactivated by mistake (Reactivate panel); no active entity covers it
+  (9105, 'HGNC:10588', 'HP:0000007', 'OMIM:613721_1', 1, '2022-05-04 00:00:00', 'docs_overlay', 9102, 0);
 
 INSERT INTO `ndd_entity_status` (`status_id`, `entity_id`, `category_id`, `is_active`, `status_date`, `status_user_id`, `status_approved`, `approving_user_id`, `comment`, `problematic`) VALUES
   (9101, 9101, 1, 1, '2022-05-04 00:00:00', 9102, 1, 9102, NULL, 0),

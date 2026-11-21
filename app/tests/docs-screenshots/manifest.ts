@@ -134,10 +134,6 @@ export const docsScreenshots: DocsScreenshot[] = [
     waitFor: 'main',
     fullPage: false,
     clip: { x: 0, y: 0, width: 1440, height: 270 },
-    annotations: [
-      { selector: '.app-navbar__account', mode: 'box', label: 'Authenticated navigation' },
-      { selector: '.dropdown-menu.show', mode: 'callout', number: 1, label: 'User menu' },
-    ],
   },
   {
     slug: 'footer-desktop',
@@ -347,9 +343,10 @@ export const docsScreenshots: DocsScreenshot[] = [
     slug: 'phenotype-correlations-clusters',
     output: 'documentation/static/img/generated/phenotype-correlations-clusters.png',
     docRefs: ['documentation/using-analyses.qmd#fig-analyses-phenotype-clusters'],
+    // live data: the Playwright fixture has no phenotype clusters
+    baseURL: 'public',
     route: '/PhenotypeCorrelations/PhenotypeClusters',
     viewport: { width: 1440, height: 900 },
-    preSetup: 'analysisDataMocks',
     waitFor: 'main',
     setup: 'phenotypeClusters',
     fullPage: false,
@@ -406,7 +403,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     waitFor: 'main',
     fullPage: false,
     clip: { x: 0, y: 0, width: 1440, height: 180 },
-    annotations: [{ selector: '.app-navbar__login', mode: 'callout', number: 1, label: 'Login' }],
+    annotations: [{ selector: '.app-navbar__login', mode: 'marker', number: 1 }],
   },
   {
     slug: 'reviewer-authenticated-navigation',
@@ -620,29 +617,6 @@ export const docsScreenshots: DocsScreenshot[] = [
       { selector: '#removeSwitch', mode: 'callout', number: 2, label: 'Removal' },
       { selector: '#status-textarea-comment', mode: 'callout', number: 3, label: 'Comment' },
       { selector: '.modal.show .btn-primary', mode: 'callout', number: 4, label: 'Save' },
-    ],
-  },
-  {
-    slug: 'reviewer-submit-review-modal',
-    output: 'documentation/static/img/generated/reviewer-submit-review-modal.png',
-    docRefs: ['documentation/06-re-review-instructions.qmd#fig-re-review-submit'],
-    route: '/Review',
-    viewport: { width: 1440, height: 900 },
-    authRole: 'reviewer',
-    setup: 'reviewerReviewPage',
-    actions: [{ type: 'callHelper', name: 'openFirstSubmitReviewModal' }],
-    waitFor: 'main',
-    fullPage: false,
-    locator: '.modal.show .modal-content',
-    maskSelectors: ['.tooltip'],
-    annotations: [
-      { selector: '.modal.show .modal-body', mode: 'box', label: 'Confirmation' },
-      {
-        selector: '.modal.show .btn-success',
-        mode: 'callout',
-        number: 1,
-        label: 'Submit Review',
-      },
     ],
   },
   {
@@ -1111,9 +1085,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     setup: 'detailPage',
     fullPage: false,
     clip: { x: 0, y: 60, width: 1440, height: 640 },
-    // The "Loaded n/m" caption misreports small tables and the Rat column shows a bare
-    // "Error" while the RGD circuit breaker is open; neither is discussed in the chapter.
-    maskSelectors: ['.tooltip', '.table-shell__description', '.organism-right'],
+    maskSelectors: ['.tooltip'],
     annotations: [
       // reading order: the Resources row sits above the entities table
       {
@@ -1185,7 +1157,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     waitFor: 'main',
     fullPage: false,
     clip: { x: 0, y: 60, width: 1600, height: 560 },
-    maskSelectors: ['.tooltip', '.table-shell__actions span.text-muted'],
+    maskSelectors: ['.tooltip'],
     annotations: [
       { selector: '#filter-input', mode: 'marker', number: 1 },
       {
@@ -1265,7 +1237,7 @@ export const docsScreenshots: DocsScreenshot[] = [
       },
       {
         selector: '.modal.show label',
-        hasText: 'Genereviews',
+        hasText: 'GeneReviews',
         mode: 'marker',
         number: 5,
         outline: false,
@@ -1389,7 +1361,7 @@ export const docsScreenshots: DocsScreenshot[] = [
       { selector: '#gene-select', mode: 'marker', number: 1, placement: 'bottom' },
       { selector: '#disease-select', mode: 'marker', number: 2, placement: 'bottom' },
       { selector: '#inheritance-select', mode: 'marker', number: 3, placement: 'bottom' },
-      { selector: '.step-core-entity .form-check', mode: 'marker', number: 4, placement: 'right' },
+      { selector: '.step-core-entity .btn-group', mode: 'marker', number: 4, placement: 'right' },
       {
         selector: '.wizard-navigation button',
         hasText: 'Next: Evidence',
@@ -1536,6 +1508,30 @@ export const docsScreenshots: DocsScreenshot[] = [
         mode: 'marker',
         number: 4,
         placement: 'top',
+      },
+    ],
+  },
+  {
+    slug: 'curator-modify-entity-reactivate',
+    output: 'documentation/static/img/generated/curator-modify-entity-reactivate.png',
+    docRefs: ['documentation/curator-modify-entity.qmd#fig-curator-modify-entity-reactivate'],
+    route: '/ModifyEntity',
+    viewport: { width: 1440, height: 900 },
+    authRole: 'admin',
+    waitFor: 'main',
+    setup: 'modifyEntityPage',
+    // 9105 is the deactivated entity in docs-overlay.sql
+    actions: [{ type: 'fill', selector: '#reactivate-entity-id', value: '9105' }],
+    fullPage: false,
+    clipTo: { selector: 'section[aria-labelledby="reactivate-entity-heading"]', padding: 40 },
+    annotations: [
+      { selector: '#reactivate-entity-id', mode: 'marker', number: 1 },
+      {
+        selector: 'button[type="submit"]',
+        hasText: 'Reactivate entity',
+        mode: 'marker',
+        number: 2,
+        placement: 'right',
       },
     ],
   },
@@ -1726,7 +1722,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     waitFor: 'main',
     fullPage: false,
     clip: { x: 0, y: 60, width: 1440, height: 560 },
-    maskSelectors: ['.tooltip', '.table-shell__actions span.text-muted'],
+    maskSelectors: ['.tooltip'],
     annotations: [
       { selector: '.form-check', hasText: 'Curation mode', mode: 'marker', number: 1 },
       {
@@ -1870,6 +1866,30 @@ export const docsScreenshots: DocsScreenshot[] = [
   },
   // Must stay last: it submits the reviewer's only assigned entity, which empties
   // the re-review queue that the reviewer captures above rely on.
+  // Saves the CHD8 review (Submit needs a saved review, #708): keep these two last.
+  {
+    slug: 'reviewer-submit-review-modal',
+    output: 'documentation/static/img/generated/reviewer-submit-review-modal.png',
+    docRefs: ['documentation/06-re-review-instructions.qmd#fig-re-review-submit'],
+    route: '/Review',
+    viewport: { width: 1440, height: 900 },
+    authRole: 'reviewer',
+    setup: 'reviewerReviewPage',
+    actions: [{ type: 'callHelper', name: 'openFirstSubmitReviewModal' }],
+    waitFor: 'main',
+    fullPage: false,
+    locator: '.modal.show .modal-content',
+    maskSelectors: ['.tooltip'],
+    annotations: [
+      { selector: '.modal.show .modal-body', mode: 'box', label: 'Confirmation' },
+      {
+        selector: '.modal.show .btn-success',
+        mode: 'callout',
+        number: 1,
+        label: 'Submit Review',
+      },
+    ],
+  },
   {
     slug: 'reviewer-after-submit-page',
     output: 'documentation/static/img/generated/reviewer-after-submit-page.png',

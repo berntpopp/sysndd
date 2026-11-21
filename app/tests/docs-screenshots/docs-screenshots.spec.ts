@@ -30,6 +30,24 @@ for (const entry of docsScreenshots) {
       });
     }
 
+    // Public pages: keep the live origin and its API, but serve the app itself from
+    // DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL (the checkout's build) so captures show the newest
+    // app. Context route, so service-worker fetches are covered too; preSetup page mocks win.
+    const publicApp = process.env.DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL;
+    if (entry.baseURL === 'public' && publicApp) {
+      const origin = new URL(resolvedUrl).origin;
+      await activePage.context().route(`${origin}/**`, async (route) => {
+        const { pathname, search } = new URL(route.request().url());
+        if (pathname.startsWith('/api/')) return route.continue();
+        const url = new URL(pathname + search, publicApp).toString();
+        // A navigation can cancel the request mid-fetch; that request is gone anyway.
+        await route
+          .fetch({ url })
+          .then((response) => route.fulfill({ response }))
+          .catch(() => undefined);
+      });
+    }
+
     if (entry.preSetup) {
       const preSetup = preSetupHelpers[entry.preSetup];
       if (!preSetup) {
