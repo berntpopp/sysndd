@@ -43,6 +43,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# R packages come from the same dated Posit Package Manager snapshot as api/Dockerfile,
+# so CI installs the binaries production runs (renv.lock was resolved against it).
+env:
+  RENV_CONFIG_REPOS_OVERRIDE: "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08"
+
 jobs:
   # ============================================================================
   # Detect Changes - determines which jobs to run
@@ -98,7 +103,7 @@ jobs:
   # ============================================================================
   lint-api:
     name: Lint R API
-    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     defaults:
@@ -147,14 +152,14 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
 
   test-api-fast:
     name: Test R API (fast PR gate)
-    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.api == 'true' }}
     defaults:
@@ -218,7 +223,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -243,7 +248,7 @@ jobs:
 
   test-api-full:
     name: Test R API (full)
-    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     if: ${{ github.event_name != 'pull_request' }}
     defaults:
       run:
@@ -303,7 +308,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -350,7 +355,7 @@ jobs:
   # =========================================================================
   slow-tests-nightly:
     name: Slow Tests (nightly)
-    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:
@@ -420,7 +425,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -553,8 +558,8 @@ jobs:
   # When that todo lands, re-evaluate adding macos-latest back to the matrix.
   # ============================================================================
   make-doctor:
-    name: make doctor (ubuntu-26.04)
-    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
+    name: make doctor (ubuntu-24.04)
+    runs-on: ubuntu-24.04  # R jobs: same OS and P3M snapshot as api/Dockerfile (26.04 has no R 4.6.0 binaries; GCC 15 breaks source builds)
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
@@ -604,7 +609,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
+          cache-version: 6  # fresh renv cache: packages now come from the pinned P3M snapshot
 
       - name: make install-dev
         run: make install-dev
