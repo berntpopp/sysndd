@@ -10,11 +10,122 @@ export async function hideVolatileElements(page: Page, selectors: string[] = [])
   });
 }
 
+/**
+ * Numbered documentation markers (docs style guide, section 6): a filled circle with a
+ * white numeral on medical blue #0d47a1 and a 2 px white ring, placed BESIDE the target,
+ * plus an optional 2 px #0d47a1 outline around the target. Markers are positioned in
+ * document coordinates so full-page and clipped captures stay aligned after scrolling.
+ * A missing target throws, so a renamed UI element fails the run instead of silently
+ * producing an unmarked image.
+ */
+async function addMarker(page: Page, item: DocsScreenshotAnnotation): Promise<void> {
+  const found = await page.evaluate((m) => {
+    const candidates = Array.from(document.querySelectorAll<HTMLElement>(m.selector)).filter(
+      (el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return false;
+        return m.hasText ? (el.textContent ?? '').includes(m.hasText) : true;
+      }
+    );
+    // With a text filter keep only the innermost matches, so '*' or '.card' resolve to
+    // the element that holds the text rather than to <body> or an outer wrapper.
+    const matches = m.hasText
+      ? candidates.filter((el) => !candidates.some((other) => other !== el && el.contains(other)))
+      : candidates;
+    const target = matches[m.nth ?? 0];
+    if (!target) return false;
+    const rect = target.getBoundingClientRect();
+    const sx = window.scrollX;
+    const sy = window.scrollY;
+    const size = 28;
+    const gap = 6;
+    const dx = m.offsetX ?? 0;
+    const dy = m.offsetY ?? 0;
+    const placement = m.placement ?? 'left';
+
+    let x: number;
+    let y: number;
+    if (placement === 'left') {
+      x = rect.left - size - gap;
+      y = rect.top + rect.height / 2 - size / 2;
+    } else if (placement === 'right') {
+      x = rect.right + gap;
+      y = rect.top + rect.height / 2 - size / 2;
+    } else if (placement === 'top') {
+      x = rect.left;
+      y = rect.top - size - gap;
+    } else if (placement === 'top-left') {
+      x = rect.left - size / 2;
+      y = rect.top - size / 2;
+    } else {
+      x = rect.left;
+      y = rect.bottom + gap;
+    }
+    x = Math.max(4, Math.min(x + dx, document.documentElement.clientWidth - size - 4));
+    y = Math.max(4, y + dy);
+
+    const layer = (style: Partial<CSSStyleDeclaration>) => {
+      const el = document.createElement('div');
+      el.className = 'sysndd-docs-screenshot-annotation';
+      Object.assign(el.style, {
+        position: 'absolute',
+        pointerEvents: 'none',
+        zIndex: '2147483647',
+        boxSizing: 'border-box',
+        ...style,
+      });
+      document.body.appendChild(el);
+      return el;
+    };
+
+    if (m.outline !== false) {
+      layer({
+        left: `${rect.left + sx - 3}px`,
+        top: `${rect.top + sy - 3}px`,
+        width: `${rect.width + 6}px`,
+        height: `${rect.height + 6}px`,
+        border: '2px solid #0d47a1',
+        borderRadius: '6px',
+        boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.9)',
+      });
+    }
+
+    const dot = layer({
+      left: `${x + sx}px`,
+      top: `${y + sy}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: '50%',
+      background: '#0d47a1',
+      color: '#ffffff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      font: '700 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+      letterSpacing: '0',
+      boxShadow: '0 0 0 2px #ffffff, 0 2px 6px rgba(13, 71, 161, 0.35)',
+    });
+    dot.textContent = String(m.number ?? '');
+    return true;
+  }, item);
+
+  if (!found) {
+    throw new Error(
+      `Docs screenshot marker ${item.number ?? ''} target not found: ${item.selector}` +
+        (item.hasText ? ` (text "${item.hasText}")` : '')
+    );
+  }
+}
+
 export async function addAnnotations(
   page: Page,
   annotations: DocsScreenshotAnnotation[] = []
 ): Promise<void> {
   for (const annotation of annotations) {
+    if (annotation.mode === 'marker') {
+      await addMarker(page, annotation);
+      continue;
+    }
     await page.evaluate((item) => {
       const target = document.querySelector(item.selector);
       if (!target) return;

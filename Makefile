@@ -579,6 +579,8 @@ PLAYWRIGHT_BASE_URL ?= http://localhost:$(PLAYWRIGHT_HOST_PORT)
 PLAYWRIGHT_API_BASE_URL ?= $(PLAYWRIGHT_BASE_URL)
 PLAYWRIGHT_HEALTH_TIMEOUT ?= 240
 PLAYWRIGHT_HEALTH_ENDPOINT ?= $(PLAYWRIGHT_API_BASE_URL)/api/health/ready
+# Public docs screenshots show the live site's data through the checkout's app build.
+DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL ?= $(PLAYWRIGHT_BASE_URL)
 
 # Env vars exported to the compose invocations. The base compose file
 # interpolates these at parse time, so they MUST be set before any
@@ -689,6 +691,7 @@ docs-screenshots: playwright-stack _playwright-seed-e2e-baseline ## [docs] Gener
 	@printf "$(CYAN)==> Generating documentation screenshots...$(RESET)\n"
 	@(cd $(ROOT_DIR)/app && \
 		PLAYWRIGHT_BASE_URL=$(PLAYWRIGHT_BASE_URL) PLAYWRIGHT_API_BASE_URL=$(PLAYWRIGHT_API_BASE_URL) \
+		DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL=$(DOCS_SCREENSHOTS_PUBLIC_APP_BASE_URL) \
 		npm run docs:screenshots && \
 		printf "$(GREEN)✓ Documentation screenshots generated$(RESET)\n") || \
 		(printf "$(RED)✗ docs screenshot generation failed$(RESET)\n" && exit 1)

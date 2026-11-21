@@ -1,0 +1,74 @@
+/*-- scss:defaults --*/
+
+// SysNDD documentation theme, layered on Bootstrap "cosmo".
+// Tokens mirror the app visual guide (documentation/10-visual-design-guide.md).
+// Component rules live in styles.css; this file only sets Bootstrap/Quarto variables.
+
+// Bootswatch cosmo imports Source Sans Pro from Google Fonts; the docs use the
+// system stack, so the import only blocked rendering and caused a font swap.
+$web-font-path: false;
+
+$medical-blue-700: #0d47a1;
+$medical-blue-600: #1e88e5;
+$medical-teal-700: #00695c; // text-safe teal (6.3:1 on white); #00897b is for fills only
+$neutral-900: #212121;
+$neutral-700: #424a52;
+$neutral-600: #5f6b74; // muted text, 5.3:1 on white
+$border-subtle: #d9e0ea;
+$surface-subtle: #f6f8fb;
+
+$primary: $medical-blue-700;
+$secondary: $neutral-600;
+$success: #2e7d32;
+$info: #0277bd;
+$warning: #f57c00;
+$danger: #c62828;
+
+$body-color: $neutral-900;
+$body-bg: #ffffff;
+$link-color: $medical-blue-700;
+$link-hover-color: #08306b;
+$link-decoration: underline;
+$border-color: $border-subtle;
+
+// System sans as in the app; mono only for identifiers and code.
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+  Arial, sans-serif;
+$font-family-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+  "Liberation Mono", monospace;
+$font-size-root: 16px;
+$font-size-base: 1.0625rem; // 17px body for long reading
+$line-height-base: 1.6;
+$headings-font-weight: 600;
+$headings-line-height: 1.25;
+$headings-color: $neutral-900;
+$h1-font-size: 1.75rem;
+$h2-font-size: 1.375rem;
+$h3-font-size: 1.125rem;
+$h4-font-size: 1rem;
+
+$border-radius: 6px;
+$border-radius-sm: 4px;
+$border-radius-lg: 8px;
+
+$code-color: #37474f;
+$code-bg: $surface-subtle;
+
+// Page grid: see format.html.grid in _quarto.yml.
+
+$sidebar-bg: #ffffff;
+$sidebar-fg: $neutral-700;
+$sidebar-hl: $medical-blue-700;
+$footer-bg: $surface-subtle;
+$footer-fg: $neutral-600;
+
+$callout-border-width: 1px;
+$callout-color-note: $info;
+$callout-color-tip: $medical-teal-700;
+$callout-color-important: $medical-blue-700;
+$callout-color-warning: $warning;
+$callout-color-caution: $danger;
+
+/*-- scss:rules --*/
+
+// Intentionally empty; see styles.css.

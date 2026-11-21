@@ -2,60 +2,137 @@
 title: "Curation criteria"
 ---
 
+::: {.lead}
+These criteria decide the evidence category of every SysNDD entity. Read them to
+understand what a category means, or apply them when you review or curate an entity.
+:::
+
+::: {.callout-note .who-can title="Who can do this"}
+Everyone can read the criteria. A [Reviewer]{.role} applies them when proposing a
+category during re-review. A [Curator]{.role} applies them when creating, modifying or
+approving an entity.
+:::
+
+An entity is one gene, one mode of inheritance and one disease. The evidence category
+belongs to the entity, not to the gene. One gene can therefore have a Definitive entity
+and a Refuted entity at the same time, as the *FBXO11* example below shows.
+
+This chapter has four parts. The summary and the decision flow give you the overview.
+The rules sections hold the criteria themselves. The worked examples show the rules
+applied to real SysNDD entities.
+
+## The categories at a glance
+
+| Category or tag | In short | Rules |
+| --- | --- | --- |
+| [Definitive]{.cat .cat-definitive} (Category 1) | Published, and either a clear-cut frequency or cumulative evidence | [Definitive entities](#ndd-definitive-entities) |
+| [Moderate]{.cat .cat-moderate} (Category 2) | Published, intellectual disability indicated; too good for Limited, not good enough for Definitive | [Moderate and Limited entities](#ndd-moderate-and-limited-entities) |
+| [Limited]{.cat .cat-limited} (Category 3) | Published, intellectual disability indicated, but limited genetic and/or clinical evidence | [Moderate and Limited entities](#ndd-moderate-and-limited-entities) |
+| [Refuted]{.cat .cat-refuted} | Newer evidence contradicts the association | [Decide the category, step 3](#decide-the-category); [Non-NDD entities](#special-case-non-ndd-entities) |
+| [Not applicable]{.cat .cat-na} | Entity outside the neurodevelopmental disorder (NDD) scope, kept for gene context; a tag, not an evidence category | [Non-NDD entities](#special-case-non-ndd-entities) |
+
+The frequency thresholds are the numbers curators look up most often. The table below
+collects them from the rules for Definitive entities. The rules themselves govern.
+
+| Variants | Clear-cut frequency (with a publication, no further criteria needed) | Strong frequency criterion |
+| --- | --- | --- |
+| *De novo* | \>= 10 cases with *de novo* variants | \>= 3 patients with *de novo* variant |
+| Autosomal recessive | \>= 5 autosomal-recessive families | \>= 2 families with bi-allelic truncating variants; \>= (2-)3 families with bi-allelic missense variants |
+| X-chromosomal | \>= 3 families with X-chromosomal variants | \>= 2 families with X-chromosomal variants |
+
+: Frequency thresholds for Definitive entities. {tbl-colwidths="[20,38,42]"}
+
+A strong frequency criterion alone is not enough for Definitive. It must be combined
+with other criteria, as set out under cumulative evidence.
+
+## Decide the category
+
+Work through these questions in order. Each one points to the rules that answer it.
+The questions are a reading aid; the rules themselves govern.
+
+1. **Is the disorder within the SysNDD scope?** Check the [definitions](#definitions).
+   If the disorder is a well-established non-NDD disorder retained for gene context, it
+   may be tagged [Not applicable]{.cat .cat-na} (see
+   [non-NDD entities](#special-case-non-ndd-entities)). Motor delay without cognitive
+   impairment, or a neurodegenerative course without early intellectual disability, can
+   also count as limited clinical evidence under
+   [Moderate and Limited](#ndd-moderate-and-limited-entities). Decide whether the problem
+   is scope or evidence strength.
+2. **Is the evidence published?** Definitive needs a publication. Gray literature such
+   as conference abstracts or personal communication does not count. A preprint can be
+   considered individually; it is entered through its digital object identifier (DOI) in
+   the comment field until it is published with a PubMed identifier (PMID). Moderate and
+   Limited must be published; private, in-house candidate lists do not count.
+3. **Does newer evidence contradict the association?** If so, consider
+   [Refuted]{.cat .cat-refuted} (see [non-NDD entities](#special-case-non-ndd-entities)).
+   In borderline cases, weigh the [possible negative criteria](#possible-negative-criteria).
+4. **Is a clear-cut frequency met?** If so, the entity is
+   [Definitive]{.cat .cat-definitive}.
+5. **Is cumulative evidence met?** Combine the [strong](#strong-criteria) and
+   [moderate](#moderate-criteria) criteria as set out in the rule. If so, the entity is
+   [Definitive]{.cat .cat-definitive}.
+6. **Does an [exclusion criterion](#exclusion-criteria) apply?** If so, the entity does
+   not qualify for Moderate or Limited.
+7. **Otherwise, intellectual disability is indicated but the evidence falls short of
+   Definitive.** Choose between [Moderate]{.cat .cat-moderate} and
+   [Limited]{.cat .cat-limited} using the [examples for Moderate](#when-to-choose-moderate-category-2).
+
 ## Definitions
 
-Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined in the scope of SysNDD as follows:
+Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined in the
+scope of SysNDD as follows:
 
--	Early onset neurodevelopmental delay and cognitive impairment (severe ID to learning difficulties)
--	Regression/ neurodegeneration in the first years of life with or without prior developmental delay
--	Disorders with cognitive impairment in a significant (ca. >10%) fraction of individuals
-
+::: {.callout-important .rule title="Rule: scope of SysNDD"}
+- Early onset neurodevelopmental delay and cognitive impairment (severe ID to learning
+  difficulties)
+- Regression/neurodegeneration in the first years of life with or without prior
+  developmental delay
+- Disorders with cognitive impairment in a significant (ca. >10%) fraction of
+  individuals
+:::
 
 ## NDD Definitive entities
 
-Inclusion criteria for Category 1 ("Definitive"):
+Inclusion criteria for Definitive (Category 1). In short: criterion 1 **AND**
+(criterion 2 **OR** criterion 3).
 
-**1.**	Publication required (no grey literature like conference abstracts or personal communication; manuscripts on preprint servers can be considered individually but only entered through their DOI in the comment field until published with PMID, when they should be updated)
+::: {.callout-important .rule title="Rule: Definitive (Category 1)"}
+**1.** Publication required (no gray literature like conference abstracts or personal
+communication; manuscripts on preprint servers can be considered individually but only
+entered through their DOI in the comment field until published with PMID, when they
+should be updated)
 
-<p style="text-align: center;">
 **AND**
-</p>
 
-**2.**	Clear-cut frequency  (no further criteria needed)
+**2.** Clear-cut frequency (no further criteria needed)
 
 - \>= 10 cases with *de novo* variants
 - \>= 5 autosomal-recessive families
 - \>= 3 families with X-chromosomal variants
 
-<p style="text-align: center;">
 **OR**
-</p>
 
-**3.**	Cumulative evidence
+**3.** Cumulative evidence
 
-- 1 strong frequency criterium
+- 1 strong frequency criterion
 
-<p style="text-align: center;">
 **PLUS**
-</p>
 
-- 1 strong genetic or 1 strong clinical criterium
+- 1 strong genetic or 1 strong clinical criterion
 
-<p style="text-align: center;">
 **OR**
-</p>
 
-- 2 further strong (genetic and/or clinical) criteria in case of only 2 families with recessive inheritance
+- 2 further strong (genetic and/or clinical) criteria in case of only 2 families with
+  recessive inheritance
 
-<p style="text-align: center;">
 **OR**
-</p>
 
 - \>= two moderate criteria
-
+:::
 
 ### Strong criteria
 
+::: {.callout-important .rule title="Rule: strong criteria"}
 Strong frequency criteria:
 
 - \>= 3 patients with *de novo* variant
@@ -63,115 +140,313 @@ Strong frequency criteria:
 - \>= (2-)3 families with bi-allelic missense variants
 - \>= 2 families with X-chromosomal variants
 
-
 Strong genetic criteria:
 
--	recurrence of a variant
--	clustering of variants
--	*de novo* truncating variants in a gene intolerant to loss-of-function variants (gnomAD constraint score)
-
+- recurrence of a variant
+- clustering of variants
+- *de novo* truncating variants in a gene intolerant to loss-of-function variants
+  (gnomAD constraint score)
 
 Strong clinical criteria:
 
--	Homogeneous phenotype
--	Presence of specific/distinct clinical aspects (e.g., recognizable facial gestalt; rare specific malformations; pattern of multiple malformation; characteristic MRI anomalies; specific metabolic/enzymatic anomalies)
+- Homogeneous phenotype
+- Presence of specific/distinct clinical aspects (e.g., recognizable facial gestalt;
+  rare specific malformations; pattern of multiple malformation; characteristic MRI
+  anomalies; specific metabolic/enzymatic anomalies)
+:::
 
-
+The gnomAD constraint scores are shown on each gene page in SysNDD, in the
+**Gene Constraint (gnomAD)** card.
 
 ### Moderate criteria
--	Multigenerational segregation of variants
--	Functional tests
--	Gene involved in a pathway/complex where variants in other subunits are associated with a similar phenotype
--	*De novo* missense variants in a gene intolerant to missense variants (gnomAD constraint scores)
 
-
+::: {.callout-important .rule title="Rule: moderate criteria"}
+- Multigenerational segregation of variants
+- Functional tests
+- Gene involved in a pathway/complex where variants in other subunits are associated
+  with a similar phenotype
+- *De novo* missense variants in a gene intolerant to missense variants (gnomAD
+  constraint scores)
+:::
 
 ### Possible negative criteria
+
 These should be included into consideration in borderline cases.
 
--	Age of first publication(s) without further confirmatory reports in the meantime
--	Publication quality and journal or genetics expertise "doubtful"
--	New evidence against gene and/or variants: e.g., constraint scores, frequencies in gnomAD
-
-
+::: {.callout-important .rule title="Rule: possible negative criteria"}
+- Age of first publication(s) without further confirmatory reports in the meantime
+- Publication quality and journal or genetics expertise "doubtful"
+- New evidence against gene and/or variants: e.g., constraint scores, frequencies in
+  gnomAD
+:::
 
 ## NDD Moderate and Limited entities
-These categories include the previous category of "candidate genes" and are now split into criteria for entity categories 2 ("Moderate") and 3 ("Limited"):
 
+These categories include the previous category of "candidate genes". They are now split
+into criteria for Moderate (Category 2) and Limited (Category 3). In short:
+criterion 1 **AND** criterion 2.
 
-**1.**	Must be published (no private, in-house candidate lists)
+::: {.callout-important .rule title="Rule: Moderate (Category 2) and Limited (Category 3)"}
+**1.** Must be published (no private, in-house candidate lists)
 
-<p style="text-align: center;">
 **AND**
-</p>
 
-**2.**	ID indicated, but criteria not sufficient for category 1, examples:
+**2.** ID indicated, but criteria not sufficient for Definitive (Category 1), examples:
 
 **a.** Limited genetic evidence
 
 - < 3 cases with *de novo*, different variants and non-specific NDD phenotype
-- 1 recessive family with truncating variant or <= 2 recessive families with missense variants (category 2 or 3 depending on number of affected and tested individuals per family, functional evidence and homogeneity of phenotype etc.)
+- 1 recessive family with truncating variant or <= 2 recessive families with missense
+  variants (Moderate or Limited, Category 2 or 3, depending on number of affected and
+  tested individuals per family, functional evidence and homogeneity of phenotype etc.)
 - candidate gene from translocation or larger deletion
-- reports of enzymatically confirmed patients with specific metabolic disorders but without genetic mutation confirmed
+- reports of enzymatically confirmed patients with specific metabolic disorders but
+  without genetic mutation confirmed
 
 **b.** Limited clinical evidence
 
-- not much evidence for ID, e.g. reported as ADHD or ASD or neurological disorder without clearly reported low IQ and ID
+- not much evidence for ID, e.g. reported as ADHD or ASD or neurological disorder
+  without clearly reported low IQ and ID
 - known disorder, but only single patients reported with ID
 - motor developmental delay without evidence for cognitive impairment
-- clear neurodegenerative course without ID or cognitive delay present in the first years
-- lethal before ID might be evident, although e.g. brain malformations or metabolic abnormalities might point to ID
-- ID reported in other, similar disorders caused by mutations in the same pathway/complex but not (yet) in association with this particular gene (e.g. Fanconi anemia)
+- clear neurodegenerative course without ID or cognitive delay present in the first
+  years
+- lethal before ID might be evident, although e.g. brain malformations or metabolic
+  abnormalities might point to ID
+- ID reported in other, similar disorders caused by mutations in the same
+  pathway/complex but not (yet) in association with this particular gene (e.g. Fanconi
+  anemia)
 
 **c.** Limited combined genetic and clinical evidence
 
--	Gene enriched for *de novo* or rare deleterious variants in large NDD cohorts or meta-studies, no further details
+- Gene enriched for *de novo* or rare deleterious variants in large NDD cohorts or
+  meta-studies, no further details
+:::
 
-
+ADHD is attention deficit hyperactivity disorder. ASD is autism spectrum disorder.
 
 ### Exclusion criteria
 
-1.	Published as candidate gene only based on function or experimental results but without variants reported in humans
+::: {.callout-important .rule title="Rule: exclusion criteria"}
+**1.** Published as candidate gene only based on function or experimental results but
+without variants reported in humans
 
-<p style="text-align: center;">
 **AND/OR**
-</p>
 
+**2.** Only 1 *de novo* case from longer ago without further evidence and gene tolerant
+towards missense and/or loss-of-function variants according to gnomAD constraint scores
 
-2.	Only 1 *de novo* case from longer ago without further evidence and gene tolerant towards missense and/or loss-of-function variants according to gnomAD constraint scores
-
-<p style="text-align: center;">
 **AND/OR**
-</p>
 
-3.	Only 1 sporadic case with bi-allelic variants and without any further supporting evidence such as segregation in other family members, functional tests, similar phenotypes in other patients with variants in genes from the same pathway, etc.
+**3.** Only 1 sporadic case with bi-allelic variants and without any further supporting
+evidence such as segregation in other family members, functional tests, similar
+phenotypes in other patients with variants in genes from the same pathway, etc.
+:::
 
+### When to choose Moderate (Category 2)
 
-
-
-### When to choose category 2 ("Moderate")?
-Too good for category 3 ("Limited") but not good enough for category 1 ("Definitive")
+::: {.callout-important .rule title="Rule: choosing Moderate"}
+Too good for Limited (Category 3) but not good enough for Definitive (Category 1).
 
 Examples:
 
--	Recurrent de novo variant in 2 individuals with a similar phenotype
+- Recurrent *de novo* variant in 2 individuals with a similar phenotype
+- Bi-allelic or X-chromosomal truncating variant segregating in >= two generations of a
+  large family
+- Convincing functional evidence
+- 1-2 patients with convincing variants in a gene which is in the same complex/pathway
+  with other known disease genes and phenotype fits (e.g. CDG syndrome)
+:::
 
--	Bi-allelic or X-chromosomal truncating variant segregating in >= two generations of a large family
-
--	Convincing functional evidence
-
--	1-2 patients with convincing variants in a gene which is in the same complex/pathway with other known disease genes and phenotype fits (e.g. CDG syndrome)
-
+CDG is congenital disorder of glycosylation.
 
 ### Special case: non-NDD entities
-Some genes are associated with multiple entities. Among these entities, some may be well-established disorders without intellectual disability or another neurodevelopmental disorder as a clinical feature. These non-NDD entities can be retained in SysNDD for gene context, but they are outside the SysNDD NDD classification scope. They are not classified into Category 1, 2, or 3. Instead, they are tagged with `n.a.` (not applicable).
 
-`n.a.` is not a lower evidence category and is not equivalent to "Limited" or "Refuted". Category 1, 2, and 3 ask how strong the evidence is for an NDD entity. `n.a.` says that the retained entity itself is outside the NDD classification scope. "Refuted" says that evidence argues against retaining the proposed association.
+Some genes are associated with multiple entities. Among these entities, some may be
+well-established disorders without intellectual disability or another
+neurodevelopmental disorder as a clinical feature.
+
+::: {.callout-important .rule title="Rule: Not applicable"}
+These non-NDD entities can be retained in SysNDD for gene context, but they are outside
+the SysNDD NDD classification scope. They are not classified into Definitive, Moderate or
+Limited (Category 1, 2, or 3). Instead, they are tagged **Not applicable**.
+
+Not applicable is not a lower evidence category and is not equivalent to "Limited" or
+"Refuted". Definitive, Moderate and Limited (Category 1, 2, and 3) ask how strong the
+evidence is for an NDD entity. Not applicable says that the retained entity itself is
+outside the NDD classification scope. "Refuted" says that evidence argues against
+retaining the proposed association.
+:::
+
+The app shows this tag as "not applicable" ("n/a" in the phone layout). Older documents
+write it as `n.a.`.
 
 Examples:
 
-- A gene has one entity with early-onset developmental delay or intellectual disability and another well-established entity without cognitive impairment. The non-NDD entity may be retained for gene context and tagged `n.a.`.
-- A disorder is mainly adult-onset or organ-specific and the literature does not show intellectual disability or neurodevelopmental disorder in a significant fraction. If retained as a separate entity, it may be tagged `n.a.`.
-- A disorder includes motor delay only, with no evidence for cognitive impairment or early neurodevelopmental disorder. The issue may be scope rather than weak NDD evidence.
-- Do not use `n.a.` when there is weak but plausible NDD evidence. Apply Category 2 or Category 3 according to the existing criteria.
-- Do not use `n.a.` when newer evidence contradicts the old association. Consider "Refuted" according to the existing criteria.
+- A gene has one entity with early-onset developmental delay or intellectual disability
+  and another well-established entity without cognitive impairment. The non-NDD entity
+  may be retained for gene context and tagged Not applicable.
+- A disorder is mainly adult-onset or organ-specific and the literature does not show
+  intellectual disability or neurodevelopmental disorder in a significant fraction. If
+  retained as a separate entity, it may be tagged Not applicable.
+- A disorder includes motor delay only, with no evidence for cognitive impairment or
+  early neurodevelopmental disorder. The issue may be scope rather than weak NDD
+  evidence.
+- Do not use Not applicable when there is weak but plausible NDD evidence. Apply
+  Moderate or Limited (Category 2 or Category 3) according to the existing criteria.
+- Do not use Not applicable when newer evidence contradicts the old association.
+  Consider "Refuted" according to the existing criteria.
+
+## Worked examples
+
+Each example quotes the synopsis of a real SysNDD entity and shows how the rules read
+on the evidence it summarizes. Categories and synopses are as recorded in SysNDD on
+November 20, 2026.
+
+::: {.callout-note}
+A synopsis is a summary. The curators who set a category also read the full literature,
+so a synopsis may not mention every fact behind a decision. Categories can change when
+an entity is re-reviewed.
+:::
+
+### Definitive by clear-cut frequency: *DDX3X*, two entities
+
+*DDX3X* has two entities for the same disease, "Intellectual developmental disorder,
+X-linked syndromic, Snijders Blok type". They differ in the mode of inheritance.
+
+[Entity 1395](https://sysndd.dbmr.unibe.ch/Entities/1395), X-linked dominant
+inheritance, [Definitive]{.cat .cat-definitive}. The synopsis reports *de novo*
+variants in females and continues:
+
+> "... plus de novo missense and truncating variants in 22 females and 1 male: variable
+> ID, muscle tone anomalies, 56% feeding difficulties, ..."
+
+More than ten cases with *de novo* variants meet the clear-cut frequency
+(\>= 10 cases with *de novo* variants). No further criteria are needed.
+
+[Entity 3470](https://sysndd.dbmr.unibe.ch/Entities/3470), X-linked recessive
+inheritance, [Definitive]{.cat .cat-definitive}:
+
+> "inherited missense variants in 7 affected males from four families (carrier females
+> unaffected): borderline to severe intellectual disability, spasticity, microcephaly in
+> 2 brothers"
+
+Four families meet the clear-cut frequency for X-chromosomal variants
+(\>= 3 families). Each family is counted once, however many affected males it has.
+
+### Moderate: *PRSS12*
+
+[Entity 584](https://sysndd.dbmr.unibe.ch/Entities/584), *PRSS12*, autosomal recessive
+inheritance, "Intellectual developmental disorder, autosomal recessive 1",
+[Moderate]{.cat .cat-moderate}:
+
+> "5 individuals from two families with biallelic nonsense variants; moderate to severe
+> intellectual disability; non-syndromic"
+
+How the rules read:
+
+- Two families fall short of the clear-cut frequency (\>= 5 autosomal-recessive
+  families).
+- Two families with bi-allelic truncating variants meet one strong frequency criterion.
+- With only two recessive families, cumulative evidence needs two further strong
+  genetic or clinical criteria. The synopsis does not record two: at most a homogeneous,
+  non-syndromic phenotype, and no specific or distinct clinical aspect.
+- Nor does it record two moderate criteria: no segregation over generations and no
+  functional tests.
+- The evidence goes beyond the Limited example "1 recessive family with truncating
+  variant". It is too good for Limited but not good enough for Definitive.
+
+### Limited: *ZCCHC8*
+
+[Entity 944](https://sysndd.dbmr.unibe.ch/Entities/944), *ZCCHC8*, autosomal recessive
+inheritance, "intellectual disability", [Limited]{.cat .cat-limited}:
+
+> "bi-allelic nonsense variant in 3 individuals from 1 family: non-syndromic severe ID."
+
+How the rules read:
+
+- One recessive family with a truncating variant is a listed example of limited
+  genetic evidence. The rule says such a family leads to Moderate or Limited depending
+  on the number of affected and tested individuals per family, functional evidence
+  and homogeneity of the phenotype. No functional evidence or segregation over generations is recorded, so
+  none of the examples for Moderate applies.
+- Exclusion criterion 3 does not apply: this is not a single sporadic case, because
+  three affected individuals share the variant.
+
+### Refuted: *PGA5*
+
+[Entity 1151](https://sysndd.dbmr.unibe.ch/Entities/1151), *PGA5*, autosomal dominant
+inheritance, "intellectual disability", [Refuted]{.cat .cat-refuted}:
+
+> "One individual with ID and a missense variant described by Vissers et al. in 2010.
+> Since then, no further publications linking PGA5 to ID appeared (updated May 2025).
+> Gene tolerant towards missense and loss-of-function mutations (gnomAD version 4.1.0)."
+
+The synopsis records two possible negative criteria: an old first publication without
+confirmatory reports, and constraint scores that argue against the gene. Together they
+argue against retaining the association. The same pattern matches exclusion
+criterion 2, so the entity does not qualify for Moderate or Limited either. Note that the synopsis names the gnomAD
+version used, so a later reader can check the scores.
+
+### Refuted beside Definitive: *FBXO11*
+
+*FBXO11* shows that the category belongs to the entity, not to the gene.
+
+[Entity 1998](https://sysndd.dbmr.unibe.ch/Entities/1998), *FBXO11*, autosomal
+recessive inheritance, "intellectual disability", [Refuted]{.cat .cat-refuted}:
+
+> "missense variant in 1 affected, very severe ID, EEG abnormalities, muscular
+> hypotonia; later, a likely pathogenic variant in another gene was found in this
+> patient"
+
+The only patient later received another explanation. This is new evidence against the
+variant, one of the possible negative criteria.
+
+[Entity 1848](https://sysndd.dbmr.unibe.ch/Entities/1848), *FBXO11*, autosomal dominant
+inheritance, "Intellectual developmental disorder with dysmorphic facies and behavioral
+abnormalities", is [Definitive]{.cat .cat-definitive}. Its synopsis summarizes variants
+in 71 individuals.
+
+### Not applicable: *CEP290*
+
+*CEP290* has five entities, all with autosomal recessive inheritance. Joubert syndrome 5
+([entity 136](https://sysndd.dbmr.unibe.ch/Entities/136)) is
+[Definitive]{.cat .cat-definitive}. Leber congenital amaurosis 10
+([entity 139](https://sysndd.dbmr.unibe.ch/Entities/139)) is a retinal disorder. It is
+kept for gene context, tagged [Not applicable]{.cat .cat-na} and recorded with NDD
+phenotype "No".
+Of the five *CEP290* entities, two are Definitive and three, including Leber congenital
+amaurosis 10, are tagged Not applicable.
+
+This matches the first example under [non-NDD entities](#special-case-non-ndd-entities):
+one gene, one NDD entity and one well-established entity without cognitive impairment.
+
+## Common problems
+
+- **The same patients appear in several papers.** Cohort studies often re-report
+  earlier cases. Count each individual and each family once. [Research a gene and read a
+  paper](curation-research.qmd) explains how to find duplicates.
+- **The evidence counts for the gene, but for which entity?** Count cases separately for
+  each disease and mode of inheritance. *DDX3X* above has two entities with separate
+  counts.
+- **Only a preprint reports the cases.** A preprint can be considered individually. If
+  you use it, enter its DOI in the comment field and replace it with the PMID once the
+  paper is published.
+- **You are unsure between Not applicable and Limited.** Ask whether the problem is
+  scope or evidence strength. Weak but plausible NDD evidence means Moderate or Limited.
+- **The gene was convincing years ago but nothing new appeared.** Check the possible
+  negative criteria, such as current gnomAD constraint scores. In a borderline case they
+  weigh against the association; if newer evidence contradicts it, consider Refuted, as
+  in the *PGA5* example.
+
+## Related pages
+
+- [Research a gene and read a paper](curation-research.qmd): how to collect the
+  evidence these criteria weigh.
+- [Re-review instructions](06-re-review-instructions.qmd): how a [Reviewer]{.role}
+  updates the review and status of an assigned entity.
+- [Create an entity](curator-create-entity.qmd): where a [Curator]{.role} records the
+  category of a new entity.
+- [Approve reviews and statuses](curator-approve.qmd): how a submitted category becomes
+  public.
+- [Glossary](reference-glossary.qmd): entity, evidence category and other terms.

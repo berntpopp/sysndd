@@ -1,47 +1,221 @@
 ---
-title: "Database and data sources"
+title: "Data model"
 ---
 
-## Database software
-
-SysNDD currently uses the open-source [MySQL](https://dev.mysql.com/doc/) relational database management system. The repository Compose stack uses the official MySQL Docker image, currently `mysql:8.4.9`.
-
-## Database schema
-
-The design of our DB schema can be viewed in [DB DESIGNER](https://www.dbdesigner.net/):
-
-::: {style="max-width:1000px;"}
-[SysNDD DB schema](https://dbdesigner.page.link/3Morx9HZxzqt4R379)
+::: {.lead}
+How SysNDD stores a gene-disease association: the entity, its reviews and statuses, the
+evidence categories, and the identifiers that link each record to standard databases. Read
+this page to interpret what you see in the web app, in downloads and in API responses.
 :::
 
-The diagram below is a documentation snapshot. The versioned schema source of truth is the migration history under `db/migrations/` and the current database initialized by the migration runner.
-
-::: {style="max-width:1000px;"}
-![SysNDD MysQL database](./static/img/04_01-design-db-schema.png)
+::: {.callout-note .who-can title="Who this is for"}
+Everyone. No database knowledge is needed. Field names in `code` are the names used in API
+responses and Excel downloads.
 :::
 
+## The entity: one gene, one inheritance, one disease
 
-## Variant ontology
+The unit of curation in SysNDD is the **entity**. An entity states that disease-causing variants
+in one gene cause one disease through one mode of inheritance.
 
-We use the "Variation Ontology" as ontology for the annotation of variation effects and mechanisms.
-Currently active terms include variant ontology terms for our curation. The list was extended to include additional terms for non-coding RNA variation.
+| Part | Standard | Example (entity 856) |
+| --- | --- | --- |
+| Gene | HUGO Gene Nomenclature Committee (HGNC) | *CHD8*, `HGNC:20153` |
+| Mode of inheritance | Human Phenotype Ontology (HPO) | Autosomal dominant inheritance (`HP:0000006`) |
+| Disease | Online Mendelian Inheritance in Man (OMIM), or Mondo Disease Ontology (MONDO) where OMIM has no entry | Intellectual developmental disorder with autism and macrocephaly, `OMIM:615032` |
 
-The complete list of variation ontology terms can be accessed via:
+Each entity also records whether its disease is a neurodevelopmental disorder (NDD). The web app
+shows this as **NDD Yes** or **NDD No**; API responses use `ndd_phenotype_word`.
 
-- The SysNDD API endpoint for variation ontology lists
-- The [Variation Ontology (VariO)](https://variationontology.org/) website
-- The [EBI OLS Vario terms](https://www.ebi.ac.uk/ols/ontologies/vario)
+Because the entity is the unit, one gene can have several entities. A gene that causes a
+dominant and a recessive disorder has two entities. A gene linked to an NDD and to a heart
+disease has two entities, one of which is outside the NDD scope.
 
-Reviewer-facing guidance for choosing among existing variation ontology terms is described in the re-review instructions.
+The three parts of an entity never change once it is created. When a disease name or identifier
+must be corrected, a Curator creates a new entity and deactivates the old one (see
+[Versions and history](#versions-and-history)).
 
+## What is stored about an entity
 
-## Mode of Inheritance ontology
+An entity collects two kinds of record over time: **reviews** and **statuses**.
 
-We use the "Human Phenotype Ontology" as ontology for the mode of inheritance.
+```{mermaid}
+%%| fig-cap: "The parts of an entity. The entity is fixed; reviews and statuses are added over time, and one of each is active."
+%%| label: fig-data-model-entity
+%%| fig-alt: "Diagram: gene (HGNC), mode of inheritance (HPO) and disease (OMIM or MONDO) combine into one entity. The entity has reviews (synopsis, phenotypes, variation, publications) and statuses (evidence category); one of each is active."
+flowchart TB
+  G["Gene<br/>HGNC"] --> E
+  I["Mode of inheritance<br/>HPO"] --> E
+  D["Disease<br/>OMIM or MONDO"] --> E
+  E(["Entity<br/>fixed triple + NDD yes/no"])
+  E --> R["Reviews<br/>one active, earlier ones kept"]
+  E --> S["Statuses<br/>one active, earlier ones kept"]
+  R --> SY["Clinical synopsis"]
+  R --> PH["Phenotypes<br/>HPO terms + modifier"]
+  R --> VA["Variation<br/>VariO terms"]
+  R --> PU["Publications<br/>PMIDs"]
+  S --> C["Evidence category"]
+```
 
-The inheritance terms used in SysNDD follow the HPO standard and can be accessed via:
+### Review
 
-- The SysNDD API endpoint for inheritance lists
-- The [Human Phenotype Ontology](https://hpo.jax.org/) website
+A **review** is the curated description of an entity. It holds:
 
-For the complete and up-to-date list of ontology terms used in SysNDD, please refer to the [SysNDD API documentation](https://sysndd.dbmr.unibe.ch/API).
+- **Clinical synopsis**: a short free-text summary of the published evidence and the clinical
+  picture. The entity page shows it as **Clinical Synopsis**.
+- **Phenotypes**: HPO terms, each with a modifier (see [Phenotypes](#phenotypes)).
+- **Variation**: Variation Ontology (VariO) terms describing the types and consequences of the variants
+  (see [Variation](#variation)).
+- **Publications**: PubMed IDs. The entity page lists GeneReviews chapters separately as
+  **Gene Reviews**; all other papers appear under **Publications**.
+- The date of the review and an optional comment.
+
+### Status
+
+A **status** records the evidence category of the entity, its date and an optional comment.
+
+### Approval
+
+Reviewers and Curators submit new reviews and statuses. A submission is not public. It becomes
+public only after a Curator or Administrator approves it. The web app, the downloads, the API
+and the MCP server show only approved records.
+
+## Evidence categories
+
+Every entity has exactly one active category.
+
+| Category | In short |
+| --- | --- |
+| [Definitive]{.cat .cat-definitive} | Published, and either a clear-cut frequency or cumulative evidence |
+| [Moderate]{.cat .cat-moderate} | Published, intellectual disability indicated; too good for Limited, not good enough for Definitive |
+| [Limited]{.cat .cat-limited} | Published, intellectual disability indicated, but limited genetic and/or clinical evidence |
+| [Refuted]{.cat .cat-refuted} | Newer evidence contradicts the association |
+| [Not applicable]{.cat .cat-na} | Entity outside the neurodevelopmental disorder (NDD) scope, kept for gene context; a tag, not an evidence category |
+
+The rules for assigning Definitive, Moderate, Limited and Refuted are in
+[Curation criteria](05-curation-criteria.qmd). The table above repeats the summary from that
+chapter; the rules there govern.
+
+**Not applicable** marks entities whose disease lies outside the NDD scope, for example a
+cardiac disorder caused by a gene that also causes an NDD. SysNDD keeps these entities so that
+each gene's full disease spectrum is visible. Not applicable is not a lower tier below Limited.
+The web app and the API write it as `not applicable`; the curation criteria abbreviate it `n.a.`.
+The NDD Yes/No flag and the category are recorded separately; filter on the category when you
+need to exclude Not applicable entities.
+
+Earlier publications and data files may call the categories by number. The numbers map to the
+names as follows: Definitive (Category 1), Moderate (Category 2), Limited (Category 3). In the
+API, `category_id` uses 1 to 5 in the order of the table above.
+
+## Versions and history
+
+SysNDD never deletes curation data. Each change adds a record:
+
+- **New evidence.** A Reviewer or Curator submits a new review or status. After approval it
+  becomes the active one. Earlier reviews and statuses stay in the database.
+- **Category change.** An entity is moved to a higher or lower category, or to Refuted, when
+  the evidence changes. It stays visible under its new category.
+- **Correction or duplicate.** A Curator deactivates the entity and can link it to its
+  replacement.
+  A deactivated entity disappears from public views but stays in the database.
+
+Public pages and the API show the active review and the active status of active entities. The
+**Last reviewed** date on an entity page is the date of the active review. The API field
+`last_update` gives the most recent of the entry date, the active status date and the active
+review date.
+
+The systematic reassessment of existing entities by Reviewers is called **re-review**. It works
+through the same records: a re-review produces a new review and status that a Curator approves
+(see [Re-review instructions](06-re-review-instructions.qmd)).
+
+## Identifiers and vocabularies
+
+SysNDD links every record to standard identifiers. Write them with an uppercase prefix and no
+space after the colon.
+
+| What | Source | Format | Example |
+| --- | --- | --- | --- |
+| Gene | [HGNC](https://www.genenames.org/) | `HGNC:` + number | `HGNC:20153` (*CHD8*) |
+| Mode of inheritance | [HPO](https://hpo.jax.org/) | `HP:` + 7 digits | `HP:0000006` |
+| Disease | [OMIM](https://www.omim.org/) | `OMIM:` + 6 digits | `OMIM:615032` |
+| Disease without OMIM entry | [MONDO](https://mondo.monarchinitiative.org/) | `MONDO:` + 7 digits | `MONDO:0001071` (intellectual disability) |
+| Phenotype | [HPO](https://hpo.jax.org/) | `HP:` + 7 digits | `HP:0000256` (Macrocephaly) |
+| Variation | [VariO](https://variationontology.org/) | `VariO:` + 4 digits | `VariO:0015` (protein truncation) |
+| Publication | [PubMed](https://pubmed.ncbi.nlm.nih.gov/) | `PMID:` + number | `PMID:31721432` |
+| Entity | SysNDD | number | `856`, shown as **sysndd:856** |
+
+Some disease identifiers carry a suffix, such as `OMIM:300100_1`. The suffix separates several
+SysNDD disease records that share one OMIM number, for example because OMIM lists the disease
+for more than one gene or inheritance. API responses give this value as
+`disease_ontology_id_version`.
+
+### Modes of inheritance
+
+SysNDD uses the HPO inheritance terms, for example Autosomal dominant inheritance, Autosomal
+recessive inheritance, X-linked recessive inheritance and Mitochondrial inheritance. Panels and
+filters group them into four groups: Autosomal dominant, Autosomal recessive, X-linked and Other.
+
+### Phenotypes
+
+Phenotypes are HPO terms from a fixed list of phenotype categories used across SysNDD. Each
+phenotype on an entity has a **modifier**:
+
+| `modifier_id` | Modifier |
+| --- | --- |
+| 1 | present |
+| 2 | uncertain |
+| 3 | variable |
+| 4 | rare |
+| 5 | absent |
+
+Variation terms allow only present (1) and absent (5). Guidance on which phenotypes to record
+is in the [Re-review instructions](06-re-review-instructions.qmd).
+
+The current list of phenotype categories is available from the API at
+`/api/list/phenotype`.
+
+### Variation
+
+The Variation Ontology (VariO) describes the types and effects of variants, such as protein
+truncation or nonsynonymous variation. A variation term is recorded as present or absent. The
+terms available for curation are listed at `/api/list/variation_ontology`. Reviewer guidance on
+choosing terms is in the [Re-review instructions](06-re-review-instructions.qmd).
+
+Some variation terms are suggested from external sources such as ClinVar. The entity page marks
+them **Not yet confirmed by a curator** until a Curator confirms them. In API responses these
+terms carry a `provenance` field whose `state` is `active_unconfirmed` or `confirmed`; its
+`sources` name the external source. A term whose `provenance` is null was entered by a curator.
+
+## What SysNDD does not curate
+
+The gene page also shows data from other resources, such as gnomAD constraint scores and ClinVar
+variants. These data are fetched for display. They are not part of the curated entity and do not
+affect its evidence category. The exception is a variation term suggested from ClinVar, which is
+shown on the entity with its provenance (see [Variation](#variation)).
+
+Derived analyses, such as phenotype clusters and functional clusters, are computed from the
+curated data. They are hypotheses, not curated facts (see
+[Explore the analyses](using-analyses.qmd)).
+
+## Database schema for developers
+
+The database runs on MySQL. The authoritative schema is the migration history in the
+repository folder `db/migrations/`, applied at startup. The
+[Development](08-development.qmd) chapter explains how to work with it.
+
+## Common problems
+
+- **A gene appears twice in the entity table.** That is expected: each row is an entity, and a
+  gene can have several. Use **Tables › Panels** or `/api/panels/browse` for one row per gene.
+- **An entity has disappeared.** It was probably deactivated as a duplicate or replaced after a
+  disease correction. Search for the gene to find the current entity.
+- **The category in an older paper differs from today's.** Categories change when new evidence
+  is approved. Cite the access date when you report a category.
+
+## Related pages
+
+- [Curation criteria](05-curation-criteria.qmd): the rules behind each evidence category.
+- [Find a gene, entity or disease](using-find-gene.qmd): where these records appear in the web
+  app.
+- [Get SysNDD data with the API and MCP](03-api.qmd): download the records described here.
+- [Glossary](reference-glossary.qmd): short definitions of every term on this page.

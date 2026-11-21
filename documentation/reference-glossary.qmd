@@ -1,0 +1,299 @@
+---
+title: "Glossary"
+---
+
+::: {.lead}
+Short definitions of the terms used in SysNDD, in this documentation and in the SysNDD
+publication. Each entry links to the page that explains the term in full.
+:::
+
+::: {.callout-note .who-can title="Who this is for"}
+Everyone.
+:::
+
+The terms follow the SysNDD publication [@popp_sysndd_2026]. Where the web app uses a different
+label, the label is given in **bold**. Evidence-category rules are defined only in
+[Curation criteria](05-curation-criteria.qmd); the entries here name the categories and link
+there.
+
+[A](#a) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [J](#j) ·
+[L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [R](#r) · [S](#s) · [V](#v)
+
+## A
+
+Active record
+: The review or status that is currently shown for an entity. Each entity has one active review
+  and one active status; earlier ones are kept. See [Data model](04-database-structure.qmd).
+
+Administrator
+: The account role with full access, including user management and the **Administration** menu.
+  Written [Administrator]{.role} in this documentation.
+
+Analysis-snapshot release
+: A fixed, published export of the derived analyses (functional clusters, phenotype clusters and
+  their correlation), listed under **Analyses › Data releases**. It does not change after
+  publication. See [Cite SysNDD and reuse its data](reference-citing.qmd).
+
+API (application programming interface)
+: The web address that returns SysNDD data to scripts and programs instead of web pages. See
+  [Get SysNDD data with the API and MCP](03-api.qmd).
+
+Approval, approve
+: The step in which a Curator or Administrator makes a submitted review or status active and
+  public. Nothing a Reviewer submits is public before approval.
+
+## C
+
+CC BY 4.0
+: Creative Commons Attribution 4.0 International, the license of SysNDD data. You may reuse the
+  data if you give credit. See [Cite SysNDD and reuse its data](reference-citing.qmd).
+
+Clinical synopsis
+: The short free-text summary of the evidence and clinical picture of an entity, part of its
+  review. Shown as **Clinical Synopsis** on the entity page.
+
+Curation comparison
+: A comparison of SysNDD's gene content with other NDD gene resources, such as Gene2Phenotype,
+  PanelApp and SFARI. Shown under **Analyses › Compare curations**. See
+  [Explore the analyses](using-analyses.qmd).
+
+Curator
+: The account role that creates and modifies entities, approves reviews and statuses, approves
+  new users and manages re-review. Written [Curator]{.role}. With a lowercase "c", "curator"
+  means any person who curates.
+
+## D
+
+Deactivate
+: To withdraw a duplicate or superseded entity from public views; a Curator can link it to its replacement.
+  Entities are never deleted.
+
+Definitive
+: The evidence category for an established NDD gene-disease association. Written
+  [Definitive]{.cat .cat-definitive}; called "Category 1" in older material. See
+  [Curation criteria](05-curation-criteria.qmd).
+
+Disease
+: The disorder named in an entity, identified by an OMIM number, or by a MONDO identifier where
+  OMIM has no entry.
+
+## E
+
+Entity
+: The unit of curation in SysNDD: one gene, one mode of inheritance and one disease. Its three
+  parts never change once it is created. One gene can have several entities. See
+  [Data model](04-database-structure.qmd).
+
+Entity ID
+: The number that identifies an entity, such as `856`. The web app shows it with the prefix
+  `sysndd:`, as in **sysndd:856**. See [Data model](04-database-structure.qmd).
+
+ERN-ITHACA
+: The European Reference Network for Rare Malformation Syndromes, Intellectual and Other
+  Neurodevelopmental Disorders. Its experts re-review SysNDD entities.
+
+Evidence category
+: The strength of the evidence for an entity's gene-disease association: Definitive, Moderate,
+  Limited or Refuted. Not applicable is not an evidence category. See
+  [Curation criteria](05-curation-criteria.qmd).
+
+## F
+
+Functional cluster
+: A group of NDD genes whose proteins interact closely, computed from a protein interaction
+  network. A derived analysis and a hypothesis, not a curated fact. Shown under
+  **Analyses › Functional clusters**.
+
+## G
+
+Gene-disease association
+: The biological relationship that an entity asserts: variants in the gene cause the disease.
+
+GeneReviews
+: Expert-written disease chapters on the NCBI Bookshelf. SysNDD lists linked chapters
+  separately on the entity page as **Gene Reviews**.
+
+GeneReviews coverage
+: The Curator page **Curation › GeneReviews coverage** that shows which entities have, or still
+  lack, a linked GeneReviews chapter. See
+  [GeneReviews coverage and variation suggestions](curator-genereviews-variation.qmd).
+
+## H
+
+HGNC (HUGO Gene Nomenclature Committee)
+: The authority for human gene symbols and identifiers, such as *CHD8* and `HGNC:20153`. SysNDD
+  identifies every gene by its HGNC ID.
+
+HPO (Human Phenotype Ontology)
+: The standard vocabulary for clinical features. SysNDD uses HPO terms for phenotypes, such as
+  Macrocephaly (`HP:0000256`), and for modes of inheritance, such as Autosomal dominant
+  inheritance (`HP:0000006`).
+
+## I
+
+Inheritance group
+: One of the four groups that panels and filters use to bundle the HPO inheritance terms:
+  Autosomal dominant, Autosomal recessive, X-linked and Other. See
+  [Data model](04-database-structure.qmd#modes-of-inheritance).
+
+## J
+
+JSON (JavaScript Object Notation)
+: The plain-text data format in which the API returns its answers. See
+  [Get SysNDD data with the API and MCP](03-api.qmd).
+
+JWT (JSON Web Token), token
+: A signed string that proves who you are to the API after you sign in. Send it with each request
+  to a protected endpoint; it expires after a set time. See
+  [Get SysNDD data with the API and MCP](03-api.qmd#sign-in-for-protected-endpoints).
+
+## L
+
+Limited
+: The evidence category for a published association with limited genetic and/or clinical
+  evidence. Written
+  [Limited]{.cat .cat-limited}; called "Category 3" in older material. See
+  [Curation criteria](05-curation-criteria.qmd).
+
+## M
+
+MCP (Model Context Protocol)
+: An open protocol that lets AI assistants call external tools. The SysNDD MCP server gives
+  assistants read-only access to approved, public SysNDD data. See
+  [Get SysNDD data with the API and MCP](03-api.qmd).
+
+Mode of inheritance
+: How a disease is passed on, such as autosomal dominant or X-linked recessive, recorded as an
+  HPO term. Shortened to "inheritance" in the app.
+
+Moderate
+: The evidence category between Limited and Definitive. Written [Moderate]{.cat .cat-moderate};
+  called "Category 2" in older material. See [Curation criteria](05-curation-criteria.qmd).
+
+Modifier
+: A qualifier on a phenotype or variation term: present, uncertain, variable, rare or absent.
+  Variation terms use only present and absent. See [Data model](04-database-structure.qmd).
+
+MONDO (Mondo Disease Ontology)
+: A disease ontology that unifies other disease vocabularies. SysNDD uses a MONDO ID when a
+  disease has no OMIM entry.
+
+## N
+
+NDD (neurodevelopmental disorder)
+: A disorder of brain development. In SysNDD an NDD involves early-onset developmental delay or
+  cognitive impairment, early regression, or cognitive impairment in a significant fraction of
+  affected individuals; the exact scope is in
+  [Curation criteria](05-curation-criteria.qmd#definitions).
+
+NDD phenotype
+: Whether an entity's disease is a neurodevelopmental disorder (yes or no). Shown as **NDD Yes**
+  or **NDD No** on the entity page.
+
+NDDScore
+: A machine-learning prediction of how likely a gene is to be an NDD gene. It is separate from
+  curated evidence and is not an evidence category. Shown under the **NDDScore** menu with its
+  **Model card**.
+
+Not applicable
+: The tag for an entity kept for gene context whose disease is outside the NDD scope. It is not
+  an evidence category and not a lower tier. Written [Not applicable]{.cat .cat-na}; the app
+  writes `not applicable`, and the curation criteria abbreviate it `n.a.`. See [Curation criteria](05-curation-criteria.qmd).
+
+## O
+
+OMIM (Online Mendelian Inheritance in Man)
+: The catalog of human genes and genetic disorders. SysNDD uses OMIM numbers, such as
+  `OMIM:615032`, as the primary disease identifiers.
+
+OpenAPI
+: A standard, machine-readable format for describing an API. The SysNDD API publishes its
+  OpenAPI description, which the Swagger page displays. See
+  [Get SysNDD data with the API and MCP](03-api.qmd).
+
+## P
+
+Panel
+: A list of genes filtered by evidence category and mode of inheritance, from
+  **Tables › Panels**. See [Build a gene panel](using-panels.qmd).
+
+Phenotype
+: A clinical feature annotated on an entity as an HPO term with a modifier.
+
+Phenotype category
+: One of the HPO-based groups of phenotypes used in the **Phenotypes** table and in the analyses.
+
+Phenotype cluster
+: A group of entities with similar phenotype annotations, computed from the curated data. A
+  derived analysis and a hypothesis, not a curated fact. See
+  [Explore the analyses](using-analyses.qmd).
+
+PMID (PubMed identifier)
+: The number of an article in PubMed, written `PMID:` plus the number.
+
+Public
+: Anyone using SysNDD without logging in. All approved data are public.
+
+## R
+
+Re-review
+: The systematic reassessment of existing entities by Reviewers. Its result is a new review and
+  status that a Curator approves. See [Re-review instructions](06-re-review-instructions.qmd).
+
+Refuse (needs specialist)
+: A Reviewer hands a re-review back because it is too complex or outside their expertise. The
+  item is flagged for specialist or Curator attention. A refused re-review is neither approved
+  nor rejected and does not change the entity's category. Use the flag button
+  **Refuse / decline (needs specialist)** in the re-review queue, then confirm with
+  **Refuse (needs specialist)**.
+
+Refuted
+: The evidence category for an association that evidence argues against. Written
+  [Refuted]{.cat .cat-refuted}. See [Curation criteria](05-curation-criteria.qmd).
+
+Review
+: The curated description of an entity: clinical synopsis, phenotypes, variation and
+  publications. Each new review is kept; one is active. See
+  [Data model](04-database-structure.qmd).
+
+Reviewer
+: The account role that re-reviews assigned entities and submits reviews and statuses for
+  approval. Written [Reviewer]{.role}.
+
+## S
+
+Status
+: The evidence-category record of an entity, with its date and approval state. Each new status
+  is kept; one is active.
+
+Swagger
+: The interactive web page that lists every SysNDD API endpoint and lets you send test requests
+  from the browser. See [Get SysNDD data with the API and MCP](03-api.qmd#explore-all-endpoints-in-swagger).
+
+Syndromic
+: An entity is called syndromic when at least one organ system outside the nervous system is
+  recorded as present among its phenotypes.
+
+SysID
+: The predecessor database of SysNDD, published in 2016 [@kochinke_systematic_2016].
+
+## V
+
+Variation, VariO
+: The Variation Ontology (VariO) describes types and effects of variants, such as protein
+  truncation (`VariO:0015`). SysNDD records VariO terms on each entity, shown as
+  **Variation Ontology** on the entity page.
+
+Variation suggestions
+: Variation Ontology terms imported from external sources such as ClinVar and not yet confirmed
+  by a curator. Curators review them under **Curation › Variation suggestions**. See
+  [GeneReviews coverage and variation suggestions](curator-genereviews-variation.qmd).
+
+Viewer
+: A read-only account role. A Viewer cannot submit, review or approve changes.
+
+## Related pages
+
+- [Data model](04-database-structure.qmd): how these terms fit together.
+- [Curation criteria](05-curation-criteria.qmd): the evidence categories in full.
+- [What is SysNDD](01-intro.qmd): the entity concept with an example.

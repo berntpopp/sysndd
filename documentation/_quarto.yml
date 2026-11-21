@@ -3,6 +3,7 @@ project:
   output-dir: _book
 
 book:
+  description: "How to use SysNDD, the expert-curated database of gene-disease relationships in neurodevelopmental disorders: finding genes, building panels, the API, the curation criteria and the curator workflows."
   title: "The SysNDD Documentation"
   author:
     - name: "Bernt Popp"
@@ -19,8 +20,8 @@ book:
   repo-subdir: documentation
   repo-actions: [edit, source, issue]
 
-  favicon: static/img/android-chrome-192x192.png
-  cover-image: static/img/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp
+  favicon: static/img/favicon/sysndd-favicon-192.png
+  cover-image: static/img/brand/sysndd-logo.svg
 
   # Download buttons for PDF and EPUB
   downloads: [pdf, epub]
@@ -31,37 +32,78 @@ book:
   # Search enabled
   search: true
 
-  # Chapter structure
+  # Sidebar: floating, so the page grid is centred on wide screens; SysNDD logo
+  # and a persistent link to the app.
+  sidebar:
+    style: floating
+    logo: static/img/brand/sysndd-logo.svg
+    logo-alt: "SysNDD logo"
+    tools:
+      - icon: box-arrow-up-right
+        href: https://sysndd.dbmr.unibe.ch/
+        text: "Open SysNDD"
+      - icon: braces
+        href: https://sysndd.dbmr.unibe.ch/API
+        text: "API (Swagger)"
+
+  # Chapter structure. Existing NN- filenames are kept: their URLs are cited
+  # externally (the manuscript cites 05-curation-criteria.html).
   chapters:
     - index.qmd
-    - part: "Overview"
+    - part: "Getting started"
       chapters:
         - 01-intro.qmd
     - part: "Using SysNDD"
       chapters:
         - 02-web-tool.qmd
+        - using-find-gene.qmd
+        - using-panels.qmd
+        - using-phenotype-search.qmd
+        - using-analyses.qmd
+        - using-account.qmd
         - 03-api.qmd
-        - 04-database-structure.qmd
     - part: "Curation"
       chapters:
         - 05-curation-criteria.qmd
+        - curation-research.qmd
         - 06-re-review-instructions.qmd
         - 07-tutorial-videos.qmd
-    - part: "Project"
+    - part: "Curator guide"
+      chapters:
+        - curator-create-entity.qmd
+        - curator-modify-entity.qmd
+        - curator-approve.qmd
+        - curator-manage-rereview.qmd
+        - curator-users.qmd
+        - curator-genereviews-variation.qmd
+    - part: "Reference"
+      chapters:
+        - 04-database-structure.qmd
+        - reference-citing.qmd
+        - reference-glossary.qmd
+        - references.qmd
+    - part: "For developers"
       chapters:
         - 08-development.qmd
         - 09-deployment.qmd
-    - references.qmd
 
-  # Page navigation at bottom
+  # Previous/next links at the bottom of each page
   page-navigation: true
+  back-to-top-navigation: true
 
   # Page footer
   page-footer:
-    center: |
-      SysNDD - Systematic Neurodevelopmental Disorder Gene Database
-      <br>
-      <a href="https://sysndd.dbmr.unibe.ch/">sysndd.dbmr.unibe.ch</a>
+    left: |
+      SysNDD: expert-curated gene-disease associations for neurodevelopmental disorders
+    right: |
+      <a href="https://sysndd.dbmr.unibe.ch/">Open SysNDD</a> ·
+      <a href="https://github.com/berntpopp/sysndd">GitHub</a> ·
+      Data CC BY 4.0
+
+# Figure and table numbers without chapter prefix: chapter numbers are hidden on
+# the web, so "Figure 12.5" would point to a number the reader never sees.
+crossref:
+  chapters: false
 
 # Bibliography configuration
 bibliography: sysndd.bib
@@ -71,14 +113,29 @@ csl: apa.csl
 format:
   html:
     theme:
-      light: cosmo
+      light: [cosmo, theme.scss]
     css: styles.css
+    # One source of truth for the page grid (centred by the floating sidebar).
+    grid:
+      sidebar-width: 280px
+      body-width: 800px
+      margin-width: 240px
+      gutter-width: 2rem
+    include-after-body: _a11y-fixes.html
+    include-in-header: _head-preload.html
     toc: true
     toc-depth: 3
+    toc-title: "On this page"
     code-copy: true
     code-overflow: wrap
-    number-sections: true
-    number-depth: 2
+    # Unnumbered on the web: chapter numbers would no longer match the
+    # NN- filenames after the restructure. See docs style guide.
+    number-sections: false
+    anchor-sections: true
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    fig-cap-location: bottom
 
   # PDF format for download
   pdf:

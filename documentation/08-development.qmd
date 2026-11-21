@@ -4,7 +4,9 @@ title: "Development"
 
 # Development
 
-This page is the concise human-facing entry point for local SysNDD development.
+This chapter is the entry point for local SysNDD development. It covers setup, daily
+commands, end-to-end tests and common pitfalls first. The subsystem notes in the middle
+of the chapter are reference material for when you change a specific subsystem.
 
 ## Requirements
 
@@ -25,20 +27,37 @@ Helpful extras:
 ```bash
 git clone https://github.com/berntpopp/sysndd.git
 cd sysndd
+cp .env.example .env
+cp api/config.yml.example api/config.yml
 make install-dev
 make doctor
 make dev
 ```
+
+Edit `.env` and `api/config.yml` before `make dev`. Compose bind-mounts
+`./api/config.yml` into the API containers; if the file is missing, Docker creates a
+directory at that path and the API fails to start.
 
 After `make dev`:
 
 - App: `http://localhost`
 - App (Vite): `http://localhost:5173`
 - API: `http://localhost/api`
-- API (direct): `http://localhost:7778`
 - Traefik dashboard: `http://localhost:8090`
 - MySQL dev: `localhost:7654`
-- MySQL test: `localhost:7655`
+
+The API has no direct port in the dev stack; use `http://localhost/api`. The MCP
+sidecar is opt-in: start it with `docker compose --profile mcp up -d mcp`, and the dev
+override publishes it on `127.0.0.1:8787`. The MySQL test database (`localhost:7655`)
+and Mailpit (`http://localhost:8025`) come from `make docker-dev-db`, not from
+`make dev`.
+
+### Getting data
+
+`make dev` starts with an empty database. To work with real data, restore a backup
+with `make db-restore-latest`; it reads the newest dump from the
+`sysndd_mysql_backup` volume and recreates the views. Without a backup, use the
+Playwright stack (see End-to-End Tests below), which seeds a small baseline fixture.
 
 Stop the stack with:
 
@@ -102,9 +121,15 @@ For MCP 1.2 analysis changes, also check that the analysis tools remain read-onl
 
 Public and MCP analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require current public-ready analysis snapshots. Public REST and MCP paths report snapshot diagnostics such as `snapshot_missing`, `snapshot_stale`, or `source_version_mismatch`; they do not compute heavy analysis or read draft/admin data on miss.
 
+## Subsystem notes
+
+The sections below document individual subsystems. Read them when you change that
+subsystem; you do not need them for daily work. The skill guides under
+`.agents/skills/<name>/SKILL.md` are the authoritative source for each area.
+
 ### Database Version (issue #22)
 
-The human-facing DB semantic version lives in the single-row `db_version` table (migration `028_add_db_version.sql`) and is read by `api/functions/db-version.R`. It is exposed in the `database` block of `GET /api/version` and rendered on the About page via `app/src/components/AppVersionInfo.vue` (typed client `app/src/api/version.ts`).
+The human-facing DB semantic version lives in the single-row `db_version` table (migration `028_add_db_version.sql`) and is read by `api/functions/db-version.R`. It is exposed in the `database` block of `GET /api/version/` (note the trailing slash; without it the API answers with a 307 redirect) and rendered on the About page via `app/src/components/AppVersionInfo.vue` (typed client `app/src/api/version.ts`).
 
 - Bump the seeded semantic version in a new numbered migration when the DB schema or core seed data changes meaningfully; do not edit an applied migration.
 - At release time, capture the last `db/`-folder git commit and the version with `./db/scripts/update-db-version.sh` and inject `DB_VERSION` / `DB_COMMIT` into the API container; `db_version_sync_from_env()` updates the row at startup (non-fatal no-op when unset). See `documentation/09-deployment.qmd`.
@@ -252,7 +277,7 @@ Or, in a worker/API R session with a DB connection:
 async_job_service_submit(job_type = "pubtator_enrichment_refresh", request_payload = list(refresh = "all"))
 ```
 
-The default gene-table sort is `-enrichment_ratio,-npmi,publication_count`; the raw NDD publication count remains sortable. Restart the worker container after changing `api/functions/pubtator-enrichment-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
+The default gene-table sort is `-enrichment_ratio,-npmi,publication_count`; the raw NDD publication count remains sortable. `pubtator_enrichment_refresh` is a maintenance-lane job. In the dev stack one combined `worker` drains both lanes, so restart `worker` after changing `api/functions/pubtator-enrichment-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
 
 ### Disease Cross-Ontology Mappings
 
@@ -370,6 +395,34 @@ docker exec sysndd-api-1 Rscript -e "testthat::test_file('/app/tests/testthat/te
 
 **Frontend.** The public card affordance lives in `app/src/views/pages/components/` (`EntityEvidenceGrid.vue`, `VariationProvenanceDialog.vue`, the pure honesty rules in `variationProvenance.ts`) with `app/src/composables/useVariationEvidence.ts` doing the lazy, SWR-cached evidence fetch. The curation three-zone picker lives in `app/src/views/curate/` (`components/ReviewFormFields.vue`, `components/VariationProvenanceCard.vue`, `composables/useVariationProvenanceZones.ts`) and is reachable **only** through the Review page's Edit-Review modal (`views/review/components/ReviewEditModal.vue`) — `ModifyEntity.vue` and `ApproveReview.vue` use different review forms and have no zone UI. `EntityEvidenceGridProvenance.spec.ts` pins the inert render against a **golden HTML string** captured from the pre-#608 component; if a Vue upgrade changes whitespace or comment emission it will fail loudly, which is deliberate — the inert render is a contract, so a change there should demand a human look.
 
+### Running an NDDScore import locally
+
+Use the administrator `/ManageNDDScore` page for local NDDScore release checks. The intended flow is: **Check Zenodo**, then **Download & validate**, then **Import & activate latest release**. The validation action submits `validate_only = true` and downloads, verifies, parses, and validates the archive without switching the active release. The import action submits `validate_only = false`; the previous active release keeps serving until the final activation step succeeds.
+
+NDDScore import work runs on the maintenance lane. In the dev stack the combined `worker` drains it; in production `worker-maintenance` does. Restart the worker that drains the lane after changing `api/functions/nddscore-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
+
+The default Zenodo source is configured through the same environment-file path as other deployment settings. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. If those environment variables are absent, the API falls back to `api/config.yml`; the built-in literal defaults are only a final safety net for tests and local development.
+
+Offline importer fixtures live under `api/tests/testthat/fixtures/nddscore/`. The committed fixture generator, `make-fixture-archive.R`, rebuilds the small `.tar.gz` archives used by tests; those generated archives are ignored because they can be regenerated on demand.
+
+### Managing curation metadata vocabularies
+
+Use the administrator `/ManageMetadata` page to administer the small SysNDD-managed curation controlled vocabularies (status categories, modifiers) and to curate display fields on the ontology-anchored sets (inheritance modes, variation ontology). The page renders one tab and table per vocabulary backed by `/api/metadata`.
+
+Editability is tiered deliberately: status categories and modifiers support full create / edit / deactivate; inheritance modes and variation-ontology terms expose curated-field edits and activation toggles only, because their terms are sourced from HPO and VariO and may be overwritten on the next ontology refresh. HPO phenotypes, the disease ontology, and gene nomenclature are refreshed from source elsewhere and are not editable here.
+
+Deletes are soft-deletes: an entry still referenced by curation data is blocked with a clear error and must be deactivated rather than removed. The vocabulary catalog, editability tiers, and in-use reference lists are defined in `metadata_vocabulary_registry()` (`api/functions/metadata-vocabulary-repository.R`); extend that registry when adding a managed vocabulary or a new referencing table.
+
+### Publication-date provenance
+
+`publication.publication_date_source` records how each `Publication_date` was derived (`pubmed`, `pubmed_partial`, `medline_date`, `unknown`). New ingestions set it automatically. To correct historical rows ingested before this fix, run the one-off backfill: `Rscript db/updates/backfill_publication_dates.R --dry-run --limit=25` for a small rehearsal, `--dry-run` to preview the full run, then `--apply`. It re-fetches PubMed metadata, so it needs network egress. The script is dry-run by default, uses an advisory lock, limits PubMed fallback requests with `NCBI_REQUEST_DELAY_SECONDS`, and commits DB writes in batches controlled by `BACKFILL_UPDATE_BATCH_SIZE`.
+
+### GeneReviews coverage (curator)
+
+The curator GeneReviews coverage page (`/GeneReviews`, Curator+) lists active entities with their gene and whether a GeneReviews reference is already linked, lets curators attach a GeneReviews chapter to an entity, and exports the gene→GeneReviews coverage as CSV (issues #14, #46). It is served by `api/endpoints/genereviews_endpoints.R` (mounted at `/api/genereviews`), backed by `api/services/genereviews-service.R` and the cached lookup in `api/functions/genereviews-lookup.R`.
+
+GeneReviews availability is resolved through NCBI E-utilities (`esearch`/`esummary` against the `books` database, filtered to the GeneReviews book) rather than HTML scraping. The lookup is wrapped with `memoise_external_success_only()` (30-day static cache) so transient NCBI failures are never cached. The default coverage view is cheap (already-linked references only, no external calls); the live availability pass is opt-in via `include_live=true` and is intended for occasional curator use, not high-frequency public traffic. Attaching reuses the existing publication model: the GeneReviews chapter PMID is registered in `publication` (type `gene_review`) and linked to the entity's primary review in `ndd_review_publication_join`. NCBI credentials are optional and read from `NCBI_API_KEY` / `NCBI_EUTILS_EMAIL`; anonymous low-volume use works without them. The frontend uses the typed client `app/src/api/genereviews.ts` (no raw axios).
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.
@@ -415,7 +468,7 @@ make docs-screenshots
 make docs-screenshots-down
 ```
 
-The `make docs-screenshots` target runs the stack, seeds the E2E baseline fixture (which also carries the screenshot data), runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack` (which already seeds the baseline via `_playwright-seed-e2e-baseline`), then the `npm run docs:screenshots` command shown in `Makefile`, then `node scripts/documentation/verify-doc-screenshots.mjs`, and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
+The `make docs-screenshots` target runs the stack, seeds the E2E baseline fixture (which also carries the screenshot data), runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack` (which already seeds the baseline via `_playwright-seed-e2e-baseline`), then the `npm run docs:screenshots` command shown in `Makefile`, then, from the repository root, `node scripts/documentation/verify-doc-screenshots.mjs` (or `make verify-doc-screenshots`), and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
 
 ### Authoring a new spec
 
@@ -456,36 +509,18 @@ The bench writes `.planning/perf/after-${date}.json` and screenshots into `.plan
 
 The bench requires `@axe-core/playwright` (a dev dep). If `npm install` complains about a missing peer, re-run from `app/`. Use `--workers=1` so the per-probe `persistResult()` writes are sequential.
 
-### Running an NDDScore import locally
-
-Use the administrator `/ManageNDDScore` page for local NDDScore release checks. The intended flow is: **Check Zenodo**, then **Download & validate**, then **Import & activate latest release**. The validation action submits `validate_only = true` and downloads, verifies, parses, and validates the archive without switching the active release. The import action submits `validate_only = false`; the previous active release keeps serving until the final activation step succeeds.
-
-NDDScore import work runs in the worker service. Restart the worker container after changing `api/functions/nddscore-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
-
-The default Zenodo source is configured through the same environment-file path as other deployment settings. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. If those environment variables are absent, the API falls back to `api/config.yml`; the built-in literal defaults are only a final safety net for tests and local development.
-
-### Managing curation metadata vocabularies
-
-Use the administrator `/ManageMetadata` page to administer the small SysNDD-managed curation controlled vocabularies (status categories, modifiers) and to curate display fields on the ontology-anchored sets (inheritance modes, variation ontology). The page renders one tab and table per vocabulary backed by `/api/metadata`.
-
-Editability is tiered deliberately: status categories and modifiers support full create / edit / deactivate; inheritance modes and variation-ontology terms expose curated-field edits and activation toggles only, because their terms are sourced from HPO and VariO and may be overwritten on the next ontology refresh. HPO phenotypes, the disease ontology, and gene nomenclature are refreshed from source elsewhere and are not editable here.
-
-Deletes are soft-deletes: an entry still referenced by curation data is blocked with a clear error and must be deactivated rather than removed. The vocabulary catalog, editability tiers, and in-use reference lists are defined in `metadata_vocabulary_registry()` (`api/functions/metadata-vocabulary-repository.R`); extend that registry when adding a managed vocabulary or a new referencing table.
-
-Offline importer fixtures live under `api/tests/testthat/fixtures/nddscore/`. The committed fixture generator, `make-fixture-archive.R`, rebuilds the small `.tar.gz` archives used by tests; those generated archives are ignored because they can be regenerated on demand.
-
 ## Common Gotchas
 
 - Start the DB stack before host-side API work.
 - `make code-quality-audit` is the fast deterministic quality ratchet. It allows the committed oversized-file baseline in `scripts/code-quality-file-size-baseline.tsv`, but fails if a new handwritten source file exceeds 600 lines or an existing oversized source file grows.
 - `make pre-commit` is the fast local mirror of the pull-request gate. Use `make ci-local` before handoff, and `make test-api` when you want the full API suite locally.
-- Restart the worker container after changing code used by background jobs. The API submits durable jobs; the worker service executes them.
+- Restart the worker after changing code used by background jobs. The API submits durable jobs; the worker executes them. In dev one combined `worker` drains both queues; in production, maintenance jobs run on `worker-maintenance`, so restart both (`docker compose restart worker worker-maintenance`).
 - Namespace masked R functions such as `dplyr::select(...)`.
 - Auth/signup/password-sensitive API inputs are body-only. Use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change flows; do not send those values in query strings or persist raw query strings in request logs.
 - Host-side API quality targets use `Rscript --no-init-file` under the hood to avoid Conda/miniforge bootstrap interference before the repo's own R script entrypoints run.
 - On Conda/miniforge R installs, `Makefile` derives `HOST_R_LD_LIBRARY_PATH` from `R RHOME` and prepends the sibling `mariadb/` runtime directory so `RMariaDB` can load. Override `HOST_R_LD_LIBRARY_PATH` when the MariaDB client runtime lives elsewhere.
 - External proxy cache tests should use `memoise_external_success_only()` when adding new cached source fetchers. It keeps successes cached but evicts transient `error = TRUE` payloads immediately so one upstream timeout does not affect local development for days.
-- Curation-comparison sources: URLs live in the `comparisons_config` table (patched by migrations, e.g. `013` for gene2phenotype, `038` for geisinger→NDD GeneHub, `040` for the `geisinger_DBD`→`ndd_genehub` key rename), and the per-source parsers live in `api/functions/comparisons-parsers.R`. The refresh is resilient (a failed source keeps its previous rows via per-list replace; status `partial` vs `success`), so verify a source URL end-to-end (real content, not an HTML error page) before wiring it in. `comparisons_update` runs as a **durable async job on the worker** — its write-path files (`comparisons-sources.R`/`-parsers.R`/`-omim.R`/`-functions.R` and `omim-functions.R`) are registered in `api/bootstrap/load_modules.R` (shared by the API and worker); register any new comparisons file there and restart the `worker` container (not the API) to pick up changes. The `ndd_genehub` source's `category` is the NDD GeneHub evidence tier (`AR` / `Tier 1`–`Tier 4` / `Missense`), from `ndd_genehub_category_lookup()`. HPO term data now uses the JAX ontology API `https://ontology.jax.org/api/hp/terms/{id}` (the legacy `hpo.jax.org` term API was retired and its JSON shape changed; use the single `/descendants` call for descendant sets). The OMIM-NDD seed is configurable — `adapt_genemap2_for_comparisons(seed_term = ...)` / `omim_ndd_seed_sweep()` (#502).
+- Curation-comparison sources: URLs live in the `comparisons_config` table (patched by migrations, e.g. `013` for gene2phenotype, `038` for geisinger→NDD GeneHub, `040` for the `geisinger_DBD`→`ndd_genehub` key rename), and the per-source parsers live in `api/functions/comparisons-parsers.R`. The refresh is resilient (a failed source keeps its previous rows via per-list replace; status `partial` vs `success`), so verify a source URL end-to-end (real content, not an HTML error page) before wiring it in. `comparisons_update` runs as a **durable async job on the worker** — its write-path files (`comparisons-sources.R`/`-parsers.R`/`-omim.R`/`-functions.R` and `omim-functions.R`) are registered in `api/bootstrap/load_modules.R` (shared by the API and worker); register any new comparisons file there and restart the worker (not the API) to pick up changes: the combined `worker` in dev, `worker-maintenance` in production. The `ndd_genehub` source's `category` is the NDD GeneHub evidence tier (`AR` / `Tier 1`–`Tier 4` / `Missense`), from `ndd_genehub_category_lookup()`. HPO term data now uses the JAX ontology API `https://ontology.jax.org/api/hp/terms/{id}` (the legacy `hpo.jax.org` term API was retired and its JSON shape changed; use the single `/descendants` call for descendant sets). The OMIM-NDD seed is configurable — `adapt_genemap2_for_comparisons(seed_term = ...)` / `omim_ndd_seed_sweep()` (#502).
 
 ### Interpreting `make ci-local` output
 
@@ -518,15 +553,5 @@ sign that anything needs fixing:
 
 This is output hygiene only: real lint/type/test failures still fail
 `make ci-local` exactly as before.
-
-### Publication-date provenance
-
-`publication.publication_date_source` records how each `Publication_date` was derived (`pubmed`, `pubmed_partial`, `medline_date`, `unknown`). New ingestions set it automatically. To correct historical rows ingested before this fix, run the one-off backfill: `Rscript db/updates/backfill_publication_dates.R --dry-run --limit=25` for a small rehearsal, `--dry-run` to preview the full run, then `--apply`. It re-fetches PubMed metadata, so it needs network egress. The script is dry-run by default, uses an advisory lock, limits PubMed fallback requests with `NCBI_REQUEST_DELAY_SECONDS`, and commits DB writes in batches controlled by `BACKFILL_UPDATE_BATCH_SIZE`.
-
-### GeneReviews coverage (curator)
-
-The curator GeneReviews coverage page (`/GeneReviews`, Curator+) lists active entities with their gene and whether a GeneReviews reference is already linked, lets curators attach a GeneReviews chapter to an entity, and exports the gene→GeneReviews coverage as CSV (issues #14, #46). It is served by `api/endpoints/genereviews_endpoints.R` (mounted at `/api/genereviews`), backed by `api/services/genereviews-service.R` and the cached lookup in `api/functions/genereviews-lookup.R`.
-
-GeneReviews availability is resolved through NCBI E-utilities (`esearch`/`esummary` against the `books` database, filtered to the GeneReviews book) rather than HTML scraping. The lookup is wrapped with `memoise_external_success_only()` (30-day static cache) so transient NCBI failures are never cached. The default coverage view is cheap (already-linked references only, no external calls); the live availability pass is opt-in via `include_live=true` and is intended for occasional curator use, not high-frequency public traffic. Attaching reuses the existing publication model: the GeneReviews chapter PMID is registered in `publication` (type `gene_review`) and linked to the entity's primary review in `ndd_review_publication_join`. NCBI credentials are optional and read from `NCBI_API_KEY` / `NCBI_EUTILS_EMAIL`; anonymous low-volume use works without them. The frontend uses the typed client `app/src/api/genereviews.ts` (no raw axios).
 
 For repository-specific agent guidance, see the root `AGENTS.md`. It is deliberately lean: per-subsystem invariants and the deeper runtime quirks live in the skill guides under `.agents/skills/<name>/SKILL.md` and their `references/` files, which are the authoritative source for their area.
