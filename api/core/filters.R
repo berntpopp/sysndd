@@ -293,7 +293,13 @@ errorHandler <- function(req, res, err) {
   # here as a bare parse error: that is the client's fault, not ours.
   body_raw <- tryCatch(req$bodyRaw, error = function(e) NULL)
   content_type <- tryCatch(req$HTTP_CONTENT_TYPE, error = function(e) NULL)
-  if (length(body_raw) > 0 && isTRUE(grepl("json", content_type, ignore.case = TRUE)) &&
+  # Without a content type plumber parses a body starting with { or [ as JSON.
+  is_json <- if (length(content_type) == 0 || !nzchar(content_type)) {
+    isTRUE(body_raw[1] %in% charToRaw("{["))
+  } else {
+    isTRUE(grepl("json", content_type, ignore.case = TRUE))
+  }
+  if (length(body_raw) > 0 && is_json &&
     !isTRUE(tryCatch(jsonlite::validate(rawToChar(body_raw)), error = function(e) FALSE))) {
     return(make_problem_response("Bad Request", 400, "Malformed JSON request body"))
   }

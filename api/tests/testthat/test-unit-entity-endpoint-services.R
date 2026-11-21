@@ -221,7 +221,8 @@ base_deactivate_original <- tibble::tibble(
 # a 400, not a 500 from deep inside the service.
 
 test_that("svc_entity_require_body rejects a body without an entity object as 400", {
-  for (body in list(NULL, "x", list(), list(entity = "x"), list(entity = NULL))) {
+  for (body in list(NULL, "x", list(), list(entity = "x"), list(entity = NULL),
+                    list(entity = list(), review = "x"), list(entity = list(), status = 1))) {
     expect_error(svc_entity_require_body(body, "deactivate_json"), class = "error_400")
   }
   ok <- list(entity = list(entity_id = 1L))
@@ -260,8 +261,15 @@ test_that("svc_entity_deactivate_decision rejects incomplete bodies and unknown 
     decision <- svc_entity_deactivate_decision(list(entity = partial), base_deactivate_original)
     expect_equal(decision$action, "reject", info = field)
   }
-  arrays <- modifyList(full, list(replaced_by = c(1L, 2L)))
-  expect_equal(svc_entity_deactivate_decision(list(entity = arrays), base_deactivate_original)$action, "reject")
+  for (bad in list(c(1L, 2L), c("a", "b"), "abc", list(a = 1), 0L)) {
+    body <- list(entity = modifyList(full, list(replaced_by = bad)))
+    expect_equal(svc_entity_deactivate_decision(body, base_deactivate_original)$action, "reject",
+      info = deparse(bad))
+  }
+  bad_active <- list(entity = modifyList(full, list(is_active = list(a = c(1, 2)))))
+  expect_equal(svc_entity_deactivate_decision(bad_active, base_deactivate_original)$action, "reject")
+  as_string <- list(entity = modifyList(full, list(replaced_by = "99")))
+  expect_identical(svc_entity_deactivate_decision(as_string, base_deactivate_original)$replaced_by, 99L)
   expect_equal(svc_entity_deactivate_decision(list(entity = full), base_deactivate_original[0, ])$action, "reject")
 })
 

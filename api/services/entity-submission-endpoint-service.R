@@ -154,19 +154,23 @@ svc_entity_create_finalize <- function(create_data, publications, direct_approva
 #'   On rejection: `list(action = "reject", error = <message>)`.
 #' @export
 svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original) {
-  incoming_is_active <- as.integer(deactivate_data$entity$is_active)
-  incoming_replaced_by <- deactivate_data$entity$replaced_by
-  # JSON null parses to NULL; the DB bind needs NA instead.
-  if (is.null(incoming_replaced_by) ||
-    (is.character(incoming_replaced_by) && length(incoming_replaced_by) == 1L &&
-      toupper(trimws(incoming_replaced_by)) == "NULL")) {
-    incoming_replaced_by <- NA_integer_
+  incoming <- deactivate_data$entity
+  # A JSON object here would make as.integer() throw; a non-atomic value just fails the check below.
+  incoming_is_active <- if (is.atomic(incoming$is_active)) as.integer(incoming$is_active)
+  raw_replaced_by <- incoming$replaced_by
+  # JSON null parses to NULL; the DB bind needs NA. Anything else must be an entity id.
+  replaced_by_null <- is.null(raw_replaced_by) ||
+    (is.atomic(raw_replaced_by) && length(raw_replaced_by) == 1L &&
+      (is.na(raw_replaced_by) || toupper(trimws(raw_replaced_by)) == "NULL"))
+  incoming_replaced_by <- if (replaced_by_null) {
+    NA_integer_
+  } else {
+    svc_entity_body_entity_id(list(entity = list(entity_id = raw_replaced_by)))
   }
 
   # isTRUE() is FALSE for the length-0/2+ comparisons that missing fields, arrays
   # or an unknown entity (0 rows) produce; a bare `&&` on those used to 500.
-  incoming <- deactivate_data$entity
-  is_mutation_only <- length(incoming_replaced_by) == 1L &&
+  is_mutation_only <- (replaced_by_null || !is.na(incoming_replaced_by)) &&
     isTRUE(incoming$hgnc_id == ndd_entity_original$hgnc_id) &&
     isTRUE(incoming$hpo_mode_of_inheritance_term == ndd_entity_original$hpo_mode_of_inheritance_term) &&
     isTRUE(incoming$ndd_phenotype == ndd_entity_original$ndd_phenotype) &&

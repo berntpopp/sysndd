@@ -78,7 +78,14 @@ test_that("errorHandler maps an invalid JSON request body to 400 problem+json", 
   }
 })
 
-test_that("errorHandler keeps 500 for an unexpected error with a valid or non-JSON body", {
+test_that("errorHandler maps invalid JSON sent without a content type to 400", {
+  # plumber picks its JSON parser for a body starting with { or [ when no type is set.
+  expect_equal(call_error_handler("{bad", content_type = NULL)$status, 400)
+})
+
+test_that("errorHandler keeps 500 for an unexpected error with a valid, empty or non-JSON body", {
   expect_equal(call_error_handler("{\"a\":1}")$status, 500)
+  expect_equal(call_error_handler("")$status, 500)
   expect_equal(call_error_handler("{bad", content_type = "text/plain")$status, 500)
+  expect_equal(call_error_handler("a=1", content_type = NULL)$status, 500)
 })
