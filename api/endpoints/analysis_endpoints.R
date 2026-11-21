@@ -406,7 +406,7 @@ analysis_release_query_int <- function(value, default) {
 #* releases are never returned.
 #*
 #* @tag analysis
-#* @serializer json list(na="string", auto_unbox=TRUE)
+#* @serializer json list(na="null", auto_unbox=TRUE)
 #* @param limit:str Max releases to return (default "50")
 #* @param offset:str Offset into the published list (default "0")
 #*
@@ -436,7 +436,7 @@ function(limit = "50", offset = "0", res) {
 #* above this section).
 #*
 #* @tag analysis
-#* @serializer json list(na="string", auto_unbox=TRUE)
+#* @serializer json list(na="null", auto_unbox=TRUE)
 #*
 #* @response 200 OK. Returns the release head + `manifest` (same shape as the detail route).
 #* @response 404 Not Found. No published release exists yet.
@@ -454,7 +454,7 @@ function(res) {
 #* Get one published analysis-snapshot release
 #*
 #* @tag analysis
-#* @serializer json list(na="string", auto_unbox=TRUE)
+#* @serializer json list(na="null", auto_unbox=TRUE)
 #* @param release_id Release id (`asr_<16 hex>`).
 #*
 #* @response 200 OK. Returns the release head + `manifest`.

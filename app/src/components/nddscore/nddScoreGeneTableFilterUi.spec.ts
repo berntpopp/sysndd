@@ -16,7 +16,7 @@ const rankField = nddScoreGeneFields.find((field) => field.key === 'rank')!;
 describe('nddScoreGeneTableFilterUi', () => {
   it('prepends a placeholder option to select filters', () => {
     const options = nddScoreSelectOptionsFor(riskField);
-    expect(options[0]).toEqual({ value: '', text: '.. Risk tier ..' });
+    expect(options[0]).toEqual({ value: '', text: 'Any Risk tier' });
     expect(options).toHaveLength((riskField.selectOptions?.length ?? 0) + 1);
   });
 
@@ -32,9 +32,9 @@ describe('nddScoreGeneTableFilterUi', () => {
     expect(
       nddScoreRangeFilterLabel(rankField, { operator: 'range', value: '10', valueMax: '20' })
     ).toBe('10-20');
-    expect(nddScoreRangeFilterLabel(rankField, { operator: 'lte', value: '200', valueMax: '' })).toBe(
-      '<= 200'
-    );
+    expect(
+      nddScoreRangeFilterLabel(rankField, { operator: 'lte', value: '200', valueMax: '' })
+    ).toBe('<= 200');
   });
 
   it('produces empty-state dropdown and control classes', () => {
@@ -52,7 +52,10 @@ describe('nddScoreGeneTableFilterUi', () => {
 
   it('shapes HPO term options and drops missing ids', () => {
     expect(
-      nddScoreHpoTermOption({ phenotype_id: 'HP:0001249', phenotype_name: 'Intellectual disability' })
+      nddScoreHpoTermOption({
+        phenotype_id: 'HP:0001249',
+        phenotype_name: 'Intellectual disability',
+      })
     ).toEqual({ value: 'HP:0001249', text: 'HP:0001249 Intellectual disability' });
     expect(nddScoreHpoTermOption({ phenotype_id: '', phenotype_name: '' })).toBeNull();
   });

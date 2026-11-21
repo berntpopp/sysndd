@@ -176,6 +176,40 @@ describe('usePubtatorGenesTable', () => {
 });
 
 describe('mergePubtatorGeneFields', () => {
+  it('keeps the curated column labels and order instead of the server key-derived ones', () => {
+    const current = createPubtatorGeneFields();
+    const inbound = [
+      { key: 'gene_name', label: 'Gene name', sortable: true },
+      { key: 'gene_symbol', label: 'Gene symbol', sortable: true },
+      { key: 'gene_normalized_id', label: 'Gene normalized id', sortable: true },
+      { key: 'hgnc_id', label: 'Hgnc id', sortable: true },
+      { key: 'publication_count', label: 'Publication count', sortable: true },
+      { key: 'npmi', label: 'Npmi', sortable: true },
+      { key: 'fdr_bh', label: 'Fdr bh', sortable: true },
+      { key: 'pmids', label: 'Pmids', sortable: false },
+    ];
+
+    const merged = mergePubtatorGeneFields(inbound, current);
+
+    // data-only keys (link target, tooltip value) are not columns of their own
+    expect(merged.map((f) => f.key)).toEqual([
+      'gene_symbol',
+      'gene_name',
+      'publication_count',
+      'fdr_bh',
+      'pmids',
+      'actions',
+    ]);
+    expect(merged.map((f) => f.label)).toEqual([
+      'Gene',
+      'Name',
+      'NDD Pubs',
+      'FDR (BH)',
+      'PMIDs',
+      '',
+    ]);
+  });
+
   it('appends exactly one trailing actions column', () => {
     const current = createPubtatorGeneFields();
     const inbound = [
@@ -202,10 +236,8 @@ describe('mergePubtatorGeneFields', () => {
     expect(merged.filter((f) => f.key === 'actions')).toHaveLength(1);
   });
 
-  it('preserves locally-owned filterable/class for a matching inbound key', () => {
-    const current = [
-      { key: 'gene_symbol', label: 'Gene', filterable: true, class: 'text-start' },
-    ];
+  it('preserves locally-owned filterable/class and the curated label for a matching inbound key', () => {
+    const current = [{ key: 'gene_symbol', label: 'Gene', filterable: true, class: 'text-start' }];
     const inbound = [{ key: 'gene_symbol', label: 'Gene (server)', sortable: true }];
 
     const merged = mergePubtatorGeneFields(inbound, current);
@@ -213,7 +245,7 @@ describe('mergePubtatorGeneFields', () => {
 
     expect(geneSymbolField?.filterable).toBe(true);
     expect(geneSymbolField?.class).toBe('text-start');
-    expect(geneSymbolField?.label).toBe('Gene (server)');
+    expect(geneSymbolField?.label).toBe('Gene');
   });
 });
 
@@ -251,8 +283,8 @@ describe('deriveEnrichmentNotice', () => {
   });
 
   it('surfaces a stale-ranking notice with the refreshed date when present', () => {
-    const notice = deriveEnrichmentNotice('stale', '2026-01-01T00:00:00Z');
+    const notice = deriveEnrichmentNotice('stale', '2026-10-05 02:30:25.078983');
     expect(notice).toContain('out of date');
-    expect(notice).toContain('last refreshed');
+    expect(notice).toContain('last refreshed October 5, 2026');
   });
 });

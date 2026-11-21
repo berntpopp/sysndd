@@ -100,9 +100,11 @@ describe('NddScoreGeneDetail', () => {
 
     expect(wrapper.get('.ndd-gene-detail__title').text()).toBe('NDDScore gene prediction');
     expect(
-      wrapper.find(
-        '.ndd-gene-detail__hero--ml-disclosure[role="note"][aria-label="Machine-learning prediction warning"]'
-      ).exists()
+      wrapper
+        .find(
+          '.ndd-gene-detail__hero--ml-disclosure[role="note"][aria-label="Machine-learning prediction warning"]'
+        )
+        .exists()
     ).toBe(true);
     expect(wrapper.text()).toContain('Machine learning, not manual curation');
     expect(wrapper.find('.bi-stars').exists()).toBe(true);
@@ -122,9 +124,7 @@ describe('NddScoreGeneDetail', () => {
 
   it('uses the approved warning surface without a stripe or gradient', () => {
     const warningRule =
-      source.match(
-        /\.ndd-gene-detail__hero--ml-disclosure\s*\{([\s\S]*?)\}/
-    )?.[1] ?? '';
+      source.match(/\.ndd-gene-detail__hero--ml-disclosure\s*\{([\s\S]*?)\}/)?.[1] ?? '';
 
     expect(semanticTokensSource).toContain('--surface-warning: var(--status-warning-bg);');
     expect(warningRule).toContain('background: var(--surface-warning);');
@@ -179,5 +179,16 @@ describe('NddScoreGeneDetail', () => {
 
     expect(wrapper.text()).toContain('Not a curated SysNDD gene');
     expect(wrapper.text()).not.toContain('New candidate');
+  });
+
+  it('keeps tooltip anchors inside <dt>/<li>, so the inserted tooltip span never breaks dl/ul structure', () => {
+    // v-b-tooltip inserts a <span> next to its host; on a <dt> or <li> that span lands
+    // directly inside the <dl>/<ul> group (axe definition-list / list).
+    expect(source).not.toMatch(/<dt[^>]*v-b-tooltip/);
+    expect(source).not.toMatch(/<li[^>]*v-b-tooltip/);
+  });
+
+  it('uses AA-contrast text for unit labels and secondary text', () => {
+    expect(source).not.toContain('--neutral-600');
   });
 });

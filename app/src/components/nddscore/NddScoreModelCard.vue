@@ -56,7 +56,7 @@
             >
               {{ versionDoi }}
             </a>
-            <span v-else>NA</span>
+            <span v-else>—</span>
           </dd>
         </div>
         <div>
@@ -70,7 +70,7 @@
             >
               {{ conceptDoi }}
             </a>
-            <span v-else>NA</span>
+            <span v-else>—</span>
           </dd>
         </div>
         <div>
@@ -84,14 +84,14 @@
             >
               Record
             </a>
-            <span v-else>NA</span>
+            <span v-else>—</span>
           </dd>
         </div>
       </dl>
 
       <p class="nddscore-model-card__intended-use">
         NDDScore is a prioritization signal for model-derived review and discovery workflows. A high
-        score is not proof of causality, is separate from curated SysNDD evidence, and is not an
+        score is not proof of causality, is separate from curated SysNDD evidence, and is not a
         curated classification.
       </p>
     </template>
@@ -102,6 +102,11 @@
 import { computed, onMounted, ref } from 'vue';
 import { BBadge } from 'bootstrap-vue-next';
 import { fetchCurrentRelease, type NddScoreReleaseRaw } from '@/api/nddscore';
+import {
+  displayValue as displayText,
+  formatCount as formatThousands,
+  isMissing,
+} from '@/utils/displayFormat';
 
 defineOptions({
   name: 'NddScoreModelCard',
@@ -147,11 +152,12 @@ function scalarValue(value: unknown): unknown {
 
 function scalarString(value: unknown): string | undefined {
   const normalized = scalarValue(value);
-  return typeof normalized === 'string' && normalized.length > 0 ? normalized : undefined;
+  return typeof normalized === 'string' && !isMissing(normalized) ? normalized : undefined;
 }
 
 function scalarNumber(value: unknown): number | null {
   const normalized = scalarValue(value);
+  if (isMissing(normalized)) return null; // Number(null) would read as 0
   const numberValue = typeof normalized === 'number' ? normalized : Number(normalized);
   return Number.isFinite(numberValue) ? numberValue : null;
 }
@@ -178,20 +184,16 @@ function performanceTestMetrics(value: unknown): Record<string, unknown> {
 
 function formatDecimal(value: unknown): string {
   const numberValue = scalarNumber(value);
-  return numberValue == null ? 'NA' : numberValue.toFixed(3);
+  return numberValue == null ? '—' : numberValue.toFixed(3);
 }
 
 function formatCount(value: unknown): string {
   const numberValue = scalarNumber(value);
-  return numberValue == null ? 'NA' : String(Math.trunc(numberValue));
+  return formatThousands(numberValue == null ? null : Math.trunc(numberValue));
 }
 
 function displayValue(value: unknown): string {
-  const normalized = scalarValue(value);
-  if (normalized == null || normalized === '') {
-    return 'NA';
-  }
-  return String(normalized);
+  return displayText(scalarValue(value));
 }
 
 function doiUrl(doi: string): string {

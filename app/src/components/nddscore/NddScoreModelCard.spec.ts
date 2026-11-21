@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import NddScoreModelCard from './NddScoreModelCard.vue';
+import { fetchCurrentRelease } from '@/api/nddscore';
 
 vi.mock('@/api/nddscore', () => ({
   fetchCurrentRelease: vi.fn().mockResolvedValue({
@@ -25,8 +26,27 @@ describe('NddScoreModelCard', () => {
     await flushPromises();
     const text = wrapper.text();
     expect(text).toContain('0.888');
-    expect(text).toContain('19296');
+    expect(text).toContain('19,296');
+    expect(text).toContain('44,360');
+    expect(text).toContain('is not a curated classification');
     expect(text).toContain('10.5281/zenodo.20258026');
     expect(text).toContain('ML prediction');
+  });
+
+  it('shows an em dash, never the R marker "NA", for missing release metadata', async () => {
+    vi.mocked(fetchCurrentRelease).mockResolvedValueOnce({
+      release_id: 'nddscore_x',
+      version: 'NA',
+      version_doi: 'NA',
+      concept_doi: null,
+      zenodo_record_url: 'NA',
+      n_genes: 'NA',
+      ndd_performance_json: 'NA',
+    } as never);
+    const wrapper = mount(NddScoreModelCard);
+    await flushPromises();
+    expect(wrapper.text()).not.toMatch(/\bNA\b/);
+    expect(wrapper.find('a[href*="doi.org/NA"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('—');
   });
 });

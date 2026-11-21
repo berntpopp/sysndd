@@ -4,20 +4,7 @@
     <!-- Show an overlay spinner while loading -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Once loaded, show the table container -->
-    <AnalysisPanel
-      v-else
-      title="SysNDD curated publications"
-      :description="
-        'Publications: ' +
-        totalRows +
-        ' · Loaded ' +
-        items.length +
-        '/' +
-        totalRows +
-        ' in ' +
-        executionTime
-      "
-    >
+    <AnalysisPanel v-else title="SysNDD curated publications" :description="tableSummary">
       <template #actions>
         <TableDownloadLinkCopyButtons
           v-if="showFilterControls"
@@ -98,7 +85,7 @@
             >
               <template #first>
                 <BFormSelectOption value="null">
-                  .. {{ truncate(field.label, 20) }} ..
+                  Any {{ truncate(field.label, 20) }}
                 </BFormSelectOption>
               </template>
             </BFormSelect>
@@ -121,7 +108,7 @@
               >
                 <template #first>
                   <BFormSelectOption :value="null">
-                    .. {{ truncate(field.label, 20) }} ..
+                    Any {{ truncate(field.label, 20) }}
                   </BFormSelectOption>
                 </template>
               </BFormSelect>
@@ -149,16 +136,15 @@
 
         <!-- Custom slot for 'Title' -->
         <template #cell-Title="{ row }">
-          <div v-b-tooltip.hover.top class="title-cell" :title="row.Title">
-            <span class="title-text">{{ truncate(row.Title, 60) }}</span>
-          </div>
+          <!-- the text sits directly in the ellipsis box, so nothing renders past the cell -->
+          <div class="title-cell title-text" :title="row.Title">{{ row.Title }}</div>
         </template>
 
         <!-- Custom slot for 'Journal' -->
         <template #cell-Journal="{ row }">
-          <span v-if="row.Journal" class="journal-badge">
-            <i class="bi bi-book me-1" />
-            {{ truncate(row.Journal, 35) }}
+          <span v-if="row.Journal" class="journal-badge" :title="row.Journal">
+            <i class="bi bi-book me-1" aria-hidden="true" />
+            <span class="journal-badge__text">{{ row.Journal }}</span>
           </span>
           <span v-else class="text-muted">—</span>
         </template>
@@ -221,6 +207,8 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import { computed } from 'vue';
+import { formatShowingRange } from '@/utils/displayFormat';
 
 import { usePublicationsTable } from './usePublicationsTable';
 
@@ -252,7 +240,12 @@ export default {
     },
   },
   setup(props) {
-    return usePublicationsTable(props);
+    const table = usePublicationsTable(props);
+    const tableSummary = computed(() => {
+      const first = (Math.max(table.currentPage.value, 1) - 1) * table.perPage.value + 1;
+      return formatShowingRange(first, first + table.items.value.length - 1, table.totalRows.value);
+    });
+    return { ...table, tableSummary };
   },
 };
 </script>
@@ -420,7 +413,7 @@ export default {
 
 /* Text truncation for table cells */
 .title-cell {
-  max-width: 350px;
+  max-width: min(350px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -433,7 +426,11 @@ export default {
 
 /* Ensure journal badge truncates properly */
 .journal-badge {
-  max-width: 200px;
+  max-width: 100%;
+}
+/* the text node ellipsises (the badge is flex); the full name is in the badge title */
+.journal-badge__text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

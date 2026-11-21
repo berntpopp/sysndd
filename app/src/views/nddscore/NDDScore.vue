@@ -14,6 +14,7 @@
         :version-doi="versionDoi"
         :test-auc-roc="testAucRoc"
         :brier-skill-score="brierSkillScore"
+        :loading="releaseLoading"
       />
       <RouterView />
     </div>
@@ -32,9 +33,12 @@ defineOptions({
 });
 
 const route = useRoute();
-/** Only show the prediction card on the gene-predictions tab, not on the model card tab.
+/** Only show the prediction card on the gene-predictions tab: the model card is its own
+ *  disclosure and the gene detail hero already carries the ML warning.
  *  Guard against undefined route.name in test/SSR contexts where the router may be absent. */
-const showPredictionCard = computed(() => route?.name !== 'NDDScoreModelCard');
+const showPredictionCard = computed(
+  () => !['NDDScoreModelCard', 'NDDScoreGeneDetail'].includes(String(route?.name))
+);
 
 const subtitle =
   'Machine-learning predictions for NDD gene association and phenotype annotations. These predictions are separate from curated SysNDD evidence.';
@@ -48,6 +52,7 @@ const releaseId = ref<string>();
 const versionDoi = ref<string>();
 const testAucRoc = ref<number | null>(null);
 const brierSkillScore = ref<number | null>(null);
+const releaseLoading = ref(true);
 
 function scalarString(value: unknown): string | undefined {
   const normalized = Array.isArray(value) ? value[0] : value;
@@ -90,6 +95,8 @@ onMounted(async () => {
     brierSkillScore.value = scalarNumber(testMetrics.bss);
   } catch {
     // No active release: keep the prediction card visible with its disclaimer only.
+  } finally {
+    releaseLoading.value = false;
   }
 });
 </script>

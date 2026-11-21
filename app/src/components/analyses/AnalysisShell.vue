@@ -163,7 +163,7 @@ withDefaults(
 .analysis-tab__badge {
   min-height: 1.15rem;
   padding: 0.05rem 0.35rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .analysis-content {
@@ -186,8 +186,11 @@ withDefaults(
     font-size: 0.8125rem;
   }
 
+  /* wrap instead of scrolling: a clipped last tab ("Ph…") gives no hint that more exist */
   .analysis-tabs {
+    flex-wrap: wrap;
     padding: 0 0.4rem;
+    overflow-x: visible;
   }
 
   .analysis-tab {

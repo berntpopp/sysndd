@@ -2,9 +2,6 @@
   <section class="release-desk-summary" aria-labelledby="release-desk-summary-title">
     <header class="release-desk-summary__header">
       <div>
-        <p class="release-desk-summary__eyebrow">
-          {{ isLatest ? 'Current release' : 'Selected release' }}
-        </p>
         <h2 id="release-desk-summary-title">
           {{ isLatest ? 'Latest published release' : 'Selected published release' }}
         </h2>
@@ -16,7 +13,9 @@
     <dl class="release-desk-summary__facts">
       <div>
         <dt>Published</dt>
-        <dd>{{ formatReleaseDate(release.published_at || release.created_at) }}</dd>
+        <dd :title="release.published_at || release.created_at">
+          {{ formatLongDate(release.published_at || release.created_at) }}
+        </dd>
       </div>
       <div>
         <dt>Contents</dt>
@@ -67,9 +66,12 @@
             :data-testid="`download-file-${fileTestId(file.path)}`"
             @click="$emit('download-file', file.path)"
           >
-            {{ file.path }}
+            <!-- break only after a slash, never inside a file name -->
+            <template v-for="(part, i) in file.path.split('/')" :key="i"
+              ><template v-if="i">/<wbr /></template>{{ part }}</template
+            >
           </button>
-          <span>{{ formatReleaseBytes(file.bytes) }}</span>
+          <span class="release-desk-summary__file-size">{{ formatReleaseBytes(file.bytes) }}</span>
         </li>
       </ul>
     </section>
@@ -80,6 +82,7 @@
 import { BButton } from 'bootstrap-vue-next';
 import type { ReleaseDetail } from '@/api/analysis';
 import { formatReleaseBytes } from './dataReleaseTable';
+import { formatLongDate } from '@/utils/dateUtils';
 
 defineOptions({ name: 'ReleaseDeskSummary' });
 
@@ -96,19 +99,6 @@ defineEmits<{
   'download-manifest': [];
   'download-file': [path: string];
 }>();
-
-// Release timestamps are UTC; pin the zone so the day never shifts with the viewer.
-function formatReleaseDate(value: string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 function fileTestId(path: string): string {
   return path.replaceAll(/[/.]+/g, '-').replace(/^-|-$/g, '');
@@ -130,15 +120,6 @@ function fileTestId(path: string): string {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-}
-
-.release-desk-summary__eyebrow {
-  margin: 0 0 0.15rem;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .release-desk-summary h2 {
@@ -235,7 +216,12 @@ function fileTestId(path: string): string {
   font-family: var(--font-family-mono);
   text-align: left;
   text-decoration: underline;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+.release-desk-summary__file-size {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .release-desk-summary__file-link:focus-visible {
