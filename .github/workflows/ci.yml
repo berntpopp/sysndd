@@ -146,8 +146,10 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -217,8 +219,10 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -302,8 +306,10 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -419,8 +425,10 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+      # Same ordering workaround as api/Dockerfile: tseries before forecast, and
+      # mcptools' dependencies before mcptools (pak's parallel restore can race them).
+      - name: Restore order-sensitive dependencies first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -602,9 +610,10 @@ jobs:
             cmake \
             pandoc
 
-      - name: Restore forecast dependency first
+      # Same ordering workaround as api/Dockerfile (see the R jobs above).
+      - name: Restore order-sensitive dependencies first
         working-directory: ./api
-        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = c('tseries', 'ellmer', 'httpuv', 'httr2', 'nanonext', 'processx', 'promises', 'rlang'), prompt = FALSE); renv::restore(packages = 'mcptools', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
