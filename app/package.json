@@ -38,7 +38,7 @@
     "@unhead/vue": "^3.4.3",
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
-    "@vueuse/core": "^14.4.0",
+    "@vueuse/core": "^15.0.0",
     "bootstrap": "^5.3.9",
     "bootstrap-icons": "^1.13.2",
     "bootstrap-vue-next": "^1.2.4",
