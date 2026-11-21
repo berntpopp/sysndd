@@ -269,7 +269,7 @@ mcp_readonly_canonical_view_hashes <- function() {
     mcp_public_entity = "3bb1727c4b96e22bfca80515e27cbf05ab740e2f932315d123ceb182022dcfdd",
     mcp_public_gene = "815c29add03b5df33aee541f5e307c6b5651ed635cc952267a8680e0d7eda2bb",
     mcp_public_hgnc_symbol = "53e707bf34951a9aa55cd027597735f36081853142f3c59f0f51cb5f533a3d35",
-    mcp_public_llm_cluster_summary = "18f42f4418e56d3f05ffb1e147a06e0b076d31d61f52eeebb683790c2a0e1c00",
+    mcp_public_llm_cluster_summary = "bfdfdbd0c9fa6a2cd09c31c01e3c3787256317cce143ec9544c70d0b0f9138fd",
     mcp_public_nddscore_gene_prediction = "968386c07100f86d9face99bb4776c5480ada3a2f21c221b3791e1399a0ed229",
     mcp_public_nddscore_hpo_prediction = "8d1ab672bfb2869b140cd85c53ae3b3bb17d47ce6c8d94b658ae744ca3595044",
     mcp_public_nddscore_release = "c676fd86a3e2b08c670f504f66b2ca85b85a00fb29e17436304a1f0423cbb6d3",
