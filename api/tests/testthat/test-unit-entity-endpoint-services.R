@@ -692,6 +692,17 @@ test_that("svc_entity_deactivate_request rejects a non-mutation change against a
 
     row <- DBI::dbGetQuery(con, "SELECT is_active FROM ndd_entity WHERE entity_id = ?", params = list(entity_id))
     expect_equal(as.integer(row$is_active[[1]]), 1L) # untouched
+
+    # A valid deactivation naming a replacement that does not exist is a client
+    # error (400), not the 500 the replaced_by foreign key used to produce.
+    unknown_id <- as.integer(DBI::dbGetQuery(con, "SELECT COALESCE(MAX(entity_id), 0) + 1000 AS id FROM ndd_entity")$id)
+    deactivate_data$entity$hgnc_id <- hgnc_id
+    deactivate_data$entity$replaced_by <- unknown_id
+    result <- svc_entity_deactivate_request(deactivate_data, deactivate_user_id = 1L, pool = con)
+    expect_equal(result$http_status, 400)
+    expect_equal(result$body$error, paste0("Replacement entity sysndd:", unknown_id, " does not exist."))
+    row <- DBI::dbGetQuery(con, "SELECT is_active FROM ndd_entity WHERE entity_id = ?", params = list(entity_id))
+    expect_equal(as.integer(row$is_active[[1]]), 1L) # untouched
   })
 })
 

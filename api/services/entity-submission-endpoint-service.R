@@ -243,6 +243,21 @@ svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, p
     ))
   }
 
+  # An unknown replacement would trip the replaced_by foreign key and surface as a 500.
+  if (!is.na(decision$replaced_by)) {
+    replacement <- pool %>%
+      tbl("ndd_entity") %>%
+      dplyr::filter(entity_id == !!decision$replaced_by) %>%
+      dplyr::select(entity_id) %>%
+      collect()
+    if (nrow(replacement) == 0) {
+      return(list(
+        http_status = 400,
+        body = list(error = paste0("Replacement entity sysndd:", decision$replaced_by, " does not exist."))
+      ))
+    }
+  }
+
   response_new_entity <- put_db_entity_deactivation(
     decision$entity_id,
     decision$replaced_by
