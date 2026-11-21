@@ -94,7 +94,7 @@ export const reviewTableFields = [
     label: 'Inheritance',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '6rem' },
+    thStyle: { width: '8rem' },
   },
   {
     key: 'synopsis',
@@ -114,14 +114,14 @@ export const reviewTableFields = [
     label: 'Date',
     sortable: true,
     class: 'text-start text-nowrap',
-    thStyle: { width: '7.5rem' },
+    thStyle: { width: '7.25rem' },
   },
   {
     key: 'review_user_name',
     label: 'User',
     sortable: true,
     class: 'text-start',
-    thStyle: { width: '8.5rem' },
+    thStyle: { width: '8rem' },
   },
   {
     key: 'actions',

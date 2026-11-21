@@ -435,7 +435,9 @@ function truncateHeader(label: string): string {
   overflow-x: auto;
 }
 
+/* Dense-table header size: at 16 px bold, "Inheritance" alone needed 141 px. */
 .review-table__column-header {
+  font-size: 0.8125rem;
   white-space: nowrap;
 }
 </style>

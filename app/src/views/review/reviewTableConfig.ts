@@ -36,21 +36,21 @@ export const TABLE_FIELDS = Object.freeze([
     class: 'text-start',
     sortByFormatted: true,
     filterByFormatted: true,
-    thStyle: { width: '7.5rem' },
+    thStyle: { width: '9rem' },
   },
   {
     key: 'category',
     label: 'Category',
     sortable: true,
     class: 'text-center',
-    thStyle: { width: '6rem' },
+    thStyle: { width: '8rem' },
   },
   {
     key: 'ndd_phenotype_word',
     label: 'NDD',
     sortable: true,
     class: 'text-center',
-    thStyle: { width: '4.5rem' },
+    thStyle: { width: '5.75rem' },
   },
   {
     key: 'review_date',
@@ -66,7 +66,7 @@ export const TABLE_FIELDS = Object.freeze([
     sortable: true,
     filterable: true,
     class: 'text-start',
-    thStyle: { width: '9rem' },
+    thStyle: { width: '9.75rem' },
   },
   // Four 30 px buttons plus gaps; narrower and the flag button wrapped to a second line.
   {

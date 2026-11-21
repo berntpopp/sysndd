@@ -55,7 +55,7 @@ export const statusTableFields = [
     key: 'hpo_mode_of_inheritance_term_name',
     label: 'Inheritance',
     sortable: true,
-    thStyle: { width: '6rem' },
+    thStyle: { width: '8rem' },
     class: 'text-start',
     sortByFormatted: true,
     filterByFormatted: true,
@@ -65,7 +65,7 @@ export const statusTableFields = [
     label: 'Category',
     sortable: true,
     filterable: true,
-    thStyle: { width: '5.75rem' },
+    thStyle: { width: '7.25rem' },
     class: 'text-start',
   },
   {
@@ -80,7 +80,7 @@ export const statusTableFields = [
     label: 'Flag',
     sortable: true,
     filterable: true,
-    thStyle: { width: '4rem' },
+    thStyle: { width: '5.25rem' },
     class: 'text-start',
   },
   {
@@ -88,7 +88,7 @@ export const statusTableFields = [
     label: 'Date',
     sortable: true,
     filterable: true,
-    thStyle: { width: '7.5rem' },
+    thStyle: { width: '7.25rem' },
     class: 'text-start text-nowrap',
   },
   {
@@ -96,7 +96,7 @@ export const statusTableFields = [
     label: 'User',
     sortable: true,
     filterable: true,
-    thStyle: { width: '8.5rem' },
+    thStyle: { width: '8rem' },
     class: 'text-start',
   },
   {
