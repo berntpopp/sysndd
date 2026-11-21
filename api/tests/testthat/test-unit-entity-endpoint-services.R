@@ -282,6 +282,87 @@ test_that("svc_entity_deactivate_decision normalizes a string 'NULL' replaced_by
 })
 
 # =============================================================================
+# svc_entity_reactivate_decision() — undo a deactivation (#711)
+# =============================================================================
+
+inactive_original <- tibble::tibble(
+  entity_id = 42L, hgnc_id = "HGNC:1234", is_active = 0L, replaced_by = 99L
+)
+
+test_that("svc_entity_reactivate_decision approves an inactive entity with no active duplicate", {
+  decision <- svc_entity_reactivate_decision(inactive_original, active_conflicts = tibble::tibble())
+  expect_equal(decision$action, "reactivate")
+  expect_equal(decision$entity_id, 42L)
+})
+
+test_that("svc_entity_reactivate_decision refuses missing, already active and conflicting entities", {
+  expect_equal(svc_entity_reactivate_decision(inactive_original[0, ], tibble::tibble())$http_status, 404)
+
+  active <- dplyr::mutate(inactive_original, is_active = 1L)
+  expect_equal(svc_entity_reactivate_decision(active, tibble::tibble())$http_status, 409)
+
+  conflict <- svc_entity_reactivate_decision(
+    inactive_original,
+    active_conflicts = tibble::tibble(entity_id = c(99L, 120L))
+  )
+  expect_equal(conflict$action, "reject")
+  expect_equal(conflict$http_status, 409)
+  expect_match(conflict$error, "sysndd:99, sysndd:120")
+})
+
+test_that("svc_entity_reactivate_decision refuses a NULL is_active instead of crashing", {
+  null_active <- dplyr::mutate(inactive_original, is_active = NA_integer_)
+  expect_equal(svc_entity_reactivate_decision(null_active, tibble::tibble())$http_status, 409)
+})
+
+test_that("svc_entity_reactivate_request rejects a malformed entity_id with 400 before any DB read", {
+  for (body in list(
+    list(entity = list(entity_id = 1.5)),
+    list(entity = list(entity_id = TRUE)),
+    list(entity = list(entity_id = 0)),
+    list(entity = list(entity_id = "abc")),
+    list(entity = "x"),
+    "x",
+    NULL
+  )) {
+    expect_equal(svc_entity_reactivate_request(body, 1L, pool = NULL)$http_status, 400)
+  }
+})
+
+test_that("svc_entity_reactivate_conflicts follows the replaced_by chain and matches other disease versions", {
+  skip_if_not_installed("RSQLite")
+  con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  on.exit(DBI::dbDisconnect(con))
+  DBI::dbWriteTable(con, "disease_ontology_set", data.frame(
+    disease_ontology_id_version = c("OMIM:100_1", "OMIM:100_2", "MONDO:1", "MONDO:2"),
+    disease_ontology_id = c("OMIM:100", "OMIM:100", "MONDO:1", "MONDO:2")
+  ))
+  DBI::dbWriteTable(con, "ndd_entity", data.frame(
+    entity_id = 1:6,
+    hgnc_id = c("HGNC:1", "HGNC:1", "HGNC:1", "HGNC:2", "HGNC:2", "HGNC:3"),
+    hpo_mode_of_inheritance_term = "HP:0000006",
+    disease_ontology_id_version = c("MONDO:1", "MONDO:2", "OMIM:100_1", "OMIM:100_1", "OMIM:100_2", "MONDO:1"),
+    ndd_phenotype = 1L,
+    is_active = c(0L, 0L, 1L, 0L, 1L, 0L),
+    replaced_by = c(2L, 3L, NA, NA, NA, NA)
+  ))
+  conflicts <- function(id) {
+    svc_entity_reactivate_conflicts(dplyr::collect(dplyr::filter(dplyr::tbl(con, "ndd_entity"), entity_id == !!id)), con)$entity_id
+  }
+
+  expect_equal(conflicts(1L), 3L) # 1 -> 2 (inactive) -> 3 (active)
+  expect_equal(conflicts(4L), 5L) # same gene, inheritance and OMIM:100, other version
+  expect_length(conflicts(6L), 0) # nothing active covers it
+})
+
+test_that("POST /entity/reactivate is Administrator-only", {
+  src <- readLines(file.path(get_api_dir(), "endpoints", "entity_endpoints.R"), warn = FALSE)
+  route <- grep("^#\\*\\s*@post /reactivate", src)
+  expect_length(route, 1)
+  expect_match(src[route + 2], 'require_role\\(req, res, "Administrator"\\)')
+})
+
+# =============================================================================
 # svc_entity_create_finalize() — normalization, server attribution, direct
 # approval, 201/cache invalidation (svc_entity_create_full is mocked)
 # =============================================================================

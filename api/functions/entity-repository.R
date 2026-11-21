@@ -151,6 +151,20 @@ entity_deactivate <- function(entity_id, replacement_id = NULL) {
   db_execute_statement(sql, params)
 }
 
+#' Reactivate entity (undo entity_deactivate)
+#'
+#' Sets is_active = 1 and clears replaced_by. The `is_active = 0` guard makes
+#' a concurrent second reactivation a no-op (returns 0 rows).
+#'
+#' @param entity_id Integer entity ID to reactivate
+#' @return Integer count of affected rows (1 on success)
+#' @export
+entity_reactivate <- function(entity_id) {
+  sql <- "UPDATE ndd_entity SET is_active = 1, replaced_by = NULL WHERE entity_id = ? AND is_active = 0"
+
+  db_execute_statement(sql, list(entity_id))
+}
+
 #' Find entities with review data (eager loading)
 #'
 #' Performs a LEFT JOIN with ndd_entity_review to load entity and review data
