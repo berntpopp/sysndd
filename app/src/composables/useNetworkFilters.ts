@@ -12,6 +12,7 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import type { Core } from 'cytoscape';
+import { CLUSTER_BOX_MARGIN } from './geneNetworkLayoutOptions';
 
 // Extend Cytoscape types with show/hide methods that exist at runtime
 // but are not properly typed in @types/cytoscape
@@ -122,8 +123,9 @@ export function useNetworkFilters(): NetworkFiltersState {
   function applyFilters(cy: Core): void {
     if (!cy) return;
 
-    // First, show all elements (cast to extended type for show/hide methods)
-    (cy.elements() as unknown as CytoscapeElementExtended).show();
+    // First, show every hidden element; show() restyles each element it touches, so
+    // leave the visible ones (most of the graph) alone.
+    (cy.elements(':hidden') as unknown as CytoscapeElementExtended).show();
 
     // Get gene nodes (non-parent nodes) and cluster parent nodes separately
     const geneNodes = cy.nodes().filter((node) => !node.data('isClusterParent'));
@@ -165,15 +167,35 @@ export function useNetworkFilters(): NetworkFiltersState {
       }
     });
 
-    // Hide cluster parent nodes that have no visible children
-    clusterParentNodes.forEach((parentNode) => {
-      const parentId = parentNode.id();
-      const children = cy.nodes().filter((node) => node.data('parent') === parentId);
-      const hasVisibleChildren = children.some((child) =>
-        (child as unknown as CytoscapeElementExtended).visible()
-      );
-      if (!hasVisibleChildren) {
-        (parentNode as unknown as CytoscapeElementExtended).hide();
+    // Bounds [x1, y1, x2, y2] of each cluster's visible genes, keyed by cluster box id
+    const visibleBounds = new Map<string, number[]>();
+    geneNodes.forEach((node) => {
+      if (!(node as unknown as CytoscapeElementExtended).visible()) return;
+      const cluster = node.data('cluster');
+      const clusterNum =
+        typeof cluster === 'string' ? parseInt(cluster.split('.')[0], 10) : cluster;
+      const { x, y } = node.position();
+      const r = (Number(node.data('size')) || 0) / 2 + CLUSTER_BOX_MARGIN;
+      const b = visibleBounds.get(`cluster-${clusterNum}`);
+      if (b) {
+        b[0] = Math.min(b[0], x - r);
+        b[1] = Math.min(b[1], y - r);
+        b[2] = Math.max(b[2], x + r);
+        b[3] = Math.max(b[3], y + r);
+      } else {
+        visibleBounds.set(`cluster-${clusterNum}`, [x - r, y - r, x + r, y + r]);
+      }
+    });
+
+    // Hide clusters without visible genes; plain cluster boxes (stored positions) follow
+    // their visible genes as compound parents do on their own.
+    clusterParentNodes.forEach((box) => {
+      const b = visibleBounds.get(box.id());
+      if (!b) {
+        (box as unknown as CytoscapeElementExtended).hide();
+      } else if (box.data('boxWidth') !== undefined) {
+        box.position({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
+        box.data({ boxWidth: b[2] - b[0], boxHeight: b[3] - b[1] });
       }
     });
   }

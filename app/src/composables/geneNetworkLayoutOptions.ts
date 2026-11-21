@@ -78,9 +78,16 @@ export function collectPresetPositions(elements: ElementDefinition[]): Map<strin
   return positions;
 }
 
+// The caller fits from gene positions; the preset layout's own fit measures every element.
 export function presetLayoutOptions(): PresetLayoutOptions {
-  return { name: 'preset', fit: true, padding: 30, animate: false };
+  return { name: 'preset', fit: false, padding: 30, animate: false };
 }
+
+/** Space a cluster box keeps around its genes: the compound padding (30 px) plus its border. */
+export const CLUSTER_BOX_MARGIN = 33;
+
+/** Zoom from which the 8 px gene labels are legible (their min-zoomed-font-size is 8 px). */
+export const LABEL_MIN_ZOOM = 1;
 
 export function initialFcoseLayoutOptions(): FcoseLayoutOptions {
   return {

@@ -120,6 +120,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     },
     onLayoutReady: () => {
       if (hydrateInitialEdgesIfNeeded()) return;
+      // edges may have joined in batches since the last count
+      handleApplyFilters();
       emit('network-ready');
     },
   });
@@ -446,6 +448,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       initialEdgesMounted.value = presetReady;
       fullGraphMounted.value = false;
       handleApplyFilters();
+      // frame the filtered genes before the first paint
+      fitToScreen();
     } else {
       initializeCytoscape();
     }

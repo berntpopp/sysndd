@@ -231,6 +231,10 @@ describe('useNetworkData', () => {
 
     const gene = state.cytoscapeElements.value.find((element) => element.data?.id === 'HGNC:1');
     expect(gene?.position).toEqual({ x: 10, y: 20 });
+    // stored positions: the cluster is a plain box node, not a compound parent
+    expect(gene?.data.parent).toBeUndefined();
+    const box = state.cytoscapeElements.value.find((element) => element.data?.id === 'cluster-1');
+    expect(box?.data).toMatchObject({ isClusterParent: true, boxWidth: 0, boxHeight: 0 });
   });
 
   it('builds an initial render payload with all nodes but only default-visible edges', async () => {
@@ -313,6 +317,10 @@ describe('useNetworkData', () => {
 
     const gene = state.cytoscapeElements.value.find((element) => element.data?.id === 'HGNC:1');
     expect(gene?.position).toBeUndefined();
+    // fCoSE still has to run, and lays clusters out as compound parents
+    expect(gene?.data.parent).toBe('cluster-1');
+    const box = state.cytoscapeElements.value.find((element) => element.data?.id === 'cluster-1');
+    expect(box?.data.boxWidth).toBeUndefined();
   });
 
   it('omits Cytoscape positions when an available artifact has incomplete coordinates', async () => {
