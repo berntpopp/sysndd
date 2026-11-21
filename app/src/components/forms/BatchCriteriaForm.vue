@@ -331,14 +331,9 @@ import { useBatchForm } from '@/composables/useBatchForm';
 import BatchCriteriaEntityPicker from './BatchCriteriaEntityPicker.vue';
 import useBatchCriteriaOptions from './useBatchCriteriaOptions';
 
-// ISO "2020-01-01" from the date input -> "January 1, 2020" (UTC, so no day shift).
-// ponytail: local until the shared dateUtils formatter (UI package 1) lands; swap then.
-const longDate = (iso: string): string =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    dateStyle: 'long',
-  });
-
+// "2020-01-01" -> "January 1, 2020" in UTC. ponytail: swap for the shared dateUtils helper.
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', dateStyle: 'long' });
 const emit = defineEmits<{
   (e: 'batch-created'): void;
 }>();
