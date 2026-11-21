@@ -466,7 +466,7 @@
         "documentation/using-analyses.qmd#fig-analyses-compare-overlap"
       ],
       "route": "/CurationComparisons",
-      "url": "http://localhost:8088/CurationComparisons",
+      "url": "http://localhost:4192/CurationComparisons",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -474,19 +474,19 @@
       "setup": "curationComparison",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:37.117Z",
+      "gitSha": "6ef486eb961ecfd9277e5a38e4679e99faa26619",
+      "capturedAt": "2026-11-21T15:51:29.021Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "f6d3337abc43c097cacb324c53b9bd8eb0c95b0fefbcb07630f484b1b8e01b5c",
-      "bytes": 129420
+      "browserVersion": "159.0.8154.6",
+      "sha256": "0e9ce6aec881c1fee920463204bf3e28339f05e94a5a4394bee521b1f74eeb73",
+      "bytes": 132382
     },
     {
       "slug": "curation-comparisons-similarity",
       "output": "documentation/static/img/generated/curation-comparisons-similarity.png",
       "docRefs": [],
       "route": "/CurationComparisons/Similarity",
-      "url": "http://localhost:8088/CurationComparisons/Similarity",
+      "url": "http://localhost:4192/CurationComparisons/Similarity",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -494,19 +494,19 @@
       "setup": "curationSimilarity",
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:08.711Z",
+      "gitSha": "6ef486eb961ecfd9277e5a38e4679e99faa26619",
+      "capturedAt": "2026-11-21T15:51:59.853Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "8aadd8fc1647c6fb40c28bc5ebaa2d8afa84679be4775150ab6c096ac7f9c15f",
-      "bytes": 35706
+      "browserVersion": "159.0.8154.6",
+      "sha256": "cd9a7bd376b2731ee627b7ca357eb6b5fcc295bd00661c4de73dd6d4f49ed44c",
+      "bytes": 41990
     },
     {
       "slug": "curation-comparisons-table",
       "output": "documentation/static/img/generated/curation-comparisons-table.png",
       "docRefs": [],
       "route": "/CurationComparisons/Table",
-      "url": "http://localhost:8088/CurationComparisons/Table",
+      "url": "http://localhost:4192/CurationComparisons/Table",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -514,12 +514,12 @@
       "setup": "tablePage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:10.506Z",
+      "gitSha": "6ef486eb961ecfd9277e5a38e4679e99faa26619",
+      "capturedAt": "2026-11-21T15:52:00.676Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "f8957324fe3211af40abd4703794473d0d455fb846a498f4b27c42b167ef60cb",
-      "bytes": 100278
+      "browserVersion": "159.0.8154.6",
+      "sha256": "8aa17e524d3c5c0dcc2f4d6785407bc1118f7ff7bac08f86f2ddf7d9e9a08705",
+      "bytes": 133625
     },
     {
       "slug": "phenotype-correlations-correlogram",

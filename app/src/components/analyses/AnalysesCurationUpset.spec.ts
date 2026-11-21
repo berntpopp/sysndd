@@ -5,10 +5,9 @@ const { renderMock } = vi.hoisted(() => ({
   renderMock: vi.fn(),
 }));
 
-vi.mock('@upsetjs/bundle', () => ({
-  extractSets: vi.fn((elems: Array<{ sets?: string[] }>) =>
-    Array.from(new Set(elems.flatMap((elem) => elem.sets ?? []))).map((name) => ({ name }))
-  ),
+// Real set/combination math; only the DOM render is captured.
+vi.mock('@upsetjs/bundle', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@upsetjs/bundle')>()),
   render: renderMock,
 }));
 
@@ -26,7 +25,70 @@ vi.mock('@/composables/useToast', () => ({
   default: () => ({ makeToast: vi.fn() }),
 }));
 
+import { generateCombinations } from '@upsetjs/bundle';
 import AnalysesCurationUpset from './AnalysesCurationUpset.vue';
+
+const upsetStubs = {
+  BBadge: { template: '<span><slot /></span>' },
+  BButton: { template: '<button><slot /></button>' },
+  BDropdown: { template: '<div><slot name="button-content" /><slot /></div>' },
+  BFormCheckbox: { template: '<label><input type="checkbox" /><slot /></label>' },
+  BFormTag: { template: '<span><slot /></span>' },
+  BPopover: { template: '<div><slot name="title" /><slot /></div>' },
+  DownloadImageButtons: { template: '<div data-testid="download-buttons" />' },
+  TransitionGroup: { template: '<div><slot /></div>' },
+};
+
+async function renderedOptions() {
+  renderMock.mockClear();
+  const wrapper = mount(AnalysesCurationUpset, {
+    attachTo: document.body,
+    global: { stubs: upsetStubs },
+  });
+  await flushPromises();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  wrapper.vm.renderUpset();
+  return { wrapper, options: renderMock.mock.calls.at(-1)?.[1] };
+}
+
+describe('AnalysesCurationUpset counting and labels', () => {
+  it('draws inclusive bars: each single-source bar equals that source size', async () => {
+    const { wrapper, options } = await renderedOptions();
+    // Combinations exactly as upsetjs builds them from the render options.
+    const combos = generateCombinations(options.sets, options.combinations);
+    for (const set of options.sets) {
+      const single = combos.find((c) => c.degree === 1 && c.sets.has(set));
+      expect(single?.cardinality).toBe(set.cardinality);
+    }
+    expect(options.combinationName).toBe('Genes in all marked sources');
+    // the copy describes inclusive bars, not exclusive ones
+    expect(wrapper.text()).not.toContain('unique to that intersection');
+    expect(wrapper.text()).toContain('every source marked with a dot');
+    wrapper.unmount();
+  });
+
+  it('keeps the source toolbar in place while the plot reloads (no layout jump)', async () => {
+    const { wrapper } = await renderedOptions();
+    const api = await import('@/api/comparisons');
+    vi.mocked(api.getUpsetData).mockImplementationOnce(() => new Promise(() => {}));
+    wrapper.vm.loadComparisonsUpsetData();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.loadingUpset).toBe(true);
+    expect(wrapper.find('.source-toolbar').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('labels sets with curated source names', async () => {
+    const { wrapper, options } = await renderedOptions();
+    expect(options.sets.map((s: { name: string }) => s.name).sort()).toEqual([
+      'Gene2Phenotype',
+      'PanelApp',
+      'SysNDD',
+    ]);
+    expect(Object.keys(options.setColors).sort()).toEqual(['Gene2Phenotype', 'PanelApp', 'SysNDD']);
+    wrapper.unmount();
+  });
+});
 
 describe('AnalysesCurationUpset responsive plot', () => {
   beforeEach(() => {

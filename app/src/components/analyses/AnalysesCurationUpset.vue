@@ -14,8 +14,8 @@
           <EvidenceTierMappingHelp />
         </h2>
         <p class="panel-description">
-          UpSet plot of selected curation-list intersections. Each bar shows the gene count unique
-          to that intersection; connected dots below show which sources contribute.
+          UpSet plot of selected curation lists. Each bar counts the genes listed by every source
+          marked with a dot below; a gene is counted in each bar whose sources all list it.
         </p>
         <BPopover target="popover-badge-help-upset" variant="info" triggers="focus hover">
           <template #title>Comparisons of Curation Efforts</template>
@@ -26,12 +26,13 @@
       <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />
     </header>
 
-    <!-- Source Selection -->
-    <div
-      v-if="!loadingUpset && columns_list && columns_list.length > 0"
-      class="source-selector p-2"
-    >
-      <div class="source-toolbar d-flex flex-wrap align-items-center gap-2">
+    <!-- Source Selection: the bar is always there (with its height reserved while the
+         source list loads) and stays put during reloads, so the plot never jumps. -->
+    <div class="source-selector p-2">
+      <div
+        v-if="columns_list && columns_list.length > 0"
+        class="source-toolbar d-flex flex-wrap align-items-center gap-2"
+      >
         <BDropdown
           variant="outline-primary"
           size="sm"
@@ -122,7 +123,7 @@
         </BFormCheckbox>
       </div>
 
-      <small class="text-muted d-block mt-1">
+      <small v-if="columns_list && columns_list.length > 0" class="text-muted d-block mt-1">
         <i class="bi bi-info-circle me-1" />
         {{ selected_columns.length }} of {{ columns_list.length }} sources selected
         <span v-if="selected_columns.length < 2" class="text-danger ms-1">(minimum 2 required)</span>
@@ -289,14 +290,19 @@ export default {
     renderUpset() {
       if (!this.upsetContainer || this.loadingUpset || this.elems.length === 0) return;
 
-      const sets = extractSets(this.elems);
+      // Curated display names ("panelapp" -> "PanelApp"); colors stay keyed by source id.
+      const sets = extractSets(this.elems).map((set) => ({
+        ...set,
+        name: formatSourceName(set.name),
+        sourceId: set.name,
+      }));
       const dimensions = this.getPlotDimensions();
       const maxH = typeof window !== 'undefined' ? Math.max(300, window.innerHeight - 280) : 560;
       const clampedHeight = Math.min(dimensions.height, maxH);
 
       const setColors = {};
       sets.forEach((set) => {
-        if (this.sourceColors[set.name]) setColors[set.name] = this.sourceColors[set.name];
+        if (this.sourceColors[set.sourceId]) setColors[set.name] = this.sourceColors[set.sourceId];
       });
 
       const queries = [];
@@ -335,6 +341,8 @@ export default {
         setColors,
         queries: queries.length > 0 ? queries : undefined,
         exportButtons: false,
+        combinationName: 'Genes in all marked sources',
+        setName: 'Genes in source',
         barPadding: 0.3,
         dotPadding: 0.7,
         onHover: (s) => { this.selection = s; },
@@ -473,7 +481,7 @@ export default {
 }
 
 /* Source Selector */
-.source-selector { background: #f4f7fa; border-bottom: 1px solid #dee2e6; }
+.source-selector { min-height: 4.75rem; background: #f4f7fa; border-bottom: 1px solid #dee2e6; }
 .separator-line { height: 24px; }
 .source-toolbar { row-gap: 0.4rem !important; }
 
@@ -544,6 +552,7 @@ export default {
   .source-selector :deep(.form-check-label), .source-selector .small { font-size: 0.75rem; }
   .source-selector :deep(.form-switch) { width: auto; }
   .separator-line { display: none; }
+  .source-selector { min-height: 15.5rem; } /* wrapped toolbar height, reserved before it loads */
   .source-chip { min-height: 1.45rem; max-height: 1.45rem; font-size: 0.75rem; }
 }
 </style>
