@@ -165,6 +165,16 @@ test_that("llm summary hash matches the MySQL 8.4 render of migration 054", {
   keys <- regmatches(stored, gregexpr("json_object\\('([a-z_]+)'|,'([a-z_]+)',json_extract", stored))
   keys <- gsub("^json_object\\(|^,|,json_extract$|'", "", keys[[1L]])
   expect_identical(keys, mcp_readonly_llm_summary_json_keys())
+  # Tie the captured render to the migration that owns the view, so editing 054
+  # without re-capturing the render and re-pinning the hash fails here.
+  m054 <- paste(readLines(file.path(
+    get_api_dir(), "..", "db", "migrations", "054_mcp_llm_summary_drop_syndromicity.sql"
+  ), warn = FALSE), collapse = "\n")
+  m054 <- sub("(?s).*VIEW `mcp_public_llm_cluster_summary` AS\\s+(.*?);.*", "\\1", m054, perl = TRUE)
+  expect_identical(
+    mcp_readonly_normalize_view_sql(stored, schema = "sysndd_db"),
+    mcp_readonly_normalize_view_sql(m054)
+  )
   expect_identical(
     as.character(unclass(mcp_readonly_canonical_view_hash(stored, schema = "sysndd_db"))),
     mcp_readonly_canonical_view_hashes()[["mcp_public_llm_cluster_summary"]]
