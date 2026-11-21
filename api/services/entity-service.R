@@ -5,6 +5,25 @@
 # Uses entity-repository.R for database operations
 # Uses core/errors.R helpers for RFC 9457 errors
 
+#' Require an entity write body at the trust boundary
+#'
+#' The entity write endpoints (create/rename/deactivate/reactivate) all take
+#' `{ <key>: { entity: {...}, ... } }` whose members (entity, review, status)
+#' are all objects. An empty body or a non-object member crashed deep in the
+#' services with a 500; reject it here with a 400 problem+json instead.
+#'
+#' @param body The parsed `req$argsBody[[key]]` value.
+#' @param key Body key name, used in the error message.
+#' @return `body`, unchanged, when it has an `entity` object.
+svc_entity_require_body <- function(body, key) {
+  if (!is.list(body) || !is.list(body$entity) || !all(vapply(body, is.list, logical(1)))) {
+    stop_for_bad_request(paste0(
+      "Request body must be a JSON object with an object ", key, ".entity; its other members must be objects too."
+    ))
+  }
+  body
+}
+
 #' Validate entity data
 #'
 #' Validates that all required fields are present and non-empty.

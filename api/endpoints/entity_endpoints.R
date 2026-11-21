@@ -84,7 +84,7 @@ function(req,
 function(req, res, direct_approval = FALSE) {
   require_role(req, res, "Curator")
 
-  create_data <- req$argsBody$create_json
+  create_data <- svc_entity_require_body(req$argsBody$create_json, "create_json")
 
   # Prepare publications (includes external GeneReviews API call). Insert
   # publications into the reference table BEFORE the atomic transaction so a
@@ -176,7 +176,7 @@ function(req, res) {
   require_role(req, res, "Curator")
 
   result <- svc_entity_rename_full(
-    rename_data = req$argsBody$rename_json,
+    rename_data = svc_entity_require_body(req$argsBody$rename_json, "rename_json"),
     user_id     = req$user_id,
     pool        = pool
   )
@@ -203,7 +203,7 @@ function(req, res) {
   require_role(req, res, "Curator")
 
   result <- svc_entity_deactivate_request(
-    deactivate_data = req$argsBody$deactivate_json,
+    deactivate_data = svc_entity_require_body(req$argsBody$deactivate_json, "deactivate_json"),
     deactivate_user_id = req$user_id,
     pool = pool
   )
@@ -235,7 +235,7 @@ function(req, res) {
   require_role(req, res, "Administrator")
 
   result <- svc_entity_reactivate_request(
-    reactivate_data = req$argsBody$reactivate_json,
+    reactivate_data = svc_entity_require_body(req$argsBody$reactivate_json, "reactivate_json"),
     reactivate_user_id = req$user_id,
     pool = pool
   )
