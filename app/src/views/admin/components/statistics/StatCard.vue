@@ -1,15 +1,17 @@
 <template>
-  <BCard class="stat-card h-100">
-    <div class="d-flex justify-content-between align-items-start">
+  <BCard class="stat-card h-100 text-start">
+    <div class="d-flex justify-content-between align-items-start gap-2">
       <div>
-        <div class="text-muted small">{{ label }}</div>
+        <div class="stat-card__label small">{{ label }}</div>
         <div class="display-6 fw-bold">{{ formattedValue }}</div>
       </div>
-      <div v-if="delta !== undefined" class="text-end">
-        <span :style="{ color: trendColor }"> {{ trendIcon }} {{ Math.abs(delta) }}% </span>
+      <div v-if="delta !== undefined" class="stat-card__delta" :style="{ color: trendColor }">
+        <i :class="trendIcon" aria-hidden="true" />
+        <span class="visually-hidden">{{ trendWord }}</span>
+        {{ Math.abs(delta) }}%
       </div>
     </div>
-    <div v-if="context" class="small text-muted mt-2">
+    <div v-if="context" class="stat-card__label small mt-2">
       {{ context }}
     </div>
   </BCard>
@@ -25,29 +27,39 @@ interface Props {
   delta?: number; // Percentage change vs previous period
   context?: string; // e.g., "vs last month"
   unit?: string; // e.g., "entities"
+  decimals?: number; // fixed fraction digits, e.g. 2 for a daily rate
 }
 
 const props = defineProps<Props>();
 
-// Okabe-Ito colorblind-safe colors for accessibility
+// Okabe-Ito hues, darkened to >= 4.5:1 on white (the originals #009E73 / #D55E00
+// were 3.3:1 and 3.9:1).
 const TREND_COLORS = {
-  up: '#009E73', // Bluish green
-  down: '#D55E00', // Vermillion
-  neutral: '#666666',
+  up: '#00785a',
+  down: '#a94400',
+  neutral: '#595959',
 };
 
 const formattedValue = computed(() => {
   // Ensure value is a number for toLocaleString()
   const numValue = typeof props.value === 'number' ? props.value : Number(props.value) || 0;
-  const formatted = numValue.toLocaleString();
+  const formatted = numValue.toLocaleString('en-US', {
+    minimumFractionDigits: props.decimals ?? 0,
+    maximumFractionDigits: props.decimals ?? 0,
+  });
   return props.unit ? `${formatted} ${props.unit}` : formatted;
 });
 
 const trendIcon = computed(() => {
   if (props.delta === undefined) return '';
-  if (props.delta > 0) return '\u2191'; // Up arrow
-  if (props.delta < 0) return '\u2193'; // Down arrow
-  return '\u2192'; // Right arrow for neutral
+  if (props.delta > 0) return 'bi bi-arrow-up';
+  if (props.delta < 0) return 'bi bi-arrow-down';
+  return 'bi bi-arrow-right';
+});
+
+const trendWord = computed(() => {
+  if (props.delta === undefined || props.delta === 0) return 'No change';
+  return props.delta > 0 ? 'Up' : 'Down';
 });
 
 const trendColor = computed(() => {
@@ -63,5 +75,15 @@ const trendColor = computed(() => {
   border: 1px solid var(--border-subtle);
   background: var(--surface-raised);
   box-shadow: var(--shadow-xs);
+}
+
+.stat-card__label {
+  color: var(--text-secondary, #616161);
+}
+
+.stat-card__delta {
+  flex-shrink: 0;
+  font-weight: 600;
+  white-space: nowrap;
 }
 </style>

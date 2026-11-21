@@ -118,6 +118,29 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     expect((wrapper.vm as unknown as BackupsVm).backups).toEqual([]);
   });
 
+  it('pluralizes the inventory count ("1 backup", not "1 backups")', async () => {
+    primeAuth('plural-token');
+    server.use(
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({
+          data: [
+            {
+              filename: 'a.sql.gz',
+              size_bytes: 2048,
+              created_at: '2026-11-21T12:07:38Z',
+              table_count: 'NA',
+            },
+          ],
+          meta: { total_count: [1], total_size_bytes: [2048] },
+        })
+      )
+    );
+    const wrapper = mountView();
+    await flushPromises();
+    expect(wrapper.text()).toContain('1 backup · 2 KB total');
+    expect(wrapper.text()).not.toContain('NaN');
+  });
+
   it('downloadBackup() issues GET /api/backup/download/:filename with the Bearer header', async () => {
     primeAuth('download-token');
 

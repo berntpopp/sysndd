@@ -13,7 +13,9 @@
             />
             <span>
               <span class="user-admin-row__primary">{{ displayValue(item.user_name) }}</span>
-              <span class="user-admin-row__secondary">{{ displayValue(item.email) }}</span>
+              <span class="user-admin-row__secondary" :title="displayValue(item.email)">{{
+                displayValue(item.email)
+              }}</span>
             </span>
           </label>
           <div class="user-admin-row__actions" aria-label="User actions">
@@ -64,6 +66,7 @@
 
 <script setup lang="ts">
 import MobileTableList from '@/components/table/MobileTableList.vue';
+import { formatLongDate } from '../adminDisplay';
 
 type Item = any;
 
@@ -98,24 +101,34 @@ function approved(value: unknown): boolean {
   return value === true || value === 1 || value === '1';
 }
 
-function formatDate(value: unknown): string {
-  return displayValue(value).substring(0, 10) || '—';
-}
+const formatDate = formatLongDate;
 </script>
 
 <style scoped>
 .user-admin-row__identity {
   display: inline-flex;
+  flex: 1 1 auto;
   align-items: flex-start;
   gap: 0.5rem;
   min-width: 0;
   margin: 0;
 }
 
-.user-admin-row__primary,
-.user-admin-row__secondary {
+.user-admin-row__identity > span {
+  min-width: 0;
+}
+
+.user-admin-row__primary {
   display: block;
   overflow-wrap: anywhere;
+}
+
+/* One line with an ellipsis; the full address is in the title. */
+.user-admin-row__secondary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-admin-row__primary {

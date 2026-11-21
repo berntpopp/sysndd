@@ -33,12 +33,10 @@ describe('useBackupInventory pure helpers', () => {
     expect(formatFileSize(1048576)).toBe('1 MB');
   });
 
-  it('formatDate renders YYYY-MM-DD HH:mm and passes through unparseable input', () => {
-    expect(formatDate('')).toBe('');
-    expect(formatDate('not-a-date')).toBe('not-a-date');
-    // Use a fixed local time to avoid timezone flake on the date portion.
-    const out = formatDate('2025-10-01T12:34:00');
-    expect(out).toMatch(/^2025-10-01 \d{2}:\d{2}$/);
+  it('formatDate renders the shared UTC timestamp style and a dash for missing input', () => {
+    expect(formatDate('')).toBe('—');
+    expect(formatDate('not-a-date')).toBe('—');
+    expect(formatDate('2025-10-01T12:34:00')).toBe('October 1, 2025, 12:34 UTC');
   });
 
   it('getBackupType + badge variant key off the filename prefix', () => {

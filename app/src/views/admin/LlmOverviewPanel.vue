@@ -3,7 +3,6 @@
   Overview tab content for the LLM Administration view. Extracted from
   ManageLLM.vue so the parent stays a thinner shell. Presents cache status
   and regeneration-job progress for admin-generated cached LLM summaries.
-  All status/feedback copy is preserved verbatim from the original view.
 -->
 <template>
   <TableShell
@@ -76,7 +75,7 @@
                 <th scope="row">{{ row.label }}</th>
                 <td class="llm-overview-table__value">{{ row.value }}</td>
                 <td>
-                  <span :class="['llm-status-chip', row.tone]">
+                  <span v-if="row.status" :class="['llm-status-chip', row.tone]">
                     {{ row.status }}
                   </span>
                 </td>
@@ -92,7 +91,7 @@
               <span class="llm-overview-table__value">{{ row.value }}</span>
             </div>
             <div class="llm-mobile-row__meta">
-              <span :class="['llm-status-chip', row.tone]">{{ row.status }}</span>
+              <span v-if="row.status" :class="['llm-status-chip', row.tone]">{{ row.status }}</span>
               <span>{{ row.note }}</span>
             </div>
           </article>
@@ -156,12 +155,7 @@
                       <template v-else-if="job.runner.isLoading.value"> Processing... </template>
                     </BProgressBar>
                   </BProgress>
-                  <BAlert
-                    v-if="job.runner.error.value"
-                    variant="danger"
-                    show
-                    class="mt-2 mb-0"
-                  >
+                  <BAlert v-if="job.runner.error.value" variant="danger" show class="mt-2 mb-0">
                     <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
                     {{ job.runner.error.value }}
                   </BAlert>
@@ -202,9 +196,7 @@
             <BProgress :max="100" height="0.875rem">
               <BProgressBar
                 :value="
-                  job.runner.hasRealProgress.value
-                    ? (job.runner.progressPercent.value ?? 0)
-                    : 100
+                  job.runner.hasRealProgress.value ? (job.runner.progressPercent.value ?? 0) : 100
                 "
                 :variant="job.runner.progressVariant.value"
                 :striped="!job.runner.hasRealProgress.value"
@@ -296,7 +288,7 @@ const emit = defineEmits<{
 }
 
 .llm-section-heading span {
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
   font-weight: 600;
 }
@@ -338,7 +330,7 @@ const emit = defineEmits<{
 }
 
 .llm-job-id {
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   overflow-wrap: anywhere;
 }
 
@@ -354,7 +346,7 @@ const emit = defineEmits<{
 
 .llm-job-elapsed,
 .llm-empty-row {
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 
@@ -379,16 +371,18 @@ const emit = defineEmits<{
   color: var(--status-success, #2e7d32);
 }
 
+/* Darker text than --status-warning/--status-info, which reach only
+   2.5:1 / 4.3:1 on these tinted chip backgrounds. */
 .llm-status-chip.warning {
-  border-color: rgba(245, 124, 0, 0.2);
-  background: rgba(245, 124, 0, 0.1);
-  color: var(--status-warning, #f57c00);
+  border-color: rgba(180, 83, 9, 0.25);
+  background: rgba(180, 83, 9, 0.08);
+  color: #92400e;
 }
 
 .llm-status-chip.info {
   border-color: rgba(2, 119, 189, 0.18);
   background: rgba(2, 119, 189, 0.08);
-  color: var(--status-info, #0277bd);
+  color: #01579b;
 }
 
 .llm-mobile-rows {
@@ -416,7 +410,7 @@ const emit = defineEmits<{
 
 .llm-mobile-row__meta {
   justify-content: flex-start;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 

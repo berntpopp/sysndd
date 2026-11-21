@@ -16,7 +16,7 @@
 <template>
   <AuthenticatedPageShell
     title="Manage analysis-snapshot releases"
-    description="Build, publish, and DOI-tag immutable, content-addressed exports of SysNDD's public-ready analysis snapshots (functional clusters, phenotype clusters, and their correlation). Each release freezes its own copy of the data and survives snapshot pruning or refresh byte-identically."
+    description="Build, publish and DOI-tag immutable exports of the public analysis snapshots. Each release keeps its own byte-identical copy of the data."
     content-class="authenticated-route-content"
     full-width
   >
@@ -51,8 +51,8 @@
 
         <p v-if="!admin.canBuild.value" class="layer-readiness-hint mb-0">
           Build is disabled until every release layer above reports
-          <strong>available</strong>. Snapshots self-heal automatically (stale or missing
-          snapshots re-enqueue on the next API restart), or an operator can force a refresh via
+          <strong>available</strong>. Snapshots self-heal automatically (stale or missing snapshots
+          re-enqueue on the next API restart), or an operator can force a refresh via
           <code>POST /api/admin/analysis/snapshots/refresh</code>.
         </p>
       </AdminOperationPanel>
@@ -64,18 +64,18 @@
         heading-tag="h2"
         :aria-busy="building ? 'true' : 'false'"
       >
-        <BAlert v-if="admin.buildError.value" variant="danger" show class="mb-3" data-testid="build-error">
+        <BAlert
+          v-if="admin.buildError.value"
+          variant="danger"
+          show
+          class="mb-3"
+          data-testid="build-error"
+        >
           <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
           {{ admin.buildError.value }}
         </BAlert>
 
-        <BAlert
-          v-if="lockedOutcome"
-          variant="warning"
-          show
-          class="mb-3"
-          data-testid="build-locked"
-        >
+        <BAlert v-if="lockedOutcome" variant="warning" show class="mb-3" data-testid="build-locked">
           <i class="bi bi-hourglass-split me-1" aria-hidden="true" />
           Snapshot sources are refreshing, retry in {{ lockedOutcome.retryAfter }}s.
           {{ lockedOutcome.message }}
@@ -90,7 +90,11 @@
         >
           <i class="bi bi-check-circle-fill me-1" aria-hidden="true" />
           Release <strong>{{ createdOrExistingOutcome.release.release_id }}</strong>
-          {{ createdOrExistingOutcome.outcome === 'created' ? 'created' : 'already existed (identical content)' }}
+          {{
+            createdOrExistingOutcome.outcome === 'created'
+              ? 'created'
+              : 'already existed (identical content)'
+          }}
           — status <strong>{{ createdOrExistingOutcome.release.status }}</strong>.
         </BAlert>
 
@@ -110,7 +114,11 @@
           </div>
           <div class="build-form__field">
             <label for="release-license" class="form-label fw-semibold">License</label>
-            <BFormInput id="release-license" v-model="buildForm.license" data-testid="build-license" />
+            <BFormInput
+              id="release-license"
+              v-model="buildForm.license"
+              data-testid="build-license"
+            />
           </div>
           <div class="build-form__field build-form__field--checkbox form-check">
             <input
@@ -144,16 +152,56 @@
         heading-tag="h2"
         :aria-busy="loading ? 'true' : 'false'"
       >
-        <BAlert v-if="admin.actionError.value" variant="danger" show class="mb-3" data-testid="action-error">
+        <BAlert
+          v-if="admin.actionError.value"
+          variant="danger"
+          show
+          class="mb-3"
+          data-testid="action-error"
+        >
           <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
           {{ admin.actionError.value }}
         </BAlert>
-        <BAlert v-if="admin.actionMessage.value" variant="info" show class="mb-3" data-testid="action-message">
+        <BAlert
+          v-if="admin.actionMessage.value"
+          variant="info"
+          show
+          class="mb-3"
+          data-testid="action-message"
+        >
           <i class="bi bi-info-circle-fill me-1" aria-hidden="true" />
           {{ admin.actionMessage.value }}
         </BAlert>
 
         <GenericTable :items="releaseRows" :fields="RELEASE_ADMIN_TABLE_FIELDS" :is-busy="loading">
+          <template #cell-id="{ row }">
+            <div class="release-id">
+              <span class="release-mono text-truncate" :title="row.release_id">
+                {{ row.release_id }}
+              </span>
+              <span class="release-digest" :data-testid="`digest-${row.release_id}`">
+                <span class="release-digest__label">Data</span>
+                <span class="release-mono" :title="row.source_data_version">
+                  {{ shortDigest(row.source_data_version) }}
+                </span>
+                <BButton
+                  v-if="row.source_data_version"
+                  size="sm"
+                  variant="link"
+                  class="release-digest__copy"
+                  :title="copiedId === row.release_id ? 'Copied' : 'Copy data version'"
+                  :aria-label="`Copy data version of ${row.release_id}`"
+                  :data-testid="`copy-digest-${row.release_id}`"
+                  @click="copyDigest(row)"
+                >
+                  <i
+                    :class="copiedId === row.release_id ? 'bi bi-check2' : 'bi bi-clipboard'"
+                    aria-hidden="true"
+                  />
+                </BButton>
+              </span>
+            </div>
+          </template>
           <template #cell-status="{ row }">
             <BBadge :variant="row.status === 'published' ? 'success' : 'secondary'">
               {{ row.status }}
@@ -258,7 +306,11 @@
           </template>
         </GenericTable>
 
-        <p v-if="!loading && admin.releases.value.length === 0" class="text-muted small mb-0 mt-2">
+        <p v-if="showLoading" class="text-muted small mb-0 mt-2" role="status">Loading releases…</p>
+        <p
+          v-else-if="!loading && admin.releases.value.length === 0"
+          class="text-muted small mb-0 mt-2"
+        >
           No releases yet.
         </p>
       </AdminOperationPanel>
@@ -269,37 +321,52 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useHead } from '@unhead/vue';
-import { BAlert, BBadge, BButton, BContainer, BFormInput, BFormTextarea, BSpinner } from 'bootstrap-vue-next';
+import {
+  BAlert,
+  BBadge,
+  BButton,
+  BContainer,
+  BFormInput,
+  BFormTextarea,
+  BSpinner,
+} from 'bootstrap-vue-next';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import type { RecordReleaseDoiFields } from '@/api/admin_analysis_release';
 import { useAnalysisReleaseAdmin, type BuildReleaseFormInput } from './useAnalysisReleaseAdmin';
+import { formatDateTime, shortDigest, useDelayedFlag } from './adminDisplay';
 
 useHead({ title: 'Manage analysis-snapshot releases' });
 
+// `id` (release id + short data-version digest) is one of the keys
+// GenericDesktopTable wires to a `cell-<key>` slot; the 64-character digest
+// overflowed a column of its own (table-layout: fixed).
 const RELEASE_ADMIN_TABLE_FIELDS = [
-  { key: 'release_id', label: 'Release' },
-  { key: 'status', label: 'Status' },
-  { key: 'source_data_version', label: 'Source data version' },
+  { key: 'id', label: 'Release', thStyle: { width: '15rem' } },
+  { key: 'status', label: 'Status', thStyle: { width: '7rem' } },
   { key: 'created_at', label: 'Created' },
   { key: 'published_at', label: 'Published' },
-  { key: 'file_count', label: 'Files' },
-  { key: 'version_doi', label: 'Version DOI' },
-  { key: 'actions', label: 'Actions' },
+  { key: 'file_count', label: 'Files', thStyle: { width: '4.5rem' } },
+  {
+    key: 'version_doi',
+    label: 'Version DOI',
+    tdClass: 'text-truncate',
+    tdAttr: ({ value }: { value: unknown }) => ({ title: String(value ?? '') }),
+  },
+  { key: 'actions', label: 'Actions', thStyle: { width: '15rem' } },
 ];
 
 /**
  * Flat display row for the releases table. `GenericDesktopTable.vue` only
  * wires custom `#cell(<key>)` slots for a fixed, hardcoded set of field keys
- * (`status` and `actions` here, notably NOT `created_at`/`published_at`/
+ * (`id`, `status` and `actions` here, notably NOT `created_at`/`published_at`/
  * `version_doi`) — the same BVN gotcha `dataReleaseTable.ts` documents for
- * the public /DataReleases table. A `field.formatter` silently never runs
- * either, so display formatting (dates, the DOI dash sentinel) is baked
- * into the row here rather than attempted via a cell slot or formatter for
- * an unwired key.
+ * the public /DataReleases table. Display formatting (dates, the DOI dash
+ * sentinel) is therefore baked into the row.
  */
 interface AdminReleaseTableRow {
+  id: string;
   release_id: string;
   status: string;
   source_data_version: string;
@@ -314,11 +381,12 @@ const { loading, building } = admin;
 
 const releaseRows = computed<AdminReleaseTableRow[]>(() =>
   admin.releases.value.map((release) => ({
+    id: release.release_id,
     release_id: release.release_id,
     status: release.status,
-    source_data_version: release.source_data_version,
-    created_at: formatDate(release.created_at),
-    published_at: formatDate(release.published_at),
+    source_data_version: release.source_data_version ?? '',
+    created_at: formatDateTime(release.created_at),
+    published_at: formatDateTime(release.published_at),
     file_count: release.file_count,
     version_doi: release.version_doi || '—',
   }))
@@ -357,10 +425,19 @@ function doiFormFor(releaseId: string): RecordReleaseDoiFields {
   return doiForms[releaseId];
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+const showLoading = useDelayedFlag(loading);
+
+const copiedId = ref<string | null>(null);
+async function copyDigest(row: AdminReleaseTableRow): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(row.source_data_version);
+    copiedId.value = row.release_id;
+    setTimeout(() => {
+      if (copiedId.value === row.release_id) copiedId.value = null;
+    }, 2000);
+  } catch {
+    copiedId.value = null;
+  }
 }
 
 async function handleBuild(): Promise<void> {
@@ -445,6 +522,35 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.release-id {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.release-mono {
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.8125rem;
+}
+
+.release-digest {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-secondary, #616161);
+  font-size: 0.75rem;
+}
+
+.release-digest__label {
+  font-weight: 700;
+}
+
+.release-digest__copy {
+  padding: 0 0.25rem;
+  line-height: 1;
 }
 
 .release-actions {

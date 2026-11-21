@@ -5,6 +5,7 @@
     :id="modalId"
     v-model="proxyVisible"
     size="lg"
+    scrollable
     header-bg-variant="primary"
     header-text-variant="light"
     ok-title="Save Changes"

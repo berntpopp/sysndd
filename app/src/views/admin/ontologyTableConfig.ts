@@ -10,6 +10,8 @@
 // keep as plain constants (see applyApiResponse in useOntologyAdminTable.ts,
 // which never assigns to `fields`).
 
+import { formatLongDate } from './adminDisplay';
+
 export interface OntologyTableField {
   key: string;
   label: string;
@@ -17,7 +19,12 @@ export interface OntologyTableField {
   filterable?: boolean;
   selectable?: boolean;
   class?: string;
+  thStyle?: Record<string, string>;
+  formatter?: (cell: { value: unknown }) => string;
+  tdAttr?: (cell: { value: unknown }) => Record<string, string>;
 }
+
+const flag = (value: unknown) => value === true || value === 1 || value === '1';
 
 /** Table columns for the VariO variant-ontology admin table. */
 export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
@@ -27,6 +34,7 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     sortable: true,
     filterable: true,
     class: 'text-start',
+    thStyle: { width: '8rem' },
   },
   {
     key: 'vario_name',
@@ -34,6 +42,7 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     sortable: true,
     filterable: true,
     class: 'text-start',
+    thStyle: { width: '16%' },
   },
   {
     key: 'definition',
@@ -48,6 +57,8 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     sortable: true,
     selectable: true,
     class: 'text-center',
+    thStyle: { width: '6.5rem' },
+    formatter: ({ value }) => (flag(value) ? 'Yes' : 'No'),
   },
   {
     key: 'is_active',
@@ -55,23 +66,30 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     sortable: true,
     selectable: true,
     class: 'text-center',
+    thStyle: { width: '6.5rem' },
+    formatter: ({ value }) => (flag(value) ? 'Yes' : 'No'),
   },
   {
     key: 'sort',
-    label: 'Sort',
+    label: 'Order',
     sortable: true,
     class: 'text-center',
+    thStyle: { width: '5rem' },
   },
   {
     key: 'update_date',
     label: 'Updated',
     sortable: true,
     class: 'text-start',
+    thStyle: { width: '10rem' },
+    formatter: ({ value }) => formatLongDate(value),
+    tdAttr: ({ value }) => ({ title: String(value ?? '') }),
   },
   {
     key: 'actions',
     label: 'Actions',
     class: 'text-center',
+    thStyle: { width: '5.5rem' },
   },
 ];
 

@@ -6,6 +6,7 @@ import {
   firstValue,
   displayValue,
   formatInteger,
+  formatDate,
   humanizeKey,
   statusClass,
   jobMode,
@@ -39,15 +40,22 @@ describe('nddScoreAdminFormatters', () => {
     expect(displayValue(false)).toBe('No');
     expect(displayValue(['only'])).toBe('only');
     expect(displayValue(['a', 'b'])).toBe('a, b');
+    expect(displayValue('NA')).toBe('Not recorded');
+    expect(displayValue(0.903366886497744)).toBe('0.903');
+    expect(displayValue({ auc_roc: 0.903366886497744, brier: 0.119 })).toBe(
+      'AUC ROC 0.903 · Brier 0.119'
+    );
+    expect(formatDate('2026-05-17 13:53:16')).toBe('May 17, 2026, 13:53 UTC');
   });
 
   it('formats integer counts with grouping', () => {
-    expect(formatInteger(1234)).toBe((1234).toLocaleString());
+    expect(formatInteger(1234)).toBe('1,234');
     expect(formatInteger('not a number')).toBe('0');
   });
 
   it('humanizes snake_case keys', () => {
-    expect(humanizeKey('auc_roc')).toBe('Auc Roc');
+    expect(humanizeKey('auc_roc')).toBe('AUC ROC');
+    expect(humanizeKey('calibrated_bss')).toBe('Calibrated BSS');
   });
 
   it('maps statuses to badge classes', () => {

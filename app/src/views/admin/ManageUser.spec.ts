@@ -288,6 +288,35 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
     wrapper.unmount();
   });
 
+  it('names the icon-only toolbar buttons', async () => {
+    const wrapper = await mountComponent();
+    expect(wrapper.find('button[aria-label="Export to Excel"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="No active filters"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('renders presets as toggles with a separate labelled delete button', async () => {
+    const wrapper = await mountComponent();
+    const pending = wrapper.get('[data-testid="preset-Pending"]');
+    expect(pending.attributes('aria-pressed')).toBe('false');
+    expect(pending.find('.bi-x-lg').exists()).toBe(false);
+
+    await pending.trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="preset-Pending"]').attributes('aria-pressed')).toBe('true');
+
+    await wrapper.get('[data-testid="preset-Pending"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="preset-Pending"]').attributes('aria-pressed')).toBe('false');
+
+    const del = wrapper.get('[data-testid="delete-preset-Pending"]');
+    expect(del.attributes('aria-label')).toBe('Delete preset Pending');
+    await del.trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="preset-Pending"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   // ---------------------------------------------------------------------------
   // Locked TODO — downstream E-series rewrite of ManageUser (useTableData +
   // useFilterSync migration) will pin this behaviour.  The string is verbatim

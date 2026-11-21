@@ -1,18 +1,20 @@
 <template>
-  <BCard class="section-editor mb-3" :class="{ 'border-primary': isExpanded }">
+  <BCard no-body class="section-editor mb-3" :class="{ 'border-primary': isExpanded }">
     <template #header>
-      <div class="d-flex align-items-center gap-2">
+      <div class="section-editor__header">
         <!-- Drag handle -->
         <span class="drag-handle text-muted" title="Drag to reorder">
-          <i class="bi bi-grip-vertical" />
+          <i class="bi bi-grip-vertical" aria-hidden="true" />
         </span>
 
         <!-- Section icon preview -->
-        <i :class="section.icon" class="fs-5" />
+        <i :class="section.icon" class="fs-5" aria-hidden="true" />
 
         <!-- Section title (editable inline when expanded) -->
-        <div class="flex-grow-1">
-          <strong v-if="!isExpanded">{{ section.title || 'Untitled Section' }}</strong>
+        <div class="section-editor__title">
+          <strong v-if="!isExpanded" class="text-truncate" :title="sectionTitle">{{
+            sectionTitle
+          }}</strong>
           <BFormInput
             v-else
             v-model="localSection.title"
@@ -23,21 +25,25 @@
         </div>
 
         <!-- Actions -->
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-1 flex-shrink-0">
           <BButton
             size="sm"
             :variant="isExpanded ? 'primary' : 'outline-secondary'"
+            :aria-expanded="isExpanded ? 'true' : 'false'"
+            :aria-label="`${isExpanded ? 'Collapse' : 'Edit'} section ${sectionTitle}`"
+            :title="isExpanded ? 'Collapse' : 'Edit section'"
             @click="isExpanded = !isExpanded"
           >
-            <i :class="isExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" />
+            <i :class="isExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" aria-hidden="true" />
           </BButton>
           <BButton
             size="sm"
             variant="outline-danger"
             title="Delete section"
+            :aria-label="`Delete section ${sectionTitle}`"
             @click="$emit('delete')"
           >
-            <i class="bi bi-trash" />
+            <i class="bi bi-trash" aria-hidden="true" />
           </BButton>
         </div>
       </div>
@@ -117,6 +123,8 @@ watch(
   { deep: true }
 );
 
+const sectionTitle = computed(() => props.section.title || 'Untitled Section');
+
 function emitUpdate() {
   emit('update', { ...localSection.value });
 }
@@ -131,6 +139,19 @@ const iconOptions = computed(() =>
 </script>
 
 <style scoped>
+.section-editor__header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-editor__title {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .drag-handle {
   cursor: grab;
   padding: 0.25rem;

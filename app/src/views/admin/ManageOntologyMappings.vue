@@ -19,9 +19,74 @@
           {{ loadError }}
         </BAlert>
 
-        <div v-if="loadingStatus" class="ont-loading" role="status" aria-live="polite">
-          <BSpinner small class="me-2" />
-          Loading mapping status...
+        <span v-if="firstLoad" class="visually-hidden" role="status">
+          Loading mapping status…
+        </span>
+
+        <!-- The first load renders this layout as a skeleton, so the panel below
+             does not move when the data arrives. -->
+        <div
+          v-if="firstLoad || (mappingStatus?.build_exists && latest)"
+          class="ont-build"
+          :class="{ 'ont-build--loading': firstLoad }"
+          :aria-hidden="firstLoad ? 'true' : undefined"
+        >
+          <div class="ont-build__identity">
+            <div>
+              <span class="ont-label">MONDO release</span>
+              <strong class="ont-mono" data-testid="ont-mondo-release">{{
+                latest?.mondo_release_version ?? '—'
+              }}</strong>
+            </div>
+            <BBadge :class="buildStatusClass(latest?.status ?? null)">
+              {{ latest?.status ?? '—' }}
+            </BBadge>
+          </div>
+
+          <div class="ont-kpi-grid" aria-label="Build counts">
+            <div class="ont-kpi">
+              <span>Mappings</span>
+              <strong data-testid="ont-mapping-count">{{
+                formatCount(latest?.mapping_count)
+              }}</strong>
+            </div>
+            <div class="ont-kpi">
+              <span>Diseases covered</span>
+              <strong>{{ formatCount(latest?.disease_covered_count) }}</strong>
+            </div>
+            <div class="ont-kpi">
+              <span>MONDO terms</span>
+              <strong>{{ formatCount(latest?.mondo_term_count) }}</strong>
+            </div>
+            <div class="ont-kpi">
+              <span>Cross-refs</span>
+              <strong>{{ formatCount(latest?.mondo_xref_count) }}</strong>
+            </div>
+          </div>
+
+          <div class="ont-detail-grid">
+            <div class="ont-detail">
+              <span class="ont-label">Finished</span>
+              <span>{{ formatDateTime(latest?.build_finished_at) }}</span>
+            </div>
+            <div class="ont-detail">
+              <span class="ont-label">Duration</span>
+              <span>{{ formatDuration(latest?.build_duration_s) }}</span>
+            </div>
+          </div>
+
+          <section v-if="shownHistory.length > 1" class="ont-subsection">
+            <h3>Recent history</h3>
+            <div class="ont-history-list">
+              <div v-for="row in shownHistory" :key="row.id" class="ont-history-row">
+                <BBadge :class="buildStatusClass(row.status)" class="me-2">
+                  {{ row.status ?? '—' }}
+                </BBadge>
+                <span class="ont-mono me-2">{{ row.mondo_release_version ?? '—' }}</span>
+                <span class="ont-muted">{{ formatDateTime(row.build_finished_at) }}</span>
+              </div>
+            </div>
+          </section>
         </div>
 
         <BAlert
@@ -35,73 +100,6 @@
           No disease ontology mappings have been built yet. They populate automatically on startup
           (and weekly); click <strong>Refresh now</strong> to build them immediately.
         </BAlert>
-
-        <div v-else-if="mappingStatus?.latest" class="ont-build">
-          <div class="ont-build__identity">
-            <div>
-              <span class="ont-label">MONDO release</span>
-              <strong class="ont-mono" data-testid="ont-mondo-release">{{
-                mappingStatus.latest.mondo_release_version ?? '—'
-              }}</strong>
-            </div>
-            <BBadge :class="buildStatusClass(mappingStatus.latest.status)">
-              {{ mappingStatus.latest.status ?? '—' }}
-            </BBadge>
-          </div>
-
-          <div class="ont-kpi-grid" aria-label="Build counts">
-            <div class="ont-kpi">
-              <span>Mappings</span>
-              <strong data-testid="ont-mapping-count">{{
-                fmtNum(mappingStatus.latest.mapping_count)
-              }}</strong>
-            </div>
-            <div class="ont-kpi">
-              <span>Diseases covered</span>
-              <strong>{{ fmtNum(mappingStatus.latest.disease_covered_count) }}</strong>
-            </div>
-            <div class="ont-kpi">
-              <span>MONDO terms</span>
-              <strong>{{ fmtNum(mappingStatus.latest.mondo_term_count) }}</strong>
-            </div>
-            <div class="ont-kpi">
-              <span>Cross-refs</span>
-              <strong>{{ fmtNum(mappingStatus.latest.mondo_xref_count) }}</strong>
-            </div>
-          </div>
-
-          <div class="ont-detail-grid">
-            <div class="ont-detail">
-              <span class="ont-label">Finished</span>
-              <span>{{ fmtDate(mappingStatus.latest.build_finished_at) }}</span>
-            </div>
-            <div class="ont-detail">
-              <span class="ont-label">Duration</span>
-              <span>{{
-                mappingStatus.latest.build_duration_s != null
-                  ? `${mappingStatus.latest.build_duration_s.toFixed(1)} s`
-                  : '—'
-              }}</span>
-            </div>
-          </div>
-
-          <section v-if="mappingStatus.history.length > 1" class="ont-subsection">
-            <h3>Recent history</h3>
-            <div class="ont-history-list">
-              <div
-                v-for="row in mappingStatus.history.slice(0, 5)"
-                :key="row.id"
-                class="ont-history-row"
-              >
-                <BBadge :class="buildStatusClass(row.status)" class="me-2">
-                  {{ row.status ?? '—' }}
-                </BBadge>
-                <span class="ont-mono me-2">{{ row.mondo_release_version ?? '—' }}</span>
-                <span class="ont-muted">{{ fmtDate(row.build_finished_at) }}</span>
-              </div>
-            </div>
-          </section>
-        </div>
 
         <BAlert v-else variant="secondary" show class="mb-0"> No build records found. </BAlert>
       </AdminOperationPanel>
@@ -202,6 +200,7 @@ import {
   BSpinner,
 } from 'bootstrap-vue-next';
 import { extractApiErrorMessage } from '@/utils/api-errors';
+import { formatCount, formatDateTime, formatDuration } from './adminDisplay';
 import { useHead } from '@unhead/vue';
 
 useHead({ title: 'Manage Ontology Mappings' });
@@ -215,6 +214,21 @@ const submitting = ref(false);
 const loadError = ref('');
 const actionError = ref('');
 const actionMessage = ref('');
+
+const latest = computed(() => mappingStatus.value?.latest ?? null);
+// Skeleton only for the first load; a reload after a job keeps the shown data.
+const firstLoad = computed(() => loadingStatus.value && !mappingStatus.value);
+// Five placeholder rows match the history list the API returns once established.
+const shownHistory = computed(() =>
+  firstLoad.value
+    ? Array.from({ length: 5 }, (_, id) => ({
+        id,
+        status: null,
+        mondo_release_version: null,
+        build_finished_at: null,
+      }))
+    : (mappingStatus.value?.history ?? []).slice(0, 5)
+);
 
 const statusMeta = computed<string | null>(() => {
   if (!mappingStatus.value?.latest) return null;
@@ -291,20 +305,6 @@ function buildStatusClass(status: string | null): string {
       return 'bg-secondary';
   }
 }
-
-function fmtNum(n: number | null | undefined): string {
-  if (n == null) return '—';
-  return n.toLocaleString();
-}
-
-function fmtDate(s: string | null | undefined): string {
-  if (!s) return '—';
-  try {
-    return new Date(s).toLocaleString();
-  } catch {
-    return s;
-  }
-}
 </script>
 
 <style scoped>
@@ -312,9 +312,13 @@ function fmtDate(s: string | null | undefined): string {
   padding: 0;
 }
 
-.ont-loading {
-  color: var(--neutral-600, #757575);
-  font-size: 0.875rem;
+.ont-build--loading strong,
+.ont-build--loading .ont-detail > span:last-child,
+.ont-build--loading .ont-history-row > span {
+  min-width: 6rem;
+  border-radius: 0.25rem;
+  background: #e2e8f0;
+  color: transparent;
 }
 
 .ont-build,
@@ -333,7 +337,7 @@ function fmtDate(s: string | null | undefined): string {
 
 .ont-label {
   display: block;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.25;
@@ -346,7 +350,7 @@ function fmtDate(s: string | null | undefined): string {
 }
 
 .ont-muted {
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 
@@ -371,7 +375,7 @@ function fmtDate(s: string | null | undefined): string {
 
 .ont-kpi span {
   display: block;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -429,7 +433,7 @@ function fmtDate(s: string | null | undefined): string {
 .ont-job__step,
 .ont-job__elapsed {
   margin: 0.35rem 0;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 

@@ -24,6 +24,35 @@ describe('ManageNDDScore.vue', () => {
     expect(submitNddScoreImport).not.toHaveBeenCalled();
   });
 
+  it('renders the release layout as a skeleton while the first status loads (no spinner swap)', async () => {
+    const api = await import('@/api/nddscore_admin');
+    let resolve: (v: unknown) => void = () => {};
+    vi.mocked(api.fetchNddScoreStatus).mockReturnValueOnce(
+      new Promise((r) => (resolve = r)) as ReturnType<typeof api.fetchNddScoreStatus>
+    );
+    const wrapper = mount(ManageNDDScore, {
+      global: { stubs: { AdminOperationPanel: false, BModal: true } },
+    });
+    await flushPromises();
+    const skeleton = wrapper.find('.ndd-release--loading');
+    expect(skeleton.exists()).toBe(true);
+    expect(skeleton.findAll('.ndd-kpi')).toHaveLength(3);
+    expect(wrapper.text()).not.toContain('Loading NDDScore status...');
+
+    resolve({
+      active_release: {
+        release_id: 'nddscore_20260517_public',
+        import_status: 'active',
+        ndd_performance_json: '{"val": {"auc_roc": 0.903366886497744}}',
+      },
+      recent_jobs: [],
+    });
+    await flushPromises();
+    expect(wrapper.find('.ndd-release--loading').exists()).toBe(false);
+    expect(wrapper.text()).toContain('AUC ROC 0.903');
+    expect(wrapper.text()).not.toContain('{"');
+  });
+
   it('submits the import job only after confirmation', async () => {
     const wrapper = mount(ManageNDDScore, {
       global: { stubs: { AdminOperationPanel: false } },

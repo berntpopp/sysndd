@@ -2,7 +2,7 @@
 <template>
   <AdminOperationPanel
     title="Updating Ontology Annotations"
-    :meta="lastUpdated ? `Last: ${formatDate(lastUpdated)}` : null"
+    :meta="`Last: ${lastUpdated === undefined ? '…' : lastUpdated ? formatDate(lastUpdated) : 'Never'}`"
     icon="bi-diagram-3"
     heading-tag="h2"
   >
@@ -20,9 +20,9 @@
     <BAlert v-if="stale && !blocked" variant="warning" show class="mt-3 mb-0">
       <h6 class="alert-heading">Disease dictionary may be stale</h6>
       <p class="mb-0 small">
-        A previous ontology update was blocked and its staged data has expired
-        (last fully applied {{ stale.lastApplied ? formatDate(stale.lastApplied) : 'unknown' }}).
-        Re-run "Update Ontology Annotations" to refresh; new terms will be auto-applied.
+        A previous ontology update was blocked and its staged data has expired (last fully applied
+        {{ stale.lastApplied ? formatDate(stale.lastApplied) : 'unknown' }}). Re-run "Update
+        Ontology Annotations" to refresh; new terms will be auto-applied.
       </p>
     </BAlert>
 
@@ -180,7 +180,7 @@ const props = defineProps<{
   forceApplyJob: UseAsyncJobReturn;
   blocked: OntologyBlockedState | null;
   stale?: { lastApplied: string | null } | null;
-  lastUpdated: string | null;
+  lastUpdated?: string | null;
   userOptions: UserOption[];
   loadingUsers: boolean;
 }>();

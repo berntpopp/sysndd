@@ -2,159 +2,141 @@
 <template>
   <AuthenticatedPageShell
     title="LLM Administration"
+    description="Configure the summary model, review cached cluster summaries and regenerate them."
     content-class="authenticated-route-content"
     full-width
   >
-    <div class="container-fluid">
-      <BContainer fluid>
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <AdminOperationPanel
-              title="LLM Configuration"
-              :meta="
-                config ? (config.gemini_configured ? config.current_model : 'Not configured') : null
-              "
-              icon="bi-cpu"
-            >
-              <template #actions>
-                <BButton
-                  variant="outline-primary"
-                  size="sm"
-                  :disabled="loading"
-                  @click="refreshAll"
-                >
-                  <BSpinner v-if="loading" small class="me-1" />
-                  Refresh
-                </BButton>
-              </template>
+    <BContainer fluid class="p-0">
+      <AdminOperationPanel
+        title="LLM Configuration"
+        :meta="config ? (config.gemini_configured ? config.current_model : 'Not configured') : null"
+        icon="bi-cpu"
+      >
+        <template #actions>
+          <BButton variant="outline-primary" size="sm" :disabled="loading" @click="refreshAll">
+            <BSpinner v-if="showLoading" small class="me-1" />
+            Refresh
+          </BButton>
+        </template>
 
-              <!-- Tab Navigation (WAI-ARIA tablist) -->
-              <nav
-                class="nav nav-pills admin-tabs mb-3"
-                role="tablist"
-                aria-label="LLM administration sections"
-              >
-                <RouterLink
-                  v-for="tab in tabs"
-                  :id="`llm-tab-${tab.id}`"
-                  :key="tab.id"
-                  :to="{ path: '/ManageLLM', hash: tab.hash }"
-                  class="nav-link"
-                  role="tab"
-                  :class="{ active: activeTab === tab.id }"
-                  :aria-selected="activeTab === tab.id ? 'true' : 'false'"
-                  :aria-controls="tab.id"
-                  :aria-current="activeTab === tab.id ? 'page' : undefined"
-                  @click="setActiveTab(tab.id)"
-                >
-                  {{ tab.label }}
-                </RouterLink>
-              </nav>
+        <!-- Tab Navigation (WAI-ARIA tablist) -->
+        <nav
+          class="nav nav-pills admin-tabs mb-3"
+          role="tablist"
+          aria-label="LLM administration sections"
+        >
+          <RouterLink
+            v-for="tab in tabs"
+            :id="`llm-tab-${tab.id}`"
+            :key="tab.id"
+            :to="{ path: '/ManageLLM', hash: tab.hash }"
+            class="nav-link"
+            role="tab"
+            :class="{ active: activeTab === tab.id }"
+            :aria-selected="activeTab === tab.id ? 'true' : 'false'"
+            :aria-controls="tab.id"
+            :aria-current="activeTab === tab.id ? 'page' : undefined"
+            @click="setActiveTab(tab.id)"
+          >
+            {{ tab.label }}
+          </RouterLink>
+        </nav>
 
-              <section
-                v-show="activeTab === 'overview'"
-                id="overview"
-                role="tabpanel"
-                aria-labelledby="llm-tab-overview"
-                tabindex="0"
-              >
-                <LlmOverviewPanel
-                  :config="config"
-                  :cache-stats="cacheStats"
-                  :loading="loading"
-                  :overview-description="overviewDescription"
-                  :cache-health-label="cacheHealthLabel"
-                  :cache-summary-rows="cacheSummaryRows"
-                  :regeneration-feedback="regenerationFeedback"
-                  :regeneration-feedback-variant="regenerationFeedbackVariant"
-                  :regeneration-feedback-icon="regenerationFeedbackIcon"
-                  :is-any-regeneration-loading="isAnyRegenerationLoading"
-                  :visible-regeneration-jobs="visibleRegenerationJobs"
-                  :functional-regeneration-job="functionalRegenerationJob"
-                  :phenotype-regeneration-job="phenotypeRegenerationJob"
-                  @regenerate="handleRegenerate"
-                  @open-clear-modal="showClearModal = true"
-                />
-              </section>
+        <section
+          v-show="activeTab === 'overview'"
+          id="overview"
+          role="tabpanel"
+          aria-labelledby="llm-tab-overview"
+          tabindex="0"
+        >
+          <LlmOverviewPanel
+            :config="config"
+            :cache-stats="cacheStats"
+            :loading="loading"
+            :overview-description="overviewDescription"
+            :cache-health-label="cacheHealthLabel"
+            :cache-summary-rows="cacheSummaryRows"
+            :regeneration-feedback="regenerationFeedback"
+            :regeneration-feedback-variant="regenerationFeedbackVariant"
+            :regeneration-feedback-icon="regenerationFeedbackIcon"
+            :is-any-regeneration-loading="isAnyRegenerationLoading"
+            :visible-regeneration-jobs="visibleRegenerationJobs"
+            :functional-regeneration-job="functionalRegenerationJob"
+            :phenotype-regeneration-job="phenotypeRegenerationJob"
+            @regenerate="handleRegenerate"
+            @open-clear-modal="showClearModal = true"
+          />
+        </section>
 
-              <!-- Configuration Tab -->
-              <section
-                v-show="activeTab === 'configuration'"
-                id="configuration"
-                role="tabpanel"
-                aria-labelledby="llm-tab-configuration"
-                tabindex="0"
-              >
-                <LlmConfigPanel
-                  :config="config"
-                  :loading="loading"
-                  @update-model="handleModelUpdate"
-                />
-              </section>
+        <!-- Configuration Tab -->
+        <section
+          v-show="activeTab === 'configuration'"
+          id="configuration"
+          role="tabpanel"
+          aria-labelledby="llm-tab-configuration"
+          tabindex="0"
+        >
+          <LlmConfigPanel :config="config" :loading="loading" @update-model="handleModelUpdate" />
+        </section>
 
-              <!-- Prompts Tab -->
-              <section
-                v-show="activeTab === 'prompts'"
-                id="prompts"
-                role="tabpanel"
-                aria-labelledby="llm-tab-prompts"
-                tabindex="0"
-              >
-                <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
-              </section>
+        <!-- Prompts Tab -->
+        <section
+          v-show="activeTab === 'prompts'"
+          id="prompts"
+          role="tabpanel"
+          aria-labelledby="llm-tab-prompts"
+          tabindex="0"
+        >
+          <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
+        </section>
 
-              <!-- Cache Tab -->
-              <section
-                v-show="activeTab === 'cache'"
-                id="cache"
-                role="tabpanel"
-                aria-labelledby="llm-tab-cache"
-                tabindex="0"
-              >
-                <LlmCacheManager
-                  :stats="cacheStats"
-                  @clear="handleCacheClear"
-                  @validate="handleValidate"
-                  @regenerate="handleRegenerate"
-                />
-              </section>
+        <!-- Cache Tab -->
+        <section
+          v-show="activeTab === 'cache'"
+          id="cache"
+          role="tabpanel"
+          aria-labelledby="llm-tab-cache"
+          tabindex="0"
+        >
+          <LlmCacheManager
+            :stats="cacheStats"
+            @clear="handleCacheClear"
+            @validate="handleValidate"
+            @regenerate="handleRegenerate"
+          />
+        </section>
 
-              <!-- Logs Tab -->
-              <section
-                v-show="activeTab === 'logs'"
-                id="logs"
-                role="tabpanel"
-                aria-labelledby="llm-tab-logs"
-                tabindex="0"
-              >
-                <LlmLogViewer />
-              </section>
-            </AdminOperationPanel>
-          </BCol>
-        </BRow>
+        <!-- Logs Tab -->
+        <section
+          v-show="activeTab === 'logs'"
+          id="logs"
+          role="tabpanel"
+          aria-labelledby="llm-tab-logs"
+          tabindex="0"
+        >
+          <LlmLogViewer />
+        </section>
+      </AdminOperationPanel>
 
-        <!-- Clear Cache Confirmation Modal -->
-        <BModal v-model="showClearModal" title="Clear Cache & Regenerate" ok-variant="danger">
-          <template #default>
-            <p>This will:</p>
-            <ol>
-              <li>Delete all cached LLM summaries</li>
-              <li>Trigger regeneration for all clusters</li>
-              <li>This may take several minutes and incur API costs</li>
-            </ol>
-            <BFormGroup label="Clear which clusters?">
-              <BFormRadioGroup v-model="clearType" :options="clearOptions" stacked />
-            </BFormGroup>
-          </template>
-          <template #footer>
-            <BButton variant="secondary" @click="showClearModal = false">Cancel</BButton>
-            <BButton variant="danger" @click="handleClearAndRegenerate">
-              Clear & Regenerate
-            </BButton>
-          </template>
-        </BModal>
-      </BContainer>
-    </div>
+      <!-- Clear Cache Confirmation Modal -->
+      <BModal v-model="showClearModal" title="Clear Cache & Regenerate" ok-variant="danger">
+        <template #default>
+          <p>This will:</p>
+          <ol>
+            <li>Delete all cached LLM summaries</li>
+            <li>Trigger regeneration for all clusters</li>
+            <li>This may take several minutes and incur API costs</li>
+          </ol>
+          <BFormGroup label="Clear which clusters?">
+            <BFormRadioGroup v-model="clearType" :options="clearOptions" stacked />
+          </BFormGroup>
+        </template>
+        <template #footer>
+          <BButton variant="secondary" @click="showClearModal = false">Cancel</BButton>
+          <BButton variant="danger" @click="handleClearAndRegenerate"> Clear & Regenerate </BButton>
+        </template>
+      </BModal>
+    </BContainer>
   </AuthenticatedPageShell>
 </template>
 
@@ -173,6 +155,7 @@ import type { PromptType, ClusterType } from '@/types/llm';
 import { useLlmAdminTabs } from './useLlmAdminTabs';
 import { useLlmCacheOverview } from './useLlmCacheOverview';
 import { useLlmRegenerationJobs } from './useLlmRegenerationJobs';
+import { useDelayedFlag } from './adminDisplay';
 import { useHead } from '@unhead/vue';
 
 useHead({ title: 'LLM Administration' });
@@ -192,6 +175,9 @@ const {
   triggerRegeneration,
   updateValidationStatus,
 } = useLlmAdmin();
+
+// Spinners only after 300 ms, so a fast load never flashes one.
+const showLoading = useDelayedFlag(loading);
 
 // Local state
 const showClearModal = ref(false);

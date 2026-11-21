@@ -52,6 +52,29 @@ describe('ManageOntologyMappings.vue', () => {
     expect(wrapper.find('[data-testid="ontology-mapping-refresh-btn"]').exists()).toBe(true);
   });
 
+  it('shows the finish time and duration in the shared admin formats', async () => {
+    const wrapper = mount(ManageOntologyMappings, {
+      global: { stubs: { AdminOperationPanel: false } },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('June 20, 2026, 18:00 UTC');
+    expect(wrapper.text()).toContain('42.1 s');
+  });
+
+  it('keeps the build layout as a skeleton during the first load instead of a spinner line', async () => {
+    const api = await import('@/api/ontology_mapping_admin');
+    vi.mocked(api.fetchOntologyMappingStatus).mockReturnValueOnce(new Promise(() => {}));
+    const wrapper = mount(ManageOntologyMappings, {
+      global: { stubs: { AdminOperationPanel: false } },
+    });
+    await flushPromises();
+    const skeleton = wrapper.find('.ont-build--loading');
+    expect(skeleton.exists()).toBe(true);
+    expect(skeleton.findAll('.ont-kpi')).toHaveLength(4);
+    expect(skeleton.findAll('.ont-history-row')).toHaveLength(5);
+    expect(wrapper.text()).not.toContain('Loading mapping status...');
+  });
+
   it('renders the cold-start warning when build_exists is false', async () => {
     const { fetchOntologyMappingStatus } = await import('@/api/ontology_mapping_admin');
     (fetchOntologyMappingStatus as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

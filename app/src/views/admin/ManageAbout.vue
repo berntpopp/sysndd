@@ -2,152 +2,130 @@
 <template>
   <AuthenticatedPageShell
     title="Manage About Page"
+    description="Edit the public About page as Markdown sections, then publish."
     content-class="authenticated-route-content"
     full-width
   >
-    <div class="container-fluid">
-      <BContainer fluid>
-        <BRow class="justify-content-md-center py-2">
-          <BCol md="12" lg="11">
-            <AdminOperationPanel
-              title="Publication Status"
-              :meta="statusMeta"
-              icon="bi-file-earmark-richtext"
-            >
-              <template #actions>
-                <BButton
-                  v-b-tooltip.hover
-                  size="sm"
-                  variant="outline-secondary"
-                  title="Save as draft"
-                  :disabled="isSaving || isPublishing || sections.length === 0"
-                  @click="handleSaveDraft"
-                >
-                  <BSpinner v-if="isSaving" small />
-                  <i v-else class="bi bi-save" />
-                  Save Draft
-                </BButton>
-                <BButton
-                  v-b-tooltip.hover
-                  size="sm"
-                  variant="success"
-                  title="Publish content"
-                  :disabled="isSaving || isPublishing || sections.length === 0"
-                  @click="handlePublish"
-                >
-                  <BSpinner v-if="isPublishing" small />
-                  <i v-else class="bi bi-globe" />
-                  Publish
-                </BButton>
-                <BButton
-                  v-b-tooltip.hover
-                  size="sm"
-                  variant="outline-primary"
-                  title="View live About page"
-                  :href="'/About'"
-                  target="_blank"
-                >
-                  <i class="bi bi-eye" />
-                </BButton>
-              </template>
+    <BContainer fluid class="p-0">
+      <AdminOperationPanel
+        title="Publication Status"
+        :meta="statusMeta"
+        description="Use Markdown for formatting and drag sections to reorder. Changes auto-save as drafts."
+        icon="bi-file-earmark-richtext"
+      >
+        <template #actions>
+          <BButton
+            v-b-tooltip.hover
+            size="sm"
+            variant="outline-secondary"
+            title="Save as draft"
+            :disabled="isSaving || isPublishing || sections.length === 0"
+            @click="handleSaveDraft"
+          >
+            <BSpinner v-if="isSaving" small />
+            <i v-else class="bi bi-save" />
+            Save Draft
+          </BButton>
+          <BButton
+            v-b-tooltip.hover
+            size="sm"
+            variant="success"
+            title="Publish content"
+            :disabled="isSaving || isPublishing || sections.length === 0"
+            @click="handlePublish"
+          >
+            <BSpinner v-if="isPublishing" small />
+            <i v-else class="bi bi-globe" />
+            Publish
+          </BButton>
+          <BButton
+            v-b-tooltip.hover
+            size="sm"
+            variant="outline-primary"
+            title="View live About page"
+            aria-label="View live About page (opens in a new tab)"
+            :href="'/About'"
+            target="_blank"
+          >
+            <i class="bi bi-eye" aria-hidden="true" />
+          </BButton>
+        </template>
 
-              <!-- Status Messages -->
-              <BAlert
-                v-if="error"
-                variant="danger"
-                dismissible
-                class="mb-3"
-                @dismissed="error = null"
-              >
-                <i class="bi bi-exclamation-triangle me-2" />
-                {{ error }}
-              </BAlert>
+        <!-- Status Messages -->
+        <BAlert v-if="error" variant="danger" dismissible class="mb-3" @dismissed="error = null">
+          <i class="bi bi-exclamation-triangle me-2" />
+          {{ error }}
+        </BAlert>
 
-              <BAlert
-                v-if="successMessage"
-                variant="success"
-                dismissible
-                class="mb-3"
-                @dismissed="successMessage = null"
-              >
-                <i class="bi bi-check-circle me-2" />
-                {{ successMessage }}
-              </BAlert>
-
-              <BAlert v-if="!apiAvailable" variant="info" class="mb-3">
-                <i class="bi bi-info-circle me-2" />
-                <strong>CMS API not available.</strong>
-                The About page content management API is not configured. Showing default sections
-                for preview. Once the API is set up, you can edit and publish content.
-              </BAlert>
-
-              <!-- Loading State -->
-              <div v-if="isLoading" class="text-center py-5">
-                <BSpinner variant="primary" />
-                <p class="mt-2 text-muted">Loading content...</p>
-              </div>
-
-              <!-- Main Content -->
-              <template v-else>
-                <!-- Last saved indicator -->
-                <div v-if="lastSavedAt" class="text-muted small mb-3">
-                  <i class="bi bi-clock-history me-1" />
-                  Last saved: {{ formatTime(lastSavedAt) }}
-                </div>
-
-                <!-- Section List -->
-                <template v-if="sections.length > 0">
-                  <SectionList
-                    :sections="sections"
-                    @update:sections="handleSectionsUpdate"
-                    @section-blur="handleAutosave"
-                  />
-                </template>
-
-                <!-- Empty State -->
-                <div v-else class="text-center py-5">
-                  <i class="bi bi-file-earmark-plus display-4 text-muted mb-3 d-block" />
-                  <p class="text-muted mb-3">
-                    No sections yet. Add your first section to get started.
-                  </p>
-                  <BButton variant="primary" @click="addInitialSection">
-                    <i class="bi bi-plus-lg me-1" />
-                    Add First Section
-                  </BButton>
-                </div>
-              </template>
-            </AdminOperationPanel>
-
-            <!-- Help Card -->
-            <aside class="cms-editor-tip mt-3">
-              <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-lightbulb text-warning me-2" />
-                <span class="text-muted small">
-                  <strong>Tips:</strong> Use markdown for formatting. Drag sections to reorder.
-                  Changes auto-save as drafts.
-                </span>
-              </div>
-            </aside>
-          </BCol>
-        </BRow>
-
-        <!-- Publish Confirmation Modal -->
-        <BModal
-          v-model="showPublishModal"
-          title="Publish Content"
-          ok-title="Publish"
-          ok-variant="success"
-          @ok="confirmPublish"
+        <BAlert
+          v-if="successMessage"
+          variant="success"
+          dismissible
+          class="mb-3"
+          @dismissed="successMessage = null"
         >
-          <p>Are you sure you want to publish these changes?</p>
-          <p class="text-muted small mb-0">
-            This will update the public About page with {{ sections.length }} section{{
-              sections.length !== 1 ? 's' : ''
-            }}.
-          </p>
-        </BModal>
-      </BContainer>
-    </div>
+          <i class="bi bi-check-circle me-2" />
+          {{ successMessage }}
+        </BAlert>
+
+        <BAlert v-if="!apiAvailable" variant="info" class="mb-3">
+          <i class="bi bi-info-circle me-2" />
+          <strong>CMS API not available.</strong>
+          The About page content management API is not configured. Showing default sections for
+          preview. Once the API is set up, you can edit and publish content.
+        </BAlert>
+
+        <!-- Loading State (only after 300 ms, so a fast load never flashes) -->
+        <div v-if="showLoading" class="text-center py-5" role="status">
+          <BSpinner variant="primary" />
+          <p class="mt-2 text-muted">Loading content…</p>
+        </div>
+
+        <!-- Main Content -->
+        <template v-else-if="!isLoading">
+          <!-- Last saved indicator -->
+          <div v-if="lastSavedAt" class="text-muted small mb-3">
+            <i class="bi bi-clock-history me-1" aria-hidden="true" />
+            Last saved: {{ formatDateTime(lastSavedAt) }}
+          </div>
+
+          <!-- Section List -->
+          <template v-if="sections.length > 0">
+            <SectionList
+              :sections="sections"
+              @update:sections="handleSectionsUpdate"
+              @section-blur="handleAutosave"
+            />
+          </template>
+
+          <!-- Empty State -->
+          <div v-else class="text-center py-5">
+            <i class="bi bi-file-earmark-plus display-4 text-muted mb-3 d-block" />
+            <p class="text-muted mb-3">No sections yet. Add your first section to get started.</p>
+            <BButton variant="primary" @click="addInitialSection">
+              <i class="bi bi-plus-lg me-1" />
+              Add First Section
+            </BButton>
+          </div>
+        </template>
+      </AdminOperationPanel>
+
+      <!-- Publish Confirmation Modal -->
+      <BModal
+        v-model="showPublishModal"
+        title="Publish Content"
+        ok-title="Publish"
+        ok-variant="success"
+        @ok="confirmPublish"
+      >
+        <p>Are you sure you want to publish these changes?</p>
+        <p class="text-muted small mb-0">
+          This will update the public About page with {{ sections.length }} section{{
+            sections.length !== 1 ? 's' : ''
+          }}.
+        </p>
+      </BModal>
+    </BContainer>
   </AuthenticatedPageShell>
 </template>
 
@@ -160,6 +138,7 @@ import { useCmsContent } from '@/composables';
 import type { AboutSection } from '@/types';
 import SectionList from '@/components/cms/SectionList.vue';
 import { SYSNDD_PREPRINT, formatPreprintCitation } from '@/constants/publication';
+import { formatDateTime, useDelayedFlag } from './adminDisplay';
 
 useHead({ title: 'Manage About Page' });
 
@@ -305,11 +284,7 @@ onBeforeUnmount(async () => {
   }
 });
 
-// Format time for display
-function formatTime(date: Date | null): string {
-  if (!date) return '';
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+const showLoading = useDelayedFlag(isLoading);
 
 // Handle sections update
 function handleSectionsUpdate(updated: AboutSection[]) {
@@ -376,12 +351,3 @@ function addInitialSection() {
   });
 }
 </script>
-
-<style scoped>
-.cms-editor-tip {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: var(--radius-lg, 0.5rem);
-  background: #fff;
-  padding: 0.75rem 1rem;
-}
-</style>

@@ -8,12 +8,12 @@
   >
     <template #header>
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="mb-0 font-weight-bold">
+        <h2 class="mb-0 h5 fw-bold">
           Job History
           <span class="badge bg-secondary ms-2 fw-normal">
             {{ filteredJobHistory.length }} jobs
           </span>
-        </h5>
+        </h2>
         <div class="d-flex align-items-center gap-2">
           <BButton
             size="sm"
