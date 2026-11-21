@@ -281,6 +281,25 @@ test_that("svc_entity_deactivate_decision normalizes a string 'NULL' replaced_by
   expect_true(is.na(decision$replaced_by))
 })
 
+test_that("svc_entity_deactivate_decision normalizes a JSON null replaced_by to NA", {
+  # The app sends `replaced_by: null` when no replacement is linked; jsonlite
+  # parses that to NULL, which used to drop the column and fail the DB bind (500).
+  deactivate_data <- list(entity = list(
+    entity_id = 42L,
+    hgnc_id = "HGNC:1234",
+    hpo_mode_of_inheritance_term = "HP:0000006",
+    ndd_phenotype = 1L,
+    is_active = 0L,
+    replaced_by = NULL
+  ))
+
+  decision <- svc_entity_deactivate_decision(deactivate_data, base_deactivate_original)
+
+  expect_equal(decision$action, "deactivate")
+  expect_length(decision$replaced_by, 1L)
+  expect_true(is.na(decision$replaced_by))
+})
+
 # =============================================================================
 # svc_entity_reactivate_decision() — undo a deactivation (#711)
 # =============================================================================

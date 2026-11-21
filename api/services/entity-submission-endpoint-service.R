@@ -156,7 +156,9 @@ svc_entity_create_finalize <- function(create_data, publications, direct_approva
 svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original) {
   incoming_is_active <- as.integer(deactivate_data$entity$is_active)
   incoming_replaced_by <- deactivate_data$entity$replaced_by
-  if (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL") {
+  # JSON null parses to NULL, which mutate() would drop instead of setting NA.
+  if (is.null(incoming_replaced_by) ||
+    (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL")) {
     incoming_replaced_by <- NA_integer_
   }
 
