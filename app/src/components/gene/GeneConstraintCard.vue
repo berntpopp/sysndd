@@ -259,7 +259,7 @@ function getCIAriaLabel(item: ConstraintTableItem): string {
 .constraint-matrix-header {
   padding-bottom: 0.12rem;
   border-bottom: 1px solid #ced4da;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.1;
@@ -315,7 +315,7 @@ function getCIAriaLabel(item: ConstraintTableItem): string {
 .constraint-separator,
 .ci-range {
   color: #343a40;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   line-height: 1;
 }
 
@@ -356,12 +356,12 @@ function getCIAriaLabel(item: ConstraintTableItem): string {
   }
 
   .constraint-matrix-header {
-    font-size: 0.56rem;
+    font-size: 0.6875rem;
   }
 
   .constraint-class-name,
   .constraint-value {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
   }
 
   .constraint-oe-cell {

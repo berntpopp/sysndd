@@ -164,6 +164,7 @@ const mountLoginView = (): VueWrapper => {
         BCardText: { template: '<div><slot /></div>' },
         BFormGroup: { template: '<div><slot /></div>' },
         BFormInput: {
+          name: 'BFormInput',
           props: ['modelValue', 'placeholder', 'type', 'state'],
           template: '<input />',
         },
@@ -397,7 +398,7 @@ describe('LoginView — modern public shell', () => {
 // Either way, the first arg of `makeToast` is a STRING, never the raw object.
 // ---------------------------------------------------------------------------
 
-describe('LoginView — fix #2 readable error toast', () => {
+describe('LoginView — readable inline sign-in error', () => {
   beforeEach(() => {
     envBag.VITE_API_URL = '';
     makeToastMock.mockClear();
@@ -431,11 +432,10 @@ describe('LoginView — fix #2 readable error toast', () => {
     await view.loadJWT();
     await flushPromises();
 
-    const errorCalls = makeToastMock.mock.calls.filter(
-      (call) => call[1] === 'Error' && call[2] === 'danger'
-    );
-    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
-    const [firstArg] = errorCalls[0];
+    await wrapper.vm.$nextTick();
+    const firstArg = wrapper.get('[role="alert"]').text();
+    // Shown inline beside the form, not in a corner toast.
+    expect(makeToastMock).not.toHaveBeenCalledWith(expect.anything(), 'Error', 'danger');
     // The fix: the toast body is a STRING, not the raw error. Concretely,
     // the 401 interceptor reroutes to `Error('Redirecting to login')`, and
     // describeAuthError unwraps the `.message` for us. The acceptance
@@ -463,11 +463,10 @@ describe('LoginView — fix #2 readable error toast', () => {
     await view.loadJWT();
     await flushPromises();
 
-    const errorCalls = makeToastMock.mock.calls.filter(
-      (call) => call[1] === 'Error' && call[2] === 'danger'
-    );
-    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
-    const [firstArg] = errorCalls[0];
+    await wrapper.vm.$nextTick();
+    const firstArg = wrapper.get('[role="alert"]').text();
+    // Shown inline beside the form, not in a corner toast.
+    expect(makeToastMock).not.toHaveBeenCalledWith(expect.anything(), 'Error', 'danger');
     expect(typeof firstArg).toBe('string');
     expect(firstArg).toBe('Account locked: too many attempts.');
   });
@@ -486,11 +485,10 @@ describe('LoginView — fix #2 readable error toast', () => {
     await view.loadJWT();
     await flushPromises();
 
-    const errorCalls = makeToastMock.mock.calls.filter(
-      (call) => call[1] === 'Error' && call[2] === 'danger'
-    );
-    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
-    const [firstArg] = errorCalls[0];
+    await wrapper.vm.$nextTick();
+    const firstArg = wrapper.get('[role="alert"]').text();
+    // Shown inline beside the form, not in a corner toast.
+    expect(makeToastMock).not.toHaveBeenCalledWith(expect.anything(), 'Error', 'danger');
     expect(typeof firstArg).toBe('string');
     expect(firstArg).toBe('Database temporarily unavailable.');
   });
@@ -514,13 +512,33 @@ describe('LoginView — fix #2 readable error toast', () => {
     await view.loadJWT();
     await flushPromises();
 
-    // The auth-error toast carries a string, not [object Object].
-    const errorCalls = makeToastMock.mock.calls.filter(
-      (call) => call[1] === 'Error' && call[2] === 'danger'
+    // The inline auth error carries the readable string, not [object Object].
+    await wrapper.vm.$nextTick();
+    const lastErrorArg = wrapper.get('[role="alert"]').text();
+    expect(lastErrorArg).toBe('Token rejected by signin endpoint.');
+  });
+
+  it('a failed sign-in never leaves a green valid state on the fields', async () => {
+    server.use(
+      http.post('/api/auth/authenticate', () =>
+        HttpResponse.text('User or password wrong.', { status: 401 })
+      )
     );
-    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
-    const lastErrorArg = errorCalls[errorCalls.length - 1][0];
-    expect(typeof lastErrorArg).toBe('string');
-    expect(lastErrorArg).not.toMatch(/\[object Object\]/);
+    const wrapper = mountLoginView();
+    const view = vm(wrapper);
+    view.user_name = 'testuser';
+    view.password = 'wrongpass';
+    // Submitting through the form marks both fields touched, as in the app.
+    (wrapper.vm as unknown as { onSubmit: () => void }).onSubmit();
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe('User or password wrong.');
+
+    for (const input of wrapper.findAllComponents({ name: 'BFormInput' })) {
+      expect(input.props('state')).not.toBe(true);
+    }
+    // Editing a field clears the stale error.
+    view.password = 'another';
+    await flushPromises();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 });

@@ -95,7 +95,8 @@ withDefaults(
 }
 
 .authenticated-description {
-  max-width: 58rem;
+  /* Readable measure; 58rem ran to ~130 characters per line. */
+  max-width: 75ch;
   margin: 0.25rem 0 0;
   color: var(--text-secondary);
   font-size: 0.875rem;

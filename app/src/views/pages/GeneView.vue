@@ -19,18 +19,11 @@
           <BCol col md="12">
             <BCard class="border-subtle" body-class="p-0" header-class="p-1">
               <template #header>
-                <div class="d-flex align-items-center gap-1 flex-wrap">
+                <div class="gene-header-line d-flex align-items-center gap-1 flex-wrap">
                   <h1 class="gene-page-title mb-0">
-                    <span v-if="geneSymbol">{{ geneSymbol }}</span>
+                    <span v-if="geneSymbol" class="gene-page-symbol">{{ geneSymbol }}</span>
                     <span v-else>Gene</span>
                   </h1>
-                  <GeneBadge
-                    v-if="geneSymbol"
-                    :symbol="geneSymbol"
-                    size="sm"
-                    :link-to="undefined"
-                    :show-title="false"
-                  />
                   <span class="gene-card-name ms-1">{{ geneName }}</span>
                   <span
                     v-if="chromosomeLocation && chromosomeLocation !== 'null'"
@@ -57,7 +50,8 @@
                   :rgd-id="rgdId"
                 />
               </div>
-              <div class="px-3 py-1">
+              <!-- Reserves the identifier rows while the gene record loads (no jump). -->
+              <div class="px-3 py-1 gene-identifiers">
                 <IdentifierCard v-if="gene" :gene-data="gene" compact />
               </div>
             </BCard>
@@ -81,7 +75,7 @@
          then unwraps to show the inner card's own frame (no double border) -->
     <div class="container-fluid">
       <BContainer fluid>
-        <BRow class="justify-content-md-center pt-2">
+        <BRow class="gene-external-row pt-2">
           <BCol cols="12" lg="6" xxl="4" class="mb-2" data-testid="gene-external-card-col">
             <SectionCard
               frameless
@@ -89,7 +83,7 @@
               :empty="false"
               :error="null"
               title="Gene Constraint (gnomAD)"
-              min-height="16rem"
+              min-height="var(--gene-external-reserve)"
             >
               <GeneConstraintCard
                 :gene-symbol="geneSymbol"
@@ -104,7 +98,7 @@
               :empty="false"
               :error="clinvarCounts.error.value ? clinvarCounts.error.value.message : null"
               title="ClinVar Variants"
-              min-height="16rem"
+              min-height="var(--gene-external-reserve)"
             >
               <GeneClinVarCard
                 :gene-symbol="geneSymbol"
@@ -125,7 +119,7 @@
               :empty="false"
               :error="null"
               title="Model Organisms"
-              min-height="16rem"
+              min-height="var(--gene-external-reserve)"
             >
               <ModelOrganismsCard
                 :gene-symbol="geneSymbol"
@@ -176,7 +170,6 @@ import { computed, watch, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { BContainer, BRow, BCol, BCard } from 'bootstrap-vue-next';
-import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
@@ -322,6 +315,36 @@ useHead({
 </script>
 
 <style scoped>
+/* Reserve the loaded header height: name and location wrap to a second line on phones. */
+.gene-header-line {
+  min-height: 1.45rem;
+}
+.gene-identifiers {
+  min-height: 3.7rem;
+}
+@media (max-width: 575.98px) {
+  .gene-header-line {
+    min-height: 2.9rem;
+  }
+  .gene-identifiers {
+    min-height: 2.2rem;
+  }
+}
+@media (min-width: 1600px) {
+  .gene-identifiers {
+    min-height: 2.1rem;
+  }
+}
+/* External cards: skeleton = typical loaded height; cards in a row share its height. */
+.gene-external-row {
+  --gene-external-reserve: 7.7rem;
+}
+.gene-external-row :deep([data-testid='gene-external-card-col'] > .card) {
+  height: 100%;
+}
+.gene-page-symbol {
+  font-style: italic;
+}
 .gene-page-title {
   font-size: 1rem;
   line-height: 1.2;

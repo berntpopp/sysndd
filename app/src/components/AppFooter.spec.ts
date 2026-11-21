@@ -144,6 +144,31 @@ describe('Footer', () => {
       expect(wrapper.find('.navbar-toggler-stub').exists()).toBe(true);
     });
 
+    it('labels the phone partners toggle in words, so phones show only one hamburger', async () => {
+      const pinia = createPinia();
+      const wrapper = shallowMount(Footer, {
+        global: {
+          plugins: [pinia],
+          stubs: {
+            BNavbar: { template: '<nav><slot /></nav>' },
+            BNavbarToggle: {
+              props: ['target', 'label'],
+              template:
+                '<button class="navbar-toggler" :aria-label="label"><slot :expanded="false"><span class="navbar-toggler-icon" /></slot></button>',
+            },
+            BNavbarNav: { template: '<ul><slot /></ul>' },
+            BCollapse: { template: '<div><slot /></div>' },
+            FooterNavItem: true,
+          },
+        },
+      });
+      await flushPromises();
+      const toggle = wrapper.get('button.navbar-toggler');
+      expect(toggle.find('.navbar-toggler-icon').exists()).toBe(false);
+      expect(toggle.text()).toBe('Partners');
+      expect(toggle.attributes('aria-label')).toMatch(/^Partners/);
+    });
+
     it('renders collapse container for nav items', async () => {
       const wrapper = await mountComponent();
 

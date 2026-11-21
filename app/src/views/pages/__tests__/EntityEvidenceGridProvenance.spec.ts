@@ -135,7 +135,8 @@ describe('EntityEvidenceGrid — variation provenance (#608)', () => {
       '<a class="entity-chip entity-chip-variation entity-chip--variable" ' +
       'href="https://www.ebi.ac.uk/ols4/ontologies/vario/classes?iri=' +
       'http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FVariO_0133" target="_blank" rel="noopener" ' +
-      'aria-label="Variation ontology term: variable | VariO:0133" ' +
+      // The accessible name leads with the visible text (WCAG 2.5.3), for every term.
+      'aria-label="protein truncation, Variation ontology term: variable | VariO:0133" ' +
       'data-testid="variation-chip-VariO:0133" data-tooltip="variable | VariO:0133">' +
       '<i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> protein truncation</a>\n' +
       '  <!--v-if-->\n' +
@@ -164,7 +165,9 @@ describe('EntityEvidenceGrid — variation provenance (#608)', () => {
     expect(chip.classes()).toContain('entity-chip--variable');
     expect(chip.attributes('title')).toBeUndefined();
     expect(chip.attributes('data-tooltip')).toBe('variable | VariO:0133');
-    expect(chip.attributes('aria-label')).toBe('Variation ontology term: variable | VariO:0133');
+    expect(chip.attributes('aria-label')).toBe(
+      'protein truncation, Variation ontology term: variable | VariO:0133'
+    );
     expect(chip.attributes('href')).toContain('ebi.ac.uk/ols4');
     // The curator-authored term gets NO trigger of its own.
     expect(w.find('[data-testid="variation-provenance-trigger-VariO:0133-3"]').exists()).toBe(

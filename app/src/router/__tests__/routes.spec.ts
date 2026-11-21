@@ -93,11 +93,11 @@ describe('createAuthGuard (via /User route beforeEnter) — Vue Router 4 return-
     expect(result).toEqual({ name: 'Login' });
   });
 
-  it('returns { name: "Login" } when authenticated but role is not in the allow-list', () => {
+  it('sends a signed-in user without the role Home with the role they need (not to Login, which signs them out)', () => {
     mockAuthState.isAuthenticated.value = true;
     mockAuthState.roles = ['Viewer']; // not Administrator/Curator/Reviewer
     const result = guard(fakeRoute('/User'), fakeRoute('/'));
-    expect(result).toEqual({ name: 'Login' });
+    expect(result).toEqual({ name: 'Home', query: { denied: '/User', role: 'Reviewer' } });
   });
 
   it('returns true when authenticated, fresh, and role is allowed', () => {

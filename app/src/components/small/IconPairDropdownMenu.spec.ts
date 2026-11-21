@@ -204,3 +204,29 @@ describe('IconPairDropdownMenu — item components', () => {
     wrapper.unmount();
   });
 });
+
+describe('IconPairDropdownMenu — item layout', () => {
+  it('shows one icon per item in a fixed column and does not centre the item', () => {
+    const wrapper = mount(IconPairDropdownMenu, {
+      props: {
+        title: 'Review',
+        required: [],
+        align: 'left',
+        items: [
+          { text: 'Instructions', path: '/ReviewInstructions', icons: ['check', 'book-fill'] },
+        ],
+      },
+      global: {
+        stubs: {
+          BNavItemDropdown: { template: '<div><slot /></div>' },
+          BDropdownItem: { template: '<a v-bind="$attrs"><slot /></a>' },
+        },
+      },
+    });
+    const icons = wrapper.findAll('i.bi');
+    expect(icons).toHaveLength(1);
+    expect(icons[0].classes()).toContain('bi-book-fill');
+    expect(icons[0].classes()).toContain('nav-menu-icon');
+    expect(wrapper.find('a').classes()).not.toContain('text-center');
+  });
+});

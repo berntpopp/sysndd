@@ -5,21 +5,19 @@
   Pure presentation component matching EntityViewHero and GeneHero standards.
 -->
 <template>
-  <BRow class="justify-content-md-center py-2">
+  <BRow class="ontology-hero-row justify-content-md-center py-2">
     <BCol cols="12">
       <SectionCard
         :loading="model.loading"
         :empty="model.empty"
         :error="model.error"
         :title="heroTitle"
-        min-height="9rem"
+        min-height="var(--ontology-hero-reserve)"
       >
         <template #header>
           <div class="ontology-hero-title">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="text-secondary small fw-semibold text-uppercase tracking-wider">
-                Disease
-              </span>
+              <span class="ontology-unit-label">Disease</span>
               <h1 class="ontology-page-title mb-0">
                 <span v-if="model.displayName">{{ model.displayName }}</span>
                 <span v-else>{{ model.primaryId || 'Disease Ontology' }}</span>
@@ -118,9 +116,7 @@
             <!-- Cell 4: Primary Label -->
             <div class="ontology-unit-cell">
               <div class="ontology-unit-label">Primary Label</div>
-              <span class="text-dark fw-semibold text-truncate" :title="model.displayName">
-                {{ model.displayName }}
-              </span>
+              <span class="text-dark fw-semibold">{{ model.displayName }}</span>
             </div>
           </div>
 
@@ -128,7 +124,9 @@
           <div class="ontology-metadata-row">
             <span v-if="model.mappingRelease" class="ontology-meta-pill">
               <i class="bi bi-calendar-check" aria-hidden="true" />
-              <span>Mapping release: {{ model.mappingRelease }}</span>
+              <span :title="model.mappingRelease"
+                >Mapping release: {{ formatLongDate(model.mappingRelease) }}</span
+              >
             </span>
             <span v-if="model.versions && model.versions.length > 1" class="ontology-meta-pill">
               <i class="bi bi-layers" aria-hidden="true" />
@@ -158,6 +156,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import SectionCard from '@/components/ui/SectionCard.vue';
 import type { OntologyOutlink } from '@/assets/js/constants/ontology_links';
 import useToast from '@/composables/useToast';
+import { formatLongDate } from '@/utils/dateUtils';
 
 export interface OntologyHeroModel {
   diseaseTerm: string;
@@ -210,6 +209,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Skeleton reservation = loaded hero height, so the page below does not jump. */
+.ontology-hero-row {
+  --ontology-hero-reserve: 9.7rem;
+}
 .ontology-hero-title {
   display: flex;
   align-items: center;
@@ -254,13 +257,19 @@ onBeforeUnmount(() => {
   background: #f8fafc;
 }
 .ontology-unit-label {
-  color: var(--neutral-600, #667085);
+  color: var(--neutral-700, #616161);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* 24px hit area (WCAG 2.5.8) around the 16px icon. */
 .ontology-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
   line-height: 1;
   opacity: 0.7;
   transition: opacity 0.15s ease;
@@ -294,11 +303,17 @@ onBeforeUnmount(() => {
   color: var(--neutral-600, #667085);
 }
 @media (max-width: 991.98px) {
+  .ontology-hero-row {
+    --ontology-hero-reserve: 15rem;
+  }
   .ontology-unit-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (max-width: 575.98px) {
+  .ontology-hero-row {
+    --ontology-hero-reserve: 29rem;
+  }
   .ontology-page-title {
     font-size: 1.1rem;
   }

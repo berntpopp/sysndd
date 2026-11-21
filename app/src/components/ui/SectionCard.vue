@@ -4,7 +4,9 @@
   Spec: §4.3 of 2026-04-26-v11.3-genes-entities-perf-ux-design.md.
 
   States:
-    - loading=true                                 -> skeleton stripes at minHeight
+    - loading=true                                 -> skeleton stripes, exactly minHeight tall
+                                                      (the reservation; stripes clip, so a short
+                                                      section never shrinks on load)
     - loading=false, error!=null                   -> error variant card
     - loading=false, empty=true                    -> renders NOTHING (collapses)
     - loading=false, empty=false, error=null       -> default content slot
@@ -19,8 +21,8 @@
   <div
     v-if="loading && frameless"
     data-testid="section-card-skeleton"
-    class="section-skeleton"
-    :style="{ minHeight }"
+    class="section-skeleton section-skeleton-reserved"
+    :style="{ minHeight, height: minHeight }"
   >
     <div class="skeleton-line skeleton-w-60 mb-2" />
     <div class="skeleton-line skeleton-w-90 mb-2" />
@@ -30,8 +32,8 @@
   <BCard
     v-else-if="loading"
     data-testid="section-card-skeleton"
-    class="border-subtle"
-    :style="{ minHeight }"
+    class="border-subtle section-skeleton-reserved"
+    :style="{ minHeight, height: minHeight }"
     body-class="p-0"
     header-class="p-1"
   >
@@ -121,6 +123,9 @@ withDefaults(
 </script>
 
 <style scoped>
+.section-skeleton-reserved {
+  overflow: hidden;
+}
 .section-card-title {
   font-size: 0.875rem;
   line-height: 1.2;

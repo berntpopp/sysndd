@@ -34,8 +34,17 @@ partner logos and a disclaimer status indicator. */
           </div>
         </div>
 
-        <!-- The navbar toggle button for smaller screen sizes -->
-        <BNavbarToggle target="footer-collapse" class="app-footer__toggle" />
+        <!-- Phones: a worded toggle, so the header keeps the only hamburger. -->
+        <BNavbarToggle
+          target="footer-collapse"
+          class="app-footer__toggle"
+          label="Partners and licence"
+        >
+          <template #default="{ expanded }">
+            Partners
+            <i :class="expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-up'" aria-hidden="true" />
+          </template>
+        </BNavbarToggle>
       </div>
 
       <!-- The collapsible part of the navbar -->
@@ -210,13 +219,18 @@ export default {
   }
 }
 
-/* Footer navbar toggler - WCAG 1.4.11 Non-text Contrast (3:1 minimum). */
+/* Footer toggler: worded pill matching the Policy button (WCAG 1.4.11 border contrast). */
 :deep(.navbar-toggler) {
-  width: 36px;
-  height: 36px;
-  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0.25rem 0.65rem;
+  color: #0d47a1;
+  font-size: 0.8rem;
+  font-weight: 700;
   border: 1px solid #cfd8e3;
-  border-radius: 8px;
+  border-radius: 999px;
   background: #fff;
 
   &:focus {
@@ -228,12 +242,6 @@ export default {
     border-color: #9fb3c8;
     background-color: #f6f8fb;
   }
-}
-
-:deep(.navbar-toggler-icon) {
-  width: 1.15em;
-  height: 1.15em;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23344054' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.25' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
 @media (max-width: 575.98px) {

@@ -224,4 +224,22 @@ describe('ModelOrganismsCard', () => {
       expect(badge.classes()).not.toContain('bg-secondary');
     });
   });
+
+  it('spells out zygosity counts instead of hm/ht/cn', () => {
+    const mgiData: MGIPhenotypeData = {
+      ...emptyMgiData,
+      phenotype_count: 3,
+      phenotypes: [
+        { phenotype_id: 'MP:1', term: 'a', zygosity: 'homozygous' },
+        { phenotype_id: 'MP:2', term: 'b', zygosity: 'heterozygous' },
+        { phenotype_id: 'MP:3', term: 'c', zygosity: 'conditional' },
+      ],
+    } as MGIPhenotypeData;
+    const wrapper = mountCard({ mgiData, rgdData: emptyRgdData });
+    const text = wrapper.text();
+    expect(text).toContain('Homozygous 1');
+    expect(text).toContain('Heterozygous 1');
+    expect(text).toContain('Conditional 1');
+    expect(text).not.toMatch(/\b(hm|ht|cn) \d/);
+  });
 });

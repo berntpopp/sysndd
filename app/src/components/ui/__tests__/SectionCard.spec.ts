@@ -65,6 +65,25 @@ describe('SectionCard', () => {
     expect(skel.attributes('style')).toContain('min-height: 12rem');
   });
 
+  it('sizes the skeleton to exactly the reserved height, so a short section does not shrink on load', () => {
+    for (const frameless of [false, true]) {
+      const w = mount(SectionCard, {
+        props: {
+          loading: true,
+          empty: false,
+          error: null,
+          title: 'X',
+          minHeight: '4rem',
+          frameless,
+        },
+      });
+      const skel = w.find('[data-testid="section-card-skeleton"]');
+      expect(skel.attributes('style')).toContain('height: 4rem');
+      expect(skel.attributes('style')).toMatch(/(^|;\s*)height: 4rem/);
+      expect(skel.classes()).toContain('section-skeleton-reserved');
+    }
+  });
+
   it('keeps collapse behavior for empty resolved sections', () => {
     const w = mount(SectionCard, {
       props: { loading: false, empty: true, error: null, title: 'Collapsed' },

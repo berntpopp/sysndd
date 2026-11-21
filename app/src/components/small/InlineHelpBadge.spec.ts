@@ -23,7 +23,7 @@ describe('InlineHelpBadge', () => {
     const badge = wrapper.get('#help-target');
     expect(badge.attributes('aria-label')).toBe('Explain this view');
     expect(badge.classes()).toContain('inline-help-badge');
-    expect(wrapper.get('i').classes()).toContain('bi-question-circle-fill');
+    expect(wrapper.get('i').classes()).toContain('bi-question-lg');
   });
 
   it('forwards tooltip attributes without rendering navigational hrefs', () => {

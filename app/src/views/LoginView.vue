@@ -58,7 +58,7 @@
               v-model="user_name"
               autocomplete="username"
               placeholder="User"
-              :state="usernameMeta.touched ? (usernameError ? false : true) : null"
+              :state="usernameMeta.touched && usernameError ? false : null"
             />
             <BFormInvalidFeedback v-if="usernameError">
               {{ usernameError }}
@@ -77,12 +77,15 @@
               autocomplete="current-password"
               placeholder="Password"
               type="password"
-              :state="passwordMeta.touched ? (passwordError ? false : true) : null"
+              :state="passwordMeta.touched && passwordError ? false : null"
             />
             <BFormInvalidFeedback v-if="passwordError">
               {{ passwordError }}
             </BFormInvalidFeedback>
           </BFormGroup>
+
+          <!-- Shown beside the form rather than as a corner toast. -->
+          <div v-if="authError" class="alert alert-danger py-2" role="alert">{{ authError }}</div>
 
           <!-- Form Buttons -->
           <div class="login-actions">
@@ -199,6 +202,7 @@ export default {
 
     const loading = ref(true);
     const animated = ref(false);
+    const authError = ref('');
 
     return {
       user_name,
@@ -209,11 +213,21 @@ export default {
       passwordMeta,
       loading,
       animated,
+      authError,
       handleSubmit,
       resetVeeForm,
       makeToast,
       auth,
     };
+  },
+  watch: {
+    // Editing either field clears a stale sign-in error.
+    user_name() {
+      this.authError = '';
+    },
+    password() {
+      this.authError = '';
+    },
   },
   mounted() {
     // If the Login view is reached while still authenticated, clear the
@@ -240,11 +254,7 @@ export default {
           skipAuthRedirect: true,
         });
         if (typeof token !== 'string' || !token) {
-          this.makeToast(
-            'Authentication failed: invalid token shape from server',
-            'Error',
-            'danger'
-          );
+          this.authError = 'Authentication failed: invalid token shape from server';
           return;
         }
         this.makeToast('You have logged in.', 'Success', 'success');
@@ -253,7 +263,7 @@ export default {
         // v11.1 finish-hardening fix #2: surface the API's literal message
         // (e.g. "User or password wrong." for 401) instead of toasting the
         // raw AxiosError object — which otherwise renders as [object Object].
-        this.makeToast(describeAuthError(e), 'Error', 'danger');
+        this.authError = describeAuthError(e);
       }
     },
     async signinWithJWT(token) {
@@ -276,10 +286,11 @@ export default {
         // v11.1 finish-hardening fix #2: same anti-pattern as loadJWT — pass
         // a readable string to makeToast so the user sees the API's actual
         // error reason instead of [object Object].
-        this.makeToast(describeAuthError(e), 'Error', 'danger');
+        this.authError = describeAuthError(e);
       }
     },
     handleReset() {
+      this.authError = '';
       this.user_name = '';
       this.password = '';
       this.resetVeeForm();

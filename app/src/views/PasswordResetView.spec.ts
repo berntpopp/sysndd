@@ -300,3 +300,32 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
     expect(passwordError).toMatch(/uppercase/);
   });
 });
+
+describe('PasswordResetView — request form layout', () => {
+  it('labels the email field, has a page heading and links back to sign in', async () => {
+    const wrapper = mount(PasswordResetView, {
+      global: {
+        mocks: { $route: { params: {} }, $router: { push: vi.fn() } },
+        stubs: {
+          BFormGroup: {
+            props: ['label', 'labelFor'],
+            template: '<div><label :for="labelFor">{{ label }}</label><slot /></div>',
+          },
+          BFormInput: { props: ['id', 'state'], template: '<input :id="id" />' },
+          BFormInvalidFeedback: { template: '<div><slot /></div>' },
+          BButton: { template: '<button><slot /></button>' },
+          BLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
+          BSpinner: { template: '<div role="status" />' },
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.get('h1').text()).toBe('Reset password');
+    const label = wrapper.get('label[for="reset-email"]');
+    expect(label.text()).toBe('Email address');
+    expect(wrapper.find('input#reset-email').exists()).toBe(true);
+    const back = wrapper.findAll('a').find((a) => a.text() === 'Back to sign in');
+    expect(back?.attributes('href')).toBe('/Login');
+  });
+});

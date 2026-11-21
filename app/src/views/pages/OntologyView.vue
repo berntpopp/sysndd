@@ -11,17 +11,35 @@
       <OntologyHero :model="heroModel" />
 
       <!-- 2. Cross-Ontology Mappings & External References -->
-      <BRow v-if="!loading && hasCrossMappings" class="justify-content-md-center py-2">
+      <!-- Skeleton while loading keeps the table below from jumping when the card arrives. -->
+      <BRow
+        v-if="loading || hasCrossMappings"
+        class="ontology-mappings-row justify-content-md-center py-2"
+      >
         <BCol cols="12">
-          <BCard class="border-subtle" body-class="p-2" header-class="p-2 bg-light">
+          <SectionCard
+            v-if="loading"
+            :loading="true"
+            :empty="false"
+            :error="null"
+            title="Cross-Ontology Mappings & External Databases"
+            min-height="var(--ontology-mappings-reserve)"
+          />
+          <BCard v-else class="border-subtle" body-class="p-2" header-class="p-2 bg-light">
             <template #header>
               <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <span class="fw-semibold text-secondary small text-uppercase tracking-wider">
+                <span
+                  class="ontology-section-label fw-semibold small text-uppercase tracking-wider"
+                >
                   <i class="bi bi-diagram-2 me-1" aria-hidden="true" />
                   Cross-Ontology Mappings & External Databases
                 </span>
-                <span v-if="heroModel.mappingRelease" class="badge text-bg-light border text-muted">
-                  Release {{ heroModel.mappingRelease }}
+                <span
+                  v-if="heroModel.mappingRelease"
+                  class="badge text-bg-light border ontology-section-label"
+                  :title="heroModel.mappingRelease"
+                >
+                  Release {{ formatLongDate(heroModel.mappingRelease) }}
                 </span>
               </div>
             </template>
@@ -68,6 +86,8 @@ import { returnToFromRoute } from '@/utils/returnNavigation';
 import useToast from '@/composables/useToast';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import IdentifierRow from '@/components/gene/IdentifierRow.vue';
+import SectionCard from '@/components/ui/SectionCard.vue';
+import { formatLongDate } from '@/utils/dateUtils';
 import OntologyHero, { type OntologyHeroModel } from './components/OntologyHero.vue';
 
 const route = useRoute();
@@ -270,6 +290,18 @@ useHead({
 <style scoped>
 .ontology-page {
   padding-bottom: 2rem;
+}
+/* Loaded mapping-card height: one chip row on desktop, stacked chips on phones. */
+.ontology-mappings-row {
+  --ontology-mappings-reserve: 5.1rem;
+}
+@media (max-width: 575.98px) {
+  .ontology-mappings-row {
+    --ontology-mappings-reserve: 15.7rem;
+  }
+}
+.ontology-section-label {
+  color: var(--neutral-700, #616161);
 }
 .tracking-wider {
   letter-spacing: 0.05em;

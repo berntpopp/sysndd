@@ -41,9 +41,7 @@ import EntityViewHero, { type EntityHeroModel } from '../components/EntityViewHe
 import ClinicalSynopsisCard, {
   type ClinicalSynopsisModel,
 } from '../components/ClinicalSynopsisCard.vue';
-import EntityEvidenceGrid, {
-  type EntityEvidenceModel,
-} from '../components/EntityEvidenceGrid.vue';
+import EntityEvidenceGrid, { type EntityEvidenceModel } from '../components/EntityEvidenceGrid.vue';
 
 function makeRouter(path: string) {
   const router = createRouter({
@@ -321,7 +319,7 @@ describe('EntityView (v11.3 W3)', () => {
     const synopsisPanel = w.get('[data-testid="clinical-synopsis-panel"]');
     expect(synopsisPanel.text()).toContain(synopsis);
     expect(w.get('[data-testid="clinical-synopsis-header"]').text()).toContain(
-      'Last reviewed 2025-02-12 11:14:21'
+      'Last reviewed February 12, 2025'
     );
     expect(synopsisPanel.text()).not.toContain('Last reviewed');
     expect(
@@ -623,11 +621,11 @@ describe('EntityView (v11.3 W3)', () => {
     await flushRequests();
 
     const entry = w.get('[data-testid="entity-entry-date"]');
-    expect(entry.text()).toContain('Entered 2014-03-04');
+    expect(entry.text()).toContain('Entered March 4, 2014');
     expect(entry.text()).not.toContain('00:00:00');
 
     const updated = w.get('[data-testid="entity-last-update"]');
-    expect(updated.text()).toContain('Last updated 2026-02-10');
+    expect(updated.text()).toContain('Last updated February 10, 2026');
     // Date-only: the time component is trimmed off.
     expect(updated.text()).not.toContain('12:29:49');
     w.unmount();
@@ -876,9 +874,9 @@ describe('EntityViewHero (#346 child contract)', () => {
     const labels = unit.findAll('[data-testid="entity-unit-label"]').map((n) => n.text());
     expect(labels).toEqual(['Gene', 'Inheritance', 'Disease']);
     expect(w.text()).toContain('Definitive');
-    expect(w.get('[data-testid="entity-entry-date"]').text()).toContain('Entered 2014-03-04');
+    expect(w.get('[data-testid="entity-entry-date"]').text()).toContain('Entered March 4, 2014');
     expect(w.get('[data-testid="entity-last-update"]').text()).toContain(
-      'Last updated 2026-02-10'
+      'Last updated February 10, 2026'
     );
     w.unmount();
   });
@@ -957,7 +955,7 @@ describe('ClinicalSynopsisCard (#346 child contract)', () => {
       'De novo truncating variants'
     );
     expect(w.get('[data-testid="clinical-synopsis-header"]').text()).toContain(
-      'Last reviewed 2025-02-12 11:14:21'
+      'Last reviewed February 12, 2025'
     );
     const button = w.get('[data-testid="copy-synopsis-button"]');
     expect((button.element as HTMLButtonElement).disabled).toBe(false);
@@ -1068,10 +1066,15 @@ describe('EntityEvidenceGrid (#346 child contract)', () => {
     expect(phenoChip.classes()).toContain('entity-chip--absent');
     expect(phenoChip.attributes('href')).toBe('https://hpo.jax.org/browse/term/HP:0001250');
     expect(phenoChip.attributes('data-tooltip')).toBe('absent | HP:0001250');
+    // The accessible name starts with the visible text (WCAG 2.5.3).
+    expect(phenoChip.attributes('aria-label')).toBe('Seizures, HPO term: absent | HP:0001250');
 
     const varioChip = w.get('[data-testid="variation-chip-VariO:0133"]');
     expect(varioChip.classes()).toContain('entity-chip--variable');
     expect(varioChip.attributes('href')).toContain('ebi.ac.uk/ols4');
+    expect(varioChip.attributes('aria-label')).toMatch(
+      /^protein truncation, Variation ontology term: /
+    );
 
     w.unmount();
   });
