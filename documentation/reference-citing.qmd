@@ -105,7 +105,7 @@ As of November 20, 2026, no analysis-snapshot release has been published; the pa
 :::
 
 The analyses in a release are derived from the curated data. Treat them as hypotheses, not as
-curated facts (see [Explore the analyses](using-analyses.qmd)).
+curated facts (see [Read the analyses](using-analyses.qmd)).
 
 ## License
 

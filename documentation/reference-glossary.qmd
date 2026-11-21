@@ -55,7 +55,7 @@ Clinical synopsis
 Curation comparison
 : A comparison of SysNDD's gene content with other NDD gene resources, such as Gene2Phenotype,
   PanelApp and SFARI. Shown under **Analyses › Compare curations**. See
-  [Explore the analyses](using-analyses.qmd).
+  [Read the analyses](using-analyses.qmd).
 
 Curator
 : The account role that creates and modifies entities, approves reviews and statuses, approves
@@ -226,7 +226,7 @@ Phenotype category
 Phenotype cluster
 : A group of entities with similar phenotype annotations, computed from the curated data. A
   derived analysis and a hypothesis, not a curated fact. See
-  [Explore the analyses](using-analyses.qmd).
+  [Read the analyses](using-analyses.qmd).
 
 PMID (PubMed identifier)
 : The number of an article in PubMed, written `PMID:` plus the number.

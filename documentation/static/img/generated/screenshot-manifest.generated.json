@@ -713,24 +713,18 @@
       "captureMode": "clip",
       "annotations": [
         {
-          "selector": ".app-navbar__account .dropdown-toggle",
-          "hasText": "pw_",
-          "mode": "marker",
-          "number": 1
-        },
-        {
           "selector": ".dropdown-menu.show .dropdown-item",
           "hasText": "Token",
           "mode": "marker",
-          "number": 2
+          "number": 1
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:29.877Z",
+      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
+      "capturedAt": "2026-11-21T11:12:27.197Z",
       "browserName": "chromium",
       "browserVersion": "151.0.7922.34",
-      "sha256": "442cc6608743f82885b92b1a303fb613fd266b675f2040010e31c048cbaa8536",
-      "bytes": 50999
+      "sha256": "3d3dea5d797d319327d0a8c3531881802e4d417ce619ecca04e27a5d4806b057",
+      "bytes": 49144
     },
     {
       "slug": "login-auth-error-toast",
@@ -2720,48 +2714,48 @@
       "captureMode": "clip",
       "annotations": [
         {
-          "selector": "tbody tr:nth-child(2) td:nth-child(5) > *",
+          "selector": "button[aria-label=\"Approve all statuses\"]",
           "mode": "marker",
-          "number": 1,
-          "placement": "right"
+          "number": 1
         },
         {
-          "selector": "tbody tr:nth-child(2) td:nth-child(7) > *",
+          "selector": "tbody tr:nth-child(2) td:nth-child(5) > *",
           "mode": "marker",
           "number": 2,
           "placement": "right"
         },
         {
-          "selector": "button[aria-label^=\"Edit status for entity\"]",
+          "selector": "tbody tr:nth-child(2) td:nth-child(7) > *",
           "mode": "marker",
           "number": 3,
+          "placement": "right"
+        },
+        {
+          "selector": "button[aria-label^=\"Toggle details for entity\"]",
+          "mode": "marker",
+          "number": 4,
           "placement": "top"
         },
         {
-          "selector": "button[aria-label^=\"Approve status for entity\"]",
+          "selector": "button[aria-label^=\"Edit status for entity\"]",
           "nth": 2,
           "mode": "marker",
-          "number": 4,
+          "number": 5,
           "placement": "bottom"
         },
         {
-          "selector": "button[aria-label^=\"Dismiss status for entity\"]",
+          "selector": "button[aria-label^=\"Approve status for entity\"]",
           "mode": "marker",
-          "number": 5,
+          "number": 6,
           "placement": "top"
-        },
-        {
-          "selector": "button[aria-label=\"Approve all statuses\"]",
-          "mode": "marker",
-          "number": 6
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:37.256Z",
+      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
+      "capturedAt": "2026-11-21T11:13:00.816Z",
       "browserName": "chromium",
       "browserVersion": "151.0.7922.34",
-      "sha256": "dc1f0f858bf51539df3e5159193687c154bf9f889079a7ffdac6553f26157378",
-      "bytes": 112009
+      "sha256": "1e11a2a16f40e7a46ff8fbc6c93180686726ddf420c1fffa59ca9287207501c9",
+      "bytes": 111400
     },
     {
       "slug": "curator-rereview-batch-criteria",
@@ -2787,46 +2781,43 @@
       "captureMode": "page",
       "annotations": [
         {
-          "selector": "#batch-name",
+          "selector": "section[aria-labelledby=\"batch-entities-title\"]",
           "mode": "marker",
-          "number": 1
+          "number": 1,
+          "placement": "top-left"
         },
         {
-          "selector": "#batch-size",
+          "selector": "section[aria-labelledby=\"batch-settings-title\"]",
           "mode": "marker",
-          "number": 2
-        },
-        {
-          "selector": "#user-select",
-          "mode": "marker",
-          "number": 3
+          "number": 2,
+          "placement": "top-left"
         },
         {
           "selector": ".batch-form-panel--filters",
           "mode": "marker",
-          "number": 4,
+          "number": 3,
           "placement": "top-left"
         },
         {
           "selector": "button",
           "hasText": "Preview",
           "mode": "marker",
-          "number": 5
+          "number": 4
         },
         {
           "selector": "button",
           "hasText": "Create Batch",
           "mode": "marker",
-          "number": 6,
+          "number": 5,
           "placement": "top"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:42.960Z",
+      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
+      "capturedAt": "2026-11-21T11:13:06.523Z",
       "browserName": "chromium",
       "browserVersion": "151.0.7922.34",
-      "sha256": "481b7096a555e3f3edba498efbb3a92ec0b47e02e0d135d4d8dc37cb2bbc096e",
-      "bytes": 102204
+      "sha256": "35d3b09786017f04927c2c991e46eb0b2f56431a73bde7c52a4f03ad1f02c47b",
+      "bytes": 98034
     },
     {
       "slug": "curator-rereview-submissions-table",
@@ -2859,23 +2850,23 @@
         {
           "selector": "button[id^=\"btn-reassign-\"]",
           "mode": "marker",
-          "number": 4,
+          "number": 3,
           "placement": "top"
         },
         {
           "selector": "button[id^=\"btn-unassign-\"]",
           "nth": 1,
           "mode": "marker",
-          "number": 5,
+          "number": 4,
           "placement": "bottom"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:47.147Z",
+      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
+      "capturedAt": "2026-11-21T11:13:11.992Z",
       "browserName": "chromium",
       "browserVersion": "151.0.7922.34",
-      "sha256": "fb8457734f1b1fe70cc24e3b0fb1e84da061120fde57e8bcf69c0a77abf52828",
-      "bytes": 67223
+      "sha256": "eb3d15fee8808921b65a423e606962d90946fb1e5b5c678922d231609d46813e",
+      "bytes": 67227
     },
     {
       "slug": "curator-rereview-refused-panel",
@@ -3204,25 +3195,12 @@
       ],
       "waitFor": "main",
       "captureMode": "locator",
-      "annotations": [
-        {
-          "selector": ".modal.show .modal-body",
-          "mode": "box",
-          "label": "Confirmation"
-        },
-        {
-          "selector": ".modal.show .btn-success",
-          "mode": "callout",
-          "number": 1,
-          "label": "Submit Review"
-        }
-      ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:46:21.325Z",
+      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
+      "capturedAt": "2026-11-21T11:13:24.252Z",
       "browserName": "chromium",
       "browserVersion": "151.0.7922.34",
-      "sha256": "f321b94e8ab94f16b3c1763ce096ff47280e76f5c534b5e36c1d53f6f953b2cc",
-      "bytes": 28701
+      "sha256": "e7666b3574037d1dda507042255d2d19d1c3f4078cb571031699627f915eaa6c",
+      "bytes": 20014
     },
     {
       "slug": "reviewer-after-submit-page",

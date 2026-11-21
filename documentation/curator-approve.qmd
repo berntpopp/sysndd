@@ -60,8 +60,8 @@ page. The previous review stays in the database as history.
 
 ### Approve a status change at the same time
 
-A small warning triangle on the stoplight button (tooltip **Edit new status**) means
-"Status change pending": the submitter also changed the evidence category.
+A small warning triangle on the stoplight button (tooltip **Edit new status**) means that
+the submitter also changed the evidence category.
 
 In that case the **Approve Review** dialog shows **Status Change Detected**. Turn on **Also
 approve new status** to approve both in one step. Otherwise, approve the status later in

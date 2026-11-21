@@ -162,8 +162,6 @@ See [Modify an entity](curator-modify-entity.qmd) for the full form.
 
 ## Common problems
 
-- **A linked row also shows Available, not linked.** **Check NCBI availability** is off,
-  so the column has no NCBI result. Turn the check on.
 - **Attach fails with "PMID does not correspond to a GeneReviews chapter."** You typed the
   PMID of an ordinary article. Use the PMID shown on the GeneReviews chapter page.
 - **Attach fails with "No review found for this entity."** The entity has no review yet.

@@ -147,6 +147,6 @@ A **Literature Only** gene is a candidate for curation, not evidence of a diseas
 - [Find a gene](using-find-gene.qmd): read the entities behind a cluster.
 - [Cite SysNDD and reuse its data](reference-citing.qmd): fixed versions of the analysis data.
 - [Get SysNDD data with the API and MCP](03-api.qmd): request the analysis data from code.
-- [Glossary](reference-glossary.qmd): terms such as FDR, UpSet plot and v-test.
+- [Glossary](reference-glossary.qmd): terms such as phenotype cluster, functional cluster and NDDScore.
 
 *Checked against SysNDD 0.38.4 on November 21, 2026.*

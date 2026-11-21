@@ -47,7 +47,7 @@ Some buttons were renamed or have new icons. The table maps the names in the vid
 | **Save status** | **Save Status** |
 | **submit entity review** (checkbox icon) | **Submit entity review** (paper-plane icon with a check mark), then **Submit Review** |
 
-The current list also has a **Refuse / decline (needs specialist)** button, and the **Variation Ontology** field can show machine-derived terms that need confirmation. Both are described in the [Re-review instructions](06-re-review-instructions.qmd).
+The current list also has a **Refuse / decline (needs specialist)** button, and the **Variation ontology** field can show machine-derived terms that need confirmation. Both are described in the [Re-review instructions](06-re-review-instructions.qmd).
 
 ::: {.callout-note collapse="true" title="Transcript of the narration"}
 The transcript reproduces the 2023 narration, lightly edited for grammar. Labels in it are those of the 2023 interface. "NDD status" in the narration means the evidence category (the status).

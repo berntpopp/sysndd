@@ -368,7 +368,7 @@ Once a release is published (above), an operator can archive it to Zenodo with t
 
 - Host R with `httr2`, `jsonlite`, and `digest` (all already in `api/renv.lock`).
 - `ZENODO_TOKEN` — a Zenodo personal access token (`https://zenodo.org/account/settings/applications/tokens/new/`, scope `deposit:write` + `deposit:actions`). Set it in your shell or a git-ignored `.env`; it is **never** committed and the Makefile never bakes it in as a literal.
-- `SYSNDD_API_BASE_URL` — the public API base to read the release from. Set it explicitly: the script default `http://localhost:7778` answers in neither the dev nor the production Compose stack. Use `http://localhost/api` for a local stack or `https://<host>/api` for a deployed one.
+- `SYSNDD_API_BASE_URL` — the origin to read the release from, without `/api` (the scripts append `/api/...`). The default `http://localhost` reads a local Compose stack through Traefik; set `https://<host>` for a deployed one.
 - `SYSNDD_ADMIN_TOKEN` (optional) — a pre-minted SysNDD Administrator bearer token, only needed for the automated DOI record-back in step 6.
 
 **Flow:**
