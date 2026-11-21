@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - **The MCP smoke test checks GET and DELETE `/mcp`.** The stateless streamable-HTTP server must answer both with 405; `make test-mcp-smoke` now asserts it and fails when they reach the website. Production currently routes only POST `/mcp` to the MCP sidecar; the routing fix is in the deployment configuration (berntpopp/sysndd-administration#22) and must be deployed separately. (Refs #710)
+- **CI runs again.** GitHub moved `ubuntu-latest` to 26.04 on 2026-10-26, which broke every R job on master for four weeks (no R 4.6.0 binaries, GCC 15 cannot build older packages, and a cache built there). The R jobs now run on `ubuntu-24.04` and install from the same dated Posit Package Manager snapshot as `api/Dockerfile`, so CI tests the binaries production runs; they restore `mcptools` after its dependencies, as the image does. Node, Docker and smoke jobs run on an explicit `ubuntu-26.04`, and no job uses `ubuntu-latest`, so an image change is a reviewed commit.
 - **Development tooling.** `make docker-dev` and the README no longer advertise the unpublished direct API port 7778, and the Zenodo release scripts default to the Traefik base URL.
 
 ## [0.38.2] - 2026-10-01
