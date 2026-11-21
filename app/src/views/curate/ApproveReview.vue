@@ -32,6 +32,7 @@
               :items="filteredItems"
               :fields="fieldsReviewTable"
               :total-rows="totalRows"
+              :pending-total="items_ReviewTable.length"
               :current-page="currentPage"
               :per-page="perPage"
               :page-options="pageOptions"
@@ -213,7 +214,7 @@
         <ApproveAllModal
           ref="approveAllModal"
           modal-id="approveAllModal"
-          :total-rows="totalRows"
+          :total-rows="items_ReviewTable.length"
           :selected="approve_all_selected"
           @ok="handleAllReviewsOk"
           @update:selected="approve_all_selected = $event"

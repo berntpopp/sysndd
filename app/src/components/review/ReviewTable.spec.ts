@@ -32,6 +32,7 @@ describe('ReviewTable', () => {
         ],
         fields: [{ key: 'symbol', label: 'Gene' }],
         totalRows: 2,
+        pendingTotal: 2,
         currentPage: 1,
         perPage: 1,
         pageOptions: [1, 10],
@@ -77,6 +78,7 @@ describe('ReviewTable', () => {
         items: [],
         fields: [{ key: 'symbol', label: 'Gene' }],
         totalRows: 0,
+        pendingTotal: 0,
         currentPage: 1,
         perPage: 10,
         pageOptions: [10, 25],
@@ -120,6 +122,7 @@ describe('ReviewTable', () => {
         items: [],
         fields: [{ key: 'symbol', label: 'Gene' }],
         totalRows: 42,
+        pendingTotal: 42,
         currentPage: 2,
         perPage: 10,
         pageOptions: [10, 25],
@@ -145,5 +148,41 @@ describe('ReviewTable', () => {
     expect(wrapper.get('nav[aria-label="Reviews pagination"]').attributes('data-limit')).toBe('5');
     expect(wrapper.text()).toContain('Page 2 of 5');
     expect(wrapper.text()).toContain('Approve all 42');
+  });
+
+  // "Approve all" calls the server's approve/all, which ignores the table filters, so the
+  // button must count every pending row, not the 3 left after filtering.
+  it('counts every pending row on Approve all, not the filtered rows', () => {
+    const wrapper = mount(ReviewTable, {
+      props: {
+        title: 'Approve Reviews',
+        items: [],
+        fields: [{ key: 'symbol', label: 'Gene' }],
+        totalRows: 3,
+        pendingTotal: 40,
+        currentPage: 1,
+        perPage: 10,
+        pageOptions: [10, 25],
+        sortBy: [],
+        categoryOptions: [{ value: null, text: 'All Categories' }],
+        userOptions: [{ value: null, text: 'All Users' }],
+        legendItems: [],
+      },
+      global: {
+        stubs: {
+          BButton: { template: '<button v-bind="$attrs"><slot /></button>' },
+          BFormInput: formInputStub,
+          BFormSelect: formSelectStub,
+          BInputGroup: passthrough,
+          BInputGroupText: passthrough,
+          BPagination: paginationStub,
+          BSpinner: passthrough,
+          IconLegend: passthrough,
+          GenericTable: passthrough,
+        },
+      },
+    });
+    expect(wrapper.text()).toContain('Approve all 40');
+    expect(wrapper.text()).not.toContain('Approve all 3');
   });
 });

@@ -6,13 +6,13 @@
         v-b-tooltip.hover.bottom
         variant="outline-success"
         size="sm"
-        :disabled="totalRows === 0"
+        :disabled="pendingTotal === 0"
         :title="approveAllTitle"
-        :aria-label="`Approve all ${totalRows.toLocaleString('en-US')} ${totalRowsLabel}`"
+        :aria-label="`Approve all ${pendingTotal.toLocaleString('en-US')} ${totalRowsLabel}`"
         @click="$emit('approve-all')"
       >
         <i class="bi bi-check2-all me-1" aria-hidden="true" />
-        Approve all {{ totalRows.toLocaleString('en-US') }}
+        Approve all {{ pendingTotal.toLocaleString('en-US') }}
       </BButton>
       <BButton
         v-b-tooltip.hover.bottom
@@ -263,6 +263,8 @@ const props = defineProps({
   items: { type: Array as PropType<unknown[]>, required: true },
   fields: { type: Array as PropType<TableField[]>, required: true },
   totalRows: { type: Number, required: true },
+  // Every pending row, ignoring filters: "Approve all" approves them all on the server.
+  pendingTotal: { type: Number, required: true },
   currentPage: { type: Number, required: true },
   perPage: { type: Number, required: true },
   pageOptions: { type: Array as PropType<number[]>, required: true },
