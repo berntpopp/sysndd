@@ -156,29 +156,27 @@ svc_entity_create_finalize <- function(create_data, publications, direct_approva
 svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original) {
   incoming_is_active <- as.integer(deactivate_data$entity$is_active)
   incoming_replaced_by <- deactivate_data$entity$replaced_by
-  # JSON null parses to NULL, which mutate() would drop instead of setting NA.
+  # JSON null parses to NULL; the DB bind needs NA instead.
   if (is.null(incoming_replaced_by) ||
-    (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL")) {
+    (is.character(incoming_replaced_by) && length(incoming_replaced_by) == 1L &&
+      toupper(trimws(incoming_replaced_by)) == "NULL")) {
     incoming_replaced_by <- NA_integer_
   }
 
-  ndd_entity_replaced <- ndd_entity_original %>%
-    mutate(is_active = incoming_is_active) %>%
-    mutate(replaced_by = incoming_replaced_by)
+  # isTRUE() is FALSE for the length-0/2+ comparisons that missing fields, arrays
+  # or an unknown entity (0 rows) produce; a bare `&&` on those used to 500.
+  incoming <- deactivate_data$entity
+  is_mutation_only <- length(incoming_replaced_by) == 1L &&
+    isTRUE(incoming$hgnc_id == ndd_entity_original$hgnc_id) &&
+    isTRUE(incoming$hpo_mode_of_inheritance_term == ndd_entity_original$hpo_mode_of_inheritance_term) &&
+    isTRUE(incoming$ndd_phenotype == ndd_entity_original$ndd_phenotype) &&
+    isTRUE(incoming_is_active != ndd_entity_original$is_active)
 
-  is_mutation_only <-
-    deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-    deactivate_data$entity$hpo_mode_of_inheritance_term ==
-      ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-    deactivate_data$entity$ndd_phenotype ==
-      ndd_entity_replaced$ndd_phenotype &&
-    deactivate_data$entity$is_active != ndd_entity_original$is_active
-
-  if (isTRUE(is_mutation_only)) {
+  if (is_mutation_only) {
     return(list(
       action = "deactivate",
-      entity_id = deactivate_data$entity$entity_id,
-      replaced_by = ndd_entity_replaced$replaced_by
+      entity_id = incoming$entity_id,
+      replaced_by = incoming_replaced_by
     ))
   }
 
@@ -186,6 +184,22 @@ svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original)
     action = "reject",
     error = "This endpoint only allows deactivating an entity."
   )
+}
+
+
+#' Parse `<key>$entity$entity_id` from an entity write body
+#'
+#' @param data Parsed `<key>` body (`list(entity = list(entity_id, ...))`).
+#' @return The id as a positive integer, or `NA_integer_` when missing or invalid.
+#' @export
+svc_entity_body_entity_id <- function(data) {
+  raw_id <- if (is.list(data) && is.list(data$entity)) data$entity$entity_id
+  id_num <- if (is.numeric(raw_id) || is.character(raw_id)) suppressWarnings(as.numeric(raw_id)) else NA
+  if (length(id_num) != 1 || is.na(id_num) || id_num < 1 || id_num != trunc(id_num) ||
+    id_num > .Machine$integer.max) {
+    return(NA_integer_)
+  }
+  as.integer(id_num)
 }
 
 
@@ -206,10 +220,15 @@ svc_entity_deactivate_decision <- function(deactivate_data, ndd_entity_original)
 #'   rejection returns only `error`, matching the pre-refactor handler).
 #' @export
 svc_entity_deactivate_request <- function(deactivate_data, deactivate_user_id, pool) {
+  entity_id <- svc_entity_body_entity_id(deactivate_data)
+  if (is.na(entity_id)) {
+    return(list(http_status = 400, body = list(error = "deactivate_json$entity$entity_id must be a positive integer.")))
+  }
+
   ndd_entity_original <- pool %>%
     tbl("ndd_entity") %>%
-    collect() %>%
-    dplyr::filter(entity_id == deactivate_data$entity$entity_id)
+    dplyr::filter(entity_id == !!entity_id) %>%
+    collect()
 
   decision <- svc_entity_deactivate_decision(deactivate_data, ndd_entity_original)
 
@@ -335,15 +354,10 @@ svc_entity_reactivate_conflicts <- function(original, pool) {
 #' @return `list(http_status, body)` like `svc_entity_deactivate_request()`.
 #' @export
 svc_entity_reactivate_request <- function(reactivate_data, reactivate_user_id, pool) {
-  raw_id <- if (is.list(reactivate_data) && is.list(reactivate_data$entity)) {
-    reactivate_data$entity$entity_id
-  }
-  id_num <- if (is.numeric(raw_id) || is.character(raw_id)) suppressWarnings(as.numeric(raw_id)) else NA
-  if (length(id_num) != 1 || is.na(id_num) || id_num < 1 || id_num != trunc(id_num) ||
-    id_num > .Machine$integer.max) {
+  entity_id <- svc_entity_body_entity_id(reactivate_data)
+  if (is.na(entity_id)) {
     return(list(http_status = 400, body = list(error = "reactivate_json$entity$entity_id must be a positive integer.")))
   }
-  entity_id <- as.integer(id_num)
 
   original <- pool %>%
     dplyr::tbl("ndd_entity") %>%

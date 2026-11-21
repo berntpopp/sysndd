@@ -217,6 +217,54 @@ base_deactivate_original <- tibble::tibble(
   replaced_by = NA_integer_
 )
 
+# Entity write bodies at the trust boundary: an empty or malformed body must be
+# a 400, not a 500 from deep inside the service.
+
+test_that("svc_entity_require_body rejects a body without an entity object as 400", {
+  for (body in list(NULL, "x", list(), list(entity = "x"), list(entity = NULL))) {
+    expect_error(svc_entity_require_body(body, "deactivate_json"), class = "error_400")
+  }
+  ok <- list(entity = list(entity_id = 1L))
+  expect_identical(svc_entity_require_body(ok, "deactivate_json"), ok)
+})
+
+test_that("every entity write endpoint routes its body through svc_entity_require_body", {
+  src <- readLines(file.path(get_api_dir(), "endpoints", "entity_endpoints.R"), warn = FALSE)
+  body_reads <- grep("req\\$argsBody", src, value = TRUE)
+  expect_length(body_reads, 4L)
+  expect_true(
+    all(grepl("svc_entity_require_body\\(req\\$argsBody\\$", body_reads)),
+    info = paste(body_reads, collapse = "\n")
+  )
+})
+
+test_that("svc_entity_deactivate_request rejects a malformed entity_id with 400 before any DB read", {
+  for (body in list(
+    list(entity = list()),
+    list(entity = list(entity_id = "abc")),
+    list(entity = list(entity_id = 0)),
+    list(entity = list(entity_id = c(1, 2)))
+  )) {
+    expect_equal(svc_entity_deactivate_request(body, 1L, pool = NULL)$http_status, 400)
+  }
+})
+
+test_that("svc_entity_deactivate_decision rejects incomplete bodies and unknown entities instead of crashing", {
+  full <- list(
+    entity_id = 42L, hgnc_id = "HGNC:1234", hpo_mode_of_inheritance_term = "HP:0000006",
+    ndd_phenotype = 1L, is_active = 0L, replaced_by = 99L
+  )
+  for (field in c("hgnc_id", "hpo_mode_of_inheritance_term", "ndd_phenotype", "is_active")) {
+    partial <- full
+    partial[[field]] <- NULL
+    decision <- svc_entity_deactivate_decision(list(entity = partial), base_deactivate_original)
+    expect_equal(decision$action, "reject", info = field)
+  }
+  arrays <- modifyList(full, list(replaced_by = c(1L, 2L)))
+  expect_equal(svc_entity_deactivate_decision(list(entity = arrays), base_deactivate_original)$action, "reject")
+  expect_equal(svc_entity_deactivate_decision(list(entity = full), base_deactivate_original[0, ])$action, "reject")
+})
+
 test_that("svc_entity_deactivate_decision approves a pure is_active flip", {
   deactivate_data <- list(entity = list(
     entity_id = 42L,

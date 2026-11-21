@@ -48,3 +48,37 @@ test_that("every endpoint sub-router is mounted through mount_endpoint()", {
   endpoint_mounts <- grep('mount_endpoint\\("endpoints/', mount_lines, value = TRUE)
   expect_gt(length(endpoint_mounts), 20)
 })
+
+# -----------------------------------------------------------------------------
+# Malformed JSON bodies: plumber parses the body before any handler runs, so a
+# client sending invalid JSON reached errorHandler as a bare parse error and
+# got a 500. It must be a 400 problem+json.
+# -----------------------------------------------------------------------------
+
+source_api_file("core/errors.R", local = FALSE)
+source_api_file("core/filters.R", local = FALSE)
+
+call_error_handler <- function(body, content_type = "application/json") {
+  req <- list(
+    REQUEST_METHOD = "POST", PATH_INFO = "/deactivate",
+    HTTP_CONTENT_TYPE = content_type, bodyRaw = charToRaw(body)
+  )
+  res <- new.env(parent = emptyenv())
+  err <- tryCatch(jsonlite::parse_json(body), error = function(e) e)
+  if (!inherits(err, "error")) err <- simpleError("boom")
+  out <- suppressMessages(errorHandler(req, res, err))
+  list(status = res$status, body = out)
+}
+
+test_that("errorHandler maps an invalid JSON request body to 400 problem+json", {
+  for (body in c("{bad", "{\"deactivate_json\":", "[1,")) {
+    r <- call_error_handler(body)
+    expect_equal(r$status, 400, info = body)
+    expect_equal(r$body$detail, "Malformed JSON request body")
+  }
+})
+
+test_that("errorHandler keeps 500 for an unexpected error with a valid or non-JSON body", {
+  expect_equal(call_error_handler("{\"a\":1}")$status, 500)
+  expect_equal(call_error_handler("{bad", content_type = "text/plain")$status, 500)
+})
