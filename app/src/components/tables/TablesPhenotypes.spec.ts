@@ -234,7 +234,7 @@ describe('TablesPhenotypes', () => {
     const wrapper = await mountSubject();
     const vm = wrapper.vm as unknown as { formatHeaderLabel: (label: string) => string };
 
-    expect(wrapper.text()).toContain('Loaded 2/12');
+    expect(wrapper.text()).toContain('Showing 11–12 of 12');
     expect(vm.formatHeaderLabel('Ndd phenotype word')).toBe('NDD');
     expect(vm.formatHeaderLabel('Hpo mode of inheritance term name')).toBe('Inheritance');
   });

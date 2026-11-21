@@ -1,313 +1,292 @@
 <!-- components/tables/TablesGenes.vue -->
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <TableShell
-            :title="headerLabel"
-            :heading-level="headingLevel"
-            :meta="loading && !totalRows ? 'Loading...' : 'Genes: ' + totalRows"
-            :description="
-              loading && !totalRows
-                ? 'Loading genes...'
-                : 'Loaded ' + items.length + '/' + totalRows + ' in ' + executionTime
-            "
-            :loading="loading"
-          >
-            <template #actions>
-              <div v-if="showFilterControls" class="mb-1 text-end">
-                <TableDownloadLinkCopyButtons
-                  :downloading="downloading"
-                  :remove-filters-title="removeFiltersButtonTitle"
-                  :remove-filters-variant="removeFiltersButtonVariant"
-                  @request-excel="requestExcel"
-                  @copy-link="copyLinkToClipboard"
-                  @remove-filters="removeFilters"
+  <div class="py-2">
+    <TableShell
+      :title="headerLabel"
+      :heading-level="headingLevel"
+      :meta="loading && !totalRows ? 'Loading...' : `Genes: ${formatCount(totalRows)}`"
+      :description="
+        loading && !totalRows
+          ? 'Loading genes...'
+          : formatPageRange(currentPage, perPage, items.length, totalRows)
+      "
+      :loading="loading"
+    >
+      <template #actions>
+        <div v-if="showFilterControls" class="mb-1 text-end">
+          <TableDownloadLinkCopyButtons
+            :downloading="downloading"
+            :remove-filters-title="removeFiltersButtonTitle"
+            :remove-filters-variant="removeFiltersButtonVariant"
+            @request-excel="requestExcel"
+            @copy-link="copyLinkToClipboard"
+            @remove-filters="removeFilters"
+          />
+        </div>
+      </template>
+
+      <template #toolbar>
+        <!-- User Interface controls -->
+        <BRow>
+          <BCol class="my-1" sm="8">
+            <TableSearchInput
+              v-model="filter['any'].content"
+              :placeholder="'Search any field by typing here'"
+              :debounce-time="500"
+              @input="filtered"
+            />
+          </BCol>
+
+          <BCol class="my-1" sm="4">
+            <TablePaginationControls
+              v-if="totalRows > perPage || showPaginationControls"
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              :current-page="currentPage"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </BCol>
+        </BRow>
+        <!-- User Interface controls -->
+      </template>
+
+      <template #loading>
+        <TableLoadingState :rows="10" label="Loading genes" data-testid="genes-skeleton" />
+      </template>
+
+      <!-- Main table element -->
+      <div class="d-none d-md-block">
+        <BTable
+          :items="items"
+          :fields="fields"
+          :sort-by="sortBy"
+          :busy="isBusy"
+          :stacked="false"
+          head-variant="light"
+          show-empty
+          small
+          fixed
+          hover
+          class="public-data-table"
+          sort-icon-left
+          no-local-sorting
+          @update:sort-by="handleSortByUpdate"
+        >
+          <!-- custom formatted header -->
+          <template #head()="data">
+            <!-- Tooltip via directive VALUE (not :title) so counts update on filter; see AGENTS.md (bvn v-b-tooltip). -->
+            <div
+              v-b-tooltip.hover.top="
+                getTooltipText(
+                  fields.find((f) => f.label === data.label) || {
+                    key: data.column,
+                    label: data.label,
+                  }
+                )
+              "
+            >
+              {{ formatHeaderLabel(data.label) }}
+            </div>
+          </template>
+
+          <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+          <!-- role="presentation" removes the row from the table accessibility tree so
+                     axe/Lighthouse does not flag the filter <td> cells as lacking column headers
+                     (td-has-header). Filter inputs are independently labelled via aria-label. -->
+          <template #thead-top>
+            <tr role="presentation">
+              <td v-for="field in fields" :key="field.key" role="presentation">
+                <BFormInput
+                  v-if="field.filterable"
+                  v-model="filter[field.key].content"
+                  :placeholder="'Filter ' + formatHeaderLabel(field.label) + '...'"
+                  :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
+                  debounce="500"
+                  type="search"
+                  autocomplete="off"
+                  @click="removeSearch()"
+                  @update:model-value="filtered()"
                 />
-              </div>
-            </template>
 
-            <template #toolbar>
-              <!-- User Interface controls -->
-              <BRow>
-                <BCol class="my-1" sm="8">
-                  <TableSearchInput
-                    v-model="filter['any'].content"
-                    :placeholder="'Search any field by typing here'"
-                    :debounce-time="500"
-                    @input="filtered"
-                  />
-                </BCol>
+                <label
+                  v-if="field.selectable"
+                  :for="'select_' + field.key"
+                  :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
+                >
+                  <BFormSelect
+                    :id="'select_' + field.key"
+                    v-model="filter[field.key].content"
+                    :options="field.selectOptions"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        Any {{ formatHeaderLabel(field.label) }}
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </label>
 
-                <BCol class="my-1" sm="4">
-                  <BContainer v-if="totalRows > perPage || showPaginationControls">
-                    <TablePaginationControls
-                      :total-rows="totalRows"
-                      :initial-per-page="perPage"
-                      :page-options="pageOptions"
-                      :current-page="currentPage"
-                      @page-change="handlePageChange"
-                      @per-page-change="handlePerPageChange"
-                    />
-                  </BContainer>
-                </BCol>
-              </BRow>
-              <!-- User Interface controls -->
-            </template>
+                <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                <label
+                  v-if="
+                    field.multi_selectable && field.selectOptions && field.selectOptions.length > 0
+                  "
+                  :for="'multiselect_' + field.key"
+                  :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
+                >
+                  <BFormSelect
+                    :id="'multiselect_' + field.key"
+                    v-model="filter[field.key].content"
+                    :options="normalizeSelectOptions(field.selectOptions)"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        Any {{ formatHeaderLabel(field.label) }}
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </label>
+              </td>
+            </tr>
+          </template>
 
-            <template #loading>
-              <TableLoadingState :rows="10" label="Loading genes" data-testid="genes-skeleton" />
-            </template>
+          <template #cell(details)="row">
+            <BButton
+              class="btn-xs fw-semibold"
+              variant="outline-primary"
+              :aria-label="
+                (row.expansionShowing ? 'Hide details for ' : 'Show details for ') + row.item.symbol
+              "
+              @click="row.toggleExpansion"
+            >
+              {{ row.expansionShowing ? 'Hide' : 'Show' }}
+            </BButton>
+          </template>
 
-            <!-- Main table element -->
-            <div class="d-none d-md-block">
+          <template #row-expansion="row">
+            <BCard>
               <BTable
-                :items="items"
-                :fields="fields"
-                :sort-by="sortBy"
-                :busy="isBusy"
-                :stacked="false"
+                :items="row.item.entities"
+                :fields="fields_details"
                 head-variant="light"
                 show-empty
                 small
                 fixed
-                hover
-                class="public-data-table"
                 sort-icon-left
-                no-local-sorting
-                @update:sort-by="handleSortByUpdate"
               >
-                <!-- custom formatted header -->
-                <template #head()="data">
-                  <!-- Tooltip via directive VALUE (not :title) so counts update on filter; see AGENTS.md (bvn v-b-tooltip). -->
-                  <div
-                    v-b-tooltip.hover.top="
-                      getTooltipText(
-                        fields.find((f) => f.label === data.label) || {
-                          key: data.column,
-                          label: data.label,
-                        }
-                      )
-                    "
-                  >
-                    {{ formatHeaderLabel(data.label) }}
-                  </div>
-                </template>
-
-                <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
-                <!-- role="presentation" removes the row from the table accessibility tree so
-                     axe/Lighthouse does not flag the filter <td> cells as lacking column headers
-                     (td-has-header). Filter inputs are independently labelled via aria-label. -->
-                <template #thead-top>
-                  <tr role="presentation">
-                    <td v-for="field in fields" :key="field.key" role="presentation">
-                      <BFormInput
-                        v-if="field.filterable"
-                        v-model="filter[field.key].content"
-                        :placeholder="'Filter ' + formatHeaderLabel(field.label) + '...'"
-                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
-                        debounce="500"
-                        type="search"
-                        autocomplete="off"
-                        @click="removeSearch()"
-                        @update:model-value="filtered()"
-                      />
-
-                      <label
-                        v-if="field.selectable"
-                        :for="'select_' + field.key"
-                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
-                      >
-                        <BFormSelect
-                          :id="'select_' + field.key"
-                          v-model="filter[field.key].content"
-                          :options="field.selectOptions"
-                          size="sm"
-                          @update:model-value="
-                            removeSearch();
-                            filtered();
-                          "
-                        >
-                          <template #first>
-                            <BFormSelectOption :value="null">
-                              Any {{ formatHeaderLabel(field.label) }}
-                            </BFormSelectOption>
-                          </template>
-                        </BFormSelect>
-                      </label>
-
-                      <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
-                      <label
-                        v-if="
-                          field.multi_selectable &&
-                          field.selectOptions &&
-                          field.selectOptions.length > 0
-                        "
-                        :for="'multiselect_' + field.key"
-                        :aria-label="'Filter by ' + formatHeaderLabel(field.label)"
-                      >
-                        <BFormSelect
-                          :id="'multiselect_' + field.key"
-                          v-model="filter[field.key].content"
-                          :options="normalizeSelectOptions(field.selectOptions)"
-                          size="sm"
-                          @update:model-value="
-                            removeSearch();
-                            filtered();
-                          "
-                        >
-                          <template #first>
-                            <BFormSelectOption :value="null">
-                              Any {{ formatHeaderLabel(field.label) }}
-                            </BFormSelectOption>
-                          </template>
-                        </BFormSelect>
-                      </label>
-                    </td>
-                  </tr>
-                </template>
-
-                <template #cell(details)="row">
-                  <BButton
-                    class="btn-xs fw-semibold"
-                    variant="outline-primary"
-                    :aria-label="
-                      (row.expansionShowing ? 'Hide details for ' : 'Show details for ') +
-                      row.item.symbol
-                    "
-                    @click="row.toggleExpansion"
-                  >
-                    {{ row.expansionShowing ? 'Hide' : 'Show' }}
-                  </BButton>
-                </template>
-
-                <template #row-expansion="row">
-                  <BCard>
-                    <BTable
-                      :items="row.item.entities"
-                      :fields="fields_details"
-                      head-variant="light"
-                      show-empty
-                      small
-                      fixed
-                      sort-icon-left
-                    >
-                      <template #cell(entity_id)="data">
-                        <EntityBadge
-                          :entity-id="data.item.entity_id"
-                          :link-to="withCurrentReturnTo('/Entities/' + data.item.entity_id)"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(disease_ontology_name)="data">
-                        <DiseaseBadge
-                          :name="data.item.disease_ontology_name"
-                          :ontology-id="data.item.disease_ontology_id_version"
-                          :link-to="
-                            '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                          "
-                          :max-length="35"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(ndd_phenotype_word)="data">
-                        <div
-                          v-b-tooltip.hover.left
-                          :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                        >
-                          <NddIcon
-                            :status="data.item.ndd_phenotype_word"
-                            size="sm"
-                            :show-title="false"
-                          />
-                        </div>
-                      </template>
-
-                      <template #cell(category)="data">
-                        <div v-b-tooltip.hover.left :title="data.item.category">
-                          <CategoryIcon
-                            :category="data.item.category"
-                            size="sm"
-                            :show-title="false"
-                          />
-                        </div>
-                      </template>
-
-                      <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                        <InheritanceBadge
-                          :full-name="data.item.hpo_mode_of_inheritance_term_name"
-                          :hpo-term="data.item.hpo_mode_of_inheritance_term"
-                          size="sm"
-                        />
-                      </template>
-                    </BTable>
-                  </BCard>
-                </template>
-
-                <template #cell(symbol)="data">
-                  <GeneBadge
-                    :symbol="data.item.symbol"
-                    :hgnc-id="data.item.hgnc_id"
-                    :link-to="withCurrentReturnTo('/Genes/' + data.item.hgnc_id)"
+                <template #cell(entity_id)="data">
+                  <EntityBadge
+                    :entity-id="data.item.entity_id"
+                    :link-to="withCurrentReturnTo('/Entities/' + data.item.entity_id)"
                     size="sm"
                   />
                 </template>
 
-                <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                  <div class="d-flex flex-wrap gap-1">
-                    <InheritanceBadge
-                      v-for="item in data.item.entities"
-                      :key="item.hpo_mode_of_inheritance_term_name + item.entity_id"
-                      :full-name="item.hpo_mode_of_inheritance_term_name"
-                      :hpo-term="item.hpo_mode_of_inheritance_term"
-                      size="sm"
-                    />
+                <template #cell(disease_ontology_name)="data">
+                  <DiseaseBadge
+                    :name="data.item.disease_ontology_name"
+                    :ontology-id="data.item.disease_ontology_id_version"
+                    :link-to="
+                      '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                    "
+                    :max-length="0"
+                    size="sm"
+                  />
+                </template>
+
+                <template #cell(ndd_phenotype_word)="data">
+                  <div v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+                    <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
                   </div>
                 </template>
 
                 <template #cell(category)="data">
-                  <div class="d-flex flex-wrap gap-1">
-                    <span
-                      v-for="item in data.item.entities"
-                      :key="item.category + item.entity_id"
-                      v-b-tooltip.hover.left
-                      :title="item.category"
-                    >
-                      <CategoryIcon :category="item.category" size="sm" :show-title="false" />
-                    </span>
+                  <div v-b-tooltip.hover.left :title="data.item.category">
+                    <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
                   </div>
                 </template>
 
-                <template #cell(ndd_phenotype_word)="data">
-                  <div class="d-flex flex-wrap gap-1">
-                    <span
-                      v-for="item in data.item.entities"
-                      :key="item.ndd_phenotype_word + item.entity_id"
-                      v-b-tooltip.hover.left
-                      :title="ndd_icon_text[item.ndd_phenotype_word]"
-                    >
-                      <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
-                    </span>
-                  </div>
-                </template>
-
-                <template #cell(entities_count)="data">
-                  <BBadge variant="secondary" pill class="px-2">
-                    {{ data.item.entities_count }}
-                  </BBadge>
+                <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                  <InheritanceBadge
+                    :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                    :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                    size="sm"
+                  />
                 </template>
               </BTable>
+            </BCard>
+          </template>
+
+          <template #cell(symbol)="data">
+            <GeneBadge
+              :symbol="data.item.symbol"
+              :hgnc-id="data.item.hgnc_id"
+              :link-to="withCurrentReturnTo('/Genes/' + data.item.hgnc_id)"
+              size="sm"
+            />
+          </template>
+
+          <template #cell(hpo_mode_of_inheritance_term_name)="data">
+            <div class="d-flex flex-wrap gap-1">
+              <InheritanceBadge
+                v-for="item in data.item.entities"
+                :key="item.hpo_mode_of_inheritance_term_name + item.entity_id"
+                :full-name="item.hpo_mode_of_inheritance_term_name"
+                :hpo-term="item.hpo_mode_of_inheritance_term"
+                size="sm"
+              />
             </div>
-            <div class="d-md-none">
-              <GenesMobileRows :items="items" />
+          </template>
+
+          <template #cell(category)="data">
+            <div class="d-flex flex-wrap gap-1">
+              <span
+                v-for="item in data.item.entities"
+                :key="item.category + item.entity_id"
+                v-b-tooltip.hover.left
+                :title="item.category"
+              >
+                <CategoryIcon :category="item.category" size="sm" :show-title="false" />
+              </span>
             </div>
-          </TableShell>
-        </BCol>
-      </BRow>
-    </BContainer>
+          </template>
+
+          <template #cell(ndd_phenotype_word)="data">
+            <div class="d-flex flex-wrap gap-1">
+              <span
+                v-for="item in data.item.entities"
+                :key="item.ndd_phenotype_word + item.entity_id"
+                v-b-tooltip.hover.left
+                :title="ndd_icon_text[item.ndd_phenotype_word]"
+              >
+                <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
+              </span>
+            </div>
+          </template>
+
+          <template #cell(entities_count)="data">
+            <BBadge variant="secondary" pill class="px-2">
+              {{ data.item.entities_count }}
+            </BBadge>
+          </template>
+        </BTable>
+      </div>
+      <div class="d-md-none">
+        <GenesMobileRows :items="items" />
+      </div>
+    </TableShell>
   </div>
 </template>
 
@@ -330,6 +309,7 @@ import { BTable, BCard } from 'bootstrap-vue-next';
 // Import the Table components
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import { formatCount, formatPageRange } from '@/components/small/tableCountFormat';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -396,6 +376,8 @@ export default defineComponent({
       return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
     };
     return {
+      formatCount,
+      formatPageRange,
       ...table,
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,

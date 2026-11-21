@@ -1,13 +1,15 @@
 <template>
-  <div class="container-fluid py-2">
+  <div class="py-2">
     <TableShell
       title="Phenotype search"
       :heading-level="headingLevel"
-      :meta="loading && !totalRows ? 'Loading...' : `Associated entities: ${totalRows}`"
+      :meta="
+        loading && !totalRows ? 'Loading...' : `Associated entities: ${formatCount(totalRows)}`
+      "
       :description="
         loading && !totalRows
           ? 'Loading phenotype entities...'
-          : `Loaded ${items.length}/${totalRows} in ${executionTime}`
+          : formatPageRange(currentPage, perPage, items.length, totalRows)
       "
       :loading="loading"
     >
@@ -221,7 +223,7 @@
               :name="data.item.disease_ontology_name"
               :ontology-id="data.item.disease_ontology_id_version"
               :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
-              :max-length="35"
+              :max-length="0"
               size="sm"
             />
           </template>
@@ -274,6 +276,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import table components
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import { formatCount, formatPageRange } from '@/components/small/tableCountFormat';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -326,6 +329,8 @@ export default defineComponent({
       return table.truncate(label.replace(/( word)|( name)/g, ''), 20);
     };
     return {
+      formatCount,
+      formatPageRange,
       ...table,
       // Shared select-option normalizer used by the table-header filter row.
       normalizeSelectOptions,

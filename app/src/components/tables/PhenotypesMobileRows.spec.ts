@@ -37,7 +37,7 @@ describe('PhenotypesMobileRows', () => {
     });
 
     expect(wrapper.text()).toContain('ARID1B');
-    expect(wrapper.text()).toContain('HP:0001249');
+    expect(wrapper.text()).toContain('1 phenotype');
     expect(wrapper.find('a[href="/Entities/57"]').exists()).toBe(true);
     expect(wrapper.find('a[href="/Genes/HGNC:18040"]').exists()).toBe(true);
     expect(wrapper.find('a[href="/Ontology/OMIM:135900"]').exists()).toBe(true);
@@ -62,7 +62,8 @@ describe('PhenotypesMobileRows', () => {
         items: [
           {
             ...sample,
-            modifier_phenotype_id: 'HP:0001249,HP:0001256,HP:0001871,HP:0003676',
+            // API value: "<modifier>-<HPO id>" (1 = present)
+            modifier_phenotype_id: '1-HP:0001249,1-HP:0001256,1-HP:0001871,1-HP:0003676',
           },
         ],
       },
@@ -79,9 +80,10 @@ describe('PhenotypesMobileRows', () => {
       },
     });
 
-    expect(wrapper.text()).toContain('HP:0001249, HP:0001256 +2');
-    expect(wrapper.get('[aria-label^="Phenotype:"]').attributes('title')).toBe(
-      'HP:0001249,HP:0001256,HP:0001871,HP:0003676'
-    );
+    // PUB-31: the row showed raw modifier codes ("1-HP:0000077, 1-HP:0000707 +6")
+    const chip = wrapper.get('[data-testid="phenotype-count"]');
+    expect(chip.text()).toBe('4 phenotypes');
+    expect(chip.attributes('title')).toBe('HP:0001249, HP:0001256, HP:0001871, HP:0003676');
+    expect(wrapper.text()).not.toContain('1-HP');
   });
 });
