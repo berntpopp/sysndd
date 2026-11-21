@@ -23,9 +23,12 @@
 import { apiClient } from '@/api/client';
 import { useAuth } from '@/composables/useAuth';
 import useToast from '@/composables/useToast';
+import LogoutCountdownBadge from './LogoutCountdownBadge.vue';
 
 export default {
   name: 'IconPairDropdownMenu',
+  // Nav items name their component as a string (main_nav_constants); resolve it here.
+  components: { LogoutCountdownBadge },
   props: {
     title: {
       type: String,

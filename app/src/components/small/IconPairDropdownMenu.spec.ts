@@ -176,3 +176,31 @@ describe('IconPairDropdownMenu — v11.0 closeout F2b auth migration', () => {
     expect(auth.token.value).toBe('test-token-sign');
   });
 });
+
+describe('IconPairDropdownMenu — item components', () => {
+  it('renders the session countdown named by the Token item', () => {
+    primeAuth();
+    // The nav constants name the badge as a string; an unregistered name renders
+    // as an inert <logoutcountdownbadge> element, so no countdown and no warning.
+    const wrapper = mount(IconPairDropdownMenu, {
+      props: {
+        title: 'User',
+        required: [],
+        align: 'right',
+        items: [{ text: 'Token', component: 'LogoutCountdownBadge' }],
+      },
+      global: {
+        mocks: { $route: { path: '/' }, $router: { push: routerPush, go: routerGo } },
+        stubs: {
+          BNavItemDropdown: { template: '<div><slot /></div>' },
+          BDropdownItem: { template: '<a><slot /></a>' },
+          BBadge: { template: '<span class="badge"><slot /></span>' },
+        },
+      },
+    });
+
+    expect(wrapper.findComponent({ name: 'LogoutCountdownBadge' }).exists()).toBe(true);
+    expect(wrapper.html()).not.toContain('<logoutcountdownbadge');
+    wrapper.unmount();
+  });
+});
