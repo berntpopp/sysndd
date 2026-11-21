@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Every open frontend dependency advisory is fixed; `npm audit` reports 0 vulnerabilities.** Direct bumps: `dompurify` 3.4.18, `markdown-it` 15.0.3, `vite` 7.3.8, `vitest` / `@vitest/ui` / `@vitest/coverage-v8` 5.1. Transitive fixes within existing ranges: `undici`, `body-parser`, `compression`, `follow-redirects`, `source-map-js`, `proxy-addr` (critical). Override floors raised to the first patched release for `fast-uri`, `qs`, `serialize-javascript` and `brace-expansion` 1.x / 2.x / 5.x. New overrides move `minimatch` 10 → 11 and `glob` 11 / 13 → 14, because the latest `js-beautify`, `workbox-build` and `@swagger-api/apidom-reference` still require the vulnerable majors; the calls they make behave the same.
+
+### Changed
+
+- Frontend dependencies bumped (Dependabot #705, #707), including `@vueuse/core` 14 → 15 (#690; no call site uses a removed API). `vue-tsc` is held at 3.3.11: 3.3.12–3.3.14 mis-parse `//` inside template attribute values (vuejs/language-tools#6264, #6322, #6360), and Dependabot skips exactly those releases.
+- Compose images bumped (#706): `mysql` 8.4.11 → 8.4.13, `traefik` v3.7.13 → v3.7.17, `axllent/mailpit` v1.31.1 → v1.33.0 (includes GHSA-379p-g4f4-hq5h).
+
 ## [0.38.3] - 2026-11-21
 
 ### Added
