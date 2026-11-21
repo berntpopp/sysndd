@@ -174,6 +174,8 @@ async function mountView(searchParams: URLSearchParams = new URLSearchParams()) 
   // loadData()); wait it out so the mounted-component's first request has
   // actually fired before assertions run.
   await new Promise((resolve) => setTimeout(resolve, 75));
+  const vm = wrapper.vm as unknown as { loadDataDebounceTimer: unknown };
+  await vi.waitFor(() => expect(vm.loadDataDebounceTimer).toBeNull());
   await flushRequests();
   return wrapper;
 }
@@ -484,7 +486,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     vm.sort = '-vario_id';
     if (vm.loadDataDebounceTimer) clearTimeout(vm.loadDataDebounceTimer);
     await vm.doLoadData();
-    await flushRequests();
+    await flushRequests(200); // the first request stays gated, so this returns on its timeout
 
     // The second (superseding) request already applied its data.
     expect(vm.totalRows).toBe(222);

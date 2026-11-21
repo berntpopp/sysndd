@@ -224,7 +224,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const wrapper = mountManageLLM();
     try {
-      await vi.runOnlyPendingTimersAsync();
+      await flushRequests();
       await wrapper.get('button[data-testid="llm-regenerate-functional"]').trigger('click');
       await flushRequests();
 

@@ -25,6 +25,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import { http, HttpResponse } from 'msw';
@@ -137,7 +138,7 @@ async function mountView() {
       },
     },
   });
-  await flushPromises();
+  await flushRequests();
   return wrapper;
 }
 
@@ -249,9 +250,7 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
     const vm = wrapper.vm as unknown as ApproveUserVm;
 
     // Approved carl is dropped; only the two pending applications remain.
-    await vi.waitFor(() =>
-      expect(vm.items_UsersTable.map((u) => u.user_name)).toEqual(['alice', 'bob'])
-    );
+    expect(vm.items_UsersTable.map((u) => u.user_name)).toEqual(['alice', 'bob']);
 
     vm.filter = 'b';
     vm.roleFilter = 'Reviewer';
@@ -272,7 +271,6 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = await mountView();
     const vm = wrapper.vm as unknown as ApproveUserVm;
-    await vi.waitFor(() => expect(vm.items_UsersTable).toHaveLength(2));
 
     vm.currentPage = 3;
     expect(vm.currentPage).toBe(3);
