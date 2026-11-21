@@ -2,7 +2,7 @@
 <template>
   <AdminOperationPanel
     title="Updating HGNC Data"
-    :meta="lastUpdated ? `Last: ${formatDate(lastUpdated)}` : null"
+    :meta="`Last: ${lastUpdated === undefined ? '…' : lastUpdated ? formatDate(lastUpdated) : 'Never'}`"
     icon="bi-database"
     heading-tag="h2"
   >
@@ -26,7 +26,7 @@ import JobProgressDisplay from './JobProgressDisplay.vue';
 
 defineProps<{
   hgncJob: UseAsyncJobReturn;
-  lastUpdated: string | null;
+  lastUpdated?: string | null;
 }>();
 
 defineEmits<{

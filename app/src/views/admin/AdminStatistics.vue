@@ -1,10 +1,11 @@
 <template>
   <AuthenticatedPageShell
     title="Admin Statistics"
+    description="Curation activity for a reporting window: new entities, contributors and re-reviews."
     content-class="authenticated-route-content"
     full-width
   >
-    <BContainer fluid class="py-3">
+    <BContainer fluid class="p-0 admin-stats">
       <section class="admin-statistics-controls" data-testid="admin-statistics-controls">
         <div class="admin-statistics-controls__status">
           <span class="admin-statistics-controls__eyebrow">Reporting window</span>
@@ -37,7 +38,7 @@
           <div class="admin-statistics-controls__actions">
             <BButton type="submit" variant="primary" size="sm">Apply</BButton>
             <BButton
-              variant="outline-secondary"
+              variant="outline-primary"
               size="sm"
               :disabled="loading.trend || loading.leaderboard || loading.reReviewLeaderboard"
               @click="refreshAll"
@@ -57,6 +58,7 @@
             :value="stat.value"
             :delta="stat.delta"
             :context="stat.context"
+            :decimals="stat.decimals"
           />
         </BCol>
       </BRow>
@@ -87,14 +89,14 @@
                   <BFormRadioGroup
                     v-model="nddFilter"
                     :options="nddFilterOptions"
-                    button-variant="outline-secondary"
+                    button-variant="outline-primary"
                     size="sm"
                     buttons
                   />
                   <BFormRadioGroup
                     v-model="categoryDisplay"
                     :options="categoryDisplayOptions"
-                    button-variant="outline-secondary"
+                    button-variant="outline-primary"
                     size="sm"
                     buttons
                   />
@@ -105,7 +107,7 @@
                   class="admin-chart-toolbar__categories"
                   size="sm"
                   buttons
-                  button-variant="outline-secondary"
+                  button-variant="outline-primary"
                 />
               </div>
             </template>
@@ -127,7 +129,7 @@
           <BCard class="h-100">
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Top Contributors</h5>
+                <h2 class="admin-chart-title">Top Contributors</h2>
                 <BFormRadioGroup
                   v-model="leaderboardScope"
                   :options="leaderboardScopeOptions"
@@ -153,7 +155,7 @@
           <BCard class="h-100">
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Top Re-Reviewers</h5>
+                <h2 class="admin-chart-title">Top Re-Reviewers</h2>
                 <BFormRadioGroup
                   v-model="reReviewLeaderboardScope"
                   :options="reReviewLeaderboardScopeOptions"
@@ -287,6 +289,7 @@ import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
 import StatCard from './components/statistics/StatCard.vue';
+import { formatDateTime } from './adminDisplay';
 import { useHead } from '@unhead/vue';
 
 useHead({ title: 'Admin Statistics' });
@@ -300,11 +303,14 @@ const { makeToast } = useToast();
 // outbound call, reading `useAuth().token.value` — so no injected axios,
 // base URL, or auth-header plumbing is needed here.
 
-// Date range (default: last 12 months)
+// Date range (default: last 12 months). Local calendar dates: toISOString()
+// would shift them by the UTC offset (a CET user saw yesterday's date).
+const localIsoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const today = new Date();
 const twelveMonthsAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-const startDate = ref(twelveMonthsAgo.toISOString().split('T')[0]);
-const endDate = ref(today.toISOString().split('T')[0]);
+const startDate = ref(localIsoDate(twelveMonthsAgo));
+const endDate = ref(localIsoDate(today));
 
 const lastUpdated = ref<Date | null>(null);
 
@@ -408,23 +414,24 @@ const kpiCards = computed(() => [
   {
     label: 'Contributors',
     value: totalContributors.value,
-    context: 'Curators with entity submissions',
+    // The count follows the leaderboard's scope toggle, so say which one it is.
+    context:
+      leaderboardScope.value === 'all_time'
+        ? 'Curators with entity submissions, all time'
+        : 'Curators with entity submissions in this period',
   },
   {
     label: 'Avg Per Day',
     value: kpiStats.value.avgPerDay,
+    decimals: 2,
     context: `Mean daily rate (${periodLengthDays.value} day period)`,
   },
 ]);
 
 // --- Helpers ---
-function formatDateTime(date: Date): string {
-  return date.toLocaleString();
-}
-
 function formatDecimal(value: number | undefined | null): string {
   if (value === undefined || value === null || typeof value !== 'number' || isNaN(value))
-    return 'N/A';
+    return '—';
   return value.toFixed(2);
 }
 
@@ -551,6 +558,12 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.admin-stats :deep(.btn-outline-primary) {
+  /* #0d6efd is 4.1-4.3:1 on the tinted toolbar; the hover shade is >= 5.8:1. */
+  --bs-btn-color: #0a58ca;
+  --bs-btn-border-color: #0a58ca;
 }
 
 .stats-number {

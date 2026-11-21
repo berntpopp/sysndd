@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { listBackups, downloadBackup as downloadBackupFile } from '@/api/backup';
 import { extractApiErrorMessage } from '@/utils/api-errors';
+import { formatDateTime, isMissing, useDelayedFlag } from '../adminDisplay';
 
 /**
  * A single database backup row in the inventory surface.
@@ -43,20 +44,8 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-/**
- * Format an ISO date string as "YYYY-MM-DD HH:mm".
- */
-export function formatDate(dateString: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-}
+/** Shared admin timestamp style ("July 18, 2026, 20:01 UTC"). */
+export const formatDate = formatDateTime;
 
 /**
  * Resolve the SysNDD backup "type" label from a filename prefix.
@@ -70,9 +59,7 @@ export function getBackupType(filename: string): string | null {
 /**
  * Bootstrap badge variant matching the backup type prefix.
  */
-export function getBackupTypeBadgeVariant(
-  filename: string
-): 'primary' | 'warning' | 'secondary' {
+export function getBackupTypeBadgeVariant(filename: string): 'primary' | 'warning' | 'secondary' {
   if (filename.startsWith('manual_')) return 'primary';
   if (filename.startsWith('pre-restore_')) return 'warning';
   return 'secondary';
@@ -119,9 +106,7 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
     const auto = backups.value.filter(
       (b) => !b.filename.startsWith('manual_') && !b.filename.startsWith('pre-restore_')
     ).length;
-    const preRestore = backups.value.filter((b) =>
-      b.filename.startsWith('pre-restore_')
-    ).length;
+    const preRestore = backups.value.filter((b) => b.filename.startsWith('pre-restore_')).length;
 
     return [
       { label: 'Manual', value: 'manual', count: manual },
@@ -249,7 +234,10 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
             filename: unwrapValue(backup.filename) as string,
             size_bytes: Number(unwrapValue(backup.size_bytes)) || 0,
             created_at: unwrapValue(backup.created_at) as string,
-            table_count: backup.table_count ? Number(unwrapValue(backup.table_count)) : null,
+            // A missing count ("NA" or null) stays null so no "NaN tables" chip renders.
+            table_count: isMissing(backup.table_count)
+              ? null
+              : Number(unwrapValue(backup.table_count)),
           })
         );
       } else {
@@ -291,12 +279,24 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
     }
   }
 
+  // Spinners only after 300 ms, so a fast list load never flashes one.
+  const showLoading = useDelayedFlag(loading);
+
+  const inventoryMeta = computed(() => {
+    // As long as the loaded text, so the header does not re-wrap when data arrives.
+    if (loading.value && backups.value.length === 0) return 'Loading backup inventory…';
+    const n = meta.value.total_count;
+    return `${n} backup${n === 1 ? '' : 's'} · ${formatFileSize(meta.value.total_size_bytes)} total`;
+  });
+
   // Reset to page 1 when filters change
   watch([searchQuery, typeFilter, compressionFilter], () => {
     currentPage.value = 1;
   });
 
   return {
+    showLoading,
+    inventoryMeta,
     // State
     backups,
     meta,

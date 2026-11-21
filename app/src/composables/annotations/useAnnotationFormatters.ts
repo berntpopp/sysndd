@@ -5,49 +5,23 @@
  * components without coupling them.
  */
 
+import { formatDateTime, formatDuration, formatLongDate } from '@/views/admin/adminDisplay';
+
 export type UnwrappableScalar<T> = T | T[];
 
 /**
  * R/Plumber serialises scalar fields as single-element arrays.  Unwrap
- * them back to scalars for display.
+ * them back to scalars for display; R's missing values ("NA", "NaN") from
+ * the `na="string"` serializer become `null`.
  */
 export function unwrapValue<T>(val: UnwrappableScalar<T>): T {
-  return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
+  const v = Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
+  return (v === 'NA' || v === 'NaN' ? null : v) as T;
 }
 
-/**
- * Format a date-ish string as the user's locale date.  Falls back to
- * the raw string when it cannot be parsed.
- */
-export function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return String(dateString);
-  return date.toLocaleDateString();
-}
-
-/**
- * Format a datetime-ish string as the user's locale date + time.
- */
-export function formatDateTime(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return String(dateString);
-  return date.toLocaleString();
-}
-
-/**
- * Format a duration in seconds as "Xm Ys" or "Ys".
- */
-export function formatDuration(seconds: number | null | undefined): string {
-  if (seconds === null || seconds === undefined) return '—';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins > 0) {
-    return `${mins}m ${secs}s`;
-  }
-  return `${secs}s`;
-}
+/** Shared admin date/duration styles ("July 18, 2026", "39 ms"); "—" when missing. */
+export const formatDate = formatLongDate;
+export { formatDateTime, formatDuration };
 
 /**
  * Human-readable label for a job operation identifier.

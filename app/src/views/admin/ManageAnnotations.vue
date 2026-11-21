@@ -2,117 +2,88 @@
 <template>
   <AuthenticatedPageShell
     title="Manage Annotations"
+    description="Refresh the external annotation sources and review the background jobs that update them."
     content-class="authenticated-route-content"
     full-width
   >
-    <div class="container-fluid">
-      <BContainer fluid>
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <OntologyAnnotationsCard
-              :ontology-job="ontologyJob"
-              :force-apply-job="forceApplyJob"
-              :blocked="ontologyBlocked"
-              :stale="ontologyStale"
-              :last-updated="annotationDates.omim_update"
-              :user-options="forceApplyUserOptions"
-              :loading-users="loadingForceApplyUsers"
-              @start-ontology="() => requestConfirm(ONTOLOGY_UPDATE_CONFIRM, onStartOntology)"
-              @force-apply="
-                (payload) => requestConfirm(FORCE_APPLY_CONFIRM, () => onForceApply(payload))
-              "
-              @dismiss-blocked="dismissBlockedOntology"
-            />
-          </BCol>
-        </BRow>
+    <div class="annotation-stack">
+      <OntologyAnnotationsCard
+        :ontology-job="ontologyJob"
+        :force-apply-job="forceApplyJob"
+        :blocked="ontologyBlocked"
+        :stale="ontologyStale"
+        :last-updated="annotationDates.omim_update"
+        :user-options="forceApplyUserOptions"
+        :loading-users="loadingForceApplyUsers"
+        @start-ontology="() => requestConfirm(ONTOLOGY_UPDATE_CONFIRM, onStartOntology)"
+        @force-apply="(payload) => requestConfirm(FORCE_APPLY_CONFIRM, () => onForceApply(payload))"
+        @dismiss-blocked="dismissBlockedOntology"
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <HgncAnnotationsCard
-              :hgnc-job="hgncJob"
-              :last-updated="annotationDates.hgnc_update"
-              @start-hgnc="onStartHgnc"
-            />
-          </BCol>
-        </BRow>
+      <HgncAnnotationsCard
+        :hgnc-job="hgncJob"
+        :last-updated="annotationDates.hgnc_update"
+        @start-hgnc="onStartHgnc"
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <PubtatorStatsCard
-              :stats="pubtatorStats"
-              :loading="loadingPubtatorStats"
-              @refresh="loadPubtatorStats"
-            />
-          </BCol>
-        </BRow>
+      <PubtatorStatsCard
+        :stats="pubtatorStats"
+        :loading="loadingPubtatorStats"
+        @refresh="loadPubtatorStats"
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <ComparisonsRefreshCard
-              :job="comparisonsJob"
-              :metadata="comparisonsMetadata"
-              :loading-metadata="loadingComparisonsMetadata"
-              @refresh-metadata="loadComparisonsMetadata"
-              @start-refresh="() => requestConfirm(COMPARISONS_REFRESH_CONFIRM, onStartComparisons)"
-            />
-          </BCol>
-        </BRow>
+      <ComparisonsRefreshCard
+        :job="comparisonsJob"
+        :metadata="comparisonsMetadata"
+        :loading-metadata="loadingComparisonsMetadata"
+        @refresh-metadata="loadComparisonsMetadata"
+        @start-refresh="() => requestConfirm(COMPARISONS_REFRESH_CONFIRM, onStartComparisons)"
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <PublicationRefreshCard
-              :job="publicationRefreshJob"
-              :stats="publicationStats"
-              :loading-stats="loadingPublicationStats"
-              :preset="selectedPreset"
-              :custom-date="customDate"
-              :today-date="todayDate"
-              :filtered-count="filteredCount"
-              :loading-filtered-count="loadingFilteredCount"
-              @update:preset="setPreset"
-              @update:custom-date="(value: string) => (customDate = value)"
-              @refresh-stats="loadPublicationStats"
-              @refresh-filtered="onRefreshFilteredPublications"
-              @refresh-all="() => requestConfirm(REFRESH_ALL_PUBLICATIONS_CONFIRM, onRefreshAllPublications)"
-            />
-          </BCol>
-        </BRow>
+      <PublicationRefreshCard
+        :job="publicationRefreshJob"
+        :stats="publicationStats"
+        :loading-stats="loadingPublicationStats"
+        :preset="selectedPreset"
+        :custom-date="customDate"
+        :today-date="todayDate"
+        :filtered-count="filteredCount"
+        :loading-filtered-count="loadingFilteredCount"
+        @update:preset="setPreset"
+        @update:custom-date="(value: string) => (customDate = value)"
+        @refresh-stats="loadPublicationStats"
+        @refresh-filtered="onRefreshFilteredPublications"
+        @refresh-all="
+          () => requestConfirm(REFRESH_ALL_PUBLICATIONS_CONFIRM, onRefreshAllPublications)
+        "
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <DeprecatedEntitiesCard
-              :data="deprecatedData"
-              :loading="loadingDeprecated"
-              @check="onCheckDeprecated"
-            />
-          </BCol>
-        </BRow>
+      <DeprecatedEntitiesCard
+        :data="deprecatedData"
+        :loading="loadingDeprecated"
+        @check="onCheckDeprecated"
+      />
 
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <JobHistoryCard
-              :filtered-job-history="filteredJobHistory"
-              :paginated-job-history="paginatedJobHistory"
-              :loading="jobHistoryLoading"
-              :current-page="currentPage"
-              :page-size="pageSize"
-              :page-size-options="pageSizeOptions"
-              :sort-by="sortBy"
-              :search-filter="searchFilter"
-              :job-history-fields="jobHistoryFields"
-              @refresh="loadJobHistory"
-              @download="downloadJobHistory"
-              @copy-link="copyPageLink"
-              @clear-filters="clearAllFilters"
-              @clear-search="clearSearch"
-              @update:search-filter="handleSearchChange"
-              @page-change="handlePageChange"
-              @per-page-change="handlePageSizeChange"
-              @update-sort="handleSortUpdate"
-            />
-          </BCol>
-        </BRow>
-      </BContainer>
+      <JobHistoryCard
+        :filtered-job-history="filteredJobHistory"
+        :paginated-job-history="paginatedJobHistory"
+        :loading="jobHistoryLoading"
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :page-size-options="pageSizeOptions"
+        :sort-by="sortBy"
+        :search-filter="searchFilter"
+        :job-history-fields="jobHistoryFields"
+        @refresh="loadJobHistory"
+        @download="downloadJobHistory"
+        @copy-link="copyPageLink"
+        @clear-filters="clearAllFilters"
+        @clear-search="clearSearch"
+        @update:search-filter="handleSearchChange"
+        @page-change="handlePageChange"
+        @per-page-change="handlePageSizeChange"
+        @update-sort="handleSortUpdate"
+      />
     </div>
 
     <!-- Shared confirmation gate for heavy / irreversible operations. Stays
@@ -201,12 +172,8 @@ const publicationRefreshJob = useAsyncJob(jobStatusUrl);
 // ---------------------------------------------------------------------------
 // Page-level state
 // ---------------------------------------------------------------------------
-const annotationDates = ref<api.AnnotationDates>({
-  omim_update: null,
-  hgnc_update: null,
-  mondo_update: null,
-  disease_ontology_update: null,
-});
+// Empty until loaded: a card shows "Last: Never" only once the API said so.
+const annotationDates = ref<Partial<api.AnnotationDates>>({});
 
 const ontologyBlocked = ref<OntologyBlockedState | null>(null);
 const ontologyStale = ref<{ lastApplied: string | null } | null>(null);
@@ -353,9 +320,7 @@ async function loadOntologyStatus(): Promise<void> {
         return;
       }
     }
-    ontologyStale.value = status.stale
-      ? { lastApplied: status.last_full_apply_at }
-      : null;
+    ontologyStale.value = status.stale ? { lastApplied: status.last_full_apply_at } : null;
   } catch (error) {
     console.warn('Failed to fetch ontology dictionary status:', error);
   }
@@ -584,3 +549,10 @@ onMounted(() => {
   loadComparisonsMetadata();
 });
 </script>
+
+<style scoped>
+.annotation-stack {
+  display: grid;
+  gap: 1rem;
+}
+</style>

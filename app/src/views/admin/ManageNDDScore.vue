@@ -18,20 +18,18 @@
           {{ loadError }}
         </BAlert>
 
-        <div v-if="loadingStatus" class="ndd-loading" role="status" aria-live="polite">
-          <BSpinner small class="me-2" />
-          Loading NDDScore status...
-        </div>
-
-        <div v-else-if="activeRelease" class="ndd-release">
+        <!-- First load: this layout is the skeleton, so the panels below never move. -->
+        <div
+          v-if="firstLoad || activeRelease"
+          class="ndd-release"
+          :class="{ 'ndd-release--loading': firstLoad }"
+          :aria-hidden="firstLoad ? 'true' : undefined"
+        >
           <div class="ndd-release__identity">
             <div>
               <span class="ndd-label">Release ID</span>
-              <strong class="ndd-mono">{{ displayValue(activeRelease.release_id) }}</strong>
+              <strong class="ndd-mono">{{ displayValue(activeRelease?.release_id) }}</strong>
             </div>
-            <BBadge :class="statusClass(activeRelease.import_status)">
-              {{ displayValue(activeRelease.import_status) }}
-            </BBadge>
           </div>
 
           <div class="ndd-kpi-grid" aria-label="Imported counts">
@@ -58,9 +56,9 @@
             </div>
           </section>
 
-          <BAlert v-if="activeRelease.last_error_message" variant="danger" show class="mt-3 mb-0">
+          <BAlert v-if="activeRelease?.last_error_message" variant="danger" show class="mt-3 mb-0">
             <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
-            {{ displayValue(activeRelease.last_error_message) }}
+            {{ displayValue(activeRelease?.last_error_message) }}
           </BAlert>
         </div>
 
@@ -98,7 +96,7 @@
             Download & validate
           </BButton>
           <BButton
-            variant="primary"
+            :variant="validated ? 'primary' : 'outline-primary'"
             size="sm"
             data-testid="ndd-import-btn"
             :disabled="submittingJob || importJob.isLoading.value"
@@ -334,6 +332,13 @@ const recentJobs = computed<AdminRecord[]>(() =>
     .filter((job): job is AdminRecord => Boolean(job))
 );
 const submittingJob = computed(() => submittingValidate.value || submittingImport.value);
+// Skeleton only for the first load; a reload after a job keeps the shown data.
+const firstLoad = computed(() => loadingStatus.value && !status.value);
+// The irreversible import becomes the primary action once a validation passed.
+const lastJobValidateOnly = ref(false);
+const validated = computed(
+  () => lastJobValidateOnly.value && importJob.status.value === 'completed'
+);
 
 const {
   activeReleaseStatus,
@@ -391,6 +396,7 @@ async function submitValidateOnly() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: true });
+    lastJobValidateOnly.value = true;
     importJob.reset();
     importJob.startJob(result.jobId);
     actionMessage.value =
@@ -411,6 +417,7 @@ async function confirmImport() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: false });
+    lastJobValidateOnly.value = false;
     importJob.reset();
     importJob.startJob(result.jobId);
     actionMessage.value =
@@ -432,15 +439,20 @@ defineExpose({ confirmImport });
   padding: 0;
 }
 
-.ndd-loading,
 .ndd-empty-row {
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.875rem;
 }
 
+.ndd-release--loading strong,
+.ndd-release--loading .ndd-detail > span:last-child {
+  border-radius: 0.25rem;
+  background: #e2e8f0;
+  color: transparent;
+}
+
 .ndd-release,
-.ndd-zenodo,
-.ndd-job {
+.ndd-zenodo {
   min-width: 0;
 }
 
@@ -455,9 +467,10 @@ defineExpose({ confirmImport });
   justify-content: space-between;
 }
 
-.ndd-label {
+.ndd-label,
+.ndd-kpi span {
   display: block;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.25;
@@ -479,22 +492,12 @@ defineExpose({ confirmImport });
 
 .ndd-kpi,
 .ndd-detail,
-.ndd-mobile-row {
+.ndd-mobile-row,
+.ndd-job {
   min-width: 0;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: var(--radius-md, 0.375rem);
   background: #f8fafc;
-}
-
-.ndd-kpi {
-  padding: 0.625rem 0.75rem;
-}
-
-.ndd-kpi span {
-  display: block;
-  color: var(--neutral-600, #757575);
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .ndd-kpi strong {
@@ -515,6 +518,7 @@ defineExpose({ confirmImport });
   margin-top: 0.5rem;
 }
 
+.ndd-kpi,
 .ndd-detail {
   padding: 0.625rem 0.75rem;
   color: var(--neutral-900, #212121);
@@ -535,15 +539,12 @@ defineExpose({ confirmImport });
 .ndd-job {
   margin-top: 1rem;
   padding: 0.75rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: var(--radius-md, 0.375rem);
-  background: #f8fafc;
 }
 
 .ndd-job__step,
 .ndd-job__elapsed {
   margin: 0.35rem 0;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 
@@ -579,7 +580,7 @@ defineExpose({ confirmImport });
 
 .ndd-mobile-row__meta {
   justify-content: flex-start;
-  color: var(--neutral-600, #757575);
+  color: var(--text-secondary, #616161);
   font-size: 0.8125rem;
 }
 

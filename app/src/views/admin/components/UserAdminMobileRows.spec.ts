@@ -23,10 +23,11 @@ describe('UserAdminMobileRows', () => {
 
     expect(wrapper.text()).toContain('admin_user');
     expect(wrapper.text()).toContain('admin@example.org');
+    expect(wrapper.text()).toContain('March 14, 2026');
+    expect(wrapper.find('[title="admin@example.org"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Administrator');
     expect(wrapper.text()).toContain('Approved');
     expect(wrapper.text()).toContain('ADM');
-    expect(wrapper.text()).toContain('2026-03-14');
 
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper.get('button[aria-label="Edit user admin_user"]').trigger('click');

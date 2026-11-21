@@ -1,6 +1,6 @@
 // Cache-status overview presentation for the LLM Administration view.
 // Extracted from ManageLLM.vue. These computeds summarize counts of
-// admin-generated cached LLM summaries; all status copy stays here verbatim.
+// admin-generated cached LLM summaries; all status copy lives here.
 
 import { computed, type ComputedRef, type Ref } from 'vue';
 import type { LlmConfig, CacheStats } from '@/types/llm';
@@ -24,10 +24,13 @@ export function useLlmCacheOverview(
   config: Ref<LlmConfig | null>,
   cacheStats: Ref<CacheStats | null>
 ): UseLlmCacheOverview {
-  const overviewDescription = computed(() => {
-    const model = config.value?.gemini_configured ? config.value.current_model : 'Not configured';
-    return `Model ${model}. Cache and regeneration controls use the same compact table layout as public data views.`;
-  });
+  const overviewDescription = computed(() =>
+    config.value?.gemini_configured
+      ? `Summaries are generated with ${config.value.current_model}.`
+      : 'No model configured. Set a provider under Configuration to regenerate summaries.'
+  );
+
+  const pendingCount = computed(() => cacheStats.value?.by_status?.pending ?? 0);
 
   const cacheHealthLabel = computed(() => {
     if (!config.value?.gemini_configured) return 'Provider not configured';
@@ -55,18 +58,19 @@ export function useLlmCacheOverview(
     {
       key: 'pending',
       label: 'Pending review',
-      value: String(cacheStats.value?.by_status?.pending ?? 0),
-      status: 'Needs review',
-      tone: 'warning',
+      value: String(pendingCount.value),
+      status: pendingCount.value > 0 ? 'Needs review' : 'None pending',
+      tone: pendingCount.value > 0 ? 'warning' : 'neutral',
       note: 'Generated summaries awaiting validation',
     },
     {
+      // Cost has no status; an empty status renders no chip.
       key: 'cost',
       label: 'Estimated cost',
       value: `$${(cacheStats.value?.estimated_cost_usd ?? 0).toFixed(2)}`,
-      status: 'USD',
-      tone: 'info',
-      note: 'Approximate generation spend',
+      status: '',
+      tone: 'neutral',
+      note: 'Approximate generation spend (USD)',
     },
   ]);
 

@@ -13,20 +13,21 @@
         {{ loading ? 'Loading...' : 'Refresh Stats' }}
       </BButton>
       <small class="text-muted ms-2">
-        Shows cached Pubtator gene-publication data for NDD literature
+        Shows cached PubTator gene-publication data for NDD literature
       </small>
     </div>
 
-    <div v-if="stats.gene_count !== null" class="mt-2">
+    <!-- Static help and links render before the stats load, so nothing below shifts. -->
+    <div class="mt-2">
       <p class="text-muted small mb-2">
-        The Pubtator cache contains gene-publication associations from NCBI's PubTator text-mining
+        The PubTator cache contains gene-publication associations from NCBI's PubTator text-mining
         service. "Literature Only" genes are those mentioned in NDD publications but not yet curated
         in SysNDD.
       </p>
       <div class="d-flex flex-wrap gap-2">
         <router-link :to="{ name: 'PubtatorNDDStats' }" class="btn btn-sm btn-outline-primary">
           <i class="bi bi-bar-chart me-1" />
-          View Pubtator Analysis
+          View PubTator Analysis
         </router-link>
         <router-link :to="{ name: 'ManagePubtator' }" class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-gear me-1" />
@@ -36,7 +37,7 @@
     </div>
 
     <BAlert v-if="stats.gene_count === 0" variant="warning" show class="mt-2 mb-0">
-      No Pubtator data cached.
+      No PubTator data cached.
       <router-link :to="{ name: 'ManagePubtator' }">Manage Cache</router-link>
       to fetch publications.
     </BAlert>

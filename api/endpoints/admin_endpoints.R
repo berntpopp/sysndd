@@ -78,7 +78,7 @@ function(req, res) {
 #* If duplicate job running: Returns existing job_id with status="already_running".
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @put update_ontology_async
 function(req, res) {
   require_role(req, res, "Administrator")
@@ -106,7 +106,7 @@ function(req, res) {
 #* On success: Returns 202 with job_id for the force-apply job.
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @put force_apply_ontology
 function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
   require_role(req, res, "Administrator")
@@ -164,7 +164,7 @@ function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
 #* If successful, returns a success message. Otherwise, returns an error message.
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @put update_hgnc_data
 function(req, res) {
   require_role(req, res, "Administrator")
@@ -190,7 +190,7 @@ function(req, res) {
 #* Returns a JSON object with the API version, e.g. {"api_version": "x.y.z"}.
 #*
 #* @tag admin
-#* @serializer unboxedJSON list(na="string")
+#* @serializer unboxedJSON list(na="null")
 #* @get api_version
 function() {
   svc_admin_api_version(sysndd_api_version)
@@ -206,7 +206,7 @@ function() {
 #* Returns dates for OMIM (mim2gene), MONDO mappings, and HGNC updates.
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @get annotation_dates
 function() {
   svc_admin_annotation_dates()
@@ -237,7 +237,7 @@ function() {
 #* - replacement_omim_id: Suggested replacement OMIM ID
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @get deprecated_entities
 function(req, res) {
   require_role(req, res, "Administrator")
@@ -340,7 +340,7 @@ function(req, res) {
 #* Restricted to Administrator role.
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @post /publications/refresh
 function(req, res) {
   require_role(req, res, "Administrator")

@@ -61,6 +61,7 @@ const GenericTableStub = defineComponent({
     <div data-testid="generic-table-stub">
       <div v-for="item in items" :key="item.release_id" class="stub-row">
         <span>{{ item.release_id }}</span>
+        <slot name="cell-id" :row="item" />
         <slot name="cell-status" :row="item" />
         <slot
           name="cell-actions"
@@ -214,6 +215,41 @@ describe('ManageAnalysisReleases.vue', () => {
     expect(errorAlert.exists()).toBe(true);
     expect(errorAlert.text()).toContain('release_snapshot_not_available');
     expect(wrapper.find('[data-testid="build-locked"]').exists()).toBe(false);
+  });
+
+  it('shows a short data-version digest with the full value in a title and a copy button', async () => {
+    const digest = 'f'.repeat(64);
+    listAdminReleasesMock.mockResolvedValue({
+      releases: [makeRelease({ release_id: 'asr_dig1', source_data_version: digest })],
+      pagination: { limit: 50, offset: 0, count: 1 },
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const cell = wrapper.find('[data-testid="digest-asr_dig1"]');
+    expect(cell.text()).toContain('ffffffffffff…');
+    expect(cell.text()).not.toContain(digest);
+    expect(cell.find(`[title="${digest}"]`).exists()).toBe(true);
+
+    await wrapper.find('[data-testid="copy-digest-asr_dig1"]').trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledWith(digest);
+  });
+
+  it('formats release dates in the shared long style', async () => {
+    listAdminReleasesMock.mockResolvedValue({
+      releases: [makeRelease({ created_at: '2026-07-18 20:01:55' })],
+      pagination: { limit: 50, offset: 0, count: 1 },
+    });
+    const wrapper = mountView();
+    await flushPromises();
+    const table = wrapper.findComponent(GenericTableStub);
+    const [row] = table.props('items') as Array<Record<string, unknown>>;
+    expect(row.created_at).toBe('July 18, 2026, 20:01 UTC');
+    expect(row.published_at).toBe('—');
   });
 
   it('renders a mocked draft row with a Publish action that calls publishRelease', async () => {
