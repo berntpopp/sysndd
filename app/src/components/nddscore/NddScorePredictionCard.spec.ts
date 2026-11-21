@@ -29,8 +29,7 @@ describe('NddScorePredictionCard', () => {
   });
 
   it('uses a bounded warning surface without a decorative side accent', () => {
-    const warningRule =
-      source.match(/\.ndd-score-card--ml-disclosure\s*\{([\s\S]*?)\}/)?.[1] ?? '';
+    const warningRule = source.match(/\.ndd-score-card--ml-disclosure\s*\{([\s\S]*?)\}/)?.[1] ?? '';
 
     expect(warningRule).toContain('background-color: var(--surface-warning);');
     expect(warningRule).toContain('border-color: var(--border-subtle);');
@@ -49,5 +48,18 @@ describe('NddScorePredictionCard', () => {
     const wrapper = mount(NddScorePredictionCard, { props });
     expect(wrapper.text()).toContain('nddscore_20260517_public');
     expect(wrapper.get('a').attributes('href')).toContain('10.5281/zenodo.20258027');
+  });
+
+  it('reserves the loaded layout while the release is loading, so the table below does not jump', () => {
+    const loading = mount(NddScorePredictionCard, { props: { loading: true } });
+    const loaded = mount(NddScorePredictionCard, { props });
+    const shape = (w: typeof loaded) => ({
+      dts: w.findAll('dt').map((dt) => dt.text()),
+      badge: w.find('.ndd-score-card__release').exists(),
+      provenance: w.find('.ndd-score-card__provenance a').exists(),
+    });
+    expect(shape(loading)).toEqual(shape(loaded));
+    expect(loading.classes()).toContain('ndd-score-card--loading');
+    expect(loading.attributes('aria-busy')).toBe('true');
   });
 });

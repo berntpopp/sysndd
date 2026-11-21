@@ -183,6 +183,25 @@ describe('ReleaseManifestPanel', () => {
     expect(dts).not.toContain('Version');
   });
 
+  it('treats the R missing marker "NA" as absent and never prints it', () => {
+    const release = makeReleaseDetail();
+    (release as { release_version: unknown }).release_version = 'NA';
+    release.db_release_commit = 'NA';
+    const wrapper = mount(ReleaseManifestPanel, { props: { release } });
+    const dts = wrapper.findAll('dt').map((dt) => dt.text());
+    expect(dts).not.toContain('Version');
+    expect(wrapper.findAll('dd').map((dd) => dd.text())).not.toContain('NA');
+  });
+
+  it('shows created and published dates in long form with the exact timestamp as title', () => {
+    const wrapper = mount(ReleaseManifestPanel, { props: { release: makeReleaseDetail() } });
+    const created = wrapper.findAll('dt').find((dt) => dt.text() === 'Created')!;
+    const dd = created.element.nextElementSibling as HTMLElement;
+    expect(dd.textContent?.trim()).toBe('July 1, 2026');
+    expect(dd.getAttribute('title')).toBe('2026-07-01T00:00:00Z');
+    expect(wrapper.text()).not.toContain('2026-07-01T00:05:00Z');
+  });
+
   it('shows the Version row when release_version is populated', () => {
     const release = makeReleaseDetail();
     release.release_version = '1.0';
@@ -198,7 +217,8 @@ describe('ReleaseManifestPanel', () => {
     const wrapper = mount(ReleaseManifestPanel, { props: { release } });
     expect(wrapper.find('#release-manifest-panel-title').text()).toBe('asr_0123456789abcdef');
     const dts = wrapper.findAll('dt').map((dt) => dt.text());
-    const titleDd = wrapper.findAll('dt').find((dt) => dt.text() === 'Title')?.element.nextElementSibling;
+    const titleDd = wrapper.findAll('dt').find((dt) => dt.text() === 'Title')
+      ?.element.nextElementSibling;
     expect(dts).toContain('Title');
     expect(titleDd?.textContent).toBe('asr_0123456789abcdef');
   });

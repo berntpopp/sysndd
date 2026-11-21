@@ -53,15 +53,17 @@
                         <BInputGroupText>Per page</BInputGroupText>
                       </template>
                       <BFormSelect
-                        id="per-page-select"
+                        id="user-approval-per-page-select"
                         v-model="perPage"
                         :options="pageOptions"
                         size="sm"
-                        style="width: 70px"
+                        aria-label="Rows per page"
+                        class="approve-user__per-page"
                       />
                     </BInputGroup>
 
                     <BPagination
+                      v-if="totalRows > perPage || currentPage > 1"
                       v-model="currentPage"
                       :total-rows="totalRows"
                       :per-page="perPage"
@@ -202,30 +204,14 @@
                   </template>
 
                   <template #cell(comment)="data">
-                    <div
-                      v-if="data.item.comment"
-                      :id="'comment-user-' + data.item.user_id"
-                      class="text-truncate-multiline small text-popover-trigger"
-                      style="max-width: 150px"
-                    >
-                      {{ data.item.comment }}
-                    </div>
-                    <BPopover
-                      v-if="data.item.comment"
-                      :target="'comment-user-' + data.item.user_id"
-                      triggers="hover focus"
-                      placement="top"
-                      custom-class="wide-popover"
-                    >
-                      <template #title>
-                        <i class="bi bi-chat-left-text me-1" />
-                        Application Comment
-                      </template>
-                      <div class="popover-text-content">
-                        {{ data.item.comment }}
-                      </div>
-                    </BPopover>
-                    <span v-else class="text-muted small">—</span>
+                    <ReviewRowCells
+                      kind="text-popover"
+                      :text="data.item.comment"
+                      title="Application Comment"
+                      icon-class="bi-chat-left-text"
+                      :target-id="'comment-user-' + data.item.user_id"
+                      :max-width="150"
+                    />
                   </template>
 
                   <template #cell(actions)="row">
@@ -451,8 +437,7 @@
               <i class="bi bi-person-check" />
             </span>
             <p class="mb-2">
-              Approve user <strong>{{ selectedUser.user_name }}</strong
-              >?
+              Approve user <strong>{{ selectedUser.user_name }}</strong>?
             </p>
             <p class="text-muted small">
               {{ selectedUser.first_name }} {{ selectedUser.family_name }} will be granted access
@@ -493,8 +478,7 @@
               <i class="bi bi-person-x" />
             </span>
             <p class="mb-2">
-              Reject application from <strong>{{ selectedUser.user_name }}</strong
-              >?
+              Reject application from <strong>{{ selectedUser.user_name }}</strong>?
             </p>
             <p class="text-muted small">
               This will delete the user application. This action cannot be undone.
@@ -512,6 +496,7 @@
 <script>
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
+import ReviewRowCells from '@/components/review/ReviewRowCells.vue';
 import { useToast, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
@@ -525,7 +510,13 @@ import useUserApprovalQueue from './composables/useUserApprovalQueue';
 
 export default {
   name: 'ApproveUser',
-  components: { AuthenticatedPageShell, TableShell, AriaLiveRegion, UserApplicationMobileRows },
+  components: {
+    AuthenticatedPageShell,
+    TableShell,
+    AriaLiveRegion,
+    UserApplicationMobileRows,
+    ReviewRowCells,
+  },
   setup() {
     const { makeToast } = useToast();
     const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
@@ -553,25 +544,26 @@ export default {
 </script>
 
 <style scoped>
-/* Compact action buttons + multi-line comment truncation + popover-trigger cursor. */
-.btn-group-xs > .btn,
-.btn-xs { padding: 0.25rem 0.4rem; font-size: 0.875rem; line-height: 0.5; border-radius: 0.2rem; }
-.text-truncate-multiline {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
+/* Compact action buttons; a per-page select sized to its value plus the chevron. */
+.approve-user__per-page {
+  width: auto;
+  min-width: 4.5rem;
 }
-.text-popover-trigger { cursor: help; border-bottom: 1px dotted #6c757d; }
-.text-popover-trigger:hover { background-color: rgba(0, 123, 255, 0.05); border-radius: 2px; }
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
 </style>
 
 <!-- Non-scoped styles for popovers (rendered outside component DOM) -->
 <style>
 /* Wide popover for comment text */
-.wide-popover { max-width: 400px !important; }
+.wide-popover {
+  max-width: 400px !important;
+}
 .wide-popover .popover-header {
   font-size: 0.85rem;
   font-weight: 600;
@@ -584,6 +576,8 @@ export default {
   font-size: 0.85rem;
   line-height: 1.5;
 }
-.popover-text-content { white-space: pre-wrap; word-break: break-word; }
+.popover-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 </style>
-

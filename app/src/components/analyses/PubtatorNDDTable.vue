@@ -4,20 +4,7 @@
     <!-- Show an overlay spinner while loading -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Once loaded, show the table container -->
-    <AnalysisPanel
-      v-else
-      title="PubTator NDD publications"
-      :description="
-        'Publications: ' +
-        totalRows +
-        ' · Loaded ' +
-        items.length +
-        '/' +
-        totalRows +
-        ' in ' +
-        executionTime
-      "
-    >
+    <AnalysisPanel v-else title="PubTator NDD publications" :description="tableSummary">
       <template #actions>
         <TableDownloadLinkCopyButtons
           v-if="showFilterControls"
@@ -104,21 +91,16 @@
           </div>
         </template>
 
-        <!-- title -->
+        <!-- title: two lines at most; the full title is in the native title -->
         <template #cell-title="{ row }">
-          <div
-            v-b-tooltip.hover
-            :title="row.title"
-            class="overflow-hidden text-truncate"
-            style="max-width: 300px"
-          >
-            {{ truncate(row.title, 60) }}
+          <div class="pubtator-cell-clamp" :title="row.title">
+            {{ row.title }}
           </div>
         </template>
 
         <!-- journal -->
         <template #cell-journal="{ row }">
-          <div>
+          <div class="text-truncate" :title="row.journal">
             {{ row.journal }}
           </div>
         </template>
@@ -139,21 +121,21 @@
 
         <!-- gene_symbols - clickable gene chips -->
         <template #cell-gene_symbols="{ row }">
-          <div v-if="row.gene_symbols" class="gene-chips">
+          <div
+            v-if="row.gene_symbols"
+            class="gene-chips"
+            :title="geneSymbolList(row.gene_symbols).join(', ')"
+          >
             <RouterLink
-              v-for="gene in geneSymbolList(row.gene_symbols).slice(0, 3)"
+              v-for="gene in geneSymbolList(row.gene_symbols).slice(0, 2)"
               :key="gene"
               :to="'/Genes/' + gene"
               class="gene-chip"
             >
               {{ gene }}
             </RouterLink>
-            <span
-              v-if="geneSymbolList(row.gene_symbols).length > 3"
-              class="gene-chip-more"
-              :title="row.gene_symbols"
-            >
-              +{{ geneSymbolList(row.gene_symbols).length - 3 }}
+            <span v-if="geneSymbolList(row.gene_symbols).length > 2" class="gene-chip-more">
+              +{{ geneSymbolList(row.gene_symbols).length - 2 }}
             </span>
           </div>
           <span v-else class="text-muted">—</span>
@@ -161,7 +143,15 @@
 
         <!-- text_hl - truncated preview -->
         <template #cell-text_hl="{ row }">
-          <div v-if="row.text_hl" class="overflow-hidden text-truncate" style="max-width: 300px">
+          <div
+            v-if="row.text_hl"
+            class="pubtator-cell-clamp"
+            :title="
+              parseAnnotations(row.text_hl)
+                .map((segment) => segment.text)
+                .join('')
+            "
+          >
             <span
               v-for="(segment, idx) in parseAnnotations(row.text_hl).slice(0, 5)"
               :key="idx"
@@ -209,11 +199,7 @@
               </div>
 
               <!-- Annotated Text Section -->
-              <PubtatorAnnotatedText
-                v-if="row.text_hl"
-                :text="row.text_hl"
-                section-class="mt-3"
-              />
+              <PubtatorAnnotatedText v-if="row.text_hl" :text="row.text_hl" section-class="mt-3" />
               <div v-else class="text-muted mt-3">
                 <i class="bi bi-info-circle me-1" />No annotated text available.
               </div>
@@ -415,13 +401,13 @@ export default defineComponent({
   color: #fff;
 }
 
-/* Date badge: --status-warning text (#f57c00 → boosted to #e65c00) on --status-warning-bg ≈ 4.55:1 ✓ AA */
+/* Date badge: #b34700 on --status-warning-bg ≈ 5.0:1 ✓ AA (#e65c00 was 3.2:1) */
 .details-date {
   display: inline-flex;
   align-items: center;
   padding: 0.2em 0.5em;
   background-color: var(--status-warning-bg, #fff3e0);
-  color: #e65c00;
+  color: #b34700;
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: var(--radius-sm, 0.25rem);
@@ -445,9 +431,19 @@ export default defineComponent({
    preview cell renders segments inline (without that child component). */
 
 /* Gene chips — pill badges in table cells */
+/* Title and highlight text wrap inside their cell and stop after two lines, chips stay on
+   one line: every row has the same height, so paging does not shift the page. */
+.pubtator-cell-clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
 .gene-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* nowrap pushed the "+N" chip into the next column */
   gap: 0.25rem;
   align-items: center;
 }

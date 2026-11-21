@@ -251,7 +251,13 @@ describe('usePubtatorPublicationTable', () => {
   it('forces filterable on inbound fields and pins a stable details column at the end', async () => {
     const { api } = await mountComposable();
     const inbound = [
-      { key: 'search_id', label: 'Search ID', sortable: true, class: 'text-start', filterable: false },
+      {
+        key: 'search_id',
+        label: 'Search ID',
+        sortable: true,
+        class: 'text-start',
+        filterable: false,
+      },
       { key: 'pmid', label: 'PMID', sortable: true, class: 'text-start' },
     ];
 
@@ -270,6 +276,26 @@ describe('usePubtatorPublicationTable', () => {
       selectable: false,
       multi_selectable: false,
     });
+  });
+
+  it('keeps the curated labels (PMID, DOI, Genes) over server key-derived ones', async () => {
+    const { api } = await mountComposable();
+    const merged = api.mergeFields([
+      { key: 'search_id', label: 'Search id', sortable: true, class: 'text-start' },
+      { key: 'pmid', label: 'Pmid', sortable: true, class: 'text-start' },
+      { key: 'doi', label: 'Doi', sortable: true, class: 'text-start' },
+      { key: 'gene_symbols', label: 'Gene symbols', sortable: true, class: 'text-start' },
+      { key: 'text_hl', label: 'Text hl', sortable: true, class: 'text-start' },
+    ]);
+
+    expect(merged.map((f) => f.label)).toEqual([
+      'Search ID',
+      'PMID',
+      'DOI',
+      'Genes',
+      'Text HL',
+      'Details',
+    ]);
   });
 
   it('merges fields stably across repeated calls (no duplication, same shape)', async () => {
@@ -322,7 +348,11 @@ describe('usePubtatorPublicationTable', () => {
 
     await api.requestExcel();
 
-    expect(makeToastSpy).toHaveBeenCalledWith(expect.any(Error), 'Error downloading Excel', 'danger');
+    expect(makeToastSpy).toHaveBeenCalledWith(
+      expect.any(Error),
+      'Error downloading Excel',
+      'danger'
+    );
     expect(api.downloading.value).toBe(false);
   });
 

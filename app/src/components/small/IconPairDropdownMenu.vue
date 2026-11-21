@@ -1,18 +1,17 @@
 <!-- src/components/small/IconPairDropdownMenu.vue -->
 <template>
-  <BNavItemDropdown
-    :text="title"
-    :end="align === 'right' || undefined"
-    menu-class="dropdown-menu-center"
-  >
+  <BNavItemDropdown :text="title" :end="align === 'right' || undefined">
     <BDropdownItem
       v-for="(item, index) in items"
       :key="index"
       :to="item.path"
-      class="text-center"
       @click="handleItemClick(item)"
     >
-      <i v-for="(icon, iconIndex) in item.icons" :key="iconIndex" :class="'bi bi-' + icon" />
+      <!-- One icon per item (the specific one; the first is a category marker). -->
+      <i
+        :class="['bi', 'nav-menu-icon', item.icons?.length && 'bi-' + item.icons.at(-1)]"
+        aria-hidden="true"
+      />
       {{ item.text }}
       <component :is="item.component" v-if="item.component" />
     </BDropdownItem>
@@ -112,11 +111,10 @@ export default {
 </script>
 
 <style scoped>
-.dropdown-menu-center .dropdown-menu {
+.nav-menu-icon {
+  display: inline-block;
+  width: 1.25rem;
+  margin-right: 0.35rem;
   text-align: center;
-}
-
-.text-center {
-  text-align: center !important;
 }
 </style>

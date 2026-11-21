@@ -157,7 +157,7 @@ Other browsers name these menus differently.
 - **A menu from this documentation is missing.** The **Review**, **Curation** and **Administration** menus appear only after you sign in with a role that allows them.
 - **The search box is not in the navigation bar.** On the home page the search box is in the middle of the page instead.
 - **A table looks empty.** A filter may still be active. Select the funnel button to remove all filters.
-- **On a phone, menus are hidden.** Select the menu button in the top corner to open them; see [Your account](using-account.qmd#use-sysndd-on-a-phone).
+- **On a phone, a tablet or a narrow window, menus are hidden.** Below 1,200 pixels wide, select the menu button in the top corner to open them; see [Your account](using-account.qmd#use-sysndd-on-a-phone).
 
 ## Related pages
 

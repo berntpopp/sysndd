@@ -56,6 +56,27 @@ describe('useStatusForm', () => {
     statusApiMocks.updateStatus.mockResolvedValue({ status: 200 });
   });
 
+  // Known item 3: the API sent a missing comment as the string "NA".
+  describe('missing comment ("NA" or null)', () => {
+    it.each(['NA', null])('loads %s as an empty comment and saves no "NA"', async (raw) => {
+      const row = { status_id: 1, entity_id: 1848, category_id: 1, comment: raw, problematic: 0 };
+      entityApiMocks.getEntityStatus.mockResolvedValue([row]);
+      statusApiMocks.getStatusById.mockResolvedValue([row]);
+
+      const byEntity = useStatusForm();
+      await byEntity.loadStatusByEntity(1848);
+      expect(byEntity.formData.comment).toBe('');
+      expect(byEntity.hasChanges.value).toBe(false);
+
+      const byId = useStatusForm();
+      await byId.loadStatusData(1, 0);
+      expect(byId.formData.comment).toBe('');
+      await byId.submitForm(false, false);
+      const [body] = statusApiMocks.createStatus.mock.calls[0];
+      expect(body.status_json.comment).toBe('');
+    });
+  });
+
   describe('Change detection', () => {
     it('hasChanges is false when no data loaded', () => {
       const { hasChanges } = useStatusForm();

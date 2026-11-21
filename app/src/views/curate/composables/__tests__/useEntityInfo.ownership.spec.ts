@@ -49,6 +49,21 @@ describe('useEntityInfo request ownership', () => {
     getEntityVariationMock.mockResolvedValue([]);
   });
 
+  it('loads a missing ("NA") status and review comment as empty text', async () => {
+    getEntityStatusMock.mockResolvedValue([
+      { status_id: 1, entity_id: 1848, category_id: 1, comment: 'NA', problematic: 0 },
+    ]);
+    getEntityReviewMock.mockResolvedValue([
+      { synopsis: 'NA', comment: 'NA', review_id: 2, entity_id: 1848 },
+    ]);
+    const data = useEntityInfo();
+    await Promise.all([data.loadStatus(1848), data.loadReview(1848)]);
+
+    expect(data.status_info.value.comment).toBe('');
+    expect(data.review_info.value.comment).toBe('');
+    expect(data.review_info.value.synopsis).toBe('');
+  });
+
   it('reset aborts and invalidates entity and review successes that settle afterwards', async () => {
     const entity = deferred<{ data: Array<{ entity_id: number; symbol: string }> }>();
     const review = deferred<Array<Record<string, unknown>>>();

@@ -6,12 +6,15 @@
     nav-label="PubTator NDD views"
     :tabs="tabs"
   >
-    <router-view @novel-count="handleNovelCount" />
+    <router-view />
   </AnalysisShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { listPubtatorGenes } from '@/api/publication';
+import { normalizePubtatorGenesMeta } from '@/components/analyses/usePubtatorGenesTable';
+import { formatCount } from '@/utils/displayFormat';
 import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
 // Reactive state for novel gene count
@@ -22,16 +25,23 @@ const tabs = computed(() => [
   {
     label: 'Genes',
     to: { name: 'PubtatorNDDGenes' },
-    badge: novelGeneCount.value > 0 ? `${novelGeneCount.value} literature only` : null,
+    badge: novelGeneCount.value > 0 ? `${formatCount(novelGeneCount.value)} literature only` : null,
   },
   { label: 'Stats', to: { name: 'PubtatorNDDStats' } },
 ]);
 
-/**
- * Handle novel-count event from child component (PubtatorNDDGenes)
- * @param count - Number of novel genes (not in SysNDD)
- */
-const handleNovelCount = (count: number) => {
-  novelGeneCount.value = count;
-};
+// Total literature-only genes for the tab badge. The genes table only knows the
+// rows of its current page, so its own count would read "6" next to 206 on Stats.
+onMounted(async () => {
+  try {
+    const response = await listPubtatorGenes({
+      filter: 'equals(is_novel,1)',
+      fields: 'gene_symbol',
+      page_size: '1',
+    });
+    novelGeneCount.value = Number(normalizePubtatorGenesMeta(response.meta)?.totalItems) || 0;
+  } catch {
+    novelGeneCount.value = 0; // the badge is optional; the tab still works
+  }
+});
 </script>

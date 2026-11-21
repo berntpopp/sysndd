@@ -278,5 +278,12 @@ function toggleDetails(key: string): void {
     min-width: 2.75rem;
     height: 2.75rem;
   }
+
+  /* Small badges render 10-11 px text; 12 px is the floor for legible phone text. */
+  .approval-mobile-row :deep(.badge),
+  .approval-mobile-row :deep([class*='-badge--sm']),
+  .approval-mobile-row :deep(.small) {
+    font-size: 0.75rem;
+  }
 }
 </style>

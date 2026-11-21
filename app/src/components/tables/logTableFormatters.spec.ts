@@ -7,18 +7,34 @@ import {
   getLogDurationClass,
   getLogMethodVariant,
   getLogStatusVariant,
+  parseLogTime,
 } from './logTableFormatters';
 
 describe('logTableFormatters', () => {
-  it('formats duration values and performance classes', () => {
-    expect(formatLogDuration(null)).toBe('-');
-    expect(formatLogDuration(0.4)).toBe('<1ms');
-    expect(formatLogDuration(42.2)).toBe('42ms');
-    expect(formatLogDuration(1520)).toBe('1.52s');
+  it('reads durations as the seconds the API logs (ADM-03)', () => {
+    expect(formatLogDuration(null)).toBe('—');
+    expect(formatLogDuration(0.039)).toBe('39 ms');
+    expect(formatLogDuration('0.0004')).toBe('<1 ms');
+    expect(formatLogDuration(1.52)).toBe('1.52 s');
 
-    expect(getLogDurationClass(40)).toBe('text-success');
-    expect(getLogDurationClass(250)).toBe('text-warning');
-    expect(getLogDurationClass(800)).toBe('text-danger fw-bold');
+    expect(getLogDurationClass(0.04)).toBe('text-success');
+    expect(getLogDurationClass(0.25)).toBe('text-warning-emphasis'); // amber text is 1.6:1 on white
+    expect(getLogDurationClass(0.8)).toBe('text-danger fw-bold');
+    // A missing duration is not a slow request.
+    expect(getLogDurationClass(null)).toBe('text-muted');
+  });
+
+  it('parses naive API timestamps as UTC (ADM-06)', () => {
+    vi.setSystemTime(new Date('2026-11-21T13:20:00Z'));
+
+    expect(parseLogTime('2026-11-21 13:19:00')?.toISOString()).toBe('2026-11-21T13:19:00.000Z');
+    expect(formatRelativeLogTime('2026-11-21 13:19:00')).toBe('1 minute ago');
+    expect(formatAbsoluteLogTime('2026-11-21 13:19:00')).toBe('Nov 21, 2026, 13:19:00 UTC');
+    expect(parseLogTime('NA')).toBeNull();
+    // Fractional seconds are still naive UTC, not browser-local time.
+    expect(parseLogTime('2026-11-21 13:19:00.123')?.toISOString()).toBe('2026-11-21T13:19:00.123Z');
+
+    vi.useRealTimers();
   });
 
   it('maps status codes and methods to Bootstrap variants', () => {

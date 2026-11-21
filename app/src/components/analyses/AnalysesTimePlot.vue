@@ -25,6 +25,7 @@
           <BFormSelect
             v-model="selected_aggregate"
             input-id="aggregate-select"
+            aria-label="Aggregation"
             :options="aggregate_list"
             text-field="text"
             size="sm"
@@ -35,6 +36,7 @@
           <BFormSelect
             v-model="selected_group"
             input-id="group-select"
+            aria-label="Grouping"
             :options="filteredGroupList"
             text-field="text"
             size="sm"
@@ -45,7 +47,12 @@
     <!-- User Interface controls -->
 
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Entities over time chart"
+    >
       <BSpinner v-if="loadingData" label="Loading..." class="spinner" />
       <div v-show="!loadingData" id="my_dataviz" class="svg-container" />
     </div>
@@ -58,6 +65,7 @@ import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
+import { addAxisTitle, countAxis, styleAxisText } from './chartAxes';
 
 // Typed API client (W5)
 import { getEntitiesOverTime } from '@/api/statistics';
@@ -199,7 +207,7 @@ export default {
         top: 50,
         right: 50,
         bottom: 50,
-        left: 50,
+        left: 64,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -242,12 +250,25 @@ export default {
         .domain(d3.extent(data[0].values, (d) => d.entry_date))
         .range([0, width]);
 
-      svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x));
+      svg
+        .append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .call(styleAxisText);
 
       // Add Y axis
       const y = d3.scaleLinear().domain([0, maxCount]).range([height, 0]);
 
-      svg.append('g').call(d3.axisLeft(y));
+      svg
+        .append('g')
+        .call(countAxis(d3.axisLeft(y), y))
+        .call(styleAxisText);
+      addAxisTitle(svg, 'Entry date', { x: width / 2, y: height + 40 });
+      addAxisTitle(
+        svg,
+        this.selected_aggregate === 'symbol' ? 'Cumulative genes' : 'Cumulative entities',
+        { x: -height / 2, y: -margin.left + 14, rotate: true }
+      );
 
       // Add the lines
       const line = d3
@@ -355,10 +376,16 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
+  overflow-x: auto;
+}
+/* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */
 .svg-container {
   display: inline-block;
   position: relative;
   width: 100%;
+  min-width: 600px;
   max-width: 800px;
   vertical-align: top;
   overflow: hidden;

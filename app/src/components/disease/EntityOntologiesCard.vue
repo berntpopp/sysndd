@@ -6,7 +6,7 @@
         :empty="!mappings.loading.value && !mappings.error.value && mappings.data.value === null"
         :error="mappings.error.value ? mappings.error.value.message : null"
         title="Linked disease ontologies"
-        min-height="4rem"
+        min-height="var(--ontology-card-reserve, 4.8rem)"
       >
         <div class="entity-ontology-panel">
           <LinkedOntologies

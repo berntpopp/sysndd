@@ -57,7 +57,7 @@
             :summary-rejection-reason="summaryRejectionReason"
             :show-all-clusters-in-table="showAllClustersInTable"
             :show-all-clusters-summary-cue="showAllClustersSummaryCue"
-            :first-available-cluster="firstAvailableCluster"
+            :first-available-cluster="loading ? null : firstAvailableCluster"
             :active-parent-cluster="activeParentCluster"
             @select-cluster="selectDefaultClusterForSummary"
           />
@@ -111,7 +111,11 @@ import {
   getFunctionalClusterSummary,
   isSnapshotPreparingError,
 } from '@/api/analysis';
-import { combineClusterData, clusterRowsWithNumber } from './geneClusterTableData';
+import {
+  combineClusterData,
+  clusterRowsWithNumber,
+  withCuratedCategoryLabels,
+} from './geneClusterTableData';
 
 export default {
   name: 'AnalyseGeneClusters',
@@ -228,7 +232,12 @@ export default {
     },
 
     showAllClustersSummaryCue() {
-      return !this.loading && this.itemsCluster.length > 0 && this.showAllClustersInTable;
+      // Shown while loading too, so the table below does not move when data arrives.
+      return (
+        this.showAllClustersInTable &&
+        !this.isPreparing &&
+        (this.loading || this.itemsCluster.length > 0)
+      );
     },
 
     /**
@@ -282,7 +291,7 @@ export default {
         this.itemsCluster = data.clusters;
         this.clusterRows = data.clusters || [];
         this.snapshotMeta = data.meta?.snapshot || null;
-        this.valueCategories = data.categories;
+        this.valueCategories = withCuratedCategoryLabels(data.categories);
 
         // Default to showing all clusters
         // User can select individual clusters to see AI summaries

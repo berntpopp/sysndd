@@ -206,7 +206,87 @@ describe('GenericTable responsive mode', () => {
   });
 });
 
+// Renders BTable's per-column head/cell slots the way bootstrap-vue-next resolves them:
+// a specific `head(key)` / `cell(key)` slot wins over the `head()` catch-all.
+const bTableSlotStub = {
+  name: 'BTable',
+  props: ['items', 'fields'],
+  template: `<table><thead><tr>
+      <th v-for="f in fields" :key="f.key">
+        <slot v-if="$slots['head(' + f.key + ')']" :name="'head(' + f.key + ')'" :label="f.label" :column="f.key" />
+        <slot v-else name="head()" :label="f.label" :column="f.key" />
+      </th></tr></thead>
+    <tbody><tr v-for="(item, i) in items" :key="i">
+      <td v-for="f in fields" :key="f.key">
+        <slot v-if="$slots['cell(' + f.key + ')']" :name="'cell(' + f.key + ')'" :item="item" :index="i" />
+        <template v-else>{{ item[f.key] }}</template>
+      </td></tr></tbody></table>`,
+};
+
+describe('GenericTable slot forwarding', () => {
+  it('forwards any cell-<key> and head-<key> slot, not only a hardcoded list (ADM-02)', () => {
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ user_id: 7, user_name: 'demo', email: 'demo@example.org' }],
+        fields: [
+          { key: 'select', label: '' },
+          { key: 'user_name', label: 'User' },
+          { key: 'email', label: 'E-mail' },
+        ],
+      },
+      slots: {
+        'head-select': '<input type="checkbox" aria-label="Select all users on this page" />',
+        'cell-select': `<template #cell-select="{ row }">
+            <input type="checkbox" :aria-label="'Select user ' + row.user_name" />
+          </template>`,
+      },
+      global: { stubs: { BTable: bTableSlotStub } },
+    });
+
+    expect(wrapper.find('thead input[aria-label="Select all users on this page"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.find('tbody input[aria-label="Select user demo"]').exists()).toBe(true);
+    // Columns without a consumer slot still show their raw value and the header label.
+    expect(wrapper.find('tbody').text()).toContain('demo@example.org');
+    expect(wrapper.find('thead').text()).toContain('E-mail');
+  });
+
+  it('keeps the default description tooltip cell and the column-header slot', () => {
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ description: 'Long free-text description' }],
+        fields: [{ key: 'description', label: 'Description' }],
+      },
+      slots: {
+        'column-header': `<template #column-header="{ data }"><b class="hdr">{{ data.label }}!</b></template>`,
+      },
+      global: { stubs: { BTable: bTableSlotStub } },
+    });
+
+    expect(wrapper.find('thead .hdr').text()).toBe('Description!');
+    expect(wrapper.get('tbody .description-text').attributes('title')).toBe(
+      'Long free-text description'
+    );
+  });
+});
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+describe('GenericTable fixed-layout minimum width', () => {
+  it('puts the minimum width on the real <table> so narrow windows scroll, not collapse', () => {
+    const wrapper = mount(GenericTable, {
+      props: {
+        items,
+        fields: [{ key: 'name' }, { key: 'role', thStyle: { width: '10rem' } }],
+        sortBy: 'name',
+        sortDesc: false,
+        isBusy: false,
+      },
+    });
+    expect(wrapper.get('table').attributes('style')).toContain('--table-min-width: 17.00rem');
+  });
 });

@@ -5,6 +5,8 @@
 // component stays a thinner shell and these transforms are unit-testable in
 // isolation. None of these helpers touch the network/layout strategy.
 
+import { isMissing } from '@/utils/displayFormat';
+
 /** A single functional-cluster record as returned by the clustering API. */
 export interface FunctionalCluster {
   cluster: number;
@@ -35,7 +37,11 @@ export interface ClusterTableField {
   thClass: string;
   tdClass: string;
   sortByFormatted?: boolean;
-  sortCompare?: (aRow: Record<string, unknown>, bRow: Record<string, unknown>, key: string) => number;
+  sortCompare?: (
+    aRow: Record<string, unknown>,
+    bRow: Record<string, unknown>,
+    key: string
+  ) => number;
 }
 
 export type ClusterTableType = 'term_enrichment' | 'identifiers';
@@ -175,12 +181,29 @@ export function buildClusterTableFields(tableType: ClusterTableType): ClusterTab
  * Find the human-readable label for a category value, falling back to the raw
  * value when not present in the descriptor list.
  */
-export function findCategoryText(
-  categories: CategoryDescriptor[],
-  categoryVal: string
-): string {
+export function findCategoryText(categories: CategoryDescriptor[], categoryVal: string): string {
   const found = categories.find((cat) => cat.value === categoryVal);
   return found ? found.text : categoryVal;
+}
+
+/** Readable names for STRING enrichment categories whose server label is a raw key. */
+const CURATED_CATEGORY_LABELS: Record<string, string> = {
+  NetworkNeighborAL: 'STRING cluster',
+  Process: 'GO Process',
+  Function: 'GO Function',
+  Component: 'GO Component',
+  RCTM: 'Reactome',
+  InterPro: 'InterPro',
+  WikiPathways: 'WikiPathways',
+  Keyword: 'UniProt keyword',
+  PMID: 'Publications (PMID)',
+};
+
+/** Overlay curated labels on the server's category descriptors (value and link kept). */
+export function withCuratedCategoryLabels<T extends CategoryDescriptor>(categories: T[]): T[] {
+  return (categories ?? []).map((cat) =>
+    CURATED_CATEGORY_LABELS[cat.value] ? { ...cat, text: CURATED_CATEGORY_LABELS[cat.value] } : cat
+  );
 }
 
 /**
@@ -216,10 +239,10 @@ export function categoryChipClass(category: string): string {
  * meaningfully instead of collapsing to "0".
  */
 export function formatFdr(fdr: unknown): string {
-  if (fdr == null) return '—';
+  if (isMissing(fdr)) return '—';
   const n = Number(fdr);
   if (Number.isNaN(n)) return String(fdr);
-  if (n === 0) return '0';
+  if (n === 0) return '< 1e-300'; // underflowed below double precision
   if (n < 0.001 || n >= 1000) {
     return n.toExponential(2);
   }
@@ -253,9 +276,7 @@ export function buildClusterExportFilename(
   showAllClusters: boolean,
   displayedClusters: number[]
 ): string {
-  const clusterLabel = showAllClusters
-    ? 'all_clusters'
-    : `clusters_${displayedClusters.join('_')}`;
+  const clusterLabel = showAllClusters ? 'all_clusters' : `clusters_${displayedClusters.join('_')}`;
   return `sysndd_gene_${tableType}_${clusterLabel}`;
 }
 

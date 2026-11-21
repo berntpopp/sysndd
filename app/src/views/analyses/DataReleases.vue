@@ -27,6 +27,7 @@
       <SectionCard
         title="Latest published release"
         :loading="detailLoading"
+        :min-height="DESK_SKELETON_HEIGHT"
         :empty="false"
         :error="detailError"
         frameless
@@ -63,7 +64,11 @@
       </SectionCard>
     </div>
 
-    <section v-if="selectedRelease" class="data-releases__technical" aria-labelledby="technical-verification-title">
+    <section
+      v-if="selectedRelease"
+      class="data-releases__technical"
+      aria-labelledby="technical-verification-title"
+    >
       <details>
         <summary id="technical-verification-title">
           <span>Technical verification</span>
@@ -90,8 +95,8 @@
               <li>
                 <code>payload_hash</code>, <code>input_hash</code>, and <code>snapshot_id</code> are
                 lineage anchors: cross-check them against the live <code>meta.snapshot</code> block
-                on the matching <code>/api/analysis/*</code> endpoint. They are <strong>not</strong>
-                a hash of this release's own <code>payload.json</code>.
+                on the matching <code>/api/analysis/*</code> endpoint. They are
+                <strong>not</strong> a hash of this release's own <code>payload.json</code>.
               </li>
             </ul>
           </section>
@@ -110,10 +115,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import ReleaseDeskSummary from '@/components/analyses/ReleaseDeskSummary.vue';
 import ReleaseArchiveList from '@/components/analyses/ReleaseArchiveList.vue';
 import ReleaseManifestPanel from '@/components/analyses/ReleaseManifestPanel.vue';
-import {
-  normalizeReleaseRows,
-  type ReleaseTableRow,
-} from '@/components/analyses/dataReleaseTable';
+import { normalizeReleaseRows, type ReleaseTableRow } from '@/components/analyses/dataReleaseTable';
 import {
   listReleases,
   getLatestRelease,
@@ -144,6 +146,10 @@ useHead({
 
 const { makeToast } = useToast();
 
+// The loading placeholder has the loaded desk's height, so the archive below does not jump:
+// ~402 px from 576 px up, ~510 px on a 390 px phone (the facts grid wraps to two columns).
+const DESK_SKELETON_HEIGHT = 'max(25rem, calc(46rem - 58vw))';
+
 const releaseRows = ref<ReleaseTableRow[]>([]);
 const listLoading = ref(true);
 const listError = ref<string | null>(null);
@@ -152,7 +158,9 @@ const selectedRelease = ref<ReleaseDetail | null>(null);
 const detailLoading = ref(true);
 const detailError = ref<string | null>(null);
 const latestReleaseId = ref<string | null>(null);
-const selectedIsLatest = computed(() => latestReleaseId.value === selectedRelease.value?.release_id);
+const selectedIsLatest = computed(
+  () => latestReleaseId.value === selectedRelease.value?.release_id
+);
 
 /**
  * MEDIUM (#573 Slice B Codex round-1 review): monotonic request token
@@ -258,9 +266,12 @@ async function handleDownloadFile(path: string): Promise<void> {
 
 onMounted(() => {
   void loadList();
-  void loadDetail(() => getLatestRelease(), (release) => {
-    latestReleaseId.value = release.release_id;
-  });
+  void loadDetail(
+    () => getLatestRelease(),
+    (release) => {
+      latestReleaseId.value = release.release_id;
+    }
+  );
 });
 </script>
 
@@ -277,7 +288,9 @@ onMounted(() => {
   border-top: 1px solid var(--border-subtle);
 }
 
-.data-releases__technical details { padding-block: 0.75rem; }
+.data-releases__technical details {
+  padding-block: 0.75rem;
+}
 
 .data-releases__technical summary {
   display: flex;
@@ -318,14 +331,26 @@ onMounted(() => {
   padding-left: 1.25rem;
 }
 
-.data-releases__verify li { margin-bottom: 0.4rem; line-height: 1.5; }
-.data-releases__verify code { font-family: var(--font-family-mono); font-size: 0.85em; }
+.data-releases__verify li {
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+.data-releases__verify code {
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+}
 
 @media (max-width: 991.98px) {
-  .data-releases__workspace { grid-template-columns: 1fr; }
+  .data-releases__workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 575.98px) {
-  .data-releases__technical summary { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
+  .data-releases__technical summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
 }
 </style>

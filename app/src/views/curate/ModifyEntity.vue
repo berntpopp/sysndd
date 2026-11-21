@@ -16,12 +16,12 @@
             >
               <div class="modify-entity-section__header">
                 <h2 id="modify-entity-search-title">Find Entity</h2>
-                <span class="modify-entity-chip">
-                  <template v-if="entity_search_loading">Loading</template>
-                  <template v-else-if="entity_search_results.length">
-                    {{ entity_search_results.length }} results
-                  </template>
-                  <template v-else>Ready</template>
+                <span
+                  v-if="!entity_search_loading && entity_search_results.length"
+                  class="modify-entity-chip"
+                >
+                  {{ entity_search_results.length }}
+                  {{ entity_search_results.length === 1 ? 'result' : 'results' }}
                 </span>
               </div>
 
@@ -34,13 +34,6 @@
                 @update:display-value="entity_display = $event"
                 @search="searchEntity"
               />
-              <p
-                v-if="!entity_loaded && !entity_search_loading"
-                class="modify-entity-empty-state"
-                role="status"
-              >
-                Start typing to find a SysNDD entity by identifier, gene, or disease.
-              </p>
             </section>
           </aside>
 
@@ -52,7 +45,6 @@
               <div>
                 <h2 id="modify-entity-selected-title">Current Selection</h2>
               </div>
-              <span v-if="!entity_loaded" class="modify-entity-chip"> Waiting for selection </span>
             </div>
 
             <EntityInfoHeader
@@ -232,7 +224,7 @@
               class="modify-entity-empty-state modify-entity-empty-state--compact"
               role="status"
             >
-              No entity selected.
+              Select an entity to see its summary and edit options.
             </p>
           </section>
         </div>

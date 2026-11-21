@@ -764,7 +764,7 @@ export const docsScreenshots: DocsScreenshot[] = [
         placement: 'top-left',
       },
       {
-        selector: '.row.justify-content-md-center',
+        selector: '.gene-external-row',
         hasText: 'Model Organisms',
         mode: 'marker',
         number: 4,
@@ -1543,7 +1543,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     clip: { x: 0, y: 130, width: 1440, height: 510 },
     maskSelectors: ['.tooltip'],
     annotations: [
-      { selector: 'button[aria-label="Approve all reviews"]', mode: 'marker', number: 1 },
+      { selector: 'button[aria-label^="Approve all"]', mode: 'marker', number: 1 },
       { selector: '#filter-input', mode: 'marker', number: 2 },
       {
         selector: 'button[aria-label^="Toggle details for entity"]',
@@ -1589,7 +1589,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     maskSelectors: ['.tooltip'],
     annotations: [
       // Numbering follows curator-approve.qmd; the second row (NAA10) carries the Problematic flag.
-      { selector: 'button[aria-label="Approve all statuses"]', mode: 'marker', number: 1 },
+      { selector: 'button[aria-label^="Approve all"]', mode: 'marker', number: 1 },
       {
         selector: 'tbody tr:nth-child(2) td:nth-child(5) > *',
         mode: 'marker',
@@ -1898,7 +1898,8 @@ export const docsScreenshots: DocsScreenshot[] = [
     fullPage: true,
     annotations: [
       {
-        selector: '.review-toolbar__filters .badge',
+        selector: '.review-toolbar__filters .btn',
+        hasText: 'New batch',
         mode: 'marker',
         number: 1,
         placement: 'right',

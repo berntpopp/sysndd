@@ -16,23 +16,17 @@
       </BPopover>
     </template>
 
-    <!-- Metrics Cards Row - Loading skeleton -->
-    <BRow v-if="loadingCount" class="mb-3 px-2">
-      <BCol v-for="n in 4" :key="n" sm="6" md="3" class="mb-2">
-        <BCard class="h-100 text-center">
-          <BSpinner small label="Loading..." />
-        </BCard>
-      </BCol>
-    </BRow>
-
-    <!-- Metrics Cards Row - Loaded -->
-    <BRow v-if="!loadingCount && statsData" class="mb-3 px-2">
+    <!-- Metrics cards: same markup while loading (values hidden), so nothing jumps; they keep
+         the unfiltered totals when Min Count re-filters the chart -->
+    <BRow class="mb-3 px-2" :aria-busy="loadingCount ? 'true' : undefined">
       <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
         <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
           <div class="d-flex flex-column align-items-center">
-            <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" />
-            <h6 class="mt-2 mb-1 text-muted">{{ card.title }}</h6>
-            <h4 class="mb-0">{{ card.value }}</h4>
+            <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" aria-hidden="true" />
+            <p class="mt-2 mb-1 text-muted small fw-semibold">{{ card.title }}</p>
+            <p class="h4 mb-0" :class="{ invisible: !statsData }" :title="card.valueTitle">
+              {{ card.value }}
+            </p>
           </div>
         </BCard>
       </BCol>
@@ -44,6 +38,7 @@
         <BInputGroup prepend="Category" class="mb-1" size="sm">
           <BFormSelect
             v-model="selectedCategory"
+            aria-label="Category"
             :options="categoryOptions"
             size="sm"
             @change="generateBarPlot"
@@ -55,6 +50,7 @@
         <BInputGroup prepend="Min Count" class="mb-1" size="sm">
           <BFormInput
             v-model.number="minCount"
+            aria-label="Minimum count"
             type="number"
             min="1"
             step="1"
@@ -73,7 +69,12 @@
     </BRow>
 
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Publication statistics chart"
+    >
       <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
       <div v-show="!loadingCount" id="stats_dataviz" class="svg-container" />
     </div>
@@ -82,9 +83,11 @@
 
 <script>
 import * as d3 from 'd3';
+import { addAxisTitle, countAxis, styleAxisText } from './chartAxes';
 import useToast from '@/composables/useToast';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import { formatLongDate } from '@/utils/dateUtils';
 
 // Typed API clients (W5)
 import { getPublicationStats } from '@/api/statistics';
@@ -127,14 +130,16 @@ export default {
      * @returns {Array} - Array of card configuration objects
      */
     metricsCards() {
-      if (!this.statsData) return [];
-
-      const pubDates = this.statsData.publication_date_aggregated || [];
+      const pubDates = this.statsData?.publication_date_aggregated || [];
       const currentYear = new Date().getFullYear();
 
-      // Publications this year (YTD)
-      const thisYearPubs = pubDates
-        .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear)))
+      // Latest year with publications: early in a year the current year is often empty,
+      // and a "2026 (YTD) 0" card reads as missing data
+      const yearOf = (d) => Number(String(d.Publication_date).substring(0, 4));
+      const dated = pubDates.filter((d) => d.Publication_date && Number.isFinite(yearOf(d)));
+      const latestYear = dated.length ? Math.max(...dated.map(yearOf)) : currentYear;
+      const latestYearPubs = dated
+        .filter((d) => yearOf(d) === latestYear)
         .reduce((sum, d) => sum + d.count, 0);
 
       // 5-Year Average (last 5 complete years: currentYear-6 to currentYear-2)
@@ -154,7 +159,7 @@ export default {
       const totalPubs = pubDates.reduce((sum, d) => sum + d.count, 0);
 
       // Newest publication date (from separate API call, not aggregated data)
-      const newestDate = this.newestPublicationDate || 'N/A';
+      const newestDate = formatLongDate(this.newestPublicationDate);
 
       return [
         {
@@ -164,20 +169,24 @@ export default {
           variant: 'primary',
         },
         {
-          title: `Publications ${currentYear} (YTD)`,
-          value: thisYearPubs.toLocaleString(),
+          title:
+            latestYear === currentYear
+              ? `Publications ${currentYear} (YTD)`
+              : `Publications ${latestYear}`,
+          value: latestYearPubs.toLocaleString(),
           icon: 'bi-calendar-event',
           variant: 'success',
         },
         {
           title: '5-Year Avg',
-          value: fiveYearAvg > 0 ? `${fiveYearAvg}/yr` : 'N/A',
+          value: fiveYearAvg > 0 ? `${fiveYearAvg.toLocaleString()}/yr` : '—',
           icon: 'bi-bar-chart-line',
           variant: 'secondary',
         },
         {
           title: 'Newest Publication',
           value: newestDate,
+          valueTitle: this.newestPublicationDate || undefined,
           icon: 'bi-clock-history',
           variant: 'info',
         },
@@ -255,10 +264,10 @@ export default {
         if (data?.data?.length > 0) {
           const pubDate = data.data[0].Publication_date;
           // Format the date for display (YYYY-MM-DD)
-          this.newestPublicationDate = pubDate || 'N/A';
+          this.newestPublicationDate = pubDate || null;
         }
       } catch (error) {
-        // Silently fail - the card will show 'N/A'
+        // Silently fail - the card shows a dash
         console.warn('Failed to fetch newest publication date:', error);
       }
     },
@@ -346,7 +355,11 @@ export default {
         .scaleLinear()
         .domain([0, maxY * 1.1])
         .range([height, 0]);
-      svg.append('g').call(d3.axisLeft(y));
+      svg
+        .append('g')
+        .call(countAxis(d3.axisLeft(y), y))
+        .call(styleAxisText);
+      addAxisTitle(svg, 'Publications', { x: -height / 2, y: -margin.left + 16, rotate: true });
 
       // Create a tooltip element with improved styling
       const tooltip = d3
@@ -439,10 +452,16 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
+  overflow-x: auto;
+}
+/* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */
 .svg-container {
   display: inline-block;
   position: relative;
   width: 100%;
+  min-width: 760px;
   max-width: 900px;
   vertical-align: top;
   overflow: visible;

@@ -27,11 +27,18 @@ import { useAuth } from '@/composables/useAuth';
  * otherwise identical to the pre-refactor guards.
  */
 export function createAuthGuard(allowed_roles: readonly string[]) {
-  return (_to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
+  return (to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
     const { isAuthenticated, isExpired, hasRole } = useAuth();
-    const isAllowed = allowed_roles.some((role) => hasRole(role));
-    if (!isAuthenticated.value || isExpired.value || !isAllowed) {
+    if (!isAuthenticated.value || isExpired.value) {
       return { name: 'Login' as const };
+    }
+    if (!allowed_roles.some((role) => hasRole(role))) {
+      // Signed in but lacking the role: Login would sign them out, so go Home and say why.
+      // Role lists run highest to lowest, so the last entry is the least role that opens the page.
+      return {
+        name: 'Home' as const,
+        query: { denied: to.fullPath, role: allowed_roles[allowed_roles.length - 1] },
+      };
     }
     return true;
   };

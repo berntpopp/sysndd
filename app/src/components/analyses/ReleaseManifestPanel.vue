@@ -32,7 +32,7 @@
           <dt>Release ID</dt>
           <dd class="release-manifest-panel__mono">{{ release.release_id }}</dd>
         </div>
-        <div v-if="release.release_version">
+        <div v-if="!isMissing(release.release_version)">
           <dt>Version</dt>
           <dd>{{ release.release_version }}</dd>
         </div>
@@ -60,11 +60,13 @@
         </div>
         <div>
           <dt>Created</dt>
-          <dd>{{ release.created_at }}</dd>
+          <dd :title="release.created_at">{{ formatLongDate(release.created_at) }}</dd>
         </div>
         <div>
           <dt>Published</dt>
-          <dd>{{ displayValue(release.published_at) }}</dd>
+          <dd :title="release.published_at ?? undefined">
+            {{ formatLongDate(release.published_at) }}
+          </dd>
         </div>
       </dl>
     </section>
@@ -194,12 +196,7 @@
               http(s), rendering anything else (e.g. `javascript:...`) as
               inert plain text instead of a clickable anchor.
             -->
-            <a
-              v-if="safeRecordUrl"
-              :href="safeRecordUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a v-if="safeRecordUrl" :href="safeRecordUrl" target="_blank" rel="noopener noreferrer">
               Record
             </a>
             <span v-else-if="recordUrl">{{ recordUrl }}</span>
@@ -216,6 +213,8 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 import { BBadge } from 'bootstrap-vue-next';
 import type { ReleaseDetail, ReleaseManifestLayer } from '@/api/analysis';
 import { safeHttpUrl } from '@/utils/safe-url';
+import { formatLongDate } from '@/utils/dateUtils';
+import { displayValue, isMissing } from '@/utils/displayFormat';
 
 defineOptions({
   name: 'ReleaseManifestPanel',
@@ -225,14 +224,8 @@ const props = defineProps<{
   release: ReleaseDetail;
 }>();
 
-function displayValue(value: unknown): string {
-  if (typeof value === 'string') return value.trim() ? value : '—';
-  if (typeof value === 'number') return String(value);
-  return '—';
-}
-
 function nonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
+  return typeof value === 'string' && !isMissing(value) ? value : null;
 }
 
 /** `title`, falling back to `release_id` when the reserved `title` column is null. */

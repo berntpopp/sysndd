@@ -45,7 +45,19 @@ describe('ReleaseArchiveList', () => {
     expect(current.text()).toContain('8 files');
     expect(current.text()).not.toContain('source-a');
 
-    await wrapper.get('button[aria-label="Select release asr_previous"]').trigger('click');
+    await wrapper.findAll('button')[1].trigger('click');
     expect(wrapper.emitted('select')).toEqual([['asr_previous']]);
+  });
+
+  it('shows the publication date in long form and keeps the visible text as the accessible name', () => {
+    const wrapper = mount(ReleaseArchiveList, {
+      props: { releases, selectedReleaseId: 'asr_newest' },
+    });
+
+    const date = wrapper.get('.release-archive-list__date');
+    expect(date.text()).toBe('Published July 26, 2026');
+    expect(date.attributes('title')).toBe('2026-07-26T09:00:00Z');
+    // label-content-name-mismatch: no aria-label that hides the visible text
+    expect(wrapper.get('button').attributes('aria-label')).toBeUndefined();
   });
 });

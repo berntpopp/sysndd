@@ -114,6 +114,10 @@ export function useNddScoreAdminDerivedRows(
   ]);
 
   const performanceRows = computed<NddScorePerformanceRow[]>(() => {
+    // First load: placeholder rows keep the block's height (the view renders a skeleton).
+    if (loadingStatus.value && !activeRelease.value) {
+      return ['Validation', 'Test', 'Calibrated BSS'].map((label) => ({ label, value: '—' }));
+    }
     const raw = firstRawValue(activeRelease.value, ['ndd_performance_json', 'performance_summary']);
     const record = parseRecord(raw);
     if (!record) return [];

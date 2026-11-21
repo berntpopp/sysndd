@@ -19,6 +19,7 @@ import useUrlParsing from '@/composables/useUrlParsing';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { usePubtatorGenePublications } from '@/composables/usePubtatorGenePublications';
 import { useUiStore } from '@/stores/ui';
+import { formatLongDate, parseApiDate } from '@/utils/dateUtils';
 import {
   applyPubtatorGenePrioritizationFilters,
   createDefaultPubtatorGeneFilter,
@@ -88,22 +89,33 @@ export function normalizePubtatorGenesMeta(meta: unknown): PubtatorGenesResponse
 }
 
 /**
- * Merge server fspec changes into the local fields, preserving each column's
- * locally-owned `filterable`/`class`, and append exactly one trailing
- * `actions` column (the expand-row control BTable renders; the server never
- * sends this frontend-only column). Any inbound `actions` entry is dropped
- * first so a stray server field can never produce a duplicate.
+ * Merge server fspec changes into the local fields: the columns follow the
+ * curated list (its order and labels; the server only sends key-derived labels
+ * such as "Fdr bh"), keep each column's locally-owned `filterable`/`class`, and
+ * end with exactly one `actions` column (the expand-row control BTable renders;
+ * the server never sends this frontend-only column, and a stray inbound one is
+ * dropped). Keys the row only needs as data (the gene link target, the NPMI in
+ * the enrichment tooltip) are not shown as columns of their own.
  */
+const DATA_ONLY_GENE_KEYS = new Set(['gene_normalized_id', 'hgnc_id', 'npmi']);
+
 export function mergePubtatorGeneFields(
   inboundFields: FieldDefinition[],
   currentFields: FieldDefinition[]
 ): FieldDefinition[] {
+  const curated = createPubtatorGeneFields();
+  const rank = (key: string) => {
+    const i = curated.findIndex((c) => c.key === key);
+    return i < 0 ? curated.length : i;
+  };
   const merged = inboundFields
-    .filter((f) => f.key !== 'actions')
+    .filter((f) => f.key !== 'actions' && !DATA_ONLY_GENE_KEYS.has(f.key))
+    .sort((a, b) => rank(a.key) - rank(b.key))
     .map((f) => {
       const existing = currentFields.find((x) => x.key === f.key);
       return {
         ...f,
+        label: curated.find((c) => c.key === f.key)?.label ?? existing?.label ?? f.label,
         filterable: existing?.filterable ?? false,
         class: existing?.class ?? 'text-start',
       };
@@ -140,13 +152,15 @@ export function deriveEnrichmentNotice(
   return null;
 }
 
-/** Best-effort human-friendly date for the freshness notice. */
+/** Long-form UTC date for the freshness notice; the raw value if it does not parse. */
 function formatRefreshedAt(value: string): string {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+  return parseApiDate(value) ? formatLongDate(value) : value;
 }
 
-export function usePubtatorGenesTable(props: PubtatorGenesTableProps, emit: PubtatorGenesTableEmit) {
+export function usePubtatorGenesTable(
+  props: PubtatorGenesTableProps,
+  emit: PubtatorGenesTableEmit
+) {
   const { makeToast } = useToast();
   const { getCompactTooltipText } = useColumnTooltip();
   const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();

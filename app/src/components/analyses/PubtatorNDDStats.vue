@@ -38,10 +38,8 @@
           <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
-              <h3 class="mb-0 text-primary">
-                {{ isFilterActive ? filteredTotal : totalGenes }}
-              </h3>
-              <small v-if="isFilterActive" class="text-muted"> of {{ totalGenes }} total </small>
+              <p class="h3 mb-0 text-primary">{{ formatCount(totalGenes) }}</p>
+              <small class="text-muted">(with PubTator NDD mentions)</small>
             </template>
           </BCardBody>
         </BCard>
@@ -54,11 +52,8 @@
           <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
-              <h3 class="mb-0 text-info">
-                {{ isFilterActive ? filteredNovel : novelGenes }}
-              </h3>
-              <small v-if="isFilterActive" class="text-muted"> of {{ novelGenes }} total </small>
-              <small v-else class="text-muted">(not yet curated)</small>
+              <p class="h3 mb-0 text-info-emphasis">{{ formatCount(novelGenes) }}</p>
+              <small class="text-muted">(not yet curated)</small>
             </template>
           </BCardBody>
         </BCard>
@@ -71,27 +66,13 @@
           <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
-              <h3 class="mb-0 text-success">
-                {{ isFilterActive ? filteredCurated : inSysnddGenes }}
-              </h3>
-              <small v-if="isFilterActive" class="text-muted"> of {{ inSysnddGenes }} total </small>
-              <small v-else class="text-muted">(in SysNDD)</small>
+              <p class="h3 mb-0 text-success-emphasis">{{ formatCount(inSysnddGenes) }}</p>
+              <small class="text-muted">(in SysNDD)</small>
             </template>
           </BCardBody>
         </BCard>
       </BCol>
     </BRow>
-
-    <!-- Active filter indicator -->
-    <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
-      <small class="text-muted">
-        <i class="bi bi-funnel-fill me-1" />
-        Showing genes with &ge;{{ minCount }} publications
-        <template v-if="displayedCount < filteredTotal">
-          (top {{ displayedCount }} of {{ filteredTotal }})
-        </template>
-      </small>
-    </div>
 
     <!-- User Interface controls -->
     <BRow class="p-2">
@@ -99,6 +80,7 @@
         <BInputGroup prepend="Category" class="mb-1" size="sm">
           <BFormSelect
             v-model="selectedCategory"
+            aria-label="Category"
             :options="categoryOptions"
             size="sm"
             @change="processAndPlot"
@@ -109,7 +91,14 @@
       <!-- Min Count only applies to gene category (filters genes by publication count) -->
       <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
         <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-          <BFormInput v-model.number="minCount" type="number" min="1" step="1" debounce="500" />
+          <BFormInput
+            v-model.number="minCount"
+            aria-label="Minimum publications per gene"
+            type="number"
+            min="1"
+            step="1"
+            debounce="500"
+          />
         </BInputGroup>
       </BCol>
 
@@ -121,6 +110,7 @@
         >
           <BFormInput
             v-model.number="topN"
+            :aria-label="selectedCategory === 'gene' ? 'Top N genes' : 'Maximum bins'"
             type="number"
             min="5"
             max="100"
@@ -131,8 +121,24 @@
       </BCol>
     </BRow>
 
+    <!-- Chart filter caption -->
+    <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
+      <small class="text-muted">
+        <i class="bi bi-funnel-fill me-1" />
+        Chart: genes with &ge;{{ minCount }} publications
+        <template v-if="displayedCount < filteredTotal">
+          (top {{ displayedCount }} of {{ formatCount(filteredTotal) }})
+        </template>
+      </small>
+    </div>
+
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="PubTator statistics chart"
+    >
       <BSpinner v-if="loading" label="Loading..." class="spinner" />
       <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
       <div
@@ -162,6 +168,8 @@ import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import { CURATION_COLORS } from '@/utils/chartColors';
 import { listPubtatorGenes } from '@/api/publication';
+import { formatCount } from '@/utils/displayFormat';
+import { countAxis, styleAxisText } from './chartAxes';
 
 // Types
 interface GeneData {
@@ -211,10 +219,6 @@ const filteredGeneData = computed(() =>
   rawGeneData.value.filter((g) => g.publication_count >= minCount.value)
 );
 const filteredTotal = computed(() => filteredGeneData.value.length);
-const filteredNovel = computed(() => filteredGeneData.value.filter((g) => g.is_novel === 1).length);
-const filteredCurated = computed(
-  () => filteredGeneData.value.filter((g) => g.is_novel === 0).length
-);
 
 // Whether the minCount filter is actively narrowing results
 const isFilterActive = computed(() => selectedCategory.value === 'gene' && minCount.value > 1);
@@ -410,7 +414,7 @@ function generateBarPlot() {
     .selectAll('text')
     .attr('transform', 'translate(-10,0)rotate(-45)')
     .style('text-anchor', 'end')
-    .style('font-size', '10px');
+    .style('font-size', '12px');
 
   // In gene mode, color and make X-axis labels clickable
   if (isGeneMode) {
@@ -441,7 +445,10 @@ function generateBarPlot() {
     .scaleLinear()
     .domain([0, maxY * 1.1])
     .range([height, 0]);
-  svg.append('g').call(d3.axisLeft(y));
+  svg
+    .append('g')
+    .call(countAxis(d3.axisLeft(y), y))
+    .call(styleAxisText);
 
   // Y axis label
   svg
@@ -519,10 +526,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
+  overflow-x: auto;
+}
+/* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */
 .svg-container {
   display: inline-block;
   position: relative;
   width: 100%;
+  min-width: 760px;
   max-width: 900px;
   vertical-align: top;
   overflow: hidden;

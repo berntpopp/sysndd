@@ -338,6 +338,26 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
   // -------------------------------------------------------------------------
   // Happy path: HGNC update submit → poll queued → running → completed
   // -------------------------------------------------------------------------
+  it('shows "Never" instead of a literal NA for an annotation source that was never updated', async () => {
+    server.use(
+      http.get('/api/admin/annotation_dates', () =>
+        HttpResponse.json({
+          omim_update: ['NA'],
+          hgnc_update: ['2026-11-21 12:03:48'],
+          mondo_update: ['NA'],
+          disease_ontology_update: ['NA'],
+        })
+      )
+    );
+    const wrapper = await mountView();
+    await flushRequests();
+    const text = wrapper.text();
+    expect(text).toContain('Last: Never');
+    expect(text).toContain('Last: November 21, 2026');
+    expect(text).not.toMatch(/Last: NA\b/);
+    wrapper.unmount();
+  });
+
   it('submits HGNC update and renders completed job in history table after polling', async () => {
     // Sequential poll responses via a closure counter — `server.use(...)`
     // per-test override, not a new B1 handler.  Shapes follow R/Plumber's

@@ -11,12 +11,13 @@
         {{ loadError }}
       </BAlert>
 
-      <div v-if="loadingCatalog" class="metadata-loading">
+      <!-- Nothing renders for a fast load; the spinner appears only after 300 ms. -->
+      <div v-if="showLoadingCatalog" class="metadata-loading" role="status">
         <BSpinner small class="me-2" />
-        Loading vocabularies...
+        Loading vocabularies…
       </div>
 
-      <template v-else>
+      <template v-else-if="!loadingCatalog">
         <!-- Vocabulary selector (WAI-ARIA tablist) -->
         <div class="metadata-tabs" role="tablist" aria-label="Metadata vocabularies">
           <BButton
@@ -81,7 +82,7 @@
                 class="metadata-table"
                 :items="rows"
                 :fields="tableFields"
-                :busy="loadingRows"
+                :busy="showLoadingRows"
                 hover
                 small
                 responsive
@@ -128,7 +129,7 @@
                       v-if="canDelete"
                       size="sm"
                       variant="link"
-                      class="p-1 text-warning"
+                      class="p-1 metadata-action--deactivate"
                       title="Deactivate entry"
                       aria-label="Deactivate entry"
                       :data-testid="`metadata-delete-${rowPk(data.item)}`"
@@ -190,6 +191,7 @@ import MetadataDeleteModal from './components/MetadataDeleteModal.vue';
 import MetadataMobileRows from './components/MetadataMobileRows.vue';
 import useToast from '@/composables/useToast';
 import { useMetadataAdmin } from './composables/useMetadataAdmin';
+import { useDelayedFlag } from './adminDisplay';
 import type { MetadataRow, MetadataCellValue } from '@/api/metadata';
 
 interface BTableField {
@@ -272,10 +274,15 @@ export default defineComponent({
       return MANAGED_COPY[vocab.managed] ?? '';
     });
 
+    // No count while a vocabulary loads, so a stale "0 entries" never flashes.
     const vocabularyMeta = computed(() => {
+      if (admin.loadingRows.value) return null;
       const count = admin.rows.value.length;
       return `${count} ${count === 1 ? 'entry' : 'entries'}`;
     });
+    // The busy row only after 300 ms; a fast tab switch shows no spinner.
+    const showLoadingRows = useDelayedFlag(admin.loadingRows);
+    const showLoadingCatalog = useDelayedFlag(admin.loadingCatalog);
 
     const deleteLabel = computed(() => {
       const vocab = admin.activeVocabulary.value;
@@ -351,6 +358,8 @@ export default defineComponent({
       rows: admin.rows,
       loadingCatalog: admin.loadingCatalog,
       loadingRows: admin.loadingRows,
+      showLoadingRows,
+      showLoadingCatalog,
       saving: admin.saving,
       deleting: admin.deleting,
       loadError: admin.loadError,
@@ -381,6 +390,11 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Bootstrap's text-warning (#ffc107) is 1.6:1 on white; this amber is 5:1. */
+.metadata-action--deactivate {
+  color: #b45309;
+}
+
 .metadata-admin {
   padding-bottom: 1.5rem;
 }

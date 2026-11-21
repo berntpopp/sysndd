@@ -3,7 +3,7 @@
   <TableShell
     title="Curation effort comparisons"
     description="Comparing the presence of a gene in different curation efforts for NDDs."
-    :meta="'Genes: ' + totalRows"
+    :meta="'Genes: ' + formatCount(totalRows)"
     :loading="loadingTable"
   >
     <template #title-actions>
@@ -26,9 +26,9 @@
           switch
           size="sm"
           class="definitive-toggle me-2"
-          title="Show only Definitive entries for each source"
+          title="Show only genes rated Definitive by every source"
         >
-          <span class="small fw-semibold">Definitive Only</span>
+          <span class="small fw-semibold">Definitive in every source</span>
         </BFormCheckbox>
 
         <TableDownloadLinkCopyButtons
@@ -105,7 +105,7 @@
               "
               :aria-label="data.label"
             >
-              {{ truncate(data.label, 28) }}
+              {{ headerLabel(data.label) }}
             </div>
           </template>
 
@@ -137,7 +137,7 @@
                 "
               >
                 <template #first>
-                  <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
+                  <BFormSelectOption :value="null">Any</BFormSelectOption>
                 </template>
               </BFormSelect>
 
@@ -157,7 +157,7 @@
                 "
               >
                 <template #first>
-                  <BFormSelectOption :value="null"> Any {{ field.label }} </BFormSelectOption>
+                  <BFormSelectOption :value="null">Any</BFormSelectOption>
                 </template>
               </BFormSelect>
             </td>
@@ -221,9 +221,6 @@
 
 import { useToast, useUrlParsing, useColorAndSymbols, useColumnTooltip } from '@/composables';
 
-// Import the utilities file
-import Utils from '@/assets/js/utils';
-
 // Import the GenericTable component
 import GenericTable from '@/components/small/GenericTable.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
@@ -236,6 +233,7 @@ import CurationSourcesPopover from '@/components/analyses/CurationSourcesPopover
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import { formatCount } from '@/utils/displayFormat';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 
 // Typed API client (W5)
@@ -393,7 +391,7 @@ export default {
         if (serial !== this.loadSerial) return;
         this.items = data.data;
 
-        this.totalRows = data.meta[0].totalItems;
+        this.totalRows = data.meta[0].totalItems ?? 0;
         this.$nextTick(() => {
           this.currentPage = data.meta[0].currentPage;
         });
@@ -521,10 +519,10 @@ export default {
     },
     // Function to truncate a string to a specified length.
     // If the string is longer than the specified length, it adds '...' to the end.
-    // imported from utils.js
-    truncate(str, n) {
-      // Use the utility function here
-      return Utils.truncate(str, n);
+    formatCount,
+    /** Header text that may wrap: a soft hyphen lets "Gene2Phenotype" break after "Gene2". */
+    headerLabel(label) {
+      return String(label ?? '').replace(/(\d)(?=[A-Z])/g, '$1\u00AD');
     },
   },
 };
@@ -549,6 +547,17 @@ mark {
   font-size: 0.875rem;
   color: #495057;
   border-color: #ced4da;
+}
+
+/* Nine equal source columns: a compact header size, and wrapping instead of clipping
+   (soft hyphen first, mid-word only as a last resort on narrow screens). */
+:deep(table.table thead th),
+:deep(table.table thead th > div) {
+  font-size: 0.8125rem;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  hyphens: manual;
 }
 
 /* Definitive toggle styles */

@@ -22,7 +22,11 @@
           </button>
         </div>
 
-        <p v-if="hasValue(item.definition)" class="ontology-mobile-row__definition">
+        <p
+          v-if="hasValue(item.definition)"
+          class="ontology-mobile-row__definition"
+          :title="displayValue(item.definition)"
+        >
           {{ displayValue(item.definition) }}
         </p>
 

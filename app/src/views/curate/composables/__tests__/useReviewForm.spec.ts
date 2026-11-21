@@ -84,6 +84,25 @@ describe('useReviewForm', () => {
     reviewApiMocks.createReview.mockResolvedValue({ status: 200 });
   });
 
+  // Known item 3: the API sent a missing comment as the string "NA".
+  describe('missing comment ("NA" or null)', () => {
+    it.each(['NA', null])('loads %s as an empty comment and saves no "NA"', async (raw) => {
+      primeReadMocks({
+        review: [{ synopsis: 'A long enough synopsis', comment: raw as unknown as string, entity_id: 1848 }],
+      });
+      const { formData, hasChanges, loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+      expect(formData.comment).toBe('');
+      expect(hasChanges.value).toBe(false);
+
+      await submitForm(false, false);
+      await flushPromises();
+      const [body] = reviewApiMocks.createReview.mock.calls[0];
+      expect(body.review_json.comment).toBe('');
+    });
+  });
+
   describe('Change detection', () => {
     it('hasChanges is false when no data loaded', () => {
       const { hasChanges } = useReviewForm();

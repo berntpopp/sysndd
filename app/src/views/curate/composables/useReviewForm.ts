@@ -19,6 +19,7 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
 import { splitOntologyTag } from '@/utils/ontologyTags';
 import { createFormLoadOwner, isAbortError } from './formLoadOwnership';
+import { formText } from './useStatusForm';
 import useVariationProvenanceZones from './useVariationProvenanceZones';
 import {
   createReview,
@@ -293,8 +294,8 @@ export default function useReviewForm(entityId?: string | number) {
 
       // Load synopsis and comment
       if (reviewData && reviewData.length > 0) {
-        formData.synopsis = reviewData[0].synopsis || '';
-        formData.comment = reviewData[0].comment || '';
+        formData.synopsis = formText(reviewData[0].synopsis);
+        formData.comment = formText(reviewData[0].comment);
         entityIdRef.value = reviewData[0].entity_id;
       }
 

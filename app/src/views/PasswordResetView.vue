@@ -1,74 +1,87 @@
 <!-- src/views/PasswordResetView.vue -->
 <template>
-  <div class="container-fluid">
+  <div class="login-page">
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
 
-    <BContainer v-else>
-      <BRow class="justify-content-md-center py-4">
-        <BCol md="6">
-          <BContainer v-if="showChangeContainer">
-            <BCard header="Reset Password" header-bg-variant="dark" header-text-variant="white">
-              <BCardText>
-                <BForm @submit.prevent="onPasswordChange">
-                  <BFormGroup description="Enter your new password">
-                    <BFormInput
-                      v-model="newPasswordEntry"
-                      placeholder="Enter new password"
-                      type="password"
-                      :state="passwordMeta.touched ? (passwordError ? false : true) : null"
-                    />
-                    <BFormInvalidFeedback v-if="passwordError">
-                      {{ passwordError }}
-                    </BFormInvalidFeedback>
-                  </BFormGroup>
+    <div v-else class="login-shell login-shell--single">
+      <section class="login-panel" aria-labelledby="reset-title">
+        <header class="login-panel__header">
+          <h1 id="reset-title" class="login-title">Reset password</h1>
+          <p class="login-description">
+            {{
+              showChangeContainer
+                ? 'Choose a new password for your SysNDD account.'
+                : 'Enter the email address of your SysNDD account and we will send you a reset link.'
+            }}
+          </p>
+        </header>
 
-                  <BFormGroup description="Repeat your new password">
-                    <BFormInput
-                      v-model="newPasswordRepeat"
-                      placeholder="Repeat new password"
-                      type="password"
-                      :state="
-                        repeatPasswordMeta.touched ? (repeatPasswordError ? false : true) : null
-                      "
-                    />
-                    <BFormInvalidFeedback v-if="repeatPasswordError">
-                      {{ repeatPasswordError }}
-                    </BFormInvalidFeedback>
-                  </BFormGroup>
+        <form v-if="showChangeContainer" class="login-form" @submit.prevent="onPasswordChange">
+          <BFormGroup
+            label="New password"
+            label-for="reset-new-password"
+            description="At least 8 characters with an uppercase letter, a lowercase letter, a number and one of !@#$%^&amp;*"
+          >
+            <BFormInput
+              id="reset-new-password"
+              v-model="newPasswordEntry"
+              autocomplete="new-password"
+              type="password"
+              :state="passwordMeta.touched && passwordError ? false : null"
+            />
+            <BFormInvalidFeedback v-if="passwordError">
+              {{ passwordError }}
+            </BFormInvalidFeedback>
+          </BFormGroup>
 
-                  <BFormGroup>
-                    <BButton class="ms-2" type="submit" variant="dark"> Submit change </BButton>
-                  </BFormGroup>
-                </BForm>
-              </BCardText>
-            </BCard>
-          </BContainer>
+          <BFormGroup label="Repeat new password" label-for="reset-repeat-password">
+            <BFormInput
+              id="reset-repeat-password"
+              v-model="newPasswordRepeat"
+              autocomplete="new-password"
+              type="password"
+              :state="repeatPasswordMeta.touched && repeatPasswordError ? false : null"
+            />
+            <BFormInvalidFeedback v-if="repeatPasswordError">
+              {{ repeatPasswordError }}
+            </BFormInvalidFeedback>
+          </BFormGroup>
 
-          <BContainer v-if="showRequestContainer">
-            <BCard header="Reset Password" header-bg-variant="dark" header-text-variant="white">
-              <BCardText>
-                <BForm @submit.prevent="onPasswordRequest">
-                  <BFormGroup description="Enter your mail account">
-                    <BFormInput
-                      v-model="emailEntry"
-                      placeholder="mail@your-institution.com"
-                      :state="emailMeta.touched ? (emailError ? false : true) : null"
-                    />
-                    <BFormInvalidFeedback v-if="emailError">
-                      {{ emailError }}
-                    </BFormInvalidFeedback>
-                  </BFormGroup>
+          <div class="login-actions">
+            <BButton type="submit" variant="primary">Change password</BButton>
+          </div>
+        </form>
 
-                  <BFormGroup>
-                    <BButton class="ms-2" type="submit" variant="dark"> Submit </BButton>
-                  </BFormGroup>
-                </BForm>
-              </BCardText>
-            </BCard>
-          </BContainer>
-        </BCol>
-      </BRow>
-    </BContainer>
+        <form
+          v-if="showRequestContainer"
+          class="login-form"
+          novalidate
+          @submit.prevent="onPasswordRequest"
+        >
+          <BFormGroup label="Email address" label-for="reset-email">
+            <BFormInput
+              id="reset-email"
+              v-model="emailEntry"
+              type="email"
+              autocomplete="email"
+              placeholder="name@your-institution.org"
+              :state="emailMeta.touched && emailError ? false : null"
+            />
+            <BFormInvalidFeedback v-if="emailError">
+              {{ emailError }}
+            </BFormInvalidFeedback>
+          </BFormGroup>
+
+          <div class="login-actions">
+            <BButton type="submit" variant="primary">Send reset link</BButton>
+          </div>
+        </form>
+
+        <div class="login-links">
+          <BLink :to="'/Login'">Back to sign in</BLink>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 

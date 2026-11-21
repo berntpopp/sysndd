@@ -48,7 +48,7 @@
 #* - meta: Directory metadata (total_count, total_size_bytes)
 #*
 #* @tag backup
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @param limit:int Maximum number of items per page (default: 50, max: 500)
 #* @param offset:int Number of items to skip (default: 0)
@@ -85,7 +85,7 @@ function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
 #* - 503 Service Unavailable: Job capacity exceeded
 #*
 #* @tag backup
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @post /create
 function(req, res) {
@@ -125,7 +125,7 @@ function(req, res) {
 #* - 503 Service Unavailable: Job capacity exceeded or pre-restore backup failed
 #*
 #* @tag backup
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @post /restore
 function(req, res) {
@@ -193,7 +193,7 @@ function(req, res, filename) {
 #* - 404 Not Found: Backup file does not exist
 #*
 #* @tag backup
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #*
 #* @delete /delete/<filename>
 function(req, res, filename) {

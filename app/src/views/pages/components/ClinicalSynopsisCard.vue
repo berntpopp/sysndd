@@ -14,14 +14,14 @@
         :empty="false"
         :error="model.error"
         title="Clinical Synopsis"
-        min-height="18rem"
+        min-height="var(--synopsis-reserve)"
       >
         <template #header>
           <div class="clinical-card-header" data-testid="clinical-synopsis-header">
             <span>Clinical Synopsis</span>
             <span class="clinical-card-actions">
-              <span v-if="model.reviewDate" class="clinical-panel-meta">
-                Last reviewed {{ model.reviewDate }}
+              <span v-if="reviewedOn" class="clinical-panel-meta" :title="model.reviewDate">
+                Last reviewed <time :datetime="model.reviewDate">{{ reviewedOn }}</time>
               </span>
               <BButton
                 data-testid="copy-synopsis-button"
@@ -55,6 +55,9 @@
 <script setup lang="ts">
 import { BRow, BCol, BButton } from 'bootstrap-vue-next';
 import SectionCard from '@/components/ui/SectionCard.vue';
+import { computed } from 'vue';
+import { formatLongDate } from '@/utils/dateUtils';
+import { isMissing } from '@/utils/displayFormat';
 
 export interface ClinicalSynopsisModel {
   loading: boolean;
@@ -64,7 +67,10 @@ export interface ClinicalSynopsisModel {
   copyButtonLabel: string;
 }
 
-defineProps<{ model: ClinicalSynopsisModel }>();
+const props = defineProps<{ model: ClinicalSynopsisModel }>();
+const reviewedOn = computed(() =>
+  isMissing(props.model.reviewDate) ? '' : formatLongDate(props.model.reviewDate)
+);
 const emit = defineEmits<{ (event: 'copy'): void }>();
 
 function onCopyClick(): void {
@@ -73,8 +79,15 @@ function onCopyClick(): void {
 </script>
 
 <style scoped>
+/* Reservation sized to a typical synopsis (two to four lines on desktop). */
 .entity-clinical-grid {
+  --synopsis-reserve: 8rem;
   padding-top: 0.15rem;
+}
+@media (min-width: 1600px) {
+  .entity-clinical-grid {
+    --synopsis-reserve: 6.6rem;
+  }
 }
 .clinical-card-header {
   display: flex;
@@ -97,7 +110,7 @@ function onCopyClick(): void {
   padding: 0.75rem;
 }
 .clinical-panel-meta {
-  color: var(--neutral-600, #667085);
+  color: var(--neutral-700, #616161);
   font-size: 0.76rem;
   font-weight: 650;
 }
@@ -133,6 +146,9 @@ function onCopyClick(): void {
   font-weight: 650;
 }
 @media (max-width: 575.98px) {
+  .entity-clinical-grid {
+    --synopsis-reserve: 22rem;
+  }
   .clinical-synopsis-panel {
     padding: 0.65rem;
   }

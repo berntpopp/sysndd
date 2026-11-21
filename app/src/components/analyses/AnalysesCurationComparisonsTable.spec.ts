@@ -58,7 +58,11 @@ async function mountSubject() {
     global: {
       directives: { 'b-tooltip': {}, 'b-popover': {} },
       stubs: {
-        TableShell: { template: '<section><slot name="toolbar" /><slot /></section>' },
+        TableShell: {
+          props: ['meta'],
+          template:
+            '<section><p class="meta">{{ meta }}</p><slot name="actions" /><slot name="toolbar" /><slot /></section>',
+        },
         TableLoadingState: { template: '<div />' },
         TablePaginationControls: { template: '<nav />' },
         TableDownloadLinkCopyButtons: { template: '<div />' },
@@ -148,5 +152,33 @@ describe('AnalysesCurationComparisonsTable', () => {
     staleReq!.resolve(makeResponse(['STALE_GENE_A', 'STALE_GENE_B']));
     await flushPromises();
     expect(vm.items.map((row) => row.symbol)).toEqual(['CURRENT_GENE']);
+  });
+
+  it('reads the gene count from meta with a thousands separator', async () => {
+    const wrapper = await mountSubject();
+    browseComparisons.mockResolvedValueOnce({
+      ...makeResponse(['A2M']),
+      meta: [{ ...makeResponse(['A2M']).meta[0], totalItems: 5147 }],
+    });
+    await (wrapper.vm as unknown as { loadTableData: () => Promise<void> }).loadTableData();
+    await flushPromises();
+    expect(wrapper.get('.meta').text()).toBe('Genes: 5,147');
+  });
+
+  it('never prints "undefined" when the meta lacks totalItems', async () => {
+    const wrapper = await mountSubject();
+    browseComparisons.mockResolvedValueOnce({
+      data: [],
+      meta: [{ total_rows: 3, execution_time: 1 }],
+    });
+    await (wrapper.vm as unknown as { loadTableData: () => Promise<void> }).loadTableData();
+    await flushPromises();
+    expect(wrapper.get('.meta').text()).toBe('Genes: 0');
+  });
+
+  it('names the definitive toggle for what it filters: every source', async () => {
+    const wrapper = await mountSubject();
+    expect(wrapper.text()).toContain('Definitive in every source');
+    expect(wrapper.text()).not.toContain('Definitive Only');
   });
 });

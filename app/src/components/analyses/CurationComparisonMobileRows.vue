@@ -6,7 +6,7 @@
     item-key="symbol"
   >
     <template #default="{ item, index }">
-      <div class="curation-mobile-row" role="listitem">
+      <div class="curation-mobile-row mobile-record-row" role="listitem">
         <div class="curation-mobile-row__header">
           <h3 class="curation-mobile-row__symbol">
             <a
@@ -46,7 +46,7 @@
             <span class="curation-mobile-row__source-state" aria-hidden="true">
               {{ isPresent(item[source.key]) ? '+' : '-' }}
             </span>
-            <span>{{ source.short }}</span>
+            <span>{{ source.label }}</span>
           </span>
         </div>
 
@@ -76,14 +76,14 @@ const props = defineProps<{
 }>();
 
 const sources = [
-  { key: 'SysNDD', label: 'SysNDD', short: 'S' },
-  { key: 'gene2phenotype', label: 'Gene2Phenotype', short: 'G2P' },
-  { key: 'panelapp', label: 'PanelApp', short: 'PA' },
-  { key: 'radboudumc_ID', label: 'Radboudumc', short: 'R' },
-  { key: 'sfari', label: 'SFARI', short: 'SF' },
-  { key: 'ndd_genehub', label: 'NDD GeneHub', short: 'NDD' },
-  { key: 'orphanet_id', label: 'Orphanet', short: 'OR' },
-  { key: 'omim_ndd', label: 'OMIM NDD', short: 'OMIM' },
+  { key: 'SysNDD', label: 'SysNDD' },
+  { key: 'gene2phenotype', label: 'Gene2Phenotype' },
+  { key: 'panelapp', label: 'PanelApp' },
+  { key: 'radboudumc_ID', label: 'Radboudumc' },
+  { key: 'sfari', label: 'SFARI' },
+  { key: 'ndd_genehub', label: 'NDD GeneHub' },
+  { key: 'orphanet_id', label: 'Orphanet' },
+  { key: 'omim_ndd', label: 'OMIM NDD' },
 ] as const;
 
 const negativeMarkers = new Set(['', 'not listed', 'no', 'false', 'null', 'undefined']);
@@ -215,7 +215,8 @@ function toggleDetails(key: string): void {
 
 .curation-mobile-row__sources {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Full source names ("Gene2Phenotype") overflowed four phone columns into each other. */
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
   gap: 0.375rem;
   margin-top: 0.75rem;
 }
@@ -230,7 +231,9 @@ function toggleDetails(key: string): void {
   border-radius: 0.375rem;
   font-size: 0.7rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .curation-mobile-row__source-state {

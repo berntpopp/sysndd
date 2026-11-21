@@ -108,6 +108,29 @@ describe('useBackupInventory — typed-client migration', () => {
     expect(inv.meta.value).toEqual({ total_count: 1, total_size_bytes: 4096 });
   });
 
+  it('fetchBackupList() keeps a missing table count ("NA") as null, never NaN', async () => {
+    primeAuth('na-token');
+    server.use(
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({
+          data: [
+            {
+              filename: '202610140300.sysndd_db.sql.gz',
+              size_bytes: 1,
+              created_at: '2026-11-21T12:07:38Z',
+              table_count: 'NA',
+            },
+          ],
+          meta: { total_count: [1], total_size_bytes: [1] },
+        })
+      )
+    );
+    const inv = useBackupInventory({ onToast: makeToastSpy });
+    await inv.fetchBackupList();
+    expect(inv.backups.value[0].table_count).toBeNull();
+    expect(inv.formatDate(inv.backups.value[0].created_at)).toBe('November 21, 2026, 12:07 UTC');
+  });
+
   it('fetchBackupList() toasts and clears the list on failure', async () => {
     primeAuth('inventory-fail-token');
 

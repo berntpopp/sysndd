@@ -14,27 +14,6 @@
   outline: none;
 }
 
-// Skip link for keyboard navigation to main content
-// Hidden off-screen by default, visible when focused
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: var(--medical-blue-700);
-  color: white;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
-  z-index: 9999;
-  border-radius: 0 0 0.25rem 0;
-  transition: top var(--transition-fast);
-
-  &:focus {
-    top: 0;
-    outline: var(--focus-ring-width) solid white;
-    outline-offset: -0.25rem;
-  }
-}
-
 // Screen reader only content
 // Hides content visually but keeps it available for assistive technology
 .sr-only {
@@ -120,12 +99,4 @@ a:focus-visible {
   // WCAG AA requires 4.5:1 contrast for normal text
   // #757575 on white = 4.54:1 (passes)
   color: var(--neutral-600) !important;
-}
-
-// Reduced motion support (already in _animations.scss, but documenting pattern here)
-// Users who prefer reduced motion should not see animations
-@media (prefers-reduced-motion: reduce) {
-  .skip-link {
-    transition: none;
-  }
 }

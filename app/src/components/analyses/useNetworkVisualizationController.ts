@@ -14,6 +14,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import useCytoscape from '@/composables/useCytoscape';
 import useNetworkData from '@/composables/useNetworkData';
+import { shouldUsePresetLayout } from '@/composables/geneNetworkLayoutOptions';
 import useNetworkFilters, { type CategoryFilter } from '@/composables/useNetworkFilters';
 import { useFilterSync } from '@/composables/useFilterSync';
 import { useWildcardSearch } from '@/composables/useWildcardSearch';
@@ -37,6 +38,7 @@ import {
   selectSingleNetworkCluster,
   showAllNetworkClusters,
 } from './networkSelection';
+import { focusNetworkNodes } from './networkSelection';
 import { downloadNetworkSvg } from './networkExport';
 
 /** Typed emit surface the controller drives on the parent's behalf. */
@@ -279,13 +281,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
     if (hasPattern) {
       cyInstance.nodes().forEach((node) => {
-        // Skip cluster parent nodes
-        if (node.data('isClusterParent')) return;
-
-        const symbol = node.data('symbol');
-        const isMatch = searchMatches(symbol);
-
-        if (isMatch) {
+        if (node.data('isClusterParent')) return; // cluster parents never match
+        if (searchMatches(node.data('symbol'))) {
           node.addClass('search-match');
           matchingNodes.merge(node);
           matchCount += 1;
@@ -294,32 +291,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
         }
       });
 
-      // Focus on matching nodes with a gentle pan+zoom (capped at 1.5x so it
-      // never zooms in too hard); 150px padding keeps the framing loose.
-      if (matchingNodes.length > 0) {
-        const bb = matchingNodes.boundingBox();
-        const padding = 150;
-        const containerWidth = cyInstance.width();
-        const containerHeight = cyInstance.height();
-
-        const zoomX = containerWidth / (bb.w + padding * 2);
-        const zoomY = containerHeight / (bb.h + padding * 2);
-        const maxZoom = 1.5;
-        const targetZoom = Math.min(zoomX, zoomY, maxZoom);
-
-        const centerX = (bb.x1 + bb.x2) / 2;
-        const centerY = (bb.y1 + bb.y2) / 2;
-
-        cyInstance.animate({
-          pan: {
-            x: containerWidth / 2 - centerX * targetZoom,
-            y: containerHeight / 2 - centerY * targetZoom,
-          },
-          zoom: targetZoom,
-          duration: 400,
-          easing: 'ease-out-cubic',
-        });
-      }
+      if (matchingNodes.length > 0) focusNetworkNodes(cyInstance, matchingNodes);
     }
 
     // Update match count and emit for parent component
@@ -436,19 +408,42 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     }
   );
 
-  // Initialize on mount
+  // The graph is drawn only when the user asks for it: laying out and painting
+  // ~2,000 genes costs seconds of main-thread time, which would freeze the cluster
+  // table that is usable long before. Data and the worker layout still start at
+  // mount, so the click usually renders straight away.
+  const networkRequested = ref(false);
+  let dataReady = false;
+  let networkMounted = false;
+
+  function showNetwork() {
+    networkRequested.value = true;
+    if (dataReady) void mountNetwork();
+  }
+
   onMounted(async () => {
-    // Fetch network data
     await fetchNetworkData();
     if (disposed) return;
+    dataReady = true;
+    if (networkRequested.value) await mountNetwork();
+  });
+
+  async function mountNetwork() {
+    if (networkMounted) return;
+    networkMounted = true;
 
     // Wait for DOM update
     await nextTick();
     if (disposed) return;
 
     if (cytoscapeNodeElements.value.length > 0) {
-      initializeCytoscape(cytoscapeNodeElements.value);
-      initialEdgesMounted.value = false;
+      // With positions known up front (server display layout or the worker layout)
+      // mount the default view in one pass; otherwise nodes first, edges at idle.
+      const presetReady = shouldUsePresetLayout(cytoscapeInitialElements.value);
+      initializeCytoscape(
+        presetReady ? cytoscapeInitialElements.value : cytoscapeNodeElements.value
+      );
+      initialEdgesMounted.value = presetReady;
       fullGraphMounted.value = false;
       handleApplyFilters();
     } else {
@@ -479,7 +474,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       });
       resizeObserver.observe(cytoscapeContainer.value);
     }
-  });
+  }
 
   // Cleanup resize observer on unmount
   onBeforeUnmount(() => {
@@ -514,9 +509,13 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     if (disposed) return;
     await fetchNetworkData();
     if (disposed) return;
+    dataReady = true;
+    if (!networkRequested.value) return;
     await nextTick();
     if (disposed) return;
-    if (!isInitialized.value) {
+    if (!networkMounted) {
+      await mountNetwork();
+    } else if (!isInitialized.value) {
       initializeCytoscape(cytoscapeNodeElements.value);
       initialEdgesMounted.value = false;
       fullGraphMounted.value = false;
@@ -587,6 +586,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     handleExportSVG,
     // Retry + exposed surface for the parent
     retryLoadNetwork,
+    networkRequested,
+    showNetwork,
     highlightNodeFromTable,
     isRowHighlighted,
     clearHighlights,

@@ -367,3 +367,20 @@ test_that("byte-serving release routes set Content-Type via the serializer, neve
   # The per-file route sets its (per-file) type dynamically on res$serializer.
   expect_true(grepl("res$serializer <- plumber::serializer_octet(type = content$media_type)", joined, fixed = TRUE))
 })
+
+test_that("release JSON routes send missing values as null, never the string \"NA\"", {
+  # The app shows `release_version` etc. as "—" when null; na="string" sent the
+  # literal "NA", which the manifest panel printed as a value.
+  src <- readLines(file.path("endpoints", "analysis_endpoints.R"), warn = FALSE)
+  for (route in c("releases", "releases/latest", "releases/<release_id>")) {
+    get_idx <- grep(paste0("^#\\*\\s+@get\\s+", route, "\\s*$"), src)
+    expect_length(get_idx, 1L)
+    block <- src[seq_len(get_idx)]
+    serializer <- tail(block[grepl("^#\\*\\s+@serializer", block)], 1L)
+    expect_match(serializer, 'na="null"', fixed = TRUE, info = route)
+  }
+  expect_equal(
+    as.character(jsonlite::toJSON(list(release_version = NA_character_), na = "null", auto_unbox = TRUE)),
+    '{"release_version":null}'
+  )
+})

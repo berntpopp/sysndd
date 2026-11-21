@@ -4,6 +4,8 @@
 // separate from curated SysNDD evidence; these helpers only format admin
 // provenance metadata.
 
+import { formatDateTime } from './adminDisplay';
+
 export type NddScoreAdminRecord = Record<string, unknown>;
 
 export function normalizeRecord(value: unknown): NddScoreAdminRecord | null {
@@ -34,10 +36,23 @@ export function displayValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value.length === 1 ? displayValue(value[0]) : value.map(displayValue).join(', ');
   }
-  if (value === null || value === undefined || value === '') return 'Not recorded';
-  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'Not recorded';
+  if (value === null || value === undefined || value === '' || value === 'NA') {
+    return 'Not recorded';
+  }
+  // Model metrics arrive with 15 decimals; three are what a reader compares.
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return 'Not recorded';
+    return value !== 0 && Math.abs(value) < 0.001
+      ? value.toExponential(2)
+      : String(Number(value.toFixed(3)));
+  }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'object') {
+    // Nested metric groups ({ auc_roc: 0.9, ... }) read as "AUC ROC 0.9 · ...", not JSON.
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => `${humanizeKey(key)} ${displayValue(nested)}`)
+      .join(' · ');
+  }
   return String(value);
 }
 
@@ -48,18 +63,27 @@ export function firstValue(record: NddScoreAdminRecord | null | undefined, keys:
 export function formatInteger(value: unknown): string {
   const scalar = Array.isArray(value) ? value[0] : value;
   const numberValue = Number(scalar);
-  return Number.isFinite(numberValue) ? numberValue.toLocaleString() : '0';
+  return Number.isFinite(numberValue) ? numberValue.toLocaleString('en-US') : '0';
 }
 
 export function formatDate(value: unknown): string {
   const raw = displayValue(value);
   if (raw === 'Not recorded') return raw;
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleString();
+  const formatted = formatDateTime(raw);
+  return formatted === '—' ? raw : formatted;
 }
 
+const ACRONYMS = new Set(['auc', 'roc', 'pr', 'bss', 'hpo', 'doi', 'id', 'ndd', 'f1', 'tpr']);
+
 export function humanizeKey(key: string): string {
-  return key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  return key
+    .split('_')
+    .map((word) =>
+      ACRONYMS.has(word.toLowerCase())
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
 }
 
 export function statusClass(value: unknown): string {

@@ -18,7 +18,9 @@
     title="Date this entity was first entered into SysNDD"
   >
     <i class="bi bi-calendar-plus" aria-hidden="true" />
-    <span>Entered {{ entry }}</span>
+    <span
+      >Entered <time :datetime="entryIso">{{ entry }}</time></span
+    >
   </span>
   <span
     v-if="updated"
@@ -27,12 +29,15 @@
     title="Most recent curation update (status or review) for this entity"
   >
     <i class="bi bi-calendar-check" aria-hidden="true" />
-    <span>Last updated {{ updated }}</span>
+    <span
+      >Last updated <time :datetime="updatedIso">{{ updated }}</time></span
+    >
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatLongDate, parseApiDate } from '@/utils/dateUtils';
 
 // Values come from a loosely-typed entity record map, so accept anything and
 // coerce defensively.
@@ -41,11 +46,13 @@ const props = defineProps<{
   lastUpdate?: unknown;
 }>();
 
-// Trim a timestamp ("2014-03-04 00:00:00" / "2026-02-10T12:29:49") to its date
-// part for a clean freshness signal.
-const toDateOnly = (value: unknown): string => (value == null ? '' : String(value).slice(0, 10));
-const entry = computed(() => toDateOnly(props.entryDate));
-const updated = computed(() => toDateOnly(props.lastUpdate));
+// "2014-03-04 00:00:00" -> datetime "2014-03-04", shown as "March 4, 2014";
+// a missing value hides its pill.
+const isoDate = (value: unknown): string => parseApiDate(value)?.toISOString().slice(0, 10) ?? ''; // '' hides the pill
+const entryIso = computed(() => isoDate(props.entryDate));
+const updatedIso = computed(() => isoDate(props.lastUpdate));
+const entry = computed(() => (entryIso.value ? formatLongDate(entryIso.value) : ''));
+const updated = computed(() => (updatedIso.value ? formatLongDate(updatedIso.value) : ''));
 </script>
 
 <style scoped>

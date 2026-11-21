@@ -19,7 +19,12 @@
     </template>
 
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Phenotype counts chart"
+    >
       <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
       <div v-show="!loadingCount" id="count_dataviz" class="svg-container" />
     </div>
@@ -32,6 +37,7 @@ import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
+import { addAxisTitle, countAxis, styleAxisText } from './chartAxes';
 
 // Typed API client (W5)
 import { getPhenotypeCount } from '@/api/phenotype';
@@ -134,7 +140,7 @@ export default {
         .selectAll('text')
         .attr('transform', 'translate(-10,0)rotate(-45)')
         .style('text-anchor', 'end')
-        .style('font-size', '11px')
+        .style('font-size', '12px')
         .append('title')
         .text((d) => d);
 
@@ -144,7 +150,11 @@ export default {
         .scaleLinear()
         .domain([0, maxY * 1.1])
         .range([height, 0]); // Add 10% buffer to the max value
-      svg.append('g').call(d3.axisLeft(y));
+      svg
+        .append('g')
+        .call(countAxis(d3.axisLeft(y), y))
+        .call(styleAxisText);
+      addAxisTitle(svg, 'Entities', { x: -height / 2, y: -margin.left + 16, rotate: true });
 
       // Create a tooltip
       const tooltip = d3
@@ -218,10 +228,16 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
+  overflow-x: auto;
+}
+/* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */
 .svg-container {
   display: inline-block;
   position: relative;
   width: 100%;
+  min-width: 760px;
   max-width: 800px;
   vertical-align: top;
   overflow: hidden;

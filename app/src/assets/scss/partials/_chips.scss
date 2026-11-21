@@ -12,7 +12,7 @@
 //  .sysndd-chip--info    text --status-info      (#0277bd) on --status-info-bg    (#e1f5fe) ≈ 4.8:1 ✓ AA
 //
 // NOTE: --status-warning (#f57c00) on --status-warning-bg (#fff3e0) is 4.07:1 — just below 4.5:1.
-// We use a slightly darker hardcoded orange #e65c00 (≈ 4.55:1 on #fff3e0) as a local override
+// We use a darker hardcoded orange #b34700 (≈ 5.0:1 on #fff3e0) as a local override
 // because the token itself is tuned for larger UI components (3:1 sufficient).
 // All other pairs use the tokens directly.
 
@@ -89,10 +89,10 @@
   color: var(--status-success, #2e7d32);
 }
 
-// Warning — #e65c00 on #fff3e0 ≈ 4.55:1 (token value falls slightly below AA)
+// Warning — #b34700 on #fff3e0 ≈ 5.0:1 (#e65c00 measured only 3.2:1)
 .sysndd-chip--warning {
   background-color: var(--status-warning-bg, #fff3e0);
-  color: #e65c00;
+  color: #b34700;
 }
 
 // Danger — text 5.0:1 on background

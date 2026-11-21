@@ -73,5 +73,10 @@ describe('CurationComparisons shell', () => {
     const metadata = wrapper.get('[data-testid="comparisons-refresh-badge"]');
     expect(metadata.attributes('aria-label')).toContain('Last comparisons refresh');
     expect(metadata.classes()).toContain('analysis-meta-badge');
+    // the app shell owns the single <main> landmark
+    expect(wrapper.find('main').exists()).toBe(false);
+    // one unambiguous long date (not a locale-dependent "2/7/2026"); time in the title
+    expect(metadata.text()).toBe('Updated February 7, 2026');
+    expect(metadata.attributes('title')).toContain('February 7, 2026, 22:20 UTC');
   });
 });

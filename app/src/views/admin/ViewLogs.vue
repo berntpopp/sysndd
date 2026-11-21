@@ -1,22 +1,13 @@
 <template>
   <AuthenticatedPageShell title="View Logs" content-class="authenticated-route-content" full-width>
-    <div class="container-fluid">
-      <BContainer fluid>
-        <BRow class="justify-content-md-center py-2">
-          <BCol col md="12">
-            <!-- Include TablesLogs Component Here -->
-            <TablesLogs
-              :sort-input="sort"
-              :filter-input="filter"
-              :fields-input="fields"
-              :page-after-input="pageAfter"
-              :page-size-input="pageSize"
-              :fspec-input="fspec"
-            />
-          </BCol>
-        </BRow>
-      </BContainer>
-    </div>
+    <TablesLogs
+      :sort-input="sort"
+      :filter-input="filter"
+      :fields-input="fields"
+      :page-after-input="pageAfter"
+      :page-size-input="pageSize"
+      :fspec-input="fspec"
+    />
   </AuthenticatedPageShell>
 </template>
 
@@ -56,13 +47,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
-</style>

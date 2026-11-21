@@ -91,9 +91,10 @@ This tab opens **Phenotype–function correlation**, described below.
 **Analyses › Functional clusters** (`/GeneNetworks`) groups genes whose products interact, using data from STRING, a database of protein-protein interactions. The clusters are computed from all genes with an NDD entity (NDD Yes), whatever its category. The network first shows only genes with a Definitive entity; use the category filter to add Moderate (**+ Moderate**) and Limited (**+ Limited**) genes.
 
 ::: {.steps}
-1. Select a cluster in the network, in the cluster legend, or in the cluster list. The tables and the summary switch to that cluster.
-2. Under **Table type**, choose **Term enrichment** or **Identifiers**.
-3. To return to all clusters, select the empty network background or choose **All Clusters**.
+1. Select **Show interactive network** to draw the network. Drawing about 2,000 genes takes a few seconds on slower devices, so the page does not do it until you ask; the cluster legend, list and tables work without it.
+2. Select a cluster in the network, in the cluster legend, or in the cluster list. The tables and the summary switch to that cluster.
+3. Under **Table type**, choose **Term enrichment** or **Identifiers**.
+4. To return to all clusters, select the empty network background or choose **All Clusters**.
 :::
 
 ::: {.doc-screenshot}

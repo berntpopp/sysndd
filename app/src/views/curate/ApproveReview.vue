@@ -19,6 +19,7 @@
 <template>
   <AuthenticatedPageShell
     title="Approve Reviews"
+    description="Pending clinical reviews from curators and re-reviewers. Approve a review to publish it, edit it first, or dismiss it."
     content-class="authenticated-route-content"
     full-width
   >
@@ -31,6 +32,7 @@
               :items="filteredItems"
               :fields="fieldsReviewTable"
               :total-rows="totalRows"
+              :pending-total="items_ReviewTable.length"
               :current-page="currentPage"
               :per-page="perPage"
               :page-options="pageOptions"
@@ -212,7 +214,7 @@
         <ApproveAllModal
           ref="approveAllModal"
           modal-id="approveAllModal"
-          :total-rows="totalRows"
+          :total-rows="items_ReviewTable.length"
           :selected="approve_all_selected"
           @ok="handleAllReviewsOk"
           @update:selected="approve_all_selected = $event"
@@ -378,25 +380,6 @@ defineExpose({
   sanitizeInput,
 });
 </script>
-
-<style scoped>
-.text-truncate-multiline {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-.text-popover-trigger {
-  cursor: help;
-  border-bottom: 1px dotted #6c757d;
-}
-.text-popover-trigger:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 2px;
-}
-</style>
 
 <style>
 .wide-popover {

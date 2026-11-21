@@ -45,12 +45,12 @@
           "label": "Table views"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:39:50.409Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:34.741Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "95e6b185389b9c2b59347513e37b934415976dab8832c765411f0d271527b39c",
-      "bytes": 57119
+      "browserVersion": "159.0.8154.6",
+      "sha256": "83e1238c3905e81f72c1d688355ae74007168c974fa8e41e3e57afba093d4af3",
+      "bytes": 62450
     },
     {
       "slug": "nav-analyses-dropdown",
@@ -78,12 +78,12 @@
           "label": "Analysis routes"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:39:52.150Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:35.627Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "5d6cbdb5c9644216babaa9796987fdebfe5cb212352ed7dd9381a2eb99734927",
-      "bytes": 88794
+      "browserVersion": "159.0.8154.6",
+      "sha256": "433d9f3815ee6bc6318d307133674aa984e7f6299f37e2d98c3b39920cd92da9",
+      "bytes": 87887
     },
     {
       "slug": "nav-help-dropdown",
@@ -111,12 +111,12 @@
           "label": "About and docs"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:39:54.236Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:36.519Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "e843a54bc2376f210958a00f980cc3623e9bbc7b9172774b1a6a4e3eab0a01c6",
-      "bytes": 58997
+      "browserVersion": "159.0.8154.6",
+      "sha256": "6e76265c7f5508f86cc2213ec6064d754f3046d28e94ae3cf1827b0eafd4ff86",
+      "bytes": 60973
     },
     {
       "slug": "nav-search-non-home",
@@ -150,12 +150,12 @@
           "label": "Login link"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:39:57.050Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:37.667Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "0f25151f3eef7f8aadd7193c581b9bc90c5544254b80e460966d1ac52bdb08fb",
-      "bytes": 36278
+      "browserVersion": "159.0.8154.6",
+      "sha256": "885cc1990cd3a66ae447e5bd682f447169a0ef8352987021d2e53c6f5dca3cfb",
+      "bytes": 38844
     },
     {
       "slug": "nav-authenticated-admin",
@@ -173,12 +173,12 @@
       "setup": "openUserMenu",
       "waitFor": "main",
       "captureMode": "clip",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:00.811Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:39.552Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "4791b2006543d34e057891b95af4bf312352d788771e3ea184049ce51e5aef6b",
-      "bytes": 42266
+      "browserVersion": "159.0.8154.6",
+      "sha256": "eb8010e6530a10512827a32df7d7228e850e7815a1c0422bd254b95376ee276c",
+      "bytes": 40664
     },
     {
       "slug": "footer-desktop",
@@ -206,12 +206,12 @@
           "label": "API"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:03.192Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:40.500Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "1e2894282b8ff460ec10d2af81e5a4521ef0ac2bb574114c94f9ed5498c98185",
-      "bytes": 19362
+      "browserVersion": "159.0.8154.6",
+      "sha256": "eaa5fe14599440fa1282ca1bd22069956296e6ef50892fbc851fb5fb170ac817",
+      "bytes": 18605
     },
     {
       "slug": "entities-table",
@@ -226,12 +226,12 @@
       "setup": "tablePage",
       "waitFor": "table",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:05.548Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:41.389Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "693699be528857decc4c09523e323ff366f8231773056e3543dcefe095679192",
-      "bytes": 145070
+      "browserVersion": "159.0.8154.6",
+      "sha256": "9e0d247d6be907a71e9135198561700679edcc9f6e5fb8f03aa552f3b848af18",
+      "bytes": 142462
     },
     {
       "slug": "genes-table",
@@ -246,12 +246,12 @@
       "setup": "tablePage",
       "waitFor": "table",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:07.552Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:42.373Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "27c1cd90724743b6bf91d7768498050c9f73cc9861241eba3741eeb5680f6163",
-      "bytes": 107979
+      "browserVersion": "159.0.8154.6",
+      "sha256": "26b5e829cb7518cdb1f5bb6ef88b1dd7a2005e35741df550e0c43491b4c05910",
+      "bytes": 105563
     },
     {
       "slug": "phenotypes-table",
@@ -280,12 +280,12 @@
           "label": "AND/OR logic"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:09.450Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:43.280Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "25f9e2dff999b38dc16e7a28ddab6f1e115376b82c4105d9417a7870df980b54",
-      "bytes": 98093
+      "browserVersion": "159.0.8154.6",
+      "sha256": "d7a13c8d707b5b68a5b94f58b7f7f5b4d620733a260a757f881e158fc26de270",
+      "bytes": 97426
     },
     {
       "slug": "table-toolbar-actions",
@@ -319,12 +319,12 @@
           "label": "Clear filters"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:11.387Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:44.187Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "ba62f17e9718c94c7cfce6c32db44ac071a873a6e38a68cae43252c15b00dd2f",
-      "bytes": 59239
+      "browserVersion": "159.0.8154.6",
+      "sha256": "a57af61070c19d0d7229645d64a16dbaa8db06fc0f7b69df0c1fe5df6f99166b",
+      "bytes": 56885
     },
     {
       "slug": "panels-table",
@@ -353,12 +353,12 @@
           "label": "Download"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:13.551Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:45.212Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "727c7c5b35570d9945186cb3b560aff202d7f134d3400167a2c2034f8bcfe00b",
-      "bytes": 110822
+      "browserVersion": "159.0.8154.6",
+      "sha256": "7637046de6e0df7a7e11a91230f3f6da8c9ad6490b7f8d2894c1f7881ddf25f2",
+      "bytes": 119146
     },
     {
       "slug": "table-entry-badges",
@@ -393,12 +393,12 @@
           "label": "Ontology page"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:15.872Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:09:46.138Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "c82803846e25a3365f07d521612b473100cf2487abb9cf1047027c7a0eca0a83",
-      "bytes": 85936
+      "browserVersion": "159.0.8154.6",
+      "sha256": "a89b93bd25ad72de0ff9bdcdcb79e86f33295a9e91b1628678bc56586d3f35de",
+      "bytes": 86919
     },
     {
       "slug": "gene-detail-chd8",
@@ -413,12 +413,12 @@
       "setup": "geneDetailPage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:30.501Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:10:00.409Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "3aee5edad734bf792c1c5159007517596c588cd2b00268fdb77443050cca1c50",
-      "bytes": 187229
+      "browserVersion": "159.0.8154.6",
+      "sha256": "699577e097789a3883d7fdfe037d69c79bee46cf29b60727720db3a62a207e86",
+      "bytes": 142390
     },
     {
       "slug": "entity-detail-123",
@@ -452,12 +452,12 @@
       "setup": "ontologyDetail",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:35.309Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:10:02.764Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "045f918389ef6cdcbd4491741d6f5d267f3c6e19cfea66eefebfb4dfd9a3381a",
-      "bytes": 116336
+      "browserVersion": "159.0.8154.6",
+      "sha256": "fc5ad8bca282c930cbbd735f8865dde29050f36c3bec764b22566a6c8b8fd1fa",
+      "bytes": 115562
     },
     {
       "slug": "curation-comparisons-overview",
@@ -466,7 +466,7 @@
         "documentation/using-analyses.qmd#fig-analyses-compare-overlap"
       ],
       "route": "/CurationComparisons",
-      "url": "http://localhost:8088/CurationComparisons",
+      "url": "http://localhost:4192/CurationComparisons",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -474,19 +474,19 @@
       "setup": "curationComparison",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:40:37.117Z",
+      "gitSha": "6ef486eb961ecfd9277e5a38e4679e99faa26619",
+      "capturedAt": "2026-11-21T15:51:29.021Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "f6d3337abc43c097cacb324c53b9bd8eb0c95b0fefbcb07630f484b1b8e01b5c",
-      "bytes": 129420
+      "browserVersion": "159.0.8154.6",
+      "sha256": "0e9ce6aec881c1fee920463204bf3e28339f05e94a5a4394bee521b1f74eeb73",
+      "bytes": 132382
     },
     {
       "slug": "curation-comparisons-similarity",
       "output": "documentation/static/img/generated/curation-comparisons-similarity.png",
       "docRefs": [],
       "route": "/CurationComparisons/Similarity",
-      "url": "http://localhost:8088/CurationComparisons/Similarity",
+      "url": "http://localhost:4192/CurationComparisons/Similarity",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -494,12 +494,12 @@
       "setup": "curationSimilarity",
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:08.711Z",
+      "gitSha": "6ef486eb961ecfd9277e5a38e4679e99faa26619",
+      "capturedAt": "2026-11-21T15:51:59.853Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "8aadd8fc1647c6fb40c28bc5ebaa2d8afa84679be4775150ab6c096ac7f9c15f",
-      "bytes": 35706
+      "browserVersion": "159.0.8154.6",
+      "sha256": "cd9a7bd376b2731ee627b7ca357eb6b5fcc295bd00661c4de73dd6d4f49ed44c",
+      "bytes": 41990
     },
     {
       "slug": "curation-comparisons-table",
@@ -514,12 +514,12 @@
       "setup": "tablePage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:10.506Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:10:35.232Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "f8957324fe3211af40abd4703794473d0d455fb846a498f4b27c42b167ef60cb",
-      "bytes": 100278
+      "browserVersion": "159.0.8154.6",
+      "sha256": "4c9c2d31eade7889560dfd7bb07b5326d8c0f6e768d1f87b17fb629ecee2c53c",
+      "bytes": 134255
     },
     {
       "slug": "phenotype-correlations-correlogram",
@@ -577,12 +577,12 @@
       "setup": "phenotypeClusters",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:17.962Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:10:38.016Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "f8419b52059ef1818b16cb226dc5870c36f742d00bbfcabe7834671d667ba19e",
-      "bytes": 196533
+      "browserVersion": "159.0.8154.6",
+      "sha256": "8f8656b02e6e4bea24986431c2da5b17c0c580200f7d42d0c1b7bf0a04b87625",
+      "bytes": 189438
     },
     {
       "slug": "entries-over-time",
@@ -597,12 +597,12 @@
       "setup": "entriesOverTime",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:19.518Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:10:38.742Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "ef4db410cc60e52a704a01dfc2f880b614c5446058b69df97ed017ff1fd9d16b",
-      "bytes": 90433
+      "browserVersion": "159.0.8154.6",
+      "sha256": "028613c020aeaf9396efc55ad7a1e8c5be31e2c60276cd7b3c4c05f0c05a822a",
+      "bytes": 98454
     },
     {
       "slug": "publications-ndd",
@@ -638,12 +638,12 @@
       "setup": "functionalClusters",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:24.460Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:10.691Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "133ee4ca6e354271d50d6c106bafae7efa464cc6feecc3a1a0126371ed375df0",
-      "bytes": 146610
+      "browserVersion": "159.0.8154.6",
+      "sha256": "2f2051c3692384e7fc74443e2869d0e6ce0d780ba0e03890df37cd6b105fd2b4",
+      "bytes": 151974
     },
     {
       "slug": "login-page",
@@ -660,10 +660,10 @@
       },
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:25.873Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:11.684Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
+      "browserVersion": "159.0.8154.6",
       "sha256": "49e8955c4650929f97c1ed2bc411f6c70c1e997e99458d028f69ec5153bece5e",
       "bytes": 101047
     },
@@ -688,10 +688,10 @@
           "number": 1
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:27.694Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:12.915Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
+      "browserVersion": "159.0.8154.6",
       "sha256": "198c690818e89831843fc2d2c3ea73ed76440a9df9c19a121d247b1ceda91f85",
       "bytes": 35781
     },
@@ -719,12 +719,12 @@
           "number": 1
         }
       ],
-      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
-      "capturedAt": "2026-11-21T11:12:27.197Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:14.639Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "3d3dea5d797d319327d0a8c3531881802e4d417ce619ecca04e27a5d4806b057",
-      "bytes": 49144
+      "browserVersion": "159.0.8154.6",
+      "sha256": "cdedf03696cd8a95331f2132c458e87459fb0d329a4b400e20facf9f4ffe581f",
+      "bytes": 49077
     },
     {
       "slug": "login-auth-error-toast",
@@ -746,12 +746,12 @@
           "label": "Visible error"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:32.745Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:16.758Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "33af8acd5c00a649b73b10f4ad009e8b86cfdbfc9b9a0f3036d7dbf52d1980ea",
-      "bytes": 113644
+      "browserVersion": "159.0.8154.6",
+      "sha256": "75638dd69188f4ccbf3fc13ab545a2b6d59814b9e8735bec46802172c56314d5",
+      "bytes": 110872
     },
     {
       "slug": "register-page",
@@ -767,10 +767,10 @@
       },
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:33.942Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:17.744Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
+      "browserVersion": "159.0.8154.6",
       "sha256": "0f16ecc7a3eb42ca76c59dd940d76b525922aa3d769111dfb163a6bdd9f49dd6",
       "bytes": 123056
     },
@@ -789,12 +789,12 @@
       "setup": "passwordResetPage",
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:35.224Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:15:26.215Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "68b95fd9af470d8be8fecbc17ffc153dc8add801228cde2d05cfac203beec3eb",
-      "bytes": 48384
+      "browserVersion": "159.0.8154.6",
+      "sha256": "7a8a3ccbf486c83ee268dad73c8cedb3732e5add36963c3fc1d1d922a1fe0de8",
+      "bytes": 61199
     },
     {
       "slug": "mobile-home",
@@ -808,12 +808,12 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:36.725Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:50.061Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "250d4080a42e92ec6932f38e914a8f856a79ef0b73a77a37682c1e86a53e3a36",
-      "bytes": 63287
+      "browserVersion": "159.0.8154.6",
+      "sha256": "10c30683b149c0d1dc81af2ba9d84f3d74823f4575c318850867b75c643be57f",
+      "bytes": 64451
     },
     {
       "slug": "mobile-navbar-open",
@@ -828,12 +828,12 @@
       "setup": "openMobileNavbar",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:38.458Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:50.978Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "8af74f51ed4b9a588d27e17bc498a16b9c0c6f4563942ebf6c7244929250e9ea",
-      "bytes": 49233
+      "browserVersion": "159.0.8154.6",
+      "sha256": "416ccfc79da5db6933da39be1f0eb09b4657fdc8f152f71efe422a13bc299d94",
+      "bytes": 50058
     },
     {
       "slug": "mobile-footer-open",
@@ -848,12 +848,12 @@
       "setup": "openMobileFooter",
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:40.264Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:51.873Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "9523ac794f17108aba8805df3a276549ac3ddbaf6c492161fe9f280f237147ba",
-      "bytes": 18521
+      "browserVersion": "159.0.8154.6",
+      "sha256": "40d5f420a7d457a8903371d181bbbe03b51e56f17dd4f064c399bcfe28b59009",
+      "bytes": 18133
     },
     {
       "slug": "mobile-entities-table",
@@ -870,12 +870,12 @@
       "setup": "mobileTablePage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:42.207Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:52.762Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "d48f222c08ca165e6769e932331beef4f3d725fbe0f64f521e6d9677e62a4539",
-      "bytes": 79082
+      "browserVersion": "159.0.8154.6",
+      "sha256": "206b9aa9b134426200dd203273fe06e8cc4f22d5a20f44dffa1e2cdc8e2a7cfe",
+      "bytes": 77887
     },
     {
       "slug": "mobile-landscape-analysis",
@@ -909,12 +909,12 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:45.743Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:54.245Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "250d4080a42e92ec6932f38e914a8f856a79ef0b73a77a37682c1e86a53e3a36",
-      "bytes": 63287
+      "browserVersion": "159.0.8154.6",
+      "sha256": "10c30683b149c0d1dc81af2ba9d84f3d74823f4575c318850867b75c643be57f",
+      "bytes": 64451
     },
     {
       "slug": "reviewer-review-link-menu",
@@ -986,12 +986,12 @@
           "offsetY": -40
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:50.563Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:56.650Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "e40e0b6d6e643154be9b5276041940a1dd5638c0e095927461793de5efb2efa8",
-      "bytes": 128080
+      "browserVersion": "159.0.8154.6",
+      "sha256": "af317da00c002cda2133d9a90e76a621a55bbd9c158d72c964052c3e851d600e",
+      "bytes": 131362
     },
     {
       "slug": "reviewer-modify-review-modal",
@@ -1051,12 +1051,12 @@
           "label": "Save"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:41:56.763Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:11:58.889Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "5163db6d52a7cdc3fdd0ca71ac8697b870166ba03b76729705aed8a984312e33",
-      "bytes": 136385
+      "browserVersion": "159.0.8154.6",
+      "sha256": "98b8a90ceb74d4b74bd531291274a1a1da6c5b19c5d7c286e7fa81e26039bf66",
+      "bytes": 136623
     },
     {
       "slug": "reviewer-modify-status-modal",
@@ -1104,12 +1104,12 @@
           "label": "Save"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:04.118Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:00.888Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "800f4f6e78d9f14cfb92d0f704950ea4061f2acce752fcd4098690677025cc89",
-      "bytes": 69343
+      "browserVersion": "159.0.8154.6",
+      "sha256": "438c8f761d5e06940bd2749d2afbfc3659ceb15b76b94d536e007d65530bcb1c",
+      "bytes": 69197
     },
     {
       "slug": "api-swagger-overview",
@@ -1150,10 +1150,10 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:08.570Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:02.376Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
+      "browserVersion": "159.0.8154.6",
       "sha256": "82ad262fa0a3f015d4cb8a9faf516a6ba8fe7b2346c82e7aeea48f61976dacc7",
       "bytes": 100025
     },
@@ -1172,10 +1172,10 @@
       "setup": "swaggerAuthScreen",
       "waitFor": ".swagger-ui",
       "captureMode": "page",
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:11.206Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:03.775Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
+      "browserVersion": "159.0.8154.6",
       "sha256": "382161f8b886df50e2f21097275a8dcfc2bb10a54a0018de20bb0b09b49baa43",
       "bytes": 92834
     },
@@ -1280,12 +1280,12 @@
           "placement": "right"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:16.469Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:06.188Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "b2d109d3793fb1dfc21926d09695a87996a5d02d964d1572330b6f47a5116674",
-      "bytes": 135982
+      "browserVersion": "159.0.8154.6",
+      "sha256": "921fe7cb3998724e3b9ba2a22cfc3068413df77e43c64c7c00d54cf2634a88b1",
+      "bytes": 136065
     },
     {
       "slug": "find-gene-search-suggestions",
@@ -1361,7 +1361,7 @@
           "placement": "top-left"
         },
         {
-          "selector": ".row.justify-content-md-center",
+          "selector": ".gene-external-row",
           "hasText": "Model Organisms",
           "mode": "marker",
           "number": 4,
@@ -1375,12 +1375,12 @@
           "placement": "top-left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:25.378Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:15:30.265Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "d6d4c307e229c4caf9962cfc1dd94240285f9d64c1e556c07bdf641a08031045",
-      "bytes": 268154
+      "browserVersion": "159.0.8154.6",
+      "sha256": "84bd38163551e57ddafbd975fbe5ca98c7cf75f3d1265dc9381b866d06131353",
+      "bytes": 264603
     },
     {
       "slug": "find-gene-entity-page-fbxo11",
@@ -1442,12 +1442,12 @@
           "placement": "top-left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:29.115Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:17.323Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "874a6697026a68884a4dce7f4f079db2308244011a30f023db439bc57651d8c9",
-      "bytes": 216200
+      "browserVersion": "159.0.8154.6",
+      "sha256": "54670eb8e758bd8f470a86aecf4e6eadc69eb8897c10d772a5b14b58f5e48967",
+      "bytes": 219211
     },
     {
       "slug": "find-gene-disease-page",
@@ -1485,12 +1485,12 @@
           "placement": "top-left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:32.724Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:20.212Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "28a1c47c086475c841b2e7abc6019e491d39938cb2575e9bda25a558aef2f42b",
-      "bytes": 146011
+      "browserVersion": "159.0.8154.6",
+      "sha256": "0386e853df021501798e7c0c792fac1dfa26d319189fb39a7686d24903995335",
+      "bytes": 151931
     },
     {
       "slug": "panels-filters",
@@ -1548,12 +1548,12 @@
           "placement": "left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:35.739Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:21.896Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "3f1a58cb56ac012f31fca6efd0765e4b9d9b5a8502ffaa63d05693e191fd2281",
-      "bytes": 134450
+      "browserVersion": "159.0.8154.6",
+      "sha256": "3c7a4ceab1ed95b7d4056197ff359f29396452ddc0c731891c35ae934f894c1b",
+      "bytes": 147019
     },
     {
       "slug": "phenotype-search-and-or",
@@ -1604,12 +1604,12 @@
           "placement": "bottom"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:38.658Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:23.480Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "caefde228a8f298d620e5ef3d793f9f49c8dd1ab96680d67958183092ec9e25f",
-      "bytes": 170044
+      "browserVersion": "159.0.8154.6",
+      "sha256": "ae5f33d64d99a63a40de3e9a446924f115e93d3309045505e0fb714e5832bd15",
+      "bytes": 171983
     },
     {
       "slug": "phenotype-search-variant-counts",
@@ -1698,12 +1698,12 @@
           "number": 5
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:44.776Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:27.659Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "aa5a5e8b8c22c2e77a01be9ddf455ab64de79d249bb94af102ffae0e72309ff4",
-      "bytes": 82169
+      "browserVersion": "159.0.8154.6",
+      "sha256": "274f8169c1685e6098d20f96370ed669f34ac54ae86676ed7bebe7d36c42a3f9",
+      "bytes": 81782
     },
     {
       "slug": "mcp-info-page",
@@ -1749,12 +1749,12 @@
           "placement": "top-left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:47.063Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:28.564Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "fb3ac05fc42bdcb85d104c812f531295fe4aa9987e0fdf11a9648f9b3f741af2",
-      "bytes": 242824
+      "browserVersion": "159.0.8154.6",
+      "sha256": "1e6c3c9256932eb822b33574d314e2cdcad075e7b885adb2a536ba5d93d41ad3",
+      "bytes": 241253
     },
     {
       "slug": "about-citation-policy",
@@ -1792,12 +1792,12 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:49.563Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:30.433Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "c99857adc712a29f3de7584c4f6bc94814338e2b3cb62d3900cf490ab9ac8083",
-      "bytes": 101070
+      "browserVersion": "159.0.8154.6",
+      "sha256": "c5128a8087b256ac2d86f5624f234d93f9af4fb46190cb6751e8ec516a9298b7",
+      "bytes": 101112
     },
     {
       "slug": "data-releases-page",
@@ -1841,12 +1841,12 @@
           "number": 4
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:51.200Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:31.235Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "2827c48a4e725a98509edbede1bebf224dc58f8445a935a6eace838bf73a1085",
-      "bytes": 96095
+      "browserVersion": "159.0.8154.6",
+      "sha256": "f1221a9f405ee4dd1e6528f055f5e6bcbf7eff69acd167ba9ab5cc49746805c3",
+      "bytes": 93805
     },
     {
       "slug": "curation-research-gene-page",
@@ -1887,12 +1887,12 @@
           "placement": "top-left"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:42:55.902Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:34.477Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "96e4d1065f2a6f87bd927793976e83219368f32a1f8d03a52cf7ac237bbf0a42",
-      "bytes": 139432
+      "browserVersion": "159.0.8154.6",
+      "sha256": "acbbd450f3c10bb18f2f707aa6bd534d874328f906ae5b3ef3432fc797f0fa42",
+      "bytes": 133027
     },
     {
       "slug": "curation-research-evidence-step",
@@ -1944,12 +1944,12 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:04.909Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:38.248Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "ff313f1706512c4e15fcde7fd7c773b6f7b0c37034f744d83e5ed41231eed50e",
-      "bytes": 69557
+      "browserVersion": "159.0.8154.6",
+      "sha256": "875f131dd4441f4fa1ba13d85783767791d1711e52422e5e156b17f6180df7a1",
+      "bytes": 66668
     },
     {
       "slug": "reviewer-re-review-table",
@@ -2005,12 +2005,12 @@
           "placement": "bottom"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:08.913Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:39.603Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "b0da887e7febf6c7402a43e7c4150f95de4d541fbf89f8801747e770503627f1",
-      "bytes": 93461
+      "browserVersion": "159.0.8154.6",
+      "sha256": "e92813281b6a531339db8646c5f98b686d2fdd58de108f1eaa9fa07352eb7fbd",
+      "bytes": 96242
     },
     {
       "slug": "reviewer-edit-review-modal",
@@ -2078,12 +2078,12 @@
           "outline": false
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:15.159Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:41.818Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "8e8657839daf8479c480626855bca43f9d273ad9391599b61613a3623f0a92a2",
-      "bytes": 131835
+      "browserVersion": "159.0.8154.6",
+      "sha256": "c3d5574cf25f938458ea95fbf2b0278fc4a4a4821e5e135500236d7d87093ecb",
+      "bytes": 133262
     },
     {
       "slug": "reviewer-variation-zones",
@@ -2131,12 +2131,12 @@
           "outline": false
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:21.448Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:43.984Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "ab2b4b9df3fe38d096ca5c37514f7a069312e45cd2666c3d2df8e64748519856",
-      "bytes": 59657
+      "browserVersion": "159.0.8154.6",
+      "sha256": "7c1862dd42322c897a7951383bdfb7c35c0692872595fcacb8896bcf950cbfca",
+      "bytes": 57963
     },
     {
       "slug": "reviewer-edit-status-modal",
@@ -2188,12 +2188,12 @@
           "placement": "top"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:30.301Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:45.680Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "84ebdab238bb4170f6f192f4f2ff536163c51417f3af383ca66e61452b99699d",
-      "bytes": 70546
+      "browserVersion": "159.0.8154.6",
+      "sha256": "9781005e50675365a6408115d9030358eb24524fa257cd38b8253fd19d1ff5dc",
+      "bytes": 77905
     },
     {
       "slug": "reviewer-refuse-modal",
@@ -2233,12 +2233,12 @@
           "number": 2
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:36.082Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:47.811Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "eb051181d49e06c104461bcf41622781cf687ea4d15423757182161bee4dc0bd",
-      "bytes": 47648
+      "browserVersion": "159.0.8154.6",
+      "sha256": "790fc4780e073522b0c3fa9f8236abee2427d17bade801a4d106225afbf8f067",
+      "bytes": 48472
     },
     {
       "slug": "curator-create-entity-core",
@@ -2348,12 +2348,12 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:43:54.335Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:12:54.514Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "d0e40e64bec656c28866607db37e7baa6ec58906f687650e30d3602127d5dff2",
-      "bytes": 75950
+      "browserVersion": "159.0.8154.6",
+      "sha256": "30b9b3b9df48af8693a83e29fbeac0f2ad3bb6a975ef4e467be89d98351f500e",
+      "bytes": 73165
     },
     {
       "slug": "curator-create-entity-review",
@@ -2468,12 +2468,12 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:44:11.811Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:13:02.580Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "edc4511a632d3370d5a0fd0ea45be98ea53220f95361d7a1f3958e646bda9e5a",
-      "bytes": 73602
+      "browserVersion": "159.0.8154.6",
+      "sha256": "9c39d208ef188e154ef7d7e6c1a728745d22462615b93cc1417f03515ea76701",
+      "bytes": 70671
     },
     {
       "slug": "curator-modify-entity-combined",
@@ -2584,12 +2584,12 @@
           "placement": "top"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:44:24.792Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:13:11.326Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "e45b0b9540036b62449cc1200768c7061fe9de8eac0e585b6596e4b362d86c3b",
-      "bytes": 47921
+      "browserVersion": "159.0.8154.6",
+      "sha256": "049aa9c92ccf23a3964be30f0701c34e430edc8c9fce43e1cee9c05e01059de1",
+      "bytes": 47930
     },
     {
       "slug": "curator-modify-entity-reactivate",
@@ -2628,12 +2628,12 @@
           "placement": "right"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:44:27.609Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:13:12.705Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "34219453644789813af47259bf7687e6aaf4a8ac88e09e5b4c30bbff847f099c",
-      "bytes": 16324
+      "browserVersion": "159.0.8154.6",
+      "sha256": "5e0efeea7d0432698059213634a2876afd2a48cf6a12711200857609d4bc8432",
+      "bytes": 15939
     },
     {
       "slug": "curator-approve-review-table",
@@ -2653,7 +2653,7 @@
       "captureMode": "clip",
       "annotations": [
         {
-          "selector": "button[aria-label=\"Approve all reviews\"]",
+          "selector": "button[aria-label^=\"Approve all\"]",
           "mode": "marker",
           "number": 1
         },
@@ -2689,12 +2689,12 @@
           "placement": "bottom"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:02.063Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:16:02.515Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "a7304a93efa0e461df8c29666f197d2c7a41bf3243476fc01cb619e33cbd2a41",
-      "bytes": 110241
+      "browserVersion": "159.0.8154.6",
+      "sha256": "f470aac8d46fff3036d40eac69912c453bed5eb72edf1d40265c01232e946bb0",
+      "bytes": 118199
     },
     {
       "slug": "curator-approve-status-table",
@@ -2714,7 +2714,7 @@
       "captureMode": "clip",
       "annotations": [
         {
-          "selector": "button[aria-label=\"Approve all statuses\"]",
+          "selector": "button[aria-label^=\"Approve all\"]",
           "mode": "marker",
           "number": 1
         },
@@ -2750,12 +2750,12 @@
           "placement": "top"
         }
       ],
-      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
-      "capturedAt": "2026-11-21T11:13:00.816Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:16:35.034Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "1e11a2a16f40e7a46ff8fbc6c93180686726ddf420c1fffa59ca9287207501c9",
-      "bytes": 111400
+      "browserVersion": "159.0.8154.6",
+      "sha256": "9e28180842dc2105fdd54a27319a33039de5c1fde87aa75cc492ff74a3d7edd4",
+      "bytes": 118049
     },
     {
       "slug": "curator-rereview-batch-criteria",
@@ -2812,12 +2812,12 @@
           "placement": "top"
         }
       ],
-      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
-      "capturedAt": "2026-11-21T11:13:06.523Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:21.416Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "35d3b09786017f04927c2c991e46eb0b2f56431a73bde7c52a4f03ad1f02c47b",
-      "bytes": 98034
+      "browserVersion": "159.0.8154.6",
+      "sha256": "ff4218742e4974c24c112c2291d292ed60eda328d8ea06042b8cce63db1478ef",
+      "bytes": 98961
     },
     {
       "slug": "curator-rereview-submissions-table",
@@ -2899,12 +2899,12 @@
           "number": 2
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:51.183Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:25.872Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "3235e38440fd795ada99590ff618d72c33d7b8d3cbfb72482eb4627815ef9865",
-      "bytes": 39161
+      "browserVersion": "159.0.8154.6",
+      "sha256": "74dcdd305a213de38f7a3c36b7577508d4571dce9f3502127662ba58b6a39efb",
+      "bytes": 39324
     },
     {
       "slug": "curator-rereview-curation-mode",
@@ -2942,12 +2942,12 @@
           "placement": "bottom"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:54.578Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:27.780Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "7a74b3a52673108e76f87f82f766b4c3a375c87f5e8949ddc2667f6376abb7ce",
-      "bytes": 89171
+      "browserVersion": "159.0.8154.6",
+      "sha256": "9d788f5218c5da268f5d714655e6c3089e547645cabb0e5ee58862da40f83dff",
+      "bytes": 90305
     },
     {
       "slug": "curator-approve-user-table",
@@ -2998,12 +2998,12 @@
           "placement": "top"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:45:57.933Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:29.724Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "849c5a7d392c95ff4c390337cfce0d10b69e52a95a7ce98596e47caddc272880",
-      "bytes": 66829
+      "browserVersion": "159.0.8154.6",
+      "sha256": "168bebdc49a94415f9ffd6e1de2e2528ef87a3bde334bc9fb75ef94d5a5f275a",
+      "bytes": 65651
     },
     {
       "slug": "curator-approve-user-modal",
@@ -3046,12 +3046,12 @@
           "number": 3
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:46:01.753Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:32.158Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "6a99913e7f274bd66925cf854684e91837e226f9e00534109a263a50beb107fc",
-      "bytes": 63606
+      "browserVersion": "159.0.8154.6",
+      "sha256": "3c37744312be1fa4ee703d8ee685a71932a7c4aa7dd73981e6f50c252abe7480",
+      "bytes": 63190
     },
     {
       "slug": "curator-genereviews-coverage",
@@ -3108,12 +3108,12 @@
           "number": 6
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:46:09.355Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:37.431Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "561994f5f445964974f8b4c060a8a2a032258aa7b57d5f772935d681aeb2b046",
-      "bytes": 86135
+      "browserVersion": "159.0.8154.6",
+      "sha256": "8b89d65e9ee3adb8100912d8c26bb3bcecd981f8e95dbb5cbfef894c582bdf5c",
+      "bytes": 90314
     },
     {
       "slug": "curator-variation-suggestions",
@@ -3166,12 +3166,12 @@
           "placement": "right"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:46:12.640Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:39.430Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "8fbc33b21d65a9ee47bf480af9b1a0760df5400bedef4c9401824189bf864b8a",
-      "bytes": 91188
+      "browserVersion": "159.0.8154.6",
+      "sha256": "eb8297fabdf5a0ee28ead66b49f3070c06a02e78c4828f46a8169018db66347a",
+      "bytes": 86076
     },
     {
       "slug": "reviewer-submit-review-modal",
@@ -3195,12 +3195,12 @@
       ],
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "4777e35b4fb17f4e87fbbe9d1a29c638858f104b",
-      "capturedAt": "2026-11-21T11:13:24.252Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:14:43.367Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "e7666b3574037d1dda507042255d2d19d1c3f4078cb571031699627f915eaa6c",
-      "bytes": 20014
+      "browserVersion": "159.0.8154.6",
+      "sha256": "2a9db7424175cc0c9bb88616182fdb04421a388472c931c0fd7d71e8b9fb3afc",
+      "bytes": 20334
     },
     {
       "slug": "reviewer-after-submit-page",
@@ -3226,18 +3226,19 @@
       "captureMode": "page",
       "annotations": [
         {
-          "selector": ".review-toolbar__filters .badge",
+          "selector": ".review-toolbar__filters .btn",
+          "hasText": "New batch",
           "mode": "marker",
           "number": 1,
           "placement": "right"
         }
       ],
-      "gitSha": "99bf875da3fa85e6343678a7db4e57fef89cc235",
-      "capturedAt": "2026-11-21T10:46:26.520Z",
+      "gitSha": "a51de32ae176035052bfc064eef7a0269366e296",
+      "capturedAt": "2026-11-21T18:16:38.597Z",
       "browserName": "chromium",
-      "browserVersion": "151.0.7922.34",
-      "sha256": "27e3ed5a8add9ea49aa33f0ed5f0be9f629c877ef5fc8f784d6abd2eac486247",
-      "bytes": 104605
+      "browserVersion": "159.0.8154.6",
+      "sha256": "d4ee27afa6a3bef6ae53e46abdecdc64214ed1f29552d6714e4170b9e826cf00",
+      "bytes": 111348
     }
   ]
 }

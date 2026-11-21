@@ -1,19 +1,34 @@
-export function formatLogDate(date: string | number | Date): string {
-  const options: Intl.DateTimeFormatOptions = {
+import { parseApiDate } from '@/utils/dateUtils';
+
+type LogTime = string | number | Date | null | undefined;
+
+/**
+ * The API logs naive UTC ("2026-11-21 13:19:00"); `new Date()` would read that as
+ * local time. Returns null for a missing or unparsable value.
+ */
+export function parseLogTime(value: LogTime): Date | null {
+  return typeof value === 'number' ? parseApiDate(new Date(value)) : parseApiDate(value);
+}
+
+export function formatLogDate(date: LogTime): string {
+  const parsed = parseLogTime(date);
+  if (!parsed) return '—';
+  return parsed.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  };
-  return new Date(date).toLocaleDateString(undefined, options);
+    hourCycle: 'h23',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  });
 }
 
-export function formatRelativeLogTime(date: string | number | Date | null | undefined): string {
-  if (!date) return '';
-  const now = new Date();
-  const target = new Date(date);
-  const diffMs = now.getTime() - target.getTime();
+export function formatRelativeLogTime(date: LogTime): string {
+  const target = parseLogTime(date);
+  if (!target) return '';
+  const diffMs = Date.now() - target.getTime();
   const diffMins = Math.round(diffMs / 60000);
   const diffHours = Math.round(diffMs / 3600000);
   const diffDays = Math.round(diffMs / 86400000);
@@ -24,15 +39,19 @@ export function formatRelativeLogTime(date: string | number | Date | null | unde
   return formatter.format(-diffDays, 'day');
 }
 
-export function formatAbsoluteLogTime(date: string | number | Date | null | undefined): string {
-  if (!date) return '';
-  return new Date(date).toLocaleString('en-US', {
+/** "Nov 21, 2026, 13:19:00 UTC" — the stored wall time, labelled with its zone. */
+export function formatAbsoluteLogTime(date: LogTime): string {
+  const parsed = parseLogTime(date);
+  if (!parsed) return '';
+  return parsed.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'UTC',
     timeZoneName: 'short',
   });
 }
@@ -56,17 +75,20 @@ export function getLogMethodVariant(method: string): string {
   return methodVariants[method] || 'secondary';
 }
 
-export function formatLogDuration(duration: number | string | null | undefined): string {
-  if (duration === null || duration === undefined) return '-';
-  const ms = parseFloat(String(duration));
-  if (ms < 1) return '<1ms';
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
+/** Request duration; the API logs seconds (tictoc), e.g. 0.039 -> "39 ms". */
+export function formatLogDuration(seconds: number | string | null | undefined): string {
+  const value = parseFloat(String(seconds));
+  if (seconds === null || seconds === undefined || Number.isNaN(value)) return '—';
+  const ms = value * 1000;
+  if (ms < 1) return '<1 ms';
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  return `${value.toFixed(2)} s`;
 }
 
-export function getLogDurationClass(duration: number | string): string {
-  const ms = parseFloat(String(duration));
+export function getLogDurationClass(seconds: number | string | null | undefined): string {
+  const ms = parseFloat(String(seconds)) * 1000;
+  if (!Number.isFinite(ms)) return 'text-muted';
   if (ms < 100) return 'text-success';
-  if (ms < 500) return 'text-warning';
+  if (ms < 500) return 'text-warning-emphasis';
   return 'text-danger fw-bold';
 }

@@ -127,7 +127,7 @@ Open your user menu and select **Sign out**. On a shared computer, always sign o
 
 ## Use SysNDD on a phone {#use-sysndd-on-a-phone}
 
-SysNDD adapts to small screens. The menus collapse behind a menu button in the navigation bar, and the tables show each entity as a compact card.
+SysNDD adapts to small screens. On windows narrower than 1,200 pixels the menus collapse behind a menu button in the navigation bar; on a phone the tables show each entity as a compact card.
 
 ::: {.doc-screenshot .mobile}
 ![The Entities table on a phone, with each entity shown as a card.](static/img/generated/mobile-entities-table.png){#fig-account-mobile-entities fig-alt="SysNDD Entities table at phone width. Each entity is a card with its identifier, gene, disease, inheritance, category and NDD status, one below the other."}

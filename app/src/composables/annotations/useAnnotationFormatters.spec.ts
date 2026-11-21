@@ -24,7 +24,12 @@ import { server } from '@/test-utils/mocks/server';
 import { primeAuth } from '@/test-utils/primeAuth';
 import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
 import useAuth from '@/composables/useAuth';
-import { authRequestConfig } from './useAnnotationFormatters';
+import {
+  authRequestConfig,
+  formatDate,
+  formatDuration,
+  unwrapValue,
+} from './useAnnotationFormatters';
 
 afterEach(() => {
   useAuth().logout();
@@ -53,5 +58,19 @@ describe('useAnnotationFormatters.authRequestConfig — F2a migration', () => {
       authRequestConfig()
     );
     expect(data).toEqual({ dates: [] });
+  });
+});
+
+describe('useAnnotationFormatters display helpers', () => {
+  it('maps R missing values to null instead of the string "NA"', () => {
+    expect(unwrapValue(['NA'])).toBeNull();
+    expect(unwrapValue('NaN')).toBeNull();
+    expect(unwrapValue(['2026-11-21 12:03:48'])).toBe('2026-11-21 12:03:48');
+  });
+
+  it('formats dates in the long style and durations in seconds', () => {
+    expect(formatDate('2026-11-21T12:12:53Z')).toBe('November 21, 2026');
+    expect(formatDate('NA')).toBe('—');
+    expect(formatDuration(0.5)).toBe('500 ms');
   });
 });

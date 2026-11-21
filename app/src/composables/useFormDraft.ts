@@ -167,9 +167,7 @@ export default function useFormDraft<T>(formKey: string) {
     // Clear existing timers
     if (debounceTimer) clearTimeout(debounceTimer);
 
-    isSaving.value = true;
-
-    // Debounce: save after user stops making changes
+    // Debounce (isSaving stays false: the localStorage write itself is instant): save after user stops making changes
     debounceTimer = setTimeout(() => {
       saveDraft(data);
     }, DEBOUNCE_DELAY);

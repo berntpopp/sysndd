@@ -48,6 +48,7 @@ import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
+import { formatSourceName } from './curationUpsetDisplay';
 
 // Typed API client (W5)
 import { getSimilarity } from '@/api/comparisons';
@@ -137,8 +138,9 @@ export default {
 
       svg
         .append('g')
+        .attr('class', 'x-axis')
         .attr('transform', `translate(0, ${height})`)
-        .call(d3.axisBottom(x))
+        .call(d3.axisBottom(x).tickFormat(formatSourceName))
         .selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.4em')
@@ -149,7 +151,11 @@ export default {
       // Build Y scales and axis:
       const y = d3.scaleBand().range([height, 0]).domain(domain).padding(0.01);
 
-      svg.append('g').call(d3.axisLeft(y)).style('font-size', '16px');
+      svg
+        .append('g')
+        .attr('class', 'y-axis')
+        .call(d3.axisLeft(y).tickFormat(formatSourceName))
+        .style('font-size', '16px');
 
       // Build color scale
       const myColor = d3.scaleLinear().range(['#ffffff', '#0d47a1']).domain([0, 1]);
@@ -184,7 +190,7 @@ export default {
        */
       const mousemove = function mousemove(event, d) {
         tooltip
-          .html(`S(c): ${d.value}<br>(${d.x} &<br>${d.y})`)
+          .html(`S(c): ${d.value}<br>(${formatSourceName(d.x)} &<br>${formatSourceName(d.y)})`)
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
@@ -213,6 +219,24 @@ export default {
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);
+
+      // Print the value in each cell. 0.74 is where white and black text both clear 4.5:1
+      // on this white -> #0d47a1 scale.
+      svg
+        .selectAll()
+        .data(data, (d) => `${d.x}:${d.y}`)
+        .enter()
+        .append('text')
+        .attr('class', 'cell-value')
+        .attr('x', (d) => x(d.x) + x.bandwidth() / 2)
+        .attr('y', (d) => y(d.y) + y.bandwidth() / 2)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'central')
+        .style('font-size', '13px')
+        .style('font-variant-numeric', 'tabular-nums')
+        .style('pointer-events', 'none')
+        .style('fill', (d) => (d.value >= 0.74 ? '#fff' : '#000'))
+        .text((d) => (Number.isFinite(d.value) ? d3.format('.2f')(d.value) : '—'));
     },
   },
 };

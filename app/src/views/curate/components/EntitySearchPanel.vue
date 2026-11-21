@@ -7,10 +7,6 @@
       </p>
       <div class="entity-search-panel__states" aria-live="polite">
         <span v-if="loading" class="entity-search-panel__state">Searching</span>
-        <span class="entity-search-panel__state" :class="{ 'is-selected': modelValue }">
-          <template v-if="modelValue">Selected entity {{ modelValue }}</template>
-          <template v-else>No entity selected</template>
-        </span>
       </div>
     </header>
 

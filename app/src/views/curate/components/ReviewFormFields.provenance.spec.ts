@@ -134,6 +134,18 @@ function mountFields(options: {
 const testids = (wrapper: VueWrapper, id: string) => wrapper.findAll(`[data-testid="${id}"]`);
 
 describe('ReviewFormFields — #608 provenance zones', () => {
+  // CUR-16: Bootstrap 4 label classes did nothing and the help badges had no name.
+  it('renders bold labels with a named help badge on the same row', () => {
+    const { wrapper } = mountFields({ selected: [] });
+    const row = wrapper.get('label[for="review-textarea-synopsis"]').element.parentElement!;
+    expect(row.className).toContain('review-field__label');
+    expect(wrapper.get('label[for="review-textarea-synopsis"]').classes()).toContain('fw-semibold');
+    expect(row.querySelector('#popover-badge-help-synopsis')?.getAttribute('aria-label')).toBe(
+      'Help: Synopsis'
+    );
+    expect(wrapper.html()).not.toContain('font-weight-bold');
+  });
+
   it('INERT: renders the plain picker with no zone scaffolding when there is nothing to decide', () => {
     const { wrapper } = mountFields({
       selected: ['1-VariO:0002'],

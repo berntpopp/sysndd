@@ -8,6 +8,8 @@
  * through a composable accessor for call-site consistency.
  */
 
+import { formatLongDate } from '../adminDisplay';
+
 export interface UserTableField {
   key: string;
   label: string;
@@ -17,7 +19,13 @@ export interface UserTableField {
   selectable?: boolean;
   sortDirection?: 'asc' | 'desc';
   thStyle?: Record<string, string>;
+  tdClass?: string;
+  tdAttr?: (cell: { value: unknown }) => Record<string, string>;
+  formatter?: (cell: { value: unknown }) => string;
 }
+
+// Clipped or reformatted cells keep the raw value as a tooltip.
+const titleAttr = ({ value }: { value: unknown }) => ({ title: String(value ?? '') });
 
 const USER_TABLE_FIELDS: UserTableField[] = [
   {
@@ -42,6 +50,9 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     filterable: true,
     sortDirection: 'asc',
     class: 'text-start',
+    thStyle: { width: '26%' },
+    tdClass: 'text-truncate',
+    tdAttr: titleAttr,
   },
   {
     key: 'user_role',
@@ -50,6 +61,7 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     selectable: true,
     sortDirection: 'asc',
     class: 'text-start',
+    thStyle: { width: '10rem' },
   },
   {
     key: 'approved',
@@ -58,6 +70,7 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     selectable: true,
     sortDirection: 'asc',
     class: 'text-center',
+    thStyle: { width: '8rem' },
   },
   {
     key: 'abbreviation',
@@ -65,6 +78,7 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     sortable: true,
     sortDirection: 'asc',
     class: 'text-start',
+    thStyle: { width: '7rem' },
   },
   {
     key: 'created_at',
@@ -72,8 +86,17 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     sortable: true,
     sortDirection: 'asc',
     class: 'text-start',
+    thStyle: { width: '10rem' },
+    formatter: ({ value }) => formatLongDate(value),
+    tdAttr: titleAttr,
   },
-  { key: 'actions', label: 'Actions', sortable: false, class: 'text-center' },
+  {
+    key: 'actions',
+    label: 'Actions',
+    sortable: false,
+    class: 'text-center',
+    thStyle: { width: '6rem' },
+  },
 ];
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {

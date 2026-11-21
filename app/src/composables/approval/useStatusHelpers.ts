@@ -18,7 +18,12 @@
 // the inferred tuple type matches how `reviewTableFields` is declared
 // in `@/composables/review/useReviewHelpers` (E5).
 
+import { markRaw } from 'vue';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+
 /** Table field defaults for the status approval table. */
+// Fixed layout: narrow columns get explicit widths so Disease and Comment take the rest
+// and the action buttons stay inside the card at 1366 px (CUR-05).
 export const statusTableFields = [
   {
     key: 'entity_id',
@@ -26,6 +31,7 @@ export const statusTableFields = [
     sortable: true,
     filterable: true,
     sortDirection: 'desc',
+    thStyle: { width: '7.25rem' },
     class: 'text-start',
   },
   {
@@ -34,6 +40,7 @@ export const statusTableFields = [
     sortable: true,
     filterable: true,
     sortDirection: 'desc',
+    thStyle: { width: '6.5rem' },
     class: 'text-start',
   },
   {
@@ -48,6 +55,7 @@ export const statusTableFields = [
     key: 'hpo_mode_of_inheritance_term_name',
     label: 'Inheritance',
     sortable: true,
+    thStyle: { width: '8rem' },
     class: 'text-start',
     sortByFormatted: true,
     filterByFormatted: true,
@@ -57,6 +65,7 @@ export const statusTableFields = [
     label: 'Category',
     sortable: true,
     filterable: true,
+    thStyle: { width: '7.25rem' },
     class: 'text-start',
   },
   {
@@ -71,6 +80,7 @@ export const statusTableFields = [
     label: 'Flag',
     sortable: true,
     filterable: true,
+    thStyle: { width: '5.25rem' },
     class: 'text-start',
   },
   {
@@ -78,29 +88,38 @@ export const statusTableFields = [
     label: 'Date',
     sortable: true,
     filterable: true,
-    class: 'text-start',
+    thStyle: { width: '7.25rem' },
+    class: 'text-start text-nowrap',
   },
   {
     key: 'status_user_name',
     label: 'User',
     sortable: true,
     filterable: true,
+    thStyle: { width: '8rem' },
     class: 'text-start',
   },
   {
     key: 'actions',
     label: 'Actions',
-    class: 'text-start',
+    thStyle: { width: '11rem' },
+    class: 'text-start text-nowrap',
   },
 ];
 
+/** Category legend rows drawn with the same CategoryIcon the table cells use. */
+export const categoryLegendItems = (['Definitive', 'Moderate', 'Limited', 'Refuted'] as const).map(
+  (category) => ({
+    component: markRaw(CategoryIcon),
+    componentProps: { category, size: 'sm', showTitle: false },
+    label: category,
+  })
+);
+
 /** Legend-item rows shared across the status approval UI. */
 export const statusLegendItems = [
-  { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-  { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-  { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-  { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
-  { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'No problems' },
+  ...categoryLegendItems,
+  { icon: 'bi bi-shield-check', color: '#198754', label: 'No problems' },
   { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Problematic' },
   {
     icon: 'bi bi-exclamation-triangle-fill',
@@ -114,7 +133,7 @@ export const statusLegendItems = [
   },
   { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
   { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit status' },
-  { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve status' },
+  { icon: 'bi bi-check2-circle', color: '#198754', label: 'Approve status' },
   { icon: 'bi bi-x-circle', color: '#dc3545', label: 'Dismiss status' },
 ];
 

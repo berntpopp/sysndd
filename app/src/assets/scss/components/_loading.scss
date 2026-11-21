@@ -22,3 +22,9 @@
     background: #e9ecef;
   }
 }
+
+// Legacy `float-center m-5` page spinners relied on #app's text-align: center.
+.float-center.m-5 {
+  display: block;
+  margin: 3rem auto !important;
+}

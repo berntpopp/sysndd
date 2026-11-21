@@ -369,4 +369,16 @@ describe('PubtatorNDDGenes', () => {
     const wrapper = await mountSubject();
     expect(wrapper.find('.b-alert').exists()).toBe(false);
   });
+
+  it('names every filter control and uses no ".. X .." placeholders', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync(
+      `${process.cwd()}/src/components/analyses/PubtatorNDDGenes.vue`,
+      'utf8'
+    );
+    const controls = source.match(/<(BFormSelect|BFormInput)\b[^>]*>/g) ?? [];
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) expect(control).toMatch(/aria-label/);
+    expect(source).not.toContain("'.. '");
+  });
 });

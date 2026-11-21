@@ -17,7 +17,7 @@
     size="xl"
     centered
     ok-title="Submit"
-    no-close-on-esc
+    :no-close-on-esc="dirty || isSaving"
     no-close-on-backdrop
     header-class="border-bottom-0 pb-0"
     footer-class="border-top-0 pt-0"
@@ -152,6 +152,8 @@ export default {
       default: () => [],
     },
     loading: { type: Boolean, default: false },
+    // Escape closes an untouched form; with edits it is blocked so nothing is lost.
+    dirty: { type: Boolean, default: false },
     isSaving: { type: Boolean, default: false },
     userIcon: { type: Object, default: () => ({}) },
     // #608: variation-ontology provenance zones from the parent's

@@ -105,7 +105,8 @@ async function mountTable() {
         TablePaginationControls: { template: '<div />' },
         TableDownloadLinkCopyButtons: { template: '<div />' },
         GenericTable: {
-          template: '<table><tbody><tr><slot name="filter-controls" /></tr></tbody></table>',
+          template:
+            '<table><tbody><tr><slot name="filter-controls" /></tr><tr><td><slot name="cell-actions" :row="{ id: 7 }" /></td></tr></tbody></table>',
         },
         LogDetailDrawer: { template: '<div />' },
         BContainer: { template: '<div><slot /></div>' },
@@ -113,7 +114,7 @@ async function mountTable() {
         BCol: { template: '<div><slot /></div>' },
         BCard: { template: '<div><slot name="header" /><slot /></div>' },
         BBadge: { template: '<span><slot /></span>' },
-        BButton: { template: '<button><slot /></button>' },
+        BButton: { template: '<button v-bind="$attrs"><slot /></button>' },
         BSpinner: { template: '<div />' },
         BFormInput: { template: '<input v-bind="$attrs" />' },
         BFormSelect: { template: '<select v-bind="$attrs"><slot /></select>' },
@@ -227,6 +228,20 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     for (const control of filterControls) {
       expect(control.attributes('aria-label')).not.toBe('Filter logs by ');
     }
+  });
+
+  it('names the icon-only view-details button (ADM-04)', async () => {
+    primeAuth('logs-button-name-token');
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as unknown as LogsVm;
+    if (vm.loadDataDebounceTimer) {
+      clearTimeout(vm.loadDataDebounceTimer);
+      vm.loadDataDebounceTimer = null;
+    }
+    vm.items = [{ id: 7 }];
+    await flushPromises();
+
+    expect(wrapper.find('button[aria-label="View details of log 7"]').exists()).toBe(true);
   });
 
   it('requestExcel issues GET /api/logs/?format=xlsx with the Bearer header', async () => {

@@ -18,10 +18,12 @@ export interface NddScoreSelectOption {
 export function nddScoreSelectOptionsFor(
   field: NddScoreGeneFieldDefinition
 ): NddScoreSelectOption[] {
-  return [{ value: '', text: `.. ${field.label} ..` }, ...(field.selectOptions ?? [])];
+  return [{ value: '', text: `Any ${field.label}` }, ...(field.selectOptions ?? [])];
 }
 
-export function nddScoreRangeValuePlaceholder(operator: NddScoreGeneRangeFilter['operator']): string {
+export function nddScoreRangeValuePlaceholder(
+  operator: NddScoreGeneRangeFilter['operator']
+): string {
   if (operator === 'range') {
     return 'from';
   }

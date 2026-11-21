@@ -55,7 +55,7 @@
               size="sm"
               variant="outline-secondary"
               title="Download table data as Excel file"
-              aria-label="Download table data as Excel file (.xlsx)"
+              aria-label="Download .xlsx table"
               :disabled="loading || isExporting"
               @click="downloadExcel"
             >
@@ -107,7 +107,7 @@
             <BFormInput
               v-if="field.key === 'cluster_num'"
               v-model="filter[field.key].content"
-              :placeholder="'Filter ' + field.label"
+              placeholder="Filter"
               :aria-label="'Filter by ' + field.label"
               debounce="500"
               @input="onFilterChange"
@@ -118,7 +118,7 @@
               v-else-if="field.key === 'category'"
               v-model="categoryFilter"
               :options="categoryOptions"
-              placeholder="All categories"
+              placeholder="Any"
               aria-label="Filter by category"
               @update:model-value="onFilterChange"
             />
@@ -135,7 +135,7 @@
             <BFormInput
               v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
               v-model="filter[field.key].content"
-              :placeholder="'Filter ' + field.label"
+              placeholder="Filter"
               :aria-label="'Filter by ' + field.label"
               debounce="500"
               @input="onFilterChange"
@@ -148,7 +148,10 @@
           <span
             v-if="row.cluster_num"
             class="cluster-badge"
-            :style="{ backgroundColor: getClusterColor(row.cluster_num) }"
+            :style="{
+              backgroundColor: getClusterColor(row.cluster_num),
+              color: getClusterTextColor(row.cluster_num),
+            }"
           >
             {{ row.cluster_num }}
           </span>
@@ -204,13 +207,7 @@
             >
               <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
             </BButton>
-            <span
-              v-b-tooltip.hover.top
-              class="description-text text-truncate"
-              :title="row.description"
-            >
-              {{ row.description }}
-            </span>
+            <span class="description-text">{{ row.description }}</span>
           </div>
         </template>
 
@@ -260,8 +257,8 @@
         </template>
       </GenericTable>
 
-      <!-- OPTIONAL bottom pagination controls -->
-      <BRow class="justify-content-end">
+      <!-- OPTIONAL bottom pagination controls (inserted with the rows, never moved by them) -->
+      <BRow v-if="!loading && !isPreparing" class="justify-content-end">
         <BCol cols="12" md="auto" class="my-1">
           <TablePaginationControls
             :total-rows="totalRows"
@@ -288,6 +285,7 @@ import CategoryFilter from '@/components/filters/CategoryFilter.vue';
 import ScoreSlider from '@/components/filters/ScoreSlider.vue';
 
 import { useFunctionalClusterTable } from './useFunctionalClusterTable';
+import { getClusterTextColor } from '@/utils/clusterColors';
 
 export default {
   name: 'FunctionalClusterTablePanel',
@@ -353,7 +351,7 @@ export default {
   },
   emits: ['update:geneSearchPattern', 'update:searchMatchCount', 'row-hover', 'retry'],
   setup(props, { emit }) {
-    return useFunctionalClusterTable(props, emit);
+    return { ...useFunctionalClusterTable(props, emit), getClusterTextColor };
   },
 };
 </script>
@@ -367,11 +365,10 @@ export default {
   border-radius: 0.2rem;
 }
 
-/* Truncate description text with ellipsis, show full text on hover */
+/* Descriptions wrap: a clipped term name hides the result the row is about. */
 .description-text {
-  max-width: 200px;
-  display: inline-block;
-  cursor: help;
+  min-width: 10rem;
+  white-space: normal;
 }
 
 mark {
@@ -413,7 +410,6 @@ mark {
   height: 24px;
   padding: 0 6px;
   border-radius: 4px;
-  color: white;
   font-weight: 600;
   font-size: 12px;
 }

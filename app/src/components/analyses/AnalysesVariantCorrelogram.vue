@@ -15,7 +15,12 @@
     </template>
 
     <!-- Content with overlay spinner -->
-    <div class="position-relative">
+    <div
+      class="position-relative chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Variant correlation matrix"
+    >
       <BSpinner v-if="loadingMatrix" label="Loading..." class="spinner" />
       <div v-show="!loadingMatrix" id="matrix_dataviz" class="svg-container" />
     </div>
@@ -82,29 +87,33 @@ export default {
       const margin = {
         top: 20,
         right: 50,
-        bottom: 150,
+        bottom: 210, // rotated 12 px category names (longest ~29 characters)
         left: 220,
       };
-      const width = 650 - margin.left - margin.right;
-      const height = 620 - margin.top - margin.bottom;
-
-      // Remove any existing SVG
-      d3.select('#matrix_dataviz').select('svg').remove();
-
-      // Create the svg area
-      const svg = d3
-        .select('#matrix_dataviz')
-        .append('svg')
-        .attr('id', 'matrix-svg') // Added id for easier selection
-        .attr('viewBox', '0 0 700 700')
-        .attr('preserveAspectRatio', 'xMinYMin meet')
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
-
       const data = this.itemsMatrix;
 
       // List of all variants (x, y)
       const domain = Array.from(new Set(data.map((d) => d.x)));
+
+      // >= 14 units per row so 12 px labels never overlap, whatever the category count
+      const width = Math.max(380, domain.length * 14);
+      const height = width;
+      const svgWidth = width + margin.left + margin.right;
+
+      // Remove any existing SVG
+      d3.select('#matrix_dataviz').select('svg').remove();
+
+      // The chart never scales below 1:1; on narrow screens it scrolls inside the card
+      const chartBox = d3.select('#matrix_dataviz').style('min-width', `${svgWidth}px`);
+
+      // Create the svg area
+      const svg = chartBox
+        .append('svg')
+        .attr('id', 'matrix-svg') // Added id for easier selection
+        .attr('viewBox', `0 0 ${svgWidth} ${height + margin.top + margin.bottom}`)
+        .attr('preserveAspectRatio', 'xMinYMin meet')
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
       // Build X scales and axis
       const x = d3.scaleBand().range([0, width]).domain(domain).padding(0.01);
@@ -113,6 +122,7 @@ export default {
         .append('g')
         .attr('transform', `translate(0, ${height})`)
         .call(d3.axisBottom(x))
+        .attr('font-size', 12)
         .selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
@@ -122,7 +132,7 @@ export default {
       // Build Y scales and axis
       const y = d3.scaleBand().range([height, 0]).domain(domain).padding(0.01);
 
-      svg.append('g').call(d3.axisLeft(y));
+      svg.append('g').call(d3.axisLeft(y)).attr('font-size', 12);
 
       // Build color scale
       const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
@@ -207,6 +217,10 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
+  overflow-x: auto;
+}
 .svg-container {
   display: inline-block;
   position: relative;
