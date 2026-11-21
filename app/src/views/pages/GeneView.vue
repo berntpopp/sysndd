@@ -123,7 +123,7 @@
               frameless
               :loading="mgi.loading.value && rgd.loading.value"
               :empty="false"
-              :error="modelOrgError"
+              :error="null"
               title="Model Organisms"
               min-height="16rem"
             >
@@ -135,7 +135,6 @@
                 :rgd-loading="rgd.loading.value"
                 :rgd-error="rgd.error.value ? rgd.error.value.message : null"
                 :rgd-data="rgdCardData"
-                @retry="retryAllExternalData"
               />
             </SectionCard>
           </BCol>
@@ -278,12 +277,6 @@ const mgiCardData = computed<MGIPhenotypeData | null>(
 );
 const rgdCardData = computed<RGDPhenotypeData | null>(
   () => rgd.data.value as unknown as RGDPhenotypeData | null
-);
-
-const modelOrgError = computed(() =>
-  mgi.error.value && rgd.error.value
-    ? `${mgi.error.value.message} / ${rgd.error.value.message}`
-    : null
 );
 
 async function retryAllExternalData(): Promise<void> {
