@@ -880,6 +880,14 @@ export const actionHelpers: Record<
     await actionHelpers.modifyEntitySelect(page, args);
     await page.getByRole('button', { name: 'Modify status and review together' }).click();
     await page.locator('#combined-review-synopsis').waitFor({ timeout: 30_000 });
+    // the form renders greyed out with a spinner until the current review has loaded
+    await page.waitForFunction(
+      () =>
+        (document.querySelector('#combined-review-synopsis') as HTMLTextAreaElement | null)?.value
+          .length,
+      undefined,
+      { timeout: 30_000 }
+    );
     await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
     await page.waitForTimeout(800);
   },
