@@ -364,8 +364,8 @@ function truncateHeader(label: string): string {
 }
 
 .review-table__select {
-  flex: 0 1 11rem;
-  min-width: 9.5rem;
+  flex: 1 1 9.5rem;
+  max-width: 12rem;
   width: auto;
 }
 
