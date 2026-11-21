@@ -111,14 +111,14 @@ Select the entity, gene or disease badge to open its public page. It shows the e
 
 ### Request a new batch
 
-When your list is empty, a yellow **New batch** badge [1]{.marker} appears beside **+ Filter**. It does not appear while the search box or a filter is set: if a filter hides every row, clear it first.
+When your list is empty, a **New batch** button [1]{.marker} appears beside **+ Filter**. It does not appear while the search box or a filter is set: if a filter hides every row, clear it first.
 
 ::: {.steps}
 1. Select **New batch**.
 :::
 
 ::: {.doc-screenshot}
-![An empty re-review list with the **New batch** badge.](static/img/generated/reviewer-after-submit-page.png){#fig-re-review-after-submit fig-alt="Re-review page with an empty table. Marker 1 points to the yellow New batch badge beside the + Filter menu."}
+![An empty re-review list with the **New batch** button.](static/img/generated/reviewer-after-submit-page.png){#fig-re-review-after-submit fig-alt="Re-review page with an empty table. Marker 1 points to the New batch button beside the + Filter menu."}
 :::
 
 SysNDD sends your request to the Curators and confirms with "Application send." A Curator assigns the new batch; it appears in your list after you select the refresh button (circular arrow) or reload the page.

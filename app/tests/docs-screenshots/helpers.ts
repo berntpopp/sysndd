@@ -795,7 +795,7 @@ export const setupHelpers: Record<string, SetupHelper> = {
 
   async passwordResetPage({ page }) {
     await page.locator('.spinner-border').waitFor({ state: 'detached', timeout: 30_000 });
-    await page.getByPlaceholder('mail@your-institution.com').waitFor({ timeout: 30_000 });
+    await page.locator('#reset-email').waitFor({ timeout: 30_000 });
     await page.locator('form').waitFor({ timeout: 30_000 });
   },
 
