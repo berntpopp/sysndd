@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Page, Route } from '@playwright/test';
 import type { DocsScreenshot, DocsScreenshotAction } from './manifest';
 
@@ -348,11 +349,238 @@ export const preSetupHelpers: Record<string, SetupHelper> = {
       })
     );
   },
+  // The live API had no published analysis-snapshot release on 2026-11-20, so the
+  // Data releases page is rendered from one illustrative release (hashes derived
+  // deterministically; not a real release).
+  async dataReleaseMock({ page }) {
+    const hex = (seed: string) => createHash('sha256').update(seed).digest('hex');
+    const layers = [
+      { analysis_type: 'functional_clusters', snapshot_id: 201, payload_hash: hex('fc-payload') },
+      { analysis_type: 'phenotype_clusters', snapshot_id: 202, payload_hash: hex('pc-payload') },
+      {
+        analysis_type: 'phenotype_functional_correlation',
+        snapshot_id: 203,
+        payload_hash: hex('pfc-payload'),
+      },
+    ];
+    const head = {
+      release_id: `asr_${hex('release').slice(0, 16)}`,
+      release_version: '2026.11',
+      title: 'SysNDD analysis-snapshot release',
+      status: 'published',
+      content_digest: hex('content'),
+      created_at: '2026-11-03T09:12:00Z',
+      published_at: '2026-11-03T09:20:00Z',
+      source_data_version: '2026-11-03',
+      db_release_version: '1.0.0',
+      db_release_commit: hex('commit').slice(0, 7),
+      manifest_sha256: hex('manifest'),
+      bundle_sha256: hex('bundle'),
+      license: 'CC-BY-4.0',
+      file_count: 3,
+      total_bytes: 3_600_000,
+      zenodo: { record_url: null, version_doi: null, concept_doi: null },
+      layers,
+    };
+    const detail = {
+      ...head,
+      manifest: {
+        release_id: head.release_id,
+        release_version: head.release_version,
+        title: head.title,
+        created_at: head.created_at,
+        license: head.license,
+        scope_statement: 'Public derived analyses only; no curation drafts or user data.',
+        generator: {
+          name: 'sysndd-analysis-snapshot-release-build',
+          manifest_schema_version: '1.0',
+          reproducibility_schema_version: '1.2',
+        },
+        source: {
+          source_data_version: head.source_data_version,
+          db_release: { version: head.db_release_version, commit: head.db_release_commit },
+          snapshots: layers.map((layer) => ({
+            analysis_type: layer.analysis_type,
+            snapshot_id: layer.snapshot_id,
+            parameter_hash: hex(`${layer.analysis_type}-params`).slice(0, 16),
+          })),
+        },
+        layers: layers.map((layer) => ({
+          analysis_type: layer.analysis_type,
+          parameter_hash: hex(`${layer.analysis_type}-params`).slice(0, 16),
+          snapshot_id: layer.snapshot_id,
+          input_hash: hex(`${layer.analysis_type}-input`),
+          payload_hash: layer.payload_hash,
+          schema_version: '1.2',
+          reproducibility_hash:
+            layer.analysis_type === 'phenotype_functional_correlation'
+              ? null
+              : hex(`${layer.analysis_type}-repro`),
+          dependencies: null,
+        })),
+        files: layers.map((layer) => ({
+          path: `${layer.analysis_type}/payload.json`,
+          sha256: hex(`${layer.analysis_type}-file`),
+          bytes: 1_200_000,
+        })),
+        content_digest: head.content_digest,
+      },
+    };
+    await page.route(/\/api\/analysis\/releases(\?.*)?$/, (route) =>
+      fulfillJson(route, { releases: [head], pagination: { limit: 20, offset: 0, count: 1 } })
+    );
+    await page.route(/\/api\/analysis\/releases\/(latest|asr_[^/]+)$/, (route) =>
+      fulfillJson(route, detail)
+    );
+  },
+
+  // The live NCBI lookup currently reports no GeneReviews chapter for any gene (its
+  // E-utilities query returns zero hits), so the "Available, not linked" state is
+  // shown with one real chapter: Coffin-Siris syndrome (NBK131811) for ARID1B.
+  async geneReviewsAvailabilityMock({ page }) {
+    await page.route('**/api/genereviews/coverage**', async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      if (!route.request().url().includes('include_live=true')) {
+        await fulfillJson(route, body);
+        return;
+      }
+      for (const row of body.data ?? []) {
+        if (row.symbol === 'ARID1B') {
+          Object.assign(row, {
+            genereview_available: true,
+            available_nbk_id: 'NBK131811',
+            available_url: 'https://www.ncbi.nlm.nih.gov/books/NBK131811/',
+            available_title: 'Coffin-Siris Syndrome',
+            needs_attention: true,
+          });
+        }
+      }
+      body.meta = { ...body.meta, needs_attention: [1] };
+      await fulfillJson(route, body);
+    });
+  },
+
+  // Keeps the seeded Playwright test accounts (pw_*) out of curator screenshots:
+  // their rows and filter options are removed from the responses, real data stays.
+  async hideTestAccounts({ page }) {
+    await page.route('**/api/re_review/assignment_table**', async (route) => {
+      const response = await route.fetch();
+      const rows = (await response.json()) as Array<{ user_name?: string | string[] }>;
+      const keep = rows.filter((row) => !/^pw_/.test(String(row.user_name ?? '')));
+      await fulfillJson(route, keep);
+    });
+    await page.route(/\/api\/user\/(list|role_list|table)(\?.*)?$/, async (route) => {
+      const response = await route.fetch();
+      const text = await response.text();
+      try {
+        const body = JSON.parse(text);
+        const strip = (items: unknown) =>
+          Array.isArray(items)
+            ? items.filter((item) => !/^pw_|^system$/.test(String((item as { user_name?: unknown }).user_name ?? '')))
+            : items;
+        await fulfillJson(route, Array.isArray(body) ? strip(body) : { ...body, data: strip(body.data) });
+      } catch {
+        await route.fulfill({ response, body: text });
+      }
+    });
+  },
 };
 
 export const setupHelpers: Record<string, SetupHelper> = {
   async tablePage({ page }) {
     await waitForTable(page);
+  },
+
+  async homeOverview({ page }) {
+    await page.locator('.home-stats-panel').waitFor({ timeout: 30_000 });
+    await page.locator('.home-news-panel table tbody tr').first().waitFor({ timeout: 30_000 });
+    await waitForNoSpinners(page);
+  },
+
+  async homeSearchSuggestions({ page }) {
+    const input = page.locator('.home-search input[role="combobox"]');
+    await input.click();
+    await input.pressSequentially('FBXO11', { delay: 60 });
+    await page.locator('[role="listbox"] [role="option"]').first().waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(500);
+  },
+
+  async detailPage({ page }) {
+    await waitForNoSpinners(page);
+    await page.locator('main table, main .card').first().waitFor({ timeout: 30_000 });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => undefined);
+    await waitForNoSpinners(page);
+    await page.waitForTimeout(1_500);
+  },
+
+  async variantCounts({ page }) {
+    await page.locator('#count_dataviz svg rect').first().waitFor({ timeout: 30_000 });
+    await waitForNoSpinners(page);
+    await page.waitForTimeout(1_000);
+  },
+
+  async mcpPage({ page }) {
+    await page.getByRole('heading', { name: 'How to connect' }).waitFor({ timeout: 30_000 });
+  },
+
+  async aboutCitationPolicy({ page }) {
+    const button = page.locator('.accordion-button', { hasText: 'Citation Policy' });
+    await button.click();
+    await page.locator('.accordion-collapse.show', { hasText: 'Please cite' }).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => window.scrollTo(0, 0));
+  },
+
+  async dataReleases({ page }) {
+    await page.getByText('Download complete bundle').first().waitFor({ timeout: 30_000 });
+    await page.locator('#technical-verification-title').waitFor({ timeout: 10_000 });
+  },
+
+  async userProfile({ page }) {
+    await page.getByRole('button', { name: 'Change Password' }).waitFor({ timeout: 30_000 });
+    await waitForNoSpinners(page);
+    await page.waitForTimeout(800);
+  },
+
+  async curatorTable({ page }) {
+    await waitForTable(page);
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+    await page.waitForTimeout(800);
+  },
+
+  async manageReReview({ page }) {
+    await page.getByRole('heading', { name: 'Submissions' }).waitFor({ timeout: 30_000 });
+    await page.locator('button', { hasText: 'Return to queue' }).first().waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(800);
+  },
+
+  async geneReviewsLive({ page }) {
+    await waitForTable(page);
+    await page.locator('.form-check', { hasText: 'Check NCBI availability' }).locator('input').check();
+    await page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => undefined);
+    await page.getByLabel('Filter by link status').selectOption('needs_attention');
+    await page.locator('tbody tr', { hasText: 'ARID1B' }).waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(800);
+  },
+
+  async variationSuggestions({ page }) {
+    await page.getByRole('button', { name: 'Confirm' }).first().waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(800);
+  },
+
+  async createEntityFresh({ page }) {
+    await page.evaluate(() => {
+      Object.keys(localStorage)
+        .filter((key) => /create.?entity|entity.?draft|form.?draft/i.test(key))
+        .forEach((key) => localStorage.removeItem(key));
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('#gene-select').waitFor({ timeout: 30_000 });
+  },
+
+  async modifyEntityPage({ page }) {
+    await page.locator('#entity-select').waitFor({ timeout: 30_000 });
   },
 
   async phenotypesTable({ page }) {
@@ -521,7 +749,7 @@ export const setupHelpers: Record<string, SetupHelper> = {
   async swaggerOverview({ page }) {
     await page.waitForSelector('#swagger-ui', { timeout: 30_000 });
     await page.waitForSelector('.swagger-ui', { timeout: 30_000 });
-    await page.getByRole('heading', { name: /SysNDD API/i }).waitFor({ timeout: 30_000 });
+    await page.getByRole('heading', { name: /SysNDD API/i }).first().waitFor({ timeout: 30_000 });
     await page.getByText(/\/api\/admin\/openapi\.json/i).waitFor({ timeout: 30_000 });
     await page
       .getByRole('button', { name: /authorize/i })
@@ -546,6 +774,137 @@ export const actionHelpers: Record<
   string,
   (page: Page, args?: Record<string, unknown>) => Promise<void>
 > = {
+
+  async collapseSwaggerGroups(page) {
+    const open = page.locator('.swagger-ui .opblock-tag-section.is-open h3.opblock-tag');
+    while ((await open.count()) > 0) {
+      await open.first().click();
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+  },
+
+  async openCriteriaBatch(page) {
+    await page.locator('button', { hasText: 'Criteria batch' }).first().click();
+    await page.locator('#batch-name').waitFor({ timeout: 10_000 });
+    await page.locator('#batch-name').fill('Definitive entities reviewed before 2023');
+    await page.locator('#batch-size').fill('20');
+    await page.locator('#user-select').selectOption({ label: 'Assign later' });
+    await page.locator('#date-start').fill('2020-01-01');
+    await page.locator('#date-end').fill('2022-12-31');
+    await page.locator('#status-filter').selectOption({ label: 'Definitive' });
+    await page.mouse.click(5, 5);
+    await page.waitForTimeout(500);
+  },
+
+  async openFirstRefuseModal(page, args) {
+    await page.getByRole('button', { name: /Refuse re-review for/ }).first().click();
+    await page.locator('#refuse-reason-input').waitFor({ timeout: 10_000 });
+    await page.locator('#refuse-reason-input').fill(String(args?.reason ?? ''));
+    await page.locator('.modal.show').first().waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(700); // let the fade-in finish
+  },
+
+  async fillFirstStatusModal(page, args) {
+    await actionHelpers.openFirstStatusEditModal(page);
+    if (args?.category) {
+      await page.locator('#status-select').selectOption({ label: String(args.category) });
+    }
+    await page.locator('#status-textarea-comment').fill(String(args?.comment ?? ''));
+  },
+
+  async scrollToVariationZones(page) {
+    const zones = page.locator('[data-testid="variation-provenance-zones"]');
+    await zones.waitFor({ timeout: 30_000 });
+    await page.locator('#vario-zone-suggested-heading').waitFor({ timeout: 30_000 });
+    await zones.scrollIntoViewIfNeeded();
+  },
+
+  async enableCurationMode(page) {
+    await page.locator('.form-check', { hasText: 'Curation mode' }).locator('input').check();
+    await page
+      .getByRole('button', { name: /Approve review\/status for/ })
+      .first()
+      .waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(500);
+  },
+
+  async createEntityCore(page, args) {
+    const pick = async (selector: string, query: string, match: string) => {
+      await page.locator(selector).fill(query);
+      await page.locator('.autocomplete-item', { hasText: match }).first().click();
+    };
+    await pick('#gene-select', String(args?.gene ?? 'MAU2'), String(args?.geneMatch ?? 'HGNC:29140'));
+    await pick(
+      '#disease-select',
+      String(args?.disease ?? 'Cornelia'),
+      String(args?.diseaseMatch ?? 'OMIM:621570')
+    );
+    await page
+      .locator('#inheritance-select')
+      .selectOption({ label: String(args?.inheritance ?? 'Autosomal dominant inheritance') });
+    await page.locator('.step-core-entity input[type="checkbox"]').check();
+    await page.getByRole('button', { name: /Next: Evidence/ }).waitFor({ timeout: 10_000 });
+    await page.mouse.click(5, 5);
+  },
+
+  async createEntityEvidence(page, args) {
+    await actionHelpers.createEntityCore(page, args);
+    await page.getByRole('button', { name: /Next: Evidence/ }).click();
+    for (const pmid of (args?.pmids as string[] | undefined) ?? []) {
+      await page.locator('#publications-input').fill(pmid);
+      await page.keyboard.press('Enter');
+      await page.locator('.wizard-content', { hasText: pmid }).waitFor({ timeout: 20_000 });
+    }
+    await page.locator('#synopsis-textarea').fill(String(args?.synopsis ?? ''));
+    await page.locator('#synopsis-textarea').blur();
+    await page.getByText('Saving...').waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => undefined);
+    await page.waitForTimeout(600);
+  },
+
+  async createEntityReview(page, args) {
+    await actionHelpers.createEntityEvidence(page, args);
+    await page.getByRole('button', { name: /Next: Phenotype/ }).click();
+    await page.getByRole('button', { name: /Next: Classification/ }).click();
+    await page.locator('#status-select').selectOption({ label: String(args?.status ?? 'Definitive') });
+    await page.getByRole('button', { name: /Next: Review/ }).click();
+    await page.getByText('Ready to submit!').waitFor({ timeout: 15_000 });
+    await page.getByText('Saving...').waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => undefined);
+    await page.waitForTimeout(600);
+  },
+
+  async modifyEntitySelect(page, args) {
+    await page.locator('#entity-select').fill(String(args?.query ?? 'ARID1B'));
+    await page.locator('.autocomplete-item').first().click();
+    await page.locator('.modify-entity-actions').waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(800);
+  },
+
+  async modifyEntityCombined(page, args) {
+    await actionHelpers.modifyEntitySelect(page, args);
+    await page.getByRole('button', { name: 'Modify status and review together' }).click();
+    await page.locator('#combined-review-synopsis').waitFor({ timeout: 30_000 });
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+    await page.waitForTimeout(800);
+  },
+
+  async modifyEntityDeactivate(page, args) {
+    await actionHelpers.modifyEntitySelect(page, args);
+    await page.getByRole('button', { name: 'Deactivate entity' }).click();
+    await page.locator('#deactivateSwitch').waitFor({ timeout: 10_000 });
+    await page.locator('#deactivateSwitch').check();
+    await page.locator('#replaceSwitch').check();
+    await page.locator('#replace-entity-select').fill(String(args?.replacement ?? 'SCN2A'));
+    await page.locator('.autocomplete-item').first().click();
+    await page.waitForTimeout(600);
+  },
+
+  async openFirstUserReview(page) {
+    await page.getByRole('button', { name: /^Review user / }).first().click();
+    await page.locator('.modal.show #role-select').waitFor({ timeout: 10_000 });
+    await page.locator('#role-select').selectOption({ label: 'Reviewer' });
+    await page.waitForTimeout(400);
+  },
   async openFirstReviewEditModal(page) {
     const editButton = page.getByRole('button', { name: /edit review for/i }).first();
     await editButton.waitFor({ timeout: 20_000 });
@@ -558,7 +917,8 @@ export const actionHelpers: Record<
       .waitFor({ timeout: 20_000 });
     await page
       .locator('.modal.show')
-      .getByText(/Saving|Loading/i)
+      .getByText(/^(Saving|Loading)\b[^.]{0,40}(\.\.\.|…)$/i)
+      .first()
       .waitFor({ state: 'hidden', timeout: 20_000 });
   },
 
@@ -571,7 +931,8 @@ export const actionHelpers: Record<
     await page.locator('#status-textarea-comment').waitFor({ timeout: 20_000 });
     await page
       .locator('.modal.show')
-      .getByText(/Saving|Loading/i)
+      .getByText(/^(Saving|Loading)\b[^.]{0,40}(\.\.\.|…)$/i)
+      .first()
       .waitFor({ state: 'hidden', timeout: 20_000 })
       .catch(() => undefined);
   },
@@ -640,7 +1001,11 @@ export async function runAction(page: Page, action: DocsScreenshotAction): Promi
 
 export function targetUrl(entry: DocsScreenshot, baseURL: string): string {
   const rawBase =
-    entry.baseURL === 'api' ? (process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://localhost') : baseURL;
+    entry.baseURL === 'api'
+      ? (process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://localhost')
+      : entry.baseURL === 'public'
+        ? (process.env.DOCS_SCREENSHOTS_PUBLIC_BASE_URL ?? 'https://sysndd.dbmr.unibe.ch')
+        : baseURL;
   const path = entry.url ?? entry.route ?? '/';
   return new URL(path, rawBase).toString();
 }

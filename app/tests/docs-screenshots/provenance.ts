@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import type { Browser } from '@playwright/test';
-import type { DocsScreenshot } from './manifest';
+import { docsScreenshots, type DocsScreenshot } from './manifest';
 
 type ProvenanceEntry = {
   slug: string;
@@ -77,12 +77,27 @@ export class ProvenanceWriter {
     });
   }
 
+  /**
+   * Merges this run's entries into the existing provenance file, so a partial run
+   * (`--grep`, or a run with failures) keeps the records of images it did not touch.
+   * Entries whose slug is no longer in the manifest are dropped.
+   */
   async write(): Promise<void> {
     const absoluteOutput = resolve(this.repoRoot, this.outputPath);
     await mkdir(dirname(absoluteOutput), { recursive: true });
+    let previous: ProvenanceEntry[] = [];
+    try {
+      previous = JSON.parse(await readFile(absoluteOutput, 'utf8')).screenshots ?? [];
+    } catch {
+      previous = [];
+    }
+    const fresh = new Map(this.entries.map((entry) => [entry.slug, entry]));
+    const merged = docsScreenshots
+      .map((entry) => fresh.get(entry.slug) ?? previous.find((p) => p.slug === entry.slug))
+      .filter((entry): entry is ProvenanceEntry => entry !== undefined);
     await writeFile(
       `${absoluteOutput}.tmp`,
-      `${JSON.stringify({ screenshots: this.entries }, null, 2)}\n`,
+      `${JSON.stringify({ screenshots: merged }, null, 2)}\n`,
       'utf8',
     );
     await rename(`${absoluteOutput}.tmp`, absoluteOutput);

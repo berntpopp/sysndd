@@ -10,7 +10,8 @@ import { ProvenanceWriter } from './provenance';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const provenance = new ProvenanceWriter(repoRoot);
 
-test.describe.configure({ mode: 'serial' });
+// Sequential (workers: 1) but not 'serial': one broken capture must not skip the rest.
+test.describe.configure({ mode: 'default' });
 
 for (const entry of docsScreenshots) {
   test(`docs screenshot: ${entry.slug}`, async ({ page, browser, loggedInAs }, testInfo) => {
@@ -56,13 +57,52 @@ for (const entry of docsScreenshots) {
       await runAction(activePage, action);
     }
 
+    // Forms autosave drafts; let the "Saving..." indicator settle before capture.
+    await activePage
+      .getByText('Saving...', { exact: true })
+      .first()
+      .waitFor({ state: 'hidden', timeout: 15_000 })
+      .catch(() => undefined);
+
     await hideVolatileElements(activePage, entry.maskSelectors);
     await addAnnotations(activePage, entry.annotations);
 
     const outputPath = resolve(repoRoot, entry.output);
     mkdirSync(dirname(outputPath), { recursive: true });
 
-    if (entry.locator) {
+    if (entry.clipTo) {
+      const { selector, hasText, padding = 16, maxHeight } = entry.clipTo;
+      const box = await activePage.evaluate(
+        ([sel, text]) => {
+          const visible = Array.from(document.querySelectorAll<HTMLElement>(sel)).filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && (!text || (el.textContent ?? '').includes(text));
+          });
+          // innermost match, as in the marker overlay
+          const el = text
+            ? visible.find((a) => !visible.some((b) => b !== a && a.contains(b)))
+            : visible[0];
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { x: r.left + window.scrollX, y: r.top + window.scrollY, w: r.width, h: r.height };
+        },
+        [selector, hasText ?? ''] as const
+      );
+      if (!box) throw new Error(`clipTo target not found: ${selector} ${hasText ?? ''}`);
+      const pageWidth = await activePage.evaluate(() => document.documentElement.scrollWidth);
+      const x = Math.max(0, box.x - padding);
+      const y = Math.max(0, box.y - padding);
+      await activePage.screenshot({
+        path: outputPath,
+        fullPage: true,
+        clip: {
+          x,
+          y,
+          width: Math.min(box.w + 2 * padding, pageWidth - x),
+          height: Math.min(box.h + 2 * padding, maxHeight ?? Number.POSITIVE_INFINITY),
+        },
+      });
+    } else if (entry.locator) {
       await expect(activePage.locator(entry.locator)).toBeVisible();
       await activePage.locator(entry.locator).screenshot({ path: outputPath });
     } else {
