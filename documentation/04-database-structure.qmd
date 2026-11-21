@@ -195,7 +195,7 @@ shown on the entity with its provenance (see [Variation](#variation)).
 
 Derived analyses, such as phenotype clusters and functional clusters, are computed from the
 curated data. They are hypotheses, not curated facts (see
-[Explore the analyses](using-analyses.qmd)).
+[Read the analyses](using-analyses.qmd)).
 
 ## Database schema for developers
 
@@ -215,7 +215,7 @@ repository folder `db/migrations/`, applied at startup. The
 ## Related pages
 
 - [Curation criteria](05-curation-criteria.qmd): the rules behind each evidence category.
-- [Find a gene, entity or disease](using-find-gene.qmd): where these records appear in the web
+- [Find a gene](using-find-gene.qmd): where these records appear in the web
   app.
 - [Get SysNDD data with the API and MCP](03-api.qmd): download the records described here.
 - [Glossary](reference-glossary.qmd): short definitions of every term on this page.

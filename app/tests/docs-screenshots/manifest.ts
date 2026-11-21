@@ -419,16 +419,10 @@ export const docsScreenshots: DocsScreenshot[] = [
     clip: { x: 0, y: 0, width: 1440, height: 280 },
     annotations: [
       {
-        selector: '.app-navbar__account .dropdown-toggle',
-        hasText: 'pw_',
-        mode: 'marker',
-        number: 1,
-      },
-      {
         selector: '.dropdown-menu.show .dropdown-item',
         hasText: 'Token',
         mode: 'marker',
-        number: 2,
+        number: 1,
       },
     ],
   },
@@ -1594,39 +1588,39 @@ export const docsScreenshots: DocsScreenshot[] = [
     clip: { x: 0, y: 130, width: 1440, height: 510 },
     maskSelectors: ['.tooltip'],
     annotations: [
-      // second row (NAA10) carries the Problematic flag
+      // Numbering follows curator-approve.qmd; the second row (NAA10) carries the Problematic flag.
+      { selector: 'button[aria-label="Approve all statuses"]', mode: 'marker', number: 1 },
       {
         selector: 'tbody tr:nth-child(2) td:nth-child(5) > *',
-        mode: 'marker',
-        number: 1,
-        placement: 'right',
-      },
-      {
-        selector: 'tbody tr:nth-child(2) td:nth-child(7) > *',
         mode: 'marker',
         number: 2,
         placement: 'right',
       },
       {
-        selector: 'button[aria-label^="Edit status for entity"]',
+        selector: 'tbody tr:nth-child(2) td:nth-child(7) > *',
         mode: 'marker',
         number: 3,
+        placement: 'right',
+      },
+      {
+        selector: 'button[aria-label^="Toggle details for entity"]',
+        mode: 'marker',
+        number: 4,
         placement: 'top',
       },
       {
-        selector: 'button[aria-label^="Approve status for entity"]',
+        selector: 'button[aria-label^="Edit status for entity"]',
         nth: 2,
         mode: 'marker',
-        number: 4,
+        number: 5,
         placement: 'bottom',
       },
       {
-        selector: 'button[aria-label^="Dismiss status for entity"]',
+        selector: 'button[aria-label^="Approve status for entity"]',
         mode: 'marker',
-        number: 5,
+        number: 6,
         placement: 'top',
       },
-      { selector: 'button[aria-label="Approve all statuses"]', mode: 'marker', number: 6 },
     ],
   },
   {
@@ -1643,12 +1637,22 @@ export const docsScreenshots: DocsScreenshot[] = [
     fullPage: false,
     clipTo: { selector: '.re-review-section--setup', padding: 16, maxHeight: 1100 },
     annotations: [
-      { selector: '#batch-name', mode: 'marker', number: 1 },
-      { selector: '#batch-size', mode: 'marker', number: 2 },
-      { selector: '#user-select', mode: 'marker', number: 3 },
-      { selector: '.batch-form-panel--filters', mode: 'marker', number: 4, placement: 'top-left' },
-      { selector: 'button', hasText: 'Preview', mode: 'marker', number: 5 },
-      { selector: 'button', hasText: 'Create Batch', mode: 'marker', number: 6, placement: 'top' },
+      // Numbering follows curator-manage-rereview.qmd: Scope, Batch details, filters, actions.
+      {
+        selector: 'section[aria-labelledby="batch-entities-title"]',
+        mode: 'marker',
+        number: 1,
+        placement: 'top-left',
+      },
+      {
+        selector: 'section[aria-labelledby="batch-settings-title"]',
+        mode: 'marker',
+        number: 2,
+        placement: 'top-left',
+      },
+      { selector: '.batch-form-panel--filters', mode: 'marker', number: 3, placement: 'top-left' },
+      { selector: 'button', hasText: 'Preview', mode: 'marker', number: 4 },
+      { selector: 'button', hasText: 'Create Batch', mode: 'marker', number: 5, placement: 'top' },
     ],
   },
   {
@@ -1672,14 +1676,14 @@ export const docsScreenshots: DocsScreenshot[] = [
         number: 2,
         placement: 'bottom',
       },
-      // Marker 3 (Recalculate, unassigned rows only) is omitted: the Submissions table
-      // lists assignment rows only, so an unassigned batch never appears in it.
-      { selector: 'button[id^="btn-reassign-"]', mode: 'marker', number: 4, placement: 'top' },
+      // The Submissions table lists assignment rows only, so an unassigned batch (and its
+      // Recalculate button) never appears in it.
+      { selector: 'button[id^="btn-reassign-"]', mode: 'marker', number: 3, placement: 'top' },
       {
         selector: 'button[id^="btn-unassign-"]',
         nth: 1,
         mode: 'marker',
-        number: 5,
+        number: 4,
         placement: 'bottom',
       },
     ],
@@ -1880,15 +1884,6 @@ export const docsScreenshots: DocsScreenshot[] = [
     fullPage: false,
     locator: '.modal.show .modal-content',
     maskSelectors: ['.tooltip'],
-    annotations: [
-      { selector: '.modal.show .modal-body', mode: 'box', label: 'Confirmation' },
-      {
-        selector: '.modal.show .btn-success',
-        mode: 'callout',
-        number: 1,
-        label: 'Submit Review',
-      },
-    ],
   },
   {
     slug: 'reviewer-after-submit-page',

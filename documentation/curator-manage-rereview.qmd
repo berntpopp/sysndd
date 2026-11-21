@@ -97,18 +97,19 @@ are available for re-review.
 
 ## Assign, reassign and unassign batches
 
-The **Submissions** table lists every batch with its progress.
+The **Submissions** table lists every assigned batch with its progress. Unassigned batches
+do not appear in it; the **Unassigned** count at the top of the page shows how many there are.
 
 | Column | Shows |
 | --- | --- |
-| **User** | the assigned user, or none |
+| **User** | the assigned user |
 | **Batch** | the batch number |
 | **Saved**, **Status** | entities whose review or status the user has saved |
 | **Submitted**, **Approved** | entities submitted by the user, and approved by a curator |
 | **Total** | entities in the batch |
 
 ::: {.doc-screenshot}
-![The Submissions table with assigned and unassigned batches.](static/img/generated/curator-rereview-submissions-table.png){#fig-curator-manage-rereview-submissions fig-alt="Submissions table on the Manage Re-review page. Marker 1 points to the search and filter fields, marker 2 to the Assign next legacy batch controls, marker 3 to the calculator icon on an unassigned batch, marker 4 to the reassign icon on an assigned batch and marker 5 to the unassign icon on the same row."}
+![The Submissions table with two assigned batches.](static/img/generated/curator-rereview-submissions-table.png){#fig-curator-manage-rereview-submissions fig-alt="Submissions table on the Manage Re-review page. Marker 1 points to the search and filter fields, marker 2 to the Assign next legacy batch controls, marker 3 to the reassign icon of an assigned batch and marker 4 to the unassign icon of an assigned batch."}
 :::
 
 ::: {.marker-legend}
@@ -116,9 +117,8 @@ The **Submissions** table lists every batch with its progress.
    table.
 2. **Assign next legacy batch**: gives the lowest-numbered unassigned batch to the
    selected user.
-3. **Recalculate batch contents**: rebuilds an unassigned batch from new criteria.
-4. **Reassign to different user**: moves an assigned batch to another user.
-5. **Unassign this batch**: takes the batch away from its user.
+3. **Reassign to different user**: moves an assigned batch to another user.
+4. **Unassign this batch**: takes the batch away from its user.
 :::
 
 ### Assign an existing batch
@@ -140,14 +140,11 @@ To give a specific batch to someone, create it with that user under **Assign to*
 3. Select **Reassign**.
 :::
 
-### Unassign or recalculate a batch
+### Unassign a batch
 
 Select **Unassign this batch** to return a batch to the unassigned pool. The message "Batch
-unassigned successfully." confirms it.
-
-Only an unassigned batch can be recalculated. Select **Recalculate batch contents**, set
-**Review Date Range**, **Status Category** and **Batch Size** in the **Recalculate Batch
-Contents** dialog, and select **Recalculate**.
+unassigned successfully." confirms it. The batch leaves the **Submissions** table and is
+counted under **Unassigned**; **Assign next legacy batch** can give it out again.
 
 The user lists on this page offer accounts with the Reviewer or Curator role.
 
@@ -220,7 +217,6 @@ Clearing a refusal changes no review and no status.
   together; see the note above.
 - **A Reviewer is missing from Assign to.** The account is not approved yet or has the
   Viewer or Administrator role. Only Reviewer and Curator accounts are offered. See [Approve user accounts](curator-users.qmd).
-- **Recalculate is not offered.** The batch is assigned. Unassign it first.
 - **Curation mode is not shown.** Your account does not have the Curator or Administrator
   role.
 

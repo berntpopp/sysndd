@@ -61,7 +61,7 @@ A sign-in session lasts 1 hour. After that, SysNDD signs you out.
 :::
 
 ::: {.doc-screenshot}
-![The user menu with the **Token** item that renews your session.](static/img/generated/reviewer-authenticated-navigation.png){#fig-re-review-token fig-alt="Menu bar of a signed-in Reviewer. The user menu is open and lists View profile, Token and Sign out. Two labeled pills, Reviewer navigation and 1. Token menu, sit on the user menu."}
+![The user menu with the **Token** item that renews your session.](static/img/generated/reviewer-authenticated-navigation.png){#fig-re-review-token fig-alt="Menu bar of a signed-in Reviewer. The user menu is open and lists View profile, Token and Sign out. Marker 1 points to the Token item with its countdown badge."}
 :::
 
 Five, three and one minute before the end, a **Session ending soon** message appears in the top-right corner for a few seconds. Select **Token** when you see it.
@@ -77,7 +77,7 @@ Unsaved text in an open window is lost when the session ends. Save long synopses
 :::
 
 ::: {.doc-screenshot}
-![The **Review** menu with its two items.](static/img/generated/reviewer-review-link-menu.png){#fig-re-review-menu fig-alt="Open Review menu in the menu bar with two items: Instructions and Re-Review. Two labeled pills, Review menu and 1. Re-Review, sit on the menu."}
+![The **Review** menu with its two items.](static/img/generated/reviewer-review-link-menu.png){#fig-re-review-menu fig-alt="Open Review menu in the menu bar with two items: Instructions and Re-Review. Marker 1 points to Re-Review."}
 :::
 
 **Review › Instructions** (`/ReviewInstructions`) links back to this guide, the curation criteria and the tutorial videos.
@@ -417,7 +417,7 @@ Curators handle refused entities on **Curation › Manage re-review**; see [Hand
 ## Related pages
 
 - [Curation criteria](05-curation-criteria.qmd): the rules for each evidence category.
-- [Researching a gene](curation-research.qmd): how to find and read the literature for a review.
+- [Research a gene and read a paper](curation-research.qmd): how to find and read the literature for a review.
 - [Tutorial videos](07-tutorial-videos.qmd): the Reviewer tutorial video.
 - [Your account](using-account.qmd): register, sign in and reset your password.
 - [Glossary](reference-glossary.qmd): terms and abbreviations used in curation.

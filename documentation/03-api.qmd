@@ -326,7 +326,7 @@ curl -s -X POST "https://sysndd.dbmr.unibe.ch/mcp" \
 
 As of November 20, 2026, the server negotiates MCP 2025-11-25 and earlier revisions (2025-06-18,
 2025-03-26, 2024-11-05). Clients that implement the newer `2026-07-28` revision should use the
-protocol's fallback to an earlier version. The server is stateless: it opens no standalone server-sent event stream and keeps no sessions. A `GET` request with `Accept: text/event-stream` and a `DELETE` request both return HTTP 405. Opening the address in a web browser shows the **MCP** help page instead.
+protocol's fallback to an earlier version. The server is stateless: it opens no standalone server-sent event stream and keeps no sessions, so send every request with `POST`. Opening the address in a web browser shows the **MCP** help page instead.
 
 Capacity is shared by all users. If you receive HTTP 429, wait and retry with increasing delays.
 A request from a browser with a foreign `Origin` header is rejected with HTTP 403.
@@ -334,7 +334,7 @@ A request from a browser with a foreign `Origin` header is rejected with HTTP 40
 ## Sign in for protected endpoints
 
 Endpoints that change data need a SysNDD account with the right role (see
-[Create and manage your account](using-account.qmd)). The API uses JSON Web Tokens (JWT).
+[Your account](using-account.qmd)). The API uses JSON Web Tokens (JWT).
 
 ::: {.steps}
 1. Request a token with your user name and password in the request body:
