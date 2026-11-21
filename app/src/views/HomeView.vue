@@ -194,7 +194,9 @@ export default {
     // The route guard sends a signed-in user who lacks a page's role here; say why.
     notifyDeniedAccess() {
       const { denied, role } = this.$route.query;
-      if (!denied) return;
+      // Only a route path and a real role reach the toast, never free text from a crafted link.
+      const isPath = typeof denied === 'string' && /^\/[\w/-]{1,80}$/.test(denied);
+      if (!isPath || !['Reviewer', 'Curator', 'Administrator'].includes(role)) return;
       this.makeToast(`Opening ${denied} needs the ${role} role.`, 'Access restricted', 'warning');
       this.$router.replace({ query: {} });
     },

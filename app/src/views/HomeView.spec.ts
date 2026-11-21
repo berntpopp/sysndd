@@ -35,6 +35,18 @@ describe('HomeView', () => {
     expect(replace).toHaveBeenCalledWith({ query: {} });
   });
 
+  it('ignores a crafted query that would put arbitrary text in the toast', () => {
+    const makeToast = vi.fn();
+    const replace = vi.fn();
+    for (const query of [
+      { denied: '/User', role: 'Owner. Call +1 555 0100 to unlock' },
+      { denied: 'Your account is locked, call 555 0100', role: 'Curator' },
+    ]) {
+      opts.methods.notifyDeniedAccess.call({ $route: { query }, $router: { replace }, makeToast });
+    }
+    expect(makeToast).not.toHaveBeenCalled();
+  });
+
   it('does nothing on a normal visit', () => {
     const makeToast = vi.fn();
     opts.methods.notifyDeniedAccess.call({ $route: { query: {} }, $router: {}, makeToast });

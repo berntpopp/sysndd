@@ -20,11 +20,15 @@ describe('displayFormat', () => {
     expect(formatCount(4200)).toBe('4,200');
     expect(formatCount(12)).toBe('12');
     expect(formatCount(undefined)).toBe('—');
+    expect(formatCount('1051')).toBe('1,051');
+    expect(formatCount(['NA'])).toBe('—');
   });
 
   it('formats a showing range', () => {
     expect(formatShowingRange(1, 10, 4200)).toBe('Showing 1–10 of 4,200');
     expect(formatShowingRange(1, 5, 5)).toBe('Showing 1–5 of 5');
     expect(formatShowingRange(0, 0, 0)).toBe('No results');
+    // A page past the last row (empty page, total still > 0) never reads "41–40".
+    expect(formatShowingRange(41, 40, 30)).toBe('No results');
   });
 });

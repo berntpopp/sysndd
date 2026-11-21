@@ -1,5 +1,7 @@
 // utils/dateUtils.ts
 
+import { isMissing, scalar } from './displayFormat';
+
 /**
  * Date calculation utilities for AdminStatistics
  *
@@ -69,9 +71,10 @@ export function previousPeriod(
 const MISSING = '—';
 
 /** Parse an API date or timestamp; a value without a zone is UTC. */
-export function parseApiDate(value: Date | string | null | undefined): Date | null {
-  if (value == null || value === '') return null;
+export function parseApiDate(input: unknown): Date | null {
+  const value = scalar(input);
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (isMissing(value) || typeof value !== 'string') return null;
   const s = value.trim();
   const naive = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?)?$/.test(s);
   const date = new Date(naive ? `${s.replace(' ', 'T')}${s.length === 10 ? 'T00:00' : ''}Z` : s);
@@ -79,7 +82,7 @@ export function parseApiDate(value: Date | string | null | undefined): Date | nu
 }
 
 /** "July 18, 2026" (en-US, UTC); "—" when missing. */
-export function formatLongDate(value: Date | string | null | undefined): string {
+export function formatLongDate(value: unknown): string {
   const date = parseApiDate(value);
   if (!date) return MISSING;
   return date.toLocaleDateString('en-US', {
@@ -91,7 +94,7 @@ export function formatLongDate(value: Date | string | null | undefined): string 
 }
 
 /** "July 18, 2026, 20:01 UTC" (24-hour); "—" when missing. */
-export function formatDateTime(value: Date | string | null | undefined): string {
+export function formatDateTime(value: unknown): string {
   const date = parseApiDate(value);
   if (!date) return MISSING;
   const time = date.toLocaleTimeString('en-GB', {
@@ -104,8 +107,9 @@ export function formatDateTime(value: Date | string | null | undefined): string 
 }
 
 /** Seconds to "39 ms", "2.4 s" or "3 min"; "—" when missing. */
-export function formatDuration(seconds: number | null | undefined): string {
-  if (seconds == null || !Number.isFinite(seconds)) return MISSING;
+export function formatDuration(input: unknown): string {
+  const seconds = Number(scalar(input));
+  if (isMissing(input) || !Number.isFinite(seconds)) return MISSING;
   if (seconds < 1) return `${Math.round(seconds * 1000)} ms`;
   if (seconds < 60) return `${Number(seconds.toFixed(1))} s`;
   return `${Math.round(seconds / 60)} min`;
