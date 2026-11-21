@@ -14,9 +14,75 @@ vi.mock('@/api/analysis', () => ({
 
 const getNetworkEdgesMock = vi.mocked(getNetworkEdges);
 
+const layoutMocks = vi.hoisted(() => ({ computeLayoutInWorker: vi.fn() }));
+vi.mock('./geneNetworkLayoutWorker', () => layoutMocks);
+
 describe('useNetworkData', () => {
   beforeEach(() => {
     getNetworkEdgesMock.mockReset();
+    layoutMocks.computeLayoutInWorker.mockReset();
+    layoutMocks.computeLayoutInWorker.mockResolvedValue(null);
+  });
+
+  it('lays the network out off the main thread when the snapshot has no display layout', async () => {
+    getNetworkEdgesMock.mockResolvedValue({
+      nodes: [
+        {
+          hgnc_id: 'HGNC:1',
+          symbol: 'A',
+          cluster: '1',
+          degree: 1,
+          category: 'Definitive',
+          x: 5,
+          y: 5,
+        },
+        {
+          hgnc_id: 'HGNC:2',
+          symbol: 'B',
+          cluster: '1',
+          degree: 1,
+          category: 'Definitive',
+          x: 9,
+          y: 9,
+        },
+      ],
+      edges: [{ source: 'HGNC:1', target: 'HGNC:2', confidence: 0.9 }],
+      metadata: { node_count: 2, edge_count: 1, display_layout_status: 'missing' },
+    } as unknown as NetworkResponse);
+    layoutMocks.computeLayoutInWorker.mockResolvedValue(
+      new Map([
+        ['HGNC:1', { x: 100, y: 200 }],
+        ['HGNC:2', { x: 300, y: 400 }],
+      ])
+    );
+
+    const state = useNetworkData();
+    await state.fetchNetworkData();
+
+    // the worker got the default view: genes plus their Definitive edges
+    const sent = layoutMocks.computeLayoutInWorker.mock.calls[0][0];
+    expect(sent.some((el: { data: { source?: string } }) => el.data.source === 'HGNC:1')).toBe(
+      true
+    );
+    const node = state.cytoscapeNodeElements.value.find((el) => el.data.id === 'HGNC:1');
+    expect(node?.position).toEqual({ x: 100, y: 200 });
+    const full = state.cytoscapeElements.value.find((el) => el.data.id === 'HGNC:2');
+    expect(full?.position).toEqual({ x: 300, y: 400 });
+  });
+
+  it('keeps the in-page layout path when no worker layout is available', async () => {
+    getNetworkEdgesMock.mockResolvedValue({
+      nodes: [{ hgnc_id: 'HGNC:1', symbol: 'A', cluster: '1', degree: 1, category: 'Definitive' }],
+      edges: [],
+      metadata: { node_count: 1, edge_count: 0, display_layout_status: 'missing' },
+    } as unknown as NetworkResponse);
+
+    const state = useNetworkData();
+    await state.fetchNetworkData();
+
+    expect(
+      state.cytoscapeNodeElements.value.find((el) => el.data.id === 'HGNC:1')?.position
+    ).toBeUndefined();
   });
 
   it('fetches through the typed analysis client', async () => {

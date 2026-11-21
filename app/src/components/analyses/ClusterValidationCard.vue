@@ -35,6 +35,8 @@
     <div
       v-if="rows.length"
       class="cluster-validation-card__clusters"
+      role="region"
+      tabindex="0"
       aria-label="Per-cluster stability"
     >
       <div class="cluster-validation-card__clusters-head">

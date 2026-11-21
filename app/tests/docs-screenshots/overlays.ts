@@ -180,7 +180,10 @@ export async function addAnnotations(
           document.body.appendChild(tag);
         }
       } else if (item.mode === 'callout') {
-        marker.style.top = `${Math.max(8, rect.top - 14 + offsetY)}px`;
+        // Sit above the target (below it when there is no room), never on top of the
+        // control the callout explains.
+        const above = rect.top - 34 + offsetY;
+        marker.style.top = `${above >= 8 ? above : rect.bottom + 6 + offsetY}px`;
         marker.style.left = `${Math.max(
           8,
           Math.min(rect.left + 8 + offsetX, window.innerWidth - 260)

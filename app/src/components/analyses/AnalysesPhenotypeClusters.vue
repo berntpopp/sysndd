@@ -12,7 +12,7 @@
         and the table displays detailed information about the variables within each cluster.
       </BPopover>
       <div
-        class="btn-group btn-group-sm"
+        class="btn-group btn-group-sm export-toolbar"
         role="group"
         aria-label="Export phenotype cluster network"
       >
@@ -57,39 +57,16 @@
             footer-class="py-2 px-3"
           >
             <template #header>
-              <div class="d-flex justify-content-between align-items-center">
-                <p class="mb-0 fw-semibold" style="font-size: 0.875rem">
+              <p class="mb-0 fw-semibold" style="font-size: 0.875rem">
+                <template v-if="selectedCluster.cluster">
                   Selected cluster {{ selectedCluster.cluster }} with
                   <span class="sysndd-chip sysndd-chip--blue">
                     {{ selectedCluster.cluster_size }}
                   </span>
                   entities
-                </p>
-                <div
-                  class="btn-group btn-group-sm"
-                  role="group"
-                  aria-label="Export phenotype cluster network"
-                >
-                  <BButton
-                    variant="outline-secondary"
-                    size="sm"
-                    title="Export as PNG"
-                    aria-label="Export network as PNG image"
-                    @click="exportPNG"
-                  >
-                    <i class="bi bi-image" aria-hidden="true" />
-                  </BButton>
-                  <BButton
-                    variant="outline-secondary"
-                    size="sm"
-                    title="Export as SVG"
-                    aria-label="Export network as SVG image"
-                    @click="exportSVG"
-                  >
-                    <i class="bi bi-filetype-svg" aria-hidden="true" />
-                  </BButton>
-                </div>
-              </div>
+                </template>
+                <template v-else>Phenotype cluster network</template>
+              </p>
             </template>
 
             <div id="cluster_dataviz" class="svg-container">
@@ -131,9 +108,10 @@
                 <BLink :to="entitiesLink" class="cluster-entities-link">
                   Entities for cluster {{ selectedCluster.cluster }}
                 </BLink>
-                <small class="text-muted">
-                  <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
-                  <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
+                <small class="text-muted size-legend">
+                  Circle size: entities per cluster
+                  <i class="bi bi-circle-fill" style="font-size: 6px" aria-hidden="true" /> fewer
+                  <i class="bi bi-circle-fill" style="font-size: 12px" aria-hidden="true" /> more
                 </small>
               </div>
             </template>
@@ -142,7 +120,12 @@
       </template>
 
       <template #second>
-        <div class="pane-content">
+        <!-- One loader for the whole pane while the clusters and the first summary load;
+             the cards then appear together instead of pushing the table down. -->
+        <div v-if="loading" class="pane-content">
+          <TableLoadingState label="Loading phenotype cluster rows" :rows="8" />
+        </div>
+        <div v-else class="pane-content">
           <!-- #630: computed, curation-derived. Rendered from the cluster row, so
                it survives a missing or judge-rejected LLM summary. -->
           <SyndromicityCard :block="selectedCluster?.syndromicity" class="mb-3" />
@@ -185,10 +168,14 @@
               </div>
             </div>
           </BCard>
-          <div v-else-if="summaryLoading" class="mb-3">
-            <BSpinner small class="me-2" />
-            <span class="text-muted">Loading AI summary...</span>
-          </div>
+          <!-- Holds the summary card's space while it loads; the shimmer only appears
+               after 300 ms, so a fast response never flashes a loader. -->
+          <div
+            v-else-if="summaryLoading"
+            class="ai-summary-placeholder mb-3"
+            data-testid="ai-summary-placeholder"
+            aria-hidden="true"
+          />
           <PhenotypeClusterVariableTable
             :selected-cluster="selectedCluster"
             :loading="loading"
@@ -216,6 +203,7 @@ import SyndromicityCard from '@/components/analyses/SyndromicityCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import ClusterValidationCard from '@/components/analyses/ClusterValidationCard.vue';
 import PhenotypeClusterVariableTable from '@/components/analyses/PhenotypeClusterVariableTable.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import AccessibleSplitter from '@/components/accessibility/AccessibleSplitter.vue';
 import {
   getPhenotypeClustering,
@@ -234,6 +222,7 @@ export default {
     LlmSummaryCard,
     PhenotypeClusterVariableTable,
     SyndromicityCard,
+    TableLoadingState,
   },
   props: {
     filterState: {
@@ -377,8 +366,15 @@ export default {
           (item) => Number(item.cluster) === Number(this.activeCluster)
         );
         if (clusterData?.hash_filter) {
-          this.fetchClusterSummary(clusterData.hash_filter, this.activeCluster);
+          // Reveal the view together with its first summary (bounded wait), so the
+          // summary card never pushes the table down after the first paint.
+          await Promise.race([
+            this.fetchClusterSummary(clusterData.hash_filter, this.activeCluster),
+            new Promise((resolve) => setTimeout(resolve, 500)),
+          ]);
         }
+        // Show the view first, so the graph container exists when Cytoscape mounts.
+        this.loading = false;
         this.$nextTick(() => {
           this.updateClusterGraph();
         });
@@ -505,6 +501,63 @@ export default {
   font-size: 16px;
   color: var(--neutral-600, #757575);
   font-weight: bold;
+}
+
+/* The global mobile rule stacks every .btn-group full width; an icon toolbar stays a
+   row of 44 px touch targets instead of a column of six full-width bars. */
+@media (max-width: 767px) {
+  .export-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    width: auto;
+  }
+
+  .export-toolbar > .btn {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    margin-bottom: 0;
+  }
+}
+
+/* Same height as the summary card so its arrival does not move the table. */
+.ai-summary-placeholder {
+  min-height: 24rem; /* measured summary card: ~388 px beside the network */
+  border-radius: var(--radius-lg, 8px);
+  background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%) 0 0 / 400% 100%;
+  visibility: hidden;
+  animation:
+    ai-summary-reveal 0s linear 300ms forwards,
+    ai-summary-shimmer 1.5s ease-in-out 300ms infinite;
+}
+
+@keyframes ai-summary-reveal {
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes ai-summary-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .ai-summary-placeholder {
+    min-height: 40rem; /* the same card is ~800 px tall on a phone */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-summary-placeholder {
+    animation: ai-summary-reveal 0s linear 300ms forwards;
+  }
 }
 
 /* Block-level container with reserved height prevents CLS when Cytoscape mounts */

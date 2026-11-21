@@ -8,7 +8,7 @@
         :class="{ 'filter-active': modelValue !== null }"
       >
         <template #first>
-          <BFormSelectOption :value="null"> All FDR values </BFormSelectOption>
+          <BFormSelectOption :value="null">Any</BFormSelectOption>
         </template>
       </BFormSelect>
 

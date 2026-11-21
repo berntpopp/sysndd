@@ -35,6 +35,8 @@ describe('CurationComparisonMobileRows', () => {
     expect(wrapper.findAll('[data-testid="source-chip"]')).toHaveLength(8);
     expect(wrapper.get('[aria-label="SysNDD: Definitive"]').text()).toContain('+');
     expect(wrapper.get('[aria-label="Orphanet: Not present"]').text()).toContain('-');
+    // chips name the source in full, not "G2P" / "OR"
+    expect(wrapper.get('[aria-label="Orphanet: Not present"]').text()).toContain('Orphanet');
 
     expect(wrapper.find('dl').exists()).toBe(false);
 

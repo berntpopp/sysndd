@@ -10,24 +10,36 @@
           </p>
         </div>
 
-        <span
-          v-if="metadata.last_full_refresh"
-          v-b-tooltip.hover.bottom
-          data-testid="comparisons-refresh-badge"
-          class="analysis-meta-badge"
-          :aria-label="`Last comparisons refresh ${formatDateTime(metadata.last_full_refresh)} with ${metadata.sources_count} sources and ${metadata.rows_imported?.toLocaleString()} rows`"
-          :title="`Last refresh: ${formatDateTime(metadata.last_full_refresh)} - ${metadata.sources_count} sources, ${metadata.rows_imported?.toLocaleString()} rows`"
-        >
-          Data {{ formatDate(metadata.last_full_refresh) }}
-        </span>
-        <span
-          v-else-if="!loadingMetadata"
-          data-testid="comparisons-refresh-badge"
-          class="analysis-meta-badge analysis-meta-badge-warning"
-          aria-label="No comparisons refresh data available"
-        >
-          No refresh data
-        </span>
+        <!-- One wrapper: the tooltip directive adds a sibling node that would otherwise
+             take a flex gap and grow the header when the badge appears. -->
+        <div class="analysis-meta">
+          <span
+            v-if="metadata.last_full_refresh"
+            v-b-tooltip.hover.bottom
+            data-testid="comparisons-refresh-badge"
+            class="analysis-meta-badge"
+            :aria-label="`Last comparisons refresh ${formatDateTime(metadata.last_full_refresh)} with ${metadata.sources_count} sources and ${formatCount(metadata.rows_imported)} rows`"
+            :title="`Last refresh: ${formatDateTime(metadata.last_full_refresh)} - ${metadata.sources_count} sources, ${formatCount(metadata.rows_imported)} rows`"
+          >
+            Updated {{ formatLongDate(metadata.last_full_refresh) }}
+          </span>
+          <!-- Same-size invisible badge while loading, so the tabs do not move when it fills. -->
+          <span
+            v-else-if="loadingMetadata"
+            class="analysis-meta-badge invisible"
+            aria-hidden="true"
+          >
+            Updated September 30, 2026
+          </span>
+          <span
+            v-else
+            data-testid="comparisons-refresh-badge"
+            class="analysis-meta-badge analysis-meta-badge-warning"
+            aria-label="No comparisons refresh data available"
+          >
+            No refresh data
+          </span>
+        </div>
       </header>
 
       <nav class="analysis-tabs" aria-label="Curation comparison views">
@@ -50,9 +62,9 @@
         </RouterLink>
       </nav>
 
-      <main class="analysis-content">
+      <div class="analysis-content">
         <router-view />
-      </main>
+      </div>
     </div>
   </div>
 </template>
@@ -61,6 +73,8 @@
 import { ref, onMounted } from 'vue';
 import { useHead } from '@unhead/vue';
 import { getComparisonsMetadata } from '@/api/comparisons';
+import { formatDateTime, formatLongDate } from '@/utils/dateUtils';
+import { formatCount } from '@/utils/displayFormat';
 
 // Types
 interface ComparisonsMetadata {
@@ -79,7 +93,7 @@ const metadata = ref<ComparisonsMetadata>({
   sources_count: 0,
   rows_imported: 0,
 });
-const loadingMetadata = ref(false);
+const loadingMetadata = ref(true);
 
 // SEO
 useHead({
@@ -96,22 +110,6 @@ useHead({
 // Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
 function unwrapValue<T>(val: T | T[]): T {
   return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
-}
-
-// Format date for display (date only)
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString();
-}
-
-// Format datetime for tooltip
-function formatDateTime(dateString: string | null): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleString();
 }
 
 // Fetch comparisons metadata on mount
@@ -186,6 +184,10 @@ onMounted(() => {
   color: #526070;
   font-size: 0.875rem;
   line-height: 1.35;
+}
+
+.analysis-meta {
+  flex: 0 0 auto;
 }
 
 .analysis-meta-badge {

@@ -18,6 +18,8 @@ import { getNetworkEdges, isSnapshotPreparingError } from '@/api/analysis';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import { getClusterColor } from '../utils/clusterColors';
+import type { LayoutPosition } from './geneNetworkLayoutOptions';
+import { computeLayoutInWorker } from './geneNetworkLayoutWorker';
 
 const PUBLIC_NETWORK_PRESET = {
   cluster_type: 'clusters',
@@ -72,7 +74,11 @@ function getMainClusterId(cluster: NetworkNode['cluster']): number | string {
 
 function buildCytoscapeElements(
   data: NetworkResponse,
-  options: { initialDefaultEdgesOnly?: boolean; omitEdges?: boolean } = {}
+  options: {
+    initialDefaultEdgesOnly?: boolean;
+    omitEdges?: boolean;
+    positions?: Map<string, LayoutPosition> | null;
+  } = {}
 ): ElementDefinition[] {
   const hasDisplayLayout = data.metadata?.display_layout_status === 'available';
   const clusterIds = new Set<number | string>();
@@ -82,6 +88,7 @@ function buildCytoscapeElements(
     const mainCluster = getMainClusterId(node.cluster);
     const category = node.category || INITIAL_EDGE_CATEGORY;
     const hasPosition = hasDisplayLayout && Number.isFinite(node.x) && Number.isFinite(node.y);
+    const workerPosition = hasDisplayLayout ? undefined : options.positions?.get(node.hgnc_id);
 
     if (mainCluster !== undefined && mainCluster !== null) {
       clusterIds.add(mainCluster);
@@ -102,6 +109,7 @@ function buildCytoscapeElements(
         color: getClusterColor(node.cluster),
       },
       ...(hasPosition ? { position: { x: Number(node.x), y: Number(node.y) } } : {}),
+      ...(workerPosition ? { position: workerPosition } : {}),
     };
   });
 
@@ -201,6 +209,8 @@ function waitForSharedNetworkRequest<T>(request: Promise<T>, signal: AbortSignal
 export function useNetworkData(): NetworkDataState {
   // Reactive state
   const networkData = shallowRef<NetworkResponse | null>(null);
+  // Client-side fCoSE positions computed in a worker when the snapshot has no display layout.
+  const layoutPositions = shallowRef<Map<string, LayoutPosition> | null>(null);
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
   const isPreparing = ref(false);
@@ -236,6 +246,17 @@ export function useNetworkData(): NetworkDataState {
     try {
       const data = await waitForSharedNetworkRequest(preloadNetworkData(), controller.signal);
       if (!isCurrentRequest()) return;
+      // Without a server display layout, run fCoSE in a worker on the default view
+      // (genes + Definitive edges) so the page never blocks for seconds; every
+      // later view reuses these positions with the cheap preset layout.
+      const positions =
+        data.metadata?.display_layout_status === 'available'
+          ? null
+          : await computeLayoutInWorker(
+              buildCytoscapeElements(data, { initialDefaultEdgesOnly: true })
+            );
+      if (!isCurrentRequest()) return;
+      layoutPositions.value = positions;
       networkData.value = data;
 
       const elapsed = performance.now() - startTime;
@@ -280,7 +301,9 @@ export function useNetworkData(): NetworkDataState {
       `[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
     );
     const startTime = performance.now();
-    const elements = buildCytoscapeElements(networkData.value);
+    const elements = buildCytoscapeElements(networkData.value, {
+      positions: layoutPositions.value,
+    });
 
     const elapsed = performance.now() - startTime;
     console.log(
@@ -296,7 +319,10 @@ export function useNetworkData(): NetworkDataState {
       `[useNetworkData] Building initial graph from ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
     );
     const startTime = performance.now();
-    const elements = buildCytoscapeElements(networkData.value, { initialDefaultEdgesOnly: true });
+    const elements = buildCytoscapeElements(networkData.value, {
+      initialDefaultEdgesOnly: true,
+      positions: layoutPositions.value,
+    });
 
     const elapsed = performance.now() - startTime;
     console.log(
@@ -312,7 +338,10 @@ export function useNetworkData(): NetworkDataState {
       `[useNetworkData] Building node graph from ${networkData.value.nodes.length} nodes`
     );
     const startTime = performance.now();
-    const elements = buildCytoscapeElements(networkData.value, { omitEdges: true });
+    const elements = buildCytoscapeElements(networkData.value, {
+      omitEdges: true,
+      positions: layoutPositions.value,
+    });
 
     const elapsed = performance.now() - startTime;
     console.log(
@@ -329,6 +358,7 @@ export function useNetworkData(): NetworkDataState {
     requestController?.abort();
     requestController = null;
     networkData.value = null;
+    layoutPositions.value = null;
     error.value = null;
     isPreparing.value = false;
     isLoading.value = false;

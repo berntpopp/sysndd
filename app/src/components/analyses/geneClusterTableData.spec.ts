@@ -7,6 +7,7 @@ import {
   findCategoryLink,
   categoryChipClass,
   formatFdr,
+  withCuratedCategoryLabels,
   buildClusterExportFilename,
   clusterExportSheetName,
   CLUSTER_EXPORT_HEADERS,
@@ -123,7 +124,8 @@ describe('formatFdr', () => {
   });
 
   it('keeps mid-range values in precision notation and passes through non-numbers', () => {
-    expect(formatFdr(0)).toBe('0');
+    // an FDR that underflowed to 0 is below double precision, not zero
+    expect(formatFdr(0)).toBe('< 1e-300');
     expect(formatFdr(0.05)).toBe('0.0500');
     expect(formatFdr('n/a')).toBe('n/a');
   });
@@ -147,5 +149,21 @@ describe('export helpers', () => {
   it('maps the sheet name per table type', () => {
     expect(clusterExportSheetName('term_enrichment')).toBe('Enrichment');
     expect(clusterExportSheetName('identifiers')).toBe('Identifiers');
+  });
+});
+
+describe('withCuratedCategoryLabels', () => {
+  it('replaces server-generated category labels with readable names', () => {
+    const labelled = withCuratedCategoryLabels([
+      { value: 'NetworkNeighborAL', text: 'Networkneighboral', link: 'x' },
+      { value: 'RCTM', text: 'RCTM', link: 'y' },
+      { value: 'Unknown', text: 'Unknown', link: 'z' },
+    ]);
+    expect(labelled.map((c) => c.text)).toEqual([
+      'STRING cluster',
+      'Reactome',
+      'Unknown',
+    ]);
+    expect(labelled[0].link).toBe('x');
   });
 });

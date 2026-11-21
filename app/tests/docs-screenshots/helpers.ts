@@ -161,15 +161,108 @@ async function openNavbarMenu(page: Page, label: string) {
   await page.locator('.dropdown-menu.show').first().waitFor({ timeout: 10_000 });
 }
 
+const COMPARISON_SOURCES = [
+  'SysNDD',
+  'panelapp',
+  'orphanet_id',
+  'omim_ndd',
+  'gene2phenotype',
+  'radboudumc_ID',
+  'ndd_genehub',
+  'sfari',
+];
+
+// First rows of the live /api/comparisons/browse?sort=+symbol response ("-" = not listed).
+const comparisonColumns = [
+  'symbol',
+  'hgnc_id',
+  'SysNDD',
+  'panelapp',
+  'gene2phenotype',
+  'ndd_genehub',
+  'omim_ndd',
+  'orphanet_id',
+  'radboudumc_ID',
+  'sfari',
+];
+const comparisonRows = [
+  'A2ML1 HGNC:23336 Limited Limited - - - - - -',
+  'AAAS HGNC:13666 Limited Definitive Definitive Limited Definitive Definitive Definitive -',
+  'AACS HGNC:21298 Limited - - - - - - -',
+  'AARS1 HGNC:20 Definitive Definitive Definitive Limited Definitive Definitive Definitive -',
+  'AARS2 HGNC:21022 Moderate - - - Definitive - - -',
+  'AASS HGNC:17366 Definitive Definitive Definitive Limited Definitive - Definitive -',
+  'AATK HGNC:21 Limited - - - - - - -',
+  'ABAT HGNC:23 Definitive Definitive Definitive - Definitive - Definitive Moderate',
+  'ABCA10 HGNC:30 - - - Limited - - - Moderate',
+  'ABCA12 HGNC:14637 - - - - Definitive - - -',
+].map((row) =>
+  Object.fromEntries(
+    row.split(' ').map((value, i) => [comparisonColumns[i], value === '-' ? 'not listed' : value])
+  )
+);
+
+/** Live meta[0].fspec of /api/comparisons/browse (server labels, which the app re-curates). */
+function comparisonFspec() {
+  const tiers = ['Definitive', 'Limited', 'Moderate', 'not listed'];
+  const column = (key: string, label: string, selectOptions: string[], multi: boolean) => ({
+    key,
+    label,
+    selectOptions,
+    count: selectOptions.length,
+    count_filtered: selectOptions.length,
+    filterable: false,
+    multi_selectable: multi,
+    selectable: !multi,
+    sortDirection: 'asc',
+    sortable: true,
+    class: 'text-left',
+  });
+  return [
+    {
+      ...column('symbol', 'Symbol', ['null'], false),
+      selectable: false,
+      filterable: true,
+      count: 5147,
+      count_filtered: 5147,
+    },
+    column(
+      'SysNDD',
+      'Sysndd',
+      ['Definitive', 'Limited', 'Moderate', 'Refuted', 'not applicable', 'not listed'],
+      true
+    ),
+    column(
+      'gene2phenotype',
+      'Gene2phenotype',
+      ['Definitive', 'Limited', 'Moderate', 'Refuted', 'not listed'],
+      true
+    ),
+    column('panelapp', 'Panelapp', tiers, true),
+    column('radboudumc_ID', 'Radboudumc id', ['Definitive', 'not listed'], false),
+    column('sfari', 'Sfari', tiers, true),
+    column('ndd_genehub', 'Ndd genehub', tiers, true),
+    column('orphanet_id', 'Orphanet id', ['Definitive', 'not listed'], false),
+    column('omim_ndd', 'Omim ndd', ['Definitive', 'not listed'], false),
+  ];
+}
+
 export const preSetupHelpers: Record<string, SetupHelper> = {
   async analysisDataMocks({ page }) {
+    // Shapes copied from the live API (Plumber wraps scalars in arrays).
     await page.route('**/api/comparisons/metadata**', (route) =>
       fulfillJson(route, {
-        last_full_refresh: '2026-05-15T00:00:00Z',
-        last_refresh_status: 'success',
-        last_refresh_error: null,
-        sources_count: 8,
-        rows_imported: 240,
+        last_full_refresh: ['2026-07-12 08:06:47'],
+        last_refresh_status: ['success'],
+        last_refresh_error: ['NA'],
+        sources_count: [7],
+        rows_imported: [19334],
+      })
+    );
+
+    await page.route('**/api/comparisons/options**', (route) =>
+      fulfillJson(route, {
+        list: COMPARISON_SOURCES.map((list) => ({ list })),
       })
     );
 
@@ -177,7 +270,7 @@ export const preSetupHelpers: Record<string, SetupHelper> = {
       fulfillJson(route, [
         { name: 'HGNC:20153', sets: ['SysNDD', 'gene2phenotype', 'panelapp'] },
         { name: 'HGNC:11411', sets: ['SysNDD', 'sfari'] },
-        { name: 'HGNC:9490', sets: ['SysNDD', 'OMIM_NDD', 'panelapp'] },
+        { name: 'HGNC:9490', sets: ['SysNDD', 'omim_ndd', 'panelapp'] },
         { name: 'HGNC:6289', sets: ['SysNDD', 'radboudumc_ID'] },
       ])
     );
@@ -188,26 +281,24 @@ export const preSetupHelpers: Record<string, SetupHelper> = {
 
     await page.route('**/api/comparisons/browse**', (route) =>
       fulfillJson(route, {
-        data: [
+        data: comparisonRows,
+        meta: [
           {
-            symbol: 'CHD8',
-            hgnc_id: 'HGNC:20153',
-            SysNDD: 'Definitive',
-            gene2phenotype: 'Definitive',
-            panelapp: 'Definitive',
-            sfari: 'S',
-          },
-          {
-            symbol: 'SYNGAP1',
-            hgnc_id: 'HGNC:11411',
-            SysNDD: 'Definitive',
-            gene2phenotype: 'Definitive',
-            panelapp: 'Limited',
-            sfari: 'S',
+            perPage: 10,
+            currentPage: 1,
+            totalPages: 515,
+            prevItemID: 'null',
+            currentItemID: '0',
+            nextItemID: 'ABCA12',
+            lastItemID: 'ZPR1',
+            totalItems: 5147,
+            sort: '+symbol',
+            filter: '',
+            fields: '',
+            executionTime: '1.37 secs',
+            fspec: comparisonFspec(),
           },
         ],
-        meta: [{ total_rows: 2, execution_time: '0.01s' }],
-        links: [],
       })
     );
 
@@ -682,6 +773,8 @@ export const setupHelpers: Record<string, SetupHelper> = {
       timeout: 30_000,
     });
     await page.locator('.network-panel').waitFor({ timeout: 30_000 });
+    // The network is drawn on request.
+    await page.getByTestId('show-network').click({ timeout: 30_000 });
     await page.locator('.network-container canvas, .cytoscape-canvas').first().waitFor({
       timeout: 30_000,
     });

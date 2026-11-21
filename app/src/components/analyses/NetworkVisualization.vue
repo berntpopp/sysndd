@@ -43,7 +43,29 @@
       <!-- Network container -->
       <div class="network-container">
         <!-- Loading spinner overlay -->
-        <div v-if="isLoading || isCytoscapeLoading" class="loading-overlay">
+        <!-- Drawn on request; the cluster table and legend work without it. -->
+        <div
+          v-if="!networkRequested && !error && !isPreparing"
+          class="network-placeholder"
+          data-testid="network-placeholder"
+        >
+          <i class="bi bi-diagram-3 network-placeholder__icon" aria-hidden="true" />
+          <p class="network-placeholder__summary">
+            <template v-if="metadata">
+              {{ formatCount(metadata.node_count) }} genes and
+              {{ formatCount(metadata.edge_count) }} interactions
+            </template>
+            <template v-else>Protein-protein interaction network</template>
+          </p>
+          <BButton variant="primary" data-testid="show-network" @click="showNetwork">
+            Show interactive network
+          </BButton>
+          <p class="network-placeholder__hint">
+            Drawing the full network can take a few seconds on slower devices.
+          </p>
+        </div>
+
+        <div v-if="(networkRequested && isLoading) || isCytoscapeLoading" class="loading-overlay">
           <BSpinner label="Loading network..." class="spinner" />
           <div class="loading-text mt-2">
             <small class="text-muted">
@@ -122,6 +144,7 @@ import { BButton, BSpinner } from 'bootstrap-vue-next';
 import NetworkVisualizationControls from './NetworkVisualizationControls.vue';
 import NetworkVisualizationLegend from './NetworkVisualizationLegend.vue';
 import { useNetworkVisualizationController } from './useNetworkVisualizationController';
+import { formatCount } from '@/utils/displayFormat';
 
 // Emits (unchanged public surface).
 const emit = defineEmits<{
@@ -176,6 +199,8 @@ const {
   clearHighlights,
   searchMatchCount,
   selectCluster,
+  networkRequested,
+  showNetwork,
 } = useNetworkVisualizationController(emit);
 
 // Expose methods for the parent component (bidirectional highlighting + sync).
@@ -231,6 +256,40 @@ defineExpose({
   height: 100% !important;
 }
 
+.network-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 4rem 1.5rem 1.5rem; /* action near the top: visible above the fold at 768 px */
+  background: #f8f9fa;
+  text-align: center;
+}
+
+.network-placeholder__icon {
+  color: var(--medical-blue-700, #0d47a1);
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.network-placeholder__summary {
+  margin: 0;
+  color: var(--neutral-900, #212121);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.network-placeholder__hint {
+  max-width: 32ch;
+  margin: 0;
+  color: var(--neutral-700, #616161);
+  font-size: 0.8125rem;
+}
+
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -267,6 +326,25 @@ defineExpose({
   justify-content: center;
   min-height: 200px;
   padding: 1rem;
+}
+
+/* The global mobile rule stacks every .btn-group full width; an icon toolbar stays a
+   row of 44 px touch targets instead of a column of six full-width bars. */
+@media (max-width: 767px) {
+  :deep(.network-panel__header .btn-group) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    width: auto;
+  }
+
+  :deep(.network-panel__header .btn-group > .btn) {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    margin-bottom: 0;
+  }
 }
 
 .network-tooltip {

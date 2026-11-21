@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
 import NetworkVisualization from './NetworkVisualization.vue';
 
-type ElementLike = { data: Record<string, unknown> };
+type ElementLike = { data: Record<string, unknown>; position?: { x: number; y: number } };
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -149,6 +149,15 @@ const globalStubs = {
   BDropdownDivider: { template: '<hr />' },
 };
 
+/** Mount and press "Show interactive network", as a user does before the graph is drawn. */
+async function mountShown() {
+  const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
+  await flushPromises();
+  await wrapper.get('[data-testid="show-network"]').trigger('click');
+  await flushPromises();
+  return wrapper;
+}
+
 /** A single Cytoscape-node-like object for search-highlight characterization. */
 function makeSearchNode(symbol: string, isClusterParent = false) {
   return {
@@ -284,6 +293,19 @@ describe('NetworkVisualization', () => {
   });
 
   describe('Cytoscape lifecycle (characterization)', () => {
+    it('does not draw the network until the user asks for it', async () => {
+      mocks.nodeElements = [{ data: { id: 'A' } }];
+      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
+      await flushPromises();
+      expect(mocks.initializeCytoscape).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="network-placeholder"]').exists()).toBe(true);
+
+      await wrapper.get('[data-testid="show-network"]').trigger('click');
+      await flushPromises();
+      expect(mocks.initializeCytoscape).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('[data-testid="network-placeholder"]').exists()).toBe(false);
+    });
+
     it('mounts nodes only for the initial Cytoscape render', async () => {
       mocks.nodeElements = [{ data: { id: 'A' } }, { data: { id: 'B' } }];
       mocks.initialElements = [
@@ -292,13 +314,33 @@ describe('NetworkVisualization', () => {
         { data: { id: 'A_B', source: 'A', target: 'B' } },
       ];
 
-      mount(NetworkVisualization, { global: { stubs: globalStubs } });
-      await flushPromises();
+      await mountShown();
 
       expect(mocks.initializeCytoscape).toHaveBeenCalledTimes(1);
       const passed = mocks.initializeCytoscape.mock.calls[0][0] as ElementLike[];
       expect(passed).toHaveLength(2);
       expect(passed.every((el) => el.data.source === undefined)).toBe(true);
+    });
+
+    it('mounts the default view in one pass when every gene already has a position', async () => {
+      mocks.nodeElements = [
+        { data: { id: 'A' }, position: { x: 0, y: 0 } },
+        { data: { id: 'B' }, position: { x: 9, y: 9 } },
+      ];
+      mocks.initialElements = [
+        ...mocks.nodeElements,
+        { data: { id: 'A_B', source: 'A', target: 'B' } },
+      ];
+
+      await mountShown();
+
+      expect(mocks.initializeCytoscape).toHaveBeenCalledTimes(1);
+      const passed = mocks.initializeCytoscape.mock.calls[0][0] as ElementLike[];
+      expect(passed).toHaveLength(3);
+      // no second remove/re-add pass for the edges
+      (mocks.capturedCytoscapeOptions?.onLayoutReady as () => void)?.();
+      await flushPromises();
+      expect(mocks.updateElements).not.toHaveBeenCalled();
     });
 
     it('hydrates the initial edge set exactly once after layout readiness', async () => {
@@ -318,8 +360,7 @@ describe('NetworkVisualization', () => {
         { data: { id: 'A_B', source: 'A', target: 'B' } },
       ];
 
-      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
-      await flushPromises();
+      const wrapper = await mountShown();
 
       const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as
         (() => void) | undefined;
@@ -358,8 +399,7 @@ describe('NetworkVisualization', () => {
         { data: { id: 'A_B', source: 'A', target: 'B' } },
       ];
 
-      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
-      await flushPromises();
+      const wrapper = await mountShown();
       const onLayoutReady = mocks.capturedCytoscapeOptions?.onLayoutReady as
         (() => void) | undefined;
       onLayoutReady?.();
@@ -439,8 +479,7 @@ describe('NetworkVisualization', () => {
         unobserve = vi.fn();
       };
 
-      const wrapper = mount(NetworkVisualization, { global: { stubs: globalStubs } });
-      await flushPromises();
+      const wrapper = await mountShown();
 
       wrapper.unmount();
       expect(disconnectSpy).toHaveBeenCalledTimes(1);
