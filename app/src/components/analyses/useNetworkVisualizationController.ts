@@ -112,14 +112,12 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       router.push({ name: 'Gene', params: { id: nodeId } });
       emit('cluster-selected', nodeId);
     },
-    onClusterClick: (clusterId: number) => {
-      selectSingleCluster(clusterId);
-    },
-    onBackgroundClick: () => {
-      setShowAllClusters(true);
-    },
+    onClusterClick: (clusterId: number) => selectSingleCluster(clusterId),
+    onBackgroundClick: () => setShowAllClusters(true),
     onLayoutReady: () => {
       if (hydrateInitialEdgesIfNeeded()) return;
+      // edges may have joined in batches since the last count
+      handleApplyFilters();
       emit('network-ready');
     },
   });
@@ -431,8 +429,6 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
   async function mountNetwork() {
     if (networkMounted) return;
     networkMounted = true;
-
-    // Wait for DOM update
     await nextTick();
     if (disposed) return;
 
@@ -446,6 +442,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       initialEdgesMounted.value = presetReady;
       fullGraphMounted.value = false;
       handleApplyFilters();
+      // frame the filtered genes before the first paint
+      fitToScreen();
     } else {
       initializeCytoscape();
     }

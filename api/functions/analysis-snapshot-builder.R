@@ -260,6 +260,14 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         min_confidence = params$min_confidence,
         max_edges = params$max_edges
       )
+      if (exists("ensure_network_display_layout", mode = "function")) {
+        network <- ensure_network_display_layout(
+          network,
+          cluster_type = params$cluster_type,
+          min_confidence = params$min_confidence,
+          max_edges = params$max_edges
+        )
+      }
       built <- analysis_snapshot_build_network_rows(network)
       list(
         kind = "network",

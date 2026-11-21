@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.7] - 2026-11-21
+
+Gene network release: the network layout is computed once on the server when the analysis snapshot is built, and the browser draws the stored positions in short frames. The network is still drawn when the visitor clicks "Show interactive network".
+
+### Fixed
+
+- **Gene networks** no longer stays on "Running layout..." after the network has drawn: the loading overlay now clears when the graph mounts in one pass.
+- The cluster tooltip counts the genes of its cluster correctly.
+- Filtering the network re-shows only hidden elements instead of restyling the whole graph.
+
+### Performance
+
+- The `gene_network_edges` snapshot build computes and stores the fCoSE display layout, so `/api/analysis/network_edges` reports `display_layout_status` "available" and browsers no longer run the layout themselves. If the layout step fails, the snapshot is stored without positions and the browser computes the layout as before.
+- Rendering: clusters are flat boxes instead of compound nodes, gene labels appear from zoom 1, the view is framed from the stored positions before the first paint, and edges are added in batches of 500 per frame. Mounting the default view (2,154 genes, 4,110 edges) adds almost no blocking time (was 487 ms), and a hover frame takes 75 ms (was 273 ms).
+
+### Deployment note
+
+- After deploying, refresh the network snapshot once with `POST /api/admin/analysis/snapshots/refresh` and the body `{"force": true, "analysis_type": "gene_network_edges"}`, then check that `/api/analysis/network_edges` reports `display_layout_status` "available". Snapshots built before this release keep working; the browser lays them out itself.
+
 ## [0.38.6] - 2026-11-21
 
 UI quality release: every page of the app (65 public, curation and admin views) was audited at 1920×1080, 1366×768 and 390×844 with Lighthouse, axe-core and Playwright (layout shift, long tasks, overflow and cut-off text), and every finding rated P1 or P2 is fixed. axe serious/critical violations went from 163 elements on 26 pages to 0, the worst Lighthouse accessibility score from 90 to 96 (62 pages score 100), the worst load layout shift from 0.501 to 0.049, and the gene networks page from Lighthouse performance 63 / 37 (desktop / mobile) to 100 / 89.
@@ -44,7 +63,7 @@ UI quality release: every page of the app (65 public, curation and admin views) 
 
 ## [0.38.5] - 2026-11-21
 
-Dependency release: the Dependabot pull requests opened after 0.38.4 (#715–#719) are rolled into one change. These are tooling and development-image upgrades, mostly major versions of test and build tools; none is a security fix for SysNDD itself. No API, database or behaviour changes. `rocker/r-ver` 4.6.2 (#714) is not included: that image is Ubuntu 26.04 only, where the API image and CI cannot build R packages yet.
+Dependency release: the Dependabot pull requests opened after 0.38.4 (#715–#719) are rolled into one change. These are tooling and development-image upgrades, mostly major versions of test and build tools. The Traefik v3.7.18 and Mailpit v1.34.0 images include upstream security fixes (five Traefik advisories, one Mailpit advisory); none of the changes fixes a vulnerability in SysNDD's own code. No API, database or behaviour changes. `rocker/r-ver` 4.6.2 (#714) is not included: that image is Ubuntu 26.04 only, where the API image and CI cannot build R packages yet.
 
 ### Changed
 

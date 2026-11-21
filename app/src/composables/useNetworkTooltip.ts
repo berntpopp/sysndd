@@ -37,7 +37,12 @@ export function useNetworkTooltip(
     const isClusterParent = data.isClusterParent === true;
     if (isClusterParent) {
       const clusterId = data.id?.replace('cluster-', '') || '?';
-      const children = cyInstance.nodes().filter((n) => n.data('parent') === data.id);
+      // by cluster id: plain cluster boxes (stored positions) are not compound parents
+      const children = cyInstance
+        .nodes()
+        .filter(
+          (n) => !n.data('isClusterParent') && String(n.data('cluster')).split('.')[0] === clusterId
+        );
       const visibleChildren = children.filter((n) => n.visible());
       tooltipData.value = {
         symbol: `Cluster ${clusterId}`,

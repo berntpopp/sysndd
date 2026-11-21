@@ -22,13 +22,44 @@ import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import svg from 'cytoscape-svg';
 import {
+  CLUSTER_BOX_MARGIN,
   collectPresetPositions,
   initialFcoseLayoutOptions,
+  LABEL_MIN_ZOOM,
   presetLayoutOptions,
   shouldUsePresetLayout,
   updateFcoseLayoutOptions,
 } from './geneNetworkLayoutOptions';
 import { getCytoscapeStyle } from './cytoscape-style';
+
+/**
+ * Fit the viewport to the visible genes and their cluster boxes. cy.fit() measures the
+ * bounding box of every element (labels, edges), ~100 ms for the full network; the gene
+ * positions and sizes give the same frame for a fraction of that.
+ */
+function fitToGenes(cy: Core, padding = 30): void {
+  let [x1, y1, x2, y2] = [Infinity, Infinity, -Infinity, -Infinity];
+  cy.nodes().forEach((node) => {
+    if (node.data('isClusterParent') || !node.visible()) return;
+    const { x, y } = node.position();
+    const r = (Number(node.data('size')) || 0) / 2 + CLUSTER_BOX_MARGIN;
+    [x1, y1, x2, y2] = [
+      Math.min(x1, x - r),
+      Math.min(y1, y - r),
+      Math.max(x2, x + r),
+      Math.max(y2, y + r),
+    ];
+  });
+  const zoom = Math.min(
+    (cy.width() - 2 * padding) / (x2 - x1),
+    (cy.height() - 2 * padding) / (y2 - y1)
+  );
+  if (!Number.isFinite(zoom) || zoom <= 0) return;
+  cy.viewport({
+    zoom,
+    pan: { x: (cy.width() - zoom * (x1 + x2)) / 2, y: (cy.height() - zoom * (y1 + y2)) / 2 },
+  });
+}
 
 function restorePresetPositions(cy: Core, elements: ElementDefinition[]): void {
   for (const [nodeId, position] of collectPresetPositions(elements)) {
@@ -144,6 +175,31 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   let layoutReadyCycle = 0;
   let reportedLayoutReadyCycle = 0;
   let layoutReadyTimeout: ReturnType<typeof setTimeout> | null = null;
+  let labelsShown = false;
+  let pendingEdges: ElementDefinition[] = [];
+
+  // The WebGL renderer ignores min-zoomed-font-size and measures and draws every label on
+  // every frame, about half the drawing cost; labels exist only from the legible zoom.
+  const syncLabels = (force = false): void => {
+    if (!cy) return;
+    const show = cy.zoom() >= LABEL_MIN_ZOOM;
+    if (show === labelsShown && !force) return;
+    labelsShown = show;
+    cy.nodes('[!isClusterParent]').toggleClass('labelled', show);
+  };
+
+  /** Render with every gene label (exports are drawn at a legible scale). */
+  const withAllLabels = <T>(render: (core: Core) => T): T => {
+    const core = cy as Core;
+    core.add(pendingEdges.splice(0)); // edges still queued for the first frames
+    const genes = core.nodes('[!isClusterParent]');
+    genes.addClass('labelled');
+    try {
+      return render(core);
+    } finally {
+      if (!labelsShown) genes.removeClass('labelled');
+    }
+  };
 
   // Reactive state for UI binding
   const isInitialized = ref(false);
@@ -161,20 +217,34 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     clearLayoutReadyTimeout();
   };
 
-  const fitAndReportLayoutReady = (cycle = layoutReadyCycle): void => {
+  const fitAndReportLayoutReady = (cycle = layoutReadyCycle, fit = true): void => {
     if (!cy) return;
     if (cycle !== layoutReadyCycle || reportedLayoutReadyCycle === cycle) return;
 
     reportedLayoutReadyCycle = cycle;
 
     cy.resize();
-    cy.fit(undefined, 30);
+    if (fit) fitToGenes(cy);
 
-    const bb = cy.elements().boundingBox();
     console.log(
-      `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`
+      `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, zoom=${cy.zoom().toFixed(3)}`
     );
     options.onLayoutReady?.();
+  };
+
+  // With stored positions every node mounts at once (filters and framing are exact) and the
+  // edges follow in frame-sized batches: each frame stays a short task, where mounting the
+  // whole network in one go blocks the page for several hundred ms.
+  const EDGE_BATCH = 500;
+  const addPendingEdges = (cycle: number): void => {
+    if (!cy || cycle !== layoutReadyCycle) return;
+    cy.add(pendingEdges.splice(0, EDGE_BATCH));
+    if (pendingEdges.length > 0) {
+      requestAnimationFrame(() => addPendingEdges(cycle));
+    } else {
+      // framed before the first paint; the user may have zoomed while edges arrived
+      fitAndReportLayoutReady(cycle, false);
+    }
   };
 
   const scheduleFitAndReportLayoutReady = (): void => {
@@ -209,10 +279,13 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     lastElements = initialElements;
     lastUsedPreset = shouldUsePresetLayout(lastElements);
     startLayoutReadyCycle();
+    pendingEdges = lastUsedPreset ? initialElements.filter((el) => el.data?.source) : [];
 
     cy = cytoscapeFn({
       container: options.container.value,
-      elements: initialElements,
+      elements: pendingEdges.length
+        ? initialElements.filter((el) => !el.data?.source)
+        : initialElements,
 
       // Style configuration
       style: getCytoscapeStyle(),
@@ -240,6 +313,12 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       userPanningEnabled: true,
       boxSelectionEnabled: false,
     });
+
+    // Frame the stored positions before the first paint, so it is drawn once and in place.
+    if (lastUsedPreset) fitToGenes(cy);
+    labelsShown = false;
+    syncLabels(true);
+    cy.on('zoom', () => syncLabels());
 
     const elapsed = performance.now() - startTime;
     console.log(`[useCytoscape] Initialized in ${elapsed.toFixed(0)}ms`);
@@ -307,16 +386,17 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       isLoading.value = false;
     });
 
-    if (initialElements.length > 0) {
+    if (pendingEdges.length > 0) {
+      const cycle = layoutReadyCycle;
+      requestAnimationFrame(() => addPendingEdges(cycle));
+    } else if (initialElements.length > 0) {
       scheduleFitAndReportLayoutReady();
     }
 
     isInitialized.value = true;
-
-    // If no elements, loading is complete
-    if (initialElements.length === 0) {
-      isLoading.value = false;
-    }
+    // The constructor's layout (preset, or fcose without animation) has already run: its
+    // layoutstop fired before the listener above existed.
+    isLoading.value = false;
   };
 
   /**
@@ -336,6 +416,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       cy.elements().remove();
       cy.add(elements);
     });
+    syncLabels(true);
 
     lastElements = elements;
     lastUsedPreset = shouldUsePresetLayout(elements);
@@ -357,9 +438,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
     // Force resize to pick up container dimension changes
     cy.resize();
-
-    // Use Cytoscape's built-in fit for reliable centering
-    cy.fit(undefined, 30);
+    fitToGenes(cy);
   };
 
   /**
@@ -409,12 +488,14 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
    */
   const exportPNG = (): string => {
     if (!cy) return '';
-    return cy.png({
-      output: 'base64uri',
-      full: true, // Export entire graph, not just viewport
-      scale: 2, // 2x resolution for clarity
-      bg: '#ffffff', // White background
-    });
+    return withAllLabels((core) =>
+      core.png({
+        output: 'base64uri',
+        full: true, // Export entire graph, not just viewport
+        scale: 2, // 2x resolution for clarity
+        bg: '#ffffff', // White background
+      })
+    );
   };
 
   /**
@@ -424,7 +505,9 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   const exportSVG = (): string => {
     if (!cy) return '';
     // cytoscape-svg adds svg() method to cy instance
-    return (cy as Core & { svg: (options?: { full?: boolean }) => string }).svg({ full: true });
+    return withAllLabels((core) =>
+      (core as Core & { svg: (options?: { full?: boolean }) => string }).svg({ full: true })
+    );
   };
 
   // CRITICAL: Cleanup to prevent memory leaks

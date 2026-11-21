@@ -93,6 +93,41 @@ test_that("approved gene query limits functional snapshots to NDD phenotype gene
   expect_match(captured_sql, "ndd_phenotype\\s*=\\s*1")
 })
 
+test_that("network snapshot payload stores the precomputed display layout", {
+  env <- new.env(parent = globalenv())
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = env)
+  source(file.path("functions", "analysis-snapshot-rows.R"), local = env)
+  source(file.path("functions", "analysis-network-layout-functions.R"), local = env)
+  source(file.path("functions", "analysis-snapshot-builder.R"), local = env)
+
+  env$generate_network_edges_response <- function(cluster_type, min_confidence, max_edges) {
+    list(
+      nodes = tibble::tibble(
+        hgnc_id = c("HGNC:1", "HGNC:2"), symbol = c("A", "B"), cluster = c("1", "1"),
+        category = "Definitive", degree = 1L, x = c(1, 2), y = c(3, 4)
+      ),
+      edges = tibble::tibble(source = "HGNC:1", target = "HGNC:2", confidence = 0.9),
+      metadata = list(display_layout_status = "missing")
+    )
+  }
+  env$generate_network_display_layout_artifact <- function(network_data, ...) {
+    list(
+      positions = list("HGNC:1" = list(x = 10, y = 20), "HGNC:2" = list(x = 30, y = 40)),
+      metadata = list(layout_key = "key-1")
+    )
+  }
+
+  payload <- env$analysis_snapshot_build_payload(
+    "gene_network_edges",
+    list(cluster_type = "clusters", min_confidence = 400, max_edges = 10000)
+  )
+
+  expect_equal(payload$metadata$display_layout_status, "available")
+  expect_equal(payload$nodes$layout_x, c(10, 30))
+  expect_equal(payload$nodes$x, c(10, 30))
+  expect_equal(payload$nodes$igraph_x, c(1, 2))
+})
+
 test_that("snapshot refresh uses one connection and one write transaction", {
   env <- new.env(parent = globalenv())
   source(file.path("functions", "analysis-snapshot-presets.R"), local = env)

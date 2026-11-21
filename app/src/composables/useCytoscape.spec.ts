@@ -20,6 +20,22 @@ const mocks = vi.hoisted(() => {
     addClass: vi.fn(),
     boundingBox: vi.fn(() => ({ w: 0, h: 0 })),
   };
+  const nodeCollection = {
+    length: 0,
+    items: [] as Array<{ x: number; y: number; size: number }>,
+    forEach(callback: (node: unknown) => void) {
+      for (const { x, y, size } of nodeCollection.items) {
+        callback({
+          data: (key: string) => (key === 'size' ? size : undefined),
+          visible: () => true,
+          position: () => ({ x, y }),
+        });
+      }
+    },
+    toggleClass: vi.fn(),
+    addClass: vi.fn(),
+    removeClass: vi.fn(),
+  };
   const core = {
     on: vi.fn((event: string, selectorOrHandler: unknown, handler?: TapHandler) => {
       handlers.push({ event, selectorOrHandler, handler });
@@ -32,8 +48,12 @@ const mocks = vi.hoisted(() => {
     layout: vi.fn(() => ({ run: vi.fn() })),
     resize: vi.fn(),
     fit: vi.fn(),
-    nodes: vi.fn(() => ({ length: 0 })),
+    nodes: vi.fn(() => nodeCollection),
     zoom: vi.fn(() => 1),
+    width: vi.fn(() => 800),
+    height: vi.fn(() => 600),
+    viewport: vi.fn(),
+    png: vi.fn(() => 'data:image/png;base64,'),
     getElementById: vi.fn((id: string) => ({
       position: vi.fn((position: { x: number; y: number }) => {
         positionCalls.push({ id, position });
@@ -45,7 +65,7 @@ const mocks = vi.hoisted(() => {
     { use: vi.fn() }
   );
 
-  return { collection, core, cytoscapeMock, handlers, positionCalls };
+  return { collection, core, cytoscapeMock, handlers, nodeCollection, positionCalls };
 });
 
 vi.mock('cytoscape', () => ({
@@ -75,6 +95,112 @@ describe('useCytoscape', () => {
     mocks.core.layout.mockClear();
     mocks.core.getElementById.mockClear();
     mocks.positionCalls.length = 0;
+    mocks.nodeCollection.items = [];
+    mocks.nodeCollection.toggleClass.mockClear();
+    mocks.nodeCollection.addClass.mockClear();
+    mocks.nodeCollection.removeClass.mockClear();
+    mocks.core.fit.mockClear();
+    mocks.core.viewport.mockClear();
+    mocks.core.zoom.mockImplementation(() => 1);
+  });
+
+  it('frames stored positions from the gene positions, not by measuring every element', () => {
+    mocks.nodeCollection.items = [
+      { x: 0, y: 0, size: 14 },
+      { x: 1000, y: 500, size: 14 },
+    ];
+    const { initializeCytoscape } = useCytoscape({ container: ref(document.createElement('div')) });
+
+    initializeCytoscape([
+      { data: { id: 'HGNC:1' }, position: { x: 0, y: 0 } },
+      { data: { id: 'HGNC:2' }, position: { x: 1000, y: 500 } },
+    ]);
+
+    expect(mocks.core.fit).not.toHaveBeenCalled();
+    // genes span x -40..1040 (size/2 + cluster box margin); 740 px usable width
+    const { zoom, pan } = mocks.core.viewport.mock.calls[0][0];
+    expect(zoom).toBeCloseTo(740 / 1080);
+    expect(pan.x).toBeCloseTo((800 - zoom * 1000) / 2);
+    expect(pan.y).toBeCloseTo((600 - zoom * 500) / 2);
+  });
+
+  it('mounts positioned nodes at once and adds the edges in frame-sized batches', () => {
+    const frames: Array<() => void> = [];
+    vi.useFakeTimers(); // before the stub: fake timers replace requestAnimationFrame too
+    vi.stubGlobal('requestAnimationFrame', (cb: () => void) => frames.push(cb));
+    const onLayoutReady = vi.fn();
+    const { initializeCytoscape } = useCytoscape({
+      container: ref(document.createElement('div')),
+      onLayoutReady,
+    });
+    const nodes = [
+      { data: { id: 'A' }, position: { x: 0, y: 0 } },
+      { data: { id: 'B' }, position: { x: 1, y: 1 } },
+    ];
+    const edges = Array.from({ length: 1200 }, (_, i) => ({
+      data: { id: `e${i}`, source: 'A', target: 'B' },
+    }));
+    mocks.core.add.mockClear();
+    mocks.nodeCollection.items = [
+      { x: 0, y: 0, size: 14 },
+      { x: 1, y: 1, size: 14 },
+    ];
+
+    initializeCytoscape([...nodes, ...edges]);
+    expect(mocks.core.viewport).toHaveBeenCalledTimes(1);
+
+    expect(mocks.cytoscapeMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ elements: nodes })
+    );
+    while (frames.length) frames.shift()!();
+    expect(mocks.core.add.mock.calls.map(([batch]) => batch.length)).toEqual([500, 500, 200]);
+    vi.runOnlyPendingTimers();
+    expect(onLayoutReady).toHaveBeenCalledTimes(1);
+    // framed once before the first paint, not again once the edges are in
+    expect(mocks.core.viewport).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('clears the loading state once the constructor layout has run', () => {
+    const { initializeCytoscape, isLoading } = useCytoscape({
+      container: ref(document.createElement('div')),
+    });
+
+    initializeCytoscape([{ data: { id: 'HGNC:1' }, position: { x: 1, y: 2 } }]);
+
+    // no layoutstop reaches the listener: it fired inside the constructor
+    expect(isLoading.value).toBe(false);
+  });
+
+  it('shows gene labels only from the zoom at which they are legible', () => {
+    mocks.core.zoom.mockImplementation(() => 0.4);
+    const { initializeCytoscape } = useCytoscape({ container: ref(document.createElement('div')) });
+    initializeCytoscape([{ data: { id: 'HGNC:1' }, position: { x: 1, y: 2 } }]);
+    expect(mocks.nodeCollection.toggleClass).toHaveBeenLastCalledWith('labelled', false);
+
+    const zoomHandler = mocks.handlers.find((entry) => entry.event === 'zoom')
+      ?.selectorOrHandler as () => void;
+    mocks.core.zoom.mockImplementation(() => 1.2);
+    zoomHandler();
+    zoomHandler(); // no restyle while the zoom stays on the same side
+    expect(mocks.nodeCollection.toggleClass).toHaveBeenCalledTimes(2);
+    expect(mocks.nodeCollection.toggleClass).toHaveBeenLastCalledWith('labelled', true);
+  });
+
+  it('exports with every gene label and restores the zoomed-out view', () => {
+    mocks.core.zoom.mockImplementation(() => 0.4);
+    const { initializeCytoscape, exportPNG } = useCytoscape({
+      container: ref(document.createElement('div')),
+    });
+    initializeCytoscape([{ data: { id: 'HGNC:1' }, position: { x: 1, y: 2 } }]);
+
+    mocks.core.png.mockImplementation(() => {
+      expect(mocks.nodeCollection.addClass).toHaveBeenCalledWith('labelled');
+      return 'png';
+    });
+    expect(exportPNG()).toBe('png');
+    expect(mocks.nodeCollection.removeClass).toHaveBeenCalledWith('labelled');
   });
 
   it('calls the background click callback only for core background taps', () => {

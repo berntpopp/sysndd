@@ -47,14 +47,27 @@ export function getCytoscapeStyle(): CytoscapeStylesheet {
         'background-color': 'data(color)',
         'border-width': 2,
         'border-color': '#333',
-        // Show label always for identification
-        label: 'data(symbol)',
+        // label comes from node.labelled, set only once the zoom makes it legible
         'font-size': '8px',
         'text-valign': 'bottom',
         'text-halign': 'center',
         'text-margin-y': 3,
         color: '#333',
         'min-zoomed-font-size': 8,
+      },
+    },
+    {
+      selector: 'node.labelled',
+      style: { label: 'data(symbol)' },
+    },
+    // Cluster boxes drawn as plain nodes behind everything when gene positions are stored
+    {
+      selector: 'node[?isClusterParent][boxWidth]',
+      style: {
+        width: 'data(boxWidth)',
+        height: 'data(boxHeight)',
+        padding: 0, // boxWidth already holds the compound padding
+        'z-compound-depth': 'bottom',
       },
     },
     {

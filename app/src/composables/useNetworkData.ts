@@ -18,7 +18,7 @@ import { getNetworkEdges, isSnapshotPreparingError } from '@/api/analysis';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import { getClusterColor } from '../utils/clusterColors';
-import type { LayoutPosition } from './geneNetworkLayoutOptions';
+import { hasFinitePosition, type LayoutPosition } from './geneNetworkLayoutOptions';
 import { computeLayoutInWorker } from './geneNetworkLayoutWorker';
 
 const PUBLIC_NETWORK_PRESET = {
@@ -113,12 +113,21 @@ function buildCytoscapeElements(
     };
   });
 
+  // With every gene positioned no layout runs, so clusters are plain box nodes that the
+  // filters size to their genes: compound parents re-measure all their children on every
+  // frame and restyle, which costs more than the rest of the graph.
+  const flatClusterBoxes = nodes.length > 0 && nodes.every(hasFinitePosition);
+  if (flatClusterBoxes) {
+    for (const node of nodes) delete node.data.parent;
+  }
+
   const clusterParentNodes: ElementDefinition[] = Array.from(clusterIds).map((clusterId) => ({
     data: {
       id: `cluster-${clusterId}`,
       label: `Cluster ${clusterId}`,
       isClusterParent: true,
       color: getClusterColor(clusterId),
+      ...(flatClusterBoxes ? { boxWidth: 0, boxHeight: 0 } : {}),
     },
   }));
 
@@ -288,8 +297,8 @@ export function useNetworkData(): NetworkDataState {
    * PERFORMANCE OPTIMIZED:
    * - Uses backend fCoSE display coordinates when complete, with client fCoSE fallback
    * - Pre-computes node size and edge width as data properties
-   * - Creates compound parent nodes for clusters to enable visual separation
-   * - Cytoscape uses fcose layout with compound node support
+   * - Clusters are plain box nodes when every gene is positioned, compound parent nodes
+   *   (which fcose lays out together) otherwise
    *
    * Computed property that automatically updates when networkData changes.
    */

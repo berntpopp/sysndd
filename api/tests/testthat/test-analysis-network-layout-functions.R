@@ -193,3 +193,48 @@ test_that("apply cached display layout reports missing without computing", {
   expect_equal(updated$nodes$x, 1)
   expect_equal(updated$nodes$y, 2)
 })
+
+test_that("ensure display layout attaches generated positions once", {
+  network <- list(
+    nodes = tibble::tibble(hgnc_id = c("HGNC:1", "HGNC:2"), x = c(1, 2), y = c(3, 4)),
+    edges = tibble::tibble(),
+    metadata = list(layout_algorithm = "drl", display_layout_status = "missing")
+  )
+  calls <- 0L
+  generate <- function(network_data, cluster_type, min_confidence, max_edges) {
+    calls <<- calls + 1L
+    expect_equal(list(cluster_type, min_confidence, max_edges), list("clusters", 400L, 10000L))
+    list(
+      positions = list("HGNC:1" = list(x = 10, y = 20), "HGNC:2" = list(x = 30, y = 40)),
+      metadata = list(layout_key = "key-1", node_count = 2L, edge_count = 0L)
+    )
+  }
+
+  updated <- ensure_network_display_layout(network, "clusters", 400L, 10000L, generate = generate)
+  again <- ensure_network_display_layout(updated, "clusters", 400L, 10000L, generate = generate)
+
+  expect_equal(updated$metadata$display_layout_status, "available")
+  expect_equal(updated$metadata$display_layout_key, "key-1")
+  expect_equal(updated$nodes$x, c(10, 30))
+  expect_equal(updated$nodes$igraph_x, c(1, 2))
+  expect_identical(again, updated)
+  expect_equal(calls, 1L)
+})
+
+test_that("ensure display layout keeps the client fallback when generation fails", {
+  network <- list(
+    nodes = tibble::tibble(hgnc_id = "HGNC:1", x = 1, y = 2),
+    edges = tibble::tibble(),
+    metadata = list(display_layout_status = "missing")
+  )
+
+  updated <- expect_message(
+    ensure_network_display_layout(
+      network, "clusters", 400L, 10000L,
+      generate = function(...) stop("node not found")
+    ),
+    "node not found"
+  )
+
+  expect_identical(updated, network)
+})
