@@ -298,6 +298,17 @@ build_cursor_meta <- function(pag_meta, sort, filter, fields, fspec_obj,
 #' @export
 build_cursor_links <- function(pag_links, resource_path, sort, filter, fields,
                                api_base_url = dw$api_base_url) {
+  # Percent-encode values so links are valid URLs (spaces in 'Autosomal dominant')
+  # and &, +, # inside a value cannot break the query; filter syntax stays readable.
+  enc <- function(x) {
+    x <- utils::URLencode(as.character(x), reserved = FALSE)
+    x <- gsub("&", "%26", x, fixed = TRUE)
+    x <- gsub("+", "%2B", x, fixed = TRUE)
+    gsub("#", "%23", x, fixed = TRUE)
+  }
+  sort <- enc(sort)
+  filter <- enc(filter)
+  fields <- enc(fields)
   pag_links %>%
     tidyr::pivot_longer(
       dplyr::everything(),
