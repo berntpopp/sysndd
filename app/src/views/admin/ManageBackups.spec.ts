@@ -20,7 +20,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils/flushRequests';
 import { http, HttpResponse } from 'msw';
 
 import '@/plugins/axios';
@@ -114,7 +115,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = mountView();
     await (wrapper.vm as unknown as BackupsVm).fetchBackupList();
-    await flushPromises();
+    await flushRequests();
     expect((wrapper.vm as unknown as BackupsVm).backups).toEqual([]);
   });
 
@@ -136,7 +137,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
       )
     );
     const wrapper = mountView();
-    await flushPromises();
+    await flushRequests();
     expect(wrapper.text()).toContain('1 backup · 2 KB total');
     expect(wrapper.text()).not.toContain('NaN');
   });
@@ -160,7 +161,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = mountView();
     await (wrapper.vm as unknown as BackupsVm).downloadBackup('manual_2025-10-01.sql.gz');
-    await flushPromises();
+    await flushRequests();
 
     createSpy.mockRestore();
     revokeSpy.mockRestore();
@@ -189,7 +190,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     vm.restoreConfirmText = 'RESTORE';
 
     await vm.confirmRestore();
-    await flushPromises();
+    await flushRequests();
   });
 
   it('confirmDelete() issues DELETE /api/backup/delete/:filename with the Bearer header', async () => {
@@ -214,7 +215,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     vm.deleteConfirmText = 'DELETE';
 
     await vm.confirmDelete();
-    await flushPromises();
+    await flushRequests();
   });
 
   it('triggerBackup() issues POST /api/backup/create with the Bearer header', async () => {
@@ -229,7 +230,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = mountView();
     await (wrapper.vm as unknown as BackupsVm).triggerBackup();
-    await flushPromises();
+    await flushRequests();
   });
 
   it('downloadBackup() percent-encodes the filename segment in the URL', async () => {
@@ -251,7 +252,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = mountView();
     await (wrapper.vm as unknown as BackupsVm).downloadBackup(filename);
-    await flushPromises();
+    await flushRequests();
 
     createSpy.mockRestore();
     revokeSpy.mockRestore();
@@ -274,11 +275,11 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     );
 
     const wrapper = mountView();
-    await flushPromises();
+    await flushRequests();
     makeToastSpy.mockClear();
 
     await (wrapper.vm as unknown as BackupsVm).downloadBackup('missing.sql.gz');
-    await flushPromises();
+    await flushRequests();
 
     // The download response is a Blob, so the JSON `message` is not parsed;
     // extractApiErrorMessage falls through to axios's error message. Either
@@ -311,7 +312,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     vm.deleteConfirmText = 'DELETE';
 
     await vm.confirmDelete();
-    await flushPromises();
+    await flushRequests();
 
     expect(requestedUrl).toContain(`/api/backup/delete/${encodeURIComponent(filename)}`);
   });
@@ -331,7 +332,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     vm.deleteConfirmText = 'DELETE';
 
     await vm.confirmDelete();
-    await flushPromises();
+    await flushRequests();
 
     expect(makeToastSpy).toHaveBeenCalledWith(
       'A backup operation is already running',
@@ -351,7 +352,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = mountView();
     await (wrapper.vm as unknown as BackupsVm).triggerBackup();
-    await flushPromises();
+    await flushRequests();
 
     expect(makeToastSpy).toHaveBeenCalledWith('A backup is already running', 'Error', 'danger');
   });
@@ -371,7 +372,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     vm.restoreConfirmText = 'RESTORE';
 
     await vm.confirmRestore();
-    await flushPromises();
+    await flushRequests();
 
     expect(makeToastSpy).toHaveBeenCalledWith(
       'Restore is temporarily unavailable',

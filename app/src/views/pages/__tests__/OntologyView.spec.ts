@@ -12,7 +12,8 @@ vi.mock('@/composables/useToast', () => ({
 
 import { setActivePinia, createPinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils/flushRequests';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { server } from '@/test-utils/mocks/server';
 import { bootstrapStubs } from '@/test-utils';
@@ -91,7 +92,7 @@ describe('OntologyView', () => {
       },
     });
 
-    await flushPromises();
+    await flushRequests();
 
     expect(wrapper.text()).toContain('intellectual disability');
     expect(wrapper.text()).toContain('MONDO:0001071');
@@ -119,7 +120,7 @@ describe('OntologyView', () => {
     const wrapper = mount(OntologyView, {
       global: { plugins: [router], stubs: componentStubs, directives: { 'b-tooltip': {} } },
     });
-    await flushPromises();
+    await flushRequests();
     expect(wrapper.findAll('[data-testid="section-card-skeleton"]')).toHaveLength(2);
   });
 
@@ -143,7 +144,7 @@ describe('OntologyView', () => {
       },
     });
 
-    await flushPromises();
+    await flushRequests();
 
     expect(router.currentRoute.value.path).toBe('/PageNotFound');
   });

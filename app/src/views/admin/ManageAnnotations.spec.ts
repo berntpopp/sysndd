@@ -350,7 +350,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
       )
     );
     const wrapper = await mountView();
-    await flushPromises();
+    await flushRequests();
     const text = wrapper.text();
     expect(text).toContain('Last: Never');
     expect(text).toContain('Last: November 21, 2026');

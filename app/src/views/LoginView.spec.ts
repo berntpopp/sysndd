@@ -56,7 +56,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils/flushRequests';
 import { http, HttpResponse } from 'msw';
 
 import { server } from '@/test-utils/mocks/server';
@@ -247,7 +248,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
     // Drive the bootstrap directly — form submit would add vee-validate
     // timing noise that is not part of the E1 contract.
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     // The /signin call saw the exact local-variable Bearer we expect.
     expect(signinAuth).toBe(`Bearer ${BOOTSTRAP_TOKEN}`);
@@ -277,7 +278,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
     const loginSpy = vi.spyOn(viewAuth, 'login');
 
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     // E1 contract: exactly one atomic login() call.
     expect(loginSpy).toHaveBeenCalledTimes(1);
@@ -340,7 +341,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
     view.password = 'testpass';
 
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     // Between authenticate and signin: no setItem may have happened.
     // These are the in-resolver snapshots — they fire while the flow is
@@ -375,7 +376,7 @@ describe('LoginView — modern public shell', () => {
 
   it('renders the login form inside the modern public auth layout', async () => {
     const wrapper = mountLoginView();
-    await flushPromises();
+    await flushRequests();
 
     expect(wrapper.find('.login-page').exists()).toBe(true);
     expect(wrapper.find('.login-shell').exists()).toBe(true);
@@ -430,7 +431,7 @@ describe('LoginView — readable inline sign-in error', () => {
     view.user_name = 'testuser';
     view.password = 'wrongpass';
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     await wrapper.vm.$nextTick();
     const firstArg = wrapper.get('[role="alert"]').text();
@@ -461,7 +462,7 @@ describe('LoginView — readable inline sign-in error', () => {
     view.user_name = 'lockeduser';
     view.password = 'whatever';
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     await wrapper.vm.$nextTick();
     const firstArg = wrapper.get('[role="alert"]').text();
@@ -483,7 +484,7 @@ describe('LoginView — readable inline sign-in error', () => {
     view.user_name = 'testuser';
     view.password = 'rightpass';
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     await wrapper.vm.$nextTick();
     const firstArg = wrapper.get('[role="alert"]').text();
@@ -510,7 +511,7 @@ describe('LoginView — readable inline sign-in error', () => {
     view.user_name = 'testuser';
     view.password = 'rightpass';
     await view.loadJWT();
-    await flushPromises();
+    await flushRequests();
 
     // The inline auth error carries the readable string, not [object Object].
     await wrapper.vm.$nextTick();
@@ -530,7 +531,7 @@ describe('LoginView — readable inline sign-in error', () => {
     view.password = 'wrongpass';
     // Submitting through the form marks both fields touched, as in the app.
     (wrapper.vm as unknown as { onSubmit: () => void }).onSubmit();
-    await flushPromises();
+    await flushRequests();
     expect(wrapper.get('[role="alert"]').text()).toBe('User or password wrong.');
 
     for (const input of wrapper.findAllComponents({ name: 'BFormInput' })) {
@@ -538,7 +539,7 @@ describe('LoginView — readable inline sign-in error', () => {
     }
     // Editing a field clears the stale error.
     view.password = 'another';
-    await flushPromises();
+    await flushRequests();
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 });

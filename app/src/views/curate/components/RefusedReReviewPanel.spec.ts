@@ -6,7 +6,8 @@
 // PUT /api/re_review/refuse/clear/:id.
 
 import { describe, it, expect, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils/flushRequests';
 import { http, HttpResponse } from 'msw';
 
 // The panel calls useToast() in setup(); stub the composables barrel so the
@@ -65,7 +66,7 @@ describe('RefusedReReviewPanel (issue #54)', () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent({ name: 'GenericTable' }).exists()).toBe(false);
     expect(wrapper.get('.refused-empty').text()).toBe('Loading refused items…');
-    await flushPromises();
+    await flushRequests();
     expect(wrapper.findComponent({ name: 'GenericTable' }).exists()).toBe(false);
     expect(wrapper.get('.refused-empty').text()).toBe('No refused items.');
   });
@@ -80,7 +81,7 @@ describe('RefusedReReviewPanel (issue #54)', () => {
     );
 
     const wrapper = mountPanel();
-    await flushPromises();
+    await flushRequests();
 
     const q = observedQuery as unknown as URLSearchParams;
     expect(q.get('refused')).toBe('true');
@@ -100,10 +101,10 @@ describe('RefusedReReviewPanel (issue #54)', () => {
     );
 
     const wrapper = mountPanel();
-    await flushPromises();
+    await flushRequests();
 
     await wrapper.find('button[aria-label="Clear refusal for sysndd:501"]').trigger('click');
-    await flushPromises();
+    await flushRequests();
 
     expect(clearedPath).toBe('/api/re_review/refuse/clear/701');
     expect(wrapper.emitted('cleared')).toBeTruthy();
