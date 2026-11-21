@@ -28,6 +28,7 @@ import { createTableRequestCoordinator, createTableRequestOwner } from '@/utils/
 import {
   createDefaultPhenotypeFilter,
   phenotypeLogicOperator,
+  selectsPhenotype,
   type PhenotypeTableFilter,
 } from './phenotypeTableFilters';
 import type { SortBy } from '@/types/components';
@@ -296,7 +297,7 @@ export function usePhenotypeEntitiesTable(props: UsePhenotypeEntitiesTableProps)
    */
   function togglePhenotype(phenotypeId: string): void {
     const ids = phenotypeIdList();
-    const index = ids.indexOf(phenotypeId);
+    const index = ids.findIndex((id) => selectsPhenotype(id, phenotypeId));
     if (index === -1) {
       ids.push(phenotypeId);
     } else {

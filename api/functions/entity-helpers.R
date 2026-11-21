@@ -169,6 +169,7 @@ extract_vario_filter <- function(filter_string) {
     values <- str_split(vario_matches[i, 4], ",")[[1]] %>%
       str_trim() %>%
       str_remove_all("'")
+    values <- values[nzchar(values)] # a stray comma must not make all() unmatchable
     all_vario_ids <- c(all_vario_ids, values)
     vario_clauses[[i]] <- list(operator = vario_matches[i, 2], vario_ids = unique(values))
   }

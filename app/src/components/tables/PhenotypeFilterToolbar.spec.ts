@@ -63,6 +63,12 @@ describe('PhenotypeFilterToolbar', () => {
     expect(vm.getPhenotypeName('1-HP:0001249')).toBe('present: Intellectual disability');
   });
 
+  it('marks a modifier-scoped selection as selected in the dropdown (#709)', () => {
+    const vm = mountToolbar({ selectedIds: ['1-HP:0001250'] }).vm as unknown as ToolbarVm;
+    expect(vm.isPhenotypeSelected('HP:0001250')).toBe(true);
+    expect(vm.isPhenotypeSelected('HP:0000252')).toBe(false);
+  });
+
   it('emits semantic events to the parent', async () => {
     const wrapper = mountToolbar({ selectedIds: ['HP:0001249'] });
     await wrapper.findAll('button')[0].trigger('click');

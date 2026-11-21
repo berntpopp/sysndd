@@ -8,7 +8,7 @@
       <BPopover target="popover-badge-help-variant" variant="info" triggers="focus">
         <template #title> Variant Correlations </template>
         This plot displays the Pearson correlation coefficients between different genetic variants.
-        Click on cells to view entities with either variant, or hover to see exact correlation
+        Click on cells to view entities with both variants, or hover to see exact correlation
         values.
       </BPopover>
       <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />

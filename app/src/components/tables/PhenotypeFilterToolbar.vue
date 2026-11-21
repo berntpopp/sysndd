@@ -80,6 +80,8 @@
 </template>
 
 <script>
+import { selectsPhenotype } from './phenotypeTableFilters';
+
 export default {
   name: 'PhenotypeFilterToolbar',
   props: {
@@ -125,7 +127,7 @@ export default {
      * @returns {boolean} True if selected
      */
     isPhenotypeSelected(phenotypeId) {
-      return this.selectedIds.includes(phenotypeId);
+      return this.selectedIds.some((id) => selectsPhenotype(id, phenotypeId));
     },
     /**
      * Get phenotype display name from ID.
@@ -137,7 +139,7 @@ export default {
         return phenotypeId;
       }
       // Correlogram links select "1-HP:..." (present only); label it like /api/list/phenotype?tree
-      const [, modifier, hpoId] = phenotypeId.match(/^(?:([1-5])-)?(.*)$/);
+      const [, modifier, hpoId] = phenotypeId.match(/^(?:([1-5])-)?(.*)$/s);
       const phenotype = this.phenotypeOptions.find((opt) => opt.phenotype_id === hpoId);
       if (!phenotype) return phenotypeId;
       const modifierLabel = ['present', 'uncertain', 'variable', 'rare', 'absent'][modifier - 1];
