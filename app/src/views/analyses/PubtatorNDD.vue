@@ -13,6 +13,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { listPubtatorGenes } from '@/api/publication';
+import { normalizePubtatorGenesMeta } from '@/components/analyses/usePubtatorGenesTable';
 import { formatCount } from '@/utils/displayFormat';
 import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
@@ -38,7 +39,7 @@ onMounted(async () => {
       fields: 'gene_symbol',
       page_size: '1',
     });
-    novelGeneCount.value = Number(response.meta?.[0]?.totalItems) || 0;
+    novelGeneCount.value = Number(normalizePubtatorGenesMeta(response.meta)?.totalItems) || 0;
   } catch {
     novelGeneCount.value = 0; // the badge is optional; the tab still works
   }
