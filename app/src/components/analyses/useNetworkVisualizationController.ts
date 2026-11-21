@@ -38,6 +38,7 @@ import {
   selectSingleNetworkCluster,
   showAllNetworkClusters,
 } from './networkSelection';
+import { focusNetworkNodes } from './networkSelection';
 import { downloadNetworkSvg } from './networkExport';
 
 /** Typed emit surface the controller drives on the parent's behalf. */
@@ -280,13 +281,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
 
     if (hasPattern) {
       cyInstance.nodes().forEach((node) => {
-        // Skip cluster parent nodes
-        if (node.data('isClusterParent')) return;
-
-        const symbol = node.data('symbol');
-        const isMatch = searchMatches(symbol);
-
-        if (isMatch) {
+        if (node.data('isClusterParent')) return; // cluster parents never match
+        if (searchMatches(node.data('symbol'))) {
           node.addClass('search-match');
           matchingNodes.merge(node);
           matchCount += 1;
@@ -295,32 +291,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
         }
       });
 
-      // Focus on matching nodes with a gentle pan+zoom (capped at 1.5x so it
-      // never zooms in too hard); 150px padding keeps the framing loose.
-      if (matchingNodes.length > 0) {
-        const bb = matchingNodes.boundingBox();
-        const padding = 150;
-        const containerWidth = cyInstance.width();
-        const containerHeight = cyInstance.height();
-
-        const zoomX = containerWidth / (bb.w + padding * 2);
-        const zoomY = containerHeight / (bb.h + padding * 2);
-        const maxZoom = 1.5;
-        const targetZoom = Math.min(zoomX, zoomY, maxZoom);
-
-        const centerX = (bb.x1 + bb.x2) / 2;
-        const centerY = (bb.y1 + bb.y2) / 2;
-
-        cyInstance.animate({
-          pan: {
-            x: containerWidth / 2 - centerX * targetZoom,
-            y: containerHeight / 2 - centerY * targetZoom,
-          },
-          zoom: targetZoom,
-          duration: 400,
-          easing: 'ease-out-cubic',
-        });
-      }
+      if (matchingNodes.length > 0) focusNetworkNodes(cyInstance, matchingNodes);
     }
 
     // Update match count and emit for parent component

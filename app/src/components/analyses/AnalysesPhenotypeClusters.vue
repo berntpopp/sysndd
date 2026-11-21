@@ -526,25 +526,16 @@ export default {
 .ai-summary-placeholder {
   min-height: 24rem; /* measured summary card: ~388 px beside the network */
   border-radius: var(--radius-lg, 8px);
-  background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%) 0 0 / 400% 100%;
+  background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%) 0 0 / 200% 100%;
   visibility: hidden;
   animation:
     ai-summary-reveal 0s linear 300ms forwards,
-    ai-summary-shimmer 1.5s ease-in-out 300ms infinite;
+    shimmer 1.5s ease-in-out 300ms infinite; /* global keyframes, _loading.scss */
 }
 
 @keyframes ai-summary-reveal {
   to {
     visibility: visible;
-  }
-}
-
-@keyframes ai-summary-shimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
   }
 }
 
