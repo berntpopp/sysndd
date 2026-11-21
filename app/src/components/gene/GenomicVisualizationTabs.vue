@@ -163,6 +163,7 @@ import type { ClinVarVariant } from '@/types/external';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { AlphaFoldMetadata } from '@/types/alphafold';
+import { formatCount } from '@/utils/displayFormat';
 import {
   buildProteinPlotData,
   buildGenomicVariants,
@@ -272,16 +273,6 @@ const summaryText = computed(() => {
 });
 
 /**
- * Format large numbers with K suffix
- */
-function formatCount(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K`;
-  }
-  return String(count);
-}
-
-/**
  * Process variants for protein lollipop plot
  */
 const proteinPlotData = computed<ProteinPlotData | null>(() =>
@@ -306,7 +297,9 @@ const genomicVariants = computed<GenomicVariant[]>(() =>
  */
 async function fetchGeneStructureData(): Promise<void> {
   if (!props.geneSymbol) return;
-  if (geneStructureFetched.value) return; // Already fetched
+  // Fetched, or in flight: the tab click and the index watcher both call this, and a
+  // second response would hand the plot new objects and re-render it (visible flicker).
+  if (geneStructureFetched.value || geneStructureLoading.value) return;
 
   geneStructureLoading.value = true;
   geneStructureError.value = null;

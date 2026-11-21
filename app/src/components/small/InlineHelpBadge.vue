@@ -5,11 +5,11 @@
     pill
     tag="button"
     type="button"
-    variant="info"
+    variant="light"
     class="inline-help-badge"
     :aria-label="resolvedAriaLabel"
   >
-    <i class="bi bi-question-circle-fill" aria-hidden="true" />
+    <i class="bi bi-question-lg" aria-hidden="true" />
   </BBadge>
 </template>
 
@@ -47,8 +47,17 @@ const resolvedAriaLabel = computed(
   line-height: 1;
   text-decoration: none;
   vertical-align: middle;
-  border: 0;
+  /* Outlined in the app's link blue, like the footer pills (cyan + black read as foreign). */
+  border: 1px solid #9fb3c8;
+  background: #fff !important;
+  color: #0d47a1 !important;
   cursor: help;
+}
+
+.inline-help-badge:hover,
+.inline-help-badge:focus-visible {
+  background: #eef4ff !important;
+  border-color: #0d47a1;
 }
 
 .inline-help-badge :deep(.bi) {

@@ -120,16 +120,13 @@ export default {
   --app-toast-offset: 0.75rem;
 }
 
-#app {
+// On body, not #app: BModal and toasts teleport to <body> and must inherit the app font.
+// No text-align here; pages that centre content do so themselves.
+body {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: custom.$text-main;
-  margin-top: 0px;
-}
-
-body {
   padding-top: var(--app-navbar-height);
   padding-bottom: var(--app-footer-height);
   overflow: hidden;

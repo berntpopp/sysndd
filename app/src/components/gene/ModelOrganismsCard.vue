@@ -142,21 +142,21 @@
               v-b-tooltip.hover="'Homozygous phenotypes'"
               class="badge bg-danger badge-sm cursor-help"
             >
-              hm {{ zygosityCounts.homozygous }}
+              Homozygous {{ zygosityCounts.homozygous }}
             </span>
             <span
               v-if="zygosityCounts.heterozygous > 0"
               v-b-tooltip.hover="'Heterozygous phenotypes'"
               class="badge badge-warning-custom badge-sm cursor-help"
             >
-              ht {{ zygosityCounts.heterozygous }}
+              Heterozygous {{ zygosityCounts.heterozygous }}
             </span>
             <span
               v-if="zygosityCounts.conditional > 0"
               v-b-tooltip.hover="'Conditional phenotypes'"
               class="badge bg-info badge-sm cursor-help"
             >
-              cn {{ zygosityCounts.conditional }}
+              Conditional {{ zygosityCounts.conditional }}
             </span>
           </div>
         </div>
@@ -297,13 +297,13 @@ function getZygosityClass(zygosity: string | undefined): string {
 }
 
 /**
- * Get abbreviated label for zygosity
+ * Zygosity label for the popover list (spelled out; hm/ht/cn were opaque)
  */
 function getZygosityLabel(zygosity: string | undefined): string {
   const z = zygosity?.toLowerCase();
-  if (z === 'homozygous') return 'hm';
-  if (z === 'heterozygous') return 'ht';
-  if (z === 'conditional') return 'cn';
+  if (z === 'homozygous') return 'homozygous';
+  if (z === 'heterozygous') return 'heterozygous';
+  if (z === 'conditional') return 'conditional';
   return z || '';
 }
 

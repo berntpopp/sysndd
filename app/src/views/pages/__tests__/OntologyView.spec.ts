@@ -100,12 +100,27 @@ describe('OntologyView', () => {
     expect(wrapper.text()).toContain('DOID:1059');
     expect(wrapper.text()).toContain('Orphanet:319658');
     expect(wrapper.text()).toContain('UMLS:C3714756');
+    // One long date format app-wide; never the raw ISO string.
+    expect(wrapper.text()).toContain('Mapping release: September 1, 2026');
+    expect(wrapper.text()).toContain('Release September 1, 2026');
+    expect(wrapper.text()).not.toContain('2026-09-01');
 
     const tableStub = wrapper.find('[data-testid="tables-entities-stub"]');
     expect(tableStub.exists()).toBe(true);
     expect(tableStub.attributes('data-filter')).toBe(
       'any(disease_ontology_id_version,MONDO:0001071)'
     );
+  });
+
+  it('reserves the cross-mapping card while the ontology loads, so the table does not jump', async () => {
+    server.use(http.get('*/api/ontology/:term', () => new Promise(() => {})));
+    const router = makeRouter('/Ontology/MONDO:0001071');
+    await router.isReady();
+    const wrapper = mount(OntologyView, {
+      global: { plugins: [router], stubs: componentStubs, directives: { 'b-tooltip': {} } },
+    });
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid="section-card-skeleton"]')).toHaveLength(2);
   });
 
   it('redirects to /PageNotFound when no ontology record is found', async () => {

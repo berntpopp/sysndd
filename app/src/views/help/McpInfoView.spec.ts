@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import McpInfoView from './McpInfoView.vue';
 
@@ -50,28 +50,24 @@ describe('McpInfoView', () => {
     );
   });
 
-  it('names every code region and makes long commands keyboard-scrollable', async () => {
-    const wrapper = mount(McpInfoView, {
-      attachTo: document.body,
-      global: {
-        stubs: bootstrapStubs,
-      },
-    });
+  it('wraps code blocks and gives each a named copy button', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const wrapper = mount(McpInfoView, { global: { stubs: bootstrapStubs } });
 
-    const guidance = wrapper.get('#mcp-code-scroll-guidance');
-    expect(guidance.text()).toContain('arrow keys');
-
-    const codeRegions = wrapper.findAll('.mcp-code');
+    // Long lines wrap, so blocks are not scroll regions and need no arrow-key hint.
+    expect(wrapper.find('#mcp-code-scroll-guidance').exists()).toBe(false);
+    const codeRegions = wrapper.findAll('pre.mcp-code');
     expect(codeRegions).toHaveLength(3);
-    expect(new Set(codeRegions.map((region) => region.attributes('aria-label'))).size).toBe(3);
+    for (const region of codeRegions) expect(region.attributes('tabindex')).toBeUndefined();
 
-    for (const region of codeRegions) {
-      expect(region.attributes('tabindex')).toBe('0');
-      expect(region.attributes('aria-describedby')).toBe('mcp-code-scroll-guidance');
-      (region.element as HTMLElement).focus();
-      expect(document.activeElement).toBe(region.element);
-    }
-
+    const buttons = wrapper.findAll('button.mcp-copy');
+    expect(buttons).toHaveLength(3);
+    expect(buttons[0].attributes('aria-label')).toBe('Copy Claude Code MCP command');
+    await buttons[0].trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledWith(codeRegions[0].text());
+    expect(buttons[0].text()).toBe('Copied');
     wrapper.unmount();
   });
 });

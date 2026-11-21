@@ -51,6 +51,7 @@ import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 
 // Import documentation URLs from constants
 import { DOCS_URLS } from '@/constants/docs';
+import { formatLongDate } from '@/utils/dateUtils';
 
 // Import the apiService to make the API calls
 import apiService from '@/assets/js/services/apiService';
@@ -145,8 +146,7 @@ export default {
         return 'Data not available';
       }
 
-      const date_last_update = new Date(this.entity_statistics.meta[0].last_update);
-      return date_last_update.toLocaleDateString();
+      return formatLongDate(this.entity_statistics.meta[0].last_update);
     },
   },
   watch: {
@@ -171,6 +171,9 @@ export default {
       deep: true,
     },
   },
+  mounted() {
+    this.notifyDeniedAccess();
+  },
   created() {
     // Kick off the gsap import in parallel with the first data load so the
     // count-up animation is ready by the time statistics arrive.
@@ -188,6 +191,13 @@ export default {
     );
   },
   methods: {
+    // The route guard sends a signed-in user who lacks a page's role here; say why.
+    notifyDeniedAccess() {
+      const { denied, role } = this.$route.query;
+      if (!denied) return;
+      this.makeToast(`Opening ${denied} needs the ${role} role.`, 'Access restricted', 'warning');
+      this.$router.replace({ query: {} });
+    },
     // Function to animate changes in data.
     // This uses the GSAP library to create a transition effect.
     animateOnChange(after, before) {

@@ -258,4 +258,10 @@ useHead({
 .entity-detail-page {
   padding-bottom: 1rem;
 }
+/* Linked-ontology chips wrap to three rows on phones; reserve that while loading. */
+@media (max-width: 575.98px) {
+  .entity-detail-page {
+    --ontology-card-reserve: 8.9rem;
+  }
+}
 </style>

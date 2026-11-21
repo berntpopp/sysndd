@@ -1,9 +1,10 @@
 <template>
   <BCard class="version-info border-0 bg-light" body-class="py-3">
-    <h6 class="fw-bold mb-3">
+    <!-- h2 styled as h6: it follows the page h1, so a real h6 skipped levels. -->
+    <h2 class="h6 fw-bold mb-3">
       <i class="bi bi-tags me-2" aria-hidden="true" />
       Version information
-    </h6>
+    </h2>
 
     <BListGroup flush>
       <!-- App version (from package.json) -->

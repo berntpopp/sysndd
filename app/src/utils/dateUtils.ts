@@ -60,3 +60,53 @@ export function previousPeriod(
     end: prevEnd.toISOString().split('T')[0],
   };
 }
+
+// ---------------------------------------------------------------------------
+// Display helpers. The API sends naive "YYYY-MM-DD HH:MM:SS" timestamps in UTC;
+// every user-facing date goes through these so the app has one format.
+// ---------------------------------------------------------------------------
+
+const MISSING = '—';
+
+/** Parse an API date or timestamp; a value without a zone is UTC. */
+export function parseApiDate(value: Date | string | null | undefined): Date | null {
+  if (value == null || value === '') return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const s = value.trim();
+  const naive = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?)?$/.test(s);
+  const date = new Date(naive ? `${s.replace(' ', 'T')}${s.length === 10 ? 'T00:00' : ''}Z` : s);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** "July 18, 2026" (en-US, UTC); "—" when missing. */
+export function formatLongDate(value: Date | string | null | undefined): string {
+  const date = parseApiDate(value);
+  if (!date) return MISSING;
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** "July 18, 2026, 20:01 UTC" (24-hour); "—" when missing. */
+export function formatDateTime(value: Date | string | null | undefined): string {
+  const date = parseApiDate(value);
+  if (!date) return MISSING;
+  const time = date.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'UTC',
+  });
+  return `${formatLongDate(date)}, ${time} UTC`;
+}
+
+/** Seconds to "39 ms", "2.4 s" or "3 min"; "—" when missing. */
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || !Number.isFinite(seconds)) return MISSING;
+  if (seconds < 1) return `${Math.round(seconds * 1000)} ms`;
+  if (seconds < 60) return `${Number(seconds.toFixed(1))} s`;
+  return `${Math.round(seconds / 60)} min`;
+}

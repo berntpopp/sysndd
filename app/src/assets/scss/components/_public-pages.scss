@@ -281,6 +281,7 @@
   }
 
   .public-hero {
+    flex-direction: column;
     padding: 0.85rem;
   }
 
@@ -302,4 +303,10 @@
   .public-action-card:focus-visible {
     transform: none;
   }
+}
+
+// Single-panel auth page (password reset): one centred form column.
+.login-shell--single {
+  grid-template-columns: minmax(0, 28rem);
+  justify-content: center;
 }

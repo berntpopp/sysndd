@@ -9,14 +9,14 @@
   (a focused display model, not a wide collection of independent props).
 -->
 <template>
-  <BRow class="justify-content-md-center py-2">
+  <BRow class="entity-hero-row justify-content-md-center py-2">
     <BCol cols="12">
       <SectionCard
         :loading="model.loading"
         :empty="model.empty"
         :error="model.error"
         :title="heroTitle"
-        min-height="9rem"
+        min-height="var(--entity-hero-reserve)"
       >
         <template #header>
           <div class="entity-hero-title">
@@ -133,6 +133,10 @@ const heroTitle = computed(() =>
 </script>
 
 <style scoped>
+/* Skeleton reservation = loaded hero height, so the page below does not jump. */
+.entity-hero-row {
+  --entity-hero-reserve: 9.6rem;
+}
 .entity-hero-title {
   display: flex;
   align-items: center;
@@ -169,7 +173,7 @@ const heroTitle = computed(() =>
   background: #f8fafc;
 }
 .entity-unit-label {
-  color: var(--neutral-600, #667085);
+  color: var(--neutral-700, #616161);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -226,13 +230,31 @@ const heroTitle = computed(() =>
 .entity-meta-icon {
   padding-left: 0.28rem;
 }
+/* Long disease names wrap inside their cell instead of running past the card. */
+.entity-unit-disease :deep(.disease-badge-link) {
+  min-width: 0;
+}
+.entity-unit-disease :deep(.disease-badge) {
+  height: auto;
+  max-height: none;
+  padding-block: 0.25rem;
+  line-height: 1.3;
+}
+.entity-unit-disease :deep(.disease-badge__name) {
+  white-space: normal;
+}
 @media (max-width: 575.98px) {
+  .entity-hero-row {
+    --entity-hero-reserve: 25rem;
+  }
   .entity-page-title {
     font-size: 1.1rem;
   }
   .entity-hero-body {
     padding: 0.65rem;
   }
+}
+@media (max-width: 767.98px) {
   .entity-unit-grid {
     grid-template-columns: 1fr;
   }

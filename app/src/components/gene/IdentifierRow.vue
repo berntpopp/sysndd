@@ -205,10 +205,17 @@ async function handleCopy() {
 }
 
 .identifier-badge__action {
+  /* 24px hit area (WCAG 2.5.8); negative block margin keeps the badge height. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  margin: -6px 0;
   color: #868e96;
   font-size: 0.65rem;
   text-decoration: none;
-  padding: 0 0.1rem;
+  padding: 0;
   line-height: 1;
   transition: color 0.15s ease;
 }

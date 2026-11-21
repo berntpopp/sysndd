@@ -15,7 +15,7 @@
         :empty="false"
         :error="model.publications.error"
         title="Publications"
-        min-height="9rem"
+        min-height="var(--evidence-reserve, 9rem)"
       >
         <div class="entity-chip-panel">
           <a
@@ -45,7 +45,7 @@
         :empty="false"
         :error="model.publications.error"
         title="Gene Reviews"
-        min-height="6rem"
+        min-height="var(--evidence-reserve, 4.5rem)"
       >
         <div class="entity-chip-panel">
           <a
@@ -75,7 +75,7 @@
         :empty="false"
         :error="model.phenotypes.error"
         title="Phenotypes"
-        min-height="18rem"
+        min-height="var(--evidence-reserve, 18rem)"
       >
         <div class="entity-chip-panel">
           <a
@@ -86,7 +86,7 @@
             :href="hpoUrl(phenotype)"
             target="_blank"
             rel="noopener"
-            :aria-label="termAriaLabel(phenotype, 'phenotype_id', 'HPO term')"
+            :aria-label="termAriaLabel(phenotype, 'phenotype_id', 'HPO term', phenotype.HPO_term)"
             :data-testid="`phenotype-chip-${asString(phenotype.phenotype_id)}`"
             :data-tooltip="termTitle(phenotype, 'phenotype_id')"
           >
@@ -106,7 +106,7 @@
         :empty="false"
         :error="model.variation.error"
         title="Variation Ontology"
-        min-height="9rem"
+        min-height="var(--evidence-reserve, 9rem)"
       >
         <!--
           INERTNESS GATE (#608): every provenance affordance below is gated on
@@ -288,8 +288,9 @@ function termTitle(item: EntityRowMap, idKey: string): string {
   return `${modifier} | ${asString(item[idKey])}`;
 }
 
-function termAriaLabel(item: EntityRowMap, idKey: string, kind: string): string {
-  return `${kind}: ${termTitle(item, idKey)}`;
+// Starts with the chip's visible text so speech users can say what they see (WCAG 2.5.3).
+function termAriaLabel(item: EntityRowMap, idKey: string, kind: string, visible: unknown): string {
+  return `${asString(visible).trim()}, ${kind}: ${termTitle(item, idKey)}`;
 }
 
 function modifierChipClass(item: EntityRowMap): string {
@@ -321,7 +322,7 @@ function varioChipAttrs(variant: EntityRowMap): Record<string, unknown> {
     href: varioUrl(variant),
     target: '_blank',
     rel: 'noopener',
-    'aria-label': termAriaLabel(variant, 'vario_id', 'Variation ontology term'),
+    'aria-label': termAriaLabel(variant, 'vario_id', 'Variation ontology term', variant.vario_name),
     'data-testid': `variation-chip-${asString(variant.vario_id)}`,
     'data-tooltip': termTitle(variant, 'vario_id'),
   };
@@ -365,6 +366,15 @@ const {
 <style scoped>
 .entity-evidence-grid {
   padding-top: 0.15rem;
+}
+/* Cards in one row share its height; on the 4-up row all reserve the same height. */
+.entity-evidence-grid :deep([data-testid='section-card-content']) {
+  height: 100%;
+}
+@media (min-width: 1200px) {
+  .entity-evidence-grid {
+    --evidence-reserve: 10.5rem;
+  }
 }
 .entity-chip-panel {
   padding: 0.75rem;

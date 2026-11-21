@@ -16,12 +16,13 @@
         </div>
       </header>
 
-      <BAlert variant="info" show class="mcp-notice">
+      <!-- Static notice: BAlert mounts with a fade that shifted the page on slow phones. -->
+      <div class="alert alert-info mcp-notice" role="note">
         <i class="bi bi-info-circle me-2" aria-hidden="true" />
         This information page shares its URL with the public MCP transport. Browser navigation
         renders this page; MCP clients send protocol requests to the same URL. No SysNDD account,
         API key, or access token is required.
-      </BAlert>
+      </div>
 
       <section class="public-panel mcp-grid" aria-label="MCP overview">
         <article class="mcp-section">
@@ -63,9 +64,6 @@
             These clients connect from your own machine. Use the URL as shown and do not add an
             <code>Authorization</code> header.
           </p>
-          <p id="mcp-code-scroll-guidance" class="mcp-muted">
-            Focus a code region, then use the arrow keys to scroll long commands and configuration.
-          </p>
 
           <div class="mcp-clients">
             <div class="mcp-client">
@@ -73,12 +71,20 @@
                 <i class="bi bi-terminal me-2" aria-hidden="true" />
                 Claude Code (CLI)
               </h3>
-              <pre
-                class="mcp-code"
-                tabindex="0"
-                aria-label="Claude Code MCP command"
-                aria-describedby="mcp-code-scroll-guidance"
-              ><code>claude mcp add --transport http sysndd {{ mcpUrl }}</code></pre>
+              <div class="mcp-code-block">
+                <pre
+                  class="mcp-code"
+                  aria-label="Claude Code MCP command"
+                ><code>claude mcp add --transport http sysndd {{ mcpUrl }}</code></pre>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary mcp-copy"
+                  aria-label="Copy Claude Code MCP command"
+                  @click="copy('claude', `claude mcp add --transport http sysndd ${mcpUrl}`)"
+                >
+                  {{ copied === 'claude' ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
               <p class="mcp-muted">No account, API key, or bearer token is required.</p>
             </div>
 
@@ -88,12 +94,20 @@
                 Claude Desktop
               </h3>
               <p class="mcp-muted">Add to <code>claude_desktop_config.json</code>:</p>
-              <pre
-                class="mcp-code"
-                tabindex="0"
-                aria-label="Claude Desktop MCP configuration"
-                aria-describedby="mcp-code-scroll-guidance"
-              ><code>{{ jsonSnippet }}</code></pre>
+              <div class="mcp-code-block">
+                <pre
+                  class="mcp-code"
+                  aria-label="Claude Desktop MCP configuration"
+                ><code>{{ jsonSnippet }}</code></pre>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary mcp-copy"
+                  aria-label="Copy Claude Desktop MCP configuration"
+                  @click="copy('claude', jsonSnippet)"
+                >
+                  {{ copied === 'claude' ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
             </div>
 
             <div class="mcp-client">
@@ -104,12 +118,20 @@
               <p class="mcp-muted">
                 Add the same block to your MCP config (e.g. <code>.cursor/mcp.json</code>):
               </p>
-              <pre
-                class="mcp-code"
-                tabindex="0"
-                aria-label="Cursor MCP configuration"
-                aria-describedby="mcp-code-scroll-guidance"
-              ><code>{{ jsonSnippet }}</code></pre>
+              <div class="mcp-code-block">
+                <pre
+                  class="mcp-code"
+                  aria-label="Cursor MCP configuration"
+                ><code>{{ jsonSnippet }}</code></pre>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary mcp-copy"
+                  aria-label="Copy Cursor MCP configuration"
+                  @click="copy('cursor', jsonSnippet)"
+                >
+                  {{ copied === 'cursor' ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
             </div>
           </div>
         </article>
@@ -260,6 +282,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 
 const resolveMcpUrl = () => `${window.location.origin.replace(/\/$/, '')}/mcp`;
@@ -274,6 +297,20 @@ const jsonSnippet = `{
     }
   }
 }`;
+
+// Which block was just copied (shows "Copied" for 1.6 s).
+const copied = ref('');
+async function copy(key: string, text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    copied.value = key;
+    window.setTimeout(() => {
+      if (copied.value === key) copied.value = '';
+    }, 1600);
+  } catch {
+    copied.value = '';
+  }
+}
 
 useHead({
   title: 'SysNDD MCP',
@@ -426,10 +463,16 @@ useHead({
   font-size: 0.85em;
 }
 
+.mcp-code-block {
+  position: relative;
+}
+
+/* Long URLs wrap instead of scrolling, so the whole command is always readable. */
 .mcp-code {
-  overflow-x: auto;
   margin: 0.55rem 0;
-  padding: 0.85rem;
+  padding: 0.85rem 4.5rem 0.85rem 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   border: 1px solid #cfd8e3;
   border-radius: 6px;
   background: #f6f8fb;
@@ -440,6 +483,15 @@ useHead({
 .mcp-code code {
   padding: 0;
   background: transparent;
+}
+
+.mcp-copy {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  padding: 0.1rem 0.5rem;
+  background: #fff;
+  font-size: 0.78rem;
 }
 
 .mcp-muted {
