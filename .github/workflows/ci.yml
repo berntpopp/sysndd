@@ -49,7 +49,7 @@ jobs:
   # ============================================================================
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: read
     outputs:
@@ -98,7 +98,7 @@ jobs:
   # ============================================================================
   lint-api:
     name: Lint R API
-    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
+    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     defaults:
@@ -147,14 +147,14 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
+          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
 
   test-api-fast:
     name: Test R API (fast PR gate)
-    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
+    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
     needs: changes
     if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.api == 'true' }}
     defaults:
@@ -218,7 +218,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
+          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -243,7 +243,7 @@ jobs:
 
   test-api-full:
     name: Test R API (full)
-    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
+    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
     if: ${{ github.event_name != 'pull_request' }}
     defaults:
       run:
@@ -303,7 +303,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
+          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -350,7 +350,7 @@ jobs:
   # =========================================================================
   slow-tests-nightly:
     name: Slow Tests (nightly)
-    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
+    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:
@@ -420,7 +420,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
+          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
 
       # Integration tests guard themselves with dbExistsTable() checks, so an
       # empty database makes every one of them SKIP -- silently. Apply the
@@ -456,7 +456,7 @@ jobs:
   # ============================================================================
   check-app:
     name: Check Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ needs.changes.outputs.app == 'true' }}
     defaults:
@@ -489,7 +489,7 @@ jobs:
 
   build-app:
     name: Build Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ needs.changes.outputs.app == 'true' }}
     defaults:
@@ -553,8 +553,8 @@ jobs:
   # When that todo lands, re-evaluate adding macos-latest back to the matrix.
   # ============================================================================
   make-doctor:
-    name: make doctor (ubuntu-24.04)
-    runs-on: ubuntu-24.04  # R jobs: match the API image (rocker noble); 26.04 has no P3M binaries and xts fails to build
+    name: make doctor (ubuntu-26.04)
+    runs-on: ubuntu-26.04  # explicit, not -latest: an image change must be a reviewed commit
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
@@ -604,7 +604,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 4  # fresh renv cache: v3 holds packages built on ubuntu-26.04 that do not load on 24.04
+          cache-version: 5  # fresh renv cache after the xts 0.14.3 bump and the 26.04 pin
 
       - name: make install-dev
         run: make install-dev
@@ -623,7 +623,7 @@ jobs:
   # conflict inside `jobs:`, keep both job blocks — never drop a job.
   smoke-test:
     name: Smoke Test (prod stack)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: changes
     if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.smoke == 'true' }}
     timeout-minutes: 25
@@ -675,7 +675,7 @@ jobs:
   # ============================================================================
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       [
         changes,

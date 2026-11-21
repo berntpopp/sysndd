@@ -10704,7 +10704,7 @@
     },
     "xts": {
       "Package": "xts",
-      "Version": "0.14.1",
+      "Version": "0.14.3",
       "Source": "Repository",
       "Type": "Package",
       "Title": "eXtensible Time Series",
