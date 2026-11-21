@@ -70,7 +70,11 @@ describe('ModelOrganismsCard', () => {
       rgdError: 'Request failed with status code 503',
     });
 
-    expect(wrapper.findAll('span[title="Request failed with status code 503"]')).toHaveLength(2);
+    const spans = wrapper.findAll('span[title="Request failed with status code 503"]');
+    expect(spans.map((s) => s.text())).toEqual([
+      'Temporarily unavailable',
+      'Temporarily unavailable',
+    ]);
     expect(wrapper.text()).toContain('Mouse');
     expect(wrapper.text()).toContain('Rat');
   });

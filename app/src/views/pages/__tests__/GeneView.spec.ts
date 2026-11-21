@@ -336,6 +336,10 @@ describe('GeneView (v11.3 W2)', () => {
 
     expect(w.text()).toContain('Model Organisms');
     expect(w.text()).not.toContain('status code 503');
+    // ModelOrganismsCard is stubbed here; it must still receive both errors to label each row.
+    const card = w.find('[mgi-error]');
+    expect(card.attributes('mgi-error')).toBe('Request failed with status code 503');
+    expect(card.attributes('rgd-error')).toBe('Request failed with status code 503');
     w.unmount();
   });
 });
