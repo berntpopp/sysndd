@@ -28,6 +28,53 @@ describe('useEntityAutocomplete', () => {
     expect(a.entity_search_results.value.length).toBe(10);
   });
 
+  describe('exact entity_id match comes first', () => {
+    // The list endpoint returns 10 rows sorted by entity_id; contains(any,...) also matches
+    // OMIM ids, so the exact id can rank below lower ids or fall off the page entirely.
+    const handler = (containsIds: number[]) =>
+      http.get('*/api/entity/*', ({ request }) => {
+        const filter = new URL(request.url).searchParams.get('filter') ?? '';
+        const exact = filter.match(/^equals\(entity_id,(\d+)\)$/);
+        const ids = exact ? [Number(exact[1])] : containsIds;
+        return HttpResponse.json({ data: ids.map((entity_id) => ({ entity_id })) });
+      });
+
+    test('searchEntity ranks the exact id above an earlier contains match', async () => {
+      server.use(handler([172, 1502, 2970]));
+      const a = useEntityAutocomplete();
+      await a.searchEntity('1502');
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([1502, 172, 2970]);
+    });
+
+    test('searchEntity keeps the exact id when it is off the contains page', async () => {
+      server.use(handler([3, 4, 5, 7, 8, 10, 14, 17, 19, 25]));
+      const a = useEntityAutocomplete();
+      await a.searchEntity('61');
+      expect(a.entity_search_results.value.map((e) => e.entity_id).slice(0, 2)).toEqual([61, 3]);
+      expect(a.entity_search_results.value.length).toBe(10);
+    });
+
+    test('searchReplacementEntity ranks the exact id first too', async () => {
+      server.use(handler([172, 1502]));
+      const a = useEntityAutocomplete({ getCurrentEntityId: () => 99 });
+      await a.searchReplacementEntity('1502');
+      expect(a.replace_entity_search_results.value.map((e) => e.entity_id)).toEqual([1502, 172]);
+    });
+
+    test('a failed exact-id lookup keeps the contains results', async () => {
+      server.use(
+        http.get('*/api/entity/*', ({ request }) =>
+          new URL(request.url).searchParams.get('filter')?.startsWith('equals(')
+            ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+            : HttpResponse.json({ data: [{ entity_id: 172 }, { entity_id: 1502 }] })
+        )
+      );
+      const a = useEntityAutocomplete();
+      await a.searchEntity('1502');
+      expect(a.entity_search_results.value.map((e) => e.entity_id)).toEqual([172, 1502]);
+    });
+  });
+
   test('searchOntology populates ontology_search_results capped at 10', async () => {
     server.use(
       http.get('*/api/search/ontology*', () =>
@@ -58,9 +105,7 @@ describe('useEntityAutocomplete', () => {
   });
 
   it('exposes an OMIM-pending hint when an OMIM-shaped query returns nothing', async () => {
-    server.use(
-      http.get('*/api/search/ontology*', () => HttpResponse.json([]))
-    );
+    server.use(http.get('*/api/search/ontology*', () => HttpResponse.json([])));
     const { searchOntology, ontologyNoResultsMessage } = useEntityAutocomplete();
     // searchOntologyApi is mocked to return [] by the MSW override above
     await searchOntology('621533');
@@ -68,9 +113,7 @@ describe('useEntityAutocomplete', () => {
   });
 
   it('keeps the default hint for a non-OMIM query', async () => {
-    server.use(
-      http.get('*/api/search/ontology*', () => HttpResponse.json([]))
-    );
+    server.use(http.get('*/api/search/ontology*', () => HttpResponse.json([])));
     const { searchOntology, ontologyNoResultsMessage } = useEntityAutocomplete();
     await searchOntology('seizure');
     expect(ontologyNoResultsMessage.value).toBe('No results found');
