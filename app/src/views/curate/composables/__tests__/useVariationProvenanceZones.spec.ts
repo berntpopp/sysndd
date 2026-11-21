@@ -23,6 +23,8 @@ import useVariationProvenanceZones, {
   variationTag,
 } from '../useVariationProvenanceZones';
 import type { EntityVariationRow, VariationSuggestion } from '@/api/entity';
+import { primeAuth } from '@/test-utils/primeAuth';
+import { useAuth } from '@/composables/useAuth';
 
 const modifierLabel = (id: number) => ({ 1: 'present', 5: 'absent' })[id] ?? `modifier ${id}`;
 
@@ -252,6 +254,7 @@ describe('partitionVariationZones', () => {
 describe('useVariationProvenanceZones', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    primeAuth(); // Administrator: the suggestions route is Curator-gated
   });
 
   function setup(selected: string[] = []) {
@@ -337,6 +340,22 @@ describe('useVariationProvenanceZones', () => {
 
     expect(zones.hasZones.value).toBe(false);
     expect(zones.provenanceRows.value).toEqual([]);
+    expect(zones.suggestions.value).toEqual([]);
+  });
+
+  it('loadForEntity does not request the Curator-gated suggestions route for a Reviewer', async () => {
+    const { user } = primeAuth();
+    useAuth().login('test-token', { ...user, user_role: ['Reviewer'] });
+    entityApiMocks.getEntityVariation.mockResolvedValue([
+      row('VariO:0017', 1, 'active_unconfirmed'),
+    ]);
+
+    const { zones } = setup(['1-VariO:0017']);
+    await zones.loadForEntity(7);
+
+    expect(entityApiMocks.getEntityVariationSuggestions).not.toHaveBeenCalled();
+    expect(entityApiMocks.getEntityVariation).toHaveBeenCalledWith(7, {}, undefined);
+    expect(zones.needsConfirmation.value).toHaveLength(1);
     expect(zones.suggestions.value).toEqual([]);
   });
 

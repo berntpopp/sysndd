@@ -58,6 +58,7 @@ vi.mock('@/composables/useFormDraft', () => ({
 }));
 
 import useReviewForm from '../useReviewForm';
+import { primeAuth } from '@/test-utils/primeAuth';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -157,6 +158,7 @@ function submittedVariation(): SubmittedVariation[] {
 describe('useReviewForm — #608 variation provenance', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    primeAuth(); // Administrator: the suggestions route is Curator-gated
     reviewApiMocks.updateReview.mockResolvedValue({ status: 200 });
     reviewApiMocks.createReview.mockResolvedValue({ status: 200 });
   });
