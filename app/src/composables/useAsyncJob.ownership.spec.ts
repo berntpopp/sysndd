@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 
-import { withSetup } from '@/test-utils';
+import { flushRequests, withSetup } from '@/test-utils';
 import { server } from '@/test-utils/mocks/server';
 import { primeAuth } from '@/test-utils/primeAuth';
 import useAuth from '@/composables/useAuth';
@@ -159,13 +159,14 @@ describe('useAsyncJob', () => {
       );
 
       job.startJob('j');
-      const advance = vi.advanceTimersByTimeAsync(TEST_POLL_MS * 4); // several ticks
-      await flushPromises();
+      await vi.advanceTimersByTimeAsync(TEST_POLL_MS * 4); // several ticks
+      await vi.waitFor(() => expect(entered).toBeGreaterThan(0));
+      // The gated poll stays in flight, so this returns on its timeout, after any extra poll landed.
+      await flushRequests(200);
       // Only one poll may be in flight for this job generation despite 4 ticks.
       expect(entered).toBe(1);
       release();
-      await advance;
-      await flushPromises();
+      await flushRequests();
 
       job.stopPolling();
       app.unmount();

@@ -17,7 +17,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
 
@@ -97,7 +98,7 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
       },
     },
   });
-  await flushPromises();
+  await flushRequests();
   return wrapper;
 };
 
@@ -163,7 +164,7 @@ describe('ManageReReview.vue — shell mount wiring', () => {
     );
 
     await mountManageReReview();
-    await flushPromises();
+    await flushRequests();
 
     expect(userList).toBe(true);
     expect(table).toBe(true);

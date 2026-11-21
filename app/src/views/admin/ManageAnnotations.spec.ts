@@ -50,12 +50,12 @@
  *   `''` via `vi.stubEnv` so `${import.meta.env.VITE_API_URL}/api/...`
  *   resolves to `/api/...` which MSW intercepts.  Without this stub the
  *   fetch URL becomes `undefined/api/...` and MSW's
- *   `onUnhandledRequest: 'error'` (vitest.setup.ts §60) throws.
+ *   `onUnhandledFrame: 'error'` (vitest.setup.ts §60) throws.
  * - `useIntervalFn` (VueUse) drives the polling loop.  Fake timers
- *   (`vi.useFakeTimers`) plus `vi.advanceTimersByTimeAsync(3000)` walks
- *   through each poll cycle.  `flushPromises()` drains the micro-task
- *   queue so each `axios.get` → MSW → reactive update completes before
- *   the next advance.
+ *   (`vi.useFakeTimers`, intervals only: MSW 3 resolves mocked fetches
+ *   through real timers) plus `vi.advanceTimersByTimeAsync(3000)` walks
+ *   through each poll cycle.  `flushRequests()` settles each
+ *   `axios.get` → MSW → reactive update before the next advance.
  * - `server.use(...)` per-test overrides stage the sequential status
  *   responses (queued → running → completed) via a closure-captured
  *   counter — no new handlers are added to the B1 table.
@@ -76,7 +76,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
 import { http, HttpResponse } from 'msw';
@@ -101,7 +102,7 @@ vi.mock('@/composables/useToast', () => ({
 // ManageAnnotations.onMounted fires several axios.get calls that are not in
 // the B1 handler table.  They are wrapped in try/catch in the view, so the
 // happy-path functional assertions don't depend on their shapes — but
-// vitest.setup.ts uses `onUnhandledRequest: 'error'` which fails the test
+// vitest.setup.ts uses `onUnhandledFrame: 'error'` which fails the test
 // if any un-mocked URL is hit.  We install transient shell handlers here
 // (per-test via server.use in installAuxHandlers) rather than adding them
 // to the shared B1 table.
@@ -281,7 +282,7 @@ const bvnStubs = {
  */
 async function acceptConfirmGate(wrapper: VueWrapper): Promise<void> {
   await wrapper.findComponent({ name: 'ConfirmActionModal' }).vm.$emit('confirm');
-  await flushPromises();
+  await flushRequests();
 }
 
 async function mountView(): Promise<VueWrapper> {
@@ -306,7 +307,7 @@ async function mountView(): Promise<VueWrapper> {
   });
 
   // Let onMounted axios.get calls resolve through MSW before we assert.
-  await flushPromises();
+  await flushRequests();
 
   return wrapper;
 }
@@ -320,11 +321,11 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     // VITE_API_URL is `undefined` in vitest (no .env.test).  The view builds
     // request URLs as `${import.meta.env.VITE_API_URL}/api/...` — stubbing to
     // empty string yields `/api/...` which MSW intercepts.  Without this,
-    // vitest.setup.ts's `onUnhandledRequest: 'error'` fails every request.
+    // vitest.setup.ts's `onUnhandledFrame: 'error'` fails every request.
     vi.stubEnv('VITE_API_URL', '');
 
     // Fake timers so we can walk the `useIntervalFn` polling loop manually.
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
 
     installAuxHandlers();
   });
@@ -402,20 +403,20 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     expect(hgncButton, 'expected an "Update HGNC Data" button').toBeDefined();
 
     await hgncButton!.trigger('click');
-    await flushPromises();
+    await flushRequests();
 
     // The submit POST has resolved; useAsyncJob.startJob() flipped status to
     // 'accepted' and resumed the 3s interval.  Walk it: each advance triggers
-    // one poll cycle, flushPromises drains the MSW → axios → reactive update.
+    // one poll cycle, flushRequests drains the MSW → axios → reactive update.
     await vi.advanceTimersByTimeAsync(3000); // poll #1 — queued
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #2 — running
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #3 — completed (terminal)
-    await flushPromises();
+    await flushRequests();
     // The completed watcher calls fetchJobHistory(); let that axios round-trip
     // settle too.
-    await flushPromises();
+    await flushRequests();
 
     // Sanity: the status endpoint was polled at least three times.
     expect(pollCount).toBeGreaterThanOrEqual(3);
@@ -466,7 +467,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     await updateOntology!.trigger('click');
     await acceptConfirmGate(wrapper);
     await vi.advanceTimersByTimeAsync(3000);
-    await flushPromises();
+    await flushRequests();
 
     expect(goodPollCount).toBe(2);
     expect(badPollCount).toBe(0);
@@ -570,15 +571,15 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
 
     // Walk the polling loop: queued → running → completed+blocked.
     await vi.advanceTimersByTimeAsync(3000); // poll #1 — queued
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #2 — running
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #3 — completed (terminal)
-    await flushPromises();
+    await flushRequests();
     // The ontologyJob completed watcher fires a follow-up axios.get and an
     // axios.get on /api/user/list for the force-apply dropdown.  Drain.
-    await flushPromises();
-    await flushPromises();
+    await flushRequests();
+    await flushRequests();
 
     // Sanity: we polled (poll #3 may also be the follow-up GET — either way
     // the counter advances at least three times).
@@ -658,7 +659,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
 
     const wrapper = await mountView();
     // Drain any remaining microtasks (loadOntologyStatus chains two awaits)
-    await flushPromises();
+    await flushRequests();
 
     expect(wrapper.text()).toContain('Ontology Update Blocked');
   });
@@ -670,7 +671,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     // Override dictionary-status BEFORE mounting. blocked=false so the view
     // must NOT call fetchOntologyJobResult or fetchForceApplyUsers — those
     // mocks are intentionally omitted; any accidental call would trip MSW's
-    // onUnhandledRequest: 'error' and fail the test immediately.
+    // onUnhandledFrame: 'error' and fail the test immediately.
     server.use(
       http.get('/api/admin/ontology/dictionary-status', () =>
         HttpResponse.json({
@@ -694,7 +695,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
 
     const wrapper = await mountView();
     // Drain any remaining microtasks (loadOntologyStatus chains two awaits)
-    await flushPromises();
+    await flushRequests();
 
     // Stale-only banner must be visible.
     expect(wrapper.text()).toContain('Disease dictionary may be stale');
@@ -802,12 +803,12 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     await acceptConfirmGate(wrapper);
 
     await vi.advanceTimersByTimeAsync(3000); // poll #1
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #2
-    await flushPromises();
+    await flushRequests();
     await vi.advanceTimersByTimeAsync(3000); // poll #3 — blocked
-    await flushPromises();
-    await flushPromises();
+    await flushRequests();
+    await flushRequests();
 
     // Sanity: the blocked alert must be rendered before we click Force Apply.
     expect(wrapper.html()).toContain('Ontology Update Blocked');
@@ -852,7 +853,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
 
     // Clicking only opens the gate — no submit yet.
     await ontologyButton!.trigger('click');
-    await flushPromises();
+    await flushRequests();
     expect(submitCount).toBe(0);
 
     // Accepting the gate runs the pending action — submit fires.

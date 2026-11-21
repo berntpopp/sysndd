@@ -18,7 +18,7 @@
  *     refetched once more after the PUT (= row refresh).
  *   - error path:  submit the edit-review form with no user changes, assert
  *     the silent guard in `submitReviewChange` fires and NO HTTP PUT reaches
- *     MSW (MSW's `onUnhandledRequest: 'error'` plus the request-start
+ *     MSW (MSW's `onUnhandledFrame: 'error'` plus the request-start
  *     listener catch any stray call).
  *   - it.todo:     locked handshake for Phase E5 — do not paraphrase.
  *
@@ -111,7 +111,7 @@ const createRoutedAxios = (): RoutedAxios => {
   const shouldBypassMsw = (url: string): boolean => {
     // The view's on-mount calls that are out of C1's scope and NOT in the B1
     // handler table. We return empty data synthetically so MSW's
-    // `onUnhandledRequest: 'error'` never fires for them.
+    // `onUnhandledFrame: 'error'` never fires for them.
     if (url.includes('/api/list/status')) return true;
     if (url.includes('/api/list/phenotype')) return true;
     if (url.includes('/api/list/variation_ontology')) return true;
@@ -490,7 +490,7 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
       // plan-mandated error-path check. Two independent oracles:
       //   (1) routedAxios.put/post call history is empty.
       //   (2) MSW's request-start event stream saw no PUT/POST either.
-      // Combined with vitest.setup.ts's `onUnhandledRequest: 'error'`,
+      // Combined with vitest.setup.ts's `onUnhandledFrame: 'error'`,
       // this would fail loudly if the guard ever slipped.
       expect(routedAxios.put).not.toHaveBeenCalled();
       expect(routedAxios.post).not.toHaveBeenCalled();

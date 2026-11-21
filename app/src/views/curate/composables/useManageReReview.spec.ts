@@ -21,6 +21,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
 
@@ -88,7 +89,9 @@ beforeEach(() => {
   installDefaultHandlers();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Fire-and-forget refreshes must land before the next test's handlers.
+  await flushRequests();
   useAuth().logout();
   if (originalViteApiUrl === undefined) {
     delete envBag.VITE_API_URL;
@@ -439,7 +442,7 @@ describe('useManageReReview — handleEntityAssignment', () => {
     ctrl.entityAssignUserId.value = 3;
     ctrl.entityAssignBatchName.value = '';
     await ctrl.handleEntityAssignment();
-    await flushPromises();
+    await flushRequests();
 
     expect(receivedBody).toEqual({ entity_ids: [11, 22], user_id: 3, batch_name: null });
     expect(onToast).toHaveBeenCalledWith('Created batch 77 with 2 entities', 'Success', 'success');
@@ -496,7 +499,7 @@ describe('useManageReReview — reassign & recalculate', () => {
     ctrl.reassignBatchId.value = 42;
     ctrl.reassignNewUserId.value = 9;
     await ctrl.handleBatchReassignment();
-    await flushPromises();
+    await flushRequests();
     expect(ctrl.reassignModalShow.value).toBe(false);
     expect(tableCalls).toBe(1);
     expect(entityCalls).toBe(0);
@@ -529,7 +532,7 @@ describe('useManageReReview — reassign & recalculate', () => {
       batch_size: 20,
     };
     await ctrl.handleBatchRecalculation();
-    await flushPromises();
+    await flushRequests();
     expect(ctrl.recalculateModalShow.value).toBe(false);
     expect(tableCalls).toBe(1);
     expect(entityCalls).toBe(1);

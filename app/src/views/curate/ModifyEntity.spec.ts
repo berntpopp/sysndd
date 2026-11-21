@@ -21,7 +21,7 @@
  * Rather than widen the locked B1 table in Phase C (forbidden by §3), this
  * spec follows the same `mocks: { axios }` pattern used by
  * `ModifyEntity.a11y.spec.ts`: every axios call in the view is intercepted at
- * the component-instance level. MSW's `onUnhandledRequest: 'error'` is still
+ * the component-instance level. MSW's `onUnhandledFrame: 'error'` is still
  * active globally, so if the mock ever leaks and a real network call escapes,
  * vitest will fail loudly.
  *

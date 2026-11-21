@@ -7,6 +7,7 @@
  */
 
 export { withSetup } from './with-setup';
+export { flushRequests } from './flushRequests';
 export {
   createTestRouter,
   mountWithRouter,

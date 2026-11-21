@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPromises, mount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { http, HttpResponse } from 'msw';
@@ -111,7 +112,7 @@ async function mountSubject(props = {}) {
       },
     },
   });
-  await flushPromises();
+  await flushRequests();
   return wrapper;
 }
 
@@ -257,7 +258,7 @@ describe('PubtatorNDDGenes', () => {
       .findAll('button')
       .find((button) => button.text().includes('Show'))!
       .trigger('click');
-    await flushPromises();
+    await flushRequests();
 
     expect((observed as URLSearchParams).get('filter')).toBe('any(pmid,123,456)');
     expect((observed as URLSearchParams).get('page_size')).toBe('2');
@@ -289,7 +290,7 @@ describe('PubtatorNDDGenes', () => {
       .findAll('button')
       .find((button) => button.text().includes('Export'))!
       .trigger('click');
-    await flushPromises();
+    await flushRequests();
 
     expect(exportToExcelSpy).toHaveBeenCalledWith(
       [
