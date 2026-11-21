@@ -536,6 +536,7 @@ export default {
 
 <style scoped>
 .chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
   overflow-x: auto;
 }
 /* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */

@@ -174,7 +174,8 @@
             v-else-if="summaryLoading"
             class="ai-summary-placeholder mb-3"
             data-testid="ai-summary-placeholder"
-            aria-hidden="true"
+            role="status"
+            aria-label="Loading AI summary"
           />
           <PhenotypeClusterVariableTable
             :selected-cluster="selectedCluster"

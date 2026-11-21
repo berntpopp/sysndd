@@ -55,6 +55,27 @@ describe('GenomicVisualizationTabs', () => {
     expect(getEnsemblStructure).toHaveBeenCalledTimes(1);
   });
 
+  it('fetches the new gene when the symbol changes while the old fetch is in flight', async () => {
+    const pending: Record<string, (v: unknown) => void> = {};
+    getEnsemblStructure.mockReset();
+    getEnsemblStructure.mockImplementation(
+      (symbol: string) => new Promise((r) => (pending[symbol] = r))
+    );
+    const w = mountTabs();
+    await w
+      .findAll('div')
+      .find((d) => d.text().startsWith('Gene Structure'))!
+      .trigger('click');
+    await flushPromises();
+    await w.setProps({ geneSymbol: 'ARID1B' });
+    await flushPromises();
+    expect(getEnsemblStructure).toHaveBeenLastCalledWith('ARID1B', expect.anything());
+    // The stale FBXO11 response must not land on the ARID1B page.
+    pending.FBXO11({ found: false });
+    await flushPromises();
+    expect(getEnsemblStructure).toHaveBeenCalledTimes(2);
+  });
+
   it('shows variant counts with a thousands separator', () => {
     const w = mountTabs();
     w.setProps({

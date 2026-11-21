@@ -236,7 +236,7 @@ export default {
         .style('font-variant-numeric', 'tabular-nums')
         .style('pointer-events', 'none')
         .style('fill', (d) => (d.value >= 0.74 ? '#fff' : '#000'))
-        .text((d) => d3.format('.2f')(d.value));
+        .text((d) => (Number.isFinite(d.value) ? d3.format('.2f')(d.value) : '—'));
     },
   },
 };

@@ -185,4 +185,38 @@ describe('ReviewTable', () => {
     expect(wrapper.text()).toContain('Approve all 40');
     expect(wrapper.text()).not.toContain('Approve all 3');
   });
+
+  it('names the search box after the queue it filters', () => {
+    const wrapper = mount(ReviewTable, {
+      props: {
+        title: 'Status Queue',
+        totalRowsLabel: 'statuses',
+        items: [],
+        fields: [{ key: 'symbol', label: 'Gene' }],
+        totalRows: 0,
+        pendingTotal: 0,
+        currentPage: 1,
+        perPage: 10,
+        pageOptions: [10],
+        sortBy: [],
+        categoryOptions: [{ value: null, text: 'All Categories' }],
+        userOptions: [{ value: null, text: 'All Users' }],
+        legendItems: [],
+      },
+      global: {
+        stubs: {
+          BButton: { template: '<button v-bind="$attrs"><slot /></button>' },
+          BFormInput: formInputStub,
+          BFormSelect: formSelectStub,
+          BInputGroup: passthrough,
+          BInputGroupText: passthrough,
+          BPagination: paginationStub,
+          BSpinner: passthrough,
+          IconLegend: passthrough,
+          GenericTable: passthrough,
+        },
+      },
+    });
+    expect(wrapper.find('input[aria-label="Search statuses"]').exists()).toBe(true);
+  });
 });

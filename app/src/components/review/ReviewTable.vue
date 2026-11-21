@@ -40,7 +40,7 @@
             type="search"
             placeholder="Search any field..."
             debounce="500"
-            aria-label="Search reviews"
+            :aria-label="`Search ${totalRowsLabel}`"
             @update:model-value="$emit('update:filterText', String($event ?? ''))"
           />
         </BInputGroup>

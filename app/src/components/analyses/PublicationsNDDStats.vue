@@ -18,7 +18,7 @@
 
     <!-- Metrics cards: same markup while loading (values hidden), so nothing jumps; they keep
          the unfiltered totals when Min Count re-filters the chart -->
-    <BRow class="mb-3 px-2" :aria-busy="statsData ? undefined : 'true'">
+    <BRow class="mb-3 px-2" :aria-busy="loadingCount ? 'true' : undefined">
       <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
         <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
           <div class="d-flex flex-column align-items-center">
@@ -135,8 +135,8 @@ export default {
 
       // Latest year with publications: early in a year the current year is often empty,
       // and a "2026 (YTD) 0" card reads as missing data
-      const yearOf = (d) => Number(d.Publication_date.substring(0, 4));
-      const dated = pubDates.filter((d) => d.Publication_date);
+      const yearOf = (d) => Number(String(d.Publication_date).substring(0, 4));
+      const dated = pubDates.filter((d) => d.Publication_date && Number.isFinite(yearOf(d)));
       const latestYear = dated.length ? Math.max(...dated.map(yearOf)) : currentYear;
       const latestYearPubs = dated
         .filter((d) => yearOf(d) === latestYear)
@@ -453,6 +453,7 @@ export default {
 
 <style scoped>
 .chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
   overflow-x: auto;
 }
 /* min-width = viewBox width: the chart never scales below 1:1, it scrolls on phones */

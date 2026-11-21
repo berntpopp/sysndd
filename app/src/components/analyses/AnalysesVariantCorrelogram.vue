@@ -218,6 +218,7 @@ export default {
 
 <style scoped>
 .chart-scroll {
+  text-align: center; /* centres the fixed-width chart in wide cards */
   overflow-x: auto;
 }
 .svg-container {

@@ -221,6 +221,7 @@ const geneStructureLoading = ref(false);
 const geneStructureError = ref<string | null>(null);
 const ensemblRawData = ref<EnsemblGeneStructure | null>(null);
 const geneStructureFetched = ref(false); // Track if we've fetched gene structure
+let structureInFlight: string | null = null; // gene whose structure is being fetched
 
 /**
  * Computed: Is protein tab data loading?
@@ -297,17 +298,20 @@ const genomicVariants = computed<GenomicVariant[]>(() =>
  */
 async function fetchGeneStructureData(): Promise<void> {
   if (!props.geneSymbol) return;
-  // Fetched, or in flight: the tab click and the index watcher both call this, and a
-  // second response would hand the plot new objects and re-render it (visible flicker).
-  if (geneStructureFetched.value || geneStructureLoading.value) return;
+  // Fetched, or in flight for this gene: the tab click and the index watcher both call
+  // this, and a second response would re-render the plot (visible flicker).
+  if (geneStructureFetched.value || structureInFlight === props.geneSymbol) return;
+  const symbol = props.geneSymbol;
+  structureInFlight = symbol;
 
   geneStructureLoading.value = true;
   geneStructureError.value = null;
 
   try {
-    const data = await getEnsemblStructure(props.geneSymbol, {
+    const data = await getEnsemblStructure(symbol, {
       withCredentials: true,
     });
+    if (symbol !== props.geneSymbol) return; // the gene changed; its own fetch owns the state
 
     // Defensive runtime narrow: the R endpoint maps the
     // `list(found = FALSE)` and `list(error = TRUE)` paths to 404/503
@@ -328,6 +332,7 @@ async function fetchGeneStructureData(): Promise<void> {
       geneStructureData.value = processEnsemblResponse(ensemblRawData.value);
     }
   } catch (e: unknown) {
+    if (symbol !== props.geneSymbol) return;
     if (isApiError(e) && e.response?.status === 404) {
       geneStructureData.value = null;
       ensemblRawData.value = null;
@@ -338,6 +343,7 @@ async function fetchGeneStructureData(): Promise<void> {
     }
   }
 
+  structureInFlight = null;
   geneStructureLoading.value = false;
   geneStructureFetched.value = true; // Mark as fetched
 }

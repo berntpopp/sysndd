@@ -8,6 +8,8 @@ vi.mock('@/api/statistics', () => ({
     publication_date_aggregated: [
       { Publication_date: '2024-01-01', count: 300 },
       { Publication_date: '2025-01-01', count: 4390 },
+      // An undated publication must not turn the latest-year card into "Publications NaN".
+      { Publication_date: 'NA', count: 0 },
     ],
     journal_counts: [{ Journal: 'American journal of human genetics', count: 42 }],
     last_name_counts: [],

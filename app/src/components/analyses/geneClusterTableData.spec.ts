@@ -116,6 +116,9 @@ describe('formatFdr', () => {
   it('renders an em dash for nullish values', () => {
     expect(formatFdr(null)).toBe('—');
     expect(formatFdr(undefined)).toBe('—');
+    // An empty or "NA" value is missing, not "< 1e-300" (Number('') is 0).
+    expect(formatFdr('')).toBe('—');
+    expect(formatFdr('NA')).toBe('—');
   });
 
   it('renders tiny values in scientific notation instead of "0"', () => {
@@ -159,11 +162,7 @@ describe('withCuratedCategoryLabels', () => {
       { value: 'RCTM', text: 'RCTM', link: 'y' },
       { value: 'Unknown', text: 'Unknown', link: 'z' },
     ]);
-    expect(labelled.map((c) => c.text)).toEqual([
-      'STRING cluster',
-      'Reactome',
-      'Unknown',
-    ]);
+    expect(labelled.map((c) => c.text)).toEqual(['STRING cluster', 'Reactome', 'Unknown']);
     expect(labelled[0].link).toBe('x');
   });
 });

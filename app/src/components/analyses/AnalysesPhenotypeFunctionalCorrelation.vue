@@ -234,7 +234,7 @@ export default {
         const [mx, my] = d3.pointer(event);
         tooltip
           .html(
-            `<strong>${clusterLabel(d.x)} vs. ${clusterLabel(d.y)}</strong><br>r = ${d3.format('.2f')(d.value)}`
+            `<strong>${clusterLabel(d.x)} vs. ${clusterLabel(d.y)}</strong><br>r = ${Number.isFinite(d.value) ? d3.format('.2f')(d.value) : '—'}`
           )
           .style('left', `${mx + margin.left + 20}px`)
           .style('top', `${my + margin.top}px`);
