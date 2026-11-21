@@ -40,11 +40,12 @@ explains the mechanics only.
 :::
 
 ::: {.doc-screenshot}
-![The Review Queue on the Approve Reviews page.](static/img/generated/curator-approve-review-table.png){#fig-curator-approve-review-table fig-alt="Approve Reviews page with the Review Queue table. Marker 1 points to the Approve All button above the table, marker 2 to the search field, marker 3 to the eye icon of a row, marker 4 to the Edit review pen icon, marker 5 to the stoplight Edit status icon and marker 6 to the Approve review check icon near the end of the row. The Dismiss review icon, a circled cross, sits directly to its right."}
+![The Review Queue on the Approve Reviews page.](static/img/generated/curator-approve-review-table.png){#fig-curator-approve-review-table fig-alt="Approve Reviews page with the Review Queue table. Marker 1 points to the Approve all button above the table, marker 2 to the search field, marker 3 to the eye icon of a row, marker 4 to the Edit review pen icon, marker 5 to the stoplight Edit status icon and marker 6 to the Approve review check icon near the end of the row. The Dismiss review icon, a circled cross, sits directly to its right."}
 :::
 
 ::: {.marker-legend}
-1. **Approve All**: approves every pending review; see the warning below.
+1. **Approve all**: approves every pending review; the button shows how many. See the
+   warning below.
 2. **Search any field**, **All Categories**, **All Users**, **From**, **To**: narrow the
    queue.
 3. **Toggle details**: shows the review identifier, ontology, full synopsis and comment.
@@ -123,16 +124,16 @@ the other review holds something worth keeping, copy it into the one you approve
 ## Approve all pending reviews
 
 ::: {.steps}
-1. Clear the search and all filters first. The number in the **Approve All Reviews**
-   dialog counts only the rows that match the current filters, but **Approve All**
-   approves every pending review.
-2. Select **Approve All** [1]{.marker}.
+1. Clear the search and all filters first, so the table shows what you approve. The
+   number on the button and in the **Approve All Reviews** dialog counts every pending
+   review, whatever the filters show.
+2. Select **Approve all** [1]{.marker}.
 3. Turn on the switch so that it reads **Yes, I confirm this action**.
 4. Select **Approve All**.
 :::
 
-::: {.callout-warning title="Approve All ignores your filters"}
-**Approve All** approves every pending review in SysNDD, including rows hidden by the
+::: {.callout-warning title="Approve all ignores your filters"}
+**Approve all** approves every pending review in SysNDD, including rows hidden by the
 search or filters. Use it only after you have checked the whole queue.
 :::
 
@@ -148,11 +149,11 @@ search or filters. Use it only after you have checked the whole queue.
 :::
 
 ::: {.doc-screenshot}
-![The Status Queue on the Approve Statuses page.](static/img/generated/curator-approve-status-table.png){#fig-curator-approve-status-table fig-alt="Approve Statuses page with the Status Queue table. Marker 1 points to the Approve All button above the table, marker 2 to the Category column, marker 3 to the Flag column, marker 4 to the eye icon of a row, marker 5 to the Edit status icon and marker 6 to the Approve status icon. The Dismiss status icon sits directly to its right."}
+![The Status Queue on the Approve Statuses page.](static/img/generated/curator-approve-status-table.png){#fig-curator-approve-status-table fig-alt="Approve Statuses page with the Status Queue table. Marker 1 points to the Approve all button above the table, marker 2 to the Category column, marker 3 to the Flag column, marker 4 to the eye icon of a row, marker 5 to the Edit status icon and marker 6 to the Approve status icon. The Dismiss status icon sits directly to its right."}
 :::
 
 ::: {.marker-legend}
-1. **Approve All**: approves every pending status; clear the filters first.
+1. **Approve all**: approves every pending status; clear the filters first.
 2. **Category**: the evidence category that was submitted.
 3. **Flag**: **No problems**, or **Problematic** when removal was suggested. The icon's
    tooltip then reads "Entity status marked problematic".
@@ -172,10 +173,10 @@ The status queue works like the review queue:
   others.
 - **Edit status (review change pending)** means the same entity also has a review waiting.
   Approve it in the review queue.
-- **Approve All** [1]{.marker} opens **Approve All Statuses**, which warns "This action
-  cannot be undone." Clear the search and all filters first: the number in the dialog
-  counts only the rows that match the current filters, but **Approve All** approves every
-  pending status. Turn the switch to **Yes, approve all**, then select **Approve All**.
+- **Approve all** [1]{.marker} opens **Approve All Statuses**, which warns "This action
+  cannot be undone." Clear the search and all filters first: the number on the button and
+  in the dialog counts every pending status, including rows the filters hide. Turn the
+  switch to **Yes, approve all**, then select **Approve All**.
 
 ## Decide on a suggested removal
 
@@ -200,7 +201,7 @@ What to do depends on why removal was suggested:
   time.
 - **A row is still in the queue after approval.** Select the refresh button at the top of
   the table.
-- **You approved too much with Approve All.** There is no undo. Correct each entity in
+- **You approved too much with Approve all.** There is no undo. Correct each entity in
   [Modify an entity](curator-modify-entity.qmd); your corrections go through the queues
   again.
 - **You cannot tell two pending reviews apart.** Open both with **Toggle details** and

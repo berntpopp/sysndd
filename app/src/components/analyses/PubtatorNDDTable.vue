@@ -443,7 +443,7 @@ export default defineComponent({
 
 .gene-chips {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap; /* nowrap pushed the "+N" chip into the next column */
   gap: 0.25rem;
   align-items: center;
 }

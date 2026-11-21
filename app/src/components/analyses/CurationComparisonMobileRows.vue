@@ -215,7 +215,8 @@ function toggleDetails(key: string): void {
 
 .curation-mobile-row__sources {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Full source names ("Gene2Phenotype") overflowed four phone columns into each other. */
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
   gap: 0.375rem;
   margin-top: 0.75rem;
 }
@@ -230,7 +231,9 @@ function toggleDetails(key: string): void {
   border-radius: 0.375rem;
   font-size: 0.7rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .curation-mobile-row__source-state {

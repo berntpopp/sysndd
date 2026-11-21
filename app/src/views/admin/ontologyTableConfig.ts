@@ -57,7 +57,7 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     sortable: true,
     selectable: true,
     class: 'text-center',
-    thStyle: { width: '6.5rem' },
+    thStyle: { width: '7.5rem' },
     formatter: ({ value }) => (flag(value) ? 'Yes' : 'No'),
   },
   {
@@ -74,7 +74,7 @@ export const ONTOLOGY_TABLE_FIELDS: OntologyTableField[] = [
     label: 'Order',
     sortable: true,
     class: 'text-center',
-    thStyle: { width: '5rem' },
+    thStyle: { width: '6rem' },
   },
   {
     key: 'update_date',

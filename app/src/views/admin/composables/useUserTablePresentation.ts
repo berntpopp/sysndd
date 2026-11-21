@@ -78,7 +78,7 @@ const USER_TABLE_FIELDS: UserTableField[] = [
     sortable: true,
     sortDirection: 'asc',
     class: 'text-start',
-    thStyle: { width: '6rem' },
+    thStyle: { width: '7rem' },
   },
   {
     key: 'created_at',
