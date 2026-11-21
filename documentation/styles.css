@@ -528,3 +528,14 @@ div[style*="max-width"] img {
 @media print {
   .doc-screenshot img { box-shadow: none; }
 }
+
+/* Tutorial videos: the box is reserved before the poster or video loads (no CLS). */
+.tutorial-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}

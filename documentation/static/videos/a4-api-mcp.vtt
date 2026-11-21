@@ -1,0 +1,154 @@
+WEBVTT
+
+00:00.500 --> 00:02.908
+Welcome to SysNDD.
+
+00:03.042 --> 00:08.226
+Here is how your code and your AI
+assistant reach its curated data.
+
+00:08.567 --> 00:14.383
+How do you get SysNDD data into your scripts,
+or into an AI assistant?
+
+00:14.516 --> 00:18.390
+In four parts: the API, one gene, the evidence,
+
+00:18.524 --> 00:22.676
+and MCP, the Model Context Protocol.
+
+00:23.033 --> 00:25.952
+Your own scripts can read SysNDD through its
+
+00:26.085 --> 00:30.433
+public application programming interface, or API.
+
+00:30.566 --> 00:35.126
+The OpenAPI logo in the page
+footer opens this Swagger page.
+
+00:35.260 --> 00:39.514
+It lists all endpoints and the API version.
+
+00:39.867 --> 00:43.913
+Reading needs no account, no key and no token.
+
+00:44.047 --> 00:48.458
+Public data sits in groups
+such as entity, gene and panels.
+
+00:48.592 --> 00:54.987
+Only endpoints that submit, review,
+curate or administer data need a login.
+
+00:55.333 --> 00:58.756
+Our example gene is <i>ANKRD11</i>.
+
+00:58.889 --> 01:01.427
+In the entity group, open the entity list.
+
+01:01.560 --> 01:03.276
+Select Try it out.
+
+01:03.409 --> 01:08.105
+In the filter field, type equals, symbol, <i>ANKRD11</i>.
+
+01:08.238 --> 01:10.455
+Then select Execute.
+
+01:10.800 --> 01:14.373
+The answer comes back as JSON, a text format.
+
+01:14.506 --> 01:20.901
+It holds one entity, number 45:
+<i>ANKRD11</i> with KBG syndrome, autosomal dominant,
+
+01:21.035 --> 01:25.280
+evidence category Definitive.
+
+01:25.633 --> 01:31.806
+Above the answer, Swagger shows
+the matching curl command and the request URL.
+
+01:31.939 --> 01:34.315
+Copy either into your own script.
+
+01:34.448 --> 01:39.474
+The gene and panels lists use the same filter syntax.
+
+01:39.833 --> 01:43.791
+Five endpoints return the evidence for an entity:
+
+01:43.924 --> 01:46.702
+the review with its clinical synopsis,
+
+01:46.835 --> 01:53.512
+the status with its category,
+phenotypes, variation terms and publications.
+
+01:53.867 --> 01:57.307
+The website shows the same approved record.
+
+01:57.440 --> 02:00.219
+On the entity page for number 45,
+
+02:00.352 --> 02:05.625
+the synopsis and the publication list match the API.
+
+02:05.967 --> 02:10.822
+For AI assistants, SysNDD runs an MCP server.
+
+02:10.956 --> 02:13.832
+In the menu, open Help, then MCP.
+
+02:13.965 --> 02:17.756
+The server is read-only: it cannot change data.
+
+02:18.100 --> 02:21.084
+Point your assistant at the server address.
+
+02:21.217 --> 02:26.099
+Leave authentication unset; no account is needed.
+
+02:26.467 --> 02:31.752
+For Claude Code,
+one command in a terminal adds the server.
+
+02:32.100 --> 02:38.704
+Now ask, for example:
+which SysNDD entities exist for <i>ANKRD11</i>?
+
+02:38.837 --> 02:44.778
+The assistant calls a SysNDD
+tool and receives the same entity 45.
+
+02:45.133 --> 02:49.073
+An assistant can misread or overstate what it retrieves,
+
+02:49.206 --> 02:51.917
+so check the evidence on the entity page.
+
+02:52.050 --> 02:55.457
+Some tools also return NDDScore.
+
+02:55.590 --> 03:02.331
+It helps prioritize genes,
+but it is a prediction, not an evidence category.
+
+03:02.700 --> 03:06.811
+Remember: reading needs no account, key or token.
+
+03:06.945 --> 03:12.170
+One filter finds a gene's entities;
+the entity ID opens the evidence.
+
+03:12.303 --> 03:16.782
+Check the record before you rely on an AI answer.
+
+03:17.133 --> 03:22.221
+Find the Swagger page and
+the MCP page on the SysNDD website.
+
+03:22.354 --> 03:27.694
+The documentation chapter
+on the API and MCP has more examples.

@@ -418,6 +418,6 @@ Curators handle refused entities on **Curation › Manage re-review**; see [Hand
 
 - [Curation criteria](05-curation-criteria.qmd): the rules for each evidence category.
 - [Research a gene and read a paper](curation-research.qmd): how to find and read the literature for a review.
-- [Tutorial videos](07-tutorial-videos.qmd): the Reviewer tutorial video.
+- [Tutorial videos](07-tutorial-videos.qmd): the re-review video B4 and the 2023 Reviewer tutorial.
 - [Your account](using-account.qmd): register, sign in and reset your password.
 - [Glossary](reference-glossary.qmd): terms and abbreviations used in curation.

@@ -1,0 +1,158 @@
+WEBVTT
+
+00:00.600 --> 00:03.084
+Welcome to SysNDD.
+
+00:03.217 --> 00:07.710
+Let's explore gene networks,
+and where phenotypes meet them.
+
+00:08.233 --> 00:14.266
+Which SysNDD genes work together,
+and do their disorders look alike?
+
+00:14.399 --> 00:19.993
+We look at the network, one cluster,
+its summary and the phenotypes.
+
+00:20.500 --> 00:26.610
+Under Analyses,
+Functional clusters shows a network of SysNDD genes,
+
+00:26.744 --> 00:30.754
+linked by protein interactions from the STRING database.
+
+00:30.888 --> 00:33.293
+Each color is one cluster.
+
+00:33.427 --> 00:36.807
+The view starts with genes of Definitive entities;
+
+00:36.941 --> 00:40.340
+the Category menu adds the others.
+
+00:40.867 --> 00:47.020
+The clusters use every gene with an entity
+for a neurodevelopmental disorder,
+
+00:47.153 --> 00:53.191
+and only STRING links from experiments
+and databases, not text mining.
+
+00:53.324 --> 00:56.500
+The Leiden algorithm groups genes that interact
+
+00:56.634 --> 00:59.304
+more with each other than with the rest.
+
+00:59.437 --> 01:02.864
+No phenotype data are used.
+
+01:03.367 --> 01:06.554
+In the Clusters menu, choose one cluster.
+
+01:06.687 --> 01:12.246
+The network,
+table and summary then show only that cluster.
+
+01:12.767 --> 01:17.705
+Term enrichment lists the terms
+over-represented in the cluster.
+
+01:17.838 --> 01:20.881
+#Genes counts the members with a term.
+
+01:21.014 --> 01:26.227
+For the false discovery rate, FDR, smaller is stronger.
+
+01:26.733 --> 01:29.186
+The summary is marked AI.
+
+01:29.320 --> 01:32.915
+A language model wrote it,
+and a second model checked it.
+
+01:33.049 --> 01:39.417
+AI evaluated means the check accepted the text,
+not that a curator reviewed it.
+
+01:39.550 --> 01:43.649
+Its key themes open with chromatin remodeling.
+
+01:44.167 --> 01:49.242
+<i>ARID1B</i>, <i>CHD7</i> and <i>KMT2D</i>
+share this chromatin cluster,
+
+01:49.375 --> 01:53.466
+yet they cause Coffin-Siris, CHARGE and Kabuki syndrome.
+
+01:53.600 --> 01:59.454
+A shared cluster suggests a shared process,
+not the same disorder.
+
+01:59.588 --> 02:02.327
+Its name is a hypothesis.
+
+02:02.833 --> 02:08.669
+Back in the Analyses menu,
+open Phenotype–function correlation.
+
+02:08.802 --> 02:12.854
+It compares functional clusters with phenotype clusters,
+
+02:12.987 --> 02:16.913
+which group entities with similar phenotypes.
+
+02:17.433 --> 02:20.652
+Every cluster appears on both axes.
+
+02:20.786 --> 02:25.751
+Skip the red diagonal:
+it compares each cluster with itself.
+
+02:25.885 --> 02:30.234
+Read the bottom rows, where phenotypes meet function.
+
+02:30.767 --> 02:32.238
+Point to a cell there.
+
+02:32.371 --> 02:37.822
+The tooltip names both clusters,
+pc for phenotype and fc for function,
+
+02:37.955 --> 02:39.589
+and their correlation.
+
+02:39.723 --> 02:45.727
+Red means they share more genes
+than by chance; blue, fewer.
+
+02:46.233 --> 02:48.572
+How far can you trust a cell?
+
+02:48.705 --> 02:51.559
+It shows shared genes, not why.
+
+02:51.692 --> 02:55.126
+Some links are expected from how the clusters formed.
+
+02:55.260 --> 02:58.985
+Cluster numbers can change with each data version.
+
+02:59.118 --> 03:02.633
+Use a cell to ask questions.
+
+03:03.133 --> 03:08.224
+Remember: clusters come from protein interactions,
+not phenotypes.
+
+03:08.357 --> 03:13.578
+A cluster name is a hypothesis;
+the AI summary is not curation.
+
+03:13.711 --> 03:17.454
+A heatmap cell is a question to check.
+
+03:17.967 --> 03:24.526
+For more on both pages,
+see the documentation chapter Read the analyses.

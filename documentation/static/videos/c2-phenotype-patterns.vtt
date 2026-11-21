@@ -1,0 +1,166 @@
+WEBVTT
+
+00:00.400 --> 00:02.782
+Welcome to SysNDD.
+
+00:02.915 --> 00:05.961
+Today, we explore phenotype patterns.
+
+00:06.167 --> 00:12.223
+In SysNDD, which phenotypes and
+variant types are recorded together?
+
+00:12.356 --> 00:16.966
+Let's look at counts,
+the correlogram, clusters and variants.
+
+00:17.167 --> 00:21.405
+Under Analyses, open Correlate phenotypes.
+
+00:21.538 --> 00:25.568
+The first three tabs use only Definitive entities
+
+00:25.702 --> 00:28.280
+with a neurodevelopmental phenotype,
+
+00:28.413 --> 00:31.806
+so their numbers differ from those under Tables.
+
+00:32.033 --> 00:37.866
+On Phenotype counts,
+each bar is one phenotype, most frequent first.
+
+00:38.000 --> 00:41.075
+Its height is the number of entities with it.
+
+00:41.209 --> 00:45.285
+Select a bar to open them in Phenotype search.
+
+00:45.500 --> 00:48.387
+Now switch to Phenotype correlogram.
+
+00:48.520 --> 00:53.025
+Each cell compares two
+phenotypes across the same entities.
+
+00:53.159 --> 00:59.260
+Red means a positive correlation,
+blue a negative one, and white none.
+
+00:59.467 --> 01:04.507
+Hover over a cell,
+and its value appears below the matrix.
+
+01:04.733 --> 01:07.839
+Here, Abnormality of the mitochondrion
+
+01:07.972 --> 01:13.435
+and Abnormality of the musculature
+have a moderate positive correlation.
+
+01:13.568 --> 01:17.853
+The readout gives the value and how to read it.
+
+01:18.067 --> 01:21.809
+R is a Pearson correlation of annotations.
+
+01:21.943 --> 01:24.098
+It shows how closely two phenotypes
+
+01:24.232 --> 01:27.768
+go together in the curated entities, not why.
+
+01:27.901 --> 01:31.747
+An unrecorded phenotype counts as absent.
+
+01:31.967 --> 01:34.723
+Next comes Phenotype clustering,
+
+01:34.856 --> 01:39.276
+where SysNDD groups entities with similar phenotypes.
+
+01:39.410 --> 01:43.803
+Each bubble is one cluster, sized by its entities.
+
+01:43.936 --> 01:47.376
+When the page opens, one cluster is selected.
+
+01:47.509 --> 01:52.526
+Its organ-system involvement is
+counted from the curated phenotypes.
+
+01:52.733 --> 01:57.800
+The input variables are
+the phenotypes that define the clusters.
+
+01:57.933 --> 02:00.962
+A positive v-test means a phenotype is
+
+02:01.095 --> 02:05.012
+more common in the cluster than in all entities.
+
+02:05.145 --> 02:09.693
+Abnormality of the mitochondrion is strongly positive.
+
+02:09.900 --> 02:14.055
+A cluster is a computed group, not a diagnosis.
+
+02:14.189 --> 02:17.831
+The clusters are reproducible but weakly separated,
+
+02:17.964 --> 02:21.023
+and a later data version can regroup them.
+
+02:21.157 --> 02:24.140
+Read each one as a hypothesis.
+
+02:24.367 --> 02:28.023
+Under Analyses, select Correlate variants.
+
+02:28.157 --> 02:31.580
+Its terms come from the Variation Ontology.
+
+02:31.714 --> 02:37.455
+An out-of-frame indel, a frameshift,
+correlates positively with truncation.
+
+02:37.588 --> 02:41.967
+That fits: frameshifts usually truncate the protein.
+
+02:42.200 --> 02:45.499
+At the top right, C-terminal protein elongation
+
+02:45.632 --> 02:49.880
+and protein elongation correlate perfectly.
+
+02:50.100 --> 02:51.845
+Select the cell.
+
+02:51.978 --> 02:56.580
+The Entities table lists
+the Definitive entities behind it.
+
+02:56.800 --> 03:01.614
+Count them: a single entity
+can produce a perfect correlation.
+
+03:01.748 --> 03:04.000
+That is not a pattern.
+
+03:04.233 --> 03:06.827
+Remember: count entities first.
+
+03:06.961 --> 03:11.135
+A correlation shows what
+curators record together, not why.
+
+03:11.268 --> 03:15.994
+And a cluster is a hypothesis: check its entities.
+
+03:16.200 --> 03:23.200
+Find these views under Analyses,
+at sysndd.dbmr.unibe.ch.
+
+03:24.059 --> 03:29.238
+Next, in C3: gene networks,
+and where phenotypes meet them.

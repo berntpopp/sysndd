@@ -1,6 +1,9 @@
 project:
   type: book
   output-dir: _book
+  # Tutorial videos are referenced from raw HTML, which Quarto does not scan.
+  resources:
+    - static/videos/*
 
 book:
   description: "How to use SysNDD, the expert-curated database of gene-disease relationships in neurodevelopmental disorders: finding genes, building panels, the API, the curation criteria and the curator workflows."

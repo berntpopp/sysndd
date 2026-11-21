@@ -1,0 +1,164 @@
+WEBVTT
+
+00:00.500 --> 00:02.768
+Welcome to SysNDD.
+
+00:02.901 --> 00:06.523
+Let's build and download a gene panel.
+
+00:06.867 --> 00:11.059
+How do you get a gene panel
+from SysNDD that you can cite?
+
+00:11.192 --> 00:15.587
+Four parts: filter, check, export and cite.
+
+00:15.933 --> 00:21.053
+In the top bar,
+open the Tables menu, then select Panels.
+
+00:21.400 --> 00:23.882
+The page is called Panel compilation.
+
+00:24.015 --> 00:28.169
+Each row is one gene, not one entity.
+
+00:28.533 --> 00:31.262
+SysNDD grades entities.
+
+00:31.396 --> 00:36.107
+An entity links a gene,
+a mode of inheritance and a disease.
+
+00:36.241 --> 00:38.046
+A panel lists genes.
+
+00:38.180 --> 00:42.417
+It files each gene under
+the highest category of its entities.
+
+00:42.551 --> 00:46.787
+<i>FBXO11</i> has a Definitive and a Refuted entity,
+
+00:46.921 --> 00:49.536
+so the panel lists it under Definitive.
+
+00:49.670 --> 00:53.096
+Only entities marked NDD Yes count:
+
+00:53.230 --> 00:56.933
+their disease is a neurodevelopmental disorder.
+
+00:57.300 --> 01:00.246
+In Category, choose Definitive.
+
+01:00.379 --> 01:05.815
+The table now lists every gene
+whose highest entity is Definitive.
+
+01:06.167 --> 01:11.212
+Leave Inheritance at All
+to keep every mode of inheritance.
+
+01:11.345 --> 01:16.473
+Beside the title,
+the Genes count shows the size of your panel.
+
+01:16.833 --> 01:21.934
+A mode of inheritance belongs
+to each entity, not to the gene.
+
+01:22.068 --> 01:27.842
+<i>FBXO11</i> has two NDD entities:
+a Definitive dominant entity
+
+01:27.976 --> 01:30.656
+and a Refuted recessive one.
+
+01:30.790 --> 01:34.147
+Only the dominant entity is Definitive.
+
+01:34.281 --> 01:37.659
+So before you filter variants by mode of inheritance,
+
+01:37.793 --> 01:42.752
+open the gene page and see which
+entity carries which category.
+
+01:43.100 --> 01:48.172
+Back on the Panels page, select the .xlsx button.
+
+01:48.533 --> 01:53.893
+It downloads the whole panel,
+every page, as one Excel file.
+
+01:54.233 --> 01:56.461
+The file has three sheets.
+
+01:56.595 --> 02:00.638
+The data sheet has one row per gene,
+with gene identifiers
+
+02:00.772 --> 02:05.886
+and coordinates on hg19 and hg38.
+
+02:06.020 --> 02:09.742
+The meta sheet records the query that built the panel.
+
+02:09.876 --> 02:11.906
+Keep it with your analysis.
+
+02:12.040 --> 02:16.794
+The links sheet records the query as an API address.
+
+02:17.167 --> 02:21.917
+Write down the download date,
+because the file does not record it.
+
+02:22.050 --> 02:29.050
+Under the SysNDD name in the top bar,
+you see the version, here 0.38.2.
+
+02:30.733 --> 02:33.751
+Under Help, About, open Citation Policy.
+
+02:33.885 --> 02:37.679
+The Primary Citation names the SysNDD paper.
+
+02:37.813 --> 02:41.007
+Cite it whenever you use SysNDD.
+
+02:41.367 --> 02:47.273
+In your methods, name the panel,
+the SysNDD version and your access date.
+
+02:47.406 --> 02:52.048
+Curators keep entities up to date,
+so the version and the date tell readers
+
+02:52.181 --> 02:56.408
+which state of SysNDD you used.
+
+02:56.767 --> 02:59.907
+Remember: a panel files each gene under
+
+03:00.040 --> 03:04.185
+the highest category of its NDD entities.
+
+03:04.318 --> 03:07.641
+A mode of inheritance belongs to each entity,
+
+03:07.774 --> 03:12.952
+so check the gene page before you
+filter variants by mode of inheritance.
+
+03:13.085 --> 03:17.915
+Finally, cite the SysNDD
+paper with the version and date,
+
+03:18.048 --> 03:21.567
+and keep the meta sheet with your analysis.
+
+03:21.933 --> 03:28.493
+The documentation chapter
+Build and download a gene panel shows every step.

@@ -1,0 +1,161 @@
+WEBVTT
+
+00:00.600 --> 00:02.904
+Welcome to SysNDD.
+
+00:03.037 --> 00:06.115
+See how curators grade evidence.
+
+00:06.633 --> 00:09.740
+How strong is the evidence for an entity?
+
+00:09.873 --> 00:15.182
+An entity is one gene,
+one mode of inheritance and one disease.
+
+00:15.315 --> 00:20.573
+To set its evidence category,
+curators count cases, combine criteria,
+
+00:20.706 --> 00:22.851
+and weigh the doubts.
+
+00:23.367 --> 00:26.684
+A Definitive entity needs a publication.
+
+00:26.817 --> 00:30.186
+Then count each individual and family once.
+
+00:30.320 --> 00:33.425
+Ten or more cases with <i>de novo</i> variants,
+
+00:33.558 --> 00:36.577
+five or more autosomal recessive families,
+
+00:36.711 --> 00:40.400
+or three or more families with X-chromosomal variants:
+
+00:40.533 --> 00:42.812
+each is a clear-cut frequency,
+
+00:42.945 --> 00:46.761
+and no further criteria are needed.
+
+00:47.267 --> 00:53.790
+For <i>ANKRD11</i> and KBG syndrome,
+the synopsis reports <i>de novo</i>
+
+00:53.923 --> 00:57.903
+and some inherited variants
+in more than 300 individuals.
+
+00:58.036 --> 01:01.322
+That is far more than ten <i>de novo</i> cases.
+
+01:01.455 --> 01:04.396
+This entity is Definitive.
+
+01:04.900 --> 01:08.043
+If the count falls short, combine.
+
+01:08.176 --> 01:13.468
+A strong frequency criterion,
+such as three patients with <i>de novo</i> variants,
+
+01:13.601 --> 01:19.564
+needs a partner: one strong genetic criterion,
+one strong clinical criterion,
+
+01:19.697 --> 01:23.121
+or at least two moderate criteria.
+
+01:23.633 --> 01:27.508
+The category belongs to the entity, not to the gene.
+
+01:27.641 --> 01:33.742
+<i>SETD1B</i> has two entities:
+the autosomal dominant one is Definitive,
+
+01:33.875 --> 01:37.325
+the autosomal recessive one is Moderate.
+
+01:37.833 --> 01:40.206
+Open the recessive entity.
+
+01:40.340 --> 01:43.656
+Its synopsis reports bi-allelic missense variants
+
+01:43.789 --> 01:49.370
+in 3 independent individuals:
+a strong frequency criterion.
+
+01:49.503 --> 01:53.255
+Without a partner, it is Moderate: better than Limited,
+
+01:53.389 --> 01:56.444
+but not enough for Definitive.
+
+01:56.967 --> 02:01.931
+<i>ZCCHC8</i> has one recessive
+family with a nonsense variant.
+
+02:02.064 --> 02:08.829
+No functional evidence is recorded,
+so this entity is Limited.
+
+02:09.333 --> 02:13.693
+In borderline cases,
+weigh the possible negative criteria.
+
+02:13.826 --> 02:17.280
+First, an old publication, never confirmed.
+
+02:17.413 --> 02:20.487
+Second, doubtful publication quality.
+
+02:20.621 --> 02:24.304
+Third, new evidence against the gene or its variants,
+
+02:24.437 --> 02:30.090
+such as constraint scores
+from the Genome Aggregation Database, gnomAD.
+
+02:30.224 --> 02:35.134
+If the association is contradicted, consider Refuted.
+
+02:35.667 --> 02:40.783
+For <i>PGA5</i>, one individual was described in 2010,
+
+02:40.916 --> 02:43.584
+with no further publications since.
+
+02:43.718 --> 02:49.653
+In gnomAD, the gene is tolerant
+to missense and loss-of-function variants.
+
+02:49.786 --> 02:52.639
+This entity is Refuted.
+
+02:53.167 --> 02:56.765
+The gene page shows the gnomAD scores.
+
+02:56.898 --> 03:03.898
+Loss-of-function variants are not depleted:
+15.9 expected, 18 observed.
+
+03:05.033 --> 03:09.939
+Remember to count each
+individual and family once, per entity.
+
+03:10.072 --> 03:13.773
+A clear-cut frequency needs no further criteria.
+
+03:13.907 --> 03:17.985
+Otherwise, a strong frequency criterion needs a partner.
+
+03:18.118 --> 03:22.006
+In borderline cases, weigh the doubts.
+
+03:22.533 --> 03:28.488
+Find all the rules in the documentation
+chapter Curation criteria.

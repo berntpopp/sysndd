@@ -1,0 +1,155 @@
+WEBVTT
+
+00:00.600 --> 00:02.965
+Welcome to SysNDD.
+
+00:03.099 --> 00:06.737
+Let's find disorders by their phenotypes.
+
+00:07.267 --> 00:12.839
+Which neurodevelopmental disorders
+match a set of clinical features?
+
+00:12.972 --> 00:19.218
+Let's choose phenotypes, combine them,
+read the result, and check a match.
+
+00:19.733 --> 00:23.334
+In the menu, open Tables, then Phenotypes.
+
+00:23.467 --> 00:26.276
+The page is called Phenotype search.
+
+00:26.409 --> 00:30.453
+Intellectual disability is already selected.
+
+00:30.967 --> 00:34.709
+Select the arrow at the right of the phenotype box.
+
+00:34.842 --> 00:38.657
+In Search phenotypes, type seizures, and select it.
+
+00:38.791 --> 00:42.486
+Add microcephaly the same way.
+
+00:43.000 --> 00:49.480
+SysNDD uses a fixed set of broad
+terms from the Human Phenotype Ontology,
+
+00:49.614 --> 00:53.629
+or HPO, so that entities can be compared.
+
+00:53.763 --> 00:56.527
+Curators include a term when the feature occurs
+
+00:56.661 --> 01:01.067
+in 20 percent or more of affected individuals.
+
+01:01.200 --> 01:06.439
+The search reads these annotations,
+not the clinical synopsis.
+
+01:06.967 --> 01:09.535
+Beside the box, AND is active.
+
+01:09.669 --> 01:14.360
+With AND, an entity must carry every selected phenotype.
+
+01:14.494 --> 01:17.687
+Each term you add makes the list shorter.
+
+01:17.821 --> 01:22.806
+Above the table,
+Associated entities shows how many match.
+
+01:23.333 --> 01:29.395
+Select OR. Now one of the selected
+phenotypes is enough, and the list grows.
+
+01:29.529 --> 01:34.053
+Select AND again to return to the shorter list.
+
+01:34.567 --> 01:40.511
+Use AND to narrow a differential
+diagnosis to disorders with all the features.
+
+01:40.644 --> 01:45.686
+Use OR to collect every disorder with any of them.
+
+01:46.200 --> 01:51.928
+Each row is one entity: a gene,
+a mode of inheritance and a disease.
+
+01:52.062 --> 01:56.752
+Here is <i>ARID1B</i> with Coffin-Siris syndrome 1,
+autosomal dominant.
+
+01:56.885 --> 02:03.081
+In the Category column,
+the green check means Definitive.
+
+02:03.600 --> 02:06.423
+Results can mix evidence categories.
+
+02:06.557 --> 02:09.669
+Here, the category filter is set to Definitive,
+
+02:09.803 --> 02:12.429
+so only Definitive entities remain.
+
+02:12.563 --> 02:17.441
+The .xlsx button downloads the whole list.
+
+02:17.967 --> 02:19.753
+Now check what a match means.
+
+02:19.887 --> 02:23.874
+In Filter Symbol, type <i>SCN8A</i>.
+
+02:24.007 --> 02:27.967
+It appears in the result for all three phenotypes.
+
+02:28.500 --> 02:31.218
+Select its ID to open the entity.
+
+02:31.352 --> 02:34.146
+Under Phenotypes, each term has a modifier:
+
+02:34.279 --> 02:38.306
+present, uncertain, variable, rare or absent.
+
+02:38.440 --> 02:41.806
+Point at Seizures: it is recorded as absent.
+
+02:41.939 --> 02:45.782
+Microcephaly, in amber, is uncertain.
+
+02:46.300 --> 02:50.946
+The search matches a term
+with any modifier, even absent.
+
+02:51.079 --> 02:55.099
+A match is a disorder to check, not a diagnosis.
+
+02:55.233 --> 02:57.939
+Annotations may not list every feature,
+
+02:58.072 --> 03:02.220
+so a missing term is not proof of absence.
+
+03:02.733 --> 03:06.215
+Remember: AND narrows, OR widens.
+
+03:06.349 --> 03:09.345
+Filter the category before you use the list.
+
+03:09.479 --> 03:14.413
+And open the entity to read
+how each feature is recorded.
+
+03:14.933 --> 03:21.933
+Find Phenotype search under Tables,
+Phenotypes, at sysndd.dbmr.unibe.ch.
+
+03:23.207 --> 03:26.701
+The documentation explains each step.
