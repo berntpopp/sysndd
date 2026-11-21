@@ -1,0 +1,157 @@
+WEBVTT
+
+00:00.600 --> 00:02.748
+Welcome to SysNDD.
+
+00:02.881 --> 00:06.802
+Let's curate a new gene, step by step.
+
+00:07.300 --> 00:12.800
+<i>MAU2</i> had no SysNDD entity when we recorded this.
+
+00:12.934 --> 00:16.741
+How do you create one, and which category does it earn?
+
+00:17.233 --> 00:20.484
+In the Curation menu, select Create entity.
+
+00:20.617 --> 00:24.219
+In Gene, type <i>MAU2</i> and select it.
+
+00:24.352 --> 00:31.352
+In Disease, type Cornelia de Lange,
+and select syndrome 7, the <i>MAU2</i> subtype.
+
+00:31.967 --> 00:36.517
+In Inheritance, select Autosomal dominant inheritance.
+
+00:36.650 --> 00:41.371
+Cognitive impairment is common,
+so this is a neurodevelopmental disorder,
+
+00:41.505 --> 00:45.486
+or NDD: set NDD Phenotype to Yes.
+
+00:45.619 --> 00:51.487
+Gene, mode of inheritance and
+disease define the entity: check them now.
+
+00:52.000 --> 00:57.207
+Under Publications, add the cohort study,
+an independent case report
+
+00:57.341 --> 00:59.158
+and the first report.
+
+00:59.291 --> 01:03.812
+Leave out the preprint; its journal version replaces it.
+
+01:03.946 --> 01:08.559
+In GeneReviews, add the Cornelia de Lange chapter.
+
+01:09.067 --> 01:15.655
+In Synopsis, give counts:
+about 19 individuals from 16 families,
+
+01:15.788 --> 01:18.480
+9 with <i>de novo</i> variants.
+
+01:18.614 --> 01:22.943
+Add variant types, the range of intellectual disability,
+
+01:23.076 --> 01:26.345
+and main features with frequencies.
+
+01:26.833 --> 01:31.389
+In Phenotypes, search for a term, such as Short stature.
+
+01:31.523 --> 01:34.594
+Then tick the modifier present.
+
+01:35.100 --> 01:41.197
+Record the features seen
+in 20 percent or more of affected individuals.
+
+01:41.330 --> 01:46.512
+Intellectual disability varies widely,
+from borderline to severe,
+
+01:46.645 --> 01:50.379
+so select all four severity terms.
+
+01:50.867 --> 01:56.079
+Under Variation Ontology,
+select the reported variant types.
+
+01:56.212 --> 02:01.011
+Add an effect only where it was shown,
+such as protein loss of function
+
+02:01.144 --> 02:04.866
+or effect on protein interaction.
+
+02:05.367 --> 02:07.534
+Definitive needs a publication,
+
+02:07.667 --> 02:11.975
+plus either a clear-cut
+frequency or cumulative evidence.
+
+02:12.109 --> 02:16.875
+For <i>de novo</i> variants,
+clear-cut means 10 or more cases.
+
+02:17.008 --> 02:21.687
+<i>MAU2</i> has 9, so it is not met.
+
+02:22.200 --> 02:24.467
+Cumulative evidence is met.
+
+02:24.601 --> 02:28.939
+9 <i>de novo</i> cases meet a strong frequency criterion.
+
+02:29.072 --> 02:31.448
+A <i>de novo</i> truncating variant in a gene
+
+02:31.581 --> 02:36.000
+intolerant to loss of function
+meets a strong genetic one.
+
+02:36.134 --> 02:38.926
+So the entity is Definitive.
+
+02:39.433 --> 02:42.687
+In Status, select Definitive.
+
+02:42.820 --> 02:48.355
+In Comment, give your reasons and your doubts:
+most cases come from one cohort,
+
+02:48.488 --> 02:52.184
+and two variants had no effect in any assay.
+
+02:52.317 --> 02:55.433
+These doubts could justify Moderate.
+
+02:55.933 --> 02:59.692
+In Review & Submit, check the summary.
+
+03:00.200 --> 03:04.568
+Leave Direct approval off, and select Submit Entity.
+
+03:04.702 --> 03:09.080
+A second Curator approves it before it is public.
+
+03:09.567 --> 03:14.925
+Remember:
+gene, mode of inheritance and disease define the entity.
+
+03:15.059 --> 03:17.576
+The criteria decide the category.
+
+03:17.710 --> 03:21.568
+And record only what the papers support.
+
+03:22.067 --> 03:27.826
+Read more in the documentation
+chapter called Create an entity.

@@ -1,0 +1,158 @@
+WEBVTT
+
+00:00.600 --> 00:02.895
+Welcome to SysNDD.
+
+00:03.029 --> 00:05.641
+Let's find the evidence for a gene.
+
+00:06.133 --> 00:11.475
+Where is the evidence for a gene,
+and have you found all of it?
+
+00:11.609 --> 00:14.416
+We follow <i>TBL1XR1</i> through four places:
+
+00:14.549 --> 00:20.134
+SysNDD, the curated summaries, PubMed, and preprints.
+
+00:20.633 --> 00:24.443
+Start in SysNDD and open the gene page.
+
+00:24.576 --> 00:27.366
+Under Associated, <i>TBL1XR1</i> has two entities:
+
+00:27.500 --> 00:31.503
+an intellectual developmental disorder,
+
+00:31.636 --> 00:33.251
+and Pierpont syndrome.
+
+00:33.384 --> 00:36.875
+Each entity needs its own assessment.
+
+00:37.367 --> 00:41.263
+Then open an entity and read its dates.
+
+00:41.397 --> 00:45.788
+This one was last updated in August 2026,
+
+00:45.922 --> 00:49.740
+when its category moved from Limited to Definitive.
+
+00:49.873 --> 00:54.652
+Its clinical synopsis was last reviewed in 2014,
+
+00:54.785 --> 00:58.423
+so check which papers appeared since then.
+
+00:58.933 --> 01:05.239
+OMIM, Online Mendelian Inheritance in Man,
+links two disorders to the gene,
+
+01:05.373 --> 01:07.306
+each with its own number.
+
+01:07.440 --> 01:11.052
+That number usually becomes the disease of the entity.
+
+01:11.185 --> 01:14.040
+GeneReviews has no chapter for this gene,
+
+01:14.173 --> 01:17.205
+so the primary papers carry the evidence.
+
+01:17.338 --> 01:23.574
+If a chapter exists,
+note its PubMed identifier, the PMID.
+
+01:24.067 --> 01:26.893
+For PubMed, first collect the gene's names.
+
+01:27.026 --> 01:34.026
+HGNC, the HUGO Gene Nomenclature Committee,
+lists the aliases of <i>TBL1XR1</i>.
+
+01:34.768 --> 01:39.999
+One of them is <i>TBLR1</i>,
+and some papers use only that name.
+
+01:40.500 --> 01:44.287
+In PubMed, tag each name with tiab,
+for title and abstract.
+
+01:44.421 --> 01:49.564
+This keeps the search to papers about the gene.
+
+01:49.697 --> 01:55.307
+Join the alias with OR,
+and then add the disorder: intellectual disability,
+
+01:55.440 --> 01:58.340
+developmental delay or autism.
+
+01:58.833 --> 02:02.532
+Look for case reports, case series and cohorts.
+
+02:02.665 --> 02:06.726
+This 2023 series adds four new cases.
+
+02:06.859 --> 02:12.708
+It reviews 47 individuals reported before,
+and pools all 51.
+
+02:12.841 --> 02:16.332
+You may have counted some of those 47 already.
+
+02:16.465 --> 02:20.801
+Match patients by variant, sex, age and family.
+
+02:20.935 --> 02:25.046
+Count each individual and each family once.
+
+02:25.533 --> 02:27.953
+Preprints often come first.
+
+02:28.087 --> 02:33.701
+This bioRxiv preprint from May 2025
+has functional data on <i>TBLR1</i>.
+
+02:33.835 --> 02:40.835
+Its page says Now published
+in Nature Communications, with a link.
+
+02:41.567 --> 02:46.811
+Follow the link and work from the published version.
+
+02:46.944 --> 02:51.228
+Cite its PMID and read the final text,
+because details can change.
+
+02:51.361 --> 02:55.858
+Before publication, a preprint
+can be considered individually:
+
+02:55.991 --> 02:58.687
+enter its digital object identifier,
+
+02:58.821 --> 03:02.286
+the DOI, in the comment field.
+
+03:02.767 --> 03:07.939
+Remember: start in SysNDD and
+read every entity with its dates.
+
+03:08.072 --> 03:10.771
+Search with tiab and the HGNC aliases,
+
+03:10.904 --> 03:15.565
+and count each individual and each family once.
+
+03:15.698 --> 03:19.486
+And check whether each preprint is now published.
+
+03:19.967 --> 03:23.689
+Each step is in the SysNDD documentation.
+
+03:23.822 --> 03:27.967
+In video B3, we read one paper for curation.

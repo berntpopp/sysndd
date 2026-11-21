@@ -1,0 +1,158 @@
+WEBVTT
+
+00:00.500 --> 00:03.246
+Welcome to SysNDD.
+
+00:03.379 --> 00:06.874
+Today, we read a paper the way a curator does.
+
+00:07.233 --> 00:09.940
+What does an entity need from a paper?
+
+00:10.073 --> 00:14.696
+We read one paper on <i>DDX3X</i> and collect individuals,
+
+00:14.829 --> 00:18.834
+variants, functional data, and phenotypes.
+
+00:19.200 --> 00:22.773
+Our example is the 2015 paper by Snijders Blok
+
+00:22.906 --> 00:28.602
+and colleagues in the American
+Journal of Human Genetics.
+
+00:28.735 --> 00:33.420
+You can read the full text for free in PubMed Central.
+
+00:33.767 --> 00:39.175
+The abstract reports 38 females
+with 35 different <i>de novo</i> variants.
+
+00:39.308 --> 00:40.767
+A good start.
+
+00:40.900 --> 00:47.005
+For the details behind these counts,
+read the methods, the patient tables
+
+00:47.138 --> 00:49.327
+and the supplement.
+
+00:49.700 --> 00:54.899
+Table 1 marks who was reported before:
+four females from one study,
+
+00:55.032 --> 00:59.259
+one female from another, and one family from a third.
+
+00:59.392 --> 01:06.099
+Count each individual and family once,
+however many papers report them.
+
+01:06.467 --> 01:11.230
+For <i>de novo</i> status,
+check that both parents were tested.
+
+01:11.364 --> 01:17.184
+Then note the variant types:
+19 predicted loss-of-function variants,
+
+01:17.317 --> 01:20.976
+15 missense and one in-frame deletion.
+
+01:21.109 --> 01:25.034
+One missense variant recurs in three females,
+
+01:25.168 --> 01:30.144
+and recurrence of a variant
+is a strong genetic criterion.
+
+01:30.500 --> 01:31.785
+In three families,
+
+01:31.918 --> 01:37.213
+missense variants segregate
+with intellectual disability in males;
+
+01:37.346 --> 01:40.013
+carrier females are unaffected.
+
+01:40.146 --> 01:45.231
+So one paper feeds two entities,
+one per mode of inheritance:
+
+01:45.364 --> 01:50.751
+X-linked dominant for the females,
+X-linked recessive for the families.
+
+01:50.884 --> 01:53.138
+Keep their counts apart.
+
+01:53.500 --> 01:54.500
+In zebrafish,
+
+01:54.633 --> 02:01.217
+all tested <i>de novo</i> variants showed
+a loss-of-function effect on Wnt signaling.
+
+02:01.351 --> 02:06.630
+In this assay,
+the variants from the males behaved like the wild type.
+
+02:06.764 --> 02:10.030
+Functional tests are a moderate criterion.
+
+02:10.163 --> 02:14.300
+Record what was shown, and for which variants.
+
+02:14.667 --> 02:19.107
+Table 2 lists the features of the 38 females.
+
+02:19.240 --> 02:25.324
+Enter a phenotype as a Human Phenotype Ontology term,
+or HPO term,
+
+02:25.457 --> 02:31.899
+only if it occurs
+in 20 percent or more of affected individuals.
+
+02:32.032 --> 02:35.221
+Hypotonia, 29 of 38, is above the line.
+
+02:35.354 --> 02:38.993
+Epilepsy, 6 of 38, is below it.
+
+02:39.126 --> 02:45.386
+Also keep the denominator:
+brain MRI was reported for 37.
+
+02:45.733 --> 02:51.017
+In SysNDD, open the X-linked dominant entity.
+
+02:51.150 --> 02:56.771
+Its Clinical Synopsis keeps the frequencies,
+including those below 20 percent,
+
+02:56.904 --> 03:00.132
+such as 16 percent epilepsy.
+
+03:00.500 --> 03:06.641
+Remember: count each individual and
+family once, from the patient tables.
+
+03:06.774 --> 03:11.944
+Split by mode of inheritance:
+one paper can feed two entities.
+
+03:12.077 --> 03:15.705
+And enter phenotypes at 20 percent or more.
+
+03:15.838 --> 03:19.459
+Keep lower frequencies in the synopsis.
+
+03:19.800 --> 03:24.783
+The SysNDD documentation lists everything to extract,
+
+03:24.916 --> 03:28.520
+in the chapter Research a gene and read a paper.

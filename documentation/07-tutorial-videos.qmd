@@ -3,14 +3,258 @@ title: "Tutorial videos"
 ---
 
 ::: {.lead}
-Watch short videos that show how to use SysNDD and how to curate with it. New videos will also appear in the chapter they belong to.
+Twelve short videos show how to use SysNDD and how to curate with it. Each is about three and a half minutes long.
 :::
 
 ::: {.callout-note .who-can title="Who can do this"}
 Everyone. No account is needed to watch. The curation videos show tasks for Reviewers and Curators.
 :::
 
-## Watch the Reviewer tutorial
+## Which videos to watch
+
+The series has three tracks. Start with A1, then follow your role:
+
+| You are | Watch |
+| --- | --- |
+| A clinician or diagnostic lab | A1, then A2 and A3 |
+| A new Reviewer or Curator | A1, then B1 to B5 in order |
+| A developer or AI user | A1, then A4 |
+| A researcher reading the analyses | A1, then C1 to C3 |
+
+All videos show SysNDD 0.38.2, captured on November 21, 2026. Counts on screen may have changed since. Narration: synthetic voice. Subtitles are part of the picture; a separate caption track is available from the player menu. License: CC BY 4.0.
+
+::: {.content-hidden when-format="html:js"}
+The videos play on the [online version of this page](https://berntpopp.github.io/sysndd/07-tutorial-videos.html).
+:::
+
+## Track A: using SysNDD
+
+For everyone who looks up genes, builds panels or queries SysNDD from software.
+
+### A1 · SysNDD in three minutes: look up a gene
+
+What SysNDD is for, how to look up a gene, the entity (gene, inheritance, disease), the four evidence categories, and why the external cards are context, not curation. Shown for *FBXO11*.
+
+Length: 3 min 27 s. Written steps: [Find a gene](using-find-gene.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/a1-sysndd-overview.webp" aria-label="Video A1: SysNDD in three minutes: look up a gene">
+  <source src="static/videos/a1-sysndd-overview.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/a1-sysndd-overview.vtt">
+  <a href="static/videos/a1-sysndd-overview.mp4">Download the video A1: SysNDD in three minutes: look up a gene (MP4)</a>
+</video>
+```
+:::
+
+### A2 · Build and cite a gene panel
+
+Filter Panels by evidence category and inheritance, check the entities behind a gene, download the panel as Excel, and cite the version and date.
+
+Length: 3 min 29 s. Written steps: [Build and download a gene panel](using-panels.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/a2-gene-panel.webp" aria-label="Video A2: Build and cite a gene panel">
+  <source src="static/videos/a2-gene-panel.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/a2-gene-panel.vtt">
+  <a href="static/videos/a2-gene-panel.mp4">Download the video A2: Build and cite a gene panel (MP4)</a>
+</video>
+```
+:::
+
+### A3 · Search by phenotype
+
+Combine Human Phenotype Ontology (HPO) terms with AND or OR in Phenotype search, read the matching entities, and check how a feature is recorded before you rely on a match.
+
+Length: 3 min 27 s. Written steps: [Search by phenotype or variant type](using-phenotype-search.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/a3-phenotype-search.webp" aria-label="Video A3: Search by phenotype">
+  <source src="static/videos/a3-phenotype-search.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/a3-phenotype-search.vtt">
+  <a href="static/videos/a3-phenotype-search.mp4">Download the video A3: Search by phenotype (MP4)</a>
+</video>
+```
+:::
+
+### A4 · SysNDD for software and AI
+
+Query SysNDD from code with the public API, and from an AI assistant with the read-only Model Context Protocol (MCP) server, shown for *ANKRD11*.
+
+Length: 3 min 28 s. Written steps: [Get SysNDD data with the API and MCP](03-api.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/a4-api-mcp.webp" aria-label="Video A4: SysNDD for software and AI">
+  <source src="static/videos/a4-api-mcp.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/a4-api-mcp.vtt">
+  <a href="static/videos/a4-api-mcp.mp4">Download the video A4: SysNDD for software and AI (MP4)</a>
+</video>
+```
+:::
+
+## Track B: curation
+
+For Reviewers and Curators. Watch them in order: re-reviewing comes before creating a gene, because creating needs the Curator role.
+
+### B1 · How curators grade evidence
+
+::: {.callout-warning title="Preview, awaiting expert review"}
+One case count shown in this video awaits confirmation by C. Zweier.
+:::
+
+Count cases and families, combine strong and moderate criteria, weigh negative criteria: the rules behind Definitive, Moderate, Limited and Refuted.
+
+Length: 3 min 29 s. Written steps: [Curation criteria](05-curation-criteria.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/b1-grading-evidence.webp" aria-label="Video B1: How curators grade evidence">
+  <source src="static/videos/b1-grading-evidence.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/b1-grading-evidence.vtt">
+  <a href="static/videos/b1-grading-evidence.mp4">Download the video B1: How curators grade evidence (MP4)</a>
+</video>
+```
+:::
+
+### B2 · Researching a gene
+
+Find the evidence for a gene before you curate it: SysNDD first, then OMIM and GeneReviews, PubMed with the HGNC aliases, and preprints followed to publication. Shown for *TBL1XR1*.
+
+Length: 3 min 28 s. Written steps: [Find the literature](curation-research.qmd#find-the-literature).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/b2-researching-gene.webp" aria-label="Video B2: Researching a gene">
+  <source src="static/videos/b2-researching-gene.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/b2-researching-gene.vtt">
+  <a href="static/videos/b2-researching-gene.mp4">Download the video B2: Researching a gene (MP4)</a>
+</video>
+```
+:::
+
+### B3 · Reading a paper for curation
+
+What an entity needs from a paper: individuals and families, variants and inheritance, functional data, and phenotypes in 20% or more.
+
+Length: 3 min 29 s. Written steps: [Read a paper for curation](curation-research.qmd#read-a-paper-for-curation).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/b3-reading-paper.webp" aria-label="Video B3: Reading a paper for curation">
+  <source src="static/videos/b3-reading-paper.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/b3-reading-paper.vtt">
+  <a href="static/videos/b3-reading-paper.mp4">Download the video B3: Reading a paper for curation (MP4)</a>
+</video>
+```
+:::
+
+### B4 · Re-reviewing an entity
+
+Work your assigned re-review batch: edit the review and the status, submit for Curator approval, or refuse an entity that needs a specialist.
+
+Length: 3 min 27 s. Written steps: [Re-review: guide for Reviewers](06-re-review-instructions.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/b4-re-review.webp" aria-label="Video B4: Re-reviewing an entity">
+  <source src="static/videos/b4-re-review.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/b4-re-review.vtt">
+  <a href="static/videos/b4-re-review.mp4">Download the video B4: Re-reviewing an entity (MP4)</a>
+</video>
+```
+:::
+
+### B5 · Curating a new gene (*MAU2*)
+
+::: {.callout-warning title="Preview, awaiting expert review"}
+The *MAU2* grading shown is provisional and awaits review by C. Zweier.
+:::
+
+Create an entity for *MAU2* in the Create Entity form, step by step, and decide its category from the curation criteria.
+
+Length: 3 min 28 s. Written steps: [Create an entity](curator-create-entity.qmd).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/b5-curating-new-gene.webp" aria-label="Video B5: Curating a new gene (MAU2)">
+  <source src="static/videos/b5-curating-new-gene.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/b5-curating-new-gene.vtt">
+  <a href="static/videos/b5-curating-new-gene.mp4">Download the video B5: Curating a new gene (MAU2) (MP4)</a>
+</video>
+```
+:::
+
+## Track C: analyses
+
+For researchers who read the comparison, phenotype and network analyses.
+
+### C1 · Comparing curation resources
+
+How SysNDD compares with PanelApp, Gene2Phenotype and SFARI: read the overlap and similarity views, and why a gene that is not listed elsewhere is not a disagreement.
+
+Length: 3 min 28 s. Written steps: [Compare SysNDD with other curation efforts](using-analyses.qmd#compare-sysndd-with-other-curation-efforts).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/c1-comparing-resources.webp" aria-label="Video C1: Comparing curation resources">
+  <source src="static/videos/c1-comparing-resources.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/c1-comparing-resources.vtt">
+  <a href="static/videos/c1-comparing-resources.mp4">Download the video C1: Comparing curation resources (MP4)</a>
+</video>
+```
+:::
+
+### C2 · Phenotype patterns
+
+Phenotype counts, the correlogram, phenotype clusters and variant correlations, and how to read a correlation.
+
+Length: 3 min 29 s. Written steps: [Explore phenotype correlations and clusters](using-analyses.qmd#explore-phenotype-correlations-and-clusters).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/c2-phenotype-patterns.webp" aria-label="Video C2: Phenotype patterns">
+  <source src="static/videos/c2-phenotype-patterns.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/c2-phenotype-patterns.vtt">
+  <a href="static/videos/c2-phenotype-patterns.mp4">Download the video C2: Phenotype patterns (MP4)</a>
+</video>
+```
+:::
+
+### C3 · Gene networks, and where phenotypes meet them
+
+Read the protein interaction network of SysNDD genes, open one functional cluster, read its enrichment and AI summary, treat its name as a hypothesis, and read the heatmap where phenotype clusters meet functional clusters.
+
+Length: 3 min 25 s. Written steps: [Explore functional gene clusters](using-analyses.qmd#explore-functional-gene-clusters).
+
+::: {.content-visible when-format="html:js"}
+```{=html}
+<video class="tutorial-video" controls preload="none" playsinline width="1280" height="720" data-poster="static/videos/c3-gene-networks.webp" aria-label="Video C3: Gene networks, and where phenotypes meet them">
+  <source src="static/videos/c3-gene-networks.mp4" type="video/mp4">
+  <track kind="captions" srclang="en" label="English" src="static/videos/c3-gene-networks.vtt">
+  <a href="static/videos/c3-gene-networks.mp4">Download the video C3: Gene networks, and where phenotypes meet them (MP4)</a>
+</video>
+```
+:::
+
+```{=html}
+<script>
+// Posters load only when a player nears the viewport.
+(() => {
+  const vids = document.querySelectorAll("video[data-poster]");
+  const show = (v) => { v.poster = v.dataset.poster; v.removeAttribute("data-poster"); };
+  if (!("IntersectionObserver" in window)) { vids.forEach(show); return; }
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
+  }), { rootMargin: "400px 0px" });
+  vids.forEach((v) => io.observe(v));
+})();
+</script>
+```
+
+## Earlier video (2023)
 
 ::: {.callout-note title="Recorded on the 2023 interface"}
 Recorded January 2023 on the previous interface; the steps still apply but screens differ. The written [Re-review instructions](06-re-review-instructions.qmd) shows the current screens.
@@ -85,7 +329,7 @@ After you have reviewed and updated the entity and status of an entry, click on 
 
 ## Coming soon
 
-More videos for public users, Reviewers and Curators are planned (as of November 2026). Each will state the SysNDD version it shows and its recording date, and will appear in its chapter as well as here.
+One more video is planned: approving entities as a Curator. It will appear here and in its chapter.
 
 ## Related pages
 
