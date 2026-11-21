@@ -27,7 +27,7 @@ expect.extend(matchers);
 // head's accumulated state is irrelevant to assertions.
 config.global.plugins = [...(config.global.plugins ?? []), createHead()];
 
-// Axios 1.16 + MSW 2.14 can fail under Vitest/jsdom when the XHR adapter
+// Axios 1.16 + MSW 2.14+ can fail under Vitest/jsdom when the XHR adapter
 // synthesizes binary responses (`responseType: "blob"`). The fetch adapter
 // preserves the same request surface while letting MSW return Blob bodies.
 function configureAxiosForTests() {
@@ -85,13 +85,13 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 import { server } from './src/test-utils/mocks/server';
 
 // Start MSW server before all tests.
-// Phase B.B1: `onUnhandledRequest: 'error'` — any spec that reaches an
+// Phase B.B1: `onUnhandledFrame: 'error'` — any spec that reaches an
 // un-mocked API path fails loudly instead of silently hitting the real
 // network. If a new spec needs a handler that isn't in
 // src/test-utils/mocks/handlers.ts, add it there first (with a 2xx + 4xx
 // branch and an OpenAPI path comment); do not weaken this back to 'warn'.
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' });
+  server.listen({ onUnhandledFrame: 'error' });
 });
 
 // =============================================================================

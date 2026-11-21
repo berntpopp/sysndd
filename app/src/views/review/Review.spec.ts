@@ -33,7 +33,7 @@
  * (via `import axios from 'axios'`) touch axios. We stub axios at the
  * module level so the composable's direct import and apiClient's delegated
  * calls resolve to the same mock shape. No network requests escape — MSW's
- * `onUnhandledRequest: 'error'` (vitest.setup.ts:65-66) is satisfied
+ * `onUnhandledFrame: 'error'` (vitest.setup.ts:65-66) is satisfied
  * vacuously.
  *
  * Required assertions (verbatim from phase-c.md §3 C2, lines 119-122):

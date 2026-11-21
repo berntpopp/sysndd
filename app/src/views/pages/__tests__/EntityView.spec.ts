@@ -30,10 +30,10 @@ vi.mock('@/composables/useToast', () => ({
 
 import { setActivePinia, createPinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { server } from '@/test-utils/mocks/server';
-import { bootstrapStubs } from '@/test-utils';
+import { bootstrapStubs, flushRequests } from '@/test-utils';
 import { useCacheStore } from '@/stores/cacheStore';
 import EntityView from '../EntityView.vue';
 import LinkedOntologies from '@/components/disease/LinkedOntologies.vue';
@@ -152,7 +152,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     // Each tag appeared at least once — the page hit all 7 sub-resource
     // endpoints, not just the first in a sequential chain.
@@ -202,7 +202,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     // One fetch feeds both adjacent cards.
     expect(pubsCalls).toBe(1);
@@ -236,7 +236,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router, pinia], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
     expect(push).toHaveBeenCalledWith('/PageNotFound');
     w.unmount();
   });
@@ -267,7 +267,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
     // The linked-gene hook fired exactly once with the resolved hgnc_id.
     expect(geneCalls).toBe(1);
     w.unmount();
@@ -316,7 +316,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     const synopsisPanel = w.get('[data-testid="clinical-synopsis-panel"]');
     expect(synopsisPanel.text()).toContain(synopsis);
@@ -378,13 +378,13 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     const copyButton = w.get(
       '[data-testid="clinical-synopsis-header"] [data-testid="copy-synopsis-button"]'
     );
     await copyButton.trigger('click');
-    await flushPromises();
+    await flushRequests();
 
     expect(writeText).toHaveBeenCalledWith(synopsis);
     expect(copyButton.text()).toContain('Copy');
@@ -426,7 +426,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     const unit = w.get('[data-testid="entity-unit"]');
     const labels = unit.findAll('[data-testid="entity-unit-label"]').map((node) => node.text());
@@ -493,7 +493,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     expect(w.find('[data-testid="entity-handoff-table"]').exists()).toBe(false);
     expect(w.text()).not.toContain('Results / Handoff');
@@ -572,7 +572,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     expect(w.text()).toContain('Clinical Synopsis');
     expect(w.text()).toContain('No clinical synopsis available.');
@@ -620,7 +620,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     const entry = w.get('[data-testid="entity-entry-date"]');
     expect(entry.text()).toContain('Entered 2014-03-04');
@@ -666,7 +666,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     expect(w.find('[data-testid="entity-entry-date"]').exists()).toBe(false);
     expect(w.find('[data-testid="entity-last-update"]').exists()).toBe(false);
@@ -733,7 +733,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     // The "Linked disease ontologies" card title should be present.
     expect(w.text()).toContain('Linked disease ontologies');
@@ -784,7 +784,7 @@ describe('EntityView (v11.3 W3)', () => {
     const w = mount(EntityView, {
       global: { plugins: [router], stubs: heavyChildStubs },
     });
-    await flushPromises();
+    await flushRequests();
 
     // The hero entity-metadata-row must NOT contain "MONDO MONDO:0032745" (the
     // old plain-text pill format). The full card "MONDO:0032745" in the ontology

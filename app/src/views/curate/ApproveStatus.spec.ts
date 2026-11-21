@@ -29,7 +29,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
 
@@ -319,7 +320,7 @@ const mountApproveStatus = async (): Promise<VueWrapper> => {
   });
 
   // Let `mounted()` run `loadStatusList` → `loadStatusTableData`.
-  await flushPromises();
+  await flushRequests();
   return wrapper;
 };
 
@@ -418,7 +419,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // the B1 locked table), and then shows the modal. We call it directly
     // to skip click-synthesis on a stubbed button.
     vmHappy.infoApproveStatus(pendingRows[0], 0, null);
-    await flushPromises();
+    await flushRequests();
 
     // The modal should now be wired to the first pending row. The GET
     // /api/status/:id handler in B1 returns status_id=201 for any non-999
@@ -434,7 +435,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // Fire the modal OK handler. This hits PUT /api/status/approve/:id
     // (default B1 200-OK shape) and then re-runs `loadStatusTableData`.
     await vmHappy.handleStatusOk(null);
-    await flushPromises();
+    await flushRequests();
 
     // The approved row should be gone; only status_id=202 remains.
     expect(vmHappy.items_StatusTable).toHaveLength(1);
@@ -454,7 +455,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     expect(vmErr.items_StatusTable).toHaveLength(2);
 
     vmErr.infoApproveStatus(pendingRows[0], 0, null);
-    await flushPromises();
+    await flushRequests();
     expect(vmErr.status_info.status_id).toBe(statusByIdOk.status_id);
 
     // Override PUT /api/status/approve/:id to return the stale-token shape
@@ -469,7 +470,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // Fire the modal OK handler; the real axios plugin's response
     // interceptor should catch the 401 and call `router.push`.
     await vmErr.handleStatusOk(null);
-    await flushPromises();
+    await flushRequests();
 
     // Interceptor contract from `src/plugins/axios.ts`:
     //   - calls `router.push({ path: '/Login', query: { redirect: ... } })`
@@ -544,7 +545,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // `infoApproveStatus` → GET /api/status/:id → approveModal is populated
     // with the same status row as the happy-path test (id 201).
     vmConverge.infoApproveStatus(pendingRows[0], 0, null);
-    await flushPromises();
+    await flushRequests();
     expect(vmConverge.approveModal.title).toBe('sysndd:501');
     expect(vmConverge.status_info.status_id).toBe(statusByIdOk.status_id);
 
@@ -553,7 +554,7 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // a new endpoint — only the UI shell is shared.
     listState.rows = listState.rows.filter((r) => r.status_id !== 201);
     await vmConverge.handleStatusOk(null);
-    await flushPromises();
+    await flushRequests();
     expect(vmConverge.items_StatusTable.map((r) => r.status_id)).toEqual([202]);
     expect(vmConverge.totalRows).toBe(1);
     expect(routerPushMock).not.toHaveBeenCalled();

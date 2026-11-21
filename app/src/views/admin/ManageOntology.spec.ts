@@ -34,7 +34,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import { ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
@@ -173,7 +174,7 @@ async function mountView(searchParams: URLSearchParams = new URLSearchParams()) 
   // loadData()); wait it out so the mounted-component's first request has
   // actually fired before assertions run.
   await new Promise((resolve) => setTimeout(resolve, 75));
-  await flushPromises();
+  await flushRequests();
   return wrapper;
 }
 
@@ -268,7 +269,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     vm.filter.any.content = 'seizure';
     vm.filter.is_active.content = '1';
     vm.filter.obsolete.content = '0';
-    await flushPromises();
+    await flushRequests();
 
     expect(vm.hasActiveFilters).toBe(true);
     expect(vm.activeFilters).toEqual([
@@ -280,7 +281,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     // Flipping the enum values flips the chip labels (inactive/obsolete).
     vm.filter.is_active.content = '0';
     vm.filter.obsolete.content = '1';
-    await flushPromises();
+    await flushRequests();
 
     expect(vm.activeFilters).toEqual([
       { key: 'any', label: 'Search', value: 'seizure' },
@@ -291,7 +292,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     // Settle the debounced reload the mutations above triggered so no timer
     // is left dangling into the next test.
     await new Promise((resolve) => setTimeout(resolve, 75));
-    await flushPromises();
+    await flushRequests();
   });
 
   it('clearFilter() nulls a single field and removeFilters() nulls every field', async () => {
@@ -310,14 +311,14 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
 
     vm.clearFilter('is_active');
     await new Promise((resolve) => setTimeout(resolve, 75));
-    await flushPromises();
+    await flushRequests();
 
     expect(vm.filter.is_active.content).toBeNull();
     expect(vm.filter.any.content).toBe('seizure');
 
     vm.removeFilters();
     await new Promise((resolve) => setTimeout(resolve, 75));
-    await flushPromises();
+    await flushRequests();
 
     expect(vm.filter.any.content).toBeNull();
     expect(lastFilterParam).toBe('');
@@ -408,7 +409,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     // confirm the real "last page" VariO cursor actually went out on the wire
     // as page_after — not the old always-0.
     await new Promise((resolve) => setTimeout(resolve, 75));
-    await flushPromises();
+    await flushRequests();
     expect(lastPageAfter).toBe('VariO:0491');
   });
 
@@ -483,7 +484,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     vm.sort = '-vario_id';
     if (vm.loadDataDebounceTimer) clearTimeout(vm.loadDataDebounceTimer);
     await vm.doLoadData();
-    await flushPromises();
+    await flushRequests();
 
     // The second (superseding) request already applied its data.
     expect(vm.totalRows).toBe(222);
@@ -492,7 +493,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     // because doLoadData()'s isCurrent() check no longer matches (sort
     // changed underneath it).
     resolveFirst!();
-    await flushPromises();
+    await flushRequests();
 
     expect(vm.totalRows).toBe(222);
   });
@@ -529,7 +530,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     );
 
     await vm.updateOntologyData();
-    await flushPromises();
+    await flushRequests();
 
     expect(observedBody).toEqual({
       ontology_details: { ...DEFAULT_ROW, vario_name: 'Renamed' },
@@ -559,7 +560,7 @@ describe('ManageOntology — #346 Wave 2 useOntologyAdminTable controller', () =
     );
 
     await vm.updateOntologyData();
-    await flushPromises();
+    await flushRequests();
 
     expect(makeToastSpy).toHaveBeenCalledWith('vario_id not found', 'Error', 'danger');
     expect(vm.showEditModal).toBe(true);

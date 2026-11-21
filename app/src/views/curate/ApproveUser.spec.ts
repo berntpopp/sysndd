@@ -249,7 +249,9 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
     const vm = wrapper.vm as unknown as ApproveUserVm;
 
     // Approved carl is dropped; only the two pending applications remain.
-    expect(vm.items_UsersTable.map((u) => u.user_name)).toEqual(['alice', 'bob']);
+    await vi.waitFor(() =>
+      expect(vm.items_UsersTable.map((u) => u.user_name)).toEqual(['alice', 'bob'])
+    );
 
     vm.filter = 'b';
     vm.roleFilter = 'Reviewer';
@@ -270,6 +272,7 @@ describe('ApproveUser — v11.0 closeout F2b apiClient migration', () => {
 
     const wrapper = await mountView();
     const vm = wrapper.vm as unknown as ApproveUserVm;
+    await vi.waitFor(() => expect(vm.items_UsersTable).toHaveLength(2));
 
     vm.currentPage = 3;
     expect(vm.currentPage).toBe(3);

@@ -45,7 +45,7 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
     server.use(
       http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
       // The view's leaderboard composable calls `/contributor_leaderboard`,
-      // not `/leaderboard`; with MSW `onUnhandledRequest: 'error'` the wrong
+      // not `/leaderboard`; with MSW `onUnhandledFrame: 'error'` the wrong
       // path would surface as an unhandled request rather than a real stub.
       http.get('*/api/statistics/contributor_leaderboard', () =>
         HttpResponse.json({ data: [] })
@@ -102,7 +102,7 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
         return HttpResponse.json({ data: [] });
       }),
       // Short-circuit the rest of the on-mount fan-out so
-      // `onUnhandledRequest: 'error'` does not fail the test on unrelated
+      // `onUnhandledFrame: 'error'` does not fail the test on unrelated
       // endpoints the view also fires.
       http.get('*/api/statistics/contributor_leaderboard', () =>
         HttpResponse.json({ data: [] })

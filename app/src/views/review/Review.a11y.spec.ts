@@ -8,9 +8,9 @@
  */
 
 import { describe, it, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';
+import { expectNoA11yViolations, bootstrapStubs, flushRequests } from '@/test-utils';
 import Review from './Review.vue';
 
 // Mock composables
@@ -171,7 +171,7 @@ describe('Review accessibility', () => {
       },
     });
 
-    await flushPromises();
+    await flushRequests();
     return wrapper;
   };
 

@@ -159,12 +159,11 @@ describe('useAsyncJob', () => {
       );
 
       job.startJob('j');
-      const advance = vi.advanceTimersByTimeAsync(TEST_POLL_MS * 4); // several ticks
-      await flushPromises();
+      await vi.advanceTimersByTimeAsync(TEST_POLL_MS * 4); // several ticks
+      await vi.waitFor(() => expect(entered).toBeGreaterThan(0));
       // Only one poll may be in flight for this job generation despite 4 ticks.
       expect(entered).toBe(1);
       release();
-      await advance;
       await flushPromises();
 
       job.stopPolling();

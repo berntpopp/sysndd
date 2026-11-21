@@ -54,6 +54,13 @@ interface Harness {
   announce: ReturnType<typeof vi.fn>;
 }
 
+// Fire-and-forget refreshes from an earlier test can land after the next test's
+// handlers are installed (MSW 3 intercepts at the socket layer, a macrotask
+// later), so refresh counters only count requests carrying this test's token.
+function ownRequest(request: Request, token: string): boolean {
+  return request.headers.get('authorization') === `Bearer ${token}`;
+}
+
 function makeController(): Harness {
   const onToast = vi.fn();
   const announce = vi.fn();
@@ -425,12 +432,12 @@ describe('useManageReReview — handleEntityAssignment', () => {
         receivedBody = await request.json();
         return HttpResponse.json({ entry: { batch_id: 77, entity_count: 2 } });
       }),
-      http.get('*/api/re_review/assignment_table', () => {
-        tableCalls += 1;
+      http.get('*/api/re_review/assignment_table', ({ request }) => {
+        if (ownRequest(request, 'assign-token')) tableCalls += 1;
         return HttpResponse.json([]);
       }),
-      http.get('*/api/re_review/entities/available', () => {
-        entityCalls += 1;
+      http.get('*/api/re_review/entities/available', ({ request }) => {
+        if (ownRequest(request, 'assign-token')) entityCalls += 1;
         return HttpResponse.json({ data: [], meta: { total: 0 } });
       })
     );
@@ -447,8 +454,10 @@ describe('useManageReReview — handleEntityAssignment', () => {
     expect(ctrl.selectedEntityIds.value).toEqual([]);
     expect(ctrl.entityAssignUserId.value).toBeNull();
     expect(ctrl.entityAssignBatchName.value).toBe('');
-    expect(tableCalls).toBe(1);
-    expect(entityCalls).toBe(1);
+    await vi.waitFor(() => {
+      expect(tableCalls).toBe(1);
+      expect(entityCalls).toBe(1);
+    });
   });
 
   it('uses fallback copy when the server omits batch summary fields', async () => {
@@ -482,12 +491,12 @@ describe('useManageReReview — reassign & recalculate', () => {
     let entityCalls = 0;
     server.use(
       http.put('*/api/re_review/batch/reassign', () => HttpResponse.json({ status: 200 })),
-      http.get('*/api/re_review/assignment_table', () => {
-        tableCalls += 1;
+      http.get('*/api/re_review/assignment_table', ({ request }) => {
+        if (ownRequest(request, 'reassign-token')) tableCalls += 1;
         return HttpResponse.json([]);
       }),
-      http.get('*/api/re_review/entities/available', () => {
-        entityCalls += 1;
+      http.get('*/api/re_review/entities/available', ({ request }) => {
+        if (ownRequest(request, 'reassign-token')) entityCalls += 1;
         return HttpResponse.json({ data: [], meta: { total: 0 } });
       })
     );
@@ -498,7 +507,7 @@ describe('useManageReReview — reassign & recalculate', () => {
     await ctrl.handleBatchReassignment();
     await flushPromises();
     expect(ctrl.reassignModalShow.value).toBe(false);
-    expect(tableCalls).toBe(1);
+    await vi.waitFor(() => expect(tableCalls).toBe(1));
     expect(entityCalls).toBe(0);
   });
 
@@ -510,12 +519,12 @@ describe('useManageReReview — reassign & recalculate', () => {
       http.put('*/api/re_review/batch/recalculate', () =>
         HttpResponse.json({ entry: { batch_id: 42, entity_count: 20 } })
       ),
-      http.get('*/api/re_review/assignment_table', () => {
-        tableCalls += 1;
+      http.get('*/api/re_review/assignment_table', ({ request }) => {
+        if (ownRequest(request, 'recalculate-token')) tableCalls += 1;
         return HttpResponse.json([]);
       }),
-      http.get('*/api/re_review/entities/available', () => {
-        entityCalls += 1;
+      http.get('*/api/re_review/entities/available', ({ request }) => {
+        if (ownRequest(request, 'recalculate-token')) entityCalls += 1;
         return HttpResponse.json({ data: [], meta: { total: 0 } });
       })
     );
@@ -531,8 +540,10 @@ describe('useManageReReview — reassign & recalculate', () => {
     await ctrl.handleBatchRecalculation();
     await flushPromises();
     expect(ctrl.recalculateModalShow.value).toBe(false);
-    expect(tableCalls).toBe(1);
-    expect(entityCalls).toBe(1);
+    await vi.waitFor(() => {
+      expect(tableCalls).toBe(1);
+      expect(entityCalls).toBe(1);
+    });
   });
 
   it('handleBatchRecalculation uses fallback copy when the server omits batch summary fields', async () => {

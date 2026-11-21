@@ -15,7 +15,8 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { flushPromises, mount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { flushRequests } from '@/test-utils';
 import type { RouteLocationRaw } from 'vue-router';
 
 import { server } from '@/test-utils/mocks/server';
@@ -219,17 +220,19 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       })
     );
 
-    vi.useFakeTimers();
+    // Intervals only: MSW 3 resolves mocked fetches through real timers.
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const wrapper = mountManageLLM();
     try {
       await vi.runOnlyPendingTimersAsync();
       await wrapper.get('button[data-testid="llm-regenerate-functional"]').trigger('click');
-      await flushPromises();
+      await flushRequests();
 
       expect(wrapper.text()).toContain('Functional');
       expect(wrapper.text()).toContain('functional-child-job');
 
       await vi.advanceTimersByTimeAsync(3000);
+      await flushRequests();
       expect(polledChildJob).toBe(true);
     } finally {
       vi.useRealTimers();
@@ -276,16 +279,18 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       })
     );
 
-    vi.useFakeTimers();
+    // Intervals only: MSW 3 resolves mocked fetches through real timers.
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const wrapper = mountManageLLM();
     try {
-      await flushPromises();
+      await flushRequests();
 
       expect(wrapper.get('[data-testid="llm-regeneration-job-functional"]').text()).toContain(
         'functional-child-job'
       );
 
       await vi.advanceTimersByTimeAsync(3000);
+      await flushRequests();
       expect(polledChildJob).toBe(true);
     } finally {
       vi.useRealTimers();
