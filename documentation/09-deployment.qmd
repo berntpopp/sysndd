@@ -4,7 +4,7 @@ title: "Deployment"
 
 # Deployment
 
-This page is the concise operator-facing entry point for SysNDD deployment.
+This chapter is the operator-facing entry point for SysNDD deployment.
 
 ## Quick Start
 
@@ -12,9 +12,17 @@ This page is the concise operator-facing entry point for SysNDD deployment.
 git clone https://github.com/berntpopp/sysndd.git
 cd sysndd
 cp .env.example .env
-# edit .env
-docker compose up -d
+cp api/config.yml.example api/config.yml
+# edit .env and api/config.yml
+docker compose -f docker-compose.yml up -d --build
 ```
+
+Name `docker-compose.yml` explicitly. The repository also tracks
+`docker-compose.override.yml`, and a plain `docker compose up -d` merges it in. That
+gives you the development stack: `ENVIRONMENT=development`, the Vite dev server, one
+API replica, no enrichment lane, a single combined worker, and MySQL published on
+`127.0.0.1:7654`. Create `api/config.yml` before the first start: Compose bind-mounts
+it, and if it is missing Docker creates a directory at that path and the API fails.
 
 Legacy archive-downloader deployment scripts are not part of the supported
 deployment path; do not use unverified downloaded shell to provision runtime
@@ -138,7 +146,7 @@ Increment `CACHE_VERSION` when cached API/worker function behavior or result sha
 
 The clustering disk cache (`gen_string_clust_obj_mem`, `gen_network_edges_mem`, `gen_mca_clust_obj_mem`) is **self-invalidating** and no longer depends on a human remembering to bump `CACHE_VERSION`. Each clustering function folds a **fingerprint** into its memoise key (`api/functions/analysis-cache-fingerprint.R`): `CLUSTER_LOGIC_VERSION` (a code constant) plus the STRING channel + exp+db edge-file identity (`size:mtime`) for the functional axis and the MCA prevalence band for the phenotype axis. Because the fingerprint is evaluated at **call time**, adding or rebuilding the exp+db artifact self-invalidates the affected entries **without a container restart**, and a code change is handled by bumping `CLUSTER_LOGIC_VERSION`. This closes the failure mode in #514, where a methodology deploy (the #510 text-mining-free graph) served a **stale** partition out of the disk cache while the validator recomputed fresh, producing an internally-incoherent snapshot. A second line of defense, the **snapshot integrity gate** (`ANALYSIS_SNAPSHOT_REQUIRE_COHERENCE`, default `true`), refuses to publish a snapshot whose served membership and validation describe different partitions — the refresh fails, the prior public-ready snapshot keeps serving, and the failed job is visible in history.
 
-**The #510 exp+db artifact is a deploy prerequisite for text-mining-free functional clustering.** `data/9606.protein.links.expdb.v11.5.min400.txt.gz` is a gitignored runtime artifact. If it is absent, functional clustering silently falls back to the text-mining `combined_score` graph — now surfaced as an operator-visible `warning()` and via `GET /api/health` → `analysis.expdb_edges_file_present: false` (also reports `analysis.cluster_logic_version` and `analysis.functional_weight_channels`). Build it once per STRING release inside the API container:
+**The #510 exp+db artifact is a deploy prerequisite for text-mining-free functional clustering.** `data/9606.protein.links.expdb.v11.5.min400.txt.gz` is a gitignored runtime artifact. If it is absent, functional clustering silently falls back to the text-mining `combined_score` graph — now surfaced as an operator-visible `warning()` and via `GET /api/health/performance` → `analysis.expdb_edges_file_present: [false]` (the same block reports `analysis.cluster_logic_version` and `analysis.functional_weight_channels`; values are length-1 arrays). The plain `GET /api/health/` returns only status, timestamp and version. Build it once per STRING release inside the API container:
 
 ```bash
 # one-time data-prep; the ~115 MB detailed links download must be in api/data/ first
@@ -149,7 +157,7 @@ The `api`, `worker`, and `worker-maintenance` services bind-mount `./api/data`. 
 
 **Methodology-deploy runbook (analysis-logic change):**
 
-1. Ensure the exp+db artifact exists (`GET /api/health` → `analysis.expdb_edges_file_present: true`), building it as above if needed.
+1. Ensure the exp+db artifact exists (`GET /api/health/performance` → `analysis.expdb_edges_file_present: [true]`), building it as above if needed.
 2. If the clustering algorithm/inputs changed in code, bump `CLUSTER_LOGIC_VERSION` in `api/functions/analysis-cache-fingerprint.R`.
 3. Restart the `worker` (and `worker-maintenance`) containers so the durable snapshot-refresh code is re-sourced.
 4. Force-refresh both clustering presets: `POST /api/admin/analysis/snapshots/refresh?analysis_type=functional_clusters&force=true` and `…phenotype_clusters&force=true`; watch `GET /api/admin/analysis/snapshots/status` until each reports `available`.
@@ -175,14 +183,15 @@ A slow upstream can therefore never head-of-line-block cheap/core routes (`/api/
 
 - **Sticky sessions are removed.** Job state is durable in `async_jobs` (MySQL), so no request needs the same instance; sticky harmed even load distribution. (The per-caller in-memory submit throttles remain per-process — see the multi-replica caveat below.)
 - **Core replica floor:** the core `api` declares `deploy.replicas: 2` in prod (a single container gives zero cross-request isolation). Override for load tests with `--scale api=N`.
-- **Independent scaling:** scale the enrichment lane with `--scale api-enrichment=N` (default 1). It is low-resource (I/O-bound proxy calls, `MIRAI_WORKERS=1`).
+- **Independent scaling:** scale the enrichment lane with `--scale api-enrichment=N` (default 1). It is low-resource (I/O-bound proxy calls): `MIRAI_WORKERS=0` (`API_ENRICHMENT_MIRAI_WORKERS`) and `DB_POOL_SIZE=3` (`API_ENRICHMENT_DB_POOL_SIZE`) by default.
 - **Subordinate startup:** `api-enrichment` sets `API_LANE=enrichment` and `depends_on: api healthy`, so it skips the startup bootstraps (snapshot/pubtatornidd/ontology — the core lane owns them) and its `[request-timing]` logs carry `lane=enrichment`. Both core replicas still run migrations/bootstraps on cold start (advisory-locked + idempotent — pre-existing behavior). The migration manifest **validation** still runs on the enrichment lane, so a broken `db/migrations` mount is still caught there.
 - **Verify isolation:** bring up the two-lane stack with `docker compose -f docker-compose.yml up -d --build` (prod compose, no override) and run `make smoke-lane-isolation` — it saturates `/api/external/*` and asserts `/api/health/` stays fast.
 
 Dev is single-lane: `make dev` profile-gates `api-enrichment` out (`prod-enrichment-lane`) and pins `api` to one replica, so `/api/external` is served by the single dev API container.
+
 The curator GeneReviews coverage feature (`/api/genereviews`, Curator+) resolves GeneReviews availability through NCBI E-utilities and caches it in the same success-only external cache (30-day static TTL). The API container therefore needs outbound egress to `eutils.ncbi.nlm.nih.gov` when curators run the live availability pass or attach a GeneReviews reference. NCBI credentials are optional: set `NCBI_API_KEY` and `NCBI_EUTILS_EMAIL` to raise NCBI rate limits; anonymous low-volume use works without them. The cheap (already-linked) coverage view and CSV export make no external calls.
 
-### Public analysis snapshots
+### Request-log and job-history retention (`log-cleanup`)
 
 The `log-cleanup` Compose service prunes old rows from the operational request log table (`logging`) on a daily schedule so the table does not grow unbounded. It reuses the API image (so it shares the `renv` dependencies, `RMariaDB`, and the existing connection-pool/config helpers) and connects over the internal `backend` network only — it needs the database but no outbound egress. The service runs a small no-root scheduler loop that invokes `api/scripts/delete_old_jobs.R` (the fully-bounded `async_jobs` prune, run first) and then `api/scripts/delete_old_logs.R` once per day; the scripts delegate to the unit-tested helpers in `api/functions/async-job-retention.R` and `api/functions/log-cleanup.R`.
 
@@ -199,7 +208,7 @@ The high-volume `logging` table and the terminal `async_jobs` history are pruned
 
 ### PubtatorNDD nightly refresh (`pubtatornidd-cron`)
 
-The `pubtatornidd-cron` Compose service keeps the PubtatorNDD analysis current automatically. It is a *dumb scheduler*: once per night it enqueues a single durable `pubtatornidd_nightly` async job (via `api/scripts/pubtatornidd_nightly_enqueue.R`) and exits the run. The existing `worker` service — which already has the PubTator/PubMed egress — claims and runs the actual refresh (orchestrator in `api/functions/pubtatornidd-nightly.R`), so all retries, single-flight locking, and history live there. Like `log-cleanup` it reuses the API image and connects over the internal `backend` network only (it needs the database to enqueue, not egress).
+The `pubtatornidd-cron` Compose service keeps the PubtatorNDD analysis current automatically. It is a *dumb scheduler*: once per night it enqueues a single durable `pubtatornidd_nightly` async job (via `api/scripts/pubtatornidd_nightly_enqueue.R`) and exits the run. The `worker-maintenance` service in production (the combined `worker` in dev), which has the PubTator/PubMed egress, claims and runs the actual refresh (orchestrator in `api/functions/pubtatornidd-nightly.R`), so all retries, single-flight locking, and history live there. Like `log-cleanup` it reuses the API image and connects over the internal `backend` network only (it needs the database to enqueue, not egress).
 
 Each run, the worker-side orchestrator: single-flights via a non-blocking MySQL advisory lock (`GET_LOCK('pubtatornidd_nightly', 0)`) so overlapping runs skip cleanly; resolves the standing query (job payload → `PUBTATORNDD_NIGHTLY_QUERY` → most-recent cached query); incrementally fetches new publications (soft page-watermark, ≤3 req/s); refreshes the per-gene enrichment snapshot; and refreshes the precomputed gene-summary table when present. The structured run summary is persisted in the job `result_json` for observability; a failed refresh step marks the job failed.
 
@@ -219,13 +228,13 @@ The cross-database comparator (`/CurationComparisons`) is refreshed by the Admin
 - The refresh is now **resilient**: a source that fails to download or parse no longer aborts the whole job. Failed sources keep their previously-imported rows (per-list replace) and are named in `comparisons_metadata.last_refresh_error`; the run reports status `partial` (some failed) or `success` (all OK). A refresh only fails outright when *every* source fails. The `GET /api/comparisons/metadata` badge on the page shows the status.
 - OMIM (`omim_ndd`) needs `OMIM_DOWNLOAD_KEY` (and outbound egress) in the environment that runs the refresh; without it that one source is skipped (`partial`) rather than aborting.
 - The OMIM-NDD NDD seed term is configurable via `OMIM_NDD_SEED_TERM` (default `HP:0012759`, "Neurodevelopmental abnormality"); it does not change the published default set.
-- The refresh runs as a **durable async job on the worker** (not the API's mirai pool), so **restart the `worker` container** — not the API — after deploying comparisons code changes before triggering a refresh (worker-executed code is sourced at worker startup). The write-path functions are loaded via `api/bootstrap/load_modules.R`, shared by the API and the worker.
+- The refresh runs as a **durable async job on the maintenance lane** (not the API's mirai pool), so **restart `worker-maintenance`** (production) or the combined `worker` (dev), not the API, after deploying comparisons code changes before triggering a refresh (worker-executed code is sourced at worker startup). The write-path functions are loaded via `api/bootstrap/load_modules.R`, shared by the API and the worker.
 - On a database restored via `dbWriteTable`-style tooling, the `ndd_database_comparison` table can drift (narrow text columns, `comparison_id` recreated as `DOUBLE` without AUTO_INCREMENT, dropped `granularity`) and break the refresh; migration `039` idempotently re-asserts the intended schema at startup, so a normally-migrated deploy is unaffected.
 - The page's source-provenance popover is populated live from `GET /api/comparisons/sources` (source list, download URLs, and last-update date, from `comparisons_config` + `comparisons_metadata`), so it always reflects the deployed config instead of hardcoded text.
 - HPO term lookups (data-prep + outlinks) moved to the JAX ontology API (`https://ontology.jax.org/api/hp/terms`) and the rebuilt HPO site's `https://hpo.jax.org/browse/term/{id}` outlinks after the legacy `hpo.jax.org` term API / `/app/browse/` routes were retired.
 
 ### Database version (`DB_VERSION` / `DB_COMMIT`)
-The human-facing database version (issue #22) is tracked in the single-row `db_version` table (migration `028_add_db_version.sql`), separate from the migration runner's `schema_version` apply ledger and from `about_content.version`. The migration seeds a baseline semantic version, and the API exposes it in the `database` block of the public `GET /api/version` response (semantic `version`, last `db/`-folder git `commit`, optional `description`/`updated_at`, and an `available` flag). The App surfaces it on the About page. The endpoint degrades gracefully: if the DB or table is unreachable it reports `version`/`commit` as `"unknown"` and `available: false` instead of failing.
+The human-facing database version (issue #22) is tracked in the single-row `db_version` table (migration `028_add_db_version.sql`), separate from the migration runner's `schema_version` apply ledger and from `about_content.version`. The migration seeds a baseline semantic version, and the API exposes it in the `database` block of the public `GET /api/version/` response (use the trailing slash or `curl -L`; `/api/version` answers with a 307 redirect) (semantic `version`, last `db/`-folder git `commit`, optional `description`/`updated_at`, and an `available` flag). The App surfaces it on the About page. The endpoint degrades gracefully: if the DB or table is unreachable it reports `version`/`commit` as `"unknown"` and `available: false` instead of failing.
 
 To stamp the deployed values at release time, set `DB_VERSION` (semantic `major.minor.patch`) and/or `DB_COMMIT` (last `db/`-folder git short hash) in the API container environment. The running container has no git checkout, so capture them on a host that has the repo:
 
@@ -359,7 +368,7 @@ Once a release is published (above), an operator can archive it to Zenodo with t
 
 - Host R with `httr2`, `jsonlite`, and `digest` (all already in `api/renv.lock`).
 - `ZENODO_TOKEN` — a Zenodo personal access token (`https://zenodo.org/account/settings/applications/tokens/new/`, scope `deposit:write` + `deposit:actions`). Set it in your shell or a git-ignored `.env`; it is **never** committed and the Makefile never bakes it in as a literal.
-- `SYSNDD_API_BASE_URL` (optional) — the public API base to read the release from; defaults to `http://localhost:7778`.
+- `SYSNDD_API_BASE_URL` — the public API base to read the release from. Set it explicitly: the script default `http://localhost:7778` answers in neither the dev nor the production Compose stack. Use `http://localhost/api` for a local stack or `https://<host>/api` for a deployed one.
 - `SYSNDD_ADMIN_TOKEN` (optional) — a pre-minted SysNDD Administrator bearer token, only needed for the automated DOI record-back in step 6.
 
 **Flow:**
@@ -394,23 +403,23 @@ Once a release is published (above), an operator can archive it to Zenodo with t
 
 ### Disease cross-ontology mapping refresh (`ontology-mapping-cron`)
 
-The `ontology-mapping-cron` Compose sidecar keeps the disease cross-ontology mapping index current. Like `pubtatornidd-cron`, it is a *dumb scheduler*: once per week it enqueues a single durable `disease_ontology_mapping_refresh` async job (via `api/scripts/ontology_mapping_refresh_enqueue.R`) and exits. The `worker` service — which must have outbound egress for the MONDO downloads — claims and runs the orchestrator (`api/functions/disease-ontology-mapping-refresh.R`). The sidecar itself connects over the internal `backend` network only (enqueue only; no egress needed).
+The `ontology-mapping-cron` Compose sidecar keeps the disease cross-ontology mapping index current. Like `pubtatornidd-cron`, it is a *dumb scheduler*: once per week it enqueues a single durable `disease_ontology_mapping_refresh` async job (via `api/scripts/ontology_mapping_refresh_enqueue.R`) and exits. The maintenance lane claims the job: `worker-maintenance` in production, the combined `worker` in dev. That worker needs outbound egress for the MONDO downloads and runs the orchestrator (`api/functions/disease-ontology-mapping-refresh.R`). The sidecar itself connects over the internal `backend` network only (enqueue only; no egress needed).
 
 The orchestrator: single-flights via a non-blocking MySQL advisory lock (`GET_LOCK('disease_ontology_mapping_refresh', 0)`); conditionally downloads `mondo.obo` (~50 MB) and `mondo.sssom.tsv` (~80 MB) using `If-None-Match`/`If-Modified-Since` headers so unchanged releases skip the full rebuild; rebuilds `mondo_term`, `mondo_xref`, and `disease_ontology_mapping` inside a single DB transaction; updates projection columns on `disease_ontology_set`; writes a `disease_ontology_mapping_meta` provenance row; and returns a structured run summary in the job `result_json`.
 
 **Configuration (environment variables, with defaults):**
 
-- `ONTOLOGY_MAPPING_REFRESH_AT=03:00` — weekly enqueue time, `HH:MM` in container (UTC) time.
-- `ONTOLOGY_MAPPING_REFRESH_DOW=sunday` — weekday for the enqueue (full name, lowercase).
+- `ONTOLOGY_MAPPING_REFRESH_AT=04:30` — weekly enqueue time, `HH:MM` in container (UTC) time.
+- `ONTOLOGY_MAPPING_REFRESH_DOW=0` — weekday for the enqueue, numeric: `0` = Sunday … `6` = Saturday.
 - `DISEASE_ONTOLOGY_MONDO_OBO_URL` — optional OBO URL override (defaults to `http://purl.obolibrary.org/obo/mondo.obo`).
 - `DISEASE_ONTOLOGY_MONDO_SSSOM_URL` — optional SSSOM URL override.
 - `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_ON_STARTUP=true` — set to `false` to disable auto-enqueue on API startup.
 - `DISEASE_ONTOLOGY_MAPPING_BOOTSTRAP_STAGGER_SECONDS=360` — startup-bootstrap delay in seconds (set `0` to disable). Prevents co-launch with the analysis-snapshot and PubtatorNDD bootstraps.
-- `EXTERNAL_PROXY_MONDO_DEFAULT_TIMEOUT=120`, `EXTERNAL_PROXY_MONDO_DEFAULT_MAX=300`, `EXTERNAL_PROXY_MONDO_DEFAULT_TRIES=3` — budget tuning for the large MONDO artifact downloads.
+- `EXTERNAL_PROXY_MONDO_TIMEOUT_SECONDS=120`, `EXTERNAL_PROXY_MONDO_MAX_SECONDS=300`, `EXTERNAL_PROXY_MONDO_MAX_TRIES=3` — budget for the large MONDO artifact downloads. If these are unset, the global `EXTERNAL_PROXY_TIMEOUT_SECONDS`, `EXTERNAL_PROXY_MAX_SECONDS` and `EXTERNAL_PROXY_MAX_TRIES` apply before the built-in 120/300/3 defaults. Setting the global fail-fast values (6/10/2) in `.env` therefore also cuts the MONDO budget; set the MONDO-specific variables when you set the global ones.
 
-**Worker egress requirement:** the `worker` service must be attached to both the internal `backend` network (DB access) and the egress-capable `proxy` network. Attaching it only to `backend` breaks MONDO downloads because `backend` is `internal: true`.
+**Worker egress requirement:** both `worker` and `worker-maintenance` must be attached to both the internal `backend` network (DB access) and the egress-capable `proxy` network. Attaching it only to `backend` breaks MONDO downloads because `backend` is `internal: true`.
 
-**Worker restart:** after deploying new or changed files in `api/functions/`, `api/services/`, or `api/endpoints/`, restart the worker container (`docker compose restart worker`) before expecting the new handlers to be live — worker-executed code is sourced once at startup.
+**Worker restart:** after deploying new or changed files in `api/functions/`, `api/services/`, or `api/endpoints/`, restart both workers (`docker compose restart worker worker-maintenance`) before expecting the new handlers to be live — worker-executed code is sourced once at startup.
 
 **Admin HTTP triggers** (no SSH needed, Administrator token required):
 ```bash
@@ -424,7 +433,7 @@ curl -sS https://<host>/api/admin/ontology/mappings/status \
   -H "Authorization: Bearer <admin-token>" | jq
 ```
 
-**Important:** when an operator ontology refresh runs (`force_apply_ontology` job), it rebuilds `disease_ontology_set` from scratch, erasing the denormalized projection columns (`UMLS`, `MedGen`, `NCIT`, `GARD`, `ontology_mapping_release`). The chaining handler in `api/functions/admin-ontology-refresh.R` automatically enqueues a `disease_ontology_mapping_refresh(force=TRUE)` afterward to re-derive them. Never run `refresh_disease_ontology_set()` in isolation without also triggering the mapping refresh.
+**Important:** when an operator ontology refresh runs (`force_apply_ontology` job), it rebuilds `disease_ontology_set` from scratch, erasing the denormalized projection columns (`UMLS`, `MedGen`, `NCIT`, `GARD`, `ontology_mapping_release`). The chaining handler `.async_job_chain_ontology_mapping_refresh()` in `api/functions/async-job-provider-handlers.R` automatically enqueues a `disease_ontology_mapping_refresh(force=TRUE)` afterward to re-derive them. Never run `refresh_disease_ontology_set()` in isolation without also triggering the mapping refresh.
 
 ### OMIM dictionary update: blocked state and remediation
 
@@ -462,6 +471,8 @@ After a successful Force Apply the chaining handler automatically re-derives cro
 
 Variation-ontology provenance records where a `VariO` annotation came from, so a reader can tell a curator-asserted term from a machine-derived one. Two things matter for deployment, and they pull in opposite directions — read both.
 
+**Current state.** The production backfill has run: on November 20, 2026 the live site served `active_unconfirmed` provenance (for example on entity 2097). Points 1 and 2 below describe the first deploy of this feature. Keep them for a fresh deployment or a restored database without assertion rows.
+
 **1. The read surface is inert until the backfill runs, and the backfill is in a different repository.**
 
 The contract is that **absence of an assertion row means curator-authored**. With zero assertion rows — which is the state on deploy — `GET /api/entity/<id>/variation` returns `provenance: null` for every term and the public Variation Ontology card renders exactly as it did before: no legend, no glyph, no affordance, no claim. **Nothing about the public site changes on this deploy.** Do not report the feature as live to curators or users at this point; it is shipped, not populated.
@@ -477,7 +488,7 @@ SELECT COUNT(*) FROM variation_ontology_assertion;   -- expect 8111 after a comp
 
 Before this change, the curation forms prefilled their term picker from the entity's existing terms, so a curator editing one sentence of synopsis re-saved every pre-checked machine-derived term onto a new, curator-attributed review — silently promoting it. Server-side reconciliation now leaves an unconfirmed machine-derived term unconfirmed unless a curator explicitly confirms it. With zero assertion rows this is a strict no-op (it does not even build a plan), so it changes no behaviour today; the moment the backfill lands it stops the silent promotion permanently. Every review saved without it makes one more entity permanently ambiguous, which is why it ships ahead of the backfill rather than behind it.
 
-**Migration.** `047_add_variation_ontology_provenance.sql` **auto-applies at API startup** like every other migration — there is no manual migration step. It is additive (two new tables, no existing table altered), idempotent, and restore-drift safe. `api/functions/migration-manifest.R` is bumped to `EXPECTED_LATEST_MIGRATION = "047_add_variation_ontology_provenance.sql"` and `EXPECTED_MIGRATION_COUNT = 45L`, so a stale or partial `db/migrations` mount is fatal at startup — fix that at packaging/deployment time, never by weakening the startup check. One deployment-specific detail: the migration derives the `vario_id` column's charset/collation from `information_schema` at migration time rather than hardcoding `utf8mb3`, because the referenced `variation_ontology_list.vario_id` is not reliably `utf8mb3` in every environment and a mismatch makes MySQL refuse the foreign key outright.
+**Migration.** `047_add_variation_ontology_provenance.sql` **auto-applies at API startup** like every other migration — there is no manual migration step. It is additive (two new tables, no existing table altered), idempotent, and restore-drift safe. `api/functions/migration-manifest.R` is bumped with every migration (`EXPECTED_LATEST_MIGRATION`, `EXPECTED_MIGRATION_COUNT`), so a stale or partial `db/migrations` mount is fatal at startup — fix that at packaging/deployment time, never by weakening the startup check. One deployment-specific detail: the migration derives the `vario_id` column's charset/collation from `information_schema` at migration time rather than hardcoding `utf8mb3`, because the referenced `variation_ontology_list.vario_id` is not reliably `utf8mb3` in every environment and a mismatch makes MySQL refuse the foreign key outright.
 
 **Worker restart.** Not required for this feature. Both write paths — review-save reconciliation (`review_write_mutate()`) and rename carry-forward (`svc_entity_rename_full()`) — are reached only from HTTP endpoints (`api/endpoints/review_endpoints.R`, `api/endpoints/entity_endpoints.R`); no async job handler references the provenance modules. The modules *are* registered in `api/bootstrap/load_modules.R`, which the durable worker also calls, so the worker will source them at its next start, but it executes none of these code paths, so a stale worker is harmless here. What makes the change live is an **API container restart** (`api/functions`, `api/services` and `api/endpoints` are bind-mounted). If you are deploying other changes in the same window, follow the standard rule and restart `worker` and `worker-maintenance` anyway.
 
@@ -504,7 +515,8 @@ Both of those are **public and unauthenticated**, DB-only, and add one query per
 - **The deliberate-act curation UI exists on one surface only** — the Review page's Edit-Review modal. `ModifyEntity.vue` and `ApproveReview.vue` still prefill machine-derived terms with no visible distinction; they are protected server-side (reconciliation runs on every save regardless of surface), but a curator using those pages gets no prompt to confirm.
 - **The evidence dialog shows no import date.** The detail route does not select `variation_ontology_evidence.created_at`, so the dialog shows the batch id (and the release, when `source_version` is recorded) rather than a date.
 - **`evidence_json` key names are a cross-repo contract.** The dialog probes each field through a short alias list and *omits* a section it cannot resolve, so a mismatch fails toward showing less rather than inventing content — but it also means the richest part of the dialog silently disappears if the backfill writes different keys. Confirm the manifest schema against `app/src/views/pages/components/variationProvenance.ts` before the backfill runs.
-- **Deferred by design:** the cross-entity suggestion queue (its backlog does not exist until the backfill runs) and two of the importer-enforcement items — a shared importer write helper, which is administration-repo work, and a restricted DB grant for importers with no write access to `ndd_review_variation_ontology_connect`, which is an operator action. The last one is the durable protection; consider it once the backfill has run.
+- **Cross-entity suggestion queue:** Curators review machine-derived terms across entities on the **Variation suggestions** page (`/curate/variation-suggestions`, Curation menu), backed by `GET /api/curate/variation/suggestions`.
+- **Deferred by design:** two of the importer-enforcement items — a shared importer write helper, which is administration-repo work, and a restricted DB grant for importers with no write access to `ndd_review_variation_ontology_connect`, which is an operator action. The last one is the durable protection; consider it once the backfill has run.
 
 ### Gemini model configuration
 
@@ -567,7 +579,15 @@ Large analysis calls default to `response_mode = "compact"` and `max_response_ch
 
 The sidecar patches `mcptools` so `tools/list` advertises read-only annotations and output schemas, and `resources/list` / `resources/read` serve distinct static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources. MCP prompts are disabled by default because Claude Code exposes them as user-invoked slash commands rather than automatically discovered LLM workflows; set `MCP_ENABLE_PROMPTS=true` only when the deployment intentionally wants `prompts/list` / `prompts/get` to expose the four SysNDD workflow prompts. Recoverable validation failures return stable tool-result JSON envelopes with `isError = true`; malformed or unknown user inputs should not surface as JSON-RPC `-32603` internal errors. The container healthcheck uses only `initialize` and `tools/list`; `make test-mcp-smoke` remains the heavier end-to-end probe.
 
-When the opt-in `mcp` profile is enabled, the production transport is public and credential-free by design. The checked-in Traefik labels route exact JSON-RPC `POST /mcp` requests and `GET /mcp` requests with `Accept: text/event-stream` to the sidecar, while normal browser `GET /mcp` navigation still reaches the public informational Vue page. Both routers bind explicitly to the `mcp` service and strip `/mcp` before forwarding to the `mcptools` HTTP root. The current transport returns `405` for standalone SSE GET; clients should use JSON-RPC POST.
+When the opt-in `mcp` profile is enabled, the production transport is public and credential-free by design. The checked-in Traefik labels define three routers, all bound to the `mcp` service and stripping `/mcp` before forwarding to the `mcptools` HTTP root: `mcp-post` for JSON-RPC `POST /mcp`, `mcp-get` for `GET /mcp` with `Accept: text/event-stream`, and `mcp-delete` for `DELETE /mcp`. A normal browser `GET /mcp` still reaches the public informational Vue page. The server is stateless: it opens no standalone SSE stream and keeps no sessions, so it answers the routed `GET` and `DELETE` with `405`. Clients should use JSON-RPC POST.
+
+The three routers bind to the `web` entrypoint. A production override that moves MCP to `websecure` must carry all three routers with the middlewares and access logging of the checked-in labels (rate limit, POST body-size and in-flight limits, prefix strip). An override with a single POST-only router sends `GET` and `DELETE` to the website, which answers with HTML (issue #710; still the case on the live server on November 21, 2026). After every deploy, run the smoke probe against the public edge, not the sidecar:
+
+```bash
+MCP_URL=https://sysndd.dbmr.unibe.ch/mcp make test-mcp-smoke
+```
+
+The probe fails when `GET` or `DELETE /mcp` returns anything other than `405`, or returns HTML. `make test-mcp-edge` verifies the routing on a disposable stack.
 
 The pinned `mcptools` runtime implements the initialize/session-era Streamable HTTP shape. SysNDD's operational probes negotiate MCP `2025-11-25` and fail if initialize returns a different version; production also accepts `2025-06-18` clients. The latest upstream revision as of 2026-08-27 is `2026-07-28`; it is a breaking stateless revision that removes the initialize/session era and requires per-request protocol metadata such as `MCP-Protocol-Version`, `Mcp-Method`, and (where applicable) `Mcp-Name`. Do not infer `2026-07-28` support from the public edge labels. Treat adoption as a separate compatibility migration: upgrade `mcptools`, update health/smoke clients, keep exact GET/DELETE routing so unsupported methods continue to return `405`, and exercise old/new client fallback before changing the advertised protocol version.
 
@@ -593,7 +613,7 @@ Access logs are enabled only for the three MCP protocol routers; the public app 
 - Access-token lifetime is configured by `token_expiry` (seconds) in each `api/config.yml` block (default `3600`); it drives both the JWT `exp` and the `expires_in` returned by `POST /api/auth/authenticate`. The legacy `refresh` key now only controls the password-reset link TTL. Set `token_expiry` explicitly in the production config block.
 - Async job polling now reads durable MySQL-backed state, so sticky sessions are unnecessary for correctness; they were removed on the `api` load balancer in #344 (see the two-lane topology above).
 - `make cache-clear` removes nested `.rds` cache files under `/app/cache`, including external proxy caches.
-- Run the worker service alongside the API service; `mirai` daemons live in the worker service and jobs are executed by the worker entrypoint, not the web process.
+- Run the `worker` and `worker-maintenance` services alongside the API; durable jobs are executed by the worker entrypoint (`start_async_worker.R`), not the web process.
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - The worker service needs both internal database access and outbound provider access. In Compose it should stay on `backend` for MySQL/API internals and on the egress-capable `proxy` network for Gemini, PubMed, PubTator, and other external calls. Do not attach it only to the internal `backend` network.
 - Durable jobs run on two lanes so heavy maintenance jobs never head-of-line block interactive work (#486). Production Compose runs two worker containers: `worker` (`ASYNC_JOB_QUEUES=default`) drains latency-sensitive interactive jobs (clustering, phenotype clustering, `llm_generation`, `analysis_snapshot_refresh`, `network_layout_prewarm`), and `worker-maintenance` (`ASYNC_JOB_QUEUES=maintenance`) drains heavy/bulk/external jobs (`publication_date_backfill`, `publication_refresh`, `omim_update`, `hgnc_update`, `comparisons_update`, `ontology_update`, `force_apply_ontology`, `disease_ontology_mapping_refresh`, `nddscore_import`, PubTator refreshes, backups). `worker-maintenance` is a deliberate mirror of `worker` — same image, volumes, env, restart policy, and **both** the `backend` and `proxy` networks (it makes the external PubMed/OMIM/Zenodo/MONDO calls). Routing and priority come from `async_job_queue_for_type()` / `async_job_priority_for_type()` in `api/functions/async-job-service.R` (interactive priority 10 < maintenance 50 < default 100; the claim query orders `priority ASC`). Both containers must be deployed for maintenance jobs to run; scale either lane independently. Local dev runs a single combined `worker` (`ASYNC_JOB_QUEUES=default,maintenance` via `docker-compose.override.yml`, which also profile-gates `worker-maintenance` out of the dev stack), so no second container is needed for development. Override `ASYNC_JOB_MAINTENANCE_QUEUES` to widen the maintenance worker's lanes.

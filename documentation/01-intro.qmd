@@ -1,69 +1,104 @@
 ---
-title: "Curating gene-disease relationships"
+title: "What is SysNDD"
 ---
 
----
+::: {.lead}
+SysNDD is an expert-curated database of published gene-disease associations in neurodevelopmental disorders. This chapter explains the idea every page of the site is built on, the entity, and how SysNDD grades the evidence behind it.
+:::
 
-As the name implies a <mark>rare disease</mark> affects only very few individuals. However, there are many unique causes of rare diseases, thus many individuals are affected by such a disease.
-Due to the rarity of each single entity, effective management, surveillance and treatment is challenging. So is finding the correct diagnosis, which is often described as the "<mark>diagnostic odyssey</mark>".
+::: {.callout-note .who-can title="Who this is for"}
+Everyone. Read this chapter before the task chapters. No account is needed to use the public site.
+:::
 
-Rare diseases often have a <mark>genetic cause</mark>, making <mark>high-throughput sequencing</mark> (next-generation sequencing; NGS) a central part of finding the molecular diagnosis.
+## Why SysNDD exists
 
+Neurodevelopmental disorders (NDDs) include developmental delay, intellectual disability (ID) and autism spectrum disorder. They are clinically and genetically heterogeneous: many genes are involved, and new gene-disease associations are published every month.
 
+Diagnostic laboratories and clinicians need an up-to-date, consistent answer to one question: *is there enough evidence that variants in this gene cause this disorder?* Answering it from the literature takes time and expertise. SysNDD collects that work in one place.
 
-## Neurodevelopmental disorders
+Clinicians and scientists with expertise in NDDs curate SysNDD. They read the published evidence, grade it with fixed [curation criteria](05-curation-criteria.qmd), and re-review older records as new papers appear. SysNDD continues the earlier SysID database [@kochinke_systematic_2016]; the [Preface](index.qmd) tells its history.
 
-<mark>Neurodevelopmental disorders</mark> (NDDs) affect about 2% of children. They represent a clinically and genetically extremely heterogeneous disease group comprising, amongst others, <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD) and developmental and epileptic encephalopathies (DEE).
+## The entity: gene, inheritance, disease
 
+SysNDD does not grade genes. It grades **entities**. An entity is one gene, one mode of inheritance and one disease:
 
+- the **gene**, identified by its HGNC identifier (HUGO Gene Nomenclature Committee);
+- the **mode of inheritance**, a term from the Human Phenotype Ontology (HPO), for example Autosomal dominant inheritance (`HP:0000006`);
+- the **disease**, identified in OMIM (Online Mendelian Inheritance in Man) or MONDO (Mondo Disease Ontology).
 
-## Genetic heterogeneity
+A gene can therefore have several entities. Each one carries its own evidence category, because the evidence for one disease and inheritance says nothing about another.
 
-Looking at published gene-disease associations over time reveals significant <mark>genetic heterogeneity</mark>.
+*FBXO11* shows why this matters. On November 20, 2026 it had two entities in SysNDD:
 
-Thus the question arises:
+| Entity | Inheritance | Disease | Evidence category |
+| --- | --- | --- | --- |
+| `sysndd:1848` | Autosomal dominant | Intellectual developmental disorder with dysmorphic facies and behavioral abnormalities (`OMIM:618089`) | [Definitive]{.cat .cat-definitive} |
+| `sysndd:1998` | Autosomal recessive | intellectual disability (`MONDO:0001071`) | [Refuted]{.cat .cat-refuted} |
 
-> How can we keep track of this fast development and have the information at hand when we need it in the clinic or when analyzing sequencing data?
+: The two *FBXO11* entities, accessed November 20, 2026. {#tbl-intro-fbxo11}
 
-While the answer to this question is easy:
+Heterozygous variants in *FBXO11* cause an established autosomal dominant disorder. A proposed autosomal recessive association with intellectual disability is not supported. A gene-level list would merge these two statements; the entity view keeps them apart.
 
-> We need curated databases to catalog and summarize the wealth of published information.
+Once created, an entity's gene, inheritance and disease do not change. If one of them must change, for example when the disease identifier changes, a Curator uses **Rename disease**: SysNDD creates a replacement entity, copies the review and status to it, and links the old entity to it. A duplicate entity is removed from use with **Deactivate entity**, which can also point to the entity that replaces it. Entities are never deleted, so their identifiers stay stable for citation.
 
-The task at hand is not only laborious but also requires expertise and consistency.
+## Evidence categories
 
+Every entity within the NDD scope has one evidence category. Entities outside it are marked Not applicable (see below). The categories answer one question: how strong is the published evidence that this entity is a neurodevelopmental disorder?
 
+| Category | In short |
+| --- | --- |
+| [Definitive]{.cat .cat-definitive} | The association is established by the published evidence. |
+| [Moderate]{.cat .cat-moderate} | Better evidence than Limited, but not enough for Definitive. |
+| [Limited]{.cat .cat-limited} | Published, and ID is indicated, but the genetic or clinical evidence is limited. |
+| [Refuted]{.cat .cat-refuted} | The evidence argues against keeping the proposed association. |
 
-## Expert curation
+: Evidence categories. The binding definitions are in the curation criteria. {#tbl-intro-categories}
 
-In our opinion, the curation of gene-disease relationships in rare disease such as NDDs requires clinical and scientific proficiency in the respective field. This implies that clinician scientists involved in counseling, diagnostics and research of NDDs are predestined for this task.
+These summaries are not the rules. Curators assign categories with the thresholds and conditions in [Curation criteria](05-curation-criteria.qmd).
 
-To reduce workload and dependence on single experts, a distributed effort in larger consortia and collaboration between different work groups is needed.
+### Not applicable
 
-In the course of updating SysID we had the great chance to contribute our data to Orphanet to create a European ID/NDD specific reference list. With support from the "ITHACA Workgroup: intellectual disability" ([id-genes.orphanet.app](https://id-genes.orphanet.app/ithaca])) in 2019 we started working with the Orphanet team which is part of the Gene Curation Coalition (GenCC).
+Some genes also have well-established disorders without intellectual disability or another neurodevelopmental feature. SysNDD keeps these entities for gene context and marks them [Not applicable]{.cat .cat-na}. The app shows this as "not applicable"; the curation criteria write `n.a.`.
 
-Additionally, we are able to recruit expert curators from [ERN ITHACA](https://ern-ithaca.eu/) to contribute to re-curation of old data and updating new data in SysNDD.
+Not applicable is not an evidence category and not a lower tier. It means the entity is outside the NDD scope, not that its evidence is weak.
 
+### The NDD column
 
+Tables show an **NDD** column with Yes or No. It records whether the entity's disease is a neurodevelopmental disorder. Both *FBXO11* entities above have NDD Yes.
 
-## Technical concepts
+## What SysNDD records for each entity
 
-In addition to a pool of experts, the right tools are needed.
+Beyond the category, an entity has a **review**: the curated evidence summary. A review contains:
 
-We defined "gene-inheritance-disease" units as "entities" which represent the central curation effort. The components of these entities are normalized using widely used and standardized ontology terms (e.g. HGNC identifier for genes, OMIM or MONDO for disease and inheritance from HPO). This allows interoperability and linking to other data sources.
+- a **clinical synopsis**, a short summary of the reported phenotype;
+- **phenotypes**, coded as HPO terms;
+- **variation**, the variant types reported, coded as Variation Ontology (VariO) terms;
+- **publications**, as PubMed identifiers (PMIDs), including GeneReviews chapters where they exist.
 
-Based on this concept we developed a new database scheme, which allows entities to be systematically and reproducibly cataloged.
-The database is abstracted into a JSON API, which allows structured programmatic access to the underlying data.
+The category is stored as the entity's **status**. Reviews and statuses are written by Reviewers and Curators. A change becomes public only after a Curator or Administrator approves it. [Data model](04-database-structure.qmd) describes the data model in detail.
 
-Finally, the API feeds the web tool which can be used to easily search, filter, download and visualize the database contents in modern web browsers.
+## Who uses SysNDD
 
+| Reader | Typical tasks | Start with |
+| --- | --- | --- |
+| Clinicians and diagnostic laboratories | Check a gene's entities and categories; download a panel for variant filtering | [Find a gene](using-find-gene.qmd), [Build a gene panel](using-panels.qmd) |
+| Researchers | Download tables, query the API, explore the analyses | [Get SysNDD data with the API and MCP](03-api.qmd), [Read the analyses](using-analyses.qmd) |
+| [Reviewer]{.role} | Re-review assigned entities | [Re-review: guide for Reviewers](06-re-review-instructions.qmd) |
+| [Curator]{.role} | Create, modify and approve entities; manage re-review | [Curation criteria](05-curation-criteria.qmd), then the Curator guide |
 
+: Readers and where to start. {#tbl-intro-readers}
 
-## Outlook
+Searching, browsing, downloading and the analyses are open to everyone. An account is needed only to contribute; see [Your account](using-account.qmd).
 
-- The SysNDD database will improve the understanding and curation of rare NDD entities.
+## How SysNDD fits with other resources
 
-- SysNDD will enable systems biology and network analyses.
+SysNDD links each entity to standard identifiers, so its data can be combined with gene-, disease- and phenotype-centered resources. The Orphanet intellectual disability gene list (OrphaID, [id-genes.orphanet.app](https://id-genes.orphanet.app/ithaca/)) was curated in partnership with ERN ITHACA and SysID, the predecessor of SysNDD.
 
-- Our long-term goal is incorporation of the high-quality, manually curated SysNDD data into European and international gene disease relationship databases,
+You can compare SysNDD with other NDD gene curation efforts, such as Gene2Phenotype, PanelApp and SFARI, under **Analyses › Compare curations**; see [Read the analyses](using-analyses.qmd).
 
-- thus, improving diagnostics and care for individuals with rare NDDs.
+## Related pages
+
+- [Tour of the web app](02-web-tool.qmd): where each feature lives in the menus.
+- [Find a gene](using-find-gene.qmd): look up a gene and read its entities.
+- [Curation criteria](05-curation-criteria.qmd): the binding definitions of the evidence categories.
+- [Glossary](reference-glossary.qmd): terms used throughout this documentation.

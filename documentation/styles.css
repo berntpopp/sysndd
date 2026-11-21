@@ -1,99 +1,530 @@
-/* SysNDD Documentation Styles */
+/* SysNDD documentation styles.
+ * Bootstrap/Quarto variables live in theme.scss. This file holds component
+ * rules. Conventions for writers: docs/superpowers/specs/2026-11-20-docs-style-guide.md
+ */
 
 :root {
-  --sysndd-doc-text: #24323a;
-  --sysndd-doc-muted: #63717a;
-  --sysndd-doc-border: #d8e0e5;
-  --sysndd-doc-surface: #f7fafb;
-  --sysndd-doc-primary: #1f6f8b;
-  --sysndd-doc-primary-dark: #164f64;
-  --sysndd-doc-accent: #7a5c26;
-  --bs-primary: var(--sysndd-doc-primary);
+  --doc-blue-700: #0d47a1;
+  --doc-blue-600: #1e88e5;
+  --doc-blue-50: #eef4fc;
+  --doc-teal-700: #00695c;
+  --doc-teal-50: #e8f5f3;
+  --doc-text: #212121;
+  --doc-muted: #5f6b74;
+  --doc-border: #d9e0ea;
+  --doc-surface: #f6f8fb;
+  --doc-marker: #0d47a1;
 }
 
-body {
-  color: var(--sysndd-doc-text);
+/* ---------- Reading rhythm ---------- */
+
+main.content {
+  font-variant-numeric: lining-nums;
 }
+
+
+main.content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--doc-border);
+}
+
+main.content h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+main.content h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+/* One-sentence purpose line directly under the page title: `::: {.lead}` */
+.lead,
+main.content .lead p {
+  font-size: 1.1875rem;
+  line-height: 1.5;
+  color: #37474f;
+}
+
+/* ---------- Links, selection, focus ---------- */
 
 a {
-  color: var(--sysndd-doc-primary-dark);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
 }
 
-.navbar-brand img {
-  height: 40px;
-  width: auto;
+a:hover {
+  text-decoration-thickness: 2px;
 }
 
-.sidebar {
-  border-right: 1px solid var(--sysndd-doc-border);
+main.content a[role="doc-biblioref"],
+main.content a.footnote-ref {
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
 }
 
-.page-footer {
-  background-color: #24323a;
-  color: #ffffff;
-  padding: 1rem;
+::selection {
+  background: #c9dcf5;
+  color: var(--doc-text);
 }
 
-.page-footer a {
-  color: #d9edf3;
+:focus-visible {
+  outline: 2px solid var(--doc-blue-600);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
+
+/* ---------- Sidebar ---------- */
+
+.sidebar-navigation .sidebar-item-section > .sidebar-item-container .sidebar-item-text,
+.sidebar-navigation .sidebar-section-item .sidebar-item-text {
+  font-weight: 600;
+}
+
+#quarto-sidebar .sidebar-item a.active {
+  font-weight: 600;
+}
+
+.sidebar-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.sidebar-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  max-height: 64px;
+  object-fit: contain;
+}
+
+.quarto-cover-image {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
+#quarto-sidebar .sidebar-item-text,
+#quarto-sidebar .sidebar-link {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.toc-actions a,
+.toc-actions .toc-action {
+  display: inline-block;
+  min-height: 24px;
+  padding: 0.15rem 0;
+}
+
+/* Breadcrumb links on narrow screens were under the 24 px minimum target size. */
+.quarto-page-breadcrumbs .breadcrumb-item a {
+  display: inline-block;
+  min-height: 24px;
+  line-height: 24px;
+}
+
+.quarto-navigation-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+#quarto-sidebar {
+  border-right: 1px solid var(--doc-border);
+}
+
+/* ---------- Code and identifiers ---------- */
 
 pre {
-  background-color: var(--sysndd-doc-surface);
-  border: 1px solid var(--sysndd-doc-border);
-  border-radius: 0.25rem;
+  background-color: var(--doc-surface);
+  border: 1px solid var(--doc-border);
+  border-radius: 6px;
 }
 
-table {
-  width: 100%;
-  margin-bottom: 1rem;
-  border-collapse: collapse;
-}
-
-table th,
-table td {
-  padding: 0.75rem;
-  border: 1px solid var(--sysndd-doc-border);
-}
-
-table th {
-  background-color: var(--sysndd-doc-surface);
-}
-
-p.caption,
-.figure-caption {
-  color: var(--sysndd-doc-muted);
-  margin-top: 0.5rem;
-}
-
-p code {
+p code,
+li code,
+td code {
   white-space: inherit;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 pre code {
   white-space: inherit;
 }
 
+/* Gene symbols are written in italics in prose (*MAU2*); no extra styling. */
+
+/* ---------- Tables ---------- */
+
+main.content table {
+  width: 100%;
+  margin: 1rem 0 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+main.content table th,
+main.content table td {
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--doc-border);
+  vertical-align: top;
+  text-align: left;
+}
+
+main.content table thead th {
+  background-color: var(--doc-surface);
+  border-bottom: 1px solid #b9c4d2;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #37474f;
+}
+
+main.content table caption {
+  caption-side: top;
+  color: var(--doc-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- Callouts ----------
+ * Quarto's default callout uses a thick coloured left border; replaced with a
+ * full 1px tinted frame so emphasis comes from the header, not a stripe.
+ */
+
+div.callout {
+  border: 1px solid var(--doc-border) !important;
+  border-left-width: 1px !important;
+  border-radius: 6px;
+  box-shadow: none;
+  margin: 1.25rem 0;
+}
+
+div.callout.callout-style-default > .callout-header {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 0.5rem 0.875rem;
+}
+
+/* Quarto colours the title with a lighter tint of the callout colour (4.3:1 on
+ * the tinted header); inherit the AA-safe header colours set below instead. */
+div.callout .callout-header .callout-title-container {
+  color: inherit !important;
+}
+
+/* Quarto fades callout headers to 0.85 opacity, which pushed the teal title to
+ * 4.3:1. Full opacity keeps the AA colours set here. */
+div.callout > .callout-header {
+  opacity: 1 !important;
+}
+
+.who-can > .callout-header,
+.who-can > .callout-header .callout-title-container {
+  color: var(--doc-teal-700) !important;
+}
+
+div.callout .callout-body-container {
+  padding: 0.75rem 0.875rem;
+}
+
+div.callout .callout-body-container > :last-child {
+  margin-bottom: 0;
+}
+
+div.callout-tip.callout-style-default > .callout-header { color: var(--doc-teal-700); }
+div.callout-note.callout-style-default > .callout-header { color: #01579b; }
+div.callout-warning.callout-style-default > .callout-header { color: #8a4500; }
+div.callout-caution.callout-style-default > .callout-header { color: #b71c1c; }
+div.callout-important.callout-style-default > .callout-header { color: var(--doc-blue-700); }
+
+div.callout-note { border-color: #b3d4ea !important; }
+div.callout-note.callout-style-default > .callout-header { background-color: #e8f3fa; }
+
+div.callout-tip { border-color: #b2d8d2 !important; }
+div.callout-tip.callout-style-default > .callout-header { background-color: var(--doc-teal-50); }
+
+div.callout-warning { border-color: #f4c99a !important; }
+div.callout-warning.callout-style-default > .callout-header { background-color: #fff4e6; }
+
+div.callout-caution { border-color: #ebb4b4 !important; }
+div.callout-caution.callout-style-default > .callout-header { background-color: #fdeeee; }
+
+div.callout-important { border-color: #b7c9e6 !important; }
+div.callout-important.callout-style-default > .callout-header { background-color: var(--doc-blue-50); }
+
+/* "Who can do this": ::: {.callout-note .who-can title="Who can do this"} */
+div.callout.who-can { border-color: #b2d8d2 !important; }
+div.callout.who-can.callout-style-default > .callout-header {
+  background-color: var(--doc-teal-50);
+  color: var(--doc-teal-700);
+}
+div.callout.who-can .callout-icon::before {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2300695c" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/></svg>') !important;
+}
+
+/* "Rule": ::: {.callout-important .rule title="Rule"} – verbatim curation/review rules */
+div.callout.rule { border-color: #8fa9d4 !important; }
+div.callout.rule.callout-style-default > .callout-header {
+  background-color: var(--doc-blue-50);
+  color: var(--doc-blue-700);
+}
+div.callout.rule .callout-body-container {
+  font-size: 1rem;
+}
+
+/* ---------- Role and category badges ----------
+ * Roles:      [Curator]{.role}
+ * Categories: [Definitive]{.cat .cat-definitive}  (also -moderate, -limited, -refuted, -na)
+ * Category badges repeat the app's stoplight colours as a dot; the label text
+ * carries the meaning, so colour is never the only signal.
+ */
+
+.role,
+.cat {
+  display: inline-block;
+  padding: 0.05em 0.5em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.8125em;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  vertical-align: 0.05em;
+}
+
+.role {
+  background: #eef1f5;
+  border-color: #cfd8e3;
+  color: #37474f;
+}
+
+.cat::before {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+  background: currentColor;
+}
+
+.cat-definitive { background: #e8f5e9; border-color: #b9dfbb; color: #1b5e20; }
+.cat-definitive::before { background: #4caf50; }
+.cat-moderate { background: #e3f2fd; border-color: #b3d7f7; color: #0d47a1; }
+.cat-moderate::before { background: #2196f3; }
+.cat-limited { background: #fff3e0; border-color: #ffd29a; color: #8a4500; }
+.cat-limited::before { background: #ff9800; }
+.cat-refuted { background: #ffebee; border-color: #f5baba; color: #b71c1c; }
+.cat-refuted::before { background: #f44336; }
+.cat-na { background: #f1f3f5; border-color: #d5dbe1; color: #4a545c; }
+.cat-na::before { background: #9aa5ae; }
+
+/* ---------- Screenshots ----------
+ * ::: {.doc-screenshot}
+ * ![Caption sentence.](static/img/generated/name.png){fig-alt="..."}
+ * :::
+ */
+
 .doc-screenshot {
   max-width: 100%;
+  margin: 1.5rem 0 1.75rem;
+}
+
+.doc-screenshot img,
+.doc-screenshot .figure-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--doc-border);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(16, 38, 66, 0.06), 0 4px 12px rgba(16, 38, 66, 0.06);
+  background: #fff;
+}
+
+.doc-screenshot.mobile img,
+.doc-screenshot.mobile .figure-img {
+  max-width: 360px;
+}
+
+p.caption,
+.figure-caption,
+figcaption {
+  color: var(--doc-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  margin-top: 0.6rem;
+}
+
+/* ---------- Numbered markers ----------
+ * Inline reference to a marker drawn on a screenshot: [1]{.marker}
+ * Legend directly below the screenshot:
+ *   ::: {.marker-legend}
+ *   1. **Search** – type a gene symbol.
+ *   2. ...
+ *   :::
+ * Marker colour and shape match the markers drawn on the screenshots.
+ */
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45em;
+  height: 1.45em;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  background: var(--doc-marker);
+  color: #fff;
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.1em;
+}
+
+.marker-legend ol {
+  list-style: none;
+  counter-reset: marker;
+  padding-left: 0;
+  margin: -0.5rem 0 1.75rem;
+}
+
+.marker-legend ol > li {
+  counter-increment: marker;
+  position: relative;
+  padding-left: 2.1em;
+  margin-bottom: 0.4rem;
+}
+
+.marker-legend ol > li::before {
+  content: counter(marker);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 999px;
+  background: var(--doc-marker);
+  color: #fff;
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---------- Task steps ----------
+ * ::: {.steps}
+ * 1. Open **Curation › Create entity**.
+ * 2. ...
+ * :::
+ */
+
+.steps ol {
+  list-style: none;
+  counter-reset: step;
+  padding-left: 0;
   margin: 1rem 0 1.5rem;
 }
 
-.doc-screenshot img {
-  max-width: 100%;
-  height: auto;
-  border: 1px solid var(--sysndd-doc-border);
+.steps ol > li {
+  counter-increment: step;
+  position: relative;
+  padding: 0.1em 0 0.6rem 2.6em;
+  margin: 0;
 }
 
-mark {
-  display: inline-block;
-  line-height: 1;
-  padding: 0.1em 0.25em;
+.steps ol > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.75em;
+  height: 1.75em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b7c9e6;
+  border-radius: 999px;
+  background: var(--doc-blue-50);
+  color: var(--doc-blue-700);
+  font-size: 0.875rem;
   font-weight: 700;
-  background-color: #f2d78c;
+  font-variant-numeric: tabular-nums;
+}
+
+/* UI labels the reader clicks: **Save** is the convention; keyboard keys use <kbd>. */
+kbd {
+  background: #fff;
+  color: var(--doc-text);
+  border: 1px solid #b9c4d2;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  font-size: 0.85em;
+}
+
+/* ---------- Footer ---------- */
+
+.nav-footer {
+  border-top: 1px solid var(--doc-border);
+  font-size: 0.875rem;
+}
+
+/* ---------- Legacy compatibility ----------
+ * <mark> appeared in the old intro chapter; kept quiet until rewritten.
+ * Do not use <mark> in new pages.
+ */
+
+mark {
+  padding: 0 0.15em;
+  background-color: #e8f0fb;
+  color: inherit;
+  border-radius: 3px;
 }
 
 div[style*="max-width"] img {
   max-width: 100%;
   height: auto;
+}
+
+/* ---------- Layout stability ----------
+ * On narrow screens Quarto shows a fixed top bar and sets body padding-top to
+ * its measured height after first paint, which shifted the whole page (CLS).
+ * Fix the bar height and reserve the same padding up front.
+ */
+/* The sidebar search box is injected by script after first paint and pushed the
+ * menu down by its height; reserve that height. */
+#quarto-sidebar .sidebar-search {
+  min-height: 28px;
+}
+
+@media (max-width: 991.98px) {
+  #quarto-header .quarto-secondary-nav {
+    height: 42px;
+    min-height: 42px;
+    overflow: hidden;
+  }
+  body:has(#quarto-header.fixed-top) {
+    padding-top: 42px;
+  }
+}
+
+@media print {
+  .doc-screenshot img { box-shadow: none; }
 }

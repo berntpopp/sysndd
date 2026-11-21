@@ -1,445 +1,170 @@
 ---
-title: "Web tool"
+title: "Tour of the web app"
 ---
 
-The SysNDD web tool is available from [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/) on a server hosted at the Department for BioMedical Research ([DBMR](https://www.dbmr.unibe.ch/)) (University of Bern) and the web address [https://sysndd.org/](https://sysndd.org/) redirects to this server.
-
-The web tool is a Vue 3 single-page application written in TypeScript and built with Vite. It uses Bootstrap 5 and Bootstrap-Vue-Next for the component layer.
-
-
-## Landing page
-
-The landing page provides:
-
-1) a navigation menu at the top,
-2) the main site content, which changes with navigation to other routes, and
-3) a footer navigation bar at the bottom
-
-Screenshot of the landing page:
-
-::: {.doc-screenshot}
-![Landing page with the main navigation, summary content, and footer navigation.](./static/img/generated/home.png)
+::: {.lead}
+A short tour of the SysNDD web app: the home page, the menus, the controls every table shares, and where each task is documented.
 :::
 
-The landing page content includes the following elements to provide a quick overview and allow for easy navigation:
-
-- a centered search input at the top,
-- a box (left side top) with current gene statistics divided by association category and inheritance patterns (*Details*),
-- a box (left side bottom) showing a table of the five last entities entered into the database,
-- explanatory text on the right.
-
-
-## Main navigation menu
-
-The main navigation allows quick access to all sub-pages.
-
-The *Tables* button triggers a dropdown menu with links to:
-
-- *Entities* table view
-- *Genes* table view
-- *Phenotypes* table view
-- *Panels* table view
-
-::: {.doc-screenshot}
-![Navigation menu with the current Tables dropdown expanded.](./static/img/generated/nav-tables-dropdown.png)
+::: {.callout-note .who-can title="Who can do this"}
+Everyone. The **Review**, **Curation** and **Administration** menus appear only after you sign in with a role that allows them.
 :::
 
+## Open SysNDD
 
-The *Analyses* button triggers a dropdown menu with links to:
+Open [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/) in a current web browser. The short address [https://sysndd.org/](https://sysndd.org/) leads to the same site. The University of Bern hosts SysNDD at its Department for BioMedical Research (DBMR).
 
-- *Compare curations* view
-- *Correlate phenotypes* view
-- *Correlate variants* view
-- *Entries over time* view
-- *NDD Publications* view
-- *PubTator Analysis* view
-- *Functional clusters* view
-- *Pheno-Func Correlation* view
+All public pages work without an account. You need an account only to review or curate; see [Your account](using-account.qmd).
+
+## The home page
 
 ::: {.doc-screenshot}
-![Navigation menu with the current Analyses dropdown expanded.](./static/img/generated/nav-analyses-dropdown.png)
+![The SysNDD home page with the search box, database statistics, newest entities and the concept panel.](static/img/generated/hub-home-overview.png){#fig-hub-home fig-alt="SysNDD home page. Marker 1 points to the central search box, marker 2 to the Database statistics box with counts per evidence category, marker 3 to the New entities table, marker 4 to the How SysNDD is organized panel."}
 :::
 
-The *Help* button triggers a dropdown menu with links to:
+::: {.marker-legend}
+1. **Search genes, diseases, IDs**: the main search box. See [Find a gene](using-find-gene.qmd).
+2. **Database statistics**: entity and gene counts per evidence category. The **Updated** date in the panel header shows when the counts were last refreshed.
+3. **New entities**: the most recently added entities. **Browse all** opens the full Entities table.
+4. **How SysNDD is organized**: a summary of the entity concept and the evidence categories, explained in [What is SysNDD](01-intro.qmd).
+:::
 
-- *About*
-- *Docs and FAQ*
+## The menus
+
+The navigation bar at the top is the same on every page. On every page except the home page it also contains a search box.
+
+### Public menus
+
+| Menu | Item | What it opens | Documented in |
+| --- | --- | --- | --- |
+| **Tables** | **Entities** | All entities, one row per gene, inheritance and disease | [Find a gene](using-find-gene.qmd) |
+| | **Genes** | One row per gene with its entities | [Find a gene](using-find-gene.qmd) |
+| | **Phenotypes** | Entities filtered by phenotype | [Search by phenotype or variant type](using-phenotype-search.qmd) |
+| | **Panels** | Gene lists by category and inheritance | [Build a gene panel](using-panels.qmd) |
+| **Analyses** | **Compare curations** | SysNDD compared with other NDD gene lists | [Read the analyses](using-analyses.qmd) |
+| | **Correlate phenotypes** | Phenotype co-occurrence, counts and clusters | [Read the analyses](using-analyses.qmd) |
+| | **Correlate variants** | Variant-type co-occurrence and counts | [Search by phenotype or variant type](using-phenotype-search.qmd) |
+| | **Entries over time** | Growth of SysNDD since curation began | [Read the analyses](using-analyses.qmd) |
+| | **NDD Publications** | Publications cited by SysNDD entities | [Read the analyses](using-analyses.qmd) |
+| | **PubTator Analysis** | Gene mentions in the NDD literature found by PubTator | [Read the analyses](using-analyses.qmd) |
+| | **Functional clusters** | Clusters of interacting gene products | [Read the analyses](using-analyses.qmd) |
+| | **Data releases** | Downloadable, versioned analysis releases | [Cite SysNDD and reuse its data](reference-citing.qmd) |
+| | **Phenotype–function correlation** | Phenotype clusters compared with functional clusters | [Read the analyses](using-analyses.qmd) |
+| **NDDScore** | **Gene predictions** | Machine-learning predictions for genes | Model card in the app |
+| | **Model card** | How the predictions were made and their limits | Model card in the app |
+| **Help** | **About** | The project, team, funding and contact | — |
+| | **Docs and FAQ** | This documentation | — |
+| | **MCP** | How to connect an AI assistant | [Get SysNDD data with the API and MCP](03-api.qmd) |
+
+: Public menus in the navigation bar. {#tbl-hub-public-menus}
+
+NDDScore predictions come from a statistical model. They are not curated and are not evidence categories. Read the **Model card** before you use them.
+
+### Menus after sign-in
+
+After you sign in, the right side of the navigation bar shows your user name and the menus your role allows. Each role also sees the menus of the roles below it.
+
+| Menu | Minimum role | Items | Documented in |
+| --- | --- | --- | --- |
+| **Review** | [Reviewer]{.role} | **Instructions**, **Re-Review** | [Re-review: guide for Reviewers](06-re-review-instructions.qmd) |
+| **Curation** | [Curator]{.role} | **Create entity**, **Modify entity**, **Approve review**, **Approve status**, **Approve user**, **Manage re-review**, **Variation suggestions**, **GeneReviews coverage** | Curator guide, starting at [Create an entity](curator-create-entity.qmd) |
+| **Administration** | [Administrator]{.role} | See the list below | — |
+| *your user name* | any account | **View profile**, **Token**, **Sign out** | [Your account](using-account.qmd) |
+
+: Menus that depend on your role. {#tbl-hub-role-menus}
 
 ::: {.doc-screenshot}
-![Navigation menu with the current Help dropdown expanded.](./static/img/generated/nav-help-dropdown.png)
+![The navigation bar of an Administrator, with the Administration, Curation and Review menus and the user menu.](static/img/generated/nav-authenticated-admin.png){#fig-hub-nav-roles fig-alt="SysNDD navigation bar after sign-in as an Administrator. On the right are the Administration, Curation and Review menus, followed by the user name menu."}
 :::
 
+The **Administration** menu is for Administrators who run the site. It contains:
 
-If not on the landing page, a search bar also appears on the navigation menu.
+- **Manage user**: user accounts and roles.
+- **Manage annotations**: refresh annotation data, such as disease ontologies, from their sources.
+- **Manage ontology**: the variation terms used in reviews.
+- **Manage about**: the content of the About page.
+- **Admin statistics**: curation activity over time.
+- **View logs**: the request log of the site.
+- **Manage backups**: database backups.
+- **Manage PubTator**: the PubTator literature cache.
+- **LLM Management**: settings and review of AI-generated summaries.
+- **Manage NDDScore**: the imported NDDScore prediction release.
+- **Manage releases**: analysis-snapshot releases.
+- **Manage metadata**: the controlled vocabularies SysNDD maintains itself.
+- **Manage ontology mappings**: mappings between disease ontologies.
+
+If you need something done in one of these areas, write to support [at] sysndd.org.
+
+## Work with tables {#work-with-tables}
+
+The **Entities**, **Genes** and **Phenotypes** tables share the same controls. The Panels page has its own; see [Build a gene panel](using-panels.qmd).
 
 ::: {.doc-screenshot}
-![Navigation on a non-home route, showing the navbar search and unauthenticated Login link.](./static/img/generated/nav-search-non-home.png)
+![The Entities table with its search, column filters and toolbar.](static/img/generated/tables-common-controls.png){#fig-hub-table-controls fig-alt="Entities table. Marker 1 points to the search field above the table, marker 2 to the filter boxes under the column headers, marker 3 to the .xlsx download button, marker 4 to the copy-link button, marker 5 to the funnel button that removes filters, marker 6 to a Show button in the Details column."}
 :::
 
-
-If not logged in, the right side of the menu shows a button which directs you to the *Login* page.
-When logged in as a registered user the menu shows your username and additional links to page views depending on your user rights:
-
-::: {.doc-screenshot}
-![Authenticated navigation showing role-dependent menus and the user dropdown.](./static/img/generated/nav-authenticated-admin.png)
+::: {.marker-legend}
+1. **Search any field by typing here**: searches all columns at once.
+2. **Column filters**: type in a text filter (**Filter** followed by the column name, for example **Filter Symbol...**), or choose a value from a list such as **Any Category** or **Any NDD**.
+3. **.xlsx**: downloads all rows that match the current search and filters as an Excel file.
+4. **Copy link to this page**: copies a link that reopens the table with the same search, filters and sorting.
+5. Funnel button: clears all filters. Its tooltip says whether the table is filtered.
+6. **Show**: opens a details row for the entity.
 :::
 
+Select a column header to sort by that column. Use **Per page** and the page buttons below the table to move through the results.
 
+Badges in the first columns open the related page. The `sysndd:` badge opens the entity page, the gene symbol opens the gene page, and the disease name opens the disease page. [Find a gene](using-find-gene.qmd) explains these pages.
 
-## Footer navigation menu
-
-The footer navigation shows a policy button and logos with links to:
-
-1) usage policy and data privacy disclaimer
-2) the license applied to SysNDD
-3) our GitHub repository
-4) the SysNDD API view
-5) the DFG funder website
-6) the website of the University of Bern hosting our server
-7) the ERN-ITHACA website
-
-::: {.doc-screenshot}
-![Footer navigation with policy control and partner/resource links.](./static/img/generated/footer-desktop.png)
+::: {.callout-tip}
+Use **Copy link to this page** to share a filtered view with a colleague or to bookmark a query you repeat.
 :::
 
+## The footer
 
+The footer at the bottom of every page has a **Policy** button and links to the data license (CC BY 4.0), the GitHub repository, the API, the MCP page, and the funders and partners.
 
-## Table views
+**Policy** opens the usage policy and data privacy disclaimer. After you acknowledge it, the button's tooltip shows the date you did so.
 
-We provide tabular representations with search, filtering, sorting and pagination functionality for different aspects of the entity concept.
+## Report a problem {#report-a-problem}
 
+Write to support [at] sysndd.org. Include:
 
-### Entities table
+- the page address (URL);
+- the date, time and browser;
+- your role, if you were signed in;
+- the steps that reproduce the problem;
+- what you expected and what happened instead;
+- any error message shown on the page;
+- whether the problem repeats after you reload the page.
 
-The *Entities* table is intended to provide an overview centered on the entity concept.
+Do not send passwords, personal data or unpublished patient details, including in screenshots.
 
-::: {.doc-screenshot}
-![Entities table with search, filters, sorting, and pagination controls.](./static/img/generated/entities-table.png)
-:::
+A technical problem is easier to trace with the browser's console log. In Chrome or Edge:
 
-
-### Genes table
-
-The *Genes* table is intended to provide a gene-centered overview.
-
-::: {.doc-screenshot}
-![Genes table with gene-centered search, filters, and pagination.](./static/img/generated/genes-table.png)
-:::
-
-
-### Phenotypes table
-
-The *Phenotypes* table provides the possibility to filter for phenotype combinations annotated to the entities.
-
-::: {.doc-screenshot}
-![Phenotypes table with phenotype selector, AND/OR logic, pagination, and entity rows.](./static/img/generated/phenotypes-table.png)
-:::
-
-The **AND/OR** switch controls how phenotype combinations are matched:
-
-- AND: only entities having all selected phenotypes annotated are shown
-- OR: all entities having any of the selected phenotypes annotated are shown
-
-The *Entities*, *Genes* and *Phenotypes* tables include toolbar actions in the top right:
-
-1) an `.xlsx` button to download the current table data
-2) a link icon that copies the current page URL
-3) a filter icon that removes active filters; the icon color indicates whether filters are active
-
-::: {.doc-screenshot}
-![Table toolbar actions for download, copied links, and filter reset.](./static/img/generated/table-toolbar-actions.png)
-:::
-
-
-### Panels table
-
-The *Panels* table is intended for users to be able to create lists of NDD-associated genes. Additionally, the columns in the lists can be configured. Finally, the configuration can be downloaded as an Excel file with information on the exact query in the meta sheet and the requested information in the data sheet. These files can then be used as 'virtual panels' to filter genetic variants derived from high-throughput sequencing in external analysis tools.
-
-::: {.doc-screenshot}
-![Panels table with category, inheritance, column, sort, pagination, and download controls.](./static/img/generated/panels-table.png)
-:::
-
-
-
-## Single entry pages
-
-Single entry pages are the dedicated pages associated with each entity, gene, or disease ontology. They are opened from the entity, gene, or disease buttons associated with each table row.
-
-::: {.doc-screenshot}
-![Entity table badges linking to entity, gene, and disease ontology pages.](./static/img/generated/table-entry-badges.png)
-:::
-
-### Entity
-
-The *Entity* page aims to provide information on the gene, disease (with the OMIM link), inheritance pattern and NDD status associated with a particular entity. The synopsis and phenotypes of the disease as well as the relevant links to publications (including GeneReviews if available) are also provided.
-
-::: {.doc-screenshot}
-![Entity detail page showing the curated gene-disease association and supporting sections.](./static/img/generated/entity-detail-123.png)
-:::
-
-
-### Gene
-
-The *Gene* page aims to provide further information on 1) the gene of interest with links to other platforms such as Entrez, Ensembl, UCSC, CCDS, UniProt, OMIM gene, MGI, RGD and STRING,  and 2) the entities associated with the gene in a table format.
-
-::: {.doc-screenshot}
-![Gene detail page showing CHD8-associated entity information and source cards.](./static/img/generated/gene-detail-chd8.png)
-:::
-
-### Disease ontology
-
-The *Ontology* page provides disease metadata, links to external resources such as OMIM, DOID, MONDO, and Orphanet, and a table of associated SysNDD entities.
-
-::: {.doc-screenshot}
-![Disease ontology detail page showing disease metadata and associated entities.](./static/img/generated/ontology-detail.png)
-:::
-
-## Analyses views
-
-The *Analysis* views are intended to provide the user with a more comprehensive picture of SysNDD comparisons with other curations, phenotype correlations, SysNDD entries over time, NDD publications, and functional gene clusters.
-
-
-### Compare curations
-
-The *Compare curations* view is composed of three tabs:
-
-1) *Overlap*
-2) *Similarity*
-3) *Table*
-
-
-The *Overlap* tab includes an upset plot (alternative for venn diagrams, please compare: [upset.app](https://upset.app/)) to show the overlap between SysNDD and other selected NDD curation efforts.
-
-::: {.doc-screenshot}
-![Compare curations overview with analysis tabs and comparison content.](./static/img/generated/curation-comparisons-overview.png)
-:::
-
-
-The *Similarity* tab includes a matrix plot of the cosine similarity between different curation efforts for neurodevelopmental disorders.
-
-::: {.doc-screenshot}
-![Compare curations Similarity tab with cosine-similarity matrix.](./static/img/generated/curation-comparisons-similarity.png)
-:::
-
-
-The *Table* tab presents a table format for comparing a gene's presence across various neurodevelopmental disorder curation initiatives. The comparison table can also be downloaded as an Excel file using this tab. In the upper right corner, there is a button to remove the filter.
-
-::: {.doc-screenshot}
-![Compare curations Table tab with source columns and table controls.](./static/img/generated/curation-comparisons-table.png)
-:::
-
-
-
-### Correlate phenotypes
-
-*Correlate phenotypes* view is composed of three tabs:
-
-1) *Phenotype correlogram*
-2) *Phenotype counts*
-3) *Phenotype clustering*
-
-
-The *Phenotype correlogram* tab displays a matrix of correlations of different phenotypes.
-
-::: {.doc-screenshot}
-![Correlate phenotypes correlogram tab with phenotype correlation heatmap.](./static/img/generated/phenotype-correlations-correlogram.png)
-:::
-
-
-The *Phenotype counts* tab shows a bar plot of phenotype counts.
-
-::: {.doc-screenshot}
-![Correlate phenotypes counts tab with phenotype count bar plot.](./static/img/generated/phenotype-correlations-counts.png)
-:::
-
-
-The *Phenotype clustering* tab shows clusters of entities based on the manually curated phenotype annotations from SysNDD.
-Multiple correspondence analysis (MCA) is performed utilizing the "MCA" function from the [FactoMineR](http://factominer.free.fr/) R package, with the number of dimensions retained set to 8, the qualitative supplementary variables set to inheritance terms, and the quantitative supplementary variables set to three registry-derived counts per entity: the number of intellectual-disability terms, the number of distinct organ systems involved outside the nervous system, and the number of disease entities per gene. Then, hierarchical clustering on the principal components is performed: a Ward tree is built on the MCA coordinates, the number of clusters *k* (between 3 and 25) is the one minimising the relative within-cluster inertia W(k)/W(k-1), and the cut is consolidated by k-means. Because k-means only finds a local optimum, the consolidation is run from the centroids of the Ward cut *and* from 100 seeded random starts, and the partition with the lowest within-cluster inertia is released. The number of clusters and the consolidation are computed by SysNDD itself rather than delegated to a package function, and the correspondence analysis is always computed from the exact full decomposition, so the released partition does not depend on the installed package version. Each snapshot reports how contested that optimum was (how many starts reached it, and the inertia of the runner-up) and how far the partition agrees with the previous snapshot.
-By clicking on the different colored bubbles on the panel to the left, the user can select the respective clusters. When clicking a cluster the entity count is displayed in the upper part along the cluster name. The link in this panel's lower section leads to a view of the Entity table that is restricted to the entities in the selected cluster.
-The right-hand panel displays a table containing either (1) the *Qualitative input variables* representing the phenotypes, (2) the *Qualitative supplementary variables* (independent) representing inheritance patterns, or (3) the *Quantitative supplementary variables* (independent) representing the per-entity counts described above, all with variable name, p-values, and v-test values.
-
-Syndromicity is reported separately from the clustering, as a computed measure rather than a model-generated label. For each cluster, SysNDD counts how many of its entities have at least one *recorded* organ system involved outside the nervous system, using a fixed classification of the curated HPO annotation vocabulary. Nested terms collapse into one system, so an entity annotated with both "Abnormality of the kidney" and "Abnormality of the genitourinary system" counts once. Intellectual disability and its severity grades, nervous-system findings, abnormal head size, and clinical-course terms such as "Progressive" are excluded from the count, because in a neurodevelopmental context they describe the primary phenotype rather than additional systemic involvement. The reported figure is the fraction of entities with such involvement, with a 95% confidence interval; an entity with no recorded organ system is reported as such, which is not the same as an established absence of additional features.
-
-::: {.doc-screenshot}
-![Correlate phenotypes clustering tab with cluster graph and variable table.](./static/img/generated/phenotype-correlations-clusters.png)
-:::
-
-
-### Entries over time
-
-The *Entries over time* view displays the changes in NDD entity numbers since curation began. The plot can be aggregated by either genes or entities and categorized according to inheritance or category.
-
-::: {.doc-screenshot}
-![Entries over time view with aggregation controls and cumulative count timeline.](./static/img/generated/entries-over-time.png)
-:::
-
-
-### NDD Publications
-
-The *NDD Publications* view summarizes publications relevant to neurodevelopmental disorder gene curation. It provides a searchable publication table and companion analysis tabs for publication activity over time and source statistics. The view helps curators and users inspect how publication evidence is distributed across the SysNDD literature corpus.
-
-::: {.doc-screenshot}
-![NDD Publications view with the searchable literature table and analysis tabs.](./static/img/generated/publications-ndd.png)
-:::
-
-### Functional clusters
-
-The *Functional clusters* view displays public snapshot-backed Leiden gene clusters of functionally enriched interacting proteins, along with their corresponding ontology annotations from [STRINGdb](https://rdrr.io/bioc/STRINGdb).
-Users can focus the functional cluster view by selecting a cluster directly in the network visualization, from the cluster legend, or from the cluster dropdown. A single-cluster selection filters the enrichment and gene tables to that cluster and displays the AI-generated cluster summary when an approved summary is available. Clicking the empty network background or choosing *All Clusters* returns to the broad all-clusters comparison view.
-The right-hand panel displays a table with either (1) the *Term enrichment* including the ontology annotations, the number of enriched genes, the FDR-corrected p-value, and a link to the corresponding ontology term or (2) the gene *Identifiers* with links to the respective single entry page and to the [STRING](https://string-db.org/) website of the protein.
-
-::: {.doc-screenshot}
-![Functional clusters view with network controls and enrichment tables.](./static/img/generated/functional-clusters.png)
-:::
-
-
-## About page
-
-The website's About page provides general information about the project, such as its creators, funding sources, the status of updates, and how to get help.
-
-
-## Reporting bugs, problems and making feature requests
-
-If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
-
-When reporting a technical problem, include a minimal problem report:
-
-- page URL or route;
-- date, time, and browser;
-- logged-in role, if the problem happened after login;
-- exact steps that reproduce the problem;
-- expected result;
-- observed result;
-- visible error message, if present;
-- console errors or a saved console log, if available;
-- whether the problem repeats after reloading the page.
-
-Avoid sending passwords, authentication tokens, personal identifiers, unpublished patient-level details, or other sensitive material in screenshots or console logs.
-
-::: {.doc-screenshot}
-![Example visible application error message after an invalid login attempt.](./static/img/generated/login-auth-error-toast.png)
-:::
-
-For Chromium-based browsers such as Chrome or Edge:
-
-1. Open Developer Tools with `F12`, `Ctrl+Shift+J`, or the browser menu.
-2. Select the Console tab.
+::: {.steps}
+1. Press <kbd>F12</kbd> to open Developer Tools.
+2. Select the **Console** tab.
 3. Reproduce the problem.
-4. Right-click in the Console and save or copy the console output.
-5. Send the saved log with the minimal problem report.
-
-Browser Developer Tools are controlled by the browser, not the SysNDD application, so the exact menu text and layout can differ between Chrome, Edge, Firefox, and Safari.
-
-
-## Login page
-
-The Login page shows a simple form with inputs for the **(1)**  user name and their **(2)**  password,  **(3)** buttons to reset the form and  **(4)** links to registration and password reset.
-
-::: {.doc-screenshot}
-![Login page with username and password fields, reset controls, and account links.](./static/img/generated/login-page.png)
+4. Right-click in the console and save or copy its content.
+5. Attach the log to your message.
 :::
 
-### Register user page
+Other browsers name these menus differently.
 
-This page can be used to apply for a SysNDD account by entering the following information:
+## Common problems
 
-1) desired username
-2) institutional e-mail
-3) ORCID identifier
-4) first name
-5) family name
-6) description of your interest in SysNDD and why you want to participate in the curation effort
+- **A menu from this documentation is missing.** The **Review**, **Curation** and **Administration** menus appear only after you sign in with a role that allows them.
+- **The search box is not in the navigation bar.** On the home page the search box is in the middle of the page instead.
+- **A table looks empty.** A filter may still be active. Select the funnel button to remove all filters.
+- **On a phone, menus are hidden.** Select the menu button in the top corner to open them; see [Your account](using-account.qmd#use-sysndd-on-a-phone).
 
-and **(7)** accepting the terms of use.
+## Related pages
 
-The **(8)** buttons allow resetting or submitting the form.
+- [Find a gene](using-find-gene.qmd): search, gene pages, entity pages and disease pages.
+- [Build a gene panel](using-panels.qmd): download a gene list for variant filtering.
+- [Search by phenotype or variant type](using-phenotype-search.qmd): find entities by clinical features.
+- [Read the analyses](using-analyses.qmd): comparisons, clusters and publications.
+- [Your account](using-account.qmd): apply for an account and sign in.
 
-::: {.doc-screenshot}
-![Register page with account request fields and terms checkbox.](./static/img/generated/register-page.png)
-:::
-
-After submitting your application, the curators will receive an email to review it. You will receive an e-mail with your login information and instructions after your application has been confirmed.
-
-
-### Reset password page
-
-Users who have forgotten their password can reset it by entering the e-mail address they registered with on this page.
-
-::: {.doc-screenshot}
-![Password reset request page with registered email input.](./static/img/generated/password-reset-page.png)
-:::
-
-Upon submission the e-mail account will receive a message with a one-time link allowing the user to enter a new password.
-
-
-## Mobile website
-
-The Vue 3 application uses responsive layouts so SysNDD remains usable on smaller screens. Navigation and footer controls collapse at mobile widths, and table-heavy views use compact mobile rows or reduced controls where the current view supports them.
-
-::: {.doc-screenshot}
-![SysNDD home page rendered at a narrow mobile viewport.](./static/img/generated/mobile-home.png)
-:::
-
-
-The navigation collapses at smaller desktop/tablet widths, while the footer partner links collapse at narrow mobile widths:
-
-::: {.doc-screenshot}
-![Mobile navigation menu expanded at a narrow viewport.](./static/img/generated/mobile-navbar-open.png)
-:::
-
-::: {.doc-screenshot}
-![Mobile footer menu expanded at a narrow viewport.](./static/img/generated/mobile-footer-open.png)
-:::
-
-
-Where supported, table-heavy views use compact mobile rows that keep field labels next to their values on narrow screens:
-
-::: {.doc-screenshot}
-![Mobile entity table using compact record rows.](./static/img/generated/mobile-entities-table.png)
-:::
-
-Table controls and search inputs remain available at the top of these views.
-
-
-The *Analyses* pages on mobile are best viewed in landscape mode:
-
-::: {.doc-screenshot}
-![Analysis page shown in a mobile landscape viewport.](./static/img/generated/mobile-landscape-analysis.png)
-:::
-
-
-## Progressive Web App (PWA)
-
-The SysNDD web app can also be installed on mobile devices using the Progressive Web App ([PWA](https://en.wikipedia.org/wiki/Progressive_web_application)) technology.
-This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, macOS and Android). Additionally new Safari versions on iOS show some support for PWA.
-
-PWAs are faster because they cache files. They offer more screen space for the app. Future integrations of this feature in SysNDD will enable offline use.
-
-Browser-controlled install prompts differ by browser and operating system, so they are not reproduced as SysNDD application screenshots. In general, install the PWA from the browser's app or install menu after visiting [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/), then confirm the browser prompt.
-
-::: {.doc-screenshot}
-![SysNDD responsive mobile shell used by the browser and installed PWA experience.](./static/img/generated/pwa-mobile-shell.png)
-:::
-
-
-
-## Performance
-
-Modern JavaScript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower than server side rendered pages.
-
-With SysNDD we are engaged to provide a fast user experience by reducing component and request sizes and applying techniques like lazy loading and code splitting in the frontend with parallelisation in the api.
-
-A quick overview on the current website performance can be obtained on PageSpeed Insights (or "Lighthouse" in the Chrome development console):
-
-[https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F](https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F&form_factor=desktop)
-
-
-
-## Security
-
-SysNDD is engaged to offer highest security standards for all web tools.
-We use HTTPS with Transport Layer Security (TLS) and follow the Mozilla recommendations for web server settings.
-
-A quick overview for our security settings for the SysNDD website can be obtained on Mozilla Observatory:
-
-[https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch](https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch)
+*Checked against SysNDD 0.38.2 on November 20, 2026.*

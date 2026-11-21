@@ -1,118 +1,397 @@
 ---
-title: "API"
+title: "Get SysNDD data with the API and MCP"
 ---
 
-The SysNDD API documentation interface is available from [https://sysndd.dbmr.unibe.ch/API](https://sysndd.dbmr.unibe.ch/API). API endpoints are served under the `/api` path.
-
-The API is written in R using the [plumber package](https://www.rplumber.io/) and runs in Docker from the repository API image based on `rocker/r-ver`. In the current Compose deployment, Traefik routes web traffic to the API service under `/api`.
-
-Runtime and rate-limit behavior can change with deployment configuration. Operator-facing deployment details are maintained in the deployment chapter.
-
-We intend to follow the [Swagger/OpenAPI](https://swagger.io/specification/) and [JSON:API](https://jsonapi.org/) specifications.
-
-
-
-## Endpoints
-
-The runtime is composed by `api/start_sysndd_api.R`, which sources helpers, core modules, services, and endpoint files through the bootstrap layer. Endpoint files are mounted under `/api/<subpath>` by `api/bootstrap/mount_endpoints.R`.
-
-Mounted endpoint groups include:
-
-- health and version: service readiness and version discovery
-- entity, gene, ontology, phenotype, panels, publication, variant, and list: core data resources
-- review, re_review, and status: curation and review workflows
-- comparisons and analysis: analysis and NDD gene-list comparison resources
-- search, hash, and statistics: lookup, stable links, and summary resources
-- user and auth: user account and authentication resources
-- about and seo: public content and prerender payload resources
-- jobs, logs, admin, llm, backup, and external: authenticated operational resources
-
-The endpoints are documented and can be tested using the Swagger/OpenAPI user interface at [https://sysndd.dbmr.unibe.ch/API](https://sysndd.dbmr.unibe.ch/API).
-Here one can generate cURL requests to use in external software.
-
-::: {.doc-screenshot}
-![Swagger/OpenAPI endpoint overview for the SysNDD API.](./static/img/generated/api-swagger-overview.png)
+::: {.lead}
+Download SysNDD data from a script with the REST (representational state transfer) API, or let an AI assistant read it through
+the Model Context Protocol (MCP) server. Both return the same approved, public records that
+the web app shows.
 :::
 
-## Read-only MCP sidecar
+::: {.callout-note .who-can title="Who can do this"}
+Everyone. Reading public data needs no account, no API key and no token. Only endpoints that
+submit, review, curate or administer data need a login (see [Sign in for protected endpoints](#sign-in-for-protected-endpoints)).
+:::
 
-SysNDD can also run an optional Model Context Protocol (MCP) sidecar from `api/start_sysndd_mcp.R`. The MCP sidecar is a separate R process/container and is not mounted inside the Plumber API process.
+## Before you start
 
-MCP v1 is read-only, public and credential-free by design when the opt-in `mcp` Compose profile is enabled. Production Traefik routes exact JSON-RPC `POST /mcp` requests to the sidecar and strips the prefix; a narrowly matched `GET /mcp` with `Accept: text/event-stream` and exact `DELETE /mcp` reach the transport and currently return `405` because standalone SSE listening and session termination are not offered. Normal browser `GET /mcp` navigation continues to render the informational Vue page. Admission controls are one global bucket shared across callers behind the institutional TLS proxy, so one client can temporarily exhaust capacity for everyone; clients should treat `429` as shared-capacity backpressure and retry with backoff. Public reachability does not widen the approved-public data contract described below, and the sidecar has no outbound internet egress.
+You need a tool that sends web requests. The examples use `curl`, which runs in any terminal on
+Linux, macOS and Windows. Every example was run against the live API on November 20, 2026.
 
-The pinned `mcptools` runtime implements the initialize/session-era Streamable HTTP shape. SysNDD's operational probes negotiate MCP `2025-11-25` and fail if initialize returns a different version; production also accepts `2025-06-18` clients. The latest upstream revision as of 2026-08-27 is `2026-07-28`, whose stateless core removes the initialize/session era and adds per-request protocol metadata headers. Issue #629 changes public reachability and edge controls only; it does not claim support for that breaking revision. Upgrade `mcptools`, the health/smoke clients, and protocol compatibility tests together before advertising `2026-07-28`. Current clients should use MCP's specified backward-compatibility fallback.
+The API has three addresses worth knowing:
 
-Available MCP tools:
+| What | Address |
+| --- | --- |
+| API base | `https://sysndd.dbmr.unibe.ch/api` |
+| Interactive documentation ([Swagger](reference-glossary.qmd#s)) | [Swagger page](https://sysndd.dbmr.unibe.ch/API) |
+| Machine-readable description ([OpenAPI](reference-glossary.qmd#o)) | `https://sysndd.dbmr.unibe.ch/api/admin/openapi.json` |
 
-- `search_sysndd`
-- `get_gene_context`
-- `get_genes_context`
-- `get_entity_context`
-- `get_entities_context`
-- `list_gene_entities`
-- `get_publication_context`
-- `get_publications_context`
-- `find_entities_by_phenotype`
-- `find_entities_by_disease`
-- `get_sysndd_stats`
-- `get_sysndd_capabilities`
-- `get_sysndd_analysis_catalog`
-- `get_gene_research_context`
-- `get_nddscore_context`
-- `get_curation_comparison_context`
-- `get_phenotype_analysis_context`
-- `get_gene_network_context`
+Answers come back as [JSON](reference-glossary.qmd#j) (JavaScript Object Notation), a plain-text
+data format. List endpoints can also return an Excel file with `format=xlsx`.
 
-The intended LLM retrieval path is `search_sysndd` -> `get_gene_context` -> `get_entities_context` -> `get_publications_context`. If a client defers MCP tool schemas, load `search_sysndd`, `get_gene_context`, `get_genes_context`, `get_entities_context`, `get_publications_context`, and `get_sysndd_capabilities` before the first SysNDD call. `get_sysndd_capabilities` returns in-band guidance for workflows, limits, payload modes, citations, resources, errors, prompt opt-in status, and safety scope. Use `get_gene_context(expand = "entities")` for a one-call gene + entity detail response when the caller explicitly wants to spend the tokens, `get_genes_context` for 1-10 genes with per-gene errors, and `get_entities_context` for 1-20 entity IDs when a gene, disease, or phenotype lookup returns several entities that need detail in one call. SysNDD entities are gene-disease-inheritance curation records, so one gene can have multiple entities. `get_gene_context` accepts `gene`; hidden deprecated aliases are not supported. Tool descriptions include short example calls and boolean defaults.
+Two URL rules prevent most failed requests:
 
-`MCP_SCHEMA_VERSION` `1.2` adds a bounded analysis scope for gene-centered research context. Start with `get_sysndd_analysis_catalog`, then use `get_gene_research_context` with MCP JSON arguments such as `{"gene":"HGNC:61","dry_run":true,"response_mode":"compact"}` to preflight available sections before focused follow-up calls. The focused tools expose curation comparisons, NDDScore predictions, phenotype analyses, and local gene network context. They do not change curated SysNDD evidence.
+- **Trailing slash.** A top-level list such as `/api/entity/` needs the closing `/`. Without it,
+  the server answers with a redirect (HTTP status 307; HTTP is the protocol of the web). Deeper paths such as `/api/panels/browse` must
+  **not** end in `/`, or the server answers "not found" (HTTP 404). Add `-L` to `curl` to follow
+  redirects.
+- **Encode the query.** Filters contain commas, quotes and spaces. Let `curl` encode them with
+  `-G` and `--data-urlencode`, as in the examples below.
 
-Every MCP analysis payload carries a data-class label: `curated_sysndd_evidence`, `curated_derived_analysis`, `ml_prediction`, `llm_generated_summary`, `external_reference_identifier`, or `operational_metadata`. NDDScore is always `ml_prediction`: model-derived, separate from curated SysNDD evidence, and not an evidence tier. Cached LLM summaries are `llm_generated_summary`: current validated admin-generated cache entries only. MCP analysis tools do not trigger Gemini/LLM generation, expose prompts or queries, or call live external providers. Stored external IDs may appear only as `external_reference_identifier`.
+## Get all Definitive genes
 
-Payload controls are part of the MCP contract: `response_mode` is `minimal`, `compact`, `standard`, `full`, or analysis-only `diagnostics`; `max_response_chars` defaults to `auto` for large analysis tools; `abstract_mode` is `none`, `metadata`, or `excerpt`; and `synopsis_mode` is `none`, `excerpt`, or `full`. `minimal` defaults to no synopsis and no abstracts. Large analysis responses default to compact mode, include `budget` metadata, and may report `dropped_summary`, `recovery`, and per-section availability. Use `dry_run` or `response_mode = "diagnostics"` to inspect likely sections, truncation, and recovery hints before requesting broader context. Other modes default to citation metadata rather than prose; request `excerpt` or `full` only when text is needed. Tool results report `meta.elapsed_ms`. Entity phenotypes are grouped as modifier-keyed HPO ID arrays, and batch/expanded payloads keep `schema_version` only at the outer envelope. `abstract_mode = "metadata"` reports `abstract_available` without `abstract_excerpt` or `abstract_truncated`. `get_gene_context` defaults `include_comparisons` to false for the cheap path and reports first-page entity metadata in `meta.entity_total`, `meta.entity_returned`, `meta.entity_has_more`, and `meta.next_entity_offset`. `expand = "entities"` can return one-call gene plus entity detail, with detailed expansion capped at 20 entity IDs and `meta.entity_detail_truncated_by_batch_cap` reporting when that cap was applied. `get_entities_context` defaults `dedupe_publications` to true, moving shared publication objects to a top-level `publications` list and leaving per-entity `publication_refs`.
+The panels endpoint returns one row per gene, filtered by evidence category and mode of
+inheritance. It is the API version of **Tables › Panels** in the web app (see
+[Build a gene panel](using-panels.qmd)).
 
-Publication outputs include `recommended_citation`, `publication_date_sysndd_record`, `publication_date_confidence`, and optional abstract fields controlled by `abstract_mode`; linked entity review dates are reported separately as `sysndd_curation_date`. `recommended_citation` omits the year when the publication date is unverified. Historical rows remain unverified until the one-off PubMed backfill is applied.
+Without parameters, it returns the genes with at least one [Definitive]{.cat .cat-definitive}
+entity, for all modes of inheritance:
 
-MCP prompts are disabled by default. The MCP and Claude Code documentation model prompts as user-controlled slash-command templates, not automatically discovered LLM workflows. Keep the agent-discoverable workflows in tools, resources, and `get_sysndd_capabilities`; set `MCP_ENABLE_PROMPTS=true` only for deployments that intentionally want slash commands such as `sysndd_gene_evidence_summary`, `sysndd_entity_evidence_brief`, `sysndd_publication_citation_pack`, and `sysndd_phenotype_entity_discovery`. Prompts provide workflow instructions only; they do not perform generation, writes, or external calls.
+```bash
+curl -s "https://sysndd.dbmr.unibe.ch/api/panels/browse"
+```
 
-The static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources are available through `resources/list` and `resources/read` and document schema and tool usage as distinct resources. Record-level `sysndd://gene`, `sysndd://entity`, and `sysndd://publication` URIs in tool payloads are stable identifiers; v1 retrieval remains tool-based rather than parameterized resource templates.
+Each row in `data` describes one gene:
 
-The MCP service exposes only approved-public data: active records represented by `ndd_entity_view` and review-derived evidence from primary approved reviews (`is_primary = 1` and `review_approved = 1`). It must not write to the database, call write routes, execute raw SQL/R, expose admin/user/log/job data, expose draft reviews or re-review workflows, call live external providers, or trigger Gemini/LLM generation.
+```json
+{
+  "category": "Definitive",
+  "inheritance": "Autosomal recessive inheritance",
+  "symbol": "AARS1",
+  "hgnc_id": "HGNC:20",
+  "entrez_id": "16",
+  "ensembl_gene_id": "ENSG00000090861",
+  "ucsc_id": "uc002eyn.2",
+  "bed_hg19": "chr16:70286198-70323446",
+  "bed_hg38": "chr16:70251983-70289707"
+}
+```
 
-The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore keeps stable JSON text with `schema_version` as the compatibility contract. The sidecar patches `mcptools` initialize metadata, static resources, optional prompts, read-only tool annotations, output schemas, and recoverable tool errors so clients receive SysNDD-specific workflow instructions and can self-correct invalid inputs. Known tool validation errors return a JSON payload with `error.code` and `isError = true`, not JSON-RPC `-32603`.
+To narrow the panel, set your own `filter` and pick the columns with `fields`. This request
+returns Definitive genes with X-linked inheritance as an Excel file:
 
-The Docker healthcheck is deliberately lighter than the smoke probe: it only verifies `initialize` and `tools/list` against the local MCP endpoint. Use `make test-mcp-smoke` for end-to-end tool behavior that depends on approved public DB content.
+```bash
+curl -s -G "https://sysndd.dbmr.unibe.ch/api/panels/browse" \
+  --data-urlencode "filter=equals(category,'Definitive'),any(inheritance_filter,'X-linked')" \
+  --data-urlencode "fields=symbol,hgnc_id,inheritance,category" \
+  --data-urlencode "format=xlsx" \
+  -o sysndd-definitive-x-linked.xlsx
+```
 
+The inheritance groups accepted by `inheritance_filter` are `Autosomal dominant`,
+`Autosomal recessive`, `X-linked` and `Other`. By default a gene appears once, under its highest
+evidence category (`max_category=true`).
+
+## Get the entities of one gene
+
+A gene can have several entities, one per disease and mode of inheritance (see
+[Data model](04-database-structure.qmd)). Filter the entity list by gene symbol:
+
+```bash
+curl -s -G "https://sysndd.dbmr.unibe.ch/api/entity/" \
+  --data-urlencode "filter=equals(symbol,CHD8)" \
+  --data-urlencode "fields=entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category"
+```
+
+```json
+{
+  "links": [ ... ],
+  "meta": [ { "totalItems": 1, ... } ],
+  "data": [
+    {
+      "entity_id": 856,
+      "symbol": "CHD8",
+      "disease_ontology_name": "Intellectual developmental disorder with autism and macrocephaly",
+      "hpo_mode_of_inheritance_term_name": "Autosomal dominant inheritance",
+      "category": "Definitive"
+    }
+  ]
+}
+```
+
+Gene annotation (identifiers, coordinates, gnomAD constraint) comes from the gene endpoint. Use
+the HGNC identifier, or the symbol together with `input_type=symbol`:
+
+```bash
+curl -s "https://sysndd.dbmr.unibe.ch/api/gene/HGNC:20153"
+curl -s "https://sysndd.dbmr.unibe.ch/api/gene/CHD8?input_type=symbol"
+```
+
+## Get the evidence for one entity
+
+Once you know an entity ID, five endpoints return its evidence. Replace `856` with your
+entity ID.
+
+| Request | Returns |
+| --- | --- |
+| `/api/entity/856/review` | clinical synopsis and review date |
+| `/api/entity/856/status` | evidence category and status date |
+| `/api/entity/856/phenotypes` | HPO terms with their modifier |
+| `/api/entity/856/variation` | Variation Ontology (VariO) terms, with provenance for terms suggested from external sources |
+| `/api/entity/856/publications` | PubMed IDs and their type |
+
+An empty comment in a review or status is returned as the text `"NA"`, not as `null`.
+
+```bash
+curl -s "https://sysndd.dbmr.unibe.ch/api/entity/856/phenotypes"
+```
+
+```json
+[
+  {"entity_id": 856, "phenotype_id": "HP:0000098", "HPO_term": "Tall stature", "modifier_id": 1},
+  {"entity_id": 856, "phenotype_id": "HP:0000256", "HPO_term": "Macrocephaly", "modifier_id": 1}
+]
+```
+
+The `modifier_id` says how the phenotype applies: 1 present, 2 uncertain, 3 variable, 4 rare,
+5 absent. The [Data model](04-database-structure.qmd) chapter explains these fields.
+
+## Download the full entity table
+
+`/api/entity/` and `/api/gene/` return 10 rows per page by default; `/api/panels/browse` returns
+all rows. Set `page_size=all` to get everything in one response, or page through the results.
+
+To get all Definitive entities in one Excel file:
+
+```bash
+curl -s -G "https://sysndd.dbmr.unibe.ch/api/entity/" \
+  --data-urlencode "filter=equals(category,Definitive)" \
+  --data-urlencode "page_size=all" \
+  --data-urlencode "format=xlsx" \
+  -o sysndd-definitive-entities.xlsx
+```
+
+To page through results instead:
+
+::: {.steps}
+1. Send the first request with `page_size` (for example `page_size=100`).
+2. Read `meta[0].nextItemID` in the response.
+3. Send the same request again with `page_after` set to that value.
+4. Repeat until `nextItemID` is `"null"`.
+:::
+
+`meta[0].totalItems` tells you how many rows match your filter.
+
+## Filter, sort and choose columns
+
+The list endpoints `/api/entity/`, `/api/gene/` and `/api/panels/browse` share one query
+syntax.
+
+| Parameter | Example | Effect |
+| --- | --- | --- |
+| `filter` | `equals(category,Definitive)` | keep rows where the column has this value |
+| `filter` | `any(inheritance_filter,X-linked,Other)` | keep rows matching any listed value |
+| `filter` | `contains(any,macrocephaly)` | keep rows where any column contains the text |
+| `sort` | `-entity_id` | sort by a column; a leading `-` sorts descending |
+| `fields` | `entity_id,symbol,category` | return only these columns |
+
+Combine several filters with commas; a row must match all of them. For example,
+`any(category,Moderate,Limited),equals(ndd_phenotype_word,Yes)` keeps Moderate and Limited
+entities whose disease is a neurodevelopmental disorder. The filter operations are `equals`, `contains`,
+`any`, `all`, `lessThan`, `greaterThan`, `lessOrEqual` and `greaterOrEqual`.
+
+The evidence category values are `Definitive`, `Moderate`, `Limited`, `Refuted` and
+`not applicable`. The last one marks entities outside the NDD scope; it is not an evidence
+category (see [Glossary](reference-glossary.qmd)).
+
+## Explore all endpoints in Swagger
+
+The Swagger page lists every endpoint with its parameters and lets you send test requests from
+the browser.
+
+::: {.steps}
+1. Open the [SysNDD API Swagger page](https://sysndd.dbmr.unibe.ch/API).
+2. Expand an endpoint group, for example **entity**.
+3. Expand an endpoint, select **Try it out**, fill in the parameters and select **Execute**.
+4. Copy the generated `curl` command into your own script.
+:::
+
+::: {.doc-screenshot}
+![The Swagger page of the SysNDD API.](static/img/generated/api-swagger-overview.png){#fig-api-swagger-overview fig-alt="Swagger page of the SysNDD API: the title SysNDD API with its version badge, an Authorize button on the right, and the collapsed endpoint groups listed below. Marker 1 points to the version badge, marker 2 to the Authorize button, marker 3 to the entity endpoint group."}
+:::
+
+::: {.marker-legend}
+1. **Version badge**: the API version; `/api/version/` returns the same value.
+2. **Authorize**: enters a token for protected endpoints.
+3. **entity**: an endpoint group; expand it to see its endpoints.
+:::
+
+The **Version information** card on the same page lists the application, API and database
+versions. Report the version when you cite SysNDD (see
+[State the version and date you used](reference-citing.qmd#state-the-version-and-date-you-used)).
+
+A selection of the endpoint groups you can use without an account:
+
+| Group | Use it to |
+| --- | --- |
+| `entity` | list entities and read one entity's review, status, phenotypes, variation and publications |
+| `gene` | list genes or read one gene's annotation |
+| `panels` | build gene panels by category and inheritance |
+| `phenotype`, `variant` | list entities annotated with an HPO phenotype or a VariO term |
+| `publication` | read the publications cited by SysNDD entities |
+| `nddscore` | read NDDScore machine-learning predictions; these are not evidence categories |
+| `search` | resolve free text to genes, diseases and inheritance terms |
+| `list` | read the controlled vocabularies (categories, phenotypes, VariO terms) |
+| `analysis`, `comparisons`, `statistics` | read precomputed analyses, curation comparisons and summary counts |
+| `version`, `health` | check the API version and that the service is up |
+
+Swagger is the complete and current list. Endpoint groups for review, curation, users, jobs and
+administration need a login and the matching role.
+
+## Connect an AI assistant with MCP
+
+The MCP server lets an AI assistant such as Claude, ChatGPT, Claude Code or Cursor query SysNDD
+during a chat. It is read-only: it returns approved, public records only, and it cannot change
+data, run code or call other services.
+
+The server address is:
+
+```text
+https://sysndd.dbmr.unibe.ch/mcp
+```
+
+No account, API key or token is needed. Leave authentication unset in your client.
+
+::: {.steps}
+1. Open **Help › MCP** (`/mcp`).
+2. Copy the setup for your client:
+   - **Claude Code**: run `claude mcp add --transport http sysndd https://sysndd.dbmr.unibe.ch/mcp`.
+   - **Claude Desktop**, **Cursor** and other clients: add the JSON block shown on the page to the
+     client's MCP configuration file.
+   - **Claude (claude.ai)**: open **Settings → Connectors**, choose **Add custom connector**,
+     paste the server address and leave authentication unset. Then, in a chat, enable SysNDD
+     from the **+** (**Connectors**) menu.
+   - **ChatGPT**: enable **Developer mode** if your plan offers it, create a custom app in the
+     settings, name it, paste the server address and leave authentication unset.
+3. Ask your assistant a question, for example "Which SysNDD entities exist for *CHD8*?".
+:::
+
+::: {.doc-screenshot}
+![The SysNDD MCP page with the server address and client setup.](static/img/generated/mcp-info-page.png){#fig-api-mcp-page fig-alt="The SysNDD MCP page in the web app. Marker 1 points to the MCP server URL under How to connect, marker 2 to the Claude Code command, marker 3 to the Claude Desktop configuration block, marker 4 to the claude.ai connector steps."}
+:::
+
+::: {.marker-legend}
+1. **MCP server URL**: the address your client connects to.
+2. **Claude Code (CLI)**: a one-line command that registers the server.
+3. **Claude Desktop**: the configuration block; Cursor uses the same block.
+4. **Claude (claude.ai)**: the steps for a browser chatbot.
+:::
+
+The JSON block for Claude Desktop and Cursor is:
+
+```json
+{
+  "mcpServers": {
+    "sysndd": {
+      "type": "http",
+      "url": "https://sysndd.dbmr.unibe.ch/mcp"
+    }
+  }
+}
+```
+
+### What the assistant can look up
+
+The assistant works in four steps. It resolves your text to a gene, disease or phenotype
+(`search_sysndd`), reads the gene overview (`get_gene_context`), reads entity evidence
+(`get_entities_context`) and fetches the cited publications (`get_publications_context`).
+
+Further tools cover curation comparisons, phenotype analyses and gene networks. The tool
+`get_sysndd_capabilities` returns the full, current tool list with limits and examples; the
+**MCP** page in the web app groups the tools by purpose.
+
+Every answer is labeled with the kind of data it contains. Curated SysNDD evidence is kept apart
+from derived analyses, NDDScore machine-learning predictions and cached summaries generated by a
+language model. An NDDScore prediction is not an evidence category.
+
+::: {.callout-warning title="Check the answer against the record"}
+An AI assistant can misread or overstate what it retrieves. Before you rely on an answer, open
+the entity page it cites and read the evidence yourself. SysNDD supports research and is not
+clinical decision support.
+:::
+
+### Notes for client developers
+
+The server speaks Streamable HTTP: JSON-RPC requests sent with `POST`. You can test it without
+an AI client:
+
+```bash
+curl -s -X POST "https://sysndd.dbmr.unibe.ch/mcp" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+As of November 20, 2026, the server negotiates MCP 2025-11-25 and earlier revisions (2025-06-18,
+2025-03-26, 2024-11-05). Clients that implement the newer `2026-07-28` revision should use the
+protocol's fallback to an earlier version. The server is stateless: it opens no standalone server-sent event stream and keeps no sessions. A `GET` request with `Accept: text/event-stream` and a `DELETE` request both return HTTP 405. Opening the address in a web browser shows the **MCP** help page instead.
+
+Capacity is shared by all users. If you receive HTTP 429, wait and retry with increasing delays.
+A request from a browser with a foreign `Origin` header is rejected with HTTP 403.
+
+## Sign in for protected endpoints
+
+Endpoints that change data need a SysNDD account with the right role (see
+[Create and manage your account](using-account.qmd)). The API uses JSON Web Tokens (JWT).
+
+::: {.steps}
+1. Request a token with your user name and password in the request body:
+
+   ```bash
+   curl -s -X POST "https://sysndd.dbmr.unibe.ch/api/auth/authenticate" \
+     -H "Content-Type: application/json" \
+     -d '{"user_name":"YOUR_USER","password":"YOUR_PASSWORD"}'
+   ```
+
+2. Copy the token from the response.
+3. Send it with each request in the header `Authorization: Bearer <token>`. In Swagger, select
+   **Authorize** and paste the token.
+4. Before the token expires, get a new one from `/api/auth/refresh` with the same header.
+:::
+
+With the default configuration a token is valid for 60 minutes. Never put your password in the
+URL, and never share a token.
+
+::: {.doc-screenshot}
+![The Swagger authorization dialog.](static/img/generated/api-swagger-auth.png){#fig-api-swagger-auth fig-alt="Swagger page with the Available authorizations dialog open over the endpoint list, showing a field for the bearer token and an Authorize button."}
+:::
 
 ## Usage policy
 
-The SysNDD API powers the web tool for everyday users. We also provide the SysNDD API free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.
+The API serves the web app and is free for everyone who wants to build on SysNDD data. Please
+keep the service responsive for others:
 
-Usage requirements:
+- Request what you need. Use filters, `fields` and pages instead of `page_size=all` on large
+  lists such as `entity` and `gene`.
+- Store results and reuse them until the data changes. The `/api/version/` endpoint reports the
+  current release.
+- If you need more capacity, contact the team through the **About** page.
 
-- optimize your requests to stay within deployment limits
-- be sensible about reusing data (e.g., store your requests until data is updated on our server)
-- use pagination where possible instead of requesting large data chunks (e.g., restrict usage of "all" option in large, potentially blocking list endpoints like "entity" and "gene")
-- if you require more API resources please get in contact
+The API is provided as is. SysNDD is in version 0.x, so endpoints and response fields can change
+between releases. Pin your scripts to the fields you use and check the release notes on
+[GitHub](https://github.com/berntpopp/sysndd/releases). The data are licensed under CC BY 4.0;
+see [Cite SysNDD and reuse its data](reference-citing.qmd).
 
-Updates and disclaimer:
+## Common problems
 
-- We provide the SysNDD API as is.
-- Due to the current development status (version 0.X.Y) we may update or modify the API any time. These changes may affect your use of the API or the way your integration interacts with the API.
+- **HTTP 307 instead of data.** The top-level path lacks its trailing slash. Use
+  `/api/entity/`, or add `-L` to `curl`.
+- **HTTP 404 on a valid endpoint.** A deeper path ends in `/`. Use `/api/panels/browse`, not
+  `/api/panels/browse/`.
+- **`/api/gene/CHD8` returns `[]`.** A symbol needs `input_type=symbol`. Without it the endpoint
+  expects an HGNC ID such as `HGNC:20153`.
+- **curl reports "URL rejected" or the filter is ignored.** A value contains spaces or special
+  characters. Use `-G` with `--data-urlencode`.
+- **Only 10 rows come back from `/api/entity/` or `/api/gene/`.** That is their default page size.
+  Set `page_size` or page through the results.
+- **HTTP 503 with `snapshot_missing` from an `analysis` endpoint.** No precomputed analysis is
+  published at the moment. Try again later; the curated data endpoints are not affected.
+- **HTTP 429.** Too many requests across all users. Wait, then retry with increasing delays.
 
+## Related pages
 
-
-## Authentication and authorization
-
-The SysNDD API uses JSON Web Tokens ([JWT](https://jwt.io/)) to implement stateless authentication and authorization.
-
-For testing, an API user can manually request a token by entering login credentials at the `api/auth/authenticate` endpoint:
-
-::: {.doc-screenshot}
-![Swagger authorization screen with the Authorize control open.](./static/img/generated/api-swagger-auth.png)
-:::
-
-
-The endpoint returns a JWT. Copy the Bearer token into the OpenAPI/Swagger authorization modal, which opens after clicking the "Authorize" button in the API documentation interface. After authorization, the user can access endpoints requiring user rights until the token expires.
-
-The token is valid for 60 minutes. It can be refreshed using the endpoint "api/auth/refresh".
+- [Data model](04-database-structure.qmd): what entities, reviews and statuses are, and what
+  each field means.
+- [Build a gene panel](using-panels.qmd): the same panels in the web app, without code.
+- [Curation criteria](05-curation-criteria.qmd): what each evidence category means.
+- [Cite SysNDD and reuse its data](reference-citing.qmd): license, citation and releases.
+- [Glossary](reference-glossary.qmd): the terms used in responses.

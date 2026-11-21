@@ -2,54 +2,70 @@
 title: "Preface"
 ---
 
-# Preface {.unnumbered}
+::: {.lead}
+This documentation explains how to use [SysNDD](https://sysndd.dbmr.unibe.ch/){.no-external}, an expert-curated database of gene-disease associations in neurodevelopmental disorders (NDDs). It covers looking up genes, building gene panels, using the data programmatically, and curating records.
+:::
 
----------------------------------------
+## Start here {.unnumbered}
 
-This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unibe.ch/) project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data.
+Pick the row that matches what you want to do.
 
+| You want to | Start with | Account needed |
+| --- | --- | --- |
+| Understand what SysNDD records and how evidence is graded | [What is SysNDD](01-intro.qmd) | No |
+| Look up a gene, an entity or a disease | [Find a gene](using-find-gene.qmd) | No |
+| Download a gene list for variant filtering | [Build and download a gene panel](using-panels.qmd) | No |
+| Find entities by phenotype or variant type | [Search by phenotype or variant type](using-phenotype-search.qmd) | No |
+| Explore comparisons, clusters and publications | [Read the analyses](using-analyses.qmd) | No |
+| Query SysNDD from code or an AI assistant | [Get SysNDD data with the API and MCP](03-api.qmd) | No |
+| Apply for an account or manage your session | [Your account](using-account.qmd) | To sign in |
+| Re-review assigned entities | [Re-review: guide for Reviewers](06-re-review-instructions.qmd) | [Reviewer]{.role} |
+| Create, modify and approve records | [Create an entity](curator-create-entity.qmd) and the rest of the Curator guide | [Curator]{.role} |
+| Judge the evidence for a gene-disease association | [Curation criteria](05-curation-criteria.qmd) | No |
+| Cite SysNDD or reuse its data | [Cite SysNDD and reuse its data](reference-citing.qmd) | No |
+| Run the site (users, annotations, backups) | [Tour of the web app](02-web-tool.qmd#menus-after-sign-in) and [Approve user accounts](curator-users.qmd) | [Administrator]{.role} |
 
+New to the site? Read [What is SysNDD](01-intro.qmd) first, then the [tour of the web app](02-web-tool.qmd).
+
+## How this documentation is organized {.unnumbered}
+
+- **Getting started** explains the entity concept and the evidence categories.
+- **Using SysNDD** covers the public web app, the API and your account. Only signing in needs an account.
+- **Curation** holds the rules: the curation criteria, how to research a gene, and the re-review instructions for Reviewers.
+- **Curator guide** covers the workflows for Curators and Administrators.
+- **Reference** describes the data model and terms, and how to cite SysNDD.
+- **For developers** covers local development and deployment.
+
+Chapters that describe a task start with a **Who can do this** box. It names the lowest role that can do the task: public (no account), Reviewer, Curator or Administrator.
 
 ## How to cite {.unnumbered}
 
-If you use SysNDD, please cite the preprint [@popp_sysndd_2026]. When you refer to the predecessor database SysID, cite in addition the original publication [@kochinke_systematic_2016].
+If you use SysNDD, cite the preprint [@popp_sysndd_2026]. If you refer to the predecessor database SysID, also cite the original publication [@kochinke_systematic_2016]. [Cite SysNDD and reuse its data](reference-citing.qmd) explains how to cite the data, including a specific data release once one is published, and the data license.
+
+## Get help {.unnumbered}
+
+Write to support [at] sysndd.org for questions about the data, problems with the site, or feature requests. [Report a problem](02-web-tool.qmd#report-a-problem) lists what to include in a problem report.
 
 ## History of SysID and SysNDD {.unnumbered}
 
-SysNDD is based on its predecessor SysID, conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in establishing and updating SysID from its start. She has since performed and coordinated curation and regular updates.
+SysNDD grew out of SysID, conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in SysID from its start and has performed and coordinated its curation and updates since.
 
-The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University of Bern. The former link from the initial publication is redirected so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a [GitHub repository (SysID)](https://github.com/berntpopp/SysID). After the first SysNDD native updates to the curated entities, we display a warning popup on the SysID page to show that the content is not curated any more.
+The SysID web tool was written in PHP. After its first release it received only necessary bug fixes. When the hosting agreement at the CMBI at Radboud University in Nijmegen ended, SysID moved to a server at the Department for BioMedical Research (DBMR) at the University of Bern. The original link from the 2016 publication still redirects there. The legacy code is archived in a [GitHub repository (SysID)](https://github.com/berntpopp/SysID). SysID now shows a notice that its content is no longer curated.
 
-In 2019 the chance arose to integrate the SysID curation effort with the Orphanet resource, supported by ERN ITHACA. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.
+In 2019 the SysID curation effort began working with Orphanet, supported by the European Reference Network ITHACA (ERN ITHACA). Aligning gene, disease and phenotype naming with Orphanet led to a new database design and web app: SysNDD. Bernt Popp (Institute of Human Genetics, University Hospital Leipzig) designed and built the SysNDD software.
 
+## Support and funding {.unnumbered}
 
+SysNDD development is supported by:
 
-## The SysNDD concept {.unnumbered}
-
-SysNDD contains our latest update of the manually curated catalog of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
-
-To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: "Definitive", "Moderate", "Limited", "Refuted") according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.
-
-The entries in SysNDD are currently updated every 3-4 months and can be utilized for a broad spectrum of tasks from both research and diagnostics.
-
-One of our goals is to incorporate the SysID/ [SysNDD data](https://sysndd.dbmr.unibe.ch/) into other gene/ disease-relationship databases like the Orphanet ontology (first results: [id-genes.orphanet.app](https://id-genes.orphanet.app/ithaca/)).
-
-Bernt Popp (scientist at the Institute of Human Genetics at the University Hospital Leipzig, Germany) developed and programmed the SysNDD tool and will be integrating further functionality including variants associated with entities in future updates.
-
-
-
-## Support and Funding {.unnumbered}
-The current SysNDD database development is supported by:
-
-- DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to [Bernt Popp](https://orcid.org/0000-0002-3679-1081).
-- DFG (Deutsche Forschungsgemeinschaft) grant ZW184/6-1 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
+- Deutsche Forschungsgemeinschaft (DFG) grant PO2366/2-1 to [Bernt Popp](https://orcid.org/0000-0002-3679-1081).
+- Deutsche Forschungsgemeinschaft (DFG) grant ZW184/6-1 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
 - [ERN ITHACA](https://ern-ithaca.eu/) through [Alain Verloes](https://orcid.org/0000-0003-4819-0264).
 
+The predecessor database SysID and its curation were supported by:
 
-The previous SysID database and data curation was supported by:
-
-- The European Union's FP7 large scale integrated network GenCoDys (HEALTH-241995) to [Martijn A Huynen](https://orcid.org/0000-0001-6189-5491) and [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
-- VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
-- DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
-- the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
+- The European Union's FP7 large-scale integrated network GenCoDys (HEALTH-241995) to [Martijn A Huynen](https://orcid.org/0000-0001-6189-5491) and [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
+- VIDI and TOP grants (917-96-346, 912-12-109) from the Netherlands Organisation for Scientific Research (NWO) to [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
+- Deutsche Forschungsgemeinschaft (DFG) grants ZW184/1-1 and -2 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
+- The Interdisciplinary Center for Clinical Research (IZKF) Erlangen to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
 - ZonMw grant (NWO, 907-00-365) to Tjitske Kleefstra.
