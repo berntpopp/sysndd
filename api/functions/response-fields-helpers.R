@@ -1,6 +1,6 @@
 # functions/response-fields-helpers.R
 #### Field selection, cursor pagination, and field-spec helpers
-#### (select_tibble_fields, generate_cursor_pag_inf, generate_tibble_fspec)
+#### (select_tibble_fields, generate_cursor_pag_inf, field_key_label, generate_tibble_fspec)
 #### Split from response-helpers.R in WP8 (#401, part of #346).
 ####
 #### Dependencies (loaded by start_sysndd_api.R):
@@ -261,6 +261,35 @@ generate_cursor_pag_inf <- function(
 }
 
 
+#' Build a display label from a field key
+#'
+#' @description
+#' Sentence-cases a snake_case key and restores the acronyms a reader expects
+#' ("hgnc_id" -> "HGNC ID", "fdr_bh" -> "FDR BH"), so table headers built from
+#' keys do not read "Hgnc id".
+#'
+#' @param key Character vector of field keys.
+#'
+#' @return Character vector of labels, same length as `key`.
+#'
+#' @examples
+#' field_key_label(c("hgnc_id", "ucsc_id", "pmid", "symbol"))
+#'
+#' @export
+field_key_label <- function(key) {
+  label <- stringr::str_to_sentence(stringr::str_replace_all(key, "_", " "))
+  acronyms <- c(
+    "bed", "bh", "doi", "fdr", "hgnc", "hpo", "id", "mondo", "ndd", "npmi",
+    "omim", "pmid", "ucsc", "url"
+  )
+  stringr::str_replace_all(
+    label,
+    stringr::regex(paste0("\\b(", paste(acronyms, collapse = "|"), ")\\b"), ignore_case = TRUE),
+    toupper
+  )
+}
+
+
 #' Generate field specifications from a tibble
 #'
 #' @description
@@ -329,7 +358,7 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
     mutate(sortDirection = "asc") %>%
     mutate(sortable = TRUE) %>%
     mutate(class = "text-left") %>%
-    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+    mutate(label = field_key_label(key)) %>%
     dplyr::filter(key %in% fspecInput) %>%
     arrange(factor(key, levels = fspecInput)) %>%
     {

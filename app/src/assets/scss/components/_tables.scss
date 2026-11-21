@@ -31,13 +31,15 @@
     }
   }
 
-  // Fixed layout tables - ensure header text truncation
+  // Fixed layout tables: equal columns are often narrower than a label, so
+  // headers wrap ("Gene2Phenotype" stays readable) instead of ellipsizing.
   &.b-table-fixed,
   &[style*='table-layout: fixed'] {
     thead th {
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: break-word;
+      hyphens: auto;
     }
 
     // Cell truncation for fixed layout
@@ -100,7 +102,8 @@
 // (`.entities-table`) and direct public BTable surfaces (`.public-data-table`).
 :is(.entities-table, .public-data-table) {
   thead tr:first-child {
-    input,
+    // Without a filter row this is the header row: leave its checkboxes alone.
+    input:not([type='checkbox'], [type='radio']),
     select {
       min-height: calc(1.5em + 1rem + 2px);
       padding-top: 0.5rem;
@@ -167,7 +170,6 @@
       cursor: pointer;
       user-select: none;
       position: relative;
-      padding-right: 1.5rem; // Extra space for sort icon
       transition: background-color var(--transition-fast);
 
       // Hover state for sortable headers
@@ -181,54 +183,8 @@
         font-weight: 600;
       }
 
-      // Sort icon using CSS pseudo-element
-      &::after {
-        content: '';
-        position: absolute;
-        right: 0.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        border-left: 0.25rem solid transparent;
-        border-right: 0.25rem solid transparent;
-        opacity: 0.3;
-      }
-
-      // Ascending sort icon (up arrow)
-      &[aria-sort='ascending']::after {
-        border-bottom: 0.35rem solid currentColor;
-        opacity: 1;
-      }
-
-      // Descending sort icon (down arrow)
-      &[aria-sort='descending']::after {
-        border-top: 0.35rem solid currentColor;
-        opacity: 1;
-      }
-
-      // Neutral/none state - render no arrows at idle to reduce visual noise.
-      // Hint both arrows only on hover/focus-visible so the affordance survives.
-      &[aria-sort='none']::after {
-        opacity: 0;
-      }
-      &[aria-sort='none']:hover::after,
-      &[aria-sort='none']:focus-visible::after {
-        border-bottom: 0.35rem solid currentColor;
-        margin-top: -0.2rem;
-        opacity: 0.5;
-      }
-      &[aria-sort='none']:hover::before,
-      &[aria-sort='none']:focus-visible::before {
-        content: '';
-        position: absolute;
-        right: 0.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        border-left: 0.25rem solid transparent;
-        border-right: 0.25rem solid transparent;
-        border-top: 0.35rem solid currentColor;
-        opacity: 0.5;
-        margin-top: 0.2rem;
-      }
+      // The sort direction icon is BTable's own; a CSS triangle here drew a
+      // second indicator ("↑ Symbol ▲", ADM-27).
 
       // Focus state for keyboard navigation (WCAG 2.2)
       &:focus-visible {

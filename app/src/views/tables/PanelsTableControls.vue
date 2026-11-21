@@ -31,7 +31,7 @@
           <BFormSelect
             :model-value="sortField"
             :options="columns"
-            text-field="value"
+            text-field="text"
             value-field="value"
             size="sm"
             :disabled="busy"
@@ -76,7 +76,7 @@
             :disabled="busy || requiredColumns.includes(column.value)"
             @change="toggleColumn(column.value)"
           />
-          <span>{{ column.value }}</span>
+          <span>{{ column.text ?? column.value }}</span>
         </label>
       </div>
     </div>
@@ -88,6 +88,7 @@ import { computed, ref } from 'vue';
 
 interface Option {
   value: string;
+  text?: string;
 }
 
 const props = defineProps<{

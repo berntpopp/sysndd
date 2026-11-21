@@ -11,9 +11,9 @@ const stubs = {
     emits: ['update:modelValue'],
   },
   BPagination: {
-    props: ['modelValue'],
+    props: ['modelValue', 'limit'],
     template:
-      '<nav v-bind="$attrs" @click="$emit(\'update:modelValue\', 2)"><button>Next</button></nav>',
+      '<nav v-bind="$attrs" :data-limit="limit" @click="$emit(\'update:modelValue\', 2)"><button>Next</button></nav>',
     emits: ['update:modelValue'],
   },
 };
@@ -29,9 +29,7 @@ describe('TablePaginationControls', () => {
       global: { stubs },
     });
 
-    expect(wrapper.get('[role="group"]').attributes('aria-label')).toBe(
-      'Manage users pagination'
-    );
+    expect(wrapper.get('[role="group"]').attributes('aria-label')).toBe('Manage users pagination');
     expect(wrapper.get('select').attributes('aria-label')).toBe('Users per page');
     expect(wrapper.get('nav').attributes('aria-label')).toBe('Manage users pagination');
   });
@@ -47,5 +45,26 @@ describe('TablePaginationControls', () => {
 
     expect(wrapper.emitted('per-page-change')).toEqual([[25]]);
     expect(wrapper.emitted('page-change')).toEqual([[2]]);
+  });
+
+  it('keeps the active page visible on phones and states the page count', () => {
+    const wrapper = mount(TablePaginationControls, {
+      props: { totalRows: 5150, currentPage: 3 },
+      global: { stubs },
+    });
+
+    // limit 2 let bootstrap-vue-next hide the active page below sm (PUB-03 / ADM-10)
+    expect(Number(wrapper.get('nav').attributes('data-limit'))).toBeGreaterThanOrEqual(3);
+    expect(wrapper.text()).toContain('Page 3 of 515');
+  });
+
+  it('omits the pager buttons and count when everything fits on one page', () => {
+    const wrapper = mount(TablePaginationControls, {
+      props: { totalRows: 4 },
+      global: { stubs },
+    });
+    expect(wrapper.text()).not.toContain('Page 1 of');
+    // no "« ‹ › »" row of disabled buttons for a single page; its height stays reserved
+    expect(wrapper.find('.table-pager--single nav').exists()).toBe(true);
   });
 });

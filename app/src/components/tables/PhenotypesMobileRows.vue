@@ -62,10 +62,10 @@
             <span class="visually-hidden">{{ getText(item, 'ndd_phenotype_word') }}</span>
           </span>
           <span
-            v-if="getText(item, 'modifier_phenotype_id')"
+            v-if="phenotypeIds(item).length"
             class="mobile-record-row__chip"
-            :aria-label="`Phenotype: ${getText(item, 'modifier_phenotype_id')}`"
-            :title="getText(item, 'modifier_phenotype_id')"
+            data-testid="phenotype-count"
+            :title="phenotypeIds(item).join(', ')"
           >
             {{ phenotypeSummary(item) }}
           </span>
@@ -85,7 +85,7 @@
           <dt>Last updated</dt>
           <dd>{{ getText(item, 'last_update') || '-' }}</dd>
           <dt>Phenotype</dt>
-          <dd>{{ getText(item, 'modifier_phenotype_id') || '-' }}</dd>
+          <dd>{{ phenotypeIds(item).join(', ') || '-' }}</dd>
         </dl>
       </div>
     </template>
@@ -146,17 +146,17 @@ function diseaseLink(item: PhenotypeEntityRow): string | undefined {
   return ontologyId ? `/Ontology/${ontologyId.replace(/_.+/g, '')}` : undefined;
 }
 
-function phenotypeSummary(item: PhenotypeEntityRow): string {
-  const ids = getText(item, 'modifier_phenotype_id')
+/** HPO ids without the API's "<modifier>-" prefix ("1-HP:0001249" -> "HP:0001249"). */
+function phenotypeIds(item: PhenotypeEntityRow): string[] {
+  return getText(item, 'modifier_phenotype_id')
     .split(',')
-    .map((id) => id.trim())
+    .map((id) => id.trim().replace(/^\d+-/, ''))
     .filter(Boolean);
+}
 
-  if (ids.length <= 2) {
-    return ids.join(', ');
-  }
-
-  return `${ids.slice(0, 2).join(', ')} +${ids.length - 2}`;
+function phenotypeSummary(item: PhenotypeEntityRow): string {
+  const count = phenotypeIds(item).length;
+  return `${count} ${count === 1 ? 'phenotype' : 'phenotypes'}`;
 }
 
 function getText(item: PhenotypeEntityRow, key: string): string {

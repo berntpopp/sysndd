@@ -25,6 +25,7 @@ const INHERITANCE_ABBREVIATIONS = {
   'X-linked inheritance': 'XL',
   'X-linked dominant inheritance': 'XLD',
   'X-linked recessive inheritance': 'XLR',
+  'X-linked other inheritance': 'XL',
   'Y-linked inheritance': 'YL',
   'Mitochondrial inheritance': 'MT',
   'Somatic mutation': 'Som',
@@ -100,7 +101,11 @@ export default {
       if (!this.useAbbreviation) {
         return this.fullName;
       }
-      return INHERITANCE_ABBREVIATIONS[this.fullName] || this.fullName.substring(0, 3);
+      // Genes with several modes arrive as "A; B" and read "AD/AR".
+      return this.fullName
+        .split(/;\s*/)
+        .map((mode) => INHERITANCE_ABBREVIATIONS[mode] || mode.substring(0, 3))
+        .join('/');
     },
     tooltipTitle() {
       if (this.hpoTerm) {

@@ -106,7 +106,7 @@ generate_panels_list <- function(
   # All fields treated as sortable text for simplicity
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
     dplyr::select(key = value) %>%
-    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+    mutate(label = field_key_label(key)) %>%
     mutate(sortable = "true") %>%
     mutate(class = "text-left") %>%
     mutate(sortByFormatted = "true") %>%

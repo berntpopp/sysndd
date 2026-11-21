@@ -25,9 +25,11 @@
         </div>
 
         <div class="mobile-record-row__chips">
-          <span v-if="getText(item, 'inheritance')" class="mobile-record-row__chip">
-            {{ getText(item, 'inheritance') }}
-          </span>
+          <InheritanceBadge
+            v-if="getText(item, 'inheritance')"
+            :full-name="getText(item, 'inheritance')"
+            size="sm"
+          />
           <span v-if="getText(item, 'hgnc_id')" class="mobile-record-row__chip">
             {{ getText(item, 'hgnc_id') }}
           </span>
@@ -42,7 +44,7 @@
           class="mobile-record-row__details"
         >
           <template v-for="fieldKey in selectedFieldKeys" :key="fieldKey">
-            <dt>{{ fieldLabel(fieldKey) }}</dt>
+            <dt>{{ panelColumnLabel(fieldKey) }}</dt>
             <dd>{{ getText(item, fieldKey) || '-' }}</dd>
           </template>
         </dl>
@@ -55,6 +57,8 @@
 import { ref, watch } from 'vue';
 import MobileTableList from '@/components/table/MobileTableList.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import { panelColumnLabel } from './panelColumnLabels';
 
 type PanelRow = Record<string, unknown>;
 
@@ -91,10 +95,6 @@ function geneLink(item: PanelRow): string | undefined {
   const hgncId = getText(item, 'hgnc_id');
   const symbol = getText(item, 'symbol');
   return hgncId ? `/Genes/${hgncId}` : symbol ? `/Genes/${symbol}` : undefined;
-}
-
-function fieldLabel(key: string): string {
-  return key.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function getText(item: PanelRow, key: string): string {
