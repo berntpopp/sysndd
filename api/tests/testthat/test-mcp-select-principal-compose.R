@@ -323,7 +323,11 @@ test_that("MCP probes enforce the advertised protocol and credential-free contra
   # #710: GET (SSE) and DELETE must reach the stateless server (405), never the SPA.
   expect_match(smoke, 'method = "GET", accept = "text/event-stream"', fixed = TRUE)
   expect_match(smoke, 'method = "DELETE"', fixed = TRUE)
-  expect_match(smoke, 'identical(probe_status, 405L) || grepl("text/html"', fixed = TRUE)
+  expect_match(
+    smoke,
+    '!identical(probe_status, 405L) || grepl("text/html", probe_type, ignore.case = TRUE)',
+    fixed = TRUE
+  )
 })
 
 test_that("real MCP edge smoke runs in Docker-backed local and hosted CI gates", {

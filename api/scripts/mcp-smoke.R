@@ -79,12 +79,12 @@ if (!identical(httr2::resp_status(invalid_origin_response), 403L)) {
   )
 }
 
-# #710: the stateless server opens no SSE stream and keeps no sessions, so the
-# streamable-HTTP spec requires 405 for GET (Accept: text/event-stream) and DELETE.
-# A 200 text/html here means the proxy sent the request to the SPA instead.
+# #710: the stateless server opens no SSE stream and keeps no sessions, so it answers
+# GET (Accept: text/event-stream) and DELETE with 405. An HTML answer (SPA 200 page or
+# nginx 405 page) means the proxy sent the request to the website instead.
 for (probe in list(
   list(method = "GET", accept = "text/event-stream"),
-  list(method = "DELETE", accept = "application/json, text/event-stream")
+  list(method = "DELETE", accept = "application/json")
 )) {
   probe_response <- httr2::request(endpoint) |>
     httr2::req_method(probe$method) |>
@@ -94,7 +94,7 @@ for (probe in list(
     httr2::req_perform()
   probe_status <- httr2::resp_status(probe_response)
   probe_type <- httr2::resp_header(probe_response, "Content-Type") %||% "<none>"
-  if (!identical(probe_status, 405L) || grepl("text/html", probe_type, fixed = TRUE)) {
+  if (!identical(probe_status, 405L) || grepl("text/html", probe_type, ignore.case = TRUE)) {
     stop(
       "MCP ", probe$method, " returned ", probe_status, " ", probe_type,
       "; expected 405 from the MCP server (text/html means the request reached the website)"

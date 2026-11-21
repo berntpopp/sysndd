@@ -149,7 +149,7 @@ mcp-transport-spike: check-r ## [test] Verify mcptools HTTP MCP initialize/list/
 		printf "$(GREEN)✓ mcp-transport-spike complete$(RESET)\n" || \
 		(printf "$(RED)✗ mcp-transport-spike failed$(RESET)\n" && exit 1)
 
-test-mcp-smoke: check-r ## [test] Probe a running MCP sidecar with initialize and tools/list
+test-mcp-smoke: check-r ## [test] Probe MCP at MCP_URL (default: sidecar; after deploy use the public https://<host>/mcp to check edge routing)
 	@printf "$(CYAN)==> Running MCP smoke probe...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && MCP_URL=$${MCP_URL:-http://127.0.0.1:8787} Rscript scripts/mcp-smoke.R && \
 		printf "$(GREEN)✓ test-mcp-smoke complete$(RESET)\n" || \
