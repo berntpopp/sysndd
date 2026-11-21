@@ -64,7 +64,7 @@
           class="me-1"
           title="Edges limited to 10,000 for performance. High confidence edges prioritized."
         >
-          <i class="bi bi-exclamation-triangle-fill" />
+          <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />Edges capped
         </BBadge>
 
         <!-- Filter controls -->

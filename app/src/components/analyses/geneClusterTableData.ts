@@ -183,6 +183,26 @@ export function findCategoryText(
   return found ? found.text : categoryVal;
 }
 
+/** Readable names for STRING enrichment categories whose server label is a raw key. */
+const CURATED_CATEGORY_LABELS: Record<string, string> = {
+  NetworkNeighborAL: 'STRING cluster',
+  Process: 'GO Process',
+  Function: 'GO Function',
+  Component: 'GO Component',
+  RCTM: 'Reactome',
+  InterPro: 'InterPro',
+  WikiPathways: 'WikiPathways',
+  Keyword: 'UniProt keyword',
+  PMID: 'Publications (PMID)',
+};
+
+/** Overlay curated labels on the server's category descriptors (value and link kept). */
+export function withCuratedCategoryLabels<T extends CategoryDescriptor>(categories: T[]): T[] {
+  return (categories ?? []).map((cat) =>
+    CURATED_CATEGORY_LABELS[cat.value] ? { ...cat, text: CURATED_CATEGORY_LABELS[cat.value] } : cat
+  );
+}
+
 /**
  * Build an external link for a category term, falling back to '#' when the
  * category descriptor is unknown.
@@ -219,7 +239,7 @@ export function formatFdr(fdr: unknown): string {
   if (fdr == null) return '—';
   const n = Number(fdr);
   if (Number.isNaN(n)) return String(fdr);
-  if (n === 0) return '0';
+  if (n === 0) return '< 1e-300'; // underflowed below double precision
   if (n < 0.001 || n >= 1000) {
     return n.toExponential(2);
   }

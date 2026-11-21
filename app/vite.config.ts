@@ -86,6 +86,7 @@ export function createViteConfig(mode: string): UserConfig {
             '**/ApiView-*.{js,css}', // ~1.5 MB — Swagger UI (API docs page only)
             '**/useMarkdownRenderer-*.js', // ~0.7 MB — markdown (CMS/admin only)
             '**/cytoscape-*.js', // graph layout/rendering (analysis detail only)
+            '**/geneNetworkLayout.worker-*.js', // ~0.6 MB — gene-network layout worker (gene networks only)
             '**/viz-*.js', // d3 + UpSet.js visualizations (analysis detail only)
             '**/FileSaver*.js', // export download helper (not needed until export)
           ],

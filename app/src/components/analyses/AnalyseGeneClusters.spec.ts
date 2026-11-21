@@ -172,7 +172,7 @@ describe('AnalyseGeneClusters', () => {
     expect(mocks.networkSelectSingleCluster).toHaveBeenCalledWith(1);
   });
 
-  it('does not show the cue while cluster data is loading', async () => {
+  it('keeps the cue in place but offers no cluster button while data is loading', async () => {
     const wrapper = mountComponent();
     wrapper.vm.loading = true;
     wrapper.vm.itemsCluster = [
@@ -187,7 +187,8 @@ describe('AnalyseGeneClusters', () => {
     wrapper.vm.showAllClustersInTable = true;
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.text()).not.toContain('Select one cluster to view its AI summary');
+    // the cue holds its space (no layout shift when data arrives) but is not actionable yet
+    expect(wrapper.text()).toContain('Select one cluster to view its AI summary');
     expect(wrapper.find('button[aria-label="View cluster 1 summary"]').exists()).toBe(false);
   });
 

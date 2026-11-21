@@ -14,6 +14,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import useCytoscape from '@/composables/useCytoscape';
 import useNetworkData from '@/composables/useNetworkData';
+import { shouldUsePresetLayout } from '@/composables/geneNetworkLayoutOptions';
 import useNetworkFilters, { type CategoryFilter } from '@/composables/useNetworkFilters';
 import { useFilterSync } from '@/composables/useFilterSync';
 import { useWildcardSearch } from '@/composables/useWildcardSearch';
@@ -436,19 +437,42 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     }
   );
 
-  // Initialize on mount
+  // The graph is drawn only when the user asks for it: laying out and painting
+  // ~2,000 genes costs seconds of main-thread time, which would freeze the cluster
+  // table that is usable long before. Data and the worker layout still start at
+  // mount, so the click usually renders straight away.
+  const networkRequested = ref(false);
+  let dataReady = false;
+  let networkMounted = false;
+
+  function showNetwork() {
+    networkRequested.value = true;
+    if (dataReady) void mountNetwork();
+  }
+
   onMounted(async () => {
-    // Fetch network data
     await fetchNetworkData();
     if (disposed) return;
+    dataReady = true;
+    if (networkRequested.value) await mountNetwork();
+  });
+
+  async function mountNetwork() {
+    if (networkMounted) return;
+    networkMounted = true;
 
     // Wait for DOM update
     await nextTick();
     if (disposed) return;
 
     if (cytoscapeNodeElements.value.length > 0) {
-      initializeCytoscape(cytoscapeNodeElements.value);
-      initialEdgesMounted.value = false;
+      // With positions known up front (server display layout or the worker layout)
+      // mount the default view in one pass; otherwise nodes first, edges at idle.
+      const presetReady = shouldUsePresetLayout(cytoscapeInitialElements.value);
+      initializeCytoscape(
+        presetReady ? cytoscapeInitialElements.value : cytoscapeNodeElements.value
+      );
+      initialEdgesMounted.value = presetReady;
       fullGraphMounted.value = false;
       handleApplyFilters();
     } else {
@@ -479,7 +503,7 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       });
       resizeObserver.observe(cytoscapeContainer.value);
     }
-  });
+  }
 
   // Cleanup resize observer on unmount
   onBeforeUnmount(() => {
@@ -514,9 +538,13 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     if (disposed) return;
     await fetchNetworkData();
     if (disposed) return;
+    dataReady = true;
+    if (!networkRequested.value) return;
     await nextTick();
     if (disposed) return;
-    if (!isInitialized.value) {
+    if (!networkMounted) {
+      await mountNetwork();
+    } else if (!isInitialized.value) {
       initializeCytoscape(cytoscapeNodeElements.value);
       initialEdgesMounted.value = false;
       fullGraphMounted.value = false;
@@ -587,6 +615,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
     handleExportSVG,
     // Retry + exposed surface for the parent
     retryLoadNetwork,
+    networkRequested,
+    showNetwork,
     highlightNodeFromTable,
     isRowHighlighted,
     clearHighlights,
