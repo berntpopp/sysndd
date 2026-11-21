@@ -79,17 +79,15 @@
         </BFormSelect>
       </BCol>
       <BCol sm="3" class="text-end">
-        <span class="text-muted small me-2">
-          {{ itemsLength }} of {{ totalRows.toLocaleString() }}
-        </span>
         <BButton
-          v-b-tooltip.hover
           size="sm"
           variant="outline-danger"
+          class="log-delete-button"
           title="Delete all logs (requires confirmation)"
           @click="$emit('show-delete')"
         >
-          <i class="bi bi-trash" />
+          <i class="bi bi-trash me-1" aria-hidden="true" />
+          Delete logs…
         </BButton>
       </BCol>
     </BRow>
@@ -193,7 +191,6 @@ defineProps<{
   statusOptions: SelectOption[];
   mobileSortOptions: SelectOption[];
   mobileSortValue: string;
-  itemsLength: number;
   hasActiveFilters: boolean;
   activeFilters: ActiveFilter[];
 }>();
@@ -230,6 +227,12 @@ const mobileFilterFields: Array<{ key: keyof LogFilter & string; label: string }
 </script>
 
 <style scoped>
+/* Bootstrap's #dc3545 outline text is < 4.5:1 on the grey toolbar. */
+.log-delete-button {
+  --bs-btn-color: #b02a37;
+  --bs-btn-border-color: #b02a37;
+}
+
 .log-mobile-filters {
   margin-top: 0.5rem;
 }

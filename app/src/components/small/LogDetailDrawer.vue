@@ -11,8 +11,8 @@
   >
     <template #header>
       <div class="d-flex justify-content-between align-items-center w-100">
-        <h5 class="mb-0">
-          <i class="bi bi-journal-text me-2" />
+        <h3 class="h5 mb-0">
+          <i class="bi bi-journal-text me-2" aria-hidden="true" />
           Log Entry #{{ log?.id }}
           <BBadge v-if="log" :variant="getStatusVariant(log.status)" class="ms-2">
             {{ log.status }}
@@ -20,7 +20,7 @@
           <BBadge v-if="log" :variant="getMethodVariant(log.request_method)" class="ms-1">
             {{ log.request_method }}
           </BBadge>
-        </h5>
+        </h3>
         <div>
           <BButton
             v-b-tooltip.hover
@@ -30,7 +30,7 @@
             title="Copy JSON to clipboard"
             @click="copyToClipboard"
           >
-            <i :class="copied ? 'bi bi-check' : 'bi bi-clipboard'" />
+            <i :class="copied ? 'bi bi-check' : 'bi bi-clipboard'" aria-hidden="true" />
             {{ copied ? 'Copied!' : 'Copy' }}
           </BButton>
         </div>
@@ -53,7 +53,9 @@
             <div class="card-body py-2 px-3">
               <div class="text-muted small">Duration</div>
               <div class="fw-semibold">
-                <span :class="getDurationClass(log.duration)">{{ log.duration }}ms</span>
+                <span :class="getDurationClass(log.duration)">{{
+                  formatDuration(log.duration)
+                }}</span>
               </div>
             </div>
           </div>
@@ -78,9 +80,9 @@
 
       <!-- Request details section -->
       <div class="mb-4">
-        <h6 class="text-muted border-bottom pb-2 mb-3">
-          <i class="bi bi-send me-2" />Request Details
-        </h6>
+        <h4 class="h6 text-muted border-bottom pb-2 mb-3">
+          <i class="bi bi-send me-2" aria-hidden="true" />Request Details
+        </h4>
         <dl class="row mb-0">
           <dt class="col-sm-2 text-muted">Path</dt>
           <dd class="col-sm-10 font-monospace bg-light p-2 rounded">{{ log.path }}</dd>
@@ -105,9 +107,9 @@
 
       <!-- Client info section -->
       <div class="mb-4">
-        <h6 class="text-muted border-bottom pb-2 mb-3">
-          <i class="bi bi-pc-display me-2" />Client Information
-        </h6>
+        <h4 class="h6 text-muted border-bottom pb-2 mb-3">
+          <i class="bi bi-pc-display me-2" aria-hidden="true" />Client Information
+        </h4>
         <dl class="row mb-0">
           <dt class="col-sm-2 text-muted">User Agent</dt>
           <dd class="col-sm-10 small text-break">{{ log.agent }}</dd>
@@ -119,21 +121,27 @@
 
       <!-- Full JSON section (collapsible) -->
       <div class="mb-3">
-        <h6
-          class="text-muted border-bottom pb-2 mb-3 d-flex align-items-center"
-          style="cursor: pointer"
-          @click="showJson = !showJson"
-        >
-          <i class="bi bi-code-slash me-2" />
-          Raw JSON
-          <i :class="showJson ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="ms-auto" />
-        </h6>
+        <h4 class="h6 border-bottom pb-2 mb-3">
+          <button
+            type="button"
+            class="btn btn-link p-0 w-100 d-flex align-items-center text-muted text-decoration-none"
+            :aria-expanded="showJson ? 'true' : 'false'"
+            @click="showJson = !showJson"
+          >
+            <i class="bi bi-code-slash me-2" aria-hidden="true" />
+            Raw JSON
+            <i
+              :class="showJson ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"
+              class="ms-auto"
+              aria-hidden="true"
+            />
+          </button>
+        </h4>
         <BCollapse v-model="showJson">
           <pre
             class="bg-dark text-light p-3 rounded small"
             style="max-height: 250px; overflow-y: auto"
-            >{{ JSON.stringify(log, null, 2) }}</pre
-          >
+            >{{ JSON.stringify(log, null, 2) }}</pre>
         </BCollapse>
       </div>
     </div>
@@ -147,7 +155,7 @@
             :disabled="!canNavigatePrev"
             @click="$emit('navigate-prev')"
           >
-            <i class="bi bi-chevron-left" /> Previous
+            <i class="bi bi-chevron-left" aria-hidden="true" /> Previous
           </BButton>
           <BButton
             size="sm"
@@ -156,11 +164,11 @@
             :disabled="!canNavigateNext"
             @click="$emit('navigate-next')"
           >
-            Next <i class="bi bi-chevron-right" />
+            Next <i class="bi bi-chevron-right" aria-hidden="true" />
           </BButton>
         </div>
         <div class="text-muted small">
-          <i class="bi bi-keyboard me-1" />
+          <i class="bi bi-keyboard me-1" aria-hidden="true" />
           Arrow keys to navigate
         </div>
         <BButton variant="secondary" @click="close"> Close </BButton>
@@ -172,6 +180,11 @@
 <script>
 import { ref } from 'vue';
 import { useClipboard } from '@vueuse/core';
+import {
+  formatAbsoluteLogTime,
+  formatLogDuration,
+  getLogDurationClass as getDurationClass,
+} from '@/components/tables/logTableFormatters';
 
 export default {
   name: 'LogDetailDrawer',
@@ -198,18 +211,6 @@ export default {
     const { copy, copied } = useClipboard({ copiedDuring: 2000 });
     const showJson = ref(false);
 
-    function formatTimestamp(dateStr) {
-      if (!dateStr) return '';
-      return new Date(dateStr).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-    }
-
     function formatJson(str) {
       if (!str) return '';
       try {
@@ -235,12 +236,6 @@ export default {
         OPTIONS: 'info',
       };
       return variants[method] || 'secondary';
-    }
-
-    function getDurationClass(duration) {
-      if (duration < 100) return 'text-success';
-      if (duration < 500) return 'text-warning';
-      return 'text-danger';
     }
 
     function copyToClipboard() {
@@ -276,7 +271,8 @@ export default {
     return {
       copied,
       showJson,
-      formatTimestamp,
+      formatTimestamp: formatAbsoluteLogTime,
+      formatDuration: formatLogDuration,
       formatJson,
       getStatusVariant,
       getMethodVariant,

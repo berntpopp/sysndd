@@ -49,6 +49,7 @@
 
 <script setup lang="ts">
 import MobileTableList from '@/components/table/MobileTableList.vue';
+import { formatLogDuration, formatRelativeLogTime } from '@/components/tables/logTableFormatters';
 
 type Item = Record<string, unknown>;
 
@@ -72,30 +73,9 @@ function rowKey(item: Item, index: number): string {
   return displayValue(item.id) || `row-${index}`;
 }
 
-function formatDuration(value: unknown): string {
-  if (!hasValue(value)) return '-';
-  const ms = Number.parseFloat(displayValue(value));
-  if (Number.isNaN(ms)) return displayValue(value);
-  if (ms < 1) return '<1ms';
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
-}
-
-function formatRelativeTime(value: unknown): string {
-  const raw = displayValue(value);
-  if (!raw) return '';
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return raw;
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.round(diffMs / 60000);
-  const diffHours = Math.round(diffMs / 3600000);
-  const diffDays = Math.round(diffMs / 86400000);
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  if (Math.abs(diffMins) < 60) return rtf.format(-diffMins, 'minute');
-  if (Math.abs(diffHours) < 24) return rtf.format(-diffHours, 'hour');
-  return rtf.format(-diffDays, 'day');
-}
+// Row values arrive untyped from the API (seconds and naive UTC strings).
+const formatDuration = (value: unknown) => formatLogDuration(value as string | number | null);
+const formatRelativeTime = (value: unknown) => formatRelativeLogTime(value as string | null);
 </script>
 
 <style scoped>

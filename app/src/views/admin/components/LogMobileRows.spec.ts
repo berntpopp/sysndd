@@ -11,7 +11,7 @@ describe('LogMobileRows', () => {
       status: 500,
       path: '/api/entity',
       query: '?id=1',
-      duration: 1250,
+      duration: 1.25, // seconds, as the API logs it
       address: '127.0.0.1',
       agent: 'Vitest agent',
     };
@@ -24,7 +24,7 @@ describe('LogMobileRows', () => {
     expect(wrapper.text()).toContain('POST');
     expect(wrapper.text()).toContain('500');
     expect(wrapper.text()).toContain('/api/entity');
-    expect(wrapper.text()).toContain('1.25s');
+    expect(wrapper.text()).toContain('1.25 s');
 
     await wrapper.get('button[aria-label="View log 42 details"]').trigger('click');
 

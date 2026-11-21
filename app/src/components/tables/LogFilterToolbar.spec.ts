@@ -58,7 +58,6 @@ function mountToolbar(props = {}) {
         { value: '-timestamp', text: 'Newest time first' },
       ],
       mobileSortValue: '-id',
-      itemsLength: 5,
       hasActiveFilters: false,
       activeFilters: [],
       ...props,
@@ -70,7 +69,10 @@ function mountToolbar(props = {}) {
 describe('LogFilterToolbar', () => {
   it('emits show-delete when the delete button is clicked', async () => {
     const wrapper = mountToolbar();
-    await wrapper.find('button[title="Delete all logs (requires confirmation)"]').trigger('click');
+    const button = wrapper.find('button[title="Delete all logs (requires confirmation)"]');
+    // ADM-04 / ADM-27: the trash icon had no accessible name or visible label
+    expect(button.text()).toContain('Delete logs');
+    await button.trigger('click');
     expect(wrapper.emitted('show-delete')).toHaveLength(1);
   });
 
