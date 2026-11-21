@@ -6,6 +6,8 @@ test_that("async workers preload analysis snapshot refresh dependencies before h
   lines <- readLines(file.path("bootstrap", "setup_workers.R"), warn = FALSE)
 
   expected_sources <- c(
+    # the builder computes the gene-network display layout with these helpers
+    'source("/app/functions/analysis-network-layout-functions.R", local = FALSE)',
     'source("/app/functions/analysis-snapshot-presets.R", local = FALSE)',
     'source("/app/functions/analysis-snapshot-repository.R", local = FALSE)',
     'source("/app/functions/analysis-snapshot-builder.R", local = FALSE)',

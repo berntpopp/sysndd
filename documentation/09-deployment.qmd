@@ -526,9 +526,19 @@ Invalid or shut-down models are rejected before Gemini is called. If Google rele
 
 ### GeneNetworks layout artifacts
 
-GeneNetworks display layouts are precomputed derived-analysis artifacts, not request-path work. The API and worker images contain Node 24 plus the minimal `api/layout/` dependencies needed to run the headless Cytoscape/fCoSE helper. The worker should run the durable `network_layout_prewarm` job after data/cache refreshes that can change the displayed gene network.
+GeneNetworks display layouts are precomputed derived-analysis artifacts, not request-path work. The API and worker images contain Node 24 plus the minimal `api/layout/` dependencies needed to run the headless Cytoscape/fCoSE helper.
 
-The public `/api/analysis/network_edges` request path only reads matching artifacts from `/app/cache/network_layouts`; it must not run fCoSE synchronously. If an artifact is absent, invalid, or stale, the API marks the display layout as unavailable and the browser falls back to its existing fCoSE layout. Cache invalidation is controlled by the content-aware layout key, which includes the displayed node/edge set, query parameters, layout options, Cytoscape/fCoSE versions, and the current `CACHE_VERSION`.
+The `gene_network_edges` snapshot refresh computes the layout once while it builds the snapshot (cached in `/app/cache/network_layouts` under a content-aware key that covers the displayed node/edge set, query parameters, layout options and Cytoscape/fCoSE versions) and stores the coordinates with the snapshot's nodes, reporting `display_layout_status: "available"`. Browsers then draw those positions directly instead of each running fCoSE. If the helper fails, the snapshot is still published with status `missing` and the browser lays the network out itself in a Web Worker, as it does for snapshots built before this change. The durable `network_layout_prewarm` job only warms the same cache.
+
+No migration is needed: snapshot node rows already carry `x`, `y`, `layout_x` and `layout_y`. A snapshot built before this change keeps serving `missing` until the next refresh, so after deploying, rebuild the network preset once:
+
+```bash
+curl -X POST https://<host>/api/admin/analysis/snapshots/refresh \
+  -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" \
+  -d '{"force": true, "analysis_type": "gene_network_edges"}'
+curl -s 'https://<host>/api/analysis/network_edges?cluster_type=clusters&min_confidence=400&max_edges=10000' \
+  | jq '.metadata.display_layout_status'   # "available"
+```
 
 ### MCP sidecar settings
 

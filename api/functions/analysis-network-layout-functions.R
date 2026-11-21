@@ -576,3 +576,18 @@ apply_cached_network_display_layout <- function(network_data,
     }
   )
 }
+
+# Snapshot builds lay the network out once (cached by key) so browsers draw stored positions;
+# on failure the status stays "missing" and clients lay it out themselves.
+ensure_network_display_layout <- function(network_data, cluster_type, min_confidence, max_edges,
+                                          generate = generate_network_display_layout_artifact) {
+  if (identical(network_data$metadata$display_layout_status, "available")) return(network_data)
+  tryCatch({
+    artifact <- generate(network_data, cluster_type = cluster_type,
+                         min_confidence = min_confidence, max_edges = max_edges)
+    attach_network_display_layout(network_data, artifact, layout_key = artifact$metadata$layout_key)
+  }, error = function(e) {
+    message(sprintf("[network layout] display layout not generated: %s", conditionMessage(e)))
+    network_data
+  })
+}
