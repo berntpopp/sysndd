@@ -112,12 +112,8 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
       router.push({ name: 'Gene', params: { id: nodeId } });
       emit('cluster-selected', nodeId);
     },
-    onClusterClick: (clusterId: number) => {
-      selectSingleCluster(clusterId);
-    },
-    onBackgroundClick: () => {
-      setShowAllClusters(true);
-    },
+    onClusterClick: (clusterId: number) => selectSingleCluster(clusterId),
+    onBackgroundClick: () => setShowAllClusters(true),
     onLayoutReady: () => {
       if (hydrateInitialEdgesIfNeeded()) return;
       // edges may have joined in batches since the last count
@@ -433,8 +429,6 @@ export function useNetworkVisualizationController(emit: NetworkVisualizationEmit
   async function mountNetwork() {
     if (networkMounted) return;
     networkMounted = true;
-
-    // Wait for DOM update
     await nextTick();
     if (disposed) return;
 
