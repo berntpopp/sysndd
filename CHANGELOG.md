@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.5] - 2026-11-21
+
+Dependency release: the Dependabot pull requests opened after 0.38.4 (#715–#719) are rolled into one change. These are tooling and development-image upgrades, mostly major versions of test and build tools; none is a security fix for SysNDD itself. No API, database or behaviour changes. `rocker/r-ver` 4.6.2 (#714) is not included: that image is Ubuntu 26.04 only, where the API image and CI cannot build R packages yet.
+
+### Changed
+
+- **MSW 2 → 3 test-setup migration.** `server.listen()` now passes `onUnhandledFrame: 'error'` (MSW 3 ignores the old `onUnhandledRequest` key and would fall back to `'warn'`, letting an unmocked request through). MSW 3 intercepts Node `fetch` at the socket layer, so mocked responses settle later than before: specs use the new `flushRequests()` test helper, which waits until no mocked fetch is in flight, or `vi.waitFor()` on the asserted state. MSW no longer escapes fake timers, so polling specs fake only `setInterval` / `clearInterval`.
+- Specs that had to be loosened during the migration check exactly what they checked before: exact refresh counts in `useManageReReview`, a single in-flight poll in `useAsyncJob.ownership`, and settled mount requests in `ApproveUser`, `ManageLLM` and `ManageOntology`.
+
+### Dependencies
+
+- Bumped `msw` 2.15.0 → 3.0.7 (#719).
+- Bumped `jsdom` 30.1.0 → 31.0.1 (#718). No code change; requires Node ≥ 24.15, which CI and the images use.
+- Bumped `vite-plugin-pwa` 1.3.0 → 2.0.0 (#717). No code change: 2.0 widens the `@vite-pwa/assets-generator` peer range and requires Node ≥ 20.19. The service worker precache list is unchanged.
+- Bumped `@vue/test-utils` 2.5.1 → 2.6.0 (#716). No spec mutates a mounted prop in place, so the shallow-reactive props change does not apply.
+- Bumped the Docker Compose images group (#715): `traefik` v3.7.17 → v3.7.18 (its migration notes on Ingress-NGINX TLS options, BasicAuth password length and dot-segments do not apply to this Docker-provider setup) and `axllent/mailpit` v1.33.0 → v1.34.0 in the development and Playwright stacks (the removed deprecated flags are not used).
+
 ## [0.38.4] - 2026-11-21
 
 Security and dependency release: every open Dependabot alert on master is fixed and the four open Dependabot pull requests (#690, #705, #706, #707) are rolled into one change. `npm audit` reports 0 vulnerabilities. No API, database or behaviour changes.
