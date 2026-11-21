@@ -125,5 +125,5 @@ account under **Administration › Manage user**.
 - [Re-review instructions](06-re-review-instructions.qmd): what a Reviewer does.
 - [Glossary](reference-glossary.qmd): the role names defined.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.

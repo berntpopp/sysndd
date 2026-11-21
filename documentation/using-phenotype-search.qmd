@@ -103,4 +103,4 @@ On the **Variant correlogram** tab, selecting a cell opens the Definitive entiti
 - [Work with tables](02-web-tool.qmd#work-with-tables): sorting, filters, links and downloads.
 - [Glossary](reference-glossary.qmd): HPO, VariO and other terms.
 
-*Checked against SysNDD 0.38.2 on November 20, 2026.*
+*Checked against SysNDD 0.38.4 on November 21, 2026.*

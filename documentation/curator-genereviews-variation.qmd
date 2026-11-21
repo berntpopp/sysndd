@@ -43,8 +43,7 @@ a GeneReviews reference.
 6. **Attach**: links a chapter to this entity.
 :::
 
-With **Check NCBI availability** turned on, the **NCBI availability** column shows one of
-these values:
+The **NCBI availability** column shows one of these values:
 
 | Value | Meaning |
 | --- | --- |
@@ -52,9 +51,7 @@ these values:
 | **Available, not linked** | a chapter exists but this entity does not cite it |
 | **None found** | NCBI has no chapter for the gene |
 | **Lookup failed** | NCBI did not answer; select **Refresh** later |
-
-Read the column only with the check turned on. With the check off, its values do not come
-from NCBI and do not tell you whether a chapter exists.
+| **Not checked** | **Check NCBI availability** is turned off |
 
 ### Attach a chapter
 
@@ -184,5 +181,5 @@ See [Modify an entity](curator-modify-entity.qmd) for the full form.
 - [Data model](04-database-structure.qmd): how variant types and references are stored.
 - [Deployment](09-deployment.qmd): implementation notes on variation-ontology provenance.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.

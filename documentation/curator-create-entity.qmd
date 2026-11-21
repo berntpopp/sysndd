@@ -70,13 +70,13 @@ completed step in the progress bar.
    for example Cornelia de Lange syndrome 7 (`OMIM:621570`).
 3. In **Inheritance** [3]{.marker}, select the mode of inheritance, for example
    **Autosomal dominant inheritance**.
-4. Set the **NDD Phenotype** switch [4]{.marker}: on (**Yes**) if the disease is a
-   NDD, off (**No**) if it is not.
+4. Under **NDD Phenotype** [4]{.marker}, select **Yes** if the disease is a NDD, or
+   **No** if it is not.
 5. Select **Next: Evidence** [5]{.marker}.
 :::
 
 ::: {.doc-screenshot}
-![The Core Entity step of the Create Entity form, filled in for *MAU2*.](static/img/generated/curator-create-entity-core.png){#fig-curator-create-entity-core fig-alt="Create Entity page, step 1 of 5. Marker 1 points to the Gene search field showing MAU2, marker 2 to the Disease search field, marker 3 to the Inheritance drop-down, marker 4 to the NDD Phenotype switch and marker 5 to the Next: Evidence button."}
+![The Core Entity step of the Create Entity form, filled in for *MAU2*.](static/img/generated/curator-create-entity-core.png){#fig-curator-create-entity-core fig-alt="Create Entity page, step 1 of 5. Marker 1 points to the Gene search field showing MAU2, marker 2 to the Disease search field, marker 3 to the Inheritance drop-down, marker 4 to the NDD Phenotype Yes and No buttons with Yes selected and marker 5 to the Next: Evidence button."}
 :::
 
 ::: {.marker-legend}
@@ -87,11 +87,8 @@ completed step in the progress bar.
 5. **Next: Evidence**: moves to step 2 once all four fields are valid.
 :::
 
-::: {.callout-warning title="The NDD Phenotype switch needs an answer"}
-Before you touch it, the switch reads **No** but no answer is recorded, and **Next** stays
-disabled. For an NDD, turn the switch on. For a disease that is not an NDD, turn it on and
-off again so that **No** is recorded.
-:::
+Neither **Yes** nor **No** is selected at first, and **Next** stays disabled until you
+choose one.
 
 For an entity without an NDD phenotype, select **not applicable** in Step 4. When this is
 allowed is set out in
@@ -225,7 +222,7 @@ than seven days is discarded. A successful submission deletes the draft.
 ## Common problems
 
 - **Next stays disabled.** A required field of this step is empty or invalid. On step 1,
-  check that you have set the **NDD Phenotype** switch.
+  check that you have selected **Yes** or **No** under **NDD Phenotype**.
 - **A PMID does not become a tag.** Type it with the prefix and without spaces, as
   `PMID:12345678`.
 - **The submission fails with a conflict.** An active entity with the same gene,
@@ -246,5 +243,5 @@ than seven days is discarded. A successful submission deletes the draft.
 - [Modify an entity](curator-modify-entity.qmd): edit the entity after it exists.
 - [Glossary](reference-glossary.qmd): the terms used on this page.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.

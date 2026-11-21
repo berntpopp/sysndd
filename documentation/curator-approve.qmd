@@ -72,7 +72,7 @@ the status queue.
 ::: {.steps}
 1. Select **Edit review** (pen icon) [4]{.marker}.
 2. In the **Edit Review** dialog, correct **Synopsis**, **Phenotypes**, **Variation
-   ontology**, **Publications**, **Genereviews** or **Comment**. The footer shows who
+   ontology**, **Publications**, **GeneReviews** or **Comment**. The footer shows who
    submitted the review and their role.
 3. Select **Save Review**.
 :::
@@ -218,5 +218,5 @@ What to do depends on why removal was suggested:
 - [Re-review instructions](06-re-review-instructions.qmd): the review rules the submitted
   reviews follow.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.

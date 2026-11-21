@@ -81,12 +81,12 @@ When the session ends, SysNDD signs you out. Changes in an open form that you ha
 Open your user menu and select **View profile** (`/User`). The **User profile** page shows your account details, your contribution counts (**Active Reviews** and **Status Contributions**) and the **Security & Session** card.
 
 ::: {.doc-screenshot}
-![The User profile page with the Security & Session card.](static/img/generated/account-user-profile.png){#fig-account-profile fig-alt="User profile page of a Reviewer account. Marker 1 points to the account details, marker 2 to the contribution counts, marker 3 to the Auto-logout in timer, marker 4 to the Refresh button, marker 5 to the Change Password button."}
+![The User profile page with the Security & Session card.](static/img/generated/account-user-profile.png){#fig-account-profile fig-alt="User profile page of a Reviewer account. Marker 1 points to the contribution counts, marker 2 to the account details, marker 3 to the Auto-logout in timer, marker 4 to the Refresh button, marker 5 to the Change Password button."}
 :::
 
 ::: {.marker-legend}
-1. Account details: **Username**, **Email**, ORCID and **Abbreviation**. Your role appears as a badge in the page header.
-2. Contribution counts: **Active Reviews** and **Status Contributions**.
+1. Contribution counts: **Active Reviews** and **Status Contributions**.
+2. Account details: **Username**, **Email**, ORCID and **Abbreviation**. Your role appears as a badge in the page header.
 3. **Auto-logout in**: the time left in this session.
 4. **Refresh**: extends the session.
 5. **Change Password**: opens the password form.
@@ -161,4 +161,4 @@ The wording of the install option depends on your browser and operating system. 
 - [Re-review: guide for Reviewers](06-re-review-instructions.qmd): the main task for [Reviewer]{.role} accounts.
 - [Approve user accounts](curator-users.qmd): how Curators assess applications and assign roles.
 
-*Checked against SysNDD 0.38.2 on November 20, 2026.*
+*Checked against SysNDD 0.38.4 on November 21, 2026.*

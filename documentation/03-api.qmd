@@ -170,6 +170,9 @@ To page through results instead:
 4. Repeat until `nextItemID` is `"null"`.
 :::
 
+Instead of steps 2 and 3 you can request the `next` URL from the response's `links`; it is
+`"null"` on the last page.
+
 `meta[0].totalItems` tells you how many rows match your filter.
 
 ## Filter, sort and choose columns

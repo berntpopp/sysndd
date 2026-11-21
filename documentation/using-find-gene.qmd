@@ -31,12 +31,12 @@ The search box accepts gene symbols, disease names, disease identifiers (OMIM or
 2. Suggestion list: select an entry to open its page directly.
 :::
 
-If your text exactly matches a gene symbol or disease identifier, SysNDD opens that page directly. The match ignores upper and lower case, so `fbxo11` also opens the gene page for *FBXO11*.
+If your text exactly matches a gene symbol, a disease identifier or a SysNDD entity number, SysNDD opens that page directly. The match ignores upper and lower case, so `fbxo11` also opens the gene page for *FBXO11*.
 
 Otherwise SysNDD opens **Search Results**. Each row shows the **Match**, its **Type** (**Gene Symbol**, **Entity ID**, **Disease ID** or **Disease Name**), the entity it belongs to, and a **Relevance** rating from **Excellent** to **Partial**. Select a row to open it.
 
 ::: {.callout-tip}
-To open an entity you already know, type its number, for example `1848`, and select the **Entity ID** row in **Search Results**. A number never opens the entity directly, because similar numbers also match. You can also go to `https://sysndd.dbmr.unibe.ch/Entities/1848`.
+To open an entity you already know, type its number, for example `1848`; the entity page opens. You can also go to `https://sysndd.dbmr.unibe.ch/Entities/1848`.
 :::
 
 ## Read a gene page
@@ -57,7 +57,7 @@ The gene page brings together everything SysNDD holds for one gene. Its address 
 
 Read the entity table first. It holds the curated statements. For *FBXO11* it has two rows, `sysndd:1848` (autosomal dominant, Definitive) and `sysndd:1998` (autosomal recessive, Refuted). The category belongs to each entity, not to the gene.
 
-The cards and plots below the table show data from gnomAD, ClinVar, MGI, RGD, UniProt and AlphaFold. SysNDD does not curate these data. They load from the external sources, and a card shows an error when its source is unavailable.
+The cards and plots below the table show data from gnomAD, ClinVar, MGI, RGD, UniProt and AlphaFold. SysNDD does not curate these data. They load from the external sources. When a source is unavailable, its card shows an error; in **Model Organisms**, the affected organism reads **Temporarily unavailable**.
 
 ## Read an entity page
 
@@ -128,4 +128,4 @@ The Entities table includes Refuted and Not applicable entities. To list only es
 - [Search by phenotype or variant type](using-phenotype-search.qmd): find entities by clinical features.
 - [Curation criteria](05-curation-criteria.qmd): what each evidence category requires.
 
-*Checked against SysNDD 0.38.2 on November 20, 2026.*
+*Checked against SysNDD 0.38.4 on November 21, 2026.*

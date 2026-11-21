@@ -167,4 +167,4 @@ Other browsers name these menus differently.
 - [Read the analyses](using-analyses.qmd): comparisons, clusters and publications.
 - [Your account](using-account.qmd): apply for an account and sign in.
 
-*Checked against SysNDD 0.38.2 on November 20, 2026.*
+*Checked against SysNDD 0.38.4 on November 21, 2026.*

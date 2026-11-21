@@ -232,5 +232,5 @@ Clearing a refusal changes no review and no status.
 - [Approve user accounts](curator-users.qmd): give a new Reviewer access.
 - [Curation criteria](05-curation-criteria.qmd): the standard re-review applies.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.

@@ -52,13 +52,13 @@ curl -s "https://sysndd.dbmr.unibe.ch/api/version/"
 ```
 
 ```json
-{"version": ["0.38.2"], "title": ["SysNDD API"], ...}
+{"version": ["0.38.4"], "title": ["SysNDD API"], ...}
 ```
 
 The web app also shows its own version below the SysNDD logo in the top bar.
 
 A methods sentence could read: "Gene-disease associations were taken from SysNDD
-[@popp_sysndd_2026] (API version 0.38.2, accessed November 20, 2026), using all entities in the
+[@popp_sysndd_2026] (API version 0.38.4, accessed November 21, 2026), using all entities in the
 Definitive category." Replace the version and date with your own.
 
 ## Find a release
@@ -86,7 +86,7 @@ As of November 20, 2026, no analysis-snapshot release has been published; the pa
 ::: {.steps}
 1. Open **Analyses › Data releases**.
 2. Read the **Latest published release** panel: **Published**, **Contents**, **Download size**
-   and **Licence**.
+   and **License**.
 3. Select **Download complete bundle** for all files, or **Download manifest** for the file list
    with checksums.
 4. To cite a release, open **Technical verification** and copy the **Version DOI** (digital object identifier) if one

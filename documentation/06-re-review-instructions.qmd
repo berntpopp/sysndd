@@ -27,20 +27,20 @@ Your work passes through three stages:
 
 The rules for choosing an evidence category are in [Curation criteria](05-curation-criteria.qmd). This page gives the rules for the review fields and the checks for each category.
 
-The steps on this page were checked against the SysNDD 0.38.2 source on November 20, 2026.
+The steps on this page were checked against the SysNDD 0.38.4 source on November 21, 2026.
 
 ## Sign in
 
 ::: {.steps}
 1. Open [SysNDD](https://sysndd.dbmr.unibe.ch/).
 2. On your first visit, read the **Usage Policy & Data Privacy** notice and select **Acknowledge and Continue**.
-3. Select **Login** at the right end of the menu bar.
+3. Select **Login** [1]{.marker} at the right end of the menu bar.
 4. Type your **Username** and **Password**.
 5. Select **Login**.
 :::
 
 ::: {.doc-screenshot}
-![The **Login** link in the SysNDD menu bar.](static/img/generated/reviewer-login-link.png){#fig-re-review-login-link fig-alt="SysNDD menu bar for a visitor who is not signed in. The Login link sits at the right end of the bar."}
+![The **Login** link in the SysNDD menu bar.](static/img/generated/reviewer-login-link.png){#fig-re-review-login-link fig-alt="SysNDD menu bar for a visitor who is not signed in. Marker 1 points to the Login link at the right end of the bar."}
 :::
 
 ::: {.doc-screenshot}
@@ -111,14 +111,14 @@ Select the entity, gene or disease badge to open its public page. It shows the e
 
 ### Request a new batch
 
-When your list is empty, a yellow **New batch** badge appears beside **+ Filter**. Clear the search box and all filters first: the badge also appears when a filter hides every row, even if entities are still assigned to you.
+When your list is empty, a yellow **New batch** badge [1]{.marker} appears beside **+ Filter**. It does not appear while the search box or a filter is set: if a filter hides every row, clear it first.
 
 ::: {.steps}
 1. Select **New batch**.
 :::
 
 ::: {.doc-screenshot}
-![An empty re-review list with the **New batch** badge.](static/img/generated/reviewer-after-submit-page.png){#fig-re-review-after-submit fig-alt="Re-review page with an empty table. A yellow New batch badge sits beside the + Filter menu. Two labeled pills from an older capture lie on the table header and on the New batch badge."}
+![An empty re-review list with the **New batch** badge.](static/img/generated/reviewer-after-submit-page.png){#fig-re-review-after-submit fig-alt="Re-review page with an empty table. Marker 1 points to the yellow New batch badge beside the + Filter menu."}
 :::
 
 SysNDD sends your request to the Curators and confirms with "Application send." A Curator assigns the new batch; it appears in your list after you select the refresh button (circular arrow) or reload the page.
@@ -131,13 +131,13 @@ SysNDD sends your request to the Curators and confirms with "Application send." 
 3. Add or remove **Phenotypes** [2]{.marker}.
 4. Add or remove **Variation ontology** [3]{.marker} terms.
 5. Add or remove **Publications** [4]{.marker} by PMID (PubMed identifier).
-6. Add the **Genereviews** [5]{.marker} PMID, if a GeneReviews chapter exists.
+6. Add the **GeneReviews** [5]{.marker} PMID, if a GeneReviews chapter exists.
 7. Add a **Comment** [6]{.marker} for the Curator.
 8. Select **Save Review** at the bottom of the window.
 :::
 
 ::: {.doc-screenshot}
-![The **Edit Review** window.](static/img/generated/reviewer-edit-review-modal.png){#fig-re-review-edit-review fig-alt="Edit Review window. Markers 1 to 6 sit beside the labels of the Synopsis, Phenotypes, Variation ontology, Publications, Genereviews and Comment fields."}
+![The **Edit Review** window.](static/img/generated/reviewer-edit-review-modal.png){#fig-re-review-edit-review fig-alt="Edit Review window. Markers 1 to 6 sit beside the labels of the Synopsis, Phenotypes, Variation ontology, Publications, GeneReviews and Comment fields."}
 :::
 
 ::: {.marker-legend}
@@ -145,7 +145,7 @@ SysNDD sends your request to the Curators and confirms with "Application send." 
 2. **Phenotypes**: Human Phenotype Ontology (HPO) terms for the entity.
 3. **Variation ontology**: Variation Ontology (VariO) terms for the variant types.
 4. **Publications**: PMIDs of the sources for the synopsis.
-5. **Genereviews**: PMID of the GeneReviews chapter.
+5. **GeneReviews**: PMID of the GeneReviews chapter.
 6. **Comment**: a note for the Curator who approves your changes.
 :::
 
@@ -245,7 +245,7 @@ Type each identifier as `PMID:` followed by the number, for example `PMID:324339
 Please add PMID for GeneReview article if available for this entity.
 :::
 
-The field is labeled **Genereviews** and uses the same `PMID:` format as **Publications**.
+The field is labeled **GeneReviews** and uses the same `PMID:` format as **Publications**.
 
 ### Find the PMID of a GeneReviews chapter
 

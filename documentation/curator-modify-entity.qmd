@@ -204,10 +204,19 @@ identifier.
 ::: {.steps}
 1. Open **Curation › Modify entity** (`/ModifyEntity`).
 2. Under **Reactivate a deactivated entity**, type the number of the entity in
-   **Entity ID (sysndd:)**, for example `123` for `sysndd:123`.
-3. Select **Reactivate entity**.
+   **Entity ID (sysndd:)** [1]{.marker}, for example `123` for `sysndd:123`.
+3. Select **Reactivate entity** [2]{.marker}.
 4. Check the entity identifier in the **Reactivate entity?** window and select
    **Reactivate**.
+:::
+
+::: {.doc-screenshot}
+![The Reactivate panel at the bottom of Modify Entity, as an Administrator sees it.](static/img/generated/curator-modify-entity-reactivate.png){#fig-curator-modify-entity-reactivate fig-alt="Reactivate a deactivated entity panel. Marker 1 points to the Entity ID (sysndd:) field, which holds 9105, and marker 2 to the Reactivate entity button."}
+:::
+
+::: {.marker-legend}
+1. **Entity ID (sysndd:)**: the number of the deactivated entity.
+2. **Reactivate entity**: opens the confirmation window.
 :::
 
 The message "Entity sysndd:123 has been reactivated." confirms the change. The entity
@@ -242,5 +251,5 @@ entity current again, deactivate the covering entity first, then reactivate.
 - [Data model](04-database-structure.qmd): how entities, reviews and statuses relate.
 - [Glossary](reference-glossary.qmd): entity, review, status and deactivate defined.
 
-Labels on this page were checked against the SysNDD 0.38.2 app source on November 20,
+Labels on this page were checked against the SysNDD 0.38.4 app source on November 21,
 2026.
