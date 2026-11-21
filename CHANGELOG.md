@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.38.6] - 2026-11-21
+
+UI quality release: every page of the app (65 public, curation and admin views) was audited at 1920×1080, 1366×768 and 390×844 with Lighthouse, axe-core and Playwright (layout shift, long tasks, overflow and cut-off text), and every finding rated P1 or P2 is fixed. axe serious/critical violations went from 163 elements on 26 pages to 0, the worst Lighthouse accessibility score from 90 to 96 (62 pages score 100), the worst load layout shift from 0.501 to 0.049, and the gene networks page from Lighthouse performance 63 / 37 (desktop / mobile) to 100 / 89.
+
+### Fixed
+
+- **Comparisons** no longer read "Genes: undefined", and the comparison panels say what their bars show (the C1 wording "unique to that intersection" contradicted the counts).
+- **Panels**, **Publications** and **PubTator** headers read "Showing 1–4 of 4" instead of printing the page size ("Loaded 10/5"); Panels columns read "HGNC ID", "UCSC ID" and "BED (hg19)".
+- **Modify Entity** and the review forms no longer show, or save, a literal "NA" for an empty comment.
+- **Dates** on the data-release archive, admin pages and logs are shown in a readable form instead of raw timestamps; log times are UTC and log durations use their real unit.
+- **Approve all N** on the review and status approval pages, and its confirmation dialog, count every pending row the server approves, not only the filtered rows.
+- Table headers count the rows shown ("Showing 41–40 of 30" is gone) and the pager keeps its place.
+- At 768–1,100 px fixed-width columns no longer collapse: Manage Users names no longer run over the e-mail column and the approval tables keep their Actions column; wide tables scroll inside their card.
+- Approval cards, filters and actions stay inside the card on phones; small badges have a 12 px floor.
+- Changing gene while its structure is loading no longer shows the previous gene's structure.
+- Missing values read "—" or "Never" instead of "NaN", "0.00" or "NA" (publication counts, correlations, FDR, annotation sources).
+- The "needs a role" message after following a protected link names only a real page and role.
+- Sign-in shows an inline error after a failed attempt instead of marking the fields valid.
+
+### Changed
+
+- **Gene networks** draws the interactive network when the visitor clicks "Show interactive network"; the layout is computed off the main thread and stopped when leaving the page.
+- The navbar collapses behind its menu button below 1,200 px, so the Curation, Review and user menus stay reachable on narrow windows.
+- The re-review "New batch" indicator is a button.
+- The API sends missing values on the entity review/status, data-release, backup and admin routes as JSON `null` instead of the string `"NA"`. The app handles both; external clients that test for `"NA"` should test for `null`.
+
+### Performance
+
+- Gene networks: blocking time during load fell from 8,023 ms to 203 ms at 1366 px.
+- Cluster views, analyses, entity and admin pages reserve their space while loading, so they no longer jump when data arrives.
+
+### Accessibility
+
+- 0 axe serious or critical violations on all 65 pages: colour contrast, named buttons and controls, labelled search boxes and selects, loading announcements, announced copy actions and repeated sign-in errors.
+- Escape no longer closes a dialog while it is saving.
+
 ## [0.38.5] - 2026-11-21
 
 Dependency release: the Dependabot pull requests opened after 0.38.4 (#715–#719) are rolled into one change. These are tooling and development-image upgrades, mostly major versions of test and build tools; none is a security fix for SysNDD itself. No API, database or behaviour changes. `rocker/r-ver` 4.6.2 (#714) is not included: that image is Ubuntu 26.04 only, where the API image and CI cannot build R packages yet.
