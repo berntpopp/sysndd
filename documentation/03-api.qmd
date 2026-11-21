@@ -244,8 +244,8 @@ administration need a login and the matching role.
 ## Connect an AI assistant with MCP
 
 The MCP server lets an AI assistant such as Claude, ChatGPT, Claude Code or Cursor query SysNDD
-during a chat. It is read-only: it returns approved, public records only, and it cannot change
-data, run code or call other services.
+during a chat. It is read-only, public and credential-free: it returns approved-public records
+only, and it cannot change data, run code or call other services.
 
 The server address is:
 

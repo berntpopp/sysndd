@@ -239,7 +239,7 @@ test_that("MCP operator and contributor documentation matches the public edge co
   )
   api_docs <- .mcp_markdown_section(
     file.path(.mcp_compose_repo_root, "documentation", "03-api.qmd"),
-    "## Read-only MCP sidecar",
+    "## Connect an AI assistant with MCP",
     "^## "
   )
   deployment <- .mcp_markdown_section(
