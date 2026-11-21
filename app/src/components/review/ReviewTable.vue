@@ -8,7 +8,7 @@
         size="sm"
         :disabled="totalRows === 0"
         :title="approveAllTitle"
-        :aria-label="approveAllAriaLabel"
+        :aria-label="`Approve all ${totalRows.toLocaleString('en-US')} ${totalRowsLabel}`"
         @click="$emit('approve-all')"
       >
         <i class="bi bi-check2-all me-1" aria-hidden="true" />
@@ -171,7 +171,6 @@
         :is-busy="isBusy"
         :sort-by="sortBy"
         :stacked-mode="false"
-        :fixed-layout="false"
         @update:sort-by="$emit('update:sortBy', $event as SortBy[])"
         @update-sort="
           ({ sortBy: key, sortDesc }) =>
@@ -261,8 +260,6 @@ const props = defineProps({
   totalRowsLabel: { type: String, default: 'reviews' },
   /** Tooltip text on the "Approve All" button. */
   approveAllTitle: { type: String, default: 'Approve all pending reviews' },
-  /** aria-label on the "Approve All" button. */
-  approveAllAriaLabel: { type: String, default: 'Approve all reviews' },
   items: { type: Array as PropType<unknown[]>, required: true },
   fields: { type: Array as PropType<TableField[]>, required: true },
   totalRows: { type: Number, required: true },
@@ -417,6 +414,7 @@ function truncateHeader(label: string): string {
 
 .review-table__legend {
   margin-top: 0.625rem;
+  text-align: start;
   color: #475569;
   font-size: 0.8125rem;
 }

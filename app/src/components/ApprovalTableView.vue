@@ -41,7 +41,6 @@
       title="Status Queue"
       total-rows-label="statuses"
       approve-all-title="Approve all pending statuses"
-      approve-all-aria-label="Approve all statuses"
       :items="filteredItems"
       :fields="fields"
       :total-rows="totalRows"

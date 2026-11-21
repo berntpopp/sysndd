@@ -181,10 +181,6 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem;
-  border: 1px solid #e6ebf2;
-  border-radius: 8px;
-  background: #f8fafc;
 }
 
 .session-label {

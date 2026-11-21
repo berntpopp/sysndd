@@ -16,6 +16,7 @@
         :style="`max-width: ${maxWidth}px`"
         tabindex="0"
         role="button"
+        :aria-label="`${title}: ${text}`"
       >
         {{ text }}
       </div>

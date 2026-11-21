@@ -486,6 +486,11 @@ export default {
   white-space: nowrap;
 }
 
+/* Grey outline text on the subtle toolbar fill is 4.4:1; use the darker secondary tone. */
+.quick-filter-dropdown :deep(.btn-outline-secondary) {
+  --bs-btn-color: var(--bs-secondary-text-emphasis);
+}
+
 .review-legend {
   padding-bottom: 0.75rem;
 }

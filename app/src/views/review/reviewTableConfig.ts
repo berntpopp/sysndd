@@ -2,8 +2,16 @@ import { categoryLegendItems } from '@/composables/approval/useStatusHelpers';
 
 // Static configuration of the re-review queue table (moved out of Review.vue).
 
+// Fixed table layout: every column but Disease has a width so headers are not cut off.
 export const TABLE_FIELDS = Object.freeze([
-  { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-start' },
+  {
+    key: 'entity_id',
+    label: 'Entity',
+    sortable: true,
+    sortDirection: 'desc',
+    class: 'text-start',
+    thStyle: { width: '7.25rem' },
+  },
   {
     key: 'symbol',
     label: 'Gene',
@@ -11,6 +19,7 @@ export const TABLE_FIELDS = Object.freeze([
     filterable: true,
     sortDirection: 'desc',
     class: 'text-start',
+    thStyle: { width: '7rem' },
   },
   {
     key: 'disease_ontology_name',
@@ -27,22 +36,37 @@ export const TABLE_FIELDS = Object.freeze([
     class: 'text-start',
     sortByFormatted: true,
     filterByFormatted: true,
+    thStyle: { width: '7.5rem' },
   },
-  { key: 'category', label: 'Category', sortable: true, class: 'text-center' },
-  { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-center' },
+  {
+    key: 'category',
+    label: 'Category',
+    sortable: true,
+    class: 'text-center',
+    thStyle: { width: '6rem' },
+  },
+  {
+    key: 'ndd_phenotype_word',
+    label: 'NDD',
+    sortable: true,
+    class: 'text-center',
+    thStyle: { width: '4.5rem' },
+  },
   {
     key: 'review_date',
     label: 'Reviewed',
     sortable: true,
     filterable: true,
     class: 'text-start',
+    thStyle: { width: '8rem' },
   },
   {
     key: 'review_user_name',
-    label: 'Last reviewed by',
+    label: 'Reviewed by',
     sortable: true,
     filterable: true,
     class: 'text-start',
+    thStyle: { width: '9rem' },
   },
   // Four 30 px buttons plus gaps; narrower and the flag button wrapped to a second line.
   {

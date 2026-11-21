@@ -8,7 +8,7 @@ const stubs = {
 
 describe('ReviewRowCells text-popover', () => {
   // CUR-11: the truncated synopsis was a plain div, so keyboard users could not open it.
-  it('renders a clamped, keyboard-focusable trigger named by its own text', () => {
+  it('renders a clamped, keyboard-focusable trigger named by its column and text', () => {
     const wrapper = mount(ReviewRowCells, {
       props: {
         kind: 'text-popover',
@@ -22,7 +22,7 @@ describe('ReviewRowCells text-popover', () => {
     expect(trigger.classes()).toContain('text-truncate-multiline');
     expect(trigger.attributes('tabindex')).toBe('0');
     expect(trigger.attributes('role')).toBe('button');
-    expect(trigger.attributes('aria-label')).toBeUndefined();
+    expect(trigger.attributes('aria-label')).toBe('Clinical Synopsis: A long synopsis');
     expect(wrapper.getComponent(stubs.BPopover).props('triggers')).toContain('focus');
   });
 

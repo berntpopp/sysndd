@@ -22,6 +22,8 @@ import { markRaw } from 'vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 
 /** Table field defaults for the status approval table. */
+// Fixed layout: narrow columns get explicit widths so Disease and Comment take the rest
+// and the action buttons stay inside the card at 1366 px (CUR-05).
 export const statusTableFields = [
   {
     key: 'entity_id',
@@ -29,6 +31,7 @@ export const statusTableFields = [
     sortable: true,
     filterable: true,
     sortDirection: 'desc',
+    thStyle: { width: '7.25rem' },
     class: 'text-start',
   },
   {
@@ -37,6 +40,7 @@ export const statusTableFields = [
     sortable: true,
     filterable: true,
     sortDirection: 'desc',
+    thStyle: { width: '6.5rem' },
     class: 'text-start',
   },
   {
@@ -51,6 +55,7 @@ export const statusTableFields = [
     key: 'hpo_mode_of_inheritance_term_name',
     label: 'Inheritance',
     sortable: true,
+    thStyle: { width: '6rem' },
     class: 'text-start',
     sortByFormatted: true,
     filterByFormatted: true,
@@ -60,6 +65,7 @@ export const statusTableFields = [
     label: 'Category',
     sortable: true,
     filterable: true,
+    thStyle: { width: '5.75rem' },
     class: 'text-start',
   },
   {
@@ -74,6 +80,7 @@ export const statusTableFields = [
     label: 'Flag',
     sortable: true,
     filterable: true,
+    thStyle: { width: '4rem' },
     class: 'text-start',
   },
   {
@@ -81,19 +88,22 @@ export const statusTableFields = [
     label: 'Date',
     sortable: true,
     filterable: true,
-    class: 'text-start',
+    thStyle: { width: '7.5rem' },
+    class: 'text-start text-nowrap',
   },
   {
     key: 'status_user_name',
     label: 'User',
     sortable: true,
     filterable: true,
+    thStyle: { width: '8.5rem' },
     class: 'text-start',
   },
   {
     key: 'actions',
     label: 'Actions',
-    class: 'text-start',
+    thStyle: { width: '11rem' },
+    class: 'text-start text-nowrap',
   },
 ];
 

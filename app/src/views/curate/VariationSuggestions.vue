@@ -225,6 +225,11 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
+/* Grey outline text on the subtle toolbar fill is 4.4:1; use the darker secondary tone. */
+.vsq-filters :deep(.btn-outline-secondary) {
+  --bs-btn-color: var(--bs-secondary-text-emphasis);
+}
+
 .vsq-filters__search {
   flex: 1 1 14rem;
   max-width: 18rem;
