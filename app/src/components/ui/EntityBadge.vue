@@ -10,8 +10,11 @@
       :aria-label="ariaLabel"
     >
       <i v-if="showIcon" class="bi bi-collection entity-badge__icon" aria-hidden="true" />
-      <span v-if="prefix" class="entity-badge__prefix">{{ prefix }}</span>
-      <span class="entity-badge__id">{{ entityId }}</span>
+      <!-- One text run so the flex gap cannot split "sysndd:" from the id (S-30) -->
+      <span class="entity-badge__id"
+        ><span v-if="prefix" class="entity-badge__prefix">{{ prefix }}</span
+        >{{ entityId }}</span
+      >
     </span>
   </component>
 </template>
@@ -142,6 +145,7 @@ export default {
 }
 
 .entity-badge__prefix {
+  font-weight: 600;
   opacity: 0.85;
 }
 
@@ -188,7 +192,7 @@ export default {
 
 /* Success variant - Forest Green (genes) */
 .entity-badge--success {
-  background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+  background: linear-gradient(145deg, #15803d 0%, #166534 100%);
   border-color: #14532d;
 }
 

@@ -2,16 +2,15 @@
 <!-- Professional 3D-styled disease/ontology badge -->
 <template>
   <component :is="linkTo ? 'BLink' : 'span'" :to="linkTo" class="disease-badge-link">
+    <!-- The full name stays in the DOM (CSS ellipsis) so the visible text is the
+         accessible name; the native title shows it in full where it is cut. -->
     <span
-      v-b-tooltip.hover.bottom
       class="disease-badge"
       :class="`disease-badge--${size}`"
-      :title="showTitle ? tooltipTitle : ''"
-      role="link"
-      :aria-label="`Disease ${name}`"
+      :title="showTitle ? tooltipTitle : undefined"
     >
       <i class="bi bi-clipboard2-pulse disease-badge__icon" aria-hidden="true" />
-      <span class="disease-badge__name">{{ truncatedName }}</span>
+      <span class="disease-badge__name" :style="nameStyle">{{ name }}</span>
     </span>
   </component>
 </template>
@@ -43,7 +42,7 @@ export default {
       validator: (value) => ['sm', 'md', 'lg'].includes(value),
     },
     /**
-     * Maximum characters before truncation (0 = no truncation)
+     * Approximate visible characters before the CSS ellipsis (0 = no cap)
      */
     maxLength: {
       type: Number,
@@ -65,11 +64,8 @@ export default {
     },
   },
   computed: {
-    truncatedName() {
-      if (this.maxLength === 0 || this.name.length <= this.maxLength) {
-        return this.name;
-      }
-      return `${this.name.substring(0, this.maxLength)}…`;
+    nameStyle() {
+      return this.maxLength > 0 ? { maxWidth: `${this.maxLength}ch` } : undefined;
     },
     tooltipTitle() {
       if (this.ontologyId) {
@@ -125,6 +121,7 @@ export default {
 }
 
 .disease-badge__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

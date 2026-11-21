@@ -3,11 +3,11 @@
     <TableShell
       title="Panel compilation"
       :heading-level="1"
-      :meta="loading && !totalRows ? 'Loading...' : `Genes: ${totalRows}`"
+      :meta="loading && !totalRows ? 'Loading...' : `Genes: ${formatCount(totalRows)}`"
       :description="
         loading && !totalRows
           ? 'Loading panel genes...'
-          : `Loaded ${perPage}/${totalRows} in ${executionTime}`
+          : formatPageRange(currentPage, perPage, items.length, totalRows)
       "
       :loading="loading"
     >
@@ -47,7 +47,7 @@
           <PanelsTableControls
             :categories="categories_list"
             :inheritance="inheritance_list"
-            :columns="columns_list"
+            :columns="columnOptions"
             :selected-category="selected_category"
             :selected-inheritance="selected_inheritance"
             :selected-columns="selected_columns"
@@ -79,7 +79,7 @@
       <div class="d-none d-md-block">
         <BTable
           :items="items"
-          :fields="fields"
+          :fields="tableFields"
           :filter-included-fields="filterOn"
           :sort-by="sortBy"
           :busy="isBusy"
@@ -95,7 +95,6 @@
         >
           <template #cell(category)="data">
             <div
-              v-b-tooltip.hover.leftbottom
               :title="data.item.category"
               class="w-100 text-truncate d-flex align-items-center gap-1"
             >
@@ -105,48 +104,36 @@
           </template>
 
           <template #cell(inheritance)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.inheritance"
-              class="w-100 text-truncate"
-            >
-              <span class="sysndd-chip sysndd-chip--neutral">{{ data.item.inheritance }}</span>
-            </div>
+            <InheritanceBadge
+              v-if="data.item.inheritance"
+              :full-name="data.item.inheritance"
+              size="sm"
+            />
           </template>
 
           <template #cell(symbol)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.symbol"
-              class="w-100 text-truncate fw-semibold"
-            >
-              {{ data.item.symbol }}
-            </div>
+            <GeneBadge
+              :symbol="data.item.symbol"
+              :hgnc-id="data.item.hgnc_id"
+              :link-to="`/Genes/${data.item.hgnc_id || data.item.symbol}`"
+              size="sm"
+            />
           </template>
 
           <template #cell(hgnc_id)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.hgnc_id"
-              class="w-100 text-truncate font-monospace small"
-            >
+            <div :title="data.item.hgnc_id" class="w-100 text-truncate font-monospace small">
               {{ data.item.hgnc_id }}
             </div>
           </template>
 
           <template #cell(entrez_id)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.entrez_id"
-              class="w-100 text-truncate font-monospace small"
-            >
+            <div :title="data.item.entrez_id" class="w-100 text-truncate font-monospace small">
               {{ data.item.entrez_id }}
             </div>
           </template>
 
           <template #cell(ensembl_gene_id)="data">
             <div
-              v-b-tooltip.hover.leftbottom
               :title="data.item.ensembl_gene_id"
               class="w-100 text-truncate font-monospace small"
             >
@@ -155,31 +142,19 @@
           </template>
 
           <template #cell(ucsc_id)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.ucsc_id"
-              class="w-100 text-truncate font-monospace small"
-            >
+            <div :title="data.item.ucsc_id" class="w-100 text-truncate font-monospace small">
               {{ data.item.ucsc_id }}
             </div>
           </template>
 
           <template #cell(bed_hg19)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.bed_hg19"
-              class="w-100 text-truncate font-monospace small"
-            >
+            <div :title="data.item.bed_hg19" class="w-100 text-truncate font-monospace small">
               {{ data.item.bed_hg19 }}
             </div>
           </template>
 
           <template #cell(bed_hg38)="data">
-            <div
-              v-b-tooltip.hover.leftbottom
-              :title="data.item.bed_hg38"
-              class="w-100 text-truncate font-monospace small"
-            >
+            <div :title="data.item.bed_hg38" class="w-100 text-truncate font-monospace small">
               {{ data.item.bed_hg38 }}
             </div>
           </template>
@@ -198,6 +173,10 @@ import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import { formatCount, formatPageRange } from '@/components/small/tableCountFormat';
+import { panelColumnLabel } from './panelColumnLabels';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -209,10 +188,15 @@ import { useUiStore } from '@/stores/ui';
 
 import { getPanelOptions, browsePanels, browsePanelsXlsx } from '@/api/panels';
 
+// Short columns get a fixed width so the coordinate columns keep the rest.
+const PANEL_COLUMN_WIDTHS = { category: '8.5rem', inheritance: '9.5rem', symbol: '8rem' };
+
 export default {
   name: 'PanelsTable',
   components: {
     CategoryIcon,
+    GeneBadge,
+    InheritanceBadge,
     TableShell,
     TableLoadingState,
     PanelsMobileRows,
@@ -236,6 +220,8 @@ export default {
 
     return {
       makeToast,
+      formatCount,
+      formatPageRange,
     };
   },
   data() {
@@ -255,7 +241,6 @@ export default {
       prevItemID: null,
       nextItemID: null,
       lastItemID: null,
-      executionTime: 0,
       perPage: 10,
       pageOptions: [10, 25, 50, 200],
       // Bootstrap-Vue-Next uses array-based sortBy format
@@ -268,6 +253,21 @@ export default {
       show_table: false,
       panelRequestSerial: 0,
     };
+  },
+  computed: {
+    tableFields() {
+      return this.fields.map((field) => ({
+        ...field,
+        label: panelColumnLabel(field.key),
+        thStyle: PANEL_COLUMN_WIDTHS[field.key] ? { width: PANEL_COLUMN_WIDTHS[field.key] } : {},
+      }));
+    },
+    columnOptions() {
+      return this.columns_list.map((column) => ({
+        ...column,
+        text: panelColumnLabel(column.value),
+      }));
+    },
   },
   watch: {
     // Deep watch for array-based sortBy
@@ -416,7 +416,6 @@ export default {
         this.currentItemID = data.meta[0].currentItemID;
         this.nextItemID = data.meta[0].nextItemID;
         this.lastItemID = data.meta[0].lastItemID;
-        this.executionTime = data.meta[0].executionTime;
       } catch (e) {
         if (this.isCurrentPanelRequest(requestSerial)) {
           this.makeToast(e, 'Error', 'danger');

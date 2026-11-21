@@ -81,7 +81,7 @@ export default {
   font-weight: 600;
   font-style: italic;
   color: #fff;
-  background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+  background: linear-gradient(145deg, #15803d 0%, #166534 100%);
   border: 1px solid #14532d;
   box-sizing: border-box;
   vertical-align: middle;

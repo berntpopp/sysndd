@@ -108,4 +108,35 @@ describe('PanelsTable', () => {
       fields: 'symbol,category',
     });
   });
+
+  it('counts the rows on screen and labels columns with their acronyms', async () => {
+    const response = {
+      data: ['A', 'B', 'C', 'D'].map((symbol) => ({
+        symbol,
+        inheritance: 'Autosomal dominant inheritance',
+      })),
+      fields: ['symbol', 'inheritance', 'hgnc_id', 'ucsc_id', 'bed_hg19'].map((key) => ({
+        key,
+        label: key,
+      })),
+      meta: [{ ...responseFor('A').meta[0], totalItems: 4 }],
+    };
+    vi.mocked(browsePanels).mockResolvedValueOnce(response);
+    const wrapper = mountPanelsTable();
+    Object.assign(wrapper.vm, { selected_columns: ['symbol'], perPage: 10, currentPage: 1 });
+
+    await wrapper.vm.requestSelected();
+    await wrapper.vm.$nextTick();
+
+    const shell = wrapper.findComponent({ name: 'TableShell' });
+    // Known bug 2: the header printed the page size ("Loaded 10/4").
+    expect(shell.props('description')).toBe('Showing 1–4 of 4');
+    expect(wrapper.vm.tableFields.map((f: { label: string }) => f.label)).toEqual([
+      'Symbol',
+      'Inheritance',
+      'HGNC ID',
+      'UCSC ID',
+      'BED (hg19)',
+    ]);
+  });
 });
