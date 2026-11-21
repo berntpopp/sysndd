@@ -110,7 +110,7 @@ function onCopyClick(): void {
   padding: 0.75rem;
 }
 .clinical-panel-meta {
-  color: var(--neutral-600, #667085);
+  color: var(--neutral-700, #616161);
   font-size: 0.76rem;
   font-weight: 650;
 }

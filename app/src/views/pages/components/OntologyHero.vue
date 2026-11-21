@@ -84,14 +84,14 @@
                 </span>
                 <span
                   v-if="model.isSpecific === '1'"
-                  class="badge text-bg-success-subtle text-success border border-success-subtle"
+                  class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle"
                   title="Curated as a specific disorder"
                 >
                   <i class="bi bi-check-circle me-1" aria-hidden="true" />Specific disorder
                 </span>
                 <span
                   v-else
-                  class="badge text-bg-secondary-subtle text-secondary border border-secondary-subtle"
+                  class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle"
                   title="Curated as a broad clinical term or grouping category"
                 >
                   <i class="bi bi-diagram-3 me-1" aria-hidden="true" />Broad term

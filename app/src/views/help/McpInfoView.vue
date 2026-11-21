@@ -16,12 +16,13 @@
         </div>
       </header>
 
-      <BAlert variant="info" show class="mcp-notice">
+      <!-- Static notice: BAlert mounts with a fade that shifted the page on slow phones. -->
+      <div class="alert alert-info mcp-notice" role="note">
         <i class="bi bi-info-circle me-2" aria-hidden="true" />
         This information page shares its URL with the public MCP transport. Browser navigation
         renders this page; MCP clients send protocol requests to the same URL. No SysNDD account,
         API key, or access token is required.
-      </BAlert>
+      </div>
 
       <section class="public-panel mcp-grid" aria-label="MCP overview">
         <article class="mcp-section">

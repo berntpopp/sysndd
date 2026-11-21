@@ -41,8 +41,10 @@ partner logos and a disclaimer status indicator. */
           label="Partners and licence"
         >
           <template #default="{ expanded }">
-            Partners
-            <i :class="expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-up'" aria-hidden="true" />
+            Partners<i
+              :class="['ms-1', expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-up']"
+              aria-hidden="true"
+            />
           </template>
         </BNavbarToggle>
       </div>
@@ -220,10 +222,8 @@ export default {
 }
 
 /* Footer toggler: worded pill matching the Policy button (WCAG 1.4.11 border contrast). */
+/* No display here: Bootstrap hides the toggler from sm up. */
 :deep(.navbar-toggler) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
   min-height: 32px;
   padding: 0.25rem 0.65rem;
   color: #0d47a1;
@@ -259,7 +259,9 @@ export default {
     border-top: 1px solid #edf1f7;
   }
 
+  /* Logos in wrapping rows, not one per line down the screen. */
   .footer-partners {
+    flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
   }
