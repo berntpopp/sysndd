@@ -27,6 +27,10 @@ updates:
       # Hold majors until we schedule a migration phase.
       - dependency-name: "vite"
         update-types: ["version-update:semver-major"]
+      # vue-tsc 3.3.12-3.3.14 mis-parse `//` in template attributes (URLs) and
+      # silently skip type-checking (vuejs/language-tools#6264, #6322, #6360).
+      - dependency-name: "vue-tsc"
+        versions: ["3.3.12", "3.3.13", "3.3.14"]
 
   # Docker - API and App Dockerfiles
   - package-ecosystem: "docker"
