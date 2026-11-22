@@ -6,7 +6,7 @@
       <div class="home-hero__content">
         <h1 id="home-title" class="home-hero__title">SysNDD</h1>
         <p class="home-hero__summary">
-          Curated gene-disease relationships for clinical diagnostics, counseling, and research.
+          Curated gene-disease relationships for clinics, diagnostics, and research.
         </p>
       </div>
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The home page summary reads "Curated gene-disease relationships for clinics, diagnostics, and research." (was "clinical diagnostics, counseling, and research"), as worded by the curators for the tutorial videos.
+
 ## [0.38.7] - 2026-11-21
 
 Gene network release: the network layout is computed once on the server when the analysis snapshot is built, and the browser draws the stored positions in short frames. The network is still drawn when the visitor clicks "Show interactive network".
