@@ -1,161 +1,186 @@
 WEBVTT
 
-00:00.600 --> 00:02.904
+00:00.500 --> 00:02.804
 Welcome to SysNDD.
 
-00:03.037 --> 00:06.115
+00:02.937 --> 00:05.855
 See how curators grade evidence.
 
-00:06.633 --> 00:09.740
-How strong is the evidence for an entity?
+00:06.233 --> 00:09.826
+How strong is the NDD evidence for an entity?
 
-00:09.873 --> 00:15.182
-An entity is one gene,
-one mode of inheritance and one disease.
+00:09.959 --> 00:16.297
+An entity is a unique combination
+of one gene, one mode of inheritance
 
-00:15.315 --> 00:20.573
-To set its evidence category,
-curators count cases, combine criteria,
+00:16.430 --> 00:17.430
+and one disease.
 
-00:20.706 --> 00:22.851
-and weigh the doubts.
+00:17.564 --> 00:21.549
+To set its NDD evidence category,
+curators count cases and families,
 
-00:23.367 --> 00:26.684
-A Definitive entity needs a publication.
+00:21.683 --> 00:25.471
+combine criteria, and weigh the doubts.
 
-00:26.817 --> 00:30.186
+00:25.833 --> 00:30.148
+A Definitive entity needs at least one publication.
+
+00:30.282 --> 00:33.892
 Then count each individual and family once.
 
-00:30.320 --> 00:33.425
+00:34.026 --> 00:37.189
 Ten or more cases with <i>de novo</i> variants,
 
-00:33.558 --> 00:36.577
-five or more autosomal recessive families,
+00:37.322 --> 00:42.587
+five or more autosomal recessive
+families with several affected individuals,
 
-00:36.711 --> 00:40.400
-or three or more families with X-chromosomal variants:
+00:42.721 --> 00:45.838
+or three or more families with X-chromosomal variants
 
-00:40.533 --> 00:42.812
+00:45.972 --> 00:50.929
+in several affected individuals:
 each is a clear-cut frequency,
 
-00:42.945 --> 00:46.761
+00:51.062 --> 00:54.703
 and no further criteria are needed.
 
-00:47.267 --> 00:53.790
+00:55.067 --> 01:00.840
 For <i>ANKRD11</i> and KBG syndrome,
 the synopsis reports <i>de novo</i>
 
-00:53.923 --> 00:57.903
+01:00.973 --> 01:05.466
 and some inherited variants
 in more than 300 individuals.
 
-00:58.036 --> 01:01.322
+01:05.599 --> 01:08.926
 That is far more than ten <i>de novo</i> cases.
 
-01:01.455 --> 01:04.396
+01:09.059 --> 01:11.785
 This entity is Definitive.
 
-01:04.900 --> 01:08.043
+01:12.167 --> 01:15.375
 If the count falls short, combine.
 
-01:08.176 --> 01:13.468
+01:15.509 --> 01:20.945
 A strong frequency criterion,
 such as three patients with <i>de novo</i> variants,
 
-01:13.601 --> 01:19.564
+01:21.078 --> 01:26.744
 needs a partner: one strong genetic criterion,
+such as a recurrent variant;
+
+01:26.877 --> 01:31.659
 one strong clinical criterion,
+such as a very specific phenotype;
 
-01:19.697 --> 01:23.121
-or at least two moderate criteria.
+01:31.792 --> 01:36.275
+or at least two moderate criteria,
+such as functional assays
 
-01:23.633 --> 01:27.508
+01:36.408 --> 01:38.729
+or missense constraint.
+
+01:39.100 --> 01:42.910
 The category belongs to the entity, not to the gene.
 
-01:27.641 --> 01:33.742
+01:43.043 --> 01:46.340
 <i>SETD1B</i> has two entities:
 the autosomal dominant one is Definitive,
 
-01:33.875 --> 01:37.325
+01:46.473 --> 01:52.433
 the autosomal recessive one is Moderate.
 
-01:37.833 --> 01:40.206
+01:52.800 --> 01:55.165
 Open the recessive entity.
 
-01:40.340 --> 01:43.656
+01:55.299 --> 01:59.085
 Its synopsis reports bi-allelic missense variants
 
-01:43.789 --> 01:49.370
+01:59.219 --> 02:04.244
 in 3 independent individuals:
 a strong frequency criterion.
 
-01:49.503 --> 01:53.255
-Without a partner, it is Moderate: better than Limited,
+02:04.377 --> 02:08.554
+Without an additional genetic or
+clinical criterion as a partner,
 
-01:53.389 --> 01:56.444
+02:08.687 --> 02:14.594
+it is Moderate: better than Limited,
 but not enough for Definitive.
 
-01:56.967 --> 02:01.931
-<i>ZCCHC8</i> has one recessive
-family with a nonsense variant.
+02:14.967 --> 02:18.523
+<i>ZCCHC8</i> has one recessive family with a nonsense
 
-02:02.064 --> 02:08.829
-No functional evidence is recorded,
-so this entity is Limited.
+02:18.656 --> 02:23.872
+variant in three affected individuals.
 
-02:09.333 --> 02:13.693
+02:24.005 --> 02:29.146
+No further evidence is recorded,
+so this entity is graded Limited.
+
+02:29.533 --> 02:33.885
 In borderline cases,
 weigh the possible negative criteria.
 
-02:13.826 --> 02:17.280
+02:34.019 --> 02:37.441
 First, an old publication, never confirmed.
 
-02:17.413 --> 02:20.487
+02:37.574 --> 02:40.481
 Second, doubtful publication quality.
 
-02:20.621 --> 02:24.304
+02:40.615 --> 02:44.442
 Third, new evidence against the gene or its variants,
 
-02:24.437 --> 02:30.090
+02:44.575 --> 02:50.365
 such as constraint scores
 from the Genome Aggregation Database, gnomAD.
 
-02:30.224 --> 02:35.134
-If the association is contradicted, consider Refuted.
+02:50.499 --> 02:55.322
+If the association is contradicted,
+consider downgrading it to Limited,
 
-02:35.667 --> 02:40.783
+02:55.456 --> 02:57.712
+or even to Refuted.
+
+02:58.100 --> 03:02.586
 For <i>PGA5</i>, one individual was described in 2010,
 
-02:40.916 --> 02:43.584
+03:02.719 --> 03:05.900
 with no further publications since.
 
-02:43.718 --> 02:49.653
+03:06.033 --> 03:11.841
 In gnomAD, the gene is tolerant
 to missense and loss-of-function variants.
 
-02:49.786 --> 02:52.639
+03:11.974 --> 03:14.663
 This entity is Refuted.
 
-02:53.167 --> 02:56.765
+03:15.033 --> 03:18.373
 The gene page shows the gnomAD scores.
 
-02:56.898 --> 03:03.898
-Loss-of-function variants are not depleted:
-15.9 expected, 18 observed.
+03:18.506 --> 03:25.506
+<i>PGA5</i> is not depleted for loss-of-function variants:
+15.9 expected,
 
-03:05.033 --> 03:09.939
+03:26.295 --> 03:27.295
+18 observed.
+
+03:27.433 --> 03:32.261
 Remember to count each
 individual and family once, per entity.
 
-03:10.072 --> 03:13.773
+03:32.394 --> 03:36.123
 A clear-cut frequency needs no further criteria.
 
-03:13.907 --> 03:17.985
-Otherwise, a strong frequency criterion needs a partner.
+03:36.256 --> 03:41.863
+Otherwise, a strong frequency criterion
+needs a genetic or clinical partner.
 
-03:18.118 --> 03:22.006
+03:41.997 --> 03:45.535
 In borderline cases, weigh the doubts.
 
-03:22.533 --> 03:28.488
+03:45.900 --> 03:51.615
 Find all the rules in the documentation
 chapter Curation criteria.

@@ -3,162 +3,161 @@ WEBVTT
 00:00.450 --> 00:02.871
 Welcome to SysNDD.
 
-00:03.004 --> 00:07.096
+00:03.004 --> 00:07.056
 Let's put it side by side with other curation resources.
 
-00:07.417 --> 00:10.803
-How does SysNDD compare with other gene lists
+00:07.350 --> 00:14.342
+How does SysNDD compare with other gene
+lists for neurodevelopmental disorders?
 
-00:10.937 --> 00:13.512
-for neurodevelopmental disorders, or NDDs?
-
-00:13.645 --> 00:20.059
+00:14.476 --> 00:19.301
 You learn which genes the lists share,
 which lists are most alike,
 
-00:20.192 --> 00:22.821
+00:19.434 --> 00:22.029
 and what a missing gene means.
 
-00:23.117 --> 00:27.440
+00:22.317 --> 00:26.640
 In the Analyses menu, select Compare curations.
 
-00:27.574 --> 00:31.437
+00:26.774 --> 00:30.597
 The page is public, so you don't need an account.
 
-00:31.750 --> 00:36.805
+00:30.883 --> 00:35.939
 Here you see SysNDD next to other curated gene lists.
 
-00:36.939 --> 00:40.739
+00:36.072 --> 00:39.872
 The badge shows
 when the external lists were last refreshed.
 
-00:40.872 --> 00:43.062
+00:40.006 --> 00:42.195
 Three tabs give three views:
 
-00:43.195 --> 00:46.229
+00:42.329 --> 00:45.323
 Overlap, Similarity and Table.
 
-00:46.550 --> 00:49.071
+00:45.617 --> 00:48.138
 Overlap opens with three lists:
 
-00:49.205 --> 00:53.351
+00:48.271 --> 00:52.418
 SysNDD, PanelApp and Gene2Phenotype.
 
-00:53.485 --> 00:57.678
+00:52.551 --> 00:56.745
 Each column of the UpSet plot
 is one combination of lists,
 
-00:57.812 --> 00:59.774
+00:56.878 --> 00:58.841
 marked by the dots below.
 
-00:59.908 --> 01:04.588
+00:58.974 --> 01:03.655
 Its bar counts the genes
 that all lists in that column contain.
 
-01:04.722 --> 01:07.877
+01:03.788 --> 01:06.943
 A column with one dot counts the whole list.
 
-01:08.010 --> 01:13.270
+01:07.077 --> 01:12.297
 The last column holds
 the genes that all three lists share.
 
-01:13.583 --> 01:16.541
+01:12.583 --> 01:15.541
 Select Add Sources, then SFARI.
 
-01:16.674 --> 01:19.731
+01:15.674 --> 01:18.691
 The plot redraws with four lists.
 
-01:20.050 --> 01:24.256
+01:18.983 --> 01:23.195
 SFARI, the Simons Foundation Autism Research Initiative,
 
-01:24.390 --> 01:26.527
+01:23.328 --> 01:25.462
 collects genes for autism.
 
-01:26.660 --> 01:31.259
+01:25.595 --> 01:30.289
 Its own column, with one dot, counts every SFARI gene.
 
-01:31.393 --> 01:34.487
+01:30.422 --> 01:33.674
 The column with four dots is much shorter.
 
-01:34.621 --> 01:40.754
+01:33.807 --> 01:40.223
 Definitive Only keeps, for each list,
-the genes mapped to Definitive.
+the genes mapped to Definitive entries.
 
-01:41.050 --> 01:45.515
+01:40.517 --> 01:44.982
 Similarity shows one cell
 for each pair of the eight lists.
 
-01:45.649 --> 01:51.115
+01:45.115 --> 01:50.440
 Each value is a cosine similarity, from 0.0, no overlap,
 
-01:51.249 --> 01:54.024
+01:50.574 --> 01:53.491
 to 1.0, identical lists.
 
-01:54.158 --> 01:58.386
+01:53.624 --> 01:57.852
 PanelApp and Gene2Phenotype are the most similar pair.
 
-01:58.519 --> 02:03.530
+01:57.986 --> 02:02.957
 SFARI focuses on autism, so its row is the lightest.
 
-02:03.850 --> 02:09.262
+02:03.250 --> 02:08.793
 Point to a cell:
 its value and the two lists appear below the matrix.
 
-02:09.395 --> 02:13.850
-The value reflects shared genes, not categories.
+02:08.926 --> 02:14.890
+The value reflects shared genes,
+not entities or evidence categories.
 
-02:14.150 --> 02:19.665
+02:15.183 --> 02:20.698
 Table has a row for each gene;
 here it is filtered to one gene, <i>ASPA</i>.
 
-02:19.798 --> 02:23.959
+02:20.832 --> 02:24.992
 Each list's rating is mapped to the SysNDD categories.
 
-02:24.092 --> 02:30.159
+02:25.126 --> 02:31.193
 A green check means Definitive,
 as in SysNDD, Gene2Phenotype and PanelApp.
 
-02:30.293 --> 02:34.311
+02:31.326 --> 02:35.304
 SFARI shows an empty circle: not listed.
 
-02:34.617 --> 02:37.449
-Not listed is not disagreement.
+02:35.617 --> 02:39.317
+Not listed is not necessarily disagreement.
 
-02:37.582 --> 02:39.818
+02:39.450 --> 02:41.453
 Lists differ in scope:
 
-02:39.952 --> 02:45.259
+02:41.586 --> 02:47.044
 SFARI collects autism genes,
 PanelApp builds diagnostic panels.
 
-02:45.392 --> 02:49.759
+02:47.178 --> 02:51.410
 Their inclusion criteria and evidence scales differ too.
 
-02:49.892 --> 02:52.069
+02:51.543 --> 02:53.720
 Each list is updated at its own pace,
 
-02:52.202 --> 02:56.127
+02:53.853 --> 02:58.322
 so a new gene may not have been reviewed there yet.
 
-02:56.260 --> 03:00.856
+02:58.456 --> 03:02.777
 Treat a difference as a lead to check, not as an error.
 
-03:01.150 --> 03:04.429
+03:03.083 --> 03:06.362
 Remember: Overlap shows shared genes.
 
-03:04.562 --> 03:08.863
+03:06.496 --> 03:10.796
 Each bar counts the genes
 that all lists in its column contain.
 
-03:08.996 --> 03:14.117
+03:10.929 --> 03:16.050
 Similarity compares which genes are listed,
 not their evidence categories.
 
-03:14.250 --> 03:17.004
+03:16.183 --> 03:18.937
 Not listed is not disagreement.
 
-03:17.137 --> 03:21.951
+03:19.070 --> 03:23.844
 Check scope, criteria and update date first.
 
-03:22.250 --> 03:27.775
+03:24.150 --> 03:29.635
 Find Compare curations in the Analyses menu of SysNDD.
