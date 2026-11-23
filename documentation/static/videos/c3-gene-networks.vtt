@@ -15,144 +15,147 @@ and do their disorders look alike?
 We look at the network, one cluster,
 its summary and the phenotypes.
 
-00:20.500 --> 00:26.610
+00:20.500 --> 00:26.593
 Under Analyses,
 Functional clusters shows a network of SysNDD genes,
 
-00:26.744 --> 00:30.754
+00:26.727 --> 00:30.626
 linked by protein interactions from the STRING database.
 
-00:30.888 --> 00:33.293
+00:30.759 --> 00:33.947
+Select Show interactive network to draw it.
+
+00:34.080 --> 00:36.595
 Each color is one cluster.
 
-00:33.427 --> 00:36.807
+00:36.728 --> 00:40.346
 The view starts with genes of Definitive entities;
 
-00:36.941 --> 00:40.340
+00:40.479 --> 00:43.859
 the Category menu adds the others.
 
-00:40.867 --> 00:47.020
+00:44.367 --> 00:50.437
 The clusters use every gene with an entity
 for a neurodevelopmental disorder,
 
-00:47.153 --> 00:53.191
+00:50.570 --> 00:56.685
 and only STRING links from experiments
 and databases, not text mining.
 
-00:53.324 --> 00:56.500
+00:56.818 --> 00:59.898
 The Leiden algorithm groups genes that interact
 
-00:56.634 --> 00:59.304
+01:00.031 --> 01:02.866
 more with each other than with the rest.
 
-00:59.437 --> 01:02.864
+01:02.999 --> 01:06.364
 No phenotype data are used.
 
-01:03.367 --> 01:06.554
+01:06.867 --> 01:10.032
 In the Clusters menu, choose one cluster.
 
-01:06.687 --> 01:12.246
+01:10.165 --> 01:15.746
 The network,
 table and summary then show only that cluster.
 
-01:12.767 --> 01:17.705
+01:16.267 --> 01:21.127
 Term enrichment lists the terms
 over-represented in the cluster.
 
-01:17.838 --> 01:20.881
+01:21.260 --> 01:24.307
 #Genes counts the members with a term.
 
-01:21.014 --> 01:26.227
+01:24.440 --> 01:29.727
 For the false discovery rate, FDR, smaller is stronger.
 
-01:26.733 --> 01:29.186
+01:30.233 --> 01:32.642
 The summary is marked AI.
 
-01:29.320 --> 01:32.915
+01:32.776 --> 01:36.392
 A language model wrote it,
 and a second model checked it.
 
-01:33.049 --> 01:39.417
+01:36.526 --> 01:42.869
 AI evaluated means the check accepted the text,
 not that a curator reviewed it.
 
-01:39.550 --> 01:43.649
+01:43.003 --> 01:47.149
 Its key themes open with chromatin remodeling.
 
-01:44.167 --> 01:49.242
+01:47.667 --> 01:54.518
 <i>ARID1B</i>, <i>CHD7</i> and <i>KMT2D</i>
 share this chromatin cluster,
 
-01:49.375 --> 01:53.466
+01:54.651 --> 01:58.590
 yet they cause Coffin-Siris, CHARGE and Kabuki syndrome.
 
-01:53.600 --> 01:59.454
+01:58.723 --> 02:02.929
 A shared cluster suggests a shared process,
 not the same disorder.
 
-01:59.588 --> 02:02.327
+02:03.062 --> 02:05.827
 Its name is a hypothesis.
 
-02:02.833 --> 02:08.669
+02:06.333 --> 02:12.169
 Back in the Analyses menu,
 open Phenotype–function correlation.
 
-02:08.802 --> 02:12.854
+02:12.302 --> 02:16.354
 It compares functional clusters with phenotype clusters,
 
-02:12.987 --> 02:16.913
+02:16.487 --> 02:20.413
 which group entities with similar phenotypes.
 
-02:17.433 --> 02:20.652
+02:20.933 --> 02:24.280
 Every cluster appears on both axes.
 
-02:20.786 --> 02:25.751
+02:24.414 --> 02:29.194
 Skip the red diagonal:
 it compares each cluster with itself.
 
-02:25.885 --> 02:30.234
+02:29.328 --> 02:33.734
 Read the bottom rows, where phenotypes meet function.
 
-02:30.767 --> 02:32.238
+02:34.267 --> 02:35.694
 Point to a cell there.
 
-02:32.371 --> 02:37.822
+02:35.827 --> 02:41.148
 The tooltip names both clusters,
-pc for phenotype and fc for function,
+PC for phenotype and FC for function,
 
-02:37.955 --> 02:39.589
+02:41.281 --> 02:43.051
 and their correlation.
 
-02:39.723 --> 02:45.727
+02:43.185 --> 02:49.227
 Red means they share more genes
 than by chance; blue, fewer.
 
-02:46.233 --> 02:48.572
+02:49.733 --> 02:52.036
 How far can you trust a cell?
 
-02:48.705 --> 02:51.559
+02:52.170 --> 02:55.058
 It shows shared genes, not why.
 
-02:51.692 --> 02:55.126
+02:55.192 --> 02:58.553
 Some links are expected from how the clusters formed.
 
-02:55.260 --> 02:58.985
+02:58.687 --> 03:02.418
 Cluster numbers can change with each data version.
 
-02:59.118 --> 03:02.633
+03:02.552 --> 03:06.133
 Use a cell to ask questions.
 
-03:03.133 --> 03:08.224
+03:06.633 --> 03:11.724
 Remember: clusters come from protein interactions,
 not phenotypes.
 
-03:08.357 --> 03:13.578
+03:11.857 --> 03:17.078
 A cluster name is a hypothesis;
 the AI summary is not curation.
 
-03:13.711 --> 03:17.454
+03:17.211 --> 03:20.954
 A heatmap cell is a question to check.
 
-03:17.967 --> 03:24.526
+03:21.467 --> 03:28.026
 For more on both pages,
 see the documentation chapter Read the analyses.

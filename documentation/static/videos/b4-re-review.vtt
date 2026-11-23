@@ -3,168 +3,176 @@ WEBVTT
 00:00.500 --> 00:03.122
 Welcome to SysNDD.
 
-00:03.255 --> 00:06.076
+00:03.255 --> 00:06.036
 Let's work through a re-review together.
 
-00:06.467 --> 00:09.611
+00:06.400 --> 00:09.421
 How do you work through your re-review batch?
 
-00:09.744 --> 00:14.252
+00:09.554 --> 00:13.900
 Many entities came from SysID, the predecessor database.
 
-00:14.385 --> 00:17.987
+00:14.033 --> 00:17.462
 Re-review brings them up to date.
 
-00:18.367 --> 00:20.941
+00:17.833 --> 00:20.310
 Sign in with your Reviewer account.
 
-00:21.074 --> 00:26.044
+00:20.444 --> 00:25.202
 In the menu bar, open Review, then select Re-Review.
 
-00:26.433 --> 00:31.927
+00:25.567 --> 00:30.848
 The Re-review table lists
 the entities assigned to you, one per row.
 
-00:32.060 --> 00:38.297
+00:30.981 --> 00:36.977
 Each row ends with four actions: Edit review,
 Edit status, Submit entity review,
 
-00:38.430 --> 00:40.753
+00:37.111 --> 00:39.322
 and a flag to refuse.
 
-00:41.133 --> 00:48.133
+00:39.700 --> 00:46.700
 Our example is <i>ARHGEF6</i>,
 with intellectual disability, X-linked recessive.
 
-00:48.992 --> 00:54.335
+00:47.325 --> 00:52.486
 Its category is Limited,
 and it was last reviewed in 2010.
 
-00:54.700 --> 00:59.623
+00:52.867 --> 00:57.790
 In the row of <i>ARHGEF6</i>, select Edit review.
 
-00:59.757 --> 01:04.536
+00:57.923 --> 01:02.662
 A window opens with the current synopsis,
 terms and sources.
 
-01:04.900 --> 01:09.830
+01:03.033 --> 01:07.795
 The Synopsis summarizes the number of patients,
 the gene variants,
 
-01:09.963 --> 01:14.827
+01:07.928 --> 01:12.711
 the severity of intellectual disability,
 and further features.
 
-01:14.960 --> 01:19.581
+01:12.845 --> 01:16.860
 Phenotypes are Human Phenotype Ontology terms found
 
-01:19.714 --> 01:23.333
+01:16.993 --> 01:21.272
 in at least 20 percent of affected individuals.
 
-01:23.466 --> 01:27.937
+01:21.405 --> 01:24.821
 For a Limited entity, they are optional.
 
-01:28.300 --> 01:32.307
+01:24.954 --> 01:29.260
+Check the current literature,
+as in the videos on finding the evidence
+
+01:29.394 --> 01:35.326
+and reading a paper,
+and update the synopsis and phenotypes.
+
+01:35.700 --> 01:39.556
 Variation ontology should
 name at least protein truncating
 
-01:32.440 --> 01:36.234
+01:39.690 --> 01:43.352
 or non-synonymous variation, if your source states it.
 
-01:36.368 --> 01:39.284
+01:43.485 --> 01:46.278
 Here, only the general term is set.
 
-01:39.417 --> 01:42.157
+01:46.412 --> 01:49.044
 Publications take PubMed identifiers:
 
-01:42.290 --> 01:46.367
+01:49.177 --> 01:53.070
 PMID, a colon, and the number.
 
-01:46.733 --> 01:49.826
+01:53.433 --> 01:56.411
 In Comment, tell the Curator what you checked.
 
-01:49.959 --> 01:52.226
+01:56.545 --> 01:58.721
 Then select Save Review.
 
-01:52.359 --> 01:54.504
+01:58.854 --> 02:00.923
 The message says submitted.
 
-01:54.637 --> 01:58.173
+02:01.056 --> 02:04.419
 For now, your review is only saved.
 
-01:58.533 --> 02:01.059
+02:04.800 --> 02:07.236
 Now select Edit status.
 
-02:01.193 --> 02:05.839
+02:07.369 --> 02:11.831
 In Status Category,
 choose what the curation criteria support.
 
-02:05.972 --> 02:08.608
+02:11.964 --> 02:14.501
 A Limited entity can stay Limited,
 
-02:08.742 --> 02:12.628
+02:14.634 --> 02:18.373
 move to Moderate or Definitive, or become Refuted.
 
-02:12.761 --> 02:17.494
+02:18.506 --> 02:23.034
 Explain your choice in Comment, then select Save Status.
 
-02:17.867 --> 02:23.010
+02:23.400 --> 02:28.369
 When review and status are saved,
 select Submit entity review.
 
-02:23.143 --> 02:24.688
+02:28.502 --> 02:29.963
 Check the entity number.
 
-02:24.821 --> 02:27.163
+02:30.097 --> 02:32.340
 Then select Submit Review.
 
-02:27.296 --> 02:29.946
+02:32.473 --> 02:35.000
 The entity leaves your list.
 
-02:30.333 --> 02:32.774
+02:35.367 --> 02:37.729
 Your work passes three stages.
 
-02:32.908 --> 02:35.758
+02:37.862 --> 02:40.595
 Saved work stays in your list.
 
-02:35.891 --> 02:38.438
+02:40.729 --> 02:43.166
 Submitted work goes to the Curators.
 
-02:38.571 --> 02:43.214
+02:43.299 --> 02:47.736
 Only changes a Curator approves appear on the website.
 
-02:43.600 --> 02:46.020
+02:48.100 --> 02:50.418
 Some entities need a specialist.
 
-02:46.153 --> 02:49.885
+02:50.552 --> 02:54.132
 In the row of <i>AGTR2</i>, select the flag.
 
-02:50.019 --> 02:51.764
+02:54.266 --> 02:55.948
 You can add a short reason.
 
-02:51.897 --> 02:55.521
+02:56.081 --> 02:59.546
 Then select Refuse, needs specialist.
 
-02:55.900 --> 03:00.809
+02:59.900 --> 03:04.621
 The refused entity leaves
 your list and keeps its category.
 
-03:00.942 --> 03:05.979
+03:04.754 --> 03:09.576
 When your list is empty,
 select New batch to ask for more.
 
-03:06.367 --> 03:09.604
+03:09.933 --> 03:13.038
 Remember: saved is not submitted.
 
-03:09.737 --> 03:13.124
+03:13.172 --> 03:16.403
 Nothing is public until a Curator approves it.
 
-03:13.257 --> 03:18.926
+03:16.537 --> 03:21.951
 And refuse an entity that needs
 a specialist; it keeps its category.
 
-03:19.300 --> 03:22.748
+03:22.333 --> 03:25.652
 The full guide is under Review, Instructions.
 
-03:22.882 --> 03:26.827
+03:25.786 --> 03:29.549
 Thank you for keeping SysNDD up to date.

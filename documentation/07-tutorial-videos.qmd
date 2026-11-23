@@ -21,7 +21,7 @@ The series has three tracks. Start with A1, then follow your role:
 | A developer or AI user | A1, then A4 |
 | A researcher reading the analyses | A1, then C1 to C3 |
 
-All videos show SysNDD 0.38.2, captured on November 21, 2026. Counts on screen may have changed since. Narration: synthetic voice. Subtitles are part of the picture; a separate caption track is available from the player menu. License: CC BY 4.0.
+Most videos show SysNDD 0.38.8, captured on November 23, 2026; B2 and B3 still show SysNDD 0.38.2, captured on November 21, 2026. Counts on screen may have changed since. Narration: synthetic voice. Subtitles are part of the picture; a separate caption track is available from the player menu. License: CC BY 4.0.
 
 ::: {.content-hidden when-format="html:js"}
 The videos play on the [online version of this page](https://berntpopp.github.io/sysndd/07-tutorial-videos.html).
@@ -35,7 +35,7 @@ For everyone who looks up genes, builds panels or queries SysNDD from software.
 
 What SysNDD is for, how to look up a gene, the entity (gene, inheritance, disease), the four evidence categories, and why the external cards are context, not curation. Shown for *FBXO11*.
 
-Length: 3 min 27 s. Written steps: [Find a gene](using-find-gene.qmd).
+Length: 3 min 29 s. Written steps: [Find a gene](using-find-gene.qmd).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -51,7 +51,7 @@ Length: 3 min 27 s. Written steps: [Find a gene](using-find-gene.qmd).
 
 Filter Panels by evidence category and inheritance, check the entities behind a gene, download the panel as Excel, and cite the version and date.
 
-Length: 3 min 29 s. Written steps: [Build and download a gene panel](using-panels.qmd).
+Length: 3 min 30 s. Written steps: [Build and download a gene panel](using-panels.qmd).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -101,13 +101,9 @@ For Reviewers and Curators. Watch them in order: re-reviewing comes before creat
 
 ### B1 · How curators grade evidence
 
-::: {.callout-warning title="Preview, awaiting expert review"}
-One case count shown in this video awaits confirmation by C. Zweier.
-:::
-
 Count cases and families, combine strong and moderate criteria, weigh negative criteria: the rules behind Definitive, Moderate, Limited and Refuted.
 
-Length: 3 min 29 s. Written steps: [Curation criteria](05-curation-criteria.qmd).
+Length: 3 min 52 s. Written steps: [Curation criteria](05-curation-criteria.qmd).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -155,7 +151,7 @@ Length: 3 min 29 s. Written steps: [Read a paper for curation](curation-research
 
 Work your assigned re-review batch: edit the review and the status, submit for Curator approval, or refuse an entity that needs a specialist.
 
-Length: 3 min 27 s. Written steps: [Re-review: guide for Reviewers](06-re-review-instructions.qmd).
+Length: 3 min 30 s. Written steps: [Re-review: guide for Reviewers](06-re-review-instructions.qmd).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -170,12 +166,12 @@ Length: 3 min 27 s. Written steps: [Re-review: guide for Reviewers](06-re-review
 ### B5 · Curating a new gene (*MAU2*)
 
 ::: {.callout-warning title="Preview, awaiting expert review"}
-The *MAU2* grading shown is provisional and awaits review by C. Zweier.
+The choice of intellectual disability severity terms shown for *MAU2* is provisional and awaits review by C. Zweier.
 :::
 
 Create an entity for *MAU2* in the Create Entity form, step by step, and decide its category from the curation criteria.
 
-Length: 3 min 28 s. Written steps: [Create an entity](curator-create-entity.qmd).
+Length: 3 min 31 s. Written steps: [Create an entity](curator-create-entity.qmd).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -195,7 +191,7 @@ For researchers who read the comparison, phenotype and network analyses.
 
 How SysNDD compares with PanelApp, Gene2Phenotype and SFARI: read the overlap and similarity views, and why a gene that is not listed elsewhere is not a disagreement.
 
-Length: 3 min 28 s. Written steps: [Compare SysNDD with other curation efforts](using-analyses.qmd#compare-sysndd-with-other-curation-efforts).
+Length: 3 min 30 s. Written steps: [Compare SysNDD with other curation efforts](using-analyses.qmd#compare-sysndd-with-other-curation-efforts).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}
@@ -227,7 +223,7 @@ Length: 3 min 29 s. Written steps: [Explore phenotype correlations and clusters]
 
 Read the protein interaction network of SysNDD genes, open one functional cluster, read its enrichment and AI summary, treat its name as a hypothesis, and read the heatmap where phenotype clusters meet functional clusters.
 
-Length: 3 min 25 s. Written steps: [Explore functional gene clusters](using-analyses.qmd#explore-functional-gene-clusters).
+Length: 3 min 28 s. Written steps: [Explore functional gene clusters](using-analyses.qmd#explore-functional-gene-clusters).
 
 ::: {.content-visible when-format="html:js"}
 ```{=html}

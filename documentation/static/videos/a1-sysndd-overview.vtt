@@ -1,152 +1,164 @@
 WEBVTT
 
-00:00.600 --> 00:03.095
+00:00.500 --> 00:02.995
 Welcome to SysNDD.
 
-00:03.229 --> 00:06.360
+00:03.129 --> 00:06.020
 Today, let's look up a gene together.
 
-00:06.867 --> 00:09.006
+00:06.367 --> 00:08.463
 What does SysNDD grade, and how?
 
-00:09.139 --> 00:12.236
+00:08.597 --> 00:11.611
 Let's find out in three parts: the resource,
 
-00:12.370 --> 00:17.507
+00:11.745 --> 00:16.535
 the entity, and the four evidence categories.
 
-00:18.033 --> 00:22.270
+00:16.900 --> 00:20.870
 SysNDD is an expert-curated database of gene-disease
 
-00:22.403 --> 00:26.105
+00:21.004 --> 00:24.442
 associations in neurodevelopmental disorders, or NDDs.
 
-00:26.238 --> 00:33.238
+00:24.575 --> 00:31.551
 The home page names three uses:
-clinical diagnostics, counseling, and research.
+clinics, diagnostics, and research.
 
-00:34.243 --> 00:40.337
-Clinicians and scientists grade
-the published evidence with consistent criteria.
+00:31.685 --> 00:34.802
+Clinicians and scientists grade the published genetic
 
-00:40.867 --> 00:46.447
+00:34.936 --> 00:40.075
+and clinical evidence for NDD
+entities with consistent criteria.
+
+00:40.433 --> 00:45.924
 In the search box,
 type a gene symbol, for example <i>FBXO11</i>.
 
-00:46.580 --> 00:48.416
+00:46.058 --> 00:47.873
 Then select the suggestion.
 
-00:48.549 --> 00:49.964
+00:48.006 --> 00:49.381
 The gene page opens.
 
-00:50.098 --> 00:52.787
+00:49.514 --> 00:51.932
 No account is needed.
 
-00:53.300 --> 00:57.233
+00:52.300 --> 00:56.244
 SysNDD grades entities, not genes.
 
-00:57.366 --> 01:02.022
-An entity is one gene,
-one mode of inheritance and one disease.
+00:56.377 --> 00:59.530
+An entity is a unique combination
+of one gene, one mode of inheritance
 
-01:02.155 --> 01:07.765
+00:59.663 --> 01:02.472
+and one disease.
+
+01:02.605 --> 01:08.115
 The gene has an identifier from HGNC,
 the HUGO Gene Nomenclature Committee.
 
-01:07.898 --> 01:12.089
+01:08.249 --> 01:12.368
 The inheritance is a term
 from the Human Phenotype Ontology.
 
-01:12.223 --> 01:16.901
+01:12.501 --> 01:16.631
 The disease has an identifier from OMIM or MONDO.
 
-01:17.433 --> 01:22.824
+01:17.000 --> 01:23.498
 On the gene page,
 the Associated table lists two entities for <i>FBXO11</i>.
 
-01:22.957 --> 01:29.299
+01:23.632 --> 01:28.156
 Both have the same gene,
 but the inheritance differs: autosomal dominant
 
-01:29.432 --> 01:33.643
+01:28.289 --> 01:32.495
 and autosomal recessive, and so does the disease.
 
-01:33.777 --> 01:37.673
-So each entity carries its own category.
+01:32.628 --> 01:37.388
+So each entity carries its own category of NDD evidence.
 
-01:38.200 --> 01:42.508
+01:37.733 --> 01:41.866
 Below the table, cards show external data from gnomAD,
 
-01:42.641 --> 01:46.188
+01:42.000 --> 01:45.412
 the Genome Aggregation Database, and from ClinVar.
 
-01:46.322 --> 01:49.111
+01:45.545 --> 01:48.222
 They are context, not curation.
 
-01:49.244 --> 01:56.121
+01:48.355 --> 01:54.756
 A ClinVar classification rates a variant;
 a SysNDD category rates an entity.
 
-01:56.633 --> 02:02.153
-Within the NDD scope,
-every entity has one evidence category.
+01:55.100 --> 01:59.443
+Each entity has one evidence category as an NDD.
 
-02:02.286 --> 02:07.360
-Definitive means published,
+01:59.576 --> 02:05.378
+Definitive means a published NDD,
 with a clear-cut number of cases or families,
 
-02:07.493 --> 02:10.280
+02:05.511 --> 02:08.083
 or with several criteria that add up.
 
-02:10.413 --> 02:15.883
+02:08.216 --> 02:13.590
 Moderate means better evidence than Limited,
 but not enough for Definitive.
 
-02:16.017 --> 02:18.262
+02:13.724 --> 02:15.455
 Limited means published,
 
-02:18.396 --> 02:22.719
+02:15.588 --> 02:19.903
 with intellectual disability
 indicated, but limited evidence.
 
-02:22.852 --> 02:27.686
+02:20.036 --> 02:24.314
 Refuted means newer evidence
 contradicts the association.
 
-02:27.819 --> 02:34.819
+02:24.447 --> 02:31.447
 Entities outside the NDD scope are
 marked Not applicable: a tag, not a category.
 
-02:35.967 --> 02:39.962
-The autosomal dominant entity is Definitive.
+02:32.000 --> 02:39.000
+For the example of <i>FBXO11</i>,
+the autosomal dominant entity is Definitive.
 
-02:40.095 --> 02:46.526
-Its clinical synopsis summarizes
-the affected individuals and their features.
+02:39.223 --> 02:41.945
+Its clinical synopsis summarizes the disease
 
-02:47.033 --> 02:50.765
-The autosomal recessive entity is Refuted.
+02:42.078 --> 02:45.581
+with the approximate number of published cases,
 
-02:50.899 --> 02:54.948
-The synopsis explains why: in the one reported patient,
+02:45.714 --> 02:49.175
+their phenotypes and the variant classes.
 
-02:55.081 --> 03:00.059
+02:49.533 --> 02:54.833
+The autosomal recessive entity for <i>FBXO11</i> is Refuted.
+
+02:54.966 --> 02:59.061
+The synopsis explains why:
+in the single reported patient,
+
+02:59.195 --> 03:03.432
 a likely pathogenic variant
 in a different gene was found later.
 
-03:00.192 --> 03:06.073
+03:03.566 --> 03:09.478
 A category grades the published
 evidence; it is not a diagnosis.
 
-03:06.600 --> 03:11.221
+03:09.833 --> 03:14.455
 Remember: SysNDD grades entities, not genes.
 
-03:11.355 --> 03:15.108
+03:14.588 --> 03:18.341
 Each entity in the NDD scope has one category.
 
-03:15.241 --> 03:19.419
+03:18.474 --> 03:22.412
 So when you look up a gene, check all of its entities.
 
-03:19.933 --> 03:26.572
+03:22.767 --> 03:28.942
 The documentation chapter Find a gene
 explains every part of these pages.
