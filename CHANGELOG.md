@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-11-26
+
+MCP release: the read-only MCP sidecar follows the Genetics Tool Server (GTS) v1 Core rules, checked with [gts-conformance](https://github.com/berntpopp/gts-conformance) v0.3.0. Tool names, parameters and payload fields are unchanged; the payload is now wrapped.
+
+### Changed (breaking for MCP clients)
+
+- **Every MCP tool result is a [GeneFoundry response envelope](https://github.com/berntpopp/genefoundry-envelope) v1.2**: `success`, the unchanged SysNDD payload under `result`, provenance under `_meta` (`source: "sysndd"`, `data_version`, `retrieved_at`, `request_id`, `elapsed_ms`), `unsafe_for_clinical_use: true` and the outer `schema_version`. Clients read the former top-level fields from `result`.
+- **MCP errors** set `success: false`, `error_code` from the closed vocabulary `invalid_input`, `not_found`, `ambiguous_query`, `upstream_unavailable`, `rate_limited`, `internal`, `message` and `retryable`; argument errors add `field` and `allowed_values`. The SysNDD `error` object (`error.code`) stays beside them. Legacy codes map as `temporarily_unavailable` and `snapshot_missing` → `upstream_unavailable`, `unsupported_parameter` → `invalid_input`.
+- **`serverInfo`** is `name: "sysndd-mcp"` (namespace token `sysndd`) with the SysNDD release as `version` (was "SysNDD read-only MCP" with the framework's `0.0.1`).
+- Each tool's `outputSchema` describes the envelope; every required and array parameter carries `examples`.
+- Error messages no longer repeat a caller's unknown parameter name, NDDScore gene or section value.
+
+### Added
+
+- `GET /health` on the MCP sidecar returns `status`, `name`, `version` and `transport`; a request with an unsupported `MCP-Protocol-Version` header gets `400`.
+- `make mcp-local-up` / `make mcp-local-down` run the MCP sidecar of the current checkout (for example a release tag) on a restored database dump at `127.0.0.1:8787`, with no API, frontend or deployment.
+
+### Fixed
+
+- MCP `structuredContent` now equals its `content[]` text mirror: the transport serializes JSON `null` as `null` instead of `{}`.
+
 ## [0.38.8] - 2026-11-22
 
 Copy release: the home page summary matches the curators' wording in the tutorial videos.
