@@ -169,7 +169,13 @@ mcp_get_sysndd_capabilities <- function() {
         code = "snapshot_missing", message = "Supported public-ready analysis snapshot is not currently available."
       ))
     ),
-    error_handling_note = "Recoverable errors arrive as a tool result with isError=true and an error.code; retry ambiguous_query by calling again with one of error.choices.",
+    error_handling_note = paste(
+      "Every result is a GTS envelope: success, the payload under result, and provenance under _meta.",
+      "Recoverable errors arrive as a tool result with isError=true, success=false, error_code",
+      "(invalid_input, not_found, ambiguous_query, upstream_unavailable, rate_limited, internal), message,",
+      "retryable, and the SysNDD error object whose error.code is listed in error_codes;",
+      "retry ambiguous_query by calling again with one of error.choices."
+    ),
     safety = list(
       scope = "Read-only approved public SysNDD evidence for research review; not clinical decision support.",
       live_external_calls_disabled = TRUE,

@@ -20,7 +20,7 @@ test_that("structuredContent serializes null scalars as JSON null, not {}", {
   )
 
   response <- mcp_tool_result_response(1L, payload)
-  structured <- response$result$structuredContent
+  structured <- response$result$structuredContent$result
 
   # The structured form must be a parsed list mirroring the null-safe text, so a
   # NULL scalar round-trips to JSON null rather than the `{}` transport artifact.

@@ -211,7 +211,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     ),
     ellmer::tool(
       get_genes_context_fun,
-      "Batch get compact approved public context for 1-10 SysNDD genes, preserving order with per-gene errors. Use expand=entities for one-call multi-gene detail (token-heavy on large batches). Example: get_genes_context({\"genes\":[\"CTCF\",\"MECP2\",\"SCN2A\"],\"expand\":\"entities\",\"abstract_mode\":\"metadata\"}).",
+      "Returns compact approved public context for 1-10 SysNDD genes, preserving order with per-gene errors. Use expand=entities for one-call multi-gene detail (token-heavy on large batches). Example: get_genes_context({\"genes\":[\"CTCF\",\"MECP2\",\"SCN2A\"],\"expand\":\"entities\",\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         genes = ellmer::type_array(ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID."), description = "Array of 1-10 gene identifiers."),
         include_entities = ellmer::type_boolean("Include compact entity rows per gene; default true.", required = FALSE),
@@ -246,7 +246,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     ),
     ellmer::tool(
       get_entities_context_fun,
-      "Batch get compact approved public context for 1-20 SysNDD entity IDs, preserving order with per-ID errors and deduped publications. Example: get_entities_context({\"entity_ids\":[451,1317,1755],\"publication_limit\":3,\"abstract_mode\":\"metadata\"}).",
+      "Returns compact approved public context for 1-20 SysNDD entity IDs, preserving order with per-ID errors and deduped publications. Example: get_entities_context({\"entity_ids\":[451,1317,1755],\"publication_limit\":3,\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         entity_ids = ellmer::type_array(ellmer::type_integer("SysNDD entity ID."), description = "Array of 1-20 SysNDD entity IDs."),
         include_publications = ellmer::type_boolean("Include linked publications; default true.", required = FALSE),
@@ -284,7 +284,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     ),
     ellmer::tool(
       get_publications_context_fun,
-      "Batch get publication metadata for 1-20 PMIDs, preserving request order with per-PMID errors. Example: get_publications_context({\"pmids\":[\"PMID:37130971\",\"30842225\"],\"abstract_mode\":\"metadata\"}).",
+      "Returns publication metadata for 1-20 PMIDs, preserving request order with per-PMID errors. Example: get_publications_context({\"pmids\":[\"PMID:37130971\",\"30842225\"],\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         pmids = ellmer::type_array(ellmer::type_string("PMID:123, 123, or a PubMed URL."), description = "Array of 1-20 PubMed identifiers."),
         abstract_max_chars = ellmer::type_integer("Abstract excerpt cap per publication, default 2000, max 4000.", required = FALSE),

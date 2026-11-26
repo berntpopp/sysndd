@@ -65,7 +65,7 @@ mcp_validate_enum <- function(value, allowed, argument) {
     stop(mcp_error(
       "invalid_input",
       sprintf("%s must be one of: %s", argument, paste(allowed, collapse = ", ")),
-      list(argument = argument)
+      list(argument = argument, allowed_values = as.list(allowed))
     ))
   }
   value

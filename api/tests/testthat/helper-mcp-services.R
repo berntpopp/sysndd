@@ -27,3 +27,5 @@
 .mcp_test_source("services/mcp-record-service.R")
 .mcp_test_source("services/mcp-analysis-shaping.R")
 .mcp_test_source("services/mcp-capabilities-service.R")
+.mcp_test_source("services/mcp-gts.R")
+mcp_server_version(file.path(.mcp_test_api_dir(), "version_spec.json"))
