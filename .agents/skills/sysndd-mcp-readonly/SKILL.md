@@ -32,12 +32,13 @@ The sidecar binds the same memoised wrapper names as the API and mounts `api_cac
 - Build it as a **thin composition** of existing read-only repo helpers (see `get_gene_research_context` for the pattern). Register in `mcp-tool-registry.R`; wrap execution in `mcp_tool_safe(...)`.
 - **Label every payload's `data_class`**: `curated_sysndd_evidence`, `curated_derived_analysis`, `ml_prediction`, `llm_generated_summary`, `external_reference_identifier`, or `operational_metadata`. NDDScore is always `ml_prediction`, `not_evidence_tier`, and never alters curated classifications.
 - Recoverable validation failures return a JSON tool result with `schema_version`, `error.code`, and `isError = true` — **not** a raw R error or JSON-RPC `-32603`.
+- **GTS v1 wire frame** (`services/mcp-gts.R`): `mcp_tool_result_response()` wraps every payload in the GeneFoundry envelope v1.2 (`success`, payload under `result`, `_meta` provenance, `unsafe_for_clinical_use`); errors add `error_code` from the closed GTS vocabulary, `message`, `retryable`, `field`/`allowed_values`. Tool functions keep returning the SysNDD payload; never build the envelope inside a tool. A new required or array parameter needs an entry in `MCP_GTS_INPUT_EXAMPLES`; never echo caller input into `message`. `serverInfo` is `sysndd-mcp` with the `version_spec.json` version.
 - Large tools default `response_mode = "compact"` and expose `budget` metadata; keep `schema_version` at the outer envelope only.
 - `MCP_SCHEMA_VERSION` (currently `1.2`) is the compatibility contract — bump additively for a new tool, and keep `get_sysndd_capabilities`, `resources/list`, and `resources/read` aligned. Prompts are **off by default** (`MCP_ENABLE_PROMPTS`); enable only for intentional slash-command prompts.
 
 ## Verify
 
-- Healthcheck stays cheap and data-independent: `api/scripts/mcp-healthcheck.R` (initialize + tools/list). The heavier `api/scripts/mcp-smoke.R` exercises real tools for dev/CI.
+- Healthcheck stays cheap and data-independent: `api/scripts/mcp-healthcheck.R` (initialize + tools/list); `GET /health` on the sidecar answers status/version/transport without the DB. Conformance: `make mcp-local-up`, then `gts-check http://127.0.0.1:8787 --level operational --repo .` (gts-conformance v0.3.0). The heavier `api/scripts/mcp-smoke.R` exercises real tools for dev/CI.
 - Guard tests: `api/tests/testthat/test-mcp-*.R` (repository, analysis service, publication-context-verified). A new tool needs a unit test asserting approved-only reads and correct `data_class` labels.
 
 ## Common Mistakes

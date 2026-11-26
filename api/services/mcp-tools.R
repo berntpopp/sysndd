@@ -2,7 +2,9 @@
 #
 # MCP protocol patches for resources, prompts, tool schemas, and structured results.
 
-mcp_tool_result_response <- function(id, payload, is_error = FALSE, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
+mcp_tool_result_response <- function(id, payload, is_error = FALSE, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text"),
+                                     version = mcp_server_version()) {
+  payload <- mcp_gts_envelope(payload, is_error = is_error, version = version)
   text <- jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null")
   body <- list(
     content = list(list(type = "text", text = text)),
@@ -59,7 +61,12 @@ mcp_tool_call_arg_error <- function(data, tools) {
   if (length(unknown) > 0L) {
     fields <- list(argument = unknown[[1]], expected_arguments = visible_expected)
     if (tool_name %in% c("get_gene_context", "list_gene_entities")) fields$hint <- gene_hint
-    return(mcp_error("invalid_input", sprintf("Unknown parameter '%s'. Expected: %s", unknown[[1]], paste(visible_expected, collapse = ", ")), fields))
+    message <- if (length(visible_expected) > 0L) {
+      sprintf("Unknown parameter. Expected: %s", paste(visible_expected, collapse = ", "))
+    } else {
+      "Unknown parameter; this tool takes no parameters."
+    }
+    return(mcp_error("invalid_input", message, fields))
   }
 
   missing <- setdiff(mcp_tool_required_properties(tool), provided)
@@ -137,6 +144,7 @@ mcp_patch_mcptools_protocol <- function(registry, instructions = mcp_server_inst
   ns <- asNamespace("mcptools")
   mcp_patch_mcptools_origin()
   mcp_patch_mcptools_instructions(instructions)
+  mcp_patch_mcptools_http()
 
   patched_tools <- function() mcp_tool_metadata(registry$tools)
   environment(patched_tools) <- environment()

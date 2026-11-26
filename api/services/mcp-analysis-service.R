@@ -176,7 +176,7 @@ mcp_get_nddscore_context <- function(gene = NULL,
     }
     detail <- mcp_analysis_repo_get_nddscore_gene(gene)
     if (is.null(detail$gene) || nrow(detail$gene) == 0L) {
-      stop(mcp_error("not_found", sprintf("NDDScore gene '%s' was not found.", gene), list(argument = "gene")))
+      stop(mcp_error("not_found", "NDDScore gene was not found.", list(argument = "gene")))
     }
     payload <- list(
       notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.",

@@ -61,7 +61,7 @@ mcp_server_instructions <- function() {
     "NDDScore is ML prediction, not curated evidence; LLM summaries are validated stored public projections; MCP performs no LLM generation or live external provider calls.",
     "Publication outputs include recommended_citation and publication-date confidence flags; paste recommended_citation verbatim.",
     "Static docs are sysndd://schema/overview and sysndd://schema/tool-guide; payload sysndd://gene/entity/publication URIs are stable identifiers and tools are the v1 record retrieval path.",
-    "Tool errors use JSON envelopes with error.code values such as invalid_input, not_found, ambiguous_query, and temporarily_unavailable.",
+    "Every result is a GTS envelope: the payload is under result, provenance under _meta; errors set success=false with error_code values such as invalid_input, not_found, ambiguous_query, and upstream_unavailable.",
     "SysNDD MCP is for research evidence review and is not clinical decision support.",
     "Limits are enforced by each tool. V1 is read-only and never exposes draft reviews, admin/user/job/log data, raw SQL, raw R execution, Gemini, or external provider calls.",
     sep = " "
@@ -73,7 +73,7 @@ mcp_prompts_enabled <- function() {
   value %in% c("1", "true", "yes", "on")
 }
 
-mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructions()) {
+mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructions(), version = mcp_server_version()) {
   if (!requireNamespace("mcptools", quietly = TRUE)) {
     return(FALSE)
   }
@@ -87,7 +87,7 @@ mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructio
   }
   patched <- function(protocol_version = "2025-11-25") {
     res <- original(protocol_version = protocol_version)
-    res$serverInfo$name <- "SysNDD read-only MCP"
+    res$serverInfo <- list(name = MCP_SERVER_NAME, title = "SysNDD read-only MCP", version = version)
     res$instructions <- instructions
     if (mcp_prompts_enabled()) {
       res$capabilities$prompts <- list(listChanged = FALSE)

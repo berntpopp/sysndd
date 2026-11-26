@@ -1,0 +1,128 @@
+# Standalone read-only MCP sidecar on a restored SysNDD database dump.
+#
+# Runs the MCP server of THIS checkout (check out a release tag to run that
+# release) on 127.0.0.1:${MCP_LOCAL_PORT:-8787}, without the API, the
+# frontend or any deployment. Start it with `make mcp-local-up`; the make
+# target prepares the dump and the secrets directory this file expects.
+#
+#   mysql      restores ${MCP_LOCAL_DUMP} once (first start of the volume)
+#   bootstrap  applies pending migrations, provisions the SELECT-only reader
+#   mcp        start_sysndd_mcp.R with the attested reader
+
+x-api-image: &api-image
+  image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+  build:
+    context: ./api/
+    args:
+      UID: ${HOST_UID:-1000}
+      GID: ${HOST_GID:-1000}
+
+services:
+  mysql:
+    image: mysql:8.4.13
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: sysndd_db
+      MYSQL_ROOT_PASSWORD: ${MCP_LOCAL_ROOT_PASSWORD:-}
+    healthcheck:
+      # TCP, so it stays unhealthy while the init restore runs with networking off.
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1 FROM sysndd_db.non_alt_loci_set LIMIT 1' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 360
+    networks:
+      - mcp_local
+    volumes:
+      - mcp_local_mysql:/var/lib/mysql
+      - ${MCP_LOCAL_DUMP:-./secrets/mcp-local/admin/sysndd_db.sql.gz}:/dump/sysndd_db.sql.gz:ro
+      - ./scripts/mcp-local-restore.sh:/docker-entrypoint-initdb.d/20-restore.sh:ro
+
+  bootstrap:
+    <<: *api-image
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - >-
+        export MYSQL_PASSWORD="$$(cat /run/mcp-admin/root-password)" &&
+        Rscript scripts/ci-load-test-schema.R &&
+        Rscript scripts/provision-mcp-readonly-principal.R
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: sysndd_db
+      MYSQL_USER: root
+      MCP_PROVISION_SERIALIZED: "true"
+      MCP_ADMIN_DB_HOST: mysql
+      MCP_ADMIN_DB_PORT: "3306"
+      MCP_ADMIN_DB_NAME: sysndd_db
+      MCP_ADMIN_DB_USER: root
+      MCP_ADMIN_DB_PASSWORD_FILE: /run/mcp-admin/root-password
+      # The restore runs as root@localhost, which then owns the restored views.
+      MCP_EXPECTED_VIEW_DEFINER: root@localhost
+      MCP_DB_PASSWORD_OUTPUT_FILE: /run/mcp-local/mcp-db-password
+      MCP_MIGRATION_PATH: /app/db/migrations/044_mcp_public_read_projections.sql
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mcp_local
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/core:/app/core:ro
+      - ./api/services:/app/services:ro
+      - ./api/bootstrap:/app/bootstrap:ro
+      - ./api/config/mcp:/app/config/mcp:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./api/version_spec.json:/app/version_spec.json:ro
+      - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
+      - ./db/migrations:/app/db/migrations:ro
+      - ${MCP_LOCAL_SECRETS:-./secrets/mcp-local}/admin:/run/mcp-admin:ro
+      - ${MCP_LOCAL_SECRETS:-./secrets/mcp-local}/reader:/run/mcp-local
+
+  mcp:
+    <<: *api-image
+    command: ["Rscript", "start_sysndd_mcp.R"]
+    init: true
+    environment:
+      ENVIRONMENT: development
+      SYSNDD_RUNTIME: mcp
+      MCP_DB_HOST: mysql
+      MCP_DB_PORT: "3306"
+      MCP_DB_NAME: sysndd_db
+      MCP_DB_USER: sysndd_mcp
+      MCP_DB_PASSWORD_FILE: /run/mcp-local/mcp-db-password
+      MCP_DB_POOL_SIZE: "2"
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8787"
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "Rscript", "scripts/mcp-healthcheck.R"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    ports:
+      - "127.0.0.1:${MCP_LOCAL_PORT:-8787}:8787"
+    networks:
+      - mcp_local
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/core:/app/core:ro
+      - ./api/services:/app/services:ro
+      - ./api/bootstrap:/app/bootstrap:ro
+      - ./api/config/mcp:/app/config/mcp:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./api/version_spec.json:/app/version_spec.json:ro
+      - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
+      - ./db/migrations:/app/db/migrations:ro
+      - ${MCP_LOCAL_SECRETS:-./secrets/mcp-local}/reader:/run/mcp-local:ro
+
+networks:
+  mcp_local:
+
+volumes:
+  mcp_local_mysql:

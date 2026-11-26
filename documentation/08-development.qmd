@@ -52,6 +52,15 @@ override publishes it on `127.0.0.1:8787`. The MySQL test database (`localhost:7
 and Mailpit (`http://localhost:8025`) come from `make docker-dev-db`, not from
 `make dev`.
 
+To run only the MCP sidecar of the current checkout (for example a release tag, for
+a conformance or benchmark run) without the API or frontend, use
+`make mcp-local-up`. It restores a database dump into a disposable MySQL
+(`MCP_LOCAL_DUMP`, default: the newest dump in the `sysndd_mysql_backup` volume),
+applies pending migrations, provisions the SELECT-only reader and serves MCP on
+`127.0.0.1:8787` (`MCP_LOCAL_PORT`). `make mcp-local-down` stops it;
+`MCP_LOCAL_PURGE=1` also drops the restored database. Secrets and the dump copy live
+in the ignored `secrets/mcp-local/`.
+
 ### Getting data
 
 `make dev` starts with an empty database. To work with real data, restore a backup

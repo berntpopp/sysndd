@@ -3,6 +3,7 @@ source_mcp_tools <- function() {
   source("../../services/mcp-analysis-shaping.R")
   source("../../services/mcp-capabilities-service.R")
   source("../../services/mcp-tool-core.R")
+  source("../../services/mcp-gts.R")
   source("../../services/mcp-tool-resources.R")
   source("../../services/mcp-tools.R")
   source("../../services/mcp-tool-analysis-registry.R")
@@ -112,10 +113,12 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
 
   source_mcp_tools()
 
-  expect_true(mcp_patch_mcptools_instructions("SysNDD custom instructions"))
+  expect_true(mcp_patch_mcptools_instructions("SysNDD custom instructions", version = "1.2.3"))
   capabilities <- get("capabilities", envir = asNamespace("mcptools"))()
 
-  expect_equal(capabilities$serverInfo$name, "SysNDD read-only MCP")
+  expect_equal(capabilities$serverInfo$name, "sysndd-mcp")
+  expect_match(capabilities$serverInfo$name, "^[a-z0-9]+(-[a-z0-9]+)*$")
+  expect_equal(capabilities$serverInfo$version, "1.2.3")
   expect_equal(capabilities$instructions, "SysNDD custom instructions")
   expect_true(is.null(capabilities$capabilities$prompts))
   expect_false(is.null(capabilities$capabilities$resources))
@@ -248,13 +251,13 @@ test_that("MCP analysis output schemas expose budget and data-class fields", {
 
   for (tool_name in analysis_tool_names) {
     schema <- mcp_output_schema(tool_name)
-    expect_true("schema_version" %in% names(schema$properties))
-    expect_true("error" %in% names(schema$properties))
-    expect_true("budget" %in% names(schema$properties))
-    expect_true("meta" %in% names(schema$properties))
+    expect_true(all(c("success", "result", "_meta") %in% names(schema$properties)))
+    payload <- schema$properties$result
+    expect_true("budget" %in% names(payload$properties))
+    expect_true("meta" %in% names(payload$properties))
   }
 
-  nddscore <- mcp_output_schema("get_nddscore_context")
+  nddscore <- mcp_output_schema("get_nddscore_context")$properties$result
   expect_true("data_class" %in% names(nddscore$properties))
   expect_true("curation_effect" %in% names(nddscore$properties))
   expect_true("not_evidence_tier" %in% names(nddscore$properties))
@@ -267,7 +270,8 @@ test_that("MCP tool responses include structuredContent when output schemas are 
   payload <- list(schema_version = "1.0", value = "ok")
   response <- mcp_tool_result_response(1L, payload, output_mode = "json_text")
 
-  expect_equal(response$result$structuredContent, payload)
+  expect_equal(response$result$structuredContent$result, payload)
+  expect_true(response$result$structuredContent$success)
   expect_match(response$result$content[[1]]$text, "\"schema_version\"", fixed = TRUE)
 })
 

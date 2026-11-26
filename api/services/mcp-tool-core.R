@@ -55,7 +55,7 @@ mcp_unknown_arg_error <- function(provided, expected, hint = NULL) {
     if (!is.null(hint) && nzchar(hint)) fields$hint <- hint
     stop(mcp_error(
       "invalid_input",
-      sprintf("Unknown parameter '%s'. Expected: %s", unknown[[1]], paste(expected, collapse = ", ")),
+      sprintf("Unknown parameter. Expected: %s", paste(expected, collapse = ", ")),
       fields
     ))
   }
@@ -101,24 +101,15 @@ MCP_ANALYSIS_TOOL_NAMES <- c(
   "get_gene_network_context"
 )
 
-mcp_output_schema <- function(name) {
+mcp_payload_schema <- function(name) {
   base <- list(
     type = "object",
     properties = list(
-      schema_version = list(type = "string", description = "SysNDD MCP payload schema version."),
-      error = list(
-        type = "object",
-        description = "Present when the tool returns a recoverable application-level error.",
-        properties = list(
-          code = list(type = "string"),
-          message = list(type = "string"),
-          argument = list(type = "string")
-        )
-      )
+      schema_version = list(type = "string", description = "SysNDD MCP payload schema version.")
     ),
     required = list("schema_version"),
     additionalProperties = TRUE,
-    description = sprintf("Stable SysNDD MCP %s result envelope.", name)
+    description = sprintf("SysNDD %s payload.", name)
   )
   if (!name %in% MCP_ANALYSIS_TOOL_NAMES) {
     return(base)
@@ -139,6 +130,11 @@ mcp_output_schema <- function(name) {
   }
   base$description <- sprintf("Stable SysNDD MCP %s analysis envelope with budget, metadata, and recoverable errors.", name)
   base
+}
+
+mcp_output_schema <- function(name) {
+  payload <- mcp_payload_schema(name)
+  mcp_gts_output_schema(payload, "GTS response envelope; the SysNDD payload is under result.")
 }
 
 mcp_fill_array_descriptions <- function(input_schema) {
@@ -186,7 +182,7 @@ mcp_tool_metadata <- function(tools) {
     item <- mcp_hide_deprecated_aliases(item)
     item$annotations <- mcp_tool_annotations(title = item$name)
     item$outputSchema <- mcp_output_schema(item$name)
-    item
+    mcp_gts_add_examples(item)
   })
 }
 

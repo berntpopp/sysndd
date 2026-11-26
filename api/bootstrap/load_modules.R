@@ -287,6 +287,7 @@ bootstrap_load_modules <- function() {
     "services/mcp-research-context-service.R",
     "services/mcp-capabilities-service.R",
     "services/mcp-tool-core.R",
+    "services/mcp-gts.R",
     "services/mcp-tool-resources.R",
     "services/mcp-tools.R",
     "services/mcp-tool-analysis-registry.R",

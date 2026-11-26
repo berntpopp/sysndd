@@ -29,6 +29,13 @@ rpc <- function(method, params = NULL, id = 1L) {
   jsonlite::fromJSON(httr2::resp_body_string(resp), simplifyVector = FALSE)
 }
 
+# Tool results are GTS envelopes: the SysNDD payload is under `result`; an error
+# envelope keeps the SysNDD `error` object beside error_code.
+tool_payload <- function(response) {
+  envelope <- jsonlite::fromJSON(response$result$content[[1]]$text, simplifyVector = FALSE)
+  if (isTRUE(envelope$success)) envelope$result else envelope
+}
+
 init <- rpc("initialize", list(
   protocolVersion = MCP_PROTOCOL_VERSION,
   capabilities = list(),
@@ -248,7 +255,7 @@ if (!is.null(capabilities$error)) stop("Capabilities returned JSON-RPC error: ",
 if (is.null(capabilities$result$structuredContent)) {
   stop("Capabilities response missing structuredContent despite outputSchema")
 }
-capabilities_payload <- jsonlite::fromJSON(capabilities$result$content[[1]]$text, simplifyVector = FALSE)
+capabilities_payload <- tool_payload(capabilities)
 if (!"compact" %in% capabilities_payload$payload_modes$response_mode) {
   stop("Capabilities payload missing response_mode guidance")
 }
@@ -262,7 +269,7 @@ if (is.null(capabilities_payload$analysis_data_classes$ml_prediction) ||
 
 search_gene <- call_tool("search_sysndd", list(query = "PNKP", types = list("gene"), limit = 1L), id = 45L)
 if (!is.null(search_gene$error)) stop("search_sysndd returned JSON-RPC error: ", search_gene$error$message)
-search_payload <- jsonlite::fromJSON(search_gene$result$content[[1]]$text, simplifyVector = FALSE)
+search_payload <- tool_payload(search_gene)
 matches <- search_payload$matches %||% list()
 if (length(matches) == 0L) {
   stop("search_sysndd did not find the approved public smoke gene PNKP")
@@ -271,7 +278,7 @@ gene <- matches[[1]]$id %||% matches[[1]]$label %||% "PNKP"
 
 nmda_search <- call_tool("search_sysndd", list(query = "NMDA receptor", limit = 5L), id = 451L)
 if (!is.null(nmda_search$error)) stop("NMDA receptor search returned JSON-RPC error: ", nmda_search$error$message)
-nmda_payload <- jsonlite::fromJSON(nmda_search$result$content[[1]]$text, simplifyVector = FALSE)
+nmda_payload <- tool_payload(nmda_search)
 if (!identical(nmda_payload$meta$query_tokens, list("NMDA", "RECEPTOR"))) {
   stop("NMDA receptor search did not report expected query tokens")
 }
@@ -284,7 +291,7 @@ if (length(nmda_payload$matches %||% list()) > 1L) {
 
 epilepsy_search <- call_tool("search_sysndd", list(query = "epilepsy aphasia", limit = 5L), id = 452L)
 if (!is.null(epilepsy_search$error)) stop("epilepsy aphasia search returned JSON-RPC error: ", epilepsy_search$error$message)
-epilepsy_payload <- jsonlite::fromJSON(epilepsy_search$result$content[[1]]$text, simplifyVector = FALSE)
+epilepsy_payload <- tool_payload(epilepsy_search)
 if (is.null(epilepsy_payload$meta$query_tokens) || is.null(epilepsy_payload$meta$searched_types)) {
   stop("epilepsy aphasia search did not report diagnostics")
 }
@@ -301,7 +308,7 @@ if (length(epilepsy_matches) == 0L && is.null(epilepsy_payload$meta$zero_result_
 
 catalog <- call_tool("get_sysndd_analysis_catalog", list(), id = 46L)
 if (!is.null(catalog$error)) stop("Analysis catalog returned JSON-RPC error: ", catalog$error$message)
-catalog_payload <- jsonlite::fromJSON(catalog$result$content[[1]]$text, simplifyVector = FALSE)
+catalog_payload <- tool_payload(catalog)
 analysis_ids <- vapply(catalog_payload$analyses %||% list(), function(x) x$analysis_id %||% "", character(1))
 if (!"gene_research_context" %in% analysis_ids || !"nddscore" %in% analysis_ids) {
   stop("Analysis catalog missing required analysis IDs")
@@ -313,7 +320,7 @@ gene_research_dry <- call_tool(
   id = 47L
 )
 if (!is.null(gene_research_dry$error)) stop("Gene research dry-run returned JSON-RPC error: ", gene_research_dry$error$message)
-dry_payload <- jsonlite::fromJSON(gene_research_dry$result$content[[1]]$text, simplifyVector = FALSE)
+dry_payload <- tool_payload(gene_research_dry)
 if (is.null(dry_payload$section_status) || is.null(dry_payload$budget)) {
   stop("Gene research dry-run missing section_status or budget")
 }
@@ -324,7 +331,7 @@ gene_research <- call_tool(
   id = 48L
 )
 if (!is.null(gene_research$error)) stop("Gene research context returned JSON-RPC error: ", gene_research$error$message)
-research_payload <- jsonlite::fromJSON(gene_research$result$content[[1]]$text, simplifyVector = FALSE)
+research_payload <- tool_payload(gene_research)
 if (is.null(research_payload$sections$curated) || is.null(research_payload$section_status$nddscore)) {
   stop("Gene research context missing curated section or nddscore status")
 }
@@ -335,7 +342,7 @@ if (!isTRUE(is.null(nddscore$result$isError) || nddscore$result$isError %in% c(T
   stop("NDDScore did not return a valid tool-result error flag")
 }
 if (!isTRUE(nddscore$result$isError)) {
-  nddscore_payload <- jsonlite::fromJSON(nddscore$result$content[[1]]$text, simplifyVector = FALSE)
+  nddscore_payload <- tool_payload(nddscore)
   if (!identical(nddscore_payload$data_class, "ml_prediction") || !isTRUE(nddscore_payload$not_evidence_tier)) {
     stop("NDDScore payload missing ML prediction evidence-boundary labels")
   }
@@ -344,7 +351,7 @@ if (!isTRUE(nddscore$result$isError)) {
 bad_mode <- call_tool("get_phenotype_analysis_context", list(mode = "raw_matrix"), id = 50L)
 if (!is.null(bad_mode$error)) stop("Invalid phenotype mode returned JSON-RPC error: ", bad_mode$error$message)
 if (!isTRUE(bad_mode$result$isError)) stop("Invalid phenotype mode did not return a tool error result")
-bad_mode_payload <- jsonlite::fromJSON(bad_mode$result$content[[1]]$text, simplifyVector = FALSE)
+bad_mode_payload <- tool_payload(bad_mode)
 if (!identical(bad_mode_payload$error$code, "invalid_input")) {
   stop("Invalid phenotype mode did not return invalid_input")
 }
@@ -355,7 +362,7 @@ phenotype_corr <- call_tool(
   id = 501L
 )
 if (!is.null(phenotype_corr$error)) stop("Phenotype correlation dry-run returned JSON-RPC error: ", phenotype_corr$error$message)
-phenotype_corr_payload <- jsonlite::fromJSON(phenotype_corr$result$content[[1]]$text, simplifyVector = FALSE)
+phenotype_corr_payload <- tool_payload(phenotype_corr)
 if (isTRUE(phenotype_corr$result$isError)) {
   if (!identical(phenotype_corr_payload$error$code, "snapshot_missing")) {
     stop("Phenotype correlation dry-run returned unexpected error code")
@@ -370,7 +377,7 @@ network_dry <- call_tool(
   id = 502L
 )
 if (!is.null(network_dry$error)) stop("Gene network diagnostics returned JSON-RPC error: ", network_dry$error$message)
-network_dry_payload <- jsonlite::fromJSON(network_dry$result$content[[1]]$text, simplifyVector = FALSE)
+network_dry_payload <- tool_payload(network_dry)
 if (isTRUE(network_dry$result$isError)) {
   if (!identical(network_dry_payload$error$code, "snapshot_missing")) {
     stop("Gene network diagnostics returned unexpected tool error")
@@ -386,7 +393,7 @@ unsupported_network <- call_tool(
 )
 if (!is.null(unsupported_network$error)) stop("Unsupported network parameter returned JSON-RPC error: ", unsupported_network$error$message)
 if (!isTRUE(unsupported_network$result$isError)) stop("Unsupported network parameter did not return a tool error result")
-unsupported_network_payload <- jsonlite::fromJSON(unsupported_network$result$content[[1]]$text, simplifyVector = FALSE)
+unsupported_network_payload <- tool_payload(unsupported_network)
 if (!identical(unsupported_network_payload$error$code, "unsupported_parameter")) {
   stop("Unsupported network parameter did not return unsupported_parameter")
 }
@@ -394,7 +401,7 @@ if (!identical(unsupported_network_payload$error$code, "unsupported_parameter"))
 malformed_pmid <- call_tool("get_publication_context", list(pmid = "notapmid"), id = 5L)
 if (!is.null(malformed_pmid$error)) stop("Malformed PMID returned JSON-RPC error: ", malformed_pmid$error$message)
 if (!isTRUE(malformed_pmid$result$isError)) stop("Malformed PMID did not return a tool error result")
-pmid_payload <- jsonlite::fromJSON(malformed_pmid$result$content[[1]]$text, simplifyVector = FALSE)
+pmid_payload <- tool_payload(malformed_pmid)
 if (!identical(pmid_payload$error$code, "invalid_input") || !identical(pmid_payload$error$argument, "pmid")) {
   stop("Malformed PMID did not return invalid_input for pmid")
 }
@@ -406,7 +413,7 @@ bad_category <- call_tool(
 )
 if (!is.null(bad_category$error)) stop("Invalid phenotype category returned JSON-RPC error: ", bad_category$error$message)
 if (!isTRUE(bad_category$result$isError)) stop("Invalid phenotype category did not return a tool error result")
-category_payload <- jsonlite::fromJSON(bad_category$result$content[[1]]$text, simplifyVector = FALSE)
+category_payload <- tool_payload(bad_category)
 if (!identical(category_payload$error$code, "invalid_input") || !identical(category_payload$error$argument, "category")) {
   stop("Invalid phenotype category did not return invalid_input for category")
 }
@@ -420,7 +427,7 @@ zero_disease <- call_tool(
 )
 if (!is.null(zero_disease$error)) stop("zero-result disease search returned JSON-RPC error: ", zero_disease$error$message)
 if (isTRUE(zero_disease$result$isError)) stop("zero-result disease search returned an unexpected tool error")
-zero_disease_payload <- jsonlite::fromJSON(zero_disease$result$content[[1]]$text, simplifyVector = FALSE)
+zero_disease_payload <- tool_payload(zero_disease)
 if (!identical(zero_disease_payload$disease, "zzzz nonexistent disorder zzzz") ||
   !identical(zero_disease_payload$meta$query_echo, "zzzz nonexistent disorder zzzz")) {
   stop("zero-result disease search did not echo the requested term")
@@ -436,7 +443,7 @@ zero_phenotype <- call_tool(
 )
 if (!is.null(zero_phenotype$error)) stop("zero-result phenotype search returned JSON-RPC error: ", zero_phenotype$error$message)
 if (!isTRUE(zero_phenotype$result$isError)) {
-  zero_phenotype_payload <- jsonlite::fromJSON(zero_phenotype$result$content[[1]]$text, simplifyVector = FALSE)
+  zero_phenotype_payload <- tool_payload(zero_phenotype)
   if (!identical(zero_phenotype_payload$meta$query_echo, "HP:0000000")) {
     stop("zero-result phenotype search did not echo the requested term")
   }
@@ -445,7 +452,7 @@ if (!isTRUE(zero_phenotype$result$isError)) {
 symbol_alias <- call_tool("get_gene_context", list(symbol = "NAA10", entity_limit = 1L), id = 7L)
 if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ", symbol_alias$error$message)
 if (!isTRUE(symbol_alias$result$isError)) stop("symbol alias did not return a tool error result")
-symbol_payload <- jsonlite::fromJSON(symbol_alias$result$content[[1]]$text, simplifyVector = FALSE)
+symbol_payload <- tool_payload(symbol_alias)
 if (!identical(symbol_payload$error$code, "invalid_input") || !identical(symbol_payload$error$argument, "symbol")) {
   stop("symbol alias did not return invalid_input for symbol")
 }
@@ -453,14 +460,14 @@ if (!identical(symbol_payload$error$code, "invalid_input") || !identical(symbol_
 query_alias <- call_tool("get_gene_context", list(query = "NAA10", entity_limit = 1L), id = 8L)
 if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", query_alias$error$message)
 if (!isTRUE(query_alias$result$isError)) stop("query alias did not return a tool error result")
-query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
+query_payload <- tool_payload(query_alias)
 if (!identical(query_payload$error$code, "invalid_input") || !identical(query_payload$error$argument, "query")) {
   stop("query alias did not return invalid_input for query")
 }
 
 gene_batch <- call_tool("get_genes_context", list(genes = list("PNKP")), id = 80L)
 if (!is.null(gene_batch$error)) stop("get_genes_context returned JSON-RPC error: ", gene_batch$error$message)
-gene_batch_payload <- jsonlite::fromJSON(gene_batch$result$content[[1]]$text, simplifyVector = FALSE)
+gene_batch_payload <- tool_payload(gene_batch)
 if (!identical(gene_batch_payload$meta$requested, 1L)) {
   stop("get_genes_context did not report the requested gene count")
 }
@@ -471,7 +478,7 @@ cheap_gene <- call_tool(
   id = 81L
 )
 if (!is.null(cheap_gene$error)) stop("cheap get_gene_context returned JSON-RPC error: ", cheap_gene$error$message)
-cheap_gene_payload <- jsonlite::fromJSON(cheap_gene$result$content[[1]]$text, simplifyVector = FALSE)
+cheap_gene_payload <- tool_payload(cheap_gene)
 if (length(cheap_gene_payload$comparison_sources %||% list()) != 0L) {
   stop("cheap get_gene_context returned comparison_sources")
 }
@@ -489,7 +496,7 @@ if (length(entity_ids) > 0L) {
     id = 82L
   )
   if (!is.null(batch$error)) stop("deduped get_entities_context returned JSON-RPC error: ", batch$error$message)
-  batch_payload <- jsonlite::fromJSON(batch$result$content[[1]]$text, simplifyVector = FALSE)
+  batch_payload <- tool_payload(batch)
   if (!isTRUE(batch_payload$meta$dedupe_publications)) {
     stop("get_entities_context did not report dedupe_publications")
   }
@@ -507,7 +514,7 @@ if (length(entity_ids) > 0L) {
       id = 821L
     )
     if (!is.null(publication_detail$error)) stop("get_publication_context returned JSON-RPC error: ", publication_detail$error$message)
-    publication_payload <- jsonlite::fromJSON(publication_detail$result$content[[1]]$text, simplifyVector = FALSE)
+    publication_payload <- tool_payload(publication_detail)
     linked_entities <- publication_payload$linked_entities %||% list()
     if (length(linked_entities) > 0L &&
       any(!vapply(linked_entities, function(x) !is.null(x$publication_type), logical(1)))) {
@@ -519,8 +526,8 @@ if (length(entity_ids) > 0L) {
     if (is.null(structured_text)) {
       stop("get_publication_context response missing structuredContent despite outputSchema")
     }
-    if (is.list(structured_text$publication_type) &&
-      length(structured_text$publication_type) == 0L) {
+    if (is.list(structured_text$result$publication_type) &&
+      length(structured_text$result$publication_type) == 0L) {
       stop("get_publication_context publication_type serialized as an empty object instead of null/string")
     }
   }
@@ -537,7 +544,7 @@ if (length(entity_ids) > 0L) {
     id = 83L
   )
   if (!is.null(expanded_gene$error)) stop("expanded get_gene_context returned JSON-RPC error: ", expanded_gene$error$message)
-  expanded_payload <- jsonlite::fromJSON(expanded_gene$result$content[[1]]$text, simplifyVector = FALSE)
+  expanded_payload <- tool_payload(expanded_gene)
   if (!identical(expanded_payload$meta$expand, "entities") || is.null(expanded_payload$entity_details)) {
     stop("get_gene_context expand=entities did not return entity_details")
   }
@@ -550,7 +557,7 @@ if (length(entity_ids) > 0L) {
 bad_gene_arg <- call_tool("get_gene_context", list(foo = "NAA10"), id = 9L)
 if (!is.null(bad_gene_arg$error)) stop("Unknown gene arg returned JSON-RPC error: ", bad_gene_arg$error$message)
 if (!isTRUE(bad_gene_arg$result$isError)) stop("Unknown gene arg did not return a tool error result")
-bad_gene_payload <- jsonlite::fromJSON(bad_gene_arg$result$content[[1]]$text, simplifyVector = FALSE)
+bad_gene_payload <- tool_payload(bad_gene_arg)
 if (!identical(bad_gene_payload$error$code, "invalid_input") || !identical(bad_gene_payload$error$argument, "foo")) {
   stop("Unknown gene arg did not return invalid_input for foo")
 }

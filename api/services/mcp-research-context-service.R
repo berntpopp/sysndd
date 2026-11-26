@@ -119,7 +119,7 @@ mcp_get_gene_research_context <- function(gene,
   if (length(invalid) > 0L) {
     stop(mcp_error(
       "invalid_input",
-      sprintf("Unsupported section: %s", invalid[[1]]),
+      "Unsupported section; supported sections are listed in allowed_values.",
       list(argument = "sections", allowed_values = as.list(MCP_GENE_RESEARCH_SECTIONS))
     ))
   }
