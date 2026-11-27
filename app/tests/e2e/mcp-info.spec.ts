@@ -47,7 +47,7 @@ test.describe('MCP public information and protocol proxy', () => {
     }
     const body = await response.json();
     expect(body.result.protocolVersion).toBe('2025-11-25');
-    expect(body.result.serverInfo.name).toBe('SysNDD read-only MCP');
+    expect(body.result.serverInfo.name).toBe('sysndd-mcp');
     expect(body.result.instructions).toContain('read-only access');
   });
 });
